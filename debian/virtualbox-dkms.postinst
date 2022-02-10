@@ -10,11 +10,3 @@ if [ "$1" = configure ]; then
 		invoke-rc.d virtualbox restart || true
 	fi
 fi
-
-if [ ! -e /etc/modules-load.d/virtualbox.conf ] && [ -z "$2" ]; then
-cat << EOF > /etc/modules-load.d/virtualbox.conf
-vboxdrv
-vboxnetadp
-vboxnetflt
-EOF
-fi

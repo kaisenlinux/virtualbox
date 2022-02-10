@@ -1,3 +1,10 @@
+virtualbox (6.1.32-3kaisen) kaisen-packages; urgency=medium
+
+  * Remove virtualbox-dkms.postrm
+  * Install modules in /etc/modules-load.d/virtualbox.conf with conffile
+
+ -- Kevin Chevreuil - Kaisen <kaisen@kaisenlinux.org>  Thu, 10 Feb 2022 12:00:28 +0100
+
 virtualbox (6.1.32-2kaisen) kaisen-packages; urgency=medium
 
   * Import Debian upstream release
