@@ -1,3 +1,9 @@
+virtualbox (6.1.32-4kaisen) kaisen-packages; urgency=medium
+
+  * Rebuild to update xserver:Depends
+
+ -- Kevin Chevreuil - Kaisen <kaisen@kaisenlinux.org>  Thu, 24 Feb 2022 19:35:37 +0100
+
 virtualbox (6.1.32-3kaisen) kaisen-packages; urgency=medium
 
   * Remove virtualbox-dkms.postrm
