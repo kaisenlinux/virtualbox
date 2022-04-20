@@ -1,3 +1,9 @@
+virtualbox (6.1.32-5kaisen) kaisen-packages; urgency=medium
+
+  * Rebuild to update python3:Depends
+
+ -- Kevin Chevreuil - Kaisen <kaisen@kaisenlinux.org>  Wed, 20 Apr 2022 01:10:11 +0100
+
 virtualbox (6.1.32-4kaisen) kaisen-packages; urgency=medium
 
   * Rebuild to update xserver:Depends
