@@ -1,3 +1,27 @@
+virtualbox (6.1.34-1kaisen) kaisen-packages; urgency=medium
+
+  * Import new upstream release with a patch from upstream to fix a empty memset code
+
+ -- Kevin Chevreuil - Kaisen <kaisen@kaisenlinux.org>  Fri, 22 Apr 2022 21:02:43 +0100
+
+virtualbox (6.1.34-dfsg-2) unstable; urgency=medium
+
+  * Add ffreestanding.patch proposed from upstream to fix a empty memset code
+    generation with newer gccs
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Thu, 21 Apr 2022 11:42:03 +0200
+
+virtualbox (6.1.34-dfsg-1) unstable; urgency=medium
+
+  * Fix udev rule:
+    - If there is a NAME, the line "Only network interfaces can be renamed,
+      ignoring NAME" is written in the log
+
+  [ Gianfranco Costamagna ]
+  * New upstream version 6.1.34-dfsg
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Wed, 20 Apr 2022 11:27:31 +0200
+
 virtualbox (6.1.32-5kaisen) kaisen-packages; urgency=medium
 
   * Rebuild to update python3:Depends
