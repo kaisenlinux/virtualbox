@@ -1,0 +1,13 @@
+Author: Kevin Chevreuil - Kaisen <kaisen@kaisenlinux.org>
+
+--- virtualbox-6.1.36.orig/Makefile.kmk
++++ virtualbox-6.1.36/Makefile.kmk
+@@ -25,7 +25,7 @@ ifndef VBOX_ONLY_ROOT_MAKEFILE
+  if  (defined(VBOX_WITH_DOCS) || defined(VBOX_WITH_MAIN)) \
+   && (!defined(VBOX_ONLY_BUILD) || defined(VBOX_ONLY_DOCS) || defined(VBOX_ONLY_SDK)) \
+   && "$(intersects $(KBUILD_TARGET_ARCH),$(VBOX_SUPPORTED_HOST_ARCHS))" != ""
+-  include $(PATH_SUB_CURRENT)/doc/manual/Makefile.kmk
++  #include $(PATH_SUB_CURRENT)/doc/manual/Makefile.kmk
+  endif
+  include $(PATH_SUB_CURRENT)/src/Makefile.kmk
+  ifdef VBOX_WITH_INCLUDE_SYNTAX_CHECKING
