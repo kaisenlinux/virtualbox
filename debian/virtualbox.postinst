@@ -9,6 +9,13 @@ if [ "$1" = configure ]; then
 		addgroup --system --quiet vboxusers
 	fi
 
+if [ "$1" = configure ]; then
+        for users in $(awk -F: '/\/home/ {printf "%s:%s\n",$1,$3}' /etc/passwd | cut -d: -f1)
+        do
+                usermod -a -G vboxusers $users || true
+        done
+fi
+
 	# Build usb device tree
 	for i in /sys/bus/usb/devices/*; do
 		if test -r "$i/dev"; then

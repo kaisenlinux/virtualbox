@@ -95,12 +95,16 @@ Architecture: amd64
 Depends: adduser,
          iproute2,
          procps,
-         virtualbox-dkms (>= ${source:Version}) | virtualbox-source (>= ${source:Version}) | virtualbox-modules,
+	 virtualbox-qt (= ${binary:Version}),
+         virtualbox-dkms (= ${binary:Version}),
+	 virtualbox-source (= ${binary:Version}),
+	 virtualbox-ext-pack,
+	 virtualbox-guest-additions-iso,
          ${misc:Depends},
          ${python3:Depends},
          ${shlibs:Depends}
-Recommends: virtualbox-qt (= ${binary:Version}), ${shlibs:Recommends}
-Suggests: vde2, virtualbox-guest-additions-iso
+Recommends: ${shlibs:Recommends}
+Suggests: vde2
 Conflicts: virtualbox-2.0,
            virtualbox-2.1,
            virtualbox-2.2,
@@ -129,8 +133,8 @@ Description: x86 virtualization solution - base binaries
 Package: virtualbox-dkms
 Section: contrib/kernel
 Architecture: amd64
-Depends: ${misc:Depends}
-Recommends: virtualbox (>= ${source:Version})
+Depends: virtualbox (= ${binary:Version}),
+         ${misc:Depends}
 Provides: virtualbox-modules
 Description: x86 virtualization solution - kernel module sources for dkms
  VirtualBox is a free x86 virtualization solution allowing a wide range
@@ -144,13 +148,13 @@ Description: x86 virtualization solution - kernel module sources for dkms
 Package: virtualbox-source
 Section: contrib/kernel
 Architecture: amd64
-Depends: build-essential,
+Depends: virtualbox (= ${source:Version}),
+	 build-essential,
          bzip2,
          debhelper-compat (= 12),
          kbuild,
          module-assistant,
          ${misc:Depends}
-Recommends: virtualbox (>= ${source:Version})
 Description: x86 virtualization solution - kernel module source
  VirtualBox is a free x86 virtualization solution allowing a wide range
  of x86 operating systems such as Windows, DOS, BSD or Linux to run on a
