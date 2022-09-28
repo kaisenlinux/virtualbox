@@ -8,7 +8,7 @@ Build-Depends: bzip2,
                default-jdk,
                jaxws,
                dh-python,
-               dkms,
+               dh-sequence-dkms,
                docbook-xml,
                docbook-xsl,
                dpkg-dev (>= 1.15.6~),
@@ -77,6 +77,7 @@ Rules-Requires-Root: binary-targets
 Homepage: https://www.virtualbox.org
 Vcs-Browser: https://gitlab.com/kaisenlinux/packages/virtualbox
 Vcs-Git: https://gitlab.com/kaisenlinux/packages/virtualbox.git
+Testsuite: autopkgtest-pkg-dkms
 
 Package: virtualbox-qt
 Architecture: amd64
@@ -95,11 +96,11 @@ Architecture: amd64
 Depends: adduser,
          iproute2,
          procps,
-	 virtualbox-qt (= ${binary:Version}),
+         virtualbox-qt (= ${binary:Version}),
          virtualbox-dkms (= ${binary:Version}),
-	 virtualbox-source (= ${binary:Version}),
-	 virtualbox-ext-pack,
-	 virtualbox-guest-additions-iso,
+         virtualbox-source (= ${binary:Version}),
+         virtualbox-ext-pack,
+         virtualbox-guest-additions-iso,
          ${misc:Depends},
          ${python3:Depends},
          ${shlibs:Depends}
@@ -133,8 +134,8 @@ Description: x86 virtualization solution - base binaries
 Package: virtualbox-dkms
 Section: contrib/kernel
 Architecture: amd64
-Depends: virtualbox (= ${binary:Version}),
-         ${misc:Depends}
+Depends: ${misc:Depends}
+Recommends: virtualbox (>= ${source:Version})
 Provides: virtualbox-modules
 Description: x86 virtualization solution - kernel module sources for dkms
  VirtualBox is a free x86 virtualization solution allowing a wide range
