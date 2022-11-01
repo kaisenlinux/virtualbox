@@ -4,15 +4,25 @@
  */
 
 /*
- * Copyright (C) 2006-2020 Oracle Corporation
+ * Copyright (C) 2006-2022 Oracle and/or its affiliates.
  *
- * This file is part of VirtualBox Open Source Edition (OSE), as
- * available from http://www.virtualbox.org. This file is free software;
- * you can redistribute it and/or modify it under the terms of the GNU
- * General Public License (GPL) as published by the Free Software
- * Foundation, in version 2 as it comes in the "COPYING" file of the
- * VirtualBox OSE distribution. VirtualBox OSE is distributed in the
- * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
+ * This file is part of VirtualBox base platform packages, as
+ * available from https://www.virtualbox.org.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, in version 3 of the
+ * License.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, see <https://www.gnu.org/licenses>.
+ *
+ * SPDX-License-Identifier: GPL-3.0-only
  */
 
 #ifndef VMM_INCLUDED_SRC_include_EMInternal_h
@@ -28,7 +38,7 @@
 #include <VBox/dis.h>
 #include <VBox/vmm/pdmcritsect.h>
 #include <iprt/avl.h>
-#include <setjmp.h>
+#include <iprt/setjmp-without-sigmask.h>
 
 RT_C_DECLS_BEGIN
 
@@ -77,39 +87,6 @@ typedef struct CLISTAT
 #ifdef IN_RING3
 AssertCompileMemberAlignment(CLISTAT, Counter, 8);
 #endif
-
-
-/**
- * Excessive (used to be) EM statistics.
- */
-typedef struct EMSTATS
-{
-#if 1 /* rawmode only? */
-    /** @name Privileged Instructions Ending Up In HC.
-     * @{ */
-    STAMCOUNTER             StatIoRestarted;
-    STAMCOUNTER             StatIoIem;
-    STAMCOUNTER             StatCli;
-    STAMCOUNTER             StatSti;
-    STAMCOUNTER             StatInvlpg;
-    STAMCOUNTER             StatHlt;
-    STAMCOUNTER             StatMovReadCR[DISCREG_CR4 + 1];
-    STAMCOUNTER             StatMovWriteCR[DISCREG_CR4 + 1];
-    STAMCOUNTER             StatMovDRx;
-    STAMCOUNTER             StatIret;
-    STAMCOUNTER             StatMovLgdt;
-    STAMCOUNTER             StatMovLldt;
-    STAMCOUNTER             StatMovLidt;
-    STAMCOUNTER             StatMisc;
-    STAMCOUNTER             StatSysEnter;
-    STAMCOUNTER             StatSysExit;
-    STAMCOUNTER             StatSysCall;
-    STAMCOUNTER             StatSysRet;
-    /** @} */
-#endif
-} EMSTATS;
-/** Pointer to the excessive EM statistics. */
-typedef EMSTATS *PEMSTATS;
 
 
 /**
@@ -187,9 +164,6 @@ typedef struct EMCPU
      *  EMSTATE_IEM_THEN_REM state. */
     uint32_t                cIemThenRemInstructions;
 
-    /** Inhibit interrupts for this instruction. Valid only when VM_FF_INHIBIT_INTERRUPTS is set. */
-    RTGCUINTPTR             GCPtrInhibitInterrupts;
-
     /** Start of the current time slice in ms. */
     uint64_t                u64TimeSliceStart;
     /** Start of the current time slice in thread execution time (ms). */
@@ -218,8 +192,10 @@ typedef struct EMCPU
         RTGCPTR             uMonitorRDX;    /**< Monitor hint. */
     } MWait;
 
+#if 0
     /** Make sure the jmp_buf is at a 32-byte boundrary. */
-    uint64_t                au64Padding1[3];
+    uint64_t                au64Padding1[4];
+#endif
     union
     {
         /** Padding used in the other rings.
@@ -260,6 +236,8 @@ typedef struct EMCPU
 
     /** R3: Profiling of emR3RawExecuteIOInstruction. */
     STAMPROFILE             StatIOEmu;
+    STAMCOUNTER             StatIoRestarted;
+    STAMCOUNTER             StatIoIem;
     /** R3: Profiling of emR3RawPrivileged. */
     STAMPROFILE             StatPrivEmu;
     /** R3: Number of times emR3HmExecute is called. */
@@ -267,16 +245,8 @@ typedef struct EMCPU
     /** R3: Number of times emR3NEMExecute is called. */
     STAMCOUNTER             StatNEMExecuteCalled;
 
-    /** More statistics (R3). */
-    R3PTRTYPE(PEMSTATS)     pStatsR3;
-    /** More statistics (R0). */
-    R0PTRTYPE(PEMSTATS)     pStatsR0;
-
-    /** Tree for keeping track of cli occurrences (debug only). */
-    R3PTRTYPE(PAVLGCPTRNODECORE) pCliStatTree;
-    STAMCOUNTER             StatTotalClis;
-    /** Align the next member at a 16-byte boundrary. */
-    uint64_t                au64Padding2[1];
+    /** Align the next member at a 32-byte boundrary. */
+    uint64_t                au64Padding2[1+2];
 
     /** Exit history table (6KB). */
     EMEXITENTRY             aExitHistory[256];

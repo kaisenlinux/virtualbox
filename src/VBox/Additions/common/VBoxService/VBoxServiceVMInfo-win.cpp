@@ -4,15 +4,25 @@
  */
 
 /*
- * Copyright (C) 2009-2020 Oracle Corporation
+ * Copyright (C) 2009-2022 Oracle and/or its affiliates.
  *
- * This file is part of VirtualBox Open Source Edition (OSE), as
- * available from http://www.virtualbox.org. This file is free software;
- * you can redistribute it and/or modify it under the terms of the GNU
- * General Public License (GPL) as published by the Free Software
- * Foundation, in version 2 as it comes in the "COPYING" file of the
- * VirtualBox OSE distribution. VirtualBox OSE is distributed in the
- * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
+ * This file is part of VirtualBox base platform packages, as
+ * available from https://www.virtualbox.org.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, in version 3 of the
+ * License.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, see <https://www.gnu.org/licenses>.
+ *
+ * SPDX-License-Identifier: GPL-3.0-only
  */
 
 
@@ -47,12 +57,6 @@
 #include "VBoxServiceVMInfo.h"
 #include "../../WINNT/VBoxTray/VBoxTrayMsg.h" /* For IPC. */
 
-static uint32_t s_uDebugGuestPropClientID = 0;
-static uint32_t s_uDebugIter = 0;
-/** Whether to skip the logged-in user detection over RDP or not.
- *  See notes in this section why we might want to skip this. */
-static bool s_fSkipRDPDetection = false;
-
 
 /*********************************************************************************************************************************
 *   Structures and Typedefs                                                                                                      *
@@ -60,9 +64,9 @@ static bool s_fSkipRDPDetection = false;
 /** Structure for storing the looked up user information. */
 typedef struct VBOXSERVICEVMINFOUSER
 {
-    WCHAR wszUser[_MAX_PATH];
-    WCHAR wszAuthenticationPackage[_MAX_PATH];
-    WCHAR wszLogonDomain[_MAX_PATH];
+    WCHAR wszUser[MAX_PATH];
+    WCHAR wszAuthenticationPackage[MAX_PATH];
+    WCHAR wszLogonDomain[MAX_PATH];
     /** Number of assigned user processes. */
     ULONG ulNumProcs;
     /** Last (highest) session ID. This
@@ -106,6 +110,12 @@ static int  vgsvcVMInfoWinWriteLastInput(PVBOXSERVICEVEPROPCACHE pCache, const c
 /*********************************************************************************************************************************
 *   Global Variables                                                                                                             *
 *********************************************************************************************************************************/
+static uint32_t s_uDebugGuestPropClientID = 0;
+static uint32_t s_uDebugIter = 0;
+/** Whether to skip the logged-in user detection over RDP or not.
+ *  See notes in this section why we might want to skip this. */
+static bool s_fSkipRDPDetection = false;
+
 static RTONCE                                   g_vgsvcWinVmInitOnce = RTONCE_INITIALIZER;
 
 /** @name Secur32.dll imports are dynamically resolved because of NT4.
@@ -802,9 +812,9 @@ static bool vgsvcVMInfoWinIsLoggedIn(PVBOXSERVICEVMINFOUSER pUserInfo, PLUID pSe
         vgsvcVMInfoWinSafeCopy(pUserInfo->wszLogonDomain, sizeof(pUserInfo->wszLogonDomain),
                                &pSessionData->LogonDomain, "Logon domain name");
 
-        TCHAR           szOwnerName[_MAX_PATH]  = { 0 };
+        TCHAR           szOwnerName[MAX_PATH]   = { 0 };
         DWORD           dwOwnerNameSize         = sizeof(szOwnerName);
-        TCHAR           szDomainName[_MAX_PATH] = { 0 };
+        TCHAR           szDomainName[MAX_PATH]  = { 0 };
         DWORD           dwDomainNameSize        = sizeof(szDomainName);
         SID_NAME_USE    enmOwnerType            = SidTypeInvalid;
         if (!LookupAccountSid(NULL,
@@ -951,23 +961,22 @@ static int vgsvcVMInfoWinWriteLastInput(PVBOXSERVICEVEPROPCACHE pCache, const ch
             VBOXTRAYIPCHEADER ipcHdr =
             {
                 /* .uMagic      = */ VBOXTRAY_IPC_HDR_MAGIC,
-                /* .uHdrVersion = */ 0,
-                /* .uMsgType    = */ VBOXTRAYIPCMSGTYPE_USERLASTINPUT,
-                /* .cbMsgData   = */ 0 /* No msg */
+                /* .uVersion    = */ VBOXTRAY_IPC_HDR_VERSION,
+                /* .enmMsgType  = */ VBOXTRAYIPCMSGTYPE_USER_LAST_INPUT,
+                /* .cbPayload   = */ 0 /* No payload */
             };
 
             rc = RTLocalIpcSessionWrite(hSession, &ipcHdr, sizeof(ipcHdr));
-
             if (RT_SUCCESS(rc))
             {
-                VBOXTRAYIPCRES_USERLASTINPUT ipcRes;
-                rc = RTLocalIpcSessionRead(hSession, &ipcRes, sizeof(ipcRes), NULL /* Exact read */);
+                VBOXTRAYIPCREPLY_USER_LAST_INPUT_T ipcReply;
+                rc = RTLocalIpcSessionRead(hSession, &ipcReply, sizeof(ipcReply), NULL /* Exact read */);
                 if (   RT_SUCCESS(rc)
                     /* If uLastInput is set to UINT32_MAX VBoxTray was not able to retrieve the
                      * user's last input time. This might happen when running on Windows NT4 or older. */
-                    && ipcRes.uLastInput != UINT32_MAX)
+                    && ipcReply.cSecSinceLastInput != UINT32_MAX)
                 {
-                    userState = (ipcRes.uLastInput * 1000) < g_uVMInfoUserIdleThresholdMS
+                    userState = ipcReply.cSecSinceLastInput * 1000 < g_uVMInfoUserIdleThresholdMS
                               ? VBoxGuestUserState_InUse
                               : VBoxGuestUserState_Idle;
 
@@ -981,12 +990,12 @@ static int vgsvcVMInfoWinWriteLastInput(PVBOXSERVICEVEPROPCACHE pCache, const ch
                      */
                     fReportToHost = rc == VINF_SUCCESS;
                     VGSvcVerbose(4, "User '%s' (domain '%s') is idle for %RU32, fReportToHost=%RTbool\n",
-                                 pszUser, pszDomain ? pszDomain : "<None>", ipcRes.uLastInput, fReportToHost);
+                                 pszUser, pszDomain ? pszDomain : "<None>", ipcReply.cSecSinceLastInput, fReportToHost);
 
 #if 0 /* Do we want to write the idle time as well? */
                         /* Also write the user's current idle time, if there is any. */
                         if (userState == VBoxGuestUserState_Idle)
-                            rc = vgsvcUserUpdateF(pCache, pszUser, pszDomain, "IdleTimeMs", "%RU32", ipcRes.uLastInputMs);
+                            rc = vgsvcUserUpdateF(pCache, pszUser, pszDomain, "IdleTimeMs", "%RU32", ipcReply.cSecSinceLastInput);
                         else
                             rc = vgsvcUserUpdateF(pCache, pszUser, pszDomain, "IdleTimeMs", NULL /* Delete property */);
 
@@ -994,7 +1003,7 @@ static int vgsvcVMInfoWinWriteLastInput(PVBOXSERVICEVEPROPCACHE pCache, const ch
 #endif
                 }
 #ifdef DEBUG
-                else if (RT_SUCCESS(rc) && ipcRes.uLastInput == UINT32_MAX)
+                else if (RT_SUCCESS(rc) && ipcReply.cSecSinceLastInput == UINT32_MAX)
                     VGSvcVerbose(4, "Last input for user '%s' is not supported, skipping\n", pszUser, rc);
 #endif
             }
@@ -1165,9 +1174,9 @@ int VGSvcVMInfoWinWriteUsers(PVBOXSERVICEVEPROPCACHE pCache, char **ppszUserList
                         PVBOXSERVICEVMINFOUSER pCurUser = &pUserInfo[a];
                         AssertPtr(pCurUser);
 
-                        if (   !wcscmp(userSession.wszUser, pCurUser->wszUser)
-                            && !wcscmp(userSession.wszLogonDomain, pCurUser->wszLogonDomain)
-                            && !wcscmp(userSession.wszAuthenticationPackage, pCurUser->wszAuthenticationPackage))
+                        if (   !RTUtf16Cmp(userSession.wszUser, pCurUser->wszUser)
+                            && !RTUtf16Cmp(userSession.wszLogonDomain, pCurUser->wszLogonDomain)
+                            && !RTUtf16Cmp(userSession.wszAuthenticationPackage, pCurUser->wszAuthenticationPackage))
                         {
                             /*
                              * Only respect the highest session for the current user.
@@ -1296,16 +1305,16 @@ int VGSvcVMInfoWinWriteUsers(PVBOXSERVICEVEPROPCACHE pCache, char **ppszUserList
 int VGSvcVMInfoWinGetComponentVersions(uint32_t uClientID)
 {
     int rc;
-    char szSysDir[_MAX_PATH] = {0};
-    char szWinDir[_MAX_PATH] = {0};
-    char szDriversDir[_MAX_PATH + 32] = {0};
+    char szSysDir[MAX_PATH] = {0};
+    char szWinDir[MAX_PATH] = {0};
+    char szDriversDir[MAX_PATH + 32] = {0};
 
     /* ASSUME: szSysDir and szWinDir and derivatives are always ASCII compatible. */
-    GetSystemDirectory(szSysDir, _MAX_PATH);
-    GetWindowsDirectory(szWinDir, _MAX_PATH);
+    GetSystemDirectory(szSysDir, MAX_PATH);
+    GetWindowsDirectory(szWinDir, MAX_PATH);
     RTStrPrintf(szDriversDir, sizeof(szDriversDir), "%s\\drivers", szSysDir);
 #ifdef RT_ARCH_AMD64
-    char szSysWowDir[_MAX_PATH + 32] = {0};
+    char szSysWowDir[MAX_PATH + 32] = {0};
     RTStrPrintf(szSysWowDir, sizeof(szSysWowDir), "%s\\SysWow64", szWinDir);
 #endif
 

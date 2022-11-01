@@ -4,15 +4,25 @@
  */
 
 /*
- * Copyright (C) 2006-2020 Oracle Corporation
+ * Copyright (C) 2006-2022 Oracle and/or its affiliates.
  *
- * This file is part of VirtualBox Open Source Edition (OSE), as
- * available from http://www.virtualbox.org. This file is free software;
- * you can redistribute it and/or modify it under the terms of the GNU
- * General Public License (GPL) as published by the Free Software
- * Foundation, in version 2 as it comes in the "COPYING" file of the
- * VirtualBox OSE distribution. VirtualBox OSE is distributed in the
- * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
+ * This file is part of VirtualBox base platform packages, as
+ * available from https://www.virtualbox.org.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, in version 3 of the
+ * License.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, see <https://www.gnu.org/licenses>.
+ *
+ * SPDX-License-Identifier: GPL-3.0-only
  */
 
 
@@ -215,12 +225,12 @@ static DECLCALLBACK(int) dbgfR3DisasInstrRead(PDISCPUSTATE pDis, uint8_t offInst
          * Need to update the page translation?
          */
         if (    !pState->pvPageR3
-            ||  (GCPtr >> PAGE_SHIFT) != (pState->GCPtrPage >> PAGE_SHIFT))
+            ||  (GCPtr >> GUEST_PAGE_SHIFT) != (pState->GCPtrPage >> GUEST_PAGE_SHIFT))
         {
             int rc = VINF_SUCCESS;
 
             /* translate the address */
-            pState->GCPtrPage = GCPtr & PAGE_BASE_GC_MASK;
+            pState->GCPtrPage = GCPtr & ~(RTGCPTR)GUEST_PAGE_OFFSET_MASK;
             if (pState->fLocked)
                 PGMPhysReleasePageMappingLock(pState->pVM, &pState->PageMapLock);
             if (pState->enmMode <= PGMMODE_PROTECTED)
@@ -246,7 +256,7 @@ static DECLCALLBACK(int) dbgfR3DisasInstrRead(PDISCPUSTATE pDis, uint8_t offInst
         /*
          * Calc how much we can read, maxing out the read.
          */
-        uint32_t cb = PAGE_SIZE - (GCPtr & PAGE_OFFSET_MASK);
+        uint32_t cb = GUEST_PAGE_SIZE - (GCPtr & GUEST_PAGE_OFFSET_MASK);
         if (!pState->f64Bits)
         {
             RTGCUINTPTR cbSeg = pState->GCPtrSegEnd - GCPtr;
@@ -259,7 +269,7 @@ static DECLCALLBACK(int) dbgfR3DisasInstrRead(PDISCPUSTATE pDis, uint8_t offInst
         /*
          * Read and advance,
          */
-        memcpy(&pDis->abInstr[offInstr], (char *)pState->pvPageR3 + (GCPtr & PAGE_OFFSET_MASK), cb);
+        memcpy(&pDis->abInstr[offInstr], (char *)pState->pvPageR3 + (GCPtr & GUEST_PAGE_OFFSET_MASK), cb);
         offInstr  += (uint8_t)cb;
         if (cb >= cbMinRead)
         {
@@ -372,14 +382,13 @@ dbgfR3DisasInstrExOnVCpu(PVM pVM, PVMCPU pVCpu, RTSEL Sel, PRTGCPTR pGCPtr, uint
     /*
      * Get the Sel and GCPtr if fFlags requests that.
      */
-    PCCPUMCTXCORE  pCtxCore   = NULL;
-    PCCPUMSELREG   pSRegCS    = NULL;
+    PCCPUMCTX      pCtx    = CPUMQueryGuestCtxPtr(pVCpu);
+    PCCPUMSELREG   pSRegCS = NULL;
     if (fFlags & DBGF_DISAS_FLAGS_CURRENT_GUEST)
     {
-        pCtxCore   = CPUMGetGuestCtxCore(pVCpu);
-        Sel        = pCtxCore->cs.Sel;
-        pSRegCS    = &pCtxCore->cs;
-        GCPtr      = pCtxCore->rip;
+        Sel        = pCtx->cs.Sel;
+        pSRegCS    = &pCtx->cs;
+        GCPtr      = pCtx->rip;
     }
     /*
      * Check if the selector matches the guest CS, use the hidden
@@ -387,11 +396,10 @@ dbgfR3DisasInstrExOnVCpu(PVM pVM, PVMCPU pVCpu, RTSEL Sel, PRTGCPTR pGCPtr, uint
      */
     else
     {
-        pCtxCore = CPUMGetGuestCtxCore(pVCpu);
-        if (pCtxCore->cs.Sel == Sel && Sel != DBGF_SEL_FLAT)
-            pSRegCS = &pCtxCore->cs;
+        if (pCtx->cs.Sel == Sel && Sel != DBGF_SEL_FLAT)
+            pSRegCS = &pCtx->cs;
         else
-            pCtxCore = NULL;
+            pCtx = NULL;
     }
 
     /*
@@ -414,7 +422,7 @@ dbgfR3DisasInstrExOnVCpu(PVM pVM, PVMCPU pVCpu, RTSEL Sel, PRTGCPTR pGCPtr, uint
         SelInfo.cbLimit                 = pSRegCS->u32Limit;
         SelInfo.fFlags                  = PGMMODE_IS_LONG_MODE(enmMode)
                                         ? DBGFSELINFO_FLAGS_LONG_MODE
-                                        : enmMode != PGMMODE_REAL && !pCtxCore->eflags.Bits.u1VM
+                                        : enmMode != PGMMODE_REAL && !pCtx->eflags.Bits.u1VM
                                         ? DBGFSELINFO_FLAGS_PROT_MODE
                                         : DBGFSELINFO_FLAGS_REAL_MODE;
 
@@ -446,7 +454,7 @@ dbgfR3DisasInstrExOnVCpu(PVM pVM, PVMCPU pVCpu, RTSEL Sel, PRTGCPTR pGCPtr, uint
         SelInfo.u.Raw.Gen.u16LimitLow   = 0xffff;
         SelInfo.u.Raw.Gen.u4LimitHigh   = 0xf;
 
-        pSRegCS = &CPUMGetGuestCtxCore(pVCpu)->cs;
+        pSRegCS = &CPUMQueryGuestCtxPtr(pVCpu)->cs;
         if (CPUMSELREG_ARE_HIDDEN_PARTS_VALID(pVCpu, pSRegCS))
         {
             /* Assume the current CS defines the execution mode. */
@@ -467,7 +475,7 @@ dbgfR3DisasInstrExOnVCpu(PVM pVM, PVMCPU pVCpu, RTSEL Sel, PRTGCPTR pGCPtr, uint
             SelInfo.u.Raw.Gen.u4Type        = X86_SEL_TYPE_EO;
         }
     }
-    else if (   (pCtxCore && pCtxCore->eflags.Bits.u1VM)
+    else if (   (pCtx && pCtx->eflags.Bits.u1VM)
              || enmMode == PGMMODE_REAL
              || (fFlags & DBGF_DISAS_FLAGS_MODE_MASK) == DBGF_DISAS_FLAGS_16BIT_REAL_MODE)
     {   /* V86 mode or real mode - real mode addressing */

@@ -5,15 +5,25 @@ rem Windows NT batch script for unpacking drivers after being signed.
 rem
 
 rem
-rem Copyright (C) 2018-2020 Oracle Corporation
+rem Copyright (C) 2018-2022 Oracle and/or its affiliates.
 rem
-rem This file is part of VirtualBox Open Source Edition (OSE), as
-rem available from http://www.virtualbox.org. This file is free software;
-rem you can redistribute it and/or modify it under the terms of the GNU
-rem General Public License (GPL) as published by the Free Software
-rem Foundation, in version 2 as it comes in the "COPYING" file of the
-rem VirtualBox OSE distribution. VirtualBox OSE is distributed in the
-rem hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
+rem This file is part of VirtualBox base platform packages, as
+rem available from https://www.virtualbox.org.
+rem
+rem This program is free software; you can redistribute it and/or
+rem modify it under the terms of the GNU General Public License
+rem as published by the Free Software Foundation, in version 3 of the
+rem License.
+rem
+rem This program is distributed in the hope that it will be useful, but
+rem WITHOUT ANY WARRANTY; without even the implied warranty of
+rem MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+rem General Public License for more details.
+rem
+rem You should have received a copy of the GNU General Public License
+rem along with this program; if not, see <https://www.gnu.org/licenses>.
+rem
+rem SPDX-License-Identifier: GPL-3.0-only
 rem
 
 
@@ -141,9 +151,12 @@ for %%d in (%_MY_DRIVER_BASE_NAMES%) do (
     @echo * Verifying %%d against %%d.cat...
     "%_MY_SIGNTOOL%" verify /kp /c "%_MY_OPT_BINDIR%\%%d.cat"        "%_MY_OPT_BINDIR%\%%d.inf" || goto end_failed
     "%_MY_SIGNTOOL%" verify /kp /c "%_MY_OPT_BINDIR%\%%d.cat"        "%_MY_OPT_BINDIR%\%%d.sys" || goto end_failed
-    @echo * Verifying %%d against %%d-PreW10.cat...
-    "%_MY_SIGNTOOL%" verify /kp /c "%_MY_OPT_BINDIR%\%%d-PreW10.cat" "%_MY_OPT_BINDIR%\%%d.inf" || goto end_failed
-    "%_MY_SIGNTOOL%" verify /kp /c "%_MY_OPT_BINDIR%\%%d-PreW10.cat" "%_MY_OPT_BINDIR%\%%d.sys" || goto end_failed
+    rem The following is disabled because signtool.exe does not accept these
+    rem signatures because it fails to look at the timestamp. Eventually should
+    rem replace this by doing out own signature verification in RTSignTool.
+    rem @echo * Verifying %%d against %%d-PreW10.cat...
+    rem "%_MY_SIGNTOOL%" verify /kp /c "%_MY_OPT_BINDIR%\%%d-PreW10.cat" "%_MY_OPT_BINDIR%\%%d.inf" || goto end_failed
+    rem "%_MY_SIGNTOOL%" verify /kp /c "%_MY_OPT_BINDIR%\%%d-PreW10.cat" "%_MY_OPT_BINDIR%\%%d.sys" || goto end_failed
 )
 :no_sign_verify
 

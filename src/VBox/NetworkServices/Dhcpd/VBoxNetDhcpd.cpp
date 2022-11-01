@@ -4,15 +4,25 @@
  */
 
 /*
- * Copyright (C) 2009-2020 Oracle Corporation
+ * Copyright (C) 2009-2022 Oracle and/or its affiliates.
  *
- * This file is part of VirtualBox Open Source Edition (OSE), as
- * available from http://www.virtualbox.org. This file is free software;
- * you can redistribute it and/or modify it under the terms of the GNU
- * General Public License (GPL) as published by the Free Software
- * Foundation, in version 2 as it comes in the "COPYING" file of the
- * VirtualBox OSE distribution. VirtualBox OSE is distributed in the
- * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
+ * This file is part of VirtualBox base platform packages, as
+ * available from https://www.virtualbox.org.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, in version 3 of the
+ * License.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, see <https://www.gnu.org/licenses>.
+ *
+ * SPDX-License-Identifier: GPL-3.0-only
  */
 
 
@@ -69,13 +79,15 @@ extern "C"
 #include "netif/etharp.h"
 }
 
-#include <string>
+#include <iprt/sanitized/string>
 #include <vector>
 #include <memory>
 
 #ifdef RT_OS_WINDOWS
 # include <iprt/win/windows.h>
 #endif
+
+#include "IntNetIf.h"
 
 struct delete_pbuf
 {
@@ -86,32 +98,9 @@ struct delete_pbuf
 typedef std::unique_ptr<pbuf, delete_pbuf> unique_ptr_pbuf;
 
 
-#define CALL_VMMR0(op, req) \
-    (SUPR3CallVMMR0Ex(NIL_RTR0PTR, NIL_VMCPUID, (op), 0, &(req).Hdr))
-
-
 class VBoxNetDhcpd
 {
     DECLARE_CLS_COPY_CTOR_ASSIGN_NOOP(VBoxNetDhcpd);
-
-private:
-    PRTLOGGER m_pStderrReleaseLogger;
-
-    /* intnet plumbing */
-    PSUPDRVSESSION m_pSession;
-    INTNETIFHANDLE m_hIf;
-    PINTNETBUF m_pIfBuf;
-
-    /* lwip stack connected to the intnet */
-    struct netif m_LwipNetif;
-
-    Config *m_Config;
-
-    /* listening pcb */
-    struct udp_pcb *m_Dhcp4Pcb;
-
-    DHCPD m_server;
-
 public:
     VBoxNetDhcpd();
     ~VBoxNetDhcpd();
@@ -119,35 +108,30 @@ public:
     int main(int argc, char **argv);
 
 private:
+    /** The logger instance. */
+    PRTLOGGER       m_pStderrReleaseLogger;
+    /** Internal network interface handle. */
+    INTNETIFCTX     m_hIf;
+    /** lwip stack connected to the intnet */
+    struct netif    m_LwipNetif;
+    /** The DHCP server config. */
+    Config          *m_Config;
+    /** Listening pcb */
+    struct udp_pcb  *m_Dhcp4Pcb;
+    /** DHCP server instance. */
+    DHCPD           m_server;
+
     int logInitStderr();
 
     /*
-     * Boilerplate code.
+     * Internal network plumbing.
      */
-    int r3Init();
-    void r3Fini();
-
-    int vmmInit();
-
     int ifInit(const RTCString &strNetwork,
                const RTCString &strTrunk = RTCString(),
                INTNETTRUNKTYPE enmTrunkType = kIntNetTrunkType_WhateverNone);
-    int ifOpen(const RTCString &strNetwork,
-               const RTCString &strTrunk,
-               INTNETTRUNKTYPE enmTrunkType);
-    int ifGetBuf();
-    int ifActivate();
 
-    int ifProcessInput();
-    int ifFlush();
-
-    int ifClose();
-
-    void ifPump();
-    int ifInput(void *pvSegFrame, uint32_t cbSegFrame);
-
-    int ifOutput(PCINTNETSEG paSegs, size_t cSegs, size_t cbFrame);
-
+    static DECLCALLBACK(void) ifInput(void *pvUser, void *pvFrame, uint32_t cbFrame);
+    void ifInputWorker(void *pvFrame, uint32_t cbFrame);
 
     /*
      * lwIP callbacks
@@ -155,43 +139,37 @@ private:
     static DECLCALLBACK(void) lwipInitCB(void *pvArg);
     void lwipInit();
 
-    static err_t netifInitCB(netif *pNetif);
+    static err_t netifInitCB(netif *pNetif) RT_NOTHROW_PROTO;
     err_t netifInit(netif *pNetif);
 
-    static err_t netifLinkOutputCB(netif *pNetif, pbuf *pPBuf);
+    static err_t netifLinkOutputCB(netif *pNetif, pbuf *pPBuf) RT_NOTHROW_PROTO;
     err_t netifLinkOutput(pbuf *pPBuf);
 
     static void dhcp4RecvCB(void *arg, struct udp_pcb *pcb, struct pbuf *p,
-                            ip_addr_t *addr, u16_t port);
+                            ip_addr_t *addr, u16_t port) RT_NOTHROW_PROTO;
     void dhcp4Recv(struct udp_pcb *pcb, struct pbuf *p, ip_addr_t *addr, u16_t port);
 };
 
 
 VBoxNetDhcpd::VBoxNetDhcpd()
   : m_pStderrReleaseLogger(NULL),
-    m_pSession(NIL_RTR0PTR),
-    m_hIf(INTNET_HANDLE_INVALID),
-    m_pIfBuf(NULL),
+    m_hIf(NULL),
     m_LwipNetif(),
     m_Config(NULL),
     m_Dhcp4Pcb(NULL)
 {
-    int rc;
-
     logInitStderr();
-
-    rc = r3Init();
-    if (RT_FAILURE(rc))
-        return;
-
-    vmmInit();
 }
 
 
 VBoxNetDhcpd::~VBoxNetDhcpd()
 {
-    ifClose();
-    r3Fini();
+    if (m_hIf != NULL)
+    {
+        int rc = IntNetR3IfDestroy(m_hIf);
+        AssertRC(rc);
+        m_hIf = NULL;
+    }
 }
 
 
@@ -206,19 +184,17 @@ int VBoxNetDhcpd::logInitStderr()
 {
     static const char * const s_apszGroups[] = VBOX_LOGGROUP_NAMES;
 
-    PRTLOGGER pLogger;
-    int rc;
-
     uint32_t fFlags = 0;
 #if defined(RT_OS_WINDOWS) || defined(RT_OS_OS2)
     fFlags |= RTLOGFLAGS_USECRLF;
 #endif
 
-    rc = RTLogCreate(&pLogger, fFlags,
-                     "all -sup all.restrict -default.restrict",
-                     NULL,      /* environment base */
-                     RT_ELEMENTS(s_apszGroups), s_apszGroups,
-                     RTLOGDEST_STDERR, NULL);
+    PRTLOGGER pLogger;
+    int rc = RTLogCreate(&pLogger, fFlags,
+                         "all -sup all.restrict -default.restrict",
+                         NULL,      /* environment base */
+                         RT_ELEMENTS(s_apszGroups), s_apszGroups,
+                         RTLOGDEST_STDERR, NULL);
     if (RT_FAILURE(rc))
     {
         RTPrintf("Failed to init stderr logger: %Rrs\n", rc);
@@ -232,252 +208,27 @@ int VBoxNetDhcpd::logInitStderr()
 }
 
 
-int VBoxNetDhcpd::r3Init()
-{
-    AssertReturn(m_pSession == NIL_RTR0PTR, VERR_GENERAL_FAILURE);
-
-    int rc = SUPR3Init(&m_pSession);
-    return rc;
-}
-
-
-void VBoxNetDhcpd::r3Fini()
-{
-    if (m_pSession == NIL_RTR0PTR)
-        return;
-
-    SUPR3Term();
-    m_pSession = NIL_RTR0PTR;
-}
-
-
-int VBoxNetDhcpd::vmmInit()
-{
-    char szPathVMMR0[RTPATH_MAX];
-    int rc = RTPathExecDir(szPathVMMR0, sizeof(szPathVMMR0));
-    if (RT_SUCCESS(rc))
-        rc = RTPathAppend(szPathVMMR0, sizeof(szPathVMMR0), "VMMR0.r0");
-    if (RT_SUCCESS(rc))
-        rc = SUPR3LoadVMM(szPathVMMR0, NULL /*pErrInfo*/);
-    return rc;
-}
-
-
 int VBoxNetDhcpd::ifInit(const RTCString &strNetwork,
                          const RTCString &strTrunk,
                          INTNETTRUNKTYPE enmTrunkType)
 {
-    int rc;
+    if (enmTrunkType == kIntNetTrunkType_Invalid)
+        enmTrunkType = kIntNetTrunkType_WhateverNone;
 
-    rc = ifOpen(strNetwork, strTrunk, enmTrunkType);
-    if (RT_FAILURE(rc))
-        return rc;
+    int rc = IntNetR3IfCreateEx(&m_hIf, strNetwork.c_str(), enmTrunkType,
+                                strTrunk.c_str(), _128K /*cbSend*/, _256K /*cbRecv*/,
+                                0 /*fFlags*/);
+    if (RT_SUCCESS(rc))
+        rc = IntNetR3IfSetActive(m_hIf, true /*fActive*/);
 
-    rc = ifGetBuf();
-    if (RT_FAILURE(rc))
-        return rc;
-
-    rc = ifActivate();
-    if (RT_FAILURE(rc))
-        return rc;
-
-    return VINF_SUCCESS;
-}
-
-
-int VBoxNetDhcpd::ifOpen(const RTCString &strNetwork,
-                         const RTCString &strTrunk,
-                         INTNETTRUNKTYPE enmTrunkType)
-{
-    AssertReturn(m_pSession != NIL_RTR0PTR, VERR_GENERAL_FAILURE);
-    AssertReturn(m_hIf == INTNET_HANDLE_INVALID, VERR_GENERAL_FAILURE);
-
-    INTNETOPENREQ OpenReq;
-    RT_ZERO(OpenReq);
-
-    OpenReq.Hdr.u32Magic = SUPVMMR0REQHDR_MAGIC;
-    OpenReq.Hdr.cbReq = sizeof(OpenReq);
-    OpenReq.pSession = m_pSession;
-
-    int rc = RTStrCopy(OpenReq.szNetwork, sizeof(OpenReq.szNetwork), strNetwork.c_str());
-    AssertRCReturn(rc, rc);
-
-    rc = RTStrCopy(OpenReq.szTrunk, sizeof(OpenReq.szTrunk), strTrunk.c_str());
-    AssertRCReturn(rc, rc);
-
-    if (enmTrunkType != kIntNetTrunkType_Invalid)
-        OpenReq.enmTrunkType = enmTrunkType;
-    else
-        OpenReq.enmTrunkType = kIntNetTrunkType_WhateverNone;
-
-    OpenReq.fFlags = 0;
-    OpenReq.cbSend = _128K;
-    OpenReq.cbRecv = _256K;
-
-    OpenReq.hIf = INTNET_HANDLE_INVALID;
-
-    rc = CALL_VMMR0(VMMR0_DO_INTNET_OPEN, OpenReq);
-    if (RT_FAILURE(rc))
-        return rc;
-
-    m_hIf = OpenReq.hIf;
-    AssertReturn(m_hIf != INTNET_HANDLE_INVALID, VERR_GENERAL_FAILURE);
-
-    return VINF_SUCCESS;
-}
-
-
-int VBoxNetDhcpd::ifGetBuf()
-{
-    AssertReturn(m_pSession != NIL_RTR0PTR, VERR_GENERAL_FAILURE);
-    AssertReturn(m_hIf != INTNET_HANDLE_INVALID, VERR_GENERAL_FAILURE);
-    AssertReturn(m_pIfBuf == NULL, VERR_GENERAL_FAILURE);
-
-    INTNETIFGETBUFFERPTRSREQ GetBufferPtrsReq;
-    int rc;
-
-    GetBufferPtrsReq.Hdr.u32Magic = SUPVMMR0REQHDR_MAGIC;
-    GetBufferPtrsReq.Hdr.cbReq = sizeof(GetBufferPtrsReq);
-    GetBufferPtrsReq.pSession = m_pSession;
-    GetBufferPtrsReq.hIf = m_hIf;
-
-    GetBufferPtrsReq.pRing0Buf = NIL_RTR0PTR;
-    GetBufferPtrsReq.pRing3Buf = NULL;
-
-    rc = CALL_VMMR0(VMMR0_DO_INTNET_IF_GET_BUFFER_PTRS, GetBufferPtrsReq);
-    if (RT_FAILURE(rc))
-        return rc;
-
-    m_pIfBuf = GetBufferPtrsReq.pRing3Buf;
-    AssertReturn(m_pIfBuf != NULL, VERR_GENERAL_FAILURE);
-
-    return VINF_SUCCESS;
-}
-
-
-int VBoxNetDhcpd::ifActivate()
-{
-    AssertReturn(m_pSession != NIL_RTR0PTR, VERR_GENERAL_FAILURE);
-    AssertReturn(m_hIf != INTNET_HANDLE_INVALID, VERR_GENERAL_FAILURE);
-    AssertReturn(m_pIfBuf != NULL, VERR_GENERAL_FAILURE);
-
-    INTNETIFSETACTIVEREQ ActiveReq;
-    int rc;
-
-    ActiveReq.Hdr.u32Magic = SUPVMMR0REQHDR_MAGIC;
-    ActiveReq.Hdr.cbReq = sizeof(ActiveReq);
-    ActiveReq.pSession = m_pSession;
-    ActiveReq.hIf = m_hIf;
-
-    ActiveReq.fActive = 1;
-
-    rc = CALL_VMMR0(VMMR0_DO_INTNET_IF_SET_ACTIVE, ActiveReq);
     return rc;
 }
 
 
-/**
- * Process incoming packages forever.
- *
- * @note This function normally never returns, given that the process is
- *       typically just killed when shutting down a network.
- */
-void VBoxNetDhcpd::ifPump()
+void VBoxNetDhcpd::ifInputWorker(void *pvFrame, uint32_t cbFrame)
 {
-    for (;;)
-    {
-        /*
-         * Wait for input:
-         */
-        INTNETIFWAITREQ WaitReq;
-        WaitReq.Hdr.u32Magic = SUPVMMR0REQHDR_MAGIC;
-        WaitReq.Hdr.cbReq = sizeof(WaitReq);
-        WaitReq.pSession = m_pSession;
-        WaitReq.hIf = m_hIf;
-        WaitReq.cMillies = RT_INDEFINITE_WAIT;
-        int rc = CALL_VMMR0(VMMR0_DO_INTNET_IF_WAIT, WaitReq);
-
-        /*
-         * Process any pending input before we wait again:
-         */
-        if (   RT_SUCCESS(rc)
-            || rc == VERR_INTERRUPTED
-            || rc == VERR_TIMEOUT /* paranoia */)
-            ifProcessInput();
-        else
-        {
-            DHCP_LOG_MSG_ERROR(("ifWait failed: %Rrc\n", rc));
-            return;
-        }
-    }
-}
-
-
-int VBoxNetDhcpd::ifProcessInput()
-{
-    AssertReturn(m_pSession != NIL_RTR0PTR, VERR_GENERAL_FAILURE);
-    AssertReturn(m_hIf != INTNET_HANDLE_INVALID, VERR_GENERAL_FAILURE);
-    AssertReturn(m_pIfBuf != NULL, VERR_GENERAL_FAILURE);
-
-    PCINTNETHDR pHdr = IntNetRingGetNextFrameToRead(&m_pIfBuf->Recv);
-    while (pHdr)
-    {
-        const uint8_t u8Type = pHdr->u8Type;
-        void *pvSegFrame;
-        uint32_t cbSegFrame;
-
-        if (u8Type == INTNETHDR_TYPE_FRAME)
-        {
-            pvSegFrame = IntNetHdrGetFramePtr(pHdr, m_pIfBuf);
-            cbSegFrame = pHdr->cbFrame;
-
-            ifInput(pvSegFrame, cbSegFrame);
-        }
-        else if (u8Type == INTNETHDR_TYPE_GSO)
-        {
-            size_t cbGso = pHdr->cbFrame;
-            size_t cbFrame = cbGso - sizeof(PDMNETWORKGSO);
-
-            PCPDMNETWORKGSO pGso = IntNetHdrGetGsoContext(pHdr, m_pIfBuf);
-            if (PDMNetGsoIsValid(pGso, cbGso, cbFrame))
-            {
-                const uint32_t cSegs = PDMNetGsoCalcSegmentCount(pGso, cbFrame);
-                for (uint32_t i = 0; i < cSegs; ++i)
-                {
-                    uint8_t abHdrScratch[256];
-                    pvSegFrame = PDMNetGsoCarveSegmentQD(pGso, (uint8_t *)(pGso + 1), cbFrame,
-                                                         abHdrScratch,
-                                                         i, cSegs,
-                                                         &cbSegFrame);
-                    ifInput(pvSegFrame, (uint32_t)cbFrame);
-                }
-            }
-        }
-
-        /* Advance: */
-        IntNetRingSkipFrame(&m_pIfBuf->Recv);
-        pHdr = IntNetRingGetNextFrameToRead(&m_pIfBuf->Recv);
-    }
-
-    return VINF_SUCCESS;
-}
-
-
-/**
- * Got a frame from the internal network, feed it to the lwIP stack.
- */
-int VBoxNetDhcpd::ifInput(void *pvFrame, uint32_t cbFrame)
-{
-    if (pvFrame == NULL)
-        return VERR_INVALID_PARAMETER;
-
-    if (   cbFrame <= sizeof(RTNETETHERHDR)
-        || cbFrame > UINT16_MAX - ETH_PAD_SIZE)
-        return VERR_INVALID_PARAMETER;
-
     struct pbuf *p = pbuf_alloc(PBUF_RAW, (u16_t)cbFrame + ETH_PAD_SIZE, PBUF_POOL);
-    if (RT_UNLIKELY(p == NULL))
-        return VERR_NO_MEMORY;
+    AssertPtrReturnVoid(p);
 
     /*
      * The code below is inlined version of:
@@ -506,7 +257,21 @@ int VBoxNetDhcpd::ifInput(void *pvFrame, uint32_t cbFrame)
     } while (RT_UNLIKELY(q != NULL));
 
     m_LwipNetif.input(p, &m_LwipNetif);
-    return VINF_SUCCESS;
+}
+
+
+/**
+ * Got a frame from the internal network, feed it to the lwIP stack.
+ */
+/*static*/
+DECLCALLBACK(void) VBoxNetDhcpd::ifInput(void *pvUser, void *pvFrame, uint32_t cbFrame)
+{
+    AssertReturnVoid(pvFrame);
+    AssertReturnVoid(   cbFrame > sizeof(RTNETETHERHDR)
+                     && cbFrame <= UINT16_MAX - ETH_PAD_SIZE);
+
+    VBoxNetDhcpd *self = static_cast<VBoxNetDhcpd *>(pvUser);
+    self->ifInputWorker(pvFrame, cbFrame);
 }
 
 
@@ -518,53 +283,15 @@ err_t VBoxNetDhcpd::netifLinkOutput(pbuf *pPBuf)
     if (pPBuf->tot_len < sizeof(struct eth_hdr)) /* includes ETH_PAD_SIZE */
         return ERR_ARG;
 
-    PINTNETHDR pHdr;
-    void *pvFrame;
     u16_t cbFrame = pPBuf->tot_len - ETH_PAD_SIZE;
-    int rc = IntNetRingAllocateFrame(&m_pIfBuf->Send, cbFrame, &pHdr, &pvFrame);
+    INTNETFRAME Frame;
+    int rc = IntNetR3IfQueryOutputFrame(m_hIf, cbFrame, &Frame);
     if (RT_FAILURE(rc))
         return ERR_MEM;
 
-    pbuf_copy_partial(pPBuf, pvFrame, cbFrame, ETH_PAD_SIZE);
-    IntNetRingCommitFrameEx(&m_pIfBuf->Send, pHdr, cbFrame);
-
-    ifFlush();
+    pbuf_copy_partial(pPBuf, Frame.pvFrame, cbFrame, ETH_PAD_SIZE);
+    IntNetR3IfOutputFrameCommit(m_hIf, &Frame);
     return ERR_OK;
-}
-
-
-int VBoxNetDhcpd::ifFlush()
-{
-    INTNETIFSENDREQ SendReq;
-
-    SendReq.Hdr.u32Magic = SUPVMMR0REQHDR_MAGIC;
-    SendReq.Hdr.cbReq = sizeof(SendReq);
-    SendReq.pSession = m_pSession;
-
-    SendReq.hIf = m_hIf;
-
-    return CALL_VMMR0(VMMR0_DO_INTNET_IF_SEND, SendReq);
-}
-
-
-int VBoxNetDhcpd::ifClose()
-{
-    if (m_hIf == INTNET_HANDLE_INVALID)
-        return VINF_SUCCESS;
-
-    INTNETIFCLOSEREQ CloseReq;
-
-    CloseReq.Hdr.u32Magic = SUPVMMR0REQHDR_MAGIC;
-    CloseReq.Hdr.cbReq = sizeof(CloseReq);
-    CloseReq.pSession = m_pSession;
-
-    CloseReq.hIf = m_hIf;
-
-    m_hIf = INTNET_HANDLE_INVALID;
-    m_pIfBuf = NULL;
-
-    CALL_VMMR0(VMMR0_DO_INTNET_IF_CLOSE, CloseReq);
-    return VINF_SUCCESS;
 }
 
 
@@ -577,7 +304,7 @@ int VBoxNetDhcpd::ifClose()
 }
 
 
-/* static */ err_t VBoxNetDhcpd::netifInitCB(netif *pNetif)
+/* static */ err_t VBoxNetDhcpd::netifInitCB(netif *pNetif) RT_NOTHROW_DEF
 {
     AssertPtrReturn(pNetif, ERR_ARG);
 
@@ -586,7 +313,7 @@ int VBoxNetDhcpd::ifClose()
 }
 
 
-/* static */ err_t VBoxNetDhcpd::netifLinkOutputCB(netif *pNetif, pbuf *pPBuf)
+/* static */ err_t VBoxNetDhcpd::netifLinkOutputCB(netif *pNetif, pbuf *pPBuf) RT_NOTHROW_DEF
 {
     AssertPtrReturn(pNetif, ERR_ARG);
     AssertPtrReturn(pPBuf, ERR_ARG);
@@ -600,7 +327,7 @@ int VBoxNetDhcpd::ifClose()
 
 /* static */ void VBoxNetDhcpd::dhcp4RecvCB(void *arg, struct udp_pcb *pcb,
                                             struct pbuf *p,
-                                            ip_addr_t *addr, u16_t port)
+                                            ip_addr_t *addr, u16_t port) RT_NOTHROW_DEF
 {
     AssertPtrReturnVoid(arg);
 
@@ -645,7 +372,8 @@ int VBoxNetDhcpd::main(int argc, char **argv)
                 /*
                  * Pump packets more or less for ever.
                  */
-                ifPump();
+                rc = IntNetR3IfPumpPkts(m_hIf, ifInput, this,
+                                        NULL /*pfnInputGso*/, NULL /*pvUserGso*/);
             }
             else
                 DHCP_LOG_MSG_ERROR(("Terminating - vboxLwipCoreInitialize failed: %Rrc\n", rc));
@@ -777,7 +505,6 @@ extern "C" DECLEXPORT(int) TrustedMain(int argc, char **argv)
 {
     VBoxNetDhcpd Dhcpd;
     int rc = Dhcpd.main(argc, argv);
-
     return RT_SUCCESS(rc) ? RTEXITCODE_SUCCESS : RTEXITCODE_FAILURE;
 }
 
@@ -787,10 +514,9 @@ extern "C" DECLEXPORT(int) TrustedMain(int argc, char **argv)
 int main(int argc, char **argv)
 {
     int rc = RTR3InitExe(argc, &argv, RTR3INIT_FLAGS_SUPLIB);
-    if (RT_FAILURE(rc))
-        return RTMsgInitFailure(rc);
-
-    return TrustedMain(argc, argv);
+    if (RT_SUCCESS(rc))
+        return TrustedMain(argc, argv);
+    return RTMsgInitFailure(rc);
 }
 
 

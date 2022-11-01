@@ -14,6 +14,7 @@ Build-Depends: bzip2,
                dpkg-dev (>= 1.15.6~),
                g++-multilib,
                genisoimage,
+               glslang-tools,
                gsoap,
                acpica-tools,
                kbuild (>= 1:0.1.9998svn3098~),
@@ -28,6 +29,7 @@ Build-Depends: bzip2,
                libgsoap-dev,
                liblzf-dev,
                libidl-dev,
+               libogg-dev,
                libopus-dev,
                libpam0g-dev,
                libpixman-1-dev,
@@ -35,10 +37,12 @@ Build-Depends: bzip2,
                libpulse-dev,
                libqt5x11extras5-dev,
                libqt5opengl5-dev,
-               qttools5-dev-tools,
+               qttools5-dev,
                libsdl1.2-dev,
                libssl-dev,
+               libtpms-dev,
                libvncserver-dev,
+               libvorbis-dev,
                libvpx-dev,
                libx11-dev,
                libxcomposite-dev,
@@ -72,7 +76,7 @@ Build-Depends: bzip2,
                yasm,
                zlib1g-dev
 X-Python-Version: >= 2.5
-Standards-Version: 4.6.0
+Standards-Version: 4.6.1
 Rules-Requires-Root: binary-targets
 Homepage: https://www.virtualbox.org
 Vcs-Browser: https://gitlab.com/kaisenlinux/packages/virtualbox
@@ -121,6 +125,7 @@ Conflicts: virtualbox-2.0,
            virtualbox-5.2,
            virtualbox-6.0,
            virtualbox-6.1,
+           virtualbox-7.0,
 Description: x86 virtualization solution - base binaries
  VirtualBox is a free x86 virtualization solution allowing a wide range
  of x86 operating systems such as Windows, DOS, BSD or Linux to run on a

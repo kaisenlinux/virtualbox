@@ -4,15 +4,25 @@
  */
 
 /*
- * Copyright (C) 2006-2020 Oracle Corporation
+ * Copyright (C) 2006-2022 Oracle and/or its affiliates.
  *
- * This file is part of VirtualBox Open Source Edition (OSE), as
- * available from http://www.virtualbox.org. This file is free software;
- * you can redistribute it and/or modify it under the terms of the GNU
- * General Public License (GPL) as published by the Free Software
- * Foundation, in version 2 as it comes in the "COPYING" file of the
- * VirtualBox OSE distribution. VirtualBox OSE is distributed in the
- * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
+ * This file is part of VirtualBox base platform packages, as
+ * available from https://www.virtualbox.org.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, in version 3 of the
+ * License.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, see <https://www.gnu.org/licenses>.
+ *
+ * SPDX-License-Identifier: GPL-3.0-only
  */
 
 
@@ -24,9 +34,7 @@
 #include <VBox/disopcode.h>
 #include <iprt/errcore.h>
 #include <VBox/log.h>
-#ifdef RT_ARCH_AMD64
-# include <VBox/vmm/cpum.h>
-#endif
+#include <VBox/vmm/cpum.h>
 #include <iprt/assert.h>
 #include <iprt/string.h>
 #include <iprt/stdarg.h>
@@ -36,8 +44,6 @@
 /*********************************************************************************************************************************
 *   Global Variables                                                                                                             *
 *********************************************************************************************************************************/
-#ifdef RT_ARCH_AMD64
-
 /**
  * Array for accessing 64-bit general registers in VMMREGFRAME structure
  * by register's index from disasm.
@@ -65,9 +71,9 @@ static const unsigned g_aReg64Index[] =
 /**
  * Macro for accessing 64-bit general purpose registers in CPUMCTXCORE structure.
  */
-# define DIS_READ_REG64(p, idx)       (*(uint64_t *)((char *)(p) + g_aReg64Index[idx]))
-# define DIS_WRITE_REG64(p, idx, val) (*(uint64_t *)((char *)(p) + g_aReg64Index[idx]) = val)
-# define DIS_PTR_REG64(p, idx)        ( (uint64_t *)((char *)(p) + g_aReg64Index[idx]))
+#define DIS_READ_REG64(p, idx)       (*(uint64_t *)((char *)(p) + g_aReg64Index[idx]))
+#define DIS_WRITE_REG64(p, idx, val) (*(uint64_t *)((char *)(p) + g_aReg64Index[idx]) = val)
+#define DIS_PTR_REG64(p, idx)        ( (uint64_t *)((char *)(p) + g_aReg64Index[idx]))
 
 /**
  * Array for accessing 32-bit general registers in VMMREGFRAME structure
@@ -96,14 +102,14 @@ static const unsigned g_aReg32Index[] =
 /**
  * Macro for accessing 32-bit general purpose registers in CPUMCTXCORE structure.
  */
-# define DIS_READ_REG32(p, idx)       (*(uint32_t *)((char *)(p) + g_aReg32Index[idx]))
+#define DIS_READ_REG32(p, idx)       (*(uint32_t *)((char *)(p) + g_aReg32Index[idx]))
 /* From http://www.cs.cmu.edu/~fp/courses/15213-s06/misc/asm64-handout.pdf:
  * ``Perhaps unexpectedly, instructions that move or generate 32-bit register
  *   values also set the upper 32 bits of the register to zero. Consequently
  *   there is no need for an instruction movzlq.''
  */
-# define DIS_WRITE_REG32(p, idx, val) (*(uint64_t *)((char *)(p) + g_aReg32Index[idx]) = (uint32_t)val)
-# define DIS_PTR_REG32(p, idx)        ( (uint32_t *)((char *)(p) + g_aReg32Index[idx]))
+#define DIS_WRITE_REG32(p, idx, val) (*(uint64_t *)((char *)(p) + g_aReg32Index[idx]) = (uint32_t)val)
+#define DIS_PTR_REG32(p, idx)        ( (uint32_t *)((char *)(p) + g_aReg32Index[idx]))
 
 /**
  * Array for accessing 16-bit general registers in CPUMCTXCORE structure
@@ -132,9 +138,9 @@ static const unsigned g_aReg16Index[] =
 /**
  * Macro for accessing 16-bit general purpose registers in CPUMCTXCORE structure.
  */
-# define DIS_READ_REG16(p, idx)          (*(uint16_t *)((char *)(p) + g_aReg16Index[idx]))
-# define DIS_WRITE_REG16(p, idx, val)    (*(uint16_t *)((char *)(p) + g_aReg16Index[idx]) = val)
-# define DIS_PTR_REG16(p, idx)           ( (uint16_t *)((char *)(p) + g_aReg16Index[idx]))
+#define DIS_READ_REG16(p, idx)          (*(uint16_t *)((char *)(p) + g_aReg16Index[idx]))
+#define DIS_WRITE_REG16(p, idx, val)    (*(uint16_t *)((char *)(p) + g_aReg16Index[idx]) = val)
+#define DIS_PTR_REG16(p, idx)           ( (uint16_t *)((char *)(p) + g_aReg16Index[idx]))
 
 /**
  * Array for accessing 8-bit general registers in CPUMCTXCORE structure
@@ -167,9 +173,9 @@ static const unsigned g_aReg8Index[] =
 /**
  * Macro for accessing 8-bit general purpose registers in CPUMCTXCORE structure.
  */
-# define DIS_READ_REG8(p, idx)           (*(uint8_t *)((char *)(p) + g_aReg8Index[idx]))
-# define DIS_WRITE_REG8(p, idx, val)     (*(uint8_t *)((char *)(p) + g_aReg8Index[idx]) = val)
-# define DIS_PTR_REG8(p, idx)            ( (uint8_t *)((char *)(p) + g_aReg8Index[idx]))
+#define DIS_READ_REG8(p, idx)           (*(uint8_t *)((char *)(p) + g_aReg8Index[idx]))
+#define DIS_WRITE_REG8(p, idx, val)     (*(uint8_t *)((char *)(p) + g_aReg8Index[idx]) = val)
+#define DIS_PTR_REG8(p, idx)            ( (uint8_t *)((char *)(p) + g_aReg8Index[idx]))
 
 /**
  * Array for accessing segment registers in CPUMCTXCORE structure
@@ -185,161 +191,13 @@ static const unsigned g_aRegSegIndex[] =
     RT_OFFSETOF(CPUMCTXCORE, gs)          /* DISSELREG_GS */
 };
 
-static const unsigned g_aRegHidSegIndex[] =
-{
-    RT_OFFSETOF(CPUMCTXCORE, es),         /* DISSELREG_ES */
-    RT_OFFSETOF(CPUMCTXCORE, cs),         /* DISSELREG_CS */
-    RT_OFFSETOF(CPUMCTXCORE, ss),         /* DISSELREG_SS */
-    RT_OFFSETOF(CPUMCTXCORE, ds),         /* DISSELREG_DS */
-    RT_OFFSETOF(CPUMCTXCORE, fs),         /* DISSELREG_FS */
-    RT_OFFSETOF(CPUMCTXCORE, gs)          /* DISSELREG_GS */
-};
-
 /**
  * Macro for accessing segment registers in CPUMCTXCORE structure.
  */
-# define DIS_READ_REGSEG(p, idx)         (*((uint16_t *)((char *)(p) + g_aRegSegIndex[idx])))
-# define DIS_WRITE_REGSEG(p, idx, val)   (*((uint16_t *)((char *)(p) + g_aRegSegIndex[idx])) = val)
-
-#endif /* RT_ARCH_AMD64 */
+#define DIS_READ_REGSEG(p, idx)         (*((uint16_t *)((char *)(p) + g_aRegSegIndex[idx])))
+#define DIS_WRITE_REGSEG(p, idx, val)   (*((uint16_t *)((char *)(p) + g_aRegSegIndex[idx])) = val)
 
 
-//*****************************************************************************
-//*****************************************************************************
-DISDECL(int) DISGetParamSize(PCDISSTATE pDis, PCDISOPPARAM pParam)
-{
-    unsigned subtype = OP_PARM_VSUBTYPE(pParam->fParam);
-    switch (subtype)
-    {
-        case OP_PARM_v:
-            switch (pDis->uOpMode)
-            {
-                case DISCPUMODE_32BIT:
-                    return 4;
-                case DISCPUMODE_64BIT:
-                    return 8;
-                case DISCPUMODE_16BIT:
-                    return 2;
-                default: AssertFailed(); /* make gcc happy */ return 4;
-            }
-            break;
-
-        case OP_PARM_b:
-            return 1;
-
-        case OP_PARM_w:
-            return 2;
-
-        case OP_PARM_d:
-            return 4;
-
-        case OP_PARM_q:
-            return 8;
-
-        case OP_PARM_dq:
-            return 16;
-
-        case OP_PARM_qq:
-            return 32;
-
-        case 0: /* nop, pause, lea, wrmsr, rdmsr, etc.  Most of these due to DISOPPARAM::cb being initialized in the wrong place
-                   (disParseInstruction) where it will be called on intermediate stuff like IDX_ParseTwoByteEsc.  The parameter
-                   parsers should do it instead, though I see the potential filtering issue. */
-            //Assert(   pDis->pCurInstr
-            //       && (   pDis->pCurInstr->uOpcode == OP_NOP
-            //           || pDis->pCurInstr->uOpcode == OP_LEA ));
-            return 0;
-
-        case OP_PARM_p: /* far pointer */
-            if (pDis->uAddrMode == DISCPUMODE_32BIT)
-                return 6;   /* 16:32 */
-            if (pDis->uAddrMode == DISCPUMODE_64BIT)
-                return 12;  /* 16:64 */
-            return 4;       /* 16:16 */
-
-        case OP_PARM_s: /* lgdt, sgdt, lidt, sidt */
-            return pDis->uCpuMode == DISCPUMODE_64BIT ? 2 + 8 : 2 + 4;
-
-        case OP_PARM_a:
-            return pDis->uOpMode == DISCPUMODE_16BIT ? 2 + 2 : 4 + 4;
-
-        case OP_PARM_pi:
-            return 8;
-
-        case OP_PARM_sd:
-        case OP_PARM_ss:
-            return 16;
-
-        case OP_PARM_x:
-        case OP_PARM_pd:
-        case OP_PARM_ps:
-            return VEXREG_IS256B(pDis->bVexDestReg) ? 32 : 16; //??
-
-        case OP_PARM_y:
-            return pDis->uOpMode == DISCPUMODE_64BIT ? 4 : 8;  //??
-
-        case OP_PARM_z:
-            if (pParam->cb)
-                return pParam->cb;
-            return pDis->uOpMode == DISCPUMODE_16BIT ? 2 : 4;  //??
-
-        default:
-            if (pParam->cb)
-                return pParam->cb;
-            /// @todo dangerous!!!
-            AssertMsgFailed(("subtype=%#x fParam=%#x fUse=%#RX64 op=%#x\n", subtype, pParam->fParam, pParam->fUse,
-                             pDis->pCurInstr ? pDis->pCurInstr->uOpcode : 0));
-            return 4;
-    }
-}
-//*****************************************************************************
-//*****************************************************************************
-DISDECL(DISSELREG) DISDetectSegReg(PCDISSTATE pDis, PCDISOPPARAM pParam)
-{
-    if (pDis->fPrefix & DISPREFIX_SEG)
-        /* Use specified SEG: prefix. */
-        return (DISSELREG)pDis->idxSegPrefix;
-
-    /* Guess segment register by parameter type. */
-    if (pParam->fUse & (DISUSE_REG_GEN32|DISUSE_REG_GEN64|DISUSE_REG_GEN16))
-    {
-        AssertCompile(DISGREG_ESP == DISGREG_RSP);
-        AssertCompile(DISGREG_EBP == DISGREG_RBP);
-        AssertCompile(DISGREG_ESP == DISGREG_SP);
-        AssertCompile(DISGREG_EBP == DISGREG_BP);
-        if (pParam->Base.idxGenReg == DISGREG_ESP || pParam->Base.idxGenReg == DISGREG_EBP)
-            return DISSELREG_SS;
-    }
-    /* Default is use DS: for data access. */
-    return DISSELREG_DS;
-}
-//*****************************************************************************
-//*****************************************************************************
-DISDECL(uint8_t) DISQuerySegPrefixByte(PCDISSTATE pDis)
-{
-    Assert(pDis->fPrefix & DISPREFIX_SEG);
-    switch (pDis->idxSegPrefix)
-    {
-    case DISSELREG_ES:
-        return 0x26;
-    case DISSELREG_CS:
-        return 0x2E;
-    case DISSELREG_SS:
-        return 0x36;
-    case DISSELREG_DS:
-        return 0x3E;
-    case DISSELREG_FS:
-        return 0x64;
-    case DISSELREG_GS:
-        return 0x65;
-    default:
-        AssertFailed();
-        return 0;
-    }
-}
-
-
-#ifdef RT_ARCH_AMD64
 
 /**
  * Returns the value of the specified 8 bits general purpose register
@@ -444,17 +302,6 @@ DISDECL(int) DISFetchRegSeg(PCCPUMCTXCORE pCtx, DISSELREG sel, RTSEL *pVal)
 
     AssertCompile(sizeof(uint16_t) == sizeof(RTSEL));
     *pVal = DIS_READ_REGSEG(pCtx, sel);
-    return VINF_SUCCESS;
-}
-
-/**
- * Returns the value of the specified segment register including a pointer to the hidden register in the supplied cpu context
- *
- */
-DISDECL(int) DISFetchRegSegEx(PCPUMCTXCORE pCtx, DISSELREG sel, PCPUMSELREG *ppSelReg)
-{
-    AssertReturnStmt((unsigned)sel < RT_ELEMENTS(g_aRegSegIndex), *ppSelReg = NULL, VERR_INVALID_PARAMETER);
-    *ppSelReg = (CPUMSELREG *)((uintptr_t)pCtx + g_aRegHidSegIndex[sel]);
     return VINF_SUCCESS;
 }
 
@@ -620,44 +467,38 @@ DISDECL(int) DISQueryParamVal(PCPUMCTXCORE pCtx, PCDISSTATE pDis, PCDISOPPARAM p
         if (pParam->fUse & DISUSE_DISPLACEMENT8)
         {
             if (pDis->uCpuMode == DISCPUMODE_32BIT)
-                pParamVal->val.val32 += (int32_t)pParam->uDisp.i8;
+                pParamVal->val.i32 += (int32_t)pParam->uDisp.i8;
+            else if (pDis->uCpuMode == DISCPUMODE_64BIT)
+                pParamVal->val.i64 += (int64_t)pParam->uDisp.i8;
             else
-            if (pDis->uCpuMode == DISCPUMODE_64BIT)
-                pParamVal->val.val64 += (int64_t)pParam->uDisp.i8;
-            else
-                pParamVal->val.val16 += (int16_t)pParam->uDisp.i8;
+                pParamVal->val.i16 += (int16_t)pParam->uDisp.i8;
         }
-        else
-        if (pParam->fUse & DISUSE_DISPLACEMENT16)
+        else if (pParam->fUse & DISUSE_DISPLACEMENT16)
         {
             if (pDis->uCpuMode == DISCPUMODE_32BIT)
-                pParamVal->val.val32 += (int32_t)pParam->uDisp.i16;
+                pParamVal->val.i32 += (int32_t)pParam->uDisp.i16;
+            else if (pDis->uCpuMode == DISCPUMODE_64BIT)
+                pParamVal->val.i64 += (int64_t)pParam->uDisp.i16;
             else
-            if (pDis->uCpuMode == DISCPUMODE_64BIT)
-                pParamVal->val.val64 += (int64_t)pParam->uDisp.i16;
-            else
-                pParamVal->val.val16 += pParam->uDisp.i16;
+                pParamVal->val.i16 += pParam->uDisp.i16;
         }
-        else
-        if (pParam->fUse & DISUSE_DISPLACEMENT32)
+        else if (pParam->fUse & DISUSE_DISPLACEMENT32)
         {
             if (pDis->uCpuMode == DISCPUMODE_32BIT)
-                pParamVal->val.val32 += pParam->uDisp.i32;
+                pParamVal->val.i32 += pParam->uDisp.i32;
             else
-                pParamVal->val.val64 += pParam->uDisp.i32;
+                pParamVal->val.i64 += pParam->uDisp.i32;
         }
-        else
-        if (pParam->fUse & DISUSE_DISPLACEMENT64)
+        else if (pParam->fUse & DISUSE_DISPLACEMENT64)
         {
             Assert(pDis->uCpuMode == DISCPUMODE_64BIT);
-            pParamVal->val.val64 += pParam->uDisp.i64;
+            pParamVal->val.i64 += pParam->uDisp.i64;
         }
-        else
-        if (pParam->fUse & DISUSE_RIPDISPLACEMENT32)
+        else if (pParam->fUse & DISUSE_RIPDISPLACEMENT32)
         {
             Assert(pDis->uCpuMode == DISCPUMODE_64BIT);
             /* Relative to the RIP of the next instruction. */
-            pParamVal->val.val64 += pParam->uDisp.i32 + pCtx->rip + pDis->cbInstr;
+            pParamVal->val.i64 += pParam->uDisp.i32 + pCtx->rip + pDis->cbInstr;
         }
         return VINF_SUCCESS;
     }
@@ -841,6 +682,4 @@ DISDECL(int) DISQueryParamRegPtr(PCPUMCTXCORE pCtx, PCDISSTATE pDis, PCDISOPPARA
     }
     return VERR_INVALID_PARAMETER;
 }
-
-#endif /* RT_ARCH_AMD64 */
 

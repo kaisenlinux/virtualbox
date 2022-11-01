@@ -4,15 +4,25 @@
  */
 
 /*
- * Copyright (C) 2006-2020 Oracle Corporation
+ * Copyright (C) 2006-2022 Oracle and/or its affiliates.
  *
- * This file is part of VirtualBox Open Source Edition (OSE), as
- * available from http://www.virtualbox.org. This file is free software;
- * you can redistribute it and/or modify it under the terms of the GNU
- * General Public License (GPL) as published by the Free Software
- * Foundation, in version 2 as it comes in the "COPYING" file of the
- * VirtualBox OSE distribution. VirtualBox OSE is distributed in the
- * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
+ * This file is part of VirtualBox base platform packages, as
+ * available from https://www.virtualbox.org.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, in version 3 of the
+ * License.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, see <https://www.gnu.org/licenses>.
+ *
+ * SPDX-License-Identifier: GPL-3.0-only
  */
 
 /** @page pg_em         EM - The Execution Monitor / Manager
@@ -36,7 +46,7 @@
 *   Header Files                                                                                                                 *
 *********************************************************************************************************************************/
 #define LOG_GROUP LOG_GROUP_EM
-#define VMCPU_INCL_CPUM_GST_CTX /* for CPUM_IMPORT_GUEST_STATE_RET */
+#define VMCPU_INCL_CPUM_GST_CTX /* for CPUM_IMPORT_GUEST_STATE_RET & interrupt injection */
 #include <VBox/vmm/em.h>
 #include <VBox/vmm/vmm.h>
 #include <VBox/vmm/selm.h>
@@ -107,7 +117,13 @@ VMMR3_INT_DECL(int) EMR3Init(PVM pVM)
     PCFGMNODE pCfgRoot = CFGMR3GetRoot(pVM);
     PCFGMNODE pCfgEM = CFGMR3GetChild(pCfgRoot, "EM");
 
-    int rc = CFGMR3QueryBoolDef(pCfgEM, "IemExecutesAll", &pVM->em.s.fIemExecutesAll, false);
+    int rc = CFGMR3QueryBoolDef(pCfgEM, "IemExecutesAll", &pVM->em.s.fIemExecutesAll,
+#if defined(RT_ARCH_ARM64) && defined(RT_OS_DARWIN)
+                                true
+#else
+                                false
+#endif
+                                );
     AssertLogRelRCReturn(rc, rc);
 
     bool fEnabled;
@@ -228,55 +244,21 @@ VMMR3_INT_DECL(int) EMR3Init(PVM pVM)
          * Statistics.
          */
 #ifdef VBOX_WITH_STATISTICS
-        PEMSTATS pStats;
-        rc = MMHyperAlloc(pVM, sizeof(*pStats), 0, MM_TAG_EM, (void **)&pStats);
-        if (RT_FAILURE(rc))
-            return rc;
-
-        pVCpu->em.s.pStatsR3 = pStats;
-        pVCpu->em.s.pStatsR0 = MMHyperR3ToR0(pVM, pStats);
-
-# if 1 /* rawmode only? */
-        EM_REG_COUNTER_USED(&pStats->StatIoRestarted,       "/EM/CPU%u/R3/PrivInst/IoRestarted",        "I/O instructions restarted in ring-3.");
-        EM_REG_COUNTER_USED(&pStats->StatIoIem,             "/EM/CPU%u/R3/PrivInst/IoIem",              "I/O instructions end to IEM in ring-3.");
-        EM_REG_COUNTER_USED(&pStats->StatCli,               "/EM/CPU%u/R3/PrivInst/Cli",                "Number of cli instructions.");
-        EM_REG_COUNTER_USED(&pStats->StatSti,               "/EM/CPU%u/R3/PrivInst/Sti",                "Number of sli instructions.");
-        EM_REG_COUNTER_USED(&pStats->StatHlt,               "/EM/CPU%u/R3/PrivInst/Hlt",                "Number of hlt instructions not handled in GC because of PATM.");
-        EM_REG_COUNTER_USED(&pStats->StatInvlpg,            "/EM/CPU%u/R3/PrivInst/Invlpg",             "Number of invlpg instructions.");
-        EM_REG_COUNTER_USED(&pStats->StatMisc,              "/EM/CPU%u/R3/PrivInst/Misc",               "Number of misc. instructions.");
-        EM_REG_COUNTER_USED(&pStats->StatMovWriteCR[0],     "/EM/CPU%u/R3/PrivInst/Mov CR0, X",         "Number of mov CR0 write instructions.");
-        EM_REG_COUNTER_USED(&pStats->StatMovWriteCR[1],     "/EM/CPU%u/R3/PrivInst/Mov CR1, X",         "Number of mov CR1 write instructions.");
-        EM_REG_COUNTER_USED(&pStats->StatMovWriteCR[2],     "/EM/CPU%u/R3/PrivInst/Mov CR2, X",         "Number of mov CR2 write instructions.");
-        EM_REG_COUNTER_USED(&pStats->StatMovWriteCR[3],     "/EM/CPU%u/R3/PrivInst/Mov CR3, X",         "Number of mov CR3 write instructions.");
-        EM_REG_COUNTER_USED(&pStats->StatMovWriteCR[4],     "/EM/CPU%u/R3/PrivInst/Mov CR4, X",         "Number of mov CR4 write instructions.");
-        EM_REG_COUNTER_USED(&pStats->StatMovReadCR[0],      "/EM/CPU%u/R3/PrivInst/Mov X, CR0",         "Number of mov CR0 read instructions.");
-        EM_REG_COUNTER_USED(&pStats->StatMovReadCR[1],      "/EM/CPU%u/R3/PrivInst/Mov X, CR1",         "Number of mov CR1 read instructions.");
-        EM_REG_COUNTER_USED(&pStats->StatMovReadCR[2],      "/EM/CPU%u/R3/PrivInst/Mov X, CR2",         "Number of mov CR2 read instructions.");
-        EM_REG_COUNTER_USED(&pStats->StatMovReadCR[3],      "/EM/CPU%u/R3/PrivInst/Mov X, CR3",         "Number of mov CR3 read instructions.");
-        EM_REG_COUNTER_USED(&pStats->StatMovReadCR[4],      "/EM/CPU%u/R3/PrivInst/Mov X, CR4",         "Number of mov CR4 read instructions.");
-        EM_REG_COUNTER_USED(&pStats->StatMovDRx,            "/EM/CPU%u/R3/PrivInst/MovDRx",             "Number of mov DRx instructions.");
-        EM_REG_COUNTER_USED(&pStats->StatIret,              "/EM/CPU%u/R3/PrivInst/Iret",               "Number of iret instructions.");
-        EM_REG_COUNTER_USED(&pStats->StatMovLgdt,           "/EM/CPU%u/R3/PrivInst/Lgdt",               "Number of lgdt instructions.");
-        EM_REG_COUNTER_USED(&pStats->StatMovLidt,           "/EM/CPU%u/R3/PrivInst/Lidt",               "Number of lidt instructions.");
-        EM_REG_COUNTER_USED(&pStats->StatMovLldt,           "/EM/CPU%u/R3/PrivInst/Lldt",               "Number of lldt instructions.");
-        EM_REG_COUNTER_USED(&pStats->StatSysEnter,          "/EM/CPU%u/R3/PrivInst/Sysenter",           "Number of sysenter instructions.");
-        EM_REG_COUNTER_USED(&pStats->StatSysExit,           "/EM/CPU%u/R3/PrivInst/Sysexit",            "Number of sysexit instructions.");
-        EM_REG_COUNTER_USED(&pStats->StatSysCall,           "/EM/CPU%u/R3/PrivInst/Syscall",            "Number of syscall instructions.");
-        EM_REG_COUNTER_USED(&pStats->StatSysRet,            "/EM/CPU%u/R3/PrivInst/Sysret",             "Number of sysret instructions.");
-        EM_REG_COUNTER(&pVCpu->em.s.StatTotalClis,          "/EM/CPU%u/Cli/Total",                      "Total number of cli instructions executed.");
-#endif
-        pVCpu->em.s.pCliStatTree = 0;
+        EM_REG_COUNTER_USED(&pVCpu->em.s.StatIoRestarted,   "/EM/CPU%u/R3/PrivInst/IoRestarted",        "I/O instructions restarted in ring-3.");
+        EM_REG_COUNTER_USED(&pVCpu->em.s.StatIoIem,         "/EM/CPU%u/R3/PrivInst/IoIem",              "I/O instructions end to IEM in ring-3.");
 
         /* these should be considered for release statistics. */
         EM_REG_COUNTER(&pVCpu->em.s.StatIOEmu,              "/PROF/CPU%u/EM/Emulation/IO",      "Profiling of emR3RawExecuteIOInstruction.");
         EM_REG_COUNTER(&pVCpu->em.s.StatPrivEmu,            "/PROF/CPU%u/EM/Emulation/Priv",    "Profiling of emR3RawPrivileged.");
         EM_REG_PROFILE(&pVCpu->em.s.StatHMEntry,            "/PROF/CPU%u/EM/HMEnter",           "Profiling Hardware Accelerated Mode entry overhead.");
+#endif
         EM_REG_PROFILE(&pVCpu->em.s.StatHMExec,             "/PROF/CPU%u/EM/HMExec",            "Profiling Hardware Accelerated Mode execution.");
         EM_REG_COUNTER(&pVCpu->em.s.StatHMExecuteCalled,    "/PROF/CPU%u/EM/HMExecuteCalled",   "Number of times enmR3HMExecute is called.");
+#ifdef VBOX_WITH_STATISTICS
         EM_REG_PROFILE(&pVCpu->em.s.StatIEMEmu,             "/PROF/CPU%u/EM/IEMEmuSingle",      "Profiling single instruction IEM execution.");
         EM_REG_PROFILE(&pVCpu->em.s.StatIEMThenREM,         "/PROF/CPU%u/EM/IEMThenRem",        "Profiling IEM-then-REM instruction execution (by IEM).");
         EM_REG_PROFILE(&pVCpu->em.s.StatNEMEntry,           "/PROF/CPU%u/EM/NEMEnter",          "Profiling NEM entry overhead.");
-#endif /* VBOX_WITH_STATISTICS */
+#endif
         EM_REG_PROFILE(&pVCpu->em.s.StatNEMExec,            "/PROF/CPU%u/EM/NEMExec",           "Profiling NEM execution.");
         EM_REG_COUNTER(&pVCpu->em.s.StatNEMExecuteCalled,   "/PROF/CPU%u/EM/NEMExecuteCalled",  "Number of times enmR3NEMExecute is called.");
 #ifdef VBOX_WITH_STATISTICS
@@ -507,8 +489,6 @@ static DECLCALLBACK(int) emR3Load(PVM pVM, PSSMHANDLE pSSM, uint32_t uVersion, u
             rc = SSMR3GetGCPtr(pSSM, &pVCpu->em.s.MWait.uMonitorRDX);
             AssertRCReturn(rc, rc);
         }
-
-        Assert(!pVCpu->em.s.pCliStatTree);
     }
     return VINF_SUCCESS;
 }
@@ -542,6 +522,26 @@ static DECLCALLBACK(VBOXSTRICTRC) emR3SetExecutionPolicy(PVM pVM, PVMCPU pVCpu, 
                 break;
             case EMEXECPOLICY_IEM_ALL:
                 pVM->em.s.fIemExecutesAll = pArgs->fEnforce;
+
+                /* For making '.alliem 1' useful during debugging, transition the
+                   EMSTATE_DEBUG_GUEST_XXX to EMSTATE_DEBUG_GUEST_IEM.  */
+                for (VMCPUID i = 0; i < pVM->cCpus; i++)
+                {
+                    PVMCPU pVCpuX = pVM->apCpusR3[i];
+                    switch (pVCpuX->em.s.enmState)
+                    {
+                        case EMSTATE_DEBUG_GUEST_RAW:
+                        case EMSTATE_DEBUG_GUEST_HM:
+                        case EMSTATE_DEBUG_GUEST_NEM:
+                        case EMSTATE_DEBUG_GUEST_REM:
+                            Log(("EM: idCpu=%u: %s -> EMSTATE_DEBUG_GUEST_IEM\n", i, emR3GetStateName(pVCpuX->em.s.enmState) ));
+                            pVCpuX->em.s.enmState = EMSTATE_DEBUG_GUEST_IEM;
+                            break;
+                        case EMSTATE_DEBUG_GUEST_IEM:
+                        default:
+                            break;
+                    }
+                }
                 break;
             default:
                 AssertFailedReturn(VERR_INVALID_PARAMETER);
@@ -890,7 +890,7 @@ static VBOXSTRICTRC emR3Debug(PVM pVM, PVMCPU pVCpu, VBOXSTRICTRC rc)
                 break;
 
             case VINF_EM_DBG_BREAKPOINT:
-                rc = DBGFR3EventBreakpoint(pVM, DBGFEVENT_BREAKPOINT);
+                rc = DBGFR3BpHit(pVM, pVCpu);
                 break;
 
             case VINF_EM_DBG_STOP:
@@ -1075,12 +1075,6 @@ static int emR3RemExecute(PVM pVM, PVMCPU pVCpu, bool *pfFFDone)
         Log(("EMR%d: %04X:%08X ESP=%08X IF=%d CR0=%x eflags=%x\n", cpl, pVCpu->cpum.GstCtx.cs.Sel, pVCpu->cpum.GstCtx.eip, pVCpu->cpum.GstCtx.esp, pVCpu->cpum.GstCtx.eflags.Bits.u1IF, (uint32_t)pVCpu->cpum.GstCtx.cr0, pVCpu->cpum.GstCtx.eflags.u));
 #endif
     STAM_REL_PROFILE_ADV_START(&pVCpu->em.s.StatREMTotal, a);
-
-#if defined(VBOX_STRICT) && defined(DEBUG_bird)
-    AssertMsg(   VMCPU_FF_IS_ANY_SET(pVCpu, VMCPU_FF_PGM_SYNC_CR3 | VMCPU_FF_PGM_SYNC_CR3_NON_GLOBAL)
-              || !MMHyperIsInsideArea(pVM, CPUMGetGuestEIP(pVCpu)),  /** @todo @bugref{1419} - get flat address. */
-              ("cs:eip=%RX16:%RX32\n", CPUMGetGuestCS(pVCpu), CPUMGetGuestEIP(pVCpu)));
-#endif
 
     /*
      * Spin till we get a forced action which returns anything but VINF_SUCCESS
@@ -1303,173 +1297,23 @@ EMSTATE emR3Reschedule(PVM pVM, PVMCPU pVCpu)
     /*
      * Execute everything in IEM?
      */
-    if (pVM->em.s.fIemExecutesAll)
+    if (   pVM->em.s.fIemExecutesAll
+        || VM_IS_EXEC_ENGINE_IEM(pVM))
         return EMSTATE_IEM;
 
-    /* !!! THIS MUST BE IN SYNC WITH remR3CanExecuteRaw !!! */
-    /* !!! THIS MUST BE IN SYNC WITH remR3CanExecuteRaw !!! */
-    /* !!! THIS MUST BE IN SYNC WITH remR3CanExecuteRaw !!! */
-
-    X86EFLAGS EFlags = pVCpu->cpum.GstCtx.eflags;
-    if (!VM_IS_RAW_MODE_ENABLED(pVM))
+    if (VM_IS_HM_ENABLED(pVM))
     {
-        if (VM_IS_HM_ENABLED(pVM))
-        {
-            if (HMCanExecuteGuest(pVM, pVCpu, &pVCpu->cpum.GstCtx))
-                return EMSTATE_HM;
-        }
-        else if (NEMR3CanExecuteGuest(pVM, pVCpu))
-            return EMSTATE_NEM;
-
-        /*
-         * Note! Raw mode and hw accelerated mode are incompatible. The latter
-         *       turns off monitoring features essential for raw mode!
-         */
-        return EMSTATE_IEM_THEN_REM;
+        if (HMCanExecuteGuest(pVM, pVCpu, &pVCpu->cpum.GstCtx))
+            return EMSTATE_HM;
     }
+    else if (NEMR3CanExecuteGuest(pVM, pVCpu))
+        return EMSTATE_NEM;
 
     /*
-     * Standard raw-mode:
-     *
-     * Here we only support 16 & 32 bits protected mode ring 3 code that has no IO privileges
-     * or 32 bits protected mode ring 0 code
-     *
-     * The tests are ordered by the likelihood of being true during normal execution.
+     * Note! Raw mode and hw accelerated mode are incompatible. The latter
+     *       turns off monitoring features essential for raw mode!
      */
-    if (EFlags.u32 & (X86_EFL_TF /* | HF_INHIBIT_IRQ_MASK*/))
-    {
-        Log2(("raw mode refused: EFlags=%#x\n", EFlags.u32));
-        return EMSTATE_REM;
-    }
-
-# ifndef VBOX_RAW_V86
-    if (EFlags.u32 & X86_EFL_VM) {
-        Log2(("raw mode refused: VM_MASK\n"));
-        return EMSTATE_REM;
-    }
-# endif
-
-    /** @todo check up the X86_CR0_AM flag in respect to raw mode!!! We're probably not emulating it right! */
-    uint32_t u32CR0 = pVCpu->cpum.GstCtx.cr0;
-    if ((u32CR0 & (X86_CR0_PG | X86_CR0_PE)) != (X86_CR0_PG | X86_CR0_PE))
-    {
-        //Log2(("raw mode refused: %s%s%s\n", (u32CR0 & X86_CR0_PG) ? "" : " !PG", (u32CR0 & X86_CR0_PE) ? "" : " !PE", (u32CR0 & X86_CR0_AM) ? "" : " !AM"));
-        return EMSTATE_REM;
-    }
-
-    if (pVCpu->cpum.GstCtx.cr4 & X86_CR4_PAE)
-    {
-        uint32_t u32Dummy, u32Features;
-
-        CPUMGetGuestCpuId(pVCpu, 1, 0, &u32Dummy, &u32Dummy, &u32Dummy, &u32Features);
-        if (!(u32Features & X86_CPUID_FEATURE_EDX_PAE))
-            return EMSTATE_REM;
-    }
-
-    unsigned uSS = pVCpu->cpum.GstCtx.ss.Sel;
-    if (    pVCpu->cpum.GstCtx.eflags.Bits.u1VM
-        ||  (uSS & X86_SEL_RPL) == 3)
-    {
-        if (!(EFlags.u32 & X86_EFL_IF))
-        {
-            Log2(("raw mode refused: IF (RawR3)\n"));
-            return EMSTATE_REM;
-        }
-
-        if (!(u32CR0 & X86_CR0_WP))
-        {
-            Log2(("raw mode refused: CR0.WP + RawR0\n"));
-            return EMSTATE_REM;
-        }
-    }
-    else
-    {
-        /* Only ring 0 supervisor code. */
-        if ((uSS & X86_SEL_RPL) != 0)
-        {
-            Log2(("raw r0 mode refused: CPL %d\n", uSS & X86_SEL_RPL));
-            return EMSTATE_REM;
-        }
-
-        // Let's start with pure 32 bits ring 0 code first
-        /** @todo What's pure 32-bit mode? flat? */
-        if (    !(pVCpu->cpum.GstCtx.ss.Attr.n.u1DefBig)
-            ||  !(pVCpu->cpum.GstCtx.cs.Attr.n.u1DefBig))
-        {
-            Log2(("raw r0 mode refused: SS/CS not 32bit\n"));
-            return EMSTATE_REM;
-        }
-
-        /* Write protection must be turned on, or else the guest can overwrite our hypervisor code and data. */
-        if (!(u32CR0 & X86_CR0_WP))
-        {
-            Log2(("raw r0 mode refused: CR0.WP=0!\n"));
-            return EMSTATE_REM;
-        }
-
-# if !defined(VBOX_ALLOW_IF0) && !defined(VBOX_RUN_INTERRUPT_GATE_HANDLERS)
-        if (!(EFlags.u32 & X86_EFL_IF))
-        {
-            ////Log2(("R0: IF=0 VIF=%d %08X\n", eip, pVMeflags));
-            //Log2(("RR0: Interrupts turned off; fall back to emulation\n"));
-            return EMSTATE_REM;
-        }
-# endif
-
-# ifndef VBOX_WITH_RAW_RING1
-        /** @todo still necessary??? */
-        if (EFlags.Bits.u2IOPL != 0)
-        {
-            Log2(("raw r0 mode refused: IOPL %d\n", EFlags.Bits.u2IOPL));
-            return EMSTATE_REM;
-        }
-# endif
-    }
-
-    /*
-     * Stale hidden selectors means raw-mode is unsafe (being very careful).
-     */
-    if (pVCpu->cpum.GstCtx.cs.fFlags & CPUMSELREG_FLAGS_STALE)
-    {
-        Log2(("raw mode refused: stale CS\n"));
-        return EMSTATE_REM;
-    }
-    if (pVCpu->cpum.GstCtx.ss.fFlags & CPUMSELREG_FLAGS_STALE)
-    {
-        Log2(("raw mode refused: stale SS\n"));
-        return EMSTATE_REM;
-    }
-    if (pVCpu->cpum.GstCtx.ds.fFlags & CPUMSELREG_FLAGS_STALE)
-    {
-        Log2(("raw mode refused: stale DS\n"));
-        return EMSTATE_REM;
-    }
-    if (pVCpu->cpum.GstCtx.es.fFlags & CPUMSELREG_FLAGS_STALE)
-    {
-        Log2(("raw mode refused: stale ES\n"));
-        return EMSTATE_REM;
-    }
-    if (pVCpu->cpum.GstCtx.fs.fFlags & CPUMSELREG_FLAGS_STALE)
-    {
-        Log2(("raw mode refused: stale FS\n"));
-        return EMSTATE_REM;
-    }
-    if (pVCpu->cpum.GstCtx.gs.fFlags & CPUMSELREG_FLAGS_STALE)
-    {
-        Log2(("raw mode refused: stale GS\n"));
-        return EMSTATE_REM;
-    }
-
-# ifdef VBOX_WITH_SAFE_STR
-    if (pVCpu->cpum.GstCtx.tr.Sel == 0)
-    {
-        Log(("Raw mode refused -> TR=0\n"));
-        return EMSTATE_REM;
-    }
-# endif
-
-    /*Assert(PGMPhysIsA20Enabled(pVCpu));*/
-    return EMSTATE_RAW;
+    return EMSTATE_IEM_THEN_REM;
 }
 
 
@@ -1488,32 +1332,16 @@ VBOXSTRICTRC emR3HighPriorityPostForcedActions(PVM pVM, PVMCPU pVCpu, VBOXSTRICT
     VBOXVMM_EM_FF_HIGH(pVCpu, pVM->fGlobalForcedActions, pVCpu->fLocalForcedActions, VBOXSTRICTRC_VAL(rc));
 
     if (VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_PDM_CRITSECT))
-        PDMCritSectBothFF(pVCpu);
+        PDMCritSectBothFF(pVM, pVCpu);
 
     /* Update CR3 (Nested Paging case for HM). */
     if (VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_HM_UPDATE_CR3))
     {
         CPUM_IMPORT_EXTRN_RCSTRICT(pVCpu, CPUMCTX_EXTRN_CR0 | CPUMCTX_EXTRN_CR3 | CPUMCTX_EXTRN_CR4 | CPUMCTX_EXTRN_EFER, rc);
-        int rc2 = PGMUpdateCR3(pVCpu, CPUMGetGuestCR3(pVCpu));
+        int const rc2 = PGMUpdateCR3(pVCpu, CPUMGetGuestCR3(pVCpu));
         if (RT_FAILURE(rc2))
             return rc2;
         Assert(!VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_HM_UPDATE_CR3));
-    }
-
-    /* Update PAE PDPEs. This must be done *after* PGMUpdateCR3() and used only by the Nested Paging case for HM. */
-    if (VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_HM_UPDATE_PAE_PDPES))
-    {
-        CPUM_IMPORT_EXTRN_RCSTRICT(pVCpu, CPUMCTX_EXTRN_CR0 | CPUMCTX_EXTRN_CR3 | CPUMCTX_EXTRN_CR4 | CPUMCTX_EXTRN_EFER, rc);
-        if (CPUMIsGuestInPAEMode(pVCpu))
-        {
-            PX86PDPE pPdpes = HMGetPaePdpes(pVCpu);
-            AssertPtr(pPdpes);
-
-            PGMGstUpdatePaePdpes(pVCpu, pPdpes);
-            Assert(!VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_HM_UPDATE_PAE_PDPES));
-        }
-        else
-            VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_HM_UPDATE_PAE_PDPES);
     }
 
     /* IEM has pending work (typically memory write after INS instruction). */
@@ -1557,8 +1385,7 @@ static int emR3VmxNstGstIntrIntercept(PVMCPU pVCpu)
     if (CPUMIsGuestVmxPinCtlsSet(&pVCpu->cpum.GstCtx, VMX_PIN_CTLS_EXT_INT_EXIT))
     {
         VBOXSTRICTRC rcStrict = IEMExecVmxVmexitExtInt(pVCpu, 0 /* uVector */, true /* fIntPending */);
-        AssertMsg(   rcStrict != VINF_PGM_CHANGE_MODE
-                  && rcStrict != VINF_VMX_VMEXIT
+        AssertMsg(   rcStrict != VINF_VMX_VMEXIT
                   && rcStrict != VINF_NO_CHANGE, ("%Rrc\n", VBOXSTRICTRC_VAL(rcStrict)));
         if (rcStrict != VINF_VMX_INTERCEPT_NOT_ACTIVE)
             return VBOXSTRICTRC_TODO(rcStrict);
@@ -1587,8 +1414,7 @@ static int emR3SvmNstGstIntrIntercept(PVMCPU pVCpu)
         VBOXSTRICTRC rcStrict = IEMExecSvmVmexit(pVCpu, SVM_EXIT_INTR, 0, 0);
         if (RT_SUCCESS(rcStrict))
         {
-            AssertMsg(   rcStrict != VINF_PGM_CHANGE_MODE
-                      && rcStrict != VINF_SVM_VMEXIT
+            AssertMsg(   rcStrict != VINF_SVM_VMEXIT
                       && rcStrict != VINF_NO_CHANGE, ("%Rrc\n", VBOXSTRICTRC_VAL(rcStrict)));
             return VBOXSTRICTRC_VAL(rcStrict);
         }
@@ -1619,7 +1445,6 @@ static int emR3SvmNstGstVirtIntrIntercept(PVMCPU pVCpu)
         VBOXSTRICTRC rcStrict = IEMExecSvmVmexit(pVCpu, SVM_EXIT_VINTR, 0, 0);
         if (RT_SUCCESS(rcStrict))
         {
-            Assert(rcStrict != VINF_PGM_CHANGE_MODE);
             Assert(rcStrict != VINF_SVM_VMEXIT);
             return VBOXSTRICTRC_VAL(rcStrict);
         }
@@ -1730,7 +1555,12 @@ int emR3ForcedActions(PVM pVM, PVMCPU pVCpu, int rc)
         {
             CPUM_IMPORT_EXTRN_RCSTRICT(pVCpu, ~CPUMCTX_EXTRN_KEEPER_MASK, rc);
             rc2 = DBGFR3VMMForcedAction(pVM, pVCpu);
-            UPDATE_RC();
+            /** @todo why that VINF_EM_DBG_EVENT here? Duplicate info, should be handled
+             *        somewhere before we get here, I would think. */
+            if (rc == VINF_EM_DBG_EVENT) /* HACK! We should've handled pending debug event. */
+                rc = rc2;
+            else
+                UPDATE_RC();
         }
 
         /*
@@ -1890,7 +1720,7 @@ int emR3ForcedActions(PVM pVM, PVMCPU pVCpu, int rc)
         /*
          * The instruction following an emulated STI should *always* be executed!
          *
-         * Note! We intentionally don't clear VM_FF_INHIBIT_INTERRUPTS here if
+         * Note! We intentionally don't clear CPUMCTX_INHIBIT_INT here if
          *       the eip is the same as the inhibited instr address.  Before we
          *       are able to execute this instruction in raw mode (iret to
          *       guest code) an external interrupt might force a world switch
@@ -1898,18 +1728,21 @@ int emR3ForcedActions(PVM pVM, PVMCPU pVCpu, int rc)
          *       in the process.  This could break the guest.  Sounds very
          *       unlikely, but such timing sensitive problem are not as rare as
          *       you might think.
+         *
+         * Note! This used to be a force action flag. Can probably ditch this code.
          */
-        if (   VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_INHIBIT_INTERRUPTS)
+        if (   CPUMIsInInterruptShadow(&pVCpu->cpum.GstCtx)
             && !VM_FF_IS_SET(pVM, VM_FF_PGM_NO_MEMORY))
         {
-            CPUM_ASSERT_NOT_EXTRN(pVCpu, CPUMCTX_EXTRN_RIP);
-            if (CPUMGetGuestRIP(pVCpu) != EMGetInhibitInterruptsPC(pVCpu))
+            CPUM_ASSERT_NOT_EXTRN(pVCpu, CPUMCTX_EXTRN_RIP | CPUMCTX_EXTRN_INHIBIT_INT);
+            if (CPUMGetGuestRIP(pVCpu) != pVCpu->cpum.GstCtx.uRipInhibitInt)
             {
-                Log(("Clearing VMCPU_FF_INHIBIT_INTERRUPTS at %RGv - successor %RGv\n", (RTGCPTR)CPUMGetGuestRIP(pVCpu), EMGetInhibitInterruptsPC(pVCpu)));
-                VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_INHIBIT_INTERRUPTS);
+                CPUMClearInterruptShadow(&pVCpu->cpum.GstCtx);
+                Log(("Clearing CPUMCTX_INHIBIT_INT at %RGv - successor %RGv\n",
+                     (RTGCPTR)CPUMGetGuestRIP(pVCpu), (RTGCPTR)pVCpu->cpum.GstCtx.uRipInhibitInt));
             }
             else
-                Log(("Leaving VMCPU_FF_INHIBIT_INTERRUPTS set at %RGv\n", (RTGCPTR)CPUMGetGuestRIP(pVCpu)));
+                Log(("Leaving CPUMCTX_INHIBIT_INT set at %RGv\n", (RTGCPTR)CPUMGetGuestRIP(pVCpu)));
         }
 
         /** @todo SMIs. If we implement SMIs, this is where they will have to be
@@ -1952,35 +1785,41 @@ int emR3ForcedActions(PVM pVM, PVMCPU pVCpu, int rc)
                 Assert(rc2 != VINF_VMX_INTERCEPT_NOT_ACTIVE);
                 UPDATE_RC();
             }
+            Assert(!VMCPU_FF_IS_ANY_SET(pVCpu, VMCPU_FF_VMX_APIC_WRITE | VMCPU_FF_VMX_MTF | VMCPU_FF_VMX_PREEMPT_TIMER));
         }
 #endif
 
         /*
          * Guest event injection.
          */
+        Assert(!(pVCpu->cpum.GstCtx.fExtrn & (CPUMCTX_EXTRN_INHIBIT_INT | CPUMCTX_EXTRN_INHIBIT_NMI)));
         bool fWakeupPending = false;
-        if (   !VM_FF_IS_SET(pVM, VM_FF_PGM_NO_MEMORY)
+        if (    VMCPU_FF_IS_ANY_SET(pVCpu, VMCPU_FF_VMX_NMI_WINDOW | VMCPU_FF_VMX_INT_WINDOW
+                                         | VMCPU_FF_INTERRUPT_NMI  | VMCPU_FF_INTERRUPT_NESTED_GUEST
+                                         | VMCPU_FF_INTERRUPT_APIC | VMCPU_FF_INTERRUPT_PIC)
+            && !VM_FF_IS_SET(pVM, VM_FF_PGM_NO_MEMORY)
             && (!rc || rc >= VINF_EM_RESCHEDULE_HM)
-            && !VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_INHIBIT_INTERRUPTS)  /* Interrupt shadows block both NMIs and interrupts. */
-            && !TRPMHasTrap(pVCpu))                                  /* An event could already be scheduled for dispatching. */
+            && !CPUMIsInInterruptShadow(&pVCpu->cpum.GstCtx)             /* Interrupt shadows block both NMIs and interrupts. */
+            /** @todo r=bird: But interrupt shadows probably do not block vmexits due to host interrupts... */
+            && !TRPMHasTrap(pVCpu))                                      /* An event could already be scheduled for dispatching. */
         {
-            bool fInVmxNonRootMode;
-            bool fInSvmHwvirtMode;
-            bool const fInNestedGuest = CPUMIsGuestInNestedHwvirtMode(&pVCpu->cpum.GstCtx);
-            if (fInNestedGuest)
+            if (CPUMGetGuestGif(&pVCpu->cpum.GstCtx))
             {
-                fInVmxNonRootMode = CPUMIsGuestInVmxNonRootMode(&pVCpu->cpum.GstCtx);
-                fInSvmHwvirtMode  = CPUMIsGuestInSvmNestedHwVirtMode(&pVCpu->cpum.GstCtx);
-            }
-            else
-            {
-                fInVmxNonRootMode = false;
-                fInSvmHwvirtMode  = false;
-            }
+                bool fInVmxNonRootMode;
+                bool fInSvmHwvirtMode;
+                if (!CPUMIsGuestInNestedHwvirtMode(&pVCpu->cpum.GstCtx))
+                {
+                    fInVmxNonRootMode = false;
+                    fInSvmHwvirtMode  = false;
+                }
+                else
+                {
+                    fInVmxNonRootMode = CPUMIsGuestInVmxNonRootMode(&pVCpu->cpum.GstCtx);
+                    fInSvmHwvirtMode  = CPUMIsGuestInSvmNestedHwVirtMode(&pVCpu->cpum.GstCtx);
+                }
 
-            bool fGif = CPUMGetGuestGif(&pVCpu->cpum.GstCtx);
-            if (fGif)
-            {
+                if (0)
+                { }
 #ifdef VBOX_WITH_NESTED_HWVIRT_VMX
                 /*
                  * VMX NMI-window VM-exit.
@@ -1991,25 +1830,23 @@ int emR3ForcedActions(PVM pVM, PVMCPU pVCpu, int rc)
                  * See Intel spec. 25.2 "Other Causes Of VM Exits".
                  * See Intel spec. 26.7.6 "NMI-Window Exiting".
                  */
-                if (    VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_VMX_NMI_WINDOW)
-                    && !CPUMIsGuestVmxVirtNmiBlocking(&pVCpu->cpum.GstCtx))
+                else if (    VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_VMX_NMI_WINDOW)
+                         && !CPUMIsGuestVmxVirtNmiBlocking(&pVCpu->cpum.GstCtx))
                 {
                     Assert(CPUMIsGuestVmxProcCtlsSet(&pVCpu->cpum.GstCtx, VMX_PROC_CTLS_NMI_WINDOW_EXIT));
                     Assert(CPUMIsGuestVmxInterceptEvents(&pVCpu->cpum.GstCtx));
                     rc2 = VBOXSTRICTRC_VAL(IEMExecVmxVmexit(pVCpu, VMX_EXIT_NMI_WINDOW, 0 /* uExitQual */));
                     AssertMsg(   rc2 != VINF_VMX_INTERCEPT_NOT_ACTIVE
-                              && rc2 != VINF_PGM_CHANGE_MODE
                               && rc2 != VINF_VMX_VMEXIT
                               && rc2 != VINF_NO_CHANGE, ("%Rrc\n", rc2));
                     UPDATE_RC();
                 }
-                else
 #endif
                 /*
                  * NMIs (take priority over external interrupts).
                  */
-                if (    VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_INTERRUPT_NMI)
-                    && !VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_BLOCK_NMIS))
+                else if (   VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_INTERRUPT_NMI)
+                         && !CPUMAreInterruptsInhibitedByNmi(&pVCpu->cpum.GstCtx))
                 {
 #ifdef VBOX_WITH_NESTED_HWVIRT_VMX
                     if (   fInVmxNonRootMode
@@ -2026,8 +1863,7 @@ int emR3ForcedActions(PVM pVM, PVMCPU pVCpu, int rc)
                         && CPUMIsGuestSvmCtrlInterceptSet(pVCpu, &pVCpu->cpum.GstCtx, SVM_CTRL_INTERCEPT_NMI))
                     {
                         rc2 = VBOXSTRICTRC_VAL(IEMExecSvmVmexit(pVCpu, SVM_EXIT_NMI, 0 /* uExitInfo1 */,  0 /* uExitInfo2 */));
-                        AssertMsg(   rc2 != VINF_PGM_CHANGE_MODE
-                                  && rc2 != VINF_SVM_VMEXIT
+                        AssertMsg(   rc2 != VINF_SVM_VMEXIT
                                   && rc2 != VINF_NO_CHANGE, ("%Rrc\n", rc2));
                         UPDATE_RC();
                     }
@@ -2063,7 +1899,6 @@ int emR3ForcedActions(PVM pVM, PVMCPU pVCpu, int rc)
                     Assert(CPUMIsGuestVmxInterceptEvents(&pVCpu->cpum.GstCtx));
                     rc2 = VBOXSTRICTRC_VAL(IEMExecVmxVmexit(pVCpu, VMX_EXIT_INT_WINDOW, 0 /* uExitQual */));
                     AssertMsg(   rc2 != VINF_VMX_INTERCEPT_NOT_ACTIVE
-                              && rc2 != VINF_PGM_CHANGE_MODE
                               && rc2 != VINF_VMX_VMEXIT
                               && rc2 != VINF_NO_CHANGE, ("%Rrc\n", rc2));
                     UPDATE_RC();
@@ -2144,7 +1979,7 @@ int emR3ForcedActions(PVM pVM, PVMCPU pVCpu, int rc)
                         UPDATE_RC();
                     }
                 }
-            }
+            } /* CPUMGetGuestGif */
         }
 
         /*
@@ -2250,7 +2085,7 @@ int emR3ForcedActions(PVM pVM, PVMCPU pVCpu, int rc)
 
         /* check that we got them all  */
         AssertCompile(VM_FF_HIGH_PRIORITY_PRE_MASK == (VM_FF_TM_VIRTUAL_SYNC | VM_FF_DBGF | VM_FF_CHECK_VM_STATE | VM_FF_DEBUG_SUSPEND | VM_FF_PGM_NEED_HANDY_PAGES | VM_FF_PGM_NO_MEMORY | VM_FF_EMT_RENDEZVOUS));
-        AssertCompile(VMCPU_FF_HIGH_PRIORITY_PRE_MASK == (VMCPU_FF_TIMER | VMCPU_FF_INTERRUPT_APIC | VMCPU_FF_UPDATE_APIC | VMCPU_FF_INTERRUPT_PIC | VMCPU_FF_PGM_SYNC_CR3 | VMCPU_FF_PGM_SYNC_CR3_NON_GLOBAL | VMCPU_FF_INHIBIT_INTERRUPTS | VMCPU_FF_DBGF | VMCPU_FF_INTERRUPT_NESTED_GUEST | VMCPU_FF_VMX_MTF | VMCPU_FF_VMX_APIC_WRITE | VMCPU_FF_VMX_PREEMPT_TIMER | VMCPU_FF_VMX_INT_WINDOW | VMCPU_FF_VMX_NMI_WINDOW));
+        AssertCompile(VMCPU_FF_HIGH_PRIORITY_PRE_MASK == (VMCPU_FF_TIMER | VMCPU_FF_INTERRUPT_APIC | VMCPU_FF_UPDATE_APIC | VMCPU_FF_INTERRUPT_PIC | VMCPU_FF_PGM_SYNC_CR3 | VMCPU_FF_PGM_SYNC_CR3_NON_GLOBAL | VMCPU_FF_DBGF | VMCPU_FF_INTERRUPT_NESTED_GUEST | VMCPU_FF_VMX_MTF | VMCPU_FF_VMX_APIC_WRITE | VMCPU_FF_VMX_PREEMPT_TIMER | VMCPU_FF_VMX_INT_WINDOW | VMCPU_FF_VMX_NMI_WINDOW));
     }
 
 #undef UPDATE_RC
@@ -2374,6 +2209,10 @@ VMMR3_INT_DECL(int) EMR3ExecuteVM(PVM pVM, PVMCPU pVCpu)
             else if (fFFDone)
                 fFFDone = false;
 
+#ifdef VBOX_STRICT
+            CPUMAssertGuestRFlagsCookie(pVM, pVCpu);
+#endif
+
             /*
              * Now what to do?
              */
@@ -2393,16 +2232,8 @@ VMMR3_INT_DECL(int) EMR3ExecuteVM(PVM pVM, PVMCPU pVCpu)
 /** @todo r=bird: consider merging VINF_EM_RESCHEDULE_RAW with VINF_EM_RESCHEDULE_HM, they serve the same purpose here at least. */
                 case VINF_EM_RESCHEDULE_RAW:
                     Assert(!pVM->em.s.fIemExecutesAll || pVCpu->em.s.enmState != EMSTATE_IEM);
-                    if (VM_IS_RAW_MODE_ENABLED(pVM))
-                    {
-                        Log2(("EMR3ExecuteVM: VINF_EM_RESCHEDULE_RAW: %d -> %d (EMSTATE_RAW)\n", enmOldState, EMSTATE_RAW));
-                        pVCpu->em.s.enmState = EMSTATE_RAW;
-                    }
-                    else
-                    {
-                        AssertLogRelFailed();
-                        pVCpu->em.s.enmState = EMSTATE_NONE;
-                    }
+                    AssertLogRelFailed();
+                    pVCpu->em.s.enmState = EMSTATE_NONE;
                     break;
 
                 /*
@@ -2432,20 +2263,12 @@ VMMR3_INT_DECL(int) EMR3ExecuteVM(PVM pVM, PVMCPU pVCpu)
                  */
                 case VINF_EM_RESCHEDULE_REM:
                     Assert(!pVM->em.s.fIemExecutesAll || pVCpu->em.s.enmState != EMSTATE_IEM);
-                    if (!VM_IS_RAW_MODE_ENABLED(pVM))
+                    Log2(("EMR3ExecuteVM: VINF_EM_RESCHEDULE_REM: %d -> %d (EMSTATE_IEM_THEN_REM)\n",
+                          enmOldState, EMSTATE_IEM_THEN_REM));
+                    if (pVCpu->em.s.enmState != EMSTATE_IEM_THEN_REM)
                     {
-                        Log2(("EMR3ExecuteVM: VINF_EM_RESCHEDULE_REM: %d -> %d (EMSTATE_IEM_THEN_REM)\n",
-                              enmOldState, EMSTATE_IEM_THEN_REM));
-                        if (pVCpu->em.s.enmState != EMSTATE_IEM_THEN_REM)
-                        {
-                            pVCpu->em.s.enmState = EMSTATE_IEM_THEN_REM;
-                            pVCpu->em.s.cIemThenRemInstructions = 0;
-                        }
-                    }
-                    else
-                    {
-                        Log2(("EMR3ExecuteVM: VINF_EM_RESCHEDULE_REM: %d -> %d (EMSTATE_REM)\n", enmOldState, EMSTATE_REM));
-                        pVCpu->em.s.enmState = EMSTATE_REM;
+                        pVCpu->em.s.enmState = EMSTATE_IEM_THEN_REM;
+                        pVCpu->em.s.cIemThenRemInstructions = 0;
                     }
                     break;
 

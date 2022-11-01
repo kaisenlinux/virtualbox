@@ -4,15 +4,25 @@
 #
 
 #
-# Copyright (C) 2006-2020 Oracle Corporation
+# Copyright (C) 2006-2022 Oracle and/or its affiliates.
 #
-# This file is part of VirtualBox Open Source Edition (OSE), as
-# available from http://www.virtualbox.org. This file is free software;
-# you can redistribute it and/or modify it under the terms of the GNU
-# General Public License (GPL) as published by the Free Software
-# Foundation, in version 2 as it comes in the "COPYING" file of the
-# VirtualBox OSE distribution. VirtualBox OSE is distributed in the
-# hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
+# This file is part of VirtualBox base platform packages, as
+# available from https://www.virtualbox.org.
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation, in version 3 of the
+# License.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, see <https://www.gnu.org/licenses>.
+#
+# SPDX-License-Identifier: GPL-3.0-only
 #
 
 SUB_DEPTH := ../../../..
@@ -49,8 +59,15 @@ endif
 # (current dir is for for lwipopts.h)
 VBoxNetDHCP_INCS += . $(addprefix ../../Devices/Network/lwip-new/,$(LWIP_INCS))
 
+ifdef VBOX_WITH_AUTOMATIC_DEFS_QUOTING
+VBoxNetDHCP_DEFS      = KBUILD_TYPE="$(KBUILD_TYPE)"
+else
 VBoxNetDHCP_DEFS      = KBUILD_TYPE=\"$(KBUILD_TYPE)\"
-#VBoxNetDHCP_DEFS     = IPv6
+endif
+VBoxNetDHCP_DEFS       += \
+ 	$(if $(VBOX_WITH_INTNET_SERVICE_IN_R3),VBOX_WITH_INTNET_SERVICE_IN_R3,)
+
+#VBoxNetDHCP_DEFS     += IPv6
 #VBoxNetDHCP_DEFS.linux = WITH_VALGRIND
 ifneq ($(KBUILD_TARGET),win)
 VBoxNetDHCP_DEFS     += VBOX_WITH_XPCOM
@@ -60,6 +77,8 @@ VBoxNetDHCP_INCS     += $(VBOX_XPCOM_INCS)
 VBoxNetDHCP_CXXFLAGS += -std=$(if $(VBOX_GCC_VERSION_CXX),$(if $(VBOX_GCC_VERSION_CXX) < 40700,c++0x,c++11),c++0x)
  endif
 endif
+VBoxNetDHCP_INCS += \
+	../NetLib
 VBoxNetDHCP_SOURCES = \
 	ClientId.cpp \
 	Config.cpp \
@@ -70,6 +89,7 @@ VBoxNetDHCP_SOURCES = \
 	IPv4Pool.cpp \
 	Timestamp.cpp \
 	VBoxNetDhcpd.cpp \
+	../NetLib/IntNetIf.cpp \
 	../../Main/glue/VBoxLogRelCreate.cpp \
 	../../Main/glue/GetVBoxUserHomeDirectory.cpp \
 	$(addprefix ../../Devices/Network/lwip-new/,$(LWIP_SOURCES))

@@ -4,15 +4,25 @@
  */
 
 /*
- * Copyright (C) 2017-2020 Oracle Corporation
+ * Copyright (C) 2017-2022 Oracle and/or its affiliates.
  *
- * This file is part of VirtualBox Open Source Edition (OSE), as
- * available from http://www.virtualbox.org. This file is free software;
- * you can redistribute it and/or modify it under the terms of the GNU
- * General Public License (GPL) as published by the Free Software
- * Foundation, in version 2 as it comes in the "COPYING" file of the
- * VirtualBox OSE distribution. VirtualBox OSE is distributed in the
- * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
+ * This file is part of VirtualBox base platform packages, as
+ * available from https://www.virtualbox.org.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, in version 3 of the
+ * License.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, see <https://www.gnu.org/licenses>.
+ *
+ * SPDX-License-Identifier: GPL-3.0-only
  */
 
 
@@ -28,6 +38,9 @@
 #include <VBox/vmm/vmcc.h>
 
 #include <VBox/err.h>
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+# include <iprt/asm-amd64-x86.h> /* ASMCpuId */
+#endif
 
 
 
@@ -54,6 +67,23 @@ VMM_INT_DECL(int) hmEmulateSvmMovTpr(PVMCC pVM, PVMCPUCC pVCpu)
     PCPUMCTX pCtx = &pVCpu->cpum.GstCtx;
     Log4(("Emulated VMMCall TPR access replacement at RIP=%RGv\n", pCtx->rip));
 
+    AssertCompile(DISGREG_EAX  == X86_GREG_xAX);
+    AssertCompile(DISGREG_ECX  == X86_GREG_xCX);
+    AssertCompile(DISGREG_EDX  == X86_GREG_xDX);
+    AssertCompile(DISGREG_EBX  == X86_GREG_xBX);
+    AssertCompile(DISGREG_ESP  == X86_GREG_xSP);
+    AssertCompile(DISGREG_EBP  == X86_GREG_xBP);
+    AssertCompile(DISGREG_ESI  == X86_GREG_xSI);
+    AssertCompile(DISGREG_EDI  == X86_GREG_xDI);
+    AssertCompile(DISGREG_R8D  == X86_GREG_x8);
+    AssertCompile(DISGREG_R9D  == X86_GREG_x9);
+    AssertCompile(DISGREG_R10D == X86_GREG_x10);
+    AssertCompile(DISGREG_R11D == X86_GREG_x11);
+    AssertCompile(DISGREG_R12D == X86_GREG_x12);
+    AssertCompile(DISGREG_R13D == X86_GREG_x13);
+    AssertCompile(DISGREG_R14D == X86_GREG_x14);
+    AssertCompile(DISGREG_R15D == X86_GREG_x15);
+
     /*
      * We do this in a loop as we increment the RIP after a successful emulation
      * and the new RIP may be a patched instruction which needs emulation as well.
@@ -75,8 +105,9 @@ VMM_INT_DECL(int) hmEmulateSvmMovTpr(PVMCC pVM, PVMCPUCC pVCpu)
                 int  rc = APICGetTpr(pVCpu, &u8Tpr, &fPending, NULL /* pu8PendingIrq */);
                 AssertRC(rc);
 
-                rc = DISWriteReg32(CPUMCTX2CORE(pCtx), pPatch->uDstOperand, u8Tpr);
-                AssertRC(rc);
+                uint8_t idxReg = pPatch->uDstOperand;
+                AssertStmt(idxReg < RT_ELEMENTS(pCtx->aGRegs), idxReg = RT_ELEMENTS(pCtx->aGRegs) - 1);
+                pCtx->aGRegs[idxReg].u64 = u8Tpr;
                 pCtx->rip += pPatch->cbOp;
                 pCtx->eflags.Bits.u1RF = 0;
                 break;
@@ -87,10 +118,9 @@ VMM_INT_DECL(int) hmEmulateSvmMovTpr(PVMCC pVM, PVMCPUCC pVCpu)
             {
                 if (pPatch->enmType == HMTPRINSTR_WRITE_REG)
                 {
-                    uint32_t u32Val;
-                    int rc = DISFetchReg32(CPUMCTX2CORE(pCtx), pPatch->uSrcOperand, &u32Val);
-                    AssertRC(rc);
-                    u8Tpr = u32Val;
+                    uint8_t idxReg = pPatch->uDstOperand;
+                    AssertStmt(idxReg < RT_ELEMENTS(pCtx->aGRegs), idxReg = RT_ELEMENTS(pCtx->aGRegs) - 1);
+                    u8Tpr = pCtx->aGRegs[idxReg].u8;
                 }
                 else
                     u8Tpr = (uint8_t)pPatch->uSrcOperand;
@@ -138,7 +168,7 @@ VMM_INT_DECL(void) HMNotifySvmNstGstVmexit(PVMCPUCC pVCpu, PCPUMCTX pCtx)
          * restore these fields because currently none of them are written back to memory
          * by a physical CPU on #VMEXIT.
          */
-        PSVMVMCBCTRL pVmcbNstGstCtrl = &pCtx->hwvirt.svm.CTX_SUFF(pVmcb)->ctrl;
+        PSVMVMCBCTRL pVmcbNstGstCtrl = &pCtx->hwvirt.svm.Vmcb.ctrl;
         pVmcbNstGstCtrl->u16InterceptRdCRx                 = pVmcbNstGstCache->u16InterceptRdCRx;
         pVmcbNstGstCtrl->u16InterceptWrCRx                 = pVmcbNstGstCache->u16InterceptWrCRx;
         pVmcbNstGstCtrl->u16InterceptRdDRx                 = pVmcbNstGstCache->u16InterceptRdDRx;
@@ -180,11 +210,14 @@ VMM_INT_DECL(void) HMNotifySvmNstGstVmexit(PVMCPUCC pVCpu, PCPUMCTX pCtx)
  * @remarks This value returned by this functions is expected by the callers not
  *          to change throughout the lifetime of the VM.
  */
-VMM_INT_DECL(bool) HMIsSvmVGifActive(PCVM pVM)
+VMM_INT_DECL(bool) HMIsSvmVGifActive(PCVMCC pVM)
 {
-    bool const fVGif    = RT_BOOL(pVM->hm.s.svm.u32Features & X86_CPUID_SVM_FEATURE_EDX_VGIF);
-    bool const fUseVGif = fVGif && pVM->hm.s.svm.fVGif;
-    return fVGif && fUseVGif;
+#ifdef IN_RING0
+    bool const fVGif    = RT_BOOL(g_fHmSvmFeatures & X86_CPUID_SVM_FEATURE_EDX_VGIF);
+#else
+    bool const fVGif    = RT_BOOL(pVM->hm.s.ForR3.svm.fFeatures & X86_CPUID_SVM_FEATURE_EDX_VGIF);
+#endif
+    return fVGif && pVM->hm.s.svm.fVGif;
 }
 
 
@@ -212,6 +245,7 @@ VMM_INT_DECL(int) HMHCMaybeMovTprSvmHypercall(PVMCC pVM, PVMCPUCC pVCpu)
 }
 
 
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
 /**
  * Checks if the current AMD CPU is subject to erratum 170 "In SVM mode,
  * incorrect code bytes may be fetched after a world-switch".
@@ -251,9 +285,7 @@ VMM_INT_DECL(int) HMIsSubjectToSvmErratum170(uint32_t *pu32Family, uint32_t *pu3
     if (   u32Family == 0xf
         && !((u32Model == 0x68 || u32Model == 0x6b || u32Model == 0x7f) && u32Stepping >= 1)
         && !((u32Model == 0x6f || u32Model == 0x6c || u32Model == 0x7c) && u32Stepping >= 2))
-    {
         fErratumApplies = true;
-    }
 
     if (pu32Family)
         *pu32Family   = u32Family;
@@ -264,7 +296,7 @@ VMM_INT_DECL(int) HMIsSubjectToSvmErratum170(uint32_t *pu32Family, uint32_t *pu3
 
     return fErratumApplies;
 }
-
+#endif
 
 
 /**

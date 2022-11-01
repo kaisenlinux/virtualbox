@@ -1,3 +1,43 @@
+virtualbox (7.0.2-1kaisen) kaisen-packages; urgency=medium
+
+  * Import the new upstream release
+
+ -- Kevin Chevreuil - Kaisen <kaisen@kaisenlinux.org>  Tue, 01 Nov 2022 18:49:24 +0100
+
+virtualbox (7.0.2-dfsg-2) experimental; urgency=medium
+
+  * Fix qt5 tools dependency
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Mon, 31 Oct 2022 08:12:58 +0100
+
+virtualbox (7.0.2-dfsg-1) experimental; urgency=medium
+
+  * Bump copyright years
+  * Refresh patches, drop latex patch: upstream
+  * Conflict with virtualbox-7.0
+  * License is now GPL-3
+  * add new libs
+  * Add patch to fix build, but also disable VBOX_WITH_HOST_SHIPPING_AUDIO_TEST= VBOX_WITH_VALIDATIONKIT=
+  * Drop new embedded libs from tarball
+  * New upstream version 7.0.2-dfsg
+  * Bump std-version to 4.6.1
+  * Add VBOXSDL back, default changed from new upstream release
+  * Drop Vboxtunctl and rdesktop-vrdp from build, removed upstream
+  * Update manpages for new release
+  * Refresh patches
+  * Add new patch to use system libraries for tpms, vorbis, ogg
+  * Drop wiki outdated page
+  * Enable new system libraries
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Sun, 30 Oct 2022 15:34:16 +0100
+
+virtualbox (6.1.40-dfsg-1) unstable; urgency=medium
+
+  * Drop NAME also from source dkms files.
+  * New upstream version 6.1.40-dfsg
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Wed, 19 Oct 2022 11:43:11 +0200
+
 virtualbox (6.1.38-1kaisen) kaisen-packages; urgency=medium
 
   * Import the new upstream release

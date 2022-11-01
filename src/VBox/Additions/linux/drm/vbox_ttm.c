@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2020 Oracle Corporation
+ * Copyright (C) 2013-2022 Oracle and/or its affiliates.
  * This file is based on ast_ttm.c
  * Copyright 2012 Red Hat Inc.
  *
@@ -622,7 +622,11 @@ int vbox_bo_create(struct drm_device *dev, int size, int align,
 	drm_vma_node_reset(&vboxbo->bo.base.vma_node);
 #endif
 
+#if RTLNX_VER_MIN(6,1,0)
+	ret = ttm_bo_init_validate(&vbox->ttm.bdev, &vboxbo->bo,
+#else
 	ret = ttm_bo_init(&vbox->ttm.bdev, &vboxbo->bo, size,
+#endif /* < 6.1.0 */
 			  ttm_bo_type_device, &vboxbo->placement,
 #if RTLNX_VER_MAX(4,17,0) && !RTLNX_RHEL_MAJ_PREREQ(7,6) && !RTLNX_SUSE_MAJ_PREREQ(15,1) && !RTLNX_SUSE_MAJ_PREREQ(12,5)
 			  align >> PAGE_SHIFT, false, NULL, acc_size,
@@ -805,6 +809,7 @@ int vbox_mmap(struct file *filp, struct vm_area_struct *vma)
 	vbox = file_priv->minor->dev->dev_private;
 
 #if RTLNX_VER_MIN(5,14,0) || RTLNX_RHEL_RANGE(8,6, 8,99)
+	(void)vbox;
 	if (drm_dev_is_unplugged(file_priv->minor->dev))
 		return -ENODEV;
 	ret = drm_gem_mmap(filp, vma);

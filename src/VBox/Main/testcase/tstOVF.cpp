@@ -5,15 +5,25 @@
  */
 
 /*
- * Copyright (C) 2010-2020 Oracle Corporation
+ * Copyright (C) 2010-2022 Oracle and/or its affiliates.
  *
- * This file is part of VirtualBox Open Source Edition (OSE), as
- * available from http://www.virtualbox.org. This file is free software;
- * you can redistribute it and/or modify it under the terms of the GNU
- * General Public License (GPL) as published by the Free Software
- * Foundation, in version 2 as it comes in the "COPYING" file of the
- * VirtualBox OSE distribution. VirtualBox OSE is distributed in the
- * hope that it will be useful, but WITHOUT ANY WARRANTY of any kind.
+ * This file is part of VirtualBox base platform packages, as
+ * available from https://www.virtualbox.org.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation, in version 3 of the
+ * License.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, see <https://www.gnu.org/licenses>.
+ *
+ * SPDX-License-Identifier: GPL-3.0-only
  */
 
 #include <VBox/com/VirtualBox.h>
@@ -56,7 +66,7 @@ struct MyError
             com::ProgressErrorInfo info(pProgress);
             com::GluePrintErrorInfo(info);
         }
-        else if (rc)
+        else if (rc != S_OK)
         {
             com::ErrorInfo info;
             if (!info.isFullAvailable() && !info.isBasicAvailable())
@@ -222,8 +232,20 @@ void importOVF(const char *pcszPrefix,
                     pcszType = "sound";
                 break;
 
+                case VirtualSystemDescriptionType_SettingsFile:
+                    pcszType = "settings";
+                break;
+
+                case VirtualSystemDescriptionType_BaseFolder:
+                    pcszType = "basefolder";
+                break;
+
+                case VirtualSystemDescriptionType_PrimaryGroup:
+                    pcszType = "primarygroup";
+                break;
+
                 default:
-                    throw MyError(E_UNEXPECTED, "Invalid VirtualSystemDescriptionType\n");
+                    throw MyError(E_UNEXPECTED, "Invalid VirtualSystemDescriptionType (enum)\n");
                 break;
             }
 
@@ -271,12 +293,20 @@ void copyDummyDiskImage(const char *pcszPrefix,
                         const char *pcszDest)
 {
     char szSrc[RTPATH_MAX];
-    char szDst[RTPATH_MAX];
     RTPathExecDir(szSrc, sizeof(szSrc));
     RTPathAppend(szSrc, sizeof(szSrc), "ovf-testcases/ovf-dummy.vmdk");
+
+    char szDst[RTPATH_MAX];
     RTPathExecDir(szDst, sizeof(szDst));
     RTPathAppend(szDst, sizeof(szDst), pcszDest);
     RTPrintf("%s: copying ovf-dummy.vmdk to \"%s\"...\n", pcszPrefix, pcszDest);
+
+    /* Delete the destination file if it exists or RTFileCopy will fail. */
+    if (RTFileExists(szDst))
+    {
+        RTPrintf("Deleting file %s...\n", szDst);
+        RTFileDelete(szDst);
+    }
 
     int vrc = RTFileCopy(szSrc, szDst);
     if (RT_FAILURE(vrc)) throw MyError(0, Utf8StrFmt("Cannot copy ovf-dummy.vmdk to %s: %Rra\n", pcszDest, vrc).c_str());
