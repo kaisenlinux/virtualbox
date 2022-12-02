@@ -5,7 +5,8 @@ XSBC-Original-Maintainer: Debian Virtualbox Team <team+debian-virtualbox@tracker
 Maintainer: Kevin Chevreuil - Kaisen <kaisen@kaisenlinux.org>
 Build-Depends: bzip2,
                debhelper-compat (= 12),
-               default-jdk,
+	       default-jdk,
+               openjdk-17-jdk,
                jaxws,
                dh-python,
                dh-sequence-dkms,
