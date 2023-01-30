@@ -1,3 +1,18 @@
+virtualbox (7.0.6-1kaisen) kaisen-packages; urgency=medium
+
+  * Import the 7.0.6 release
+  * Ensure the compatibility with Python 3.11
+
+ -- Kevin Chevreuil - Kaisen <kaisen@kaisenlinux.org>  Mon, 30 Jan 2023 19:36:14 +0100
+
+virtualbox (7.0.6-dfsg-1) unstable; urgency=medium
+
+  * New upstream version 7.0.6-dfsg (Closes: #1029153)
+  * Refresh patches, drop upstream patches
+  * Update manpages
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Wed, 25 Jan 2023 12:16:26 +0100
+
 virtualbox (7.0.4-1kaisen) kaisen-packages; urgency=medium
 
   * Import the 7.0.4 release
