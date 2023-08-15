@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2020-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2020-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -76,6 +76,7 @@ typedef struct DXShaderInfo
 
 int DXShaderParse(void const *pvCode, uint32_t cbCode, DXShaderInfo *pInfo);
 void DXShaderGenerateSemantics(DXShaderInfo *pInfo);
+void DXShaderSortSignatures(DXShaderInfo *pInfo);
 void DXShaderFree(DXShaderInfo *pInfo);
 int DXShaderUpdateResources(DXShaderInfo const *pInfo, VGPU10_RESOURCE_DIMENSION *paResourceDimension,
                             VGPU10_RESOURCE_RETURN_TYPE *paResourceReturnType, uint32_t cResources);

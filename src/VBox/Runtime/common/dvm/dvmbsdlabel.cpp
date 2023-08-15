@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -209,7 +209,6 @@ static uint16_t rtDvmFmtBsdLblDiskLabelChkSum(PBsdLabel pBsdLabel)
 /**
  * Converts a partition entry to the host endianness.
  *
- * @returns nothing.
  * @param   pPartition    The partition to decode.
  */
 static void rtDvmFmtBsdLblDiskLabelDecodePartition(PBsdLabelPartition pPartition)

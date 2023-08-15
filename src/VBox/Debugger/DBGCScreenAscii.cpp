@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -228,7 +228,6 @@ DECLHIDDEN(int) dbgcScreenAsciiCreate(PDBGCSCREEN phScreen, uint32_t cchWidth, u
 /**
  * Destroys a given ASCII screen.
  *
- * @returns nothing.
  * @param   hScreen             The screen handle.
  */
 DECLHIDDEN(void) dbgcScreenAsciiDestroy(DBGCSCREEN hScreen)
@@ -354,7 +353,7 @@ DECLHIDDEN(int) dbgcScreenAsciiDrawCharacter(DBGCSCREEN hScreen, uint32_t uX, ui
 /**
  * Draws a vertical line at the given coordinates.
  *
- * @returns nothing.
+ * @returns VBox status code.
  * @param   hScreen             The screen handle.
  * @param   uX                  X position to draw.
  * @param   uStartY             Y position to start drawing.

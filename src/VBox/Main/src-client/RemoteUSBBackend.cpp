@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -202,7 +202,7 @@ DECLCALLBACK(int) USBClientResponseCallback(void *pv, uint32_t u32ClientId, uint
         {
             vrc = pThis->reapURB(pvRet, cbRet);
 
-            LogFlow(("USBClientResponseCallback: reap URB, rc = %Rrc.\n", vrc));
+            LogFlow(("USBClientResponseCallback: reap URB, vrc = %Rrc.\n", vrc));
         } break;
 
         case VRDE_USB_REQ_QUEUE_URB:
@@ -1106,13 +1106,15 @@ int RemoteUSBBackend::saveDeviceList(const void *pvList, uint32_t cbList)
     {
         RTMemFree(mpvDeviceList);
         mpvDeviceList = NULL;
-
-        mcbDeviceList = cbList;
+        mcbDeviceList = 0;
 
         if (cbList > 0)
         {
             mpvDeviceList = RTMemAlloc(cbList);
+            AssertPtrReturn(mpvDeviceList, VERR_NO_MEMORY);
+
             memcpy(mpvDeviceList, pvList, cbList);
+            mcbDeviceList = cbList;
         }
 
         mfHasDeviceList = true;

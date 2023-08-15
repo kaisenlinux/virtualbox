@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -46,6 +46,9 @@
 #include "product-generated.h"
 #if RTLNX_VER_MIN(2,6,24)
 # include <linux/nsproxy.h>
+#endif
+#if RTLNX_VER_MIN(6,5,0)
+# include <net/gso.h>
 #endif
 #include <linux/netdevice.h>
 #if RTLNX_VER_MAX(2,6,29) || RTLNX_VER_MIN(5,11,0)
@@ -836,7 +839,6 @@ DECLINLINE(unsigned) vboxNetFltLinuxGetChecksumStartOffset(struct sk_buff *pBuf)
 /**
  * Initializes a SG list from an sk_buff.
  *
- * @returns Number of segments.
  * @param   pThis               The instance.
  * @param   pBuf                The sk_buff.
  * @param   pSG                 The SG.

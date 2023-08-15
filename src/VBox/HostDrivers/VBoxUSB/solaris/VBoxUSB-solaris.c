@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1567,8 +1567,6 @@ LOCAL int vboxUsbSolarisInitPower(vboxusb_state_t *pState)
  *
  * @param   pState          The USB device instance.
  * @remarks Requires the device state mutex to be held.
- *
- * @returns VBox status code.
  */
 LOCAL void vboxUsbSolarisDestroyPower(vboxusb_state_t *pState)
 {

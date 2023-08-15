@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -149,9 +149,9 @@ typedef const OLECHAR *CBSTR;
  * used to declare the COM attribute setter parameter. Corresponds to either of
  * the following XIDL definitions:
  * <pre>
- *  <param name="arg" ... dir="in" safearray="yes"/>
+ *  &lt;param name="arg" ... dir="in" safearray="yes"/&gt;
  *  ...
- *  <attribute name="arg" ... safearray="yes"/>
+ *  &lt;attribute name="arg" ... safearray="yes"/&gt;
  * </pre>
  *
  * The method implementation should use the com::SafeArray helper class to work
@@ -183,10 +183,10 @@ typedef const OLECHAR *CBSTR;
  * used to declare the COM attribute getter parameter. Corresponds to either of
  * the following XIDL definitions:
  * <pre>
- *  <param name="arg" ... dir="out" safearray="yes"/>
- *  <param name="arg" ... dir="return" safearray="yes"/>
+ *  &lt;param name="arg" ... dir="out" safearray="yes"/&gt;
+ *  &lt;param name="arg" ... dir="return" safearray="yes"/&gt;
  *  ...
- *  <attribute name="arg" ... safearray="yes"/>
+ *  &lt;attribute name="arg" ... safearray="yes"/&gt;
  * </pre>
  *
  * The method implementation should use the com::SafeArray helper class to work

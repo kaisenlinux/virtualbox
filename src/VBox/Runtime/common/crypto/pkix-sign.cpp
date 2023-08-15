@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -139,7 +139,7 @@ RTDECL(int) RTCrPkixPubKeySignDigest(PCRTASN1OBJID pAlgorithm, RTCRKEY hPrivateK
     int rcIprt = RTCrPkixSignatureCreateByObjId(&hSignature, pAlgorithm, hPrivateKey, pParameters, true /*fSigning*/);
     if (RT_FAILURE(rcIprt))
         return RTErrInfoSetF(pErrInfo, VERR_CR_PKIX_CIPHER_ALGO_NOT_KNOWN,
-                             "Unknown private key algorithm [IPRT]: %s", pAlgorithm->szObjId);
+                             "Unknown private key algorithm [IPRT %Rrc]: %s", rcIprt, pAlgorithm->szObjId);
 
     rcIprt = RTCrPkixSignatureSign(hSignature, hDigest, pvSignature, pcbSignature);
     if (RT_FAILURE(rcIprt))
@@ -153,15 +153,11 @@ RTDECL(int) RTCrPkixPubKeySignDigest(PCRTASN1OBJID pAlgorithm, RTCRKEY hPrivateK
 #if defined(IPRT_WITH_OPENSSL) \
   && (OPENSSL_VERSION_NUMBER > 0x10000000L) /* 0.9.8 doesn't seem to have EVP_PKEY_CTX_set_signature_md. */
 
-    /* Make sure the algorithm includes the digest and isn't just RSA.  */
-    const char *pszAlgObjId = pAlgorithm->szObjId;
-    if (!strcmp(pszAlgObjId, RTCRX509ALGORITHMIDENTIFIERID_RSA))
-    {
-        pszAlgObjId = RTCrX509AlgorithmIdentifier_CombineEncryptionOidAndDigestOid(pszAlgObjId,
-                                                                                   RTCrDigestGetAlgorithmOid(hDigest));
-        AssertMsgStmt(pszAlgObjId, ("enc=%s hash=%s\n", pAlgorithm->szObjId, RTCrDigestGetAlgorithmOid(hDigest)),
-                      pszAlgObjId = RTCrDigestGetAlgorithmOid(hDigest));
-    }
+    /* Make sure the algorithm includes the digest and isn't just RSA, ECDSA or similar.  */
+    const char *pszAlgObjId = RTCrX509AlgorithmIdentifier_CombineEncryptionOidAndDigestOid(pAlgorithm->szObjId,
+                                                                                           RTCrDigestGetAlgorithmOid(hDigest));
+    AssertMsgStmt(pszAlgObjId, ("enc=%s hash=%s\n", pAlgorithm->szObjId, RTCrDigestGetAlgorithmOid(hDigest)),
+                  pszAlgObjId = RTCrDigestGetAlgorithmOid(hDigest));
 
     /* Create an EVP private key. */
     EVP_PKEY     *pEvpPrivateKey = NULL;

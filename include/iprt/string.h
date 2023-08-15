@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -323,7 +323,6 @@ RTR3DECL(int)  RTStrConsoleCPToUtf8Tag(char **ppszString, const char *pszString,
 /**
  * Free string allocated by any of the non-UCS-2 string functions.
  *
- * @returns iprt status code.
  * @param   pszString      Pointer to buffer with string to free.
  *                         NULL is accepted.
  */

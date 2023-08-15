@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -240,7 +240,6 @@ vboxEnableVbva(ScrnInfoPtr pScrn)
  * information. This function is intended to be called when an X
  * virtual terminal is disabled, or the X server is terminated.
  *
- * @returns TRUE for success, FALSE for failure
  * @param   pScrn   Pointer to a structure describing the X screen in use
  */
 void

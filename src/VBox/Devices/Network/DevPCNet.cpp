@@ -14,7 +14,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -710,7 +710,6 @@ DECLINLINE(bool) pcnetIsLinkUp(PPCNETSTATE pThis)
 /**
  * Memory write helper to handle PCI/ISA differences.
  *
- * @returns nothing.
  * @param   pDevIns     The device instance.
  * @param   pThis       Pointer to the PCNet device instance
  * @param   GCPhys      Guest physical memory address
@@ -729,7 +728,6 @@ static void pcnetPhysWrite(PPDMDEVINS pDevIns, PPCNETSTATE pThis, RTGCPHYS GCPhy
 /**
  * Memory read helper to handle PCI/ISA differences.
  *
- * @returns nothing.
  * @param   pDevIns     The device instance.
  * @param   pThis       Pointer to the PCNet device instance.
  * @param   GCPhys      Guest physical memory address.

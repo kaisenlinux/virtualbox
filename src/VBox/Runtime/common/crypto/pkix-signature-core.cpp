@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -102,13 +102,6 @@ RTDECL(int) RTCrPkixSignatureCreate(PRTCRPKIXSIGNATURE phSignature, PCRTCRPKIXSI
      */
     AssertPtrReturn(phSignature, VERR_INVALID_POINTER);
     AssertPtrReturn(pDesc, VERR_INVALID_POINTER);
-    if (pParams)
-    {
-        AssertPtrReturn(pParams, VERR_INVALID_POINTER);
-        if (   pParams->enmType == RTASN1TYPE_NULL
-            || !RTASN1CORE_IS_PRESENT(&pParams->u.Core))
-            pParams = NULL;
-    }
     uint32_t cKeyRefs = RTCrKeyRetain(hKey);
     AssertReturn(cKeyRefs != UINT32_MAX, VERR_INVALID_HANDLE);
 
@@ -128,6 +121,9 @@ RTDECL(int) RTCrPkixSignatureCreate(PRTCRPKIXSIGNATURE phSignature, PCRTCRPKIXSI
         pThis->hKey         = hKey;
         if (pDesc->pfnInit)
             rc = pDesc->pfnInit(pDesc, pThis->abState, pvOpaque, fSigning, hKey, pParams);
+        else
+            rc = RTCrKeyVerifyParameterCompatibility(hKey, pParams, true /*fForSignature*/,
+                                                     NULL /*pAlgorithm*/, NULL /*pErrInfo*/);
         if (RT_SUCCESS(rc))
         {
             *phSignature = pThis;

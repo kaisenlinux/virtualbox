@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -174,7 +174,6 @@ GMMR3DECL(int) GMMR3FreePagesPrepare(PVM pVM, PGMMFREEPAGESREQ *ppReq, uint32_t 
 /**
  * Re-prepares a GMMR0FreePages request.
  *
- * @returns VINF_SUCCESS or VERR_NO_TMP_MEMORY.
  * @param       pVM         The cross context VM structure.
  * @param       pReq        A request buffer previously returned by
  *                          GMMR3FreePagesPrepare().

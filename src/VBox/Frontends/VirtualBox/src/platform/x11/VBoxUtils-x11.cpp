@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,12 +26,14 @@
  */
 
 /* Qt includes: */
+#ifdef VBOX_WITH_SCREENSAVER_CONTROL
 #include <QtDBus/QDBusConnection>
 #include <QtDBus/QDBusConnectionInterface>
 #include <QtDBus/QDBusInterface>
 #include <QtDBus/QDBusReply>
 #include <QtXml/QDomDocument>
 #include <QtXml/QDomElement>
+#endif
 #include <QWidget>
 #ifdef VBOX_IS_QT6_OR_LATER /** @todo qt6: ... */
 # include <QGuiApplication>
@@ -47,9 +49,13 @@
 #include <VBox/log.h>
 
 /* Other includes: */
+#undef  BOOL            /* Undefine the VBox/com/defs.h variant */
+#define BOOL X11BOOL    /* Typedef'ed in Xmd.h via dpms.h, causing -Wpch-invalid to trigger. */
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
 #include <X11/extensions/dpms.h>
+#undef  BOOL            /* Restore the VBox/com/defs.h variant */
+#define BOOL PRBool
 
 
 bool NativeWindowSubsystem::X11IsCompositingManagerRunning()
@@ -127,6 +133,7 @@ bool NativeWindowSubsystem::X11CheckExtension(const char *pExtensionName)
     return XQueryExtension(pDisplay, pExtensionName, &major_opcode, &first_event, &first_error);
 }
 
+#ifdef VBOX_WITH_SCREENSAVER_CONTROL
 bool X11CheckDBusConnection(const QDBusConnection &connection)
 {
     if (!connection.isConnected())
@@ -169,9 +176,11 @@ QStringList X11FindDBusScreenSaverServices(const QDBusConnection &connection)
 
     return serviceNames;
 }
+#endif /* VBOX_WITH_SCREENSAVER_CONTROL */
 
 bool NativeWindowSubsystem::X11CheckDBusScreenSaverServices()
 {
+#ifdef VBOX_WITH_SCREENSAVER_CONTROL
     QDBusConnection connection = QDBusConnection::sessionBus();
     if (!X11CheckDBusConnection(connection))
         return false;
@@ -191,9 +200,11 @@ bool NativeWindowSubsystem::X11CheckDBusScreenSaverServices()
             return true;
     }
     LogRel(("QDBus error. No screen saver service found among registered DBus services."));
+#endif /* VBOX_WITH_SCREENSAVER_CONTROL */
     return false;
 }
 
+#ifdef VBOX_WITH_SCREENSAVER_CONTROL
 void X11IntrospectInterfaceNode(const QDomElement &interface,
                                 const QString &strServiceName,
                                 QVector<X11ScreenSaverInhibitMethod*> &methods)
@@ -245,11 +256,13 @@ void X11IntrospectServices(const QDBusConnection &connection,
         child = child.nextSiblingElement();
     }
 }
+#endif /* VBOX_WITH_SCREENSAVER_CONTROL */
 
 QVector<X11ScreenSaverInhibitMethod*> NativeWindowSubsystem::X11FindDBusScrenSaverInhibitMethods()
 {
     QVector<X11ScreenSaverInhibitMethod*> methods;
 
+#ifdef VBOX_WITH_SCREENSAVER_CONTROL
     QDBusConnection connection = QDBusConnection::sessionBus();
     if (!X11CheckDBusConnection(connection))
         return methods;
@@ -257,12 +270,14 @@ QVector<X11ScreenSaverInhibitMethod*> NativeWindowSubsystem::X11FindDBusScrenSav
     QStringList services = X11FindDBusScreenSaverServices(connection);
     foreach(const QString &strServiceName, services)
         X11IntrospectServices(connection, strServiceName, "", methods);
+#endif /* VBOX_WITH_SCREENSAVER_CONTROL */
 
     return methods;
 }
 
 void NativeWindowSubsystem::X11InhibitUninhibitScrenSaver(bool fInhibit, QVector<X11ScreenSaverInhibitMethod*> &inOutInhibitMethods)
 {
+#ifdef VBOX_WITH_SCREENSAVER_CONTROL
     QDBusConnection connection = QDBusConnection::sessionBus();
     if (!X11CheckDBusConnection(connection))
         return;
@@ -299,6 +314,10 @@ void NativeWindowSubsystem::X11InhibitUninhibitScrenSaver(bool fInhibit, QVector
                     error.message().toUtf8().constData()));
         }
     }
+#else
+    Q_UNUSED(fInhibit);
+    Q_UNUSED(inOutInhibitMethods);
+#endif /* VBOX_WITH_SCREENSAVER_CONTROL */
 }
 
 char *XXGetProperty(Display *pDpy, Window windowHandle, Atom propType, const char *pszPropName)

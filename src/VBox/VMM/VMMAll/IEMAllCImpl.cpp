@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -5926,15 +5926,12 @@ IEM_CIMPL_DEF_4(iemCImpl_load_CrX, uint8_t, iCrReg, uint64_t, uNewCrX, IEMACCESS
                 }
             }
 
+#ifdef VBOX_WITH_NESTED_HWVIRT_VMX
             /* Check for bits that must remain set or cleared in VMX operation,
                see Intel spec. 23.8 "Restrictions on VMX operation". */
             if (IEM_VMX_IS_ROOT_MODE(pVCpu))
             {
-#ifdef VBOX_WITH_NESTED_HWVIRT_VMX
-                uint64_t const uCr0Fixed0 = IEM_VMX_IS_NON_ROOT_MODE(pVCpu) ? iemVmxGetCr0Fixed0(pVCpu) : VMX_V_CR0_FIXED0;
-#else
-                uint64_t const uCr0Fixed0 = VMX_V_CR0_FIXED0;
-#endif
+                uint64_t const uCr0Fixed0 = iemVmxGetCr0Fixed0(pVCpu, IEM_VMX_IS_NON_ROOT_MODE(pVCpu));
                 if ((uNewCrX & uCr0Fixed0) != uCr0Fixed0)
                 {
                     Log(("Trying to clear reserved CR0 bits in VMX operation: NewCr0=%#llx MB1=%#llx\n", uNewCrX, uCr0Fixed0));
@@ -5948,6 +5945,7 @@ IEM_CIMPL_DEF_4(iemCImpl_load_CrX, uint8_t, iCrReg, uint64_t, uNewCrX, IEMACCESS
                     return iemRaiseGeneralProtectionFault0(pVCpu);
                 }
             }
+#endif
 
             /*
              * SVM nested-guest CR0 write intercepts.
@@ -8704,7 +8702,7 @@ IEM_CIMPL_DEF_3(iemCImpl_fxrstor, uint8_t, iEffSeg, RTGCPTR, GCPtrEff, IEMMODE, 
             pDst->aXMM[i] = pSrc->aXMM[i];
     }
 
-    pDst->FCW &= ~X86_FCW_ZERO_MASK;
+    pDst->FCW &= ~X86_FCW_ZERO_MASK | X86_FCW_IC_MASK; /* Intel 10980xe allows setting the IC bit. Win 3.11 CALC.EXE sets it. */
     iemFpuRecalcExceptionStatus(pDst);
 
     if (pDst->FSW & X86_FSW_ES)
@@ -8986,7 +8984,7 @@ IEM_CIMPL_DEF_3(iemCImpl_xrstor, uint8_t, iEffSeg, RTGCPTR, GCPtrEff, IEMMODE, e
                 pDst->aRegs[i].au32[3] = 0;
             }
 
-            pDst->FCW &= ~X86_FCW_ZERO_MASK;
+            pDst->FCW &= ~X86_FCW_ZERO_MASK | X86_FCW_IC_MASK; /* Intel 10980xe allows setting the IC bit. Win 3.11 CALC.EXE sets it. */
             iemFpuRecalcExceptionStatus(pDst);
 
             if (pDst->FSW & X86_FSW_ES)
@@ -9341,7 +9339,7 @@ static void iemCImplCommonFpuRestoreEnv(PVMCPUCC pVCpu, IEMMODE enmEffOpSize, RT
 #ifdef LOG_ENABLED
     uint16_t const fOldFsw = pDstX87->FSW;
 #endif
-    pDstX87->FCW &= ~X86_FCW_ZERO_MASK;
+    pDstX87->FCW &= ~X86_FCW_ZERO_MASK | X86_FCW_IC_MASK; /* Intel 10980xe allows setting the IC bit. Win 3.11 CALC.EXE sets it. */
     iemFpuRecalcExceptionStatus(pDstX87);
 #ifdef LOG_ENABLED
     if ((pDstX87->FSW & X86_FSW_ES) ^ (fOldFsw & X86_FSW_ES))
@@ -9528,7 +9526,7 @@ IEM_CIMPL_DEF_1(iemCImpl_fldcw, uint16_t, u16Fcw)
     /** @todo Testcase: Test that it raises and loweres the FPU exception bits
      *        according to FSW. (This is what is currently implemented.) */
     PX86FXSTATE pFpuCtx = &pVCpu->cpum.GstCtx.XState.x87;
-    pFpuCtx->FCW = u16Fcw & ~X86_FCW_ZERO_MASK;
+    pFpuCtx->FCW = u16Fcw & (~X86_FCW_ZERO_MASK | X86_FCW_IC_MASK); /* Intel 10980xe allows setting the IC bit. Win 3.11 CALC.EXE sets it. */
 #ifdef LOG_ENABLED
     uint16_t fOldFsw = pFpuCtx->FSW;
 #endif

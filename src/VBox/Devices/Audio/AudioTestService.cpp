@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2021-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2021-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -858,7 +858,6 @@ static int atsClientDisconnect(PATSSERVER pThis, PATSCLIENTINST pInst)
 /**
  * Free's (destroys) a client instance.
  *
- * @returns nothing.
  * @param   pInst               The opaque ATS instance structure.
  */
 static void atsClientFree(PATSCLIENTINST pInst)

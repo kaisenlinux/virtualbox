@@ -1,3 +1,39 @@
+virtualbox (7.0.10-1kaisen) kaisen-packages; urgency=medium
+
+  * Import the 7.0.10 release
+
+ -- Kevin Chevreuil - Kaisen <kaisen@kaisenlinux.org>  Mon, 14 Aug 2023 22:56:13 +0100
+
+virtualbox (7.0.10-dfsg-2) unstable; urgency=medium
+
+  * Add patch to fix gcc-13 related build failure
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Wed, 19 Jul 2023 17:16:24 +0200
+
+virtualbox (7.0.10-dfsg-1) unstable; urgency=medium
+
+  * Refresh patches with upstream versions
+  * New upstream version 7.0.10-dfsg
+  * refresh patches, drop python3.11 and lzma patches,
+    now part of upstream codebase
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Wed, 19 Jul 2023 17:16:20 +0200
+
+virtualbox (7.0.8-dfsg-2) unstable; urgency=medium
+
+  * Fixup typo in patch.
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Thu, 20 Apr 2023 23:11:50 +0200
+
+virtualbox (7.0.8-dfsg-1) unstable; urgency=medium
+
+  * New upstream version 7.0.8-dfsg
+  * Add patch to use system lzma library
+  * Update copyright file
+  * Add dependencies on libsdl2-dev and liblzma-dev
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Wed, 19 Apr 2023 10:56:07 +0200
+
 virtualbox (7.0.6-1kaisen) kaisen-packages; urgency=medium
 
   * Import the 7.0.6 release

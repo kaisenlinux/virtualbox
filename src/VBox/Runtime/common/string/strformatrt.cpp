@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -686,7 +686,8 @@ DECLHIDDEN(size_t) rtstrFormatRt(PFNRTSTROUTPUT pfnOutput, void *pvArgOutput, co
                                     cch = pfnOutput(pvArgOutput, RT_STR_TUPLE(" - "));
                                 else
                                     cch = pfnOutput(pvArgOutput, RT_STR_TUPLE(": "));
-                                cch += pfnOutput(pvArgOutput, u.pErrInfo->pszMsg, u.pErrInfo->cbMsg);
+                                cch += pfnOutput(pvArgOutput, u.pErrInfo->pszMsg,
+                                                 RTStrNLen(u.pErrInfo->pszMsg, u.pErrInfo->cbMsg));
                             }
                             return cch;
                         }

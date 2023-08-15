@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -260,7 +260,6 @@ static bool pdmacFileAioMgrNormalIsBalancePossible(PPDMACEPFILEMGR pAioMgr)
  * Creates a new I/O manager and spreads the I/O load of the endpoints
  * between the given I/O manager and the new one.
  *
- * @returns nothing.
  * @param   pAioMgr    The I/O manager with high I/O load.
  */
 static void pdmacFileAioMgrNormalBalanceLoad(PPDMACEPFILEMGR pAioMgr)
@@ -542,7 +541,6 @@ static RTFILEAIOREQ pdmacFileAioMgrNormalRequestAlloc(PPDMACEPFILEMGR pAioMgr)
 /**
  * Frees a async I/O request handle.
  *
- * @returns nothing.
  * @param   pAioMgr    The I/O manager.
  * @param   hReq       The I/O request handle to free.
  */

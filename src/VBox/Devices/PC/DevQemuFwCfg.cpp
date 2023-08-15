@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2020-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2020-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -247,7 +247,6 @@ typedef struct QEMUFWCFGITEM
     /**
      * Cleans up any allocated resources when the item is de-selected.
      *
-     * @returns nothing.
      * @param   pThis           The QEMU fw config device instance.
      * @param   pItem           Pointer to the selected item.
      */
@@ -516,7 +515,6 @@ static const QEMUFWCFGITEM g_aQemuFwCfgItems[] =
 /**
  * Resets the currently selected item.
  *
- * @returns nothing.
  * @param   pThis               The QEMU fw config device instance.
  */
 static void qemuFwCfgR3ItemReset(PDEVQEMUFWCFG pThis)
@@ -568,7 +566,6 @@ static int qemuFwCfgItemSelect(PDEVQEMUFWCFG pThis, uint16_t uCfgItem)
 /**
  * Processes a DMA transfer.
  *
- * @returns nothing.
  * @param   pThis               The QEMU fw config device instance.
  * @param   GCPhysDma           The guest physical address of the DMA descriptor.
  */

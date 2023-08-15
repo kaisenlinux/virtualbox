@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -101,7 +101,7 @@ public:
     virtual ~GuestEnvironmentBase(void)
     {
         Assert(m_cRefs <= 1);
-        int rc = RTEnvDestroy(m_hEnv); AssertRC(rc);
+        int vrc = RTEnvDestroy(m_hEnv); AssertRC(vrc);
         m_hEnv = NIL_RTENV;
     }
 
@@ -169,8 +169,8 @@ public:
      */
     void reset(void)
     {
-        int rc = RTEnvReset(m_hEnv);
-        AssertRC(rc);
+        int vrc = RTEnvReset(m_hEnv);
+        AssertRC(vrc);
     }
 
     /**
@@ -214,12 +214,12 @@ public:
         size_t const cArray = rArray.size();
         for (size_t i = 0; i < cArray; i++)
         {
-            int rc = RTEnvPutEx(m_hEnv, rArray[i].c_str());
-            if (RT_FAILURE(rc))
+            int vrc = RTEnvPutEx(m_hEnv, rArray[i].c_str());
+            if (RT_FAILURE(vrc))
             {
                 if (pidxError)
                     *pidxError = i;
-                return rc;
+                return vrc;
             }
         }
         return VINF_SUCCESS;
@@ -274,19 +274,19 @@ public:
      */
     int copyUtf8Block(const char *pszzBlock, size_t cbBlock, bool fNoEqualMeansUnset = false)
     {
-        int rc = VINF_SUCCESS;
+        int vrc = VINF_SUCCESS;
         while (cbBlock > 0 && *pszzBlock != '\0')
         {
             const char *pszEnd = (const char *)memchr(pszzBlock, '\0', cbBlock);
             if (!pszEnd)
                 return VERR_BUFFER_UNDERFLOW;
-            int rc2;
+            int vrc2;
             if (fNoEqualMeansUnset || strchr(pszzBlock, '='))
-                rc2 = RTEnvPutEx(m_hEnv, pszzBlock);
+                vrc2 = RTEnvPutEx(m_hEnv, pszzBlock);
             else
-                rc2 = RTEnvSetEx(m_hEnv, pszzBlock, "");
-            if (RT_FAILURE(rc2) && RT_SUCCESS(rc))
-                rc = rc2;
+                vrc2 = RTEnvSetEx(m_hEnv, pszzBlock, "");
+            if (RT_FAILURE(vrc2) && RT_SUCCESS(vrc))
+                vrc = vrc2;
 
             /* Advance. */
             cbBlock -= pszEnd - pszzBlock;
@@ -297,13 +297,13 @@ public:
         }
 
         /* The remainder must be zero padded. */
-        if (RT_SUCCESS(rc))
+        if (RT_SUCCESS(vrc))
         {
             if (ASMMemIsZero(pszzBlock, cbBlock))
                 return VINF_SUCCESS;
             return VERR_TOO_MUCH_DATA;
         }
-        return rc;
+        return vrc;
     }
 
     /**
@@ -317,22 +317,22 @@ public:
     int getVariable(const com::Utf8Str &rName, com::Utf8Str *pValue) const
     {
         size_t cchNeeded;
-        int rc = RTEnvGetEx(m_hEnv, rName.c_str(), NULL, 0, &cchNeeded);
-        if (   RT_SUCCESS(rc)
-            || rc == VERR_BUFFER_OVERFLOW)
+        int vrc = RTEnvGetEx(m_hEnv, rName.c_str(), NULL, 0, &cchNeeded);
+        if (   RT_SUCCESS(vrc)
+            || vrc == VERR_BUFFER_OVERFLOW)
         {
             try
             {
                 pValue->reserve(cchNeeded + 1);
-                rc = RTEnvGetEx(m_hEnv, rName.c_str(), pValue->mutableRaw(), pValue->capacity(), NULL);
+                vrc = RTEnvGetEx(m_hEnv, rName.c_str(), pValue->mutableRaw(), pValue->capacity(), NULL);
                 pValue->jolt();
             }
             catch (std::bad_alloc &)
             {
-                rc = VERR_NO_STR_MEMORY;
+                vrc = VERR_NO_STR_MEMORY;
             }
         }
-        return rc;
+        return vrc;
     }
 
     /**
@@ -383,9 +383,9 @@ protected:
         , m_cRefs(1)
         , m_fFlags(fFlags)
     {
-        int rc = cloneCommon(rThat, fChangeRecord);
-        if (RT_FAILURE(rc))
-            throw (Global::vboxStatusCodeToCOM(rc));
+        int vrc = cloneCommon(rThat, fChangeRecord);
+        if (RT_FAILURE(vrc))
+            throw Global::vboxStatusCodeToCOM(vrc);
     }
 
     /**
@@ -398,7 +398,7 @@ protected:
      */
     int cloneCommon(const GuestEnvironmentBase &rThat, bool fChangeRecord)
     {
-        int   rc = VINF_SUCCESS;
+        int   vrc = VINF_SUCCESS;
         RTENV hNewEnv = NIL_RTENV;
         if (rThat.m_hEnv != NIL_RTENV)
         {
@@ -406,18 +406,18 @@ protected:
              * Clone it.
              */
             if (RTEnvIsChangeRecord(rThat.m_hEnv) == fChangeRecord)
-                rc = RTEnvClone(&hNewEnv, rThat.m_hEnv);
+                vrc = RTEnvClone(&hNewEnv, rThat.m_hEnv);
             else
             {
                 /* Need to type convert it. */
                 if (fChangeRecord)
-                    rc = RTEnvCreateChangeRecordEx(&hNewEnv, rThat.m_fFlags);
+                    vrc = RTEnvCreateChangeRecordEx(&hNewEnv, rThat.m_fFlags);
                 else
-                    rc = RTEnvCreateEx(&hNewEnv, rThat.m_fFlags);
-                if (RT_SUCCESS(rc))
+                    vrc = RTEnvCreateEx(&hNewEnv, rThat.m_fFlags);
+                if (RT_SUCCESS(vrc))
                 {
-                    rc = RTEnvApplyChanges(hNewEnv, rThat.m_hEnv);
-                    if (RT_FAILURE(rc))
+                    vrc = RTEnvApplyChanges(hNewEnv, rThat.m_hEnv);
+                    if (RT_FAILURE(vrc))
                         RTEnvDestroy(hNewEnv);
                 }
             }
@@ -429,17 +429,17 @@ protected:
              * (Relevant for GuestProcessStartupInfo and internal commands.)
              */
             if (fChangeRecord)
-                rc = RTEnvCreateChangeRecordEx(&hNewEnv, rThat.m_fFlags);
+                vrc = RTEnvCreateChangeRecordEx(&hNewEnv, rThat.m_fFlags);
             else
-                rc = RTEnvCreateEx(&hNewEnv, rThat.m_fFlags);
+                vrc = RTEnvCreateEx(&hNewEnv, rThat.m_fFlags);
         }
-        if (RT_SUCCESS(rc))
+        if (RT_SUCCESS(vrc))
         {
             RTEnvDestroy(m_hEnv);
             m_hEnv = hNewEnv;
             m_fFlags = rThat.m_fFlags;
         }
-        return rc;
+        return vrc;
     }
 
 
@@ -512,21 +512,21 @@ public:
     }
 
     /**
-     * @copydoc copy()
+     * @copydoc GuestEnvironment::copy()
      */
     GuestEnvironment &operator=(const GuestEnvironmentBase &rThat)
     {
-        int rc = copy(rThat);
-        if (RT_FAILURE(rc))
-            throw (Global::vboxStatusCodeToCOM(rc));
+        int vrc = copy(rThat);
+        if (RT_FAILURE(vrc))
+            throw Global::vboxStatusCodeToCOM(vrc);
         return *this;
     }
 
-    /** @copydoc copy() */
+    /** @copydoc GuestEnvironment::copy() */
     GuestEnvironment &operator=(const GuestEnvironment &rThat)
     {   return operator=((const GuestEnvironmentBase &)rThat); }
 
-    /** @copydoc copy() */
+    /** @copydoc GuestEnvironment::copy() */
     GuestEnvironment &operator=(const GuestEnvironmentChanges &rThat)
     {   return operator=((const GuestEnvironmentBase &)rThat); }
 
@@ -594,21 +594,24 @@ public:
     }
 
     /**
-     * @copydoc copy()
+     * @copydoc GuestEnvironmentChanges::copy()
+     * @throws  HRESULT
      */
     GuestEnvironmentChanges &operator=(const GuestEnvironmentBase &rThat)
     {
-        int rc = copy(rThat);
-        if (RT_FAILURE(rc))
-            throw (Global::vboxStatusCodeToCOM(rc));
+        int vrc = copy(rThat);
+        if (RT_FAILURE(vrc))
+            throw Global::vboxStatusCodeToCOM(vrc);
         return *this;
     }
 
-    /** @copydoc copy() */
+    /** @copydoc GuestEnvironmentChanges::copy()
+     * @throws  HRESULT */
     GuestEnvironmentChanges &operator=(const GuestEnvironmentChanges &rThat)
     {   return operator=((const GuestEnvironmentBase &)rThat); }
 
-    /** @copydoc copy() */
+    /** @copydoc GuestEnvironmentChanges::copy()
+     * @throws  HRESULT */
     GuestEnvironmentChanges &operator=(const GuestEnvironment &rThat)
     {   return operator=((const GuestEnvironmentBase &)rThat); }
 };
@@ -655,22 +658,22 @@ public:
      * Initialization constructor.
      *
      * @param   eType           Error type to use.
-     * @param   rc              IPRT-style rc to use.
+     * @param   vrc             VBox status code to use.
      * @param   pcszWhat        Subject to use.
      */
-    GuestErrorInfo(GuestErrorInfo::Type eType, int rc, const char *pcszWhat)
+    GuestErrorInfo(GuestErrorInfo::Type eType, int vrc, const char *pcszWhat)
     {
-        int rc2 = setV(eType, rc, pcszWhat);
-        if (RT_FAILURE(rc2))
-            throw rc2;
+        int vrc2 = setV(eType, vrc, pcszWhat);
+        if (RT_FAILURE(vrc2))
+            throw vrc2;
     }
 
     /**
-     * Returns the (IPRT-style) rc of this error.
+     * Returns the VBox status code for this error.
      *
      * @returns VBox status code.
      */
-    int getRc(void) const { return mRc; }
+    int getVrc(void) const { return mVrc; }
 
     /**
      * Returns the type of this error.
@@ -691,13 +694,13 @@ public:
      *
      * @returns VBox status code.
      * @param   eType           Error type to use.
-     * @param   rc              IPRT-style rc to use.
+     * @param   vrc             VBox status code to use.
      * @param   pcszWhat        Subject to use.
      */
-    int setV(GuestErrorInfo::Type eType, int rc, const char *pcszWhat)
+    int setV(GuestErrorInfo::Type eType, int vrc, const char *pcszWhat)
     {
         mType = eType;
-        mRc   = rc;
+        mVrc  = vrc;
         mWhat = pcszWhat;
 
         return VINF_SUCCESS;
@@ -707,8 +710,8 @@ protected:
 
     /** Error type. */
     Type    mType;
-    /** IPRT-style error code. */
-    int     mRc;
+    /** VBox status (error) code. */
+    int     mVrc;
     /** Subject string related to this error. */
     Utf8Str mWhat;
 };
@@ -936,8 +939,8 @@ class GuestProcessStreamValue
 public:
 
     GuestProcessStreamValue(void) { }
-    GuestProcessStreamValue(const char *pszValue)
-        : mValue(pszValue) {}
+    GuestProcessStreamValue(const char *pszValue, size_t cwcValue = RTSTR_MAX)
+        : mValue(pszValue, cwcValue) {}
 
     GuestProcessStreamValue(const GuestProcessStreamValue& aThat)
            : mValue(aThat.mValue) { }
@@ -959,13 +962,22 @@ typedef std::map < Utf8Str, GuestProcessStreamValue > GuestCtrlStreamPairMap;
 typedef std::map < Utf8Str, GuestProcessStreamValue >::iterator GuestCtrlStreamPairMapIter;
 typedef std::map < Utf8Str, GuestProcessStreamValue >::const_iterator GuestCtrlStreamPairMapIterConst;
 
+class GuestProcessStream;
+
 /**
  * Class representing a block of stream pairs (key=value). Each block in a raw guest
  * output stream is separated by "\0\0", each pair is separated by "\0". The overall
  * end of a guest stream is marked by "\0\0\0\0".
+ *
+ * An empty stream block will be treated as being incomplete.
+ *
+ * Only used for the busybox-like toolbox commands within VBoxService.
+ * Deprecated, do not use anymore.
  */
 class GuestProcessStreamBlock
 {
+    friend GuestProcessStream;
+
 public:
 
     GuestProcessStreamBlock(void);
@@ -982,26 +994,49 @@ public:
 
     const char *GetString(const char *pszKey) const;
     size_t      GetCount(void) const;
-    int         GetRc(void) const;
+    int         GetVrc(bool fSucceedIfNotFound = false) const;
     int         GetInt64Ex(const char *pszKey, int64_t *piVal) const;
     int64_t     GetInt64(const char *pszKey) const;
     int         GetUInt32Ex(const char *pszKey, uint32_t *puVal) const;
     uint32_t    GetUInt32(const char *pszKey, uint32_t uDefault = 0) const;
     int32_t     GetInt32(const char *pszKey, int32_t iDefault = 0) const;
 
-    bool        IsEmpty(void) { return mPairs.empty(); }
+    bool        IsComplete(void) const { return !m_mapPairs.empty() && m_fComplete; }
+    bool        IsEmpty(void) const { return m_mapPairs.empty(); }
 
+    int         SetValueEx(const char *pszKey, size_t cwcKey, const char *pszValue, size_t cwcValue, bool fOverwrite = false);
     int         SetValue(const char *pszKey, const char *pszValue);
 
 protected:
 
-    GuestCtrlStreamPairMap mPairs;
+    /** Wheter the stream block is marked as complete.
+     *  An empty stream block is considered as incomplete. */
+    bool                   m_fComplete;
+    /** Map of stream pairs this block contains.*/
+    GuestCtrlStreamPairMap m_mapPairs;
 };
 
 /** Vector containing multiple allocated stream pair objects. */
 typedef std::vector< GuestProcessStreamBlock > GuestCtrlStreamObjects;
 typedef std::vector< GuestProcessStreamBlock >::iterator GuestCtrlStreamObjectsIter;
 typedef std::vector< GuestProcessStreamBlock >::const_iterator GuestCtrlStreamObjectsIterConst;
+
+/** Defines a single terminator as a single char. */
+#define GUESTTOOLBOX_STRM_TERM                      '\0'
+/** Defines a single terminator as a string. */
+#define GUESTTOOLBOX_STRM_TERM_STR                  "\0"
+/** Defines the termination sequence for a single key/value pair. */
+#define GUESTTOOLBOX_STRM_TERM_PAIR_STR             GUESTTOOLBOX_STRM_TERM_STR
+/** Defines the termination sequence for a single stream block. */
+#define GUESTTOOLBOX_STRM_TERM_BLOCK_STR            GUESTTOOLBOX_STRM_TERM_STR GUESTTOOLBOX_STRM_TERM_STR
+/** Defines the termination sequence for the stream. */
+#define GUESTTOOLBOX_STRM_TERM_STREAM_STR           GUESTTOOLBOX_STRM_TERM_STR GUESTTOOLBOX_STRM_TERM_STR GUESTTOOLBOX_STRM_TERM_STR GUESTTOOLBOX_STRM_TERM_STR
+/** Defines how many consequtive terminators a key/value pair has. */
+#define GUESTTOOLBOX_STRM_PAIR_TERM_CNT             1
+/** Defines how many consequtive terminators a stream block has. */
+#define GUESTTOOLBOX_STRM_BLK_TERM_CNT              2
+/** Defines how many consequtive terminators a stream has. */
+#define GUESTTOOLBOX_STRM_TERM_CNT                  4
 
 /**
  * Class for parsing machine-readable guest process output by VBoxService'
@@ -1026,9 +1061,11 @@ public:
     void Dump(const char *pszFile);
 #endif
 
-    size_t GetOffset() { return m_offBuffer; }
+    size_t GetOffset(void) const { return m_offBuf; }
 
-    size_t GetSize() { return m_cbUsed; }
+    size_t GetSize(void) const { return m_cbUsed; }
+
+    size_t GetBlocks(void) const { return m_cBlocks; }
 
     int ParseBlock(GuestProcessStreamBlock &streamBlock);
 
@@ -1042,9 +1079,11 @@ protected:
     /** Currently used size at m_offBuffer. */
     size_t m_cbUsed;
     /** Current byte offset within the internal stream buffer. */
-    size_t m_offBuffer;
+    size_t m_offBuf;
     /** Internal stream buffer. */
     BYTE  *m_pbBuffer;
+    /** How many completed stream blocks already were processed. */
+    size_t m_cBlocks;
 };
 
 class Guest;
@@ -1056,26 +1095,28 @@ class GuestWaitEventPayload
 public:
 
     GuestWaitEventPayload(void)
-        : uType(0),
-          cbData(0),
-          pvData(NULL) { }
+        : uType(0)
+        , cbData(0)
+        , pvData(NULL)
+    { }
 
     /**
-     * Initialization constructor. Will throw() VBox status code (rc).
+     * Initialization constructor.
+     *
+     * @throws  VBox status code (vrc).
      *
      * @param   uTypePayload    Payload type to set.
      * @param   pvPayload       Pointer to payload data to set (deep copy).
      * @param   cbPayload       Size (in bytes) of payload data to set.
      */
-    GuestWaitEventPayload(uint32_t uTypePayload,
-                          const void *pvPayload, uint32_t cbPayload)
-        : uType(0),
-          cbData(0),
-          pvData(NULL)
+    GuestWaitEventPayload(uint32_t uTypePayload, const void *pvPayload, uint32_t cbPayload)
+        : uType(0)
+        , cbData(0)
+        , pvData(NULL)
     {
-        int rc = copyFrom(uTypePayload, pvPayload, cbPayload);
-        if (RT_FAILURE(rc))
-            throw rc;
+        int vrc = copyFrom(uTypePayload, pvPayload, cbPayload);
+        if (RT_FAILURE(vrc))
+            throw vrc;
     }
 
     virtual ~GuestWaitEventPayload(void)
@@ -1140,8 +1181,7 @@ protected:
 
         Clear();
 
-        int rc = VINF_SUCCESS;
-
+        int vrc = VINF_SUCCESS;
         if (cbPayload)
         {
             pvData = RTMemAlloc(cbPayload);
@@ -1153,7 +1193,7 @@ protected:
                 cbData = cbPayload;
             }
             else
-                rc = VERR_NO_MEMORY;
+                vrc = VERR_NO_MEMORY;
         }
         else
         {
@@ -1163,7 +1203,7 @@ protected:
             cbData = 0;
         }
 
-        return rc;
+        return vrc;
     }
 
 protected:
@@ -1186,12 +1226,12 @@ protected:
 
 public:
 
-    uint32_t                        ContextID(void) { return mCID; };
-    int                             GuestResult(void) { return mGuestRc; }
-    int                             Result(void) { return mRc; }
-    GuestWaitEventPayload &         Payload(void) { return mPayload; }
-    int                             SignalInternal(int rc, int guestRc, const GuestWaitEventPayload *pPayload);
-    int                             Wait(RTMSINTERVAL uTimeoutMS);
+    uint32_t                ContextID(void) { return mCID; };
+    int                     GuestResult(void) { return mGuestRc; }
+    int                     Result(void) { return mVrc; }
+    GuestWaitEventPayload  &Payload(void) { return mPayload; }
+    int                     SignalInternal(int vrc, int vrcGuest, const GuestWaitEventPayload *pPayload);
+    int                     Wait(RTMSINTERVAL uTimeoutMS);
 
 protected:
 
@@ -1199,21 +1239,18 @@ protected:
 
 protected:
 
-    /* Shutdown indicator. */
+    /** Shutdown indicator. */
     bool                       mfAborted;
-    /* Associated context ID (CID). */
+    /** Associated context ID (CID). */
     uint32_t                   mCID;
-    /** The event semaphore for triggering
-     *  the actual event. */
+    /** The event semaphore for triggering the actual event. */
     RTSEMEVENT                 mEventSem;
-    /** The event's overall result. If
-     *  set to VERR_GSTCTL_GUEST_ERROR,
-     *  mGuestRc will contain the actual
-     *  error code from the guest side. */
-    int                        mRc;
-    /** The event'S overall result from the
-     *  guest side. If used, mRc must be
-     *  set to VERR_GSTCTL_GUEST_ERROR. */
+    /** The event's overall result.
+     * If set to VERR_GSTCTL_GUEST_ERROR, mGuestRc will contain the actual
+     * error code from the guest side. */
+    int                        mVrc;
+    /** The event'S overall result from the guest side.
+     * If used, mVrc must be set to VERR_GSTCTL_GUEST_ERROR. */
     int                        mGuestRc;
     /** The event's payload data. Optional. */
     GuestWaitEventPayload      mPayload;
@@ -1236,7 +1273,7 @@ public:
     int                              Init(uint32_t uCID, const GuestEventTypes &lstEvents);
     int                              Cancel(void);
     const ComPtr<IEvent>             Event(void) { return mEvent; }
-    bool                             HasGuestError(void) const { return mRc == VERR_GSTCTL_GUEST_ERROR; }
+    bool                             HasGuestError(void) const { return mVrc == VERR_GSTCTL_GUEST_ERROR; }
     int                              GetGuestError(void) const { return mGuestRc; }
     int                              SignalExternal(IEvent *pEvent);
     const GuestEventTypes           &Types(void) { return mEventTypes; }
@@ -1270,11 +1307,11 @@ public:
     /** Signals a wait event using a public guest event; also used for
      *  for external event listeners. */
     int signalWaitEvent(VBoxEventType_T aType, IEvent *aEvent);
-    /** Signals a wait event using a guest rc. */
-    int signalWaitEventInternal(PVBOXGUESTCTRLHOSTCBCTX pCbCtx, int guestRc, const GuestWaitEventPayload *pPayload);
+    /** Signals a wait event using a guest vrc. */
+    int signalWaitEventInternal(PVBOXGUESTCTRLHOSTCBCTX pCbCtx, int vrcGuest, const GuestWaitEventPayload *pPayload);
     /** Signals a wait event without letting public guest events know,
      *  extended director's cut version. */
-    int signalWaitEventInternalEx(PVBOXGUESTCTRLHOSTCBCTX pCbCtx, int rc, int guestRc, const GuestWaitEventPayload *pPayload);
+    int signalWaitEventInternalEx(PVBOXGUESTCTRLHOSTCBCTX pCbCtx, int vrc, int vrcGuest, const GuestWaitEventPayload *pPayload);
 
 public:
 

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1530,8 +1530,10 @@ static void cpumR3InitVmxGuestMsrs(PVM pVM, PCVMXMSRS pHostVmxMsrs, PCCPUMFEATUR
          * This is different from CR4 fixed-1 bits which are reported as per the
          * CPU features and/or micro-architecture/generation. Why? Ask Intel.
          */
-        uint64_t const uHostMsr = fIsNstGstHwExecAllowed ? pHostVmxMsrs->u64Cr0Fixed1 : VMX_V_CR0_FIXED1;
-        pGuestVmxMsrs->u64Cr0Fixed1 = uHostMsr | pGuestVmxMsrs->u64Cr0Fixed0;   /* Make sure the CR0 MB1 bits are not clear. */
+        pGuestVmxMsrs->u64Cr0Fixed1 = fIsNstGstHwExecAllowed ? pHostVmxMsrs->u64Cr0Fixed1 : VMX_V_CR0_FIXED1;
+
+        /* Make sure the CR0 MB1 bits are not clear. */
+        Assert((pGuestVmxMsrs->u64Cr0Fixed1 & pGuestVmxMsrs->u64Cr0Fixed0) == pGuestVmxMsrs->u64Cr0Fixed0);
     }
 
     /* CR4 Fixed-0. */
@@ -1539,8 +1541,14 @@ static void cpumR3InitVmxGuestMsrs(PVM pVM, PCVMXMSRS pHostVmxMsrs, PCCPUMFEATUR
 
     /* CR4 Fixed-1. */
     {
-        uint64_t const uHostMsr = fIsNstGstHwExecAllowed ? pHostVmxMsrs->u64Cr4Fixed1 : CPUMGetGuestCR4ValidMask(pVM);
-        pGuestVmxMsrs->u64Cr4Fixed1 = uHostMsr | pGuestVmxMsrs->u64Cr4Fixed0;   /* Make sure the CR4 MB1 bits are not clear. */
+        pGuestVmxMsrs->u64Cr4Fixed1 = CPUMGetGuestCR4ValidMask(pVM) & pHostVmxMsrs->u64Cr4Fixed1;
+
+        /* Make sure the CR4 MB1 bits are not clear. */
+        Assert((pGuestVmxMsrs->u64Cr4Fixed1 & pGuestVmxMsrs->u64Cr4Fixed0) == pGuestVmxMsrs->u64Cr4Fixed0);
+
+        /* Make sure bits that must always be set are set. */
+        Assert(pGuestVmxMsrs->u64Cr4Fixed1 & X86_CR4_PAE);
+        Assert(pGuestVmxMsrs->u64Cr4Fixed1 & X86_CR4_VMXE);
     }
 
     /* VMCS Enumeration. */
@@ -2488,7 +2496,6 @@ VMMR3DECL(void) CPUMR3ResetCpu(PVM pVM, PVMCPU pVCpu)
 /**
  * Resets the CPU.
  *
- * @returns VINF_SUCCESS.
  * @param   pVM         The cross context VM structure.
  */
 VMMR3DECL(void) CPUMR3Reset(PVM pVM)
@@ -4591,7 +4598,6 @@ VMMR3DECL(void) CPUMR3LogCpuIdAndMsrFeatures(PVM pVM)
 /**
  * Marks the guest debug state as active.
  *
- * @returns nothing.
  * @param   pVCpu       The cross context virtual CPU structure.
  *
  * @note This is used solely by NEM (hence the name) to set the correct flags here
@@ -4608,7 +4614,6 @@ VMMR3_INT_DECL(void) CPUMR3NemActivateGuestDebugState(PVMCPUCC pVCpu)
 /**
  * Marks the hyper debug state as active.
  *
- * @returns nothing.
  * @param   pVCpu       The cross context virtual CPU structure.
  *
  * @note This is used solely by NEM (hence the name) to set the correct flags here

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -236,7 +236,7 @@ public:
       * @param  enmType  Brings the action type. */
     UIAction(UIActionPool *pParent, UIActionType enmType, bool fMachineMenuAction = false);
     /** Destructs action. */
-    virtual ~UIAction() RT_OVERRIDE { delete menu(); }
+    virtual ~UIAction() RT_OVERRIDE { delete menu(); QAction::setShortcuts(QList<QKeySequence>() /*unregister*/); }
 
     /** Returns action-pool this action belongs to. */
     UIActionPool *actionPool() const { return m_pActionPool; }

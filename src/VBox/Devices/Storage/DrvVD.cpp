@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -2304,6 +2304,15 @@ static void drvvdMediaExIoReqWarningISCSI(PPDMDRVINS pDrvIns)
     AssertRC(rc);
 }
 
+static void drvvdMediaExIoReqWarningFileStale(PPDMDRVINS pDrvIns)
+{
+    int rc;
+    LogRel(("VD#%u: File handle became stale\n", pDrvIns->iInstance));
+    rc = PDMDrvHlpVMSetRuntimeError(pDrvIns, VMSETRTERR_FLAGS_SUSPEND | VMSETRTERR_FLAGS_NO_WAIT, "DrvVD_ISCSIDOWN",
+                                    N_("The file became stale (often due to a restarted NFS server). VM execution is suspended. You can resume when it is available again"));
+    AssertRC(rc);
+}
+
 static void drvvdMediaExIoReqWarningDekMissing(PPDMDRVINS pDrvIns)
 {
     LogRel(("VD#%u: DEK is missing\n", pDrvIns->iInstance));
@@ -2341,6 +2350,12 @@ bool drvvdMediaExIoReqIsRedoSetWarning(PVBOXDISK pThis, int rc)
          * connection (second error). Pause VM. On resume we'll retry. */
         if (ASMAtomicCmpXchgBool(&pThis->fRedo, true, false))
             drvvdMediaExIoReqWarningISCSI(pThis->pDrvIns);
+        return true;
+    }
+    if (rc == VERR_STALE_FILE_HANDLE)
+    {
+        if (ASMAtomicCmpXchgBool(&pThis->fRedo, true, false))
+            drvvdMediaExIoReqWarningFileStale(pThis->pDrvIns);
         return true;
     }
     if (rc == VERR_VD_DEK_MISSING)
@@ -2460,7 +2475,6 @@ static int drvvdMediaExIoReqRemove(PVBOXDISK pThis, PPDMMEDIAEXIOREQINT pIoReq)
  * Retires a given I/O request marking it as complete and notiyfing the
  * device/driver above about the completion if requested.
  *
- * @returns VBox status code.
  * @param   pThis     VBox disk container instance data.
  * @param   pIoReq    I/O request to complete.
  * @param   rcReq     The status code the request completed with.
@@ -3011,7 +3025,6 @@ static int drvvdMediaExIoReqReadWriteProcess(PVBOXDISK pThis, PPDMMEDIAEXIOREQIN
 /**
  * Tries to process any requests waiting for available I/O memory.
  *
- * @returns nothing.
  * @param   pThis     VBox disk container instance data.
  */
 static void drvvdMediaExIoReqProcessWaiting(PVBOXDISK pThis)
@@ -3092,7 +3105,6 @@ static void drvvdMediaExIoReqProcessWaiting(PVBOXDISK pThis)
 /**
  * Frees a I/O memory buffer allocated previously.
  *
- * @returns nothing.
  * @param   pThis     VBox disk container instance data.
  * @param   pIoReq    I/O request for which to free memory.
  */
@@ -3170,7 +3182,6 @@ DECLINLINE(const char *) drvvdMediaExIoReqTypeStringify(PDMMEDIAEXIOREQTYPE enmT
 /**
  * Dumps the interesting bits about the given I/O request to the release log.
  *
- * @returns nothing.
  * @param   pThis     VBox disk container instance data.
  * @param   pIoReq    The I/O request to dump.
  */
@@ -4185,7 +4196,6 @@ static int drvvdStatsRegister(PVBOXDISK pThis)
 /**
  * Deregisters statistics associated with the given media driver.
  *
- * @returns nothing.
  * @param   pThis      The media driver instance.
  */
 static void drvvdStatsDeregister(PVBOXDISK pThis)
@@ -4268,7 +4278,6 @@ static DECLCALLBACK(int) drvvdLoadDone(PPDMDRVINS pDrvIns, PSSMHANDLE pSSM)
 /**
  * Worker for the power off or destruct callback.
  *
- * @returns nothing.
  * @param   pDrvIns    The driver instance.
  */
 static void drvvdPowerOffOrDestructOrUnmount(PPDMDRVINS pDrvIns)

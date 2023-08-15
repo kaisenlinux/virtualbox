@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -63,6 +63,9 @@
 static PCRTCRPKIXSIGNATUREDESC const g_apPkixSignatureDescriptors[] =
 {
     &g_rtCrPkixSigningHashWithRsaDesc,
+#ifdef IPRT_WITH_OPENSSL
+    &g_rtCrPkixSigningHashWithEcdsaDesc,
+#endif
 };
 
 

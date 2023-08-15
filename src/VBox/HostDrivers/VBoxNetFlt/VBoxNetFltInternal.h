@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -459,7 +459,6 @@ DECLHIDDEN(int) vboxNetFltOsConnectIt(PVBOXNETFLTINS pThis);
 /**
  * Counter part to vboxNetFltOsInitInstance().
  *
- * @return  IPRT status code.
  * @param   pThis           The new instance.
  *
  * @remarks May own the semaphores for the global list, the network lock and the out-bound trunk port.

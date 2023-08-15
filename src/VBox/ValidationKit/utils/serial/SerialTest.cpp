@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2017-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2017-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -235,7 +235,6 @@ static void serialTestFailed(RTTEST hTest, const char *pszFmt, ...)
 /**
  * Initializes a TX buffer.
  *
- * @returns nothing.
  * @param   pSerBuf             The serial buffer to initialize.
  * @param   cbTx                Maximum number of bytes to transmit.
  */
@@ -252,7 +251,6 @@ static void serialTestTxBufInit(PSERIALTESTTXRXBUFCNT pSerBuf, size_t cbTx)
 /**
  * Initializes a RX buffer.
  *
- * @returns nothing.
  * @param   pSerBuf             The serial buffer to initialize.
  * @param   cbRx                Maximum number of bytes to receive.
  */
@@ -269,7 +267,6 @@ static void serialTestRxBufInit(PSERIALTESTTXRXBUFCNT pSerBuf, size_t cbRx)
 /**
  * Prepares the given TX buffer with data for sending it out.
  *
- * @returns nothing.
  * @param   pSerBuf             The TX buffer pointer.
  */
 static void serialTestTxBufPrepare(PSERIALTESTTXRXBUFCNT pSerBuf)

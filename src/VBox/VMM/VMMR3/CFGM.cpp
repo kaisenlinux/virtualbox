@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -120,7 +120,6 @@ static void *cfgmR3MemAlloc(PVM pVM, MMTAG enmTag, size_t cb)
 /**
  * Free wrapper.
  *
- * @returns Pointer to the allocated memory, NULL on failure.
  * @param   pVM         The cross context VM structure, if the tree
  *                      is associated with one.
  * @param   pv          The memory block to free.
@@ -154,7 +153,6 @@ static char *cfgmR3StrAlloc(PVM pVM, MMTAG enmTag,  size_t cbString)
 /**
  * String free wrapper.
  *
- * @returns Pointer to the allocated memory, NULL on failure.
  * @param   pVM         The cross context VM structure, if the tree
  *                      is associated with one.
  * @param   pszString   The memory block to free.
@@ -1084,6 +1082,16 @@ VMMR3DECL(int) CFGMR3ConstructDefaultTree(PVM pVM)
     UPDATERC();
     rc = CFGMR3InsertInteger(pRoot, "TimerMillies",         10);
     UPDATERC();
+
+    /*
+     * HM.
+     */
+    PCFGMNODE pHm;
+    rc = CFGMR3InsertNode(pRoot, "HM", &pHm);
+    UPDATERC();
+    rc = CFGMR3InsertInteger(pHm, "FallbackToIEM",          1); /* boolean */
+    UPDATERC();
+
 
     /*
      * PDM.
@@ -3292,6 +3300,10 @@ VMMR3DECL(void) CFGMR3Dump(PCFGMNODE pRoot)
     bool fOldBuffered = RTLogRelSetBuffering(true /*fBuffered*/);
     LogRel(("************************* CFGM dump *************************\n"));
     cfgmR3Dump(pRoot, 0, DBGFR3InfoLogRelHlp());
+#ifdef LOG_ENABLED
+    if (LogIsEnabled())
+        cfgmR3Dump(pRoot, 0, DBGFR3InfoLogHlp());
+#endif
     LogRel(("********************* End of CFGM dump **********************\n"));
     RTLogRelSetBuffering(fOldBuffered);
 }

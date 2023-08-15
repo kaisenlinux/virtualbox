@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1123,7 +1123,6 @@ typedef struct DBGCIO
     /**
      * Destroys the given I/O instance.
      *
-     * @returns nothing.
      * @param   pIo         Pointer to the I/O structure supplied by the I/O provider.
      */
     DECLCALLBACKMEMBER(void, pfnDestroy, (PCDBGCIO pIo));
@@ -1193,7 +1192,6 @@ typedef struct DBGCIO
     /**
      * Ready / busy notification.
      *
-     * @returns nothing.
      * @param   pIo         Pointer to the I/O structure supplied by
      *                      the I/O provider. The backend can use this to find it's instance data.
      * @param   fReady      Whether it's ready (true) or busy (false).

@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2021-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2021-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -616,7 +616,6 @@ static SSMFIELD const g_aTpmFields[] =
 /**
  * Sets the IRQ line of the given device to the given state.
  *
- * @returns nothing.
  * @param   pDevIns             Pointer to the PDM device instance data.
  * @param   pThis               Pointer to the shared TPM device.
  * @param   iLvl                The interrupt level to set.
@@ -630,7 +629,6 @@ DECLINLINE(void) tpmIrqReq(PPDMDEVINS pDevIns, PDEVTPM pThis, int iLvl)
 /**
  * Updates the IRQ status of the given locality.
  *
- * @returns nothing.
  * @param   pDevIns             Pointer to the PDM device instance data.
  * @param   pThis               Pointer to the shared TPM device.
  * @param   pLoc                The locality state.
@@ -648,7 +646,6 @@ static void tpmLocIrqUpdate(PPDMDEVINS pDevIns, PDEVTPM pThis, PDEVTPMLOCALITY p
 /**
  * Sets the interrupt status for the given locality, firing an interrupt if necessary.
  *
- * @returns nothing.
  * @param   pDevIns             Pointer to the PDM device instance data.
  * @param   pThis               Pointer to the shared TPM device.
  * @param   pLoc                The locality state.
@@ -664,7 +661,6 @@ static void tpmLocSetIntSts(PPDMDEVINS pDevIns, PDEVTPM pThis, PDEVTPMLOCALITY p
 /**
  * Selects the next locality which has requested access.
  *
- * @returns nothing.
  * @param   pDevIns             Pointer to the PDM device instance data.
  * @param   pThis               Pointer to the shared TPM device.
  */
@@ -1343,6 +1339,8 @@ static DECLCALLBACK(VBOXSTRICTRC) tpmMmioRead(PPDMDEVINS pDevIns, void *pvUser, 
     PDEVTPM pThis  = PDMDEVINS_2_DATA(pDevIns, PDEVTPM);
     RT_NOREF(pvUser);
 
+    AssertReturn(cb <= sizeof(uint64_t), VERR_INTERNAL_ERROR);
+
     RTGCPHYS offAligned = off & ~UINT64_C(0x3);
     uint8_t cBitsShift  = (off & 0x3) * 8;
 
@@ -1448,6 +1446,29 @@ static DECLCALLBACK(void) tpmR3CmdExecWorker(PPDMDEVINS pDevIns, void *pvUser)
     }
 
     PDMDevHlpCritSectLeave(pDevIns, pDevIns->pCritSectRoR3);
+}
+
+
+/**
+ * Resets the shared hardware TPM state.
+ *
+ * @param   pThis               Pointer to the shared TPM device.
+ */
+static void tpmR3HwReset(PDEVTPM pThis)
+{
+    pThis->enmState       = DEVTPMSTATE_IDLE;
+    pThis->bLoc           = TPM_NO_LOCALITY_SELECTED;
+    pThis->bmLocReqAcc    = 0;
+    pThis->bmLocSeizedAcc = 0;
+    pThis->offCmdResp     = 0;
+    RT_ZERO(pThis->abCmdResp);
+
+    for (uint32_t i = 0; i < RT_ELEMENTS(pThis->aLoc); i++)
+    {
+        PDEVTPMLOCALITY pLoc = &pThis->aLoc[i];
+        pLoc->uRegIntEn  = 0;
+        pLoc->uRegIntSts = 0;
+    }
 }
 
 
@@ -1608,24 +1629,34 @@ static DECLCALLBACK(void *) tpmR3QueryInterface(PPDMIBASE pInterface, const char
 /* -=-=-=-=-=-=-=-=- PDMDEVREG -=-=-=-=-=-=-=-=- */
 
 /**
+ * @interface_method_impl{PDMDEVREG,pfnPowerOn}
+ */
+static DECLCALLBACK(void) tpmR3PowerOn(PPDMDEVINS pDevIns)
+{
+    PDEVTPM   pThis   = PDMDEVINS_2_DATA(pDevIns, PDEVTPM);
+    PDEVTPMCC pThisCC = PDMDEVINS_2_DATA_CC(pDevIns, PDEVTPMCC);
+
+    if (pThisCC->pDrvTpm)
+    {
+        pThis->fEstablishmentSet = pThisCC->pDrvTpm->pfnGetEstablishedFlag(pThisCC->pDrvTpm);
+        pThis->cbCmdResp         = RT_MIN(pThisCC->pDrvTpm->pfnGetBufferSize(pThisCC->pDrvTpm), TPM_DATA_BUFFER_SIZE_MAX);
+    }
+}
+
+
+/**
  * @interface_method_impl{PDMDEVREG,pfnReset}
  */
 static DECLCALLBACK(void) tpmR3Reset(PPDMDEVINS pDevIns)
 {
     PDEVTPM   pThis   = PDMDEVINS_2_DATA(pDevIns, PDEVTPM);
+    PDEVTPMCC pThisCC = PDMDEVINS_2_DATA_CC(pDevIns, PDEVTPMCC);
 
-    pThis->enmState       = DEVTPMSTATE_IDLE;
-    pThis->bLoc           = TPM_NO_LOCALITY_SELECTED;
-    pThis->bmLocReqAcc    = 0;
-    pThis->bmLocSeizedAcc = 0;
-    pThis->offCmdResp     = 0;
-    RT_ZERO(pThis->abCmdResp);
-
-    for (uint32_t i = 0; i < RT_ELEMENTS(pThis->aLoc); i++)
+    tpmR3HwReset(pThis);
+    if (pThisCC->pDrvTpm)
     {
-        PDEVTPMLOCALITY pLoc = &pThis->aLoc[i];
-        pLoc->uRegIntEn  = 0;
-        pLoc->uRegIntSts = 0;
+        pThis->fEstablishmentSet = pThisCC->pDrvTpm->pfnGetEstablishedFlag(pThisCC->pDrvTpm);
+        pThis->cbCmdResp         = RT_MIN(pThisCC->pDrvTpm->pfnGetBufferSize(pThisCC->pDrvTpm), TPM_DATA_BUFFER_SIZE_MAX);
     }
 }
 
@@ -1718,9 +1749,7 @@ static DECLCALLBACK(int) tpmR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGM
         pThisCC->pDrvTpm = PDMIBASE_QUERY_INTERFACE(pThisCC->pDrvBase, PDMITPMCONNECTOR);
         AssertLogRelMsgReturn(pThisCC->pDrvTpm, ("TPM#%d: Driver is missing the TPM interface.\n", iInstance), VERR_PDM_MISSING_INTERFACE);
 
-        pThis->fLocChangeSup     = pThisCC->pDrvTpm->pfnGetLocalityMax(pThisCC->pDrvTpm) > 0;
-        pThis->fEstablishmentSet = pThisCC->pDrvTpm->pfnGetEstablishedFlag(pThisCC->pDrvTpm);
-        pThis->cbCmdResp         = RT_MIN(pThisCC->pDrvTpm->pfnGetBufferSize(pThisCC->pDrvTpm), TPM_DATA_BUFFER_SIZE_MAX);
+        pThis->fLocChangeSup = pThisCC->pDrvTpm->pfnGetLocalityMax(pThisCC->pDrvTpm) > 0;
 
         pThis->enmTpmVers = pThisCC->pDrvTpm->pfnGetVersion(pThisCC->pDrvTpm);
         if (pThis->enmTpmVers == TPMVERSION_UNKNOWN)
@@ -1751,7 +1780,7 @@ static DECLCALLBACK(int) tpmR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGM
                                tpmR3LiveExec, tpmR3SaveExec, tpmR3LoadExec);
     AssertRCReturn(rc, rc);
 
-    tpmR3Reset(pDevIns);
+    tpmR3HwReset(pThis);
     return VINF_SUCCESS;
 }
 
@@ -1798,8 +1827,8 @@ const PDMDEVREG g_DeviceTpm =
     /* .pfnDestruct = */            tpmR3Destruct,
     /* .pfnRelocate = */            NULL,
     /* .pfnMemSetup = */            NULL,
-    /* .pfnPowerOn = */             NULL,
-    /* .pfnReset = */               NULL,
+    /* .pfnPowerOn = */             tpmR3PowerOn,
+    /* .pfnReset = */               tpmR3Reset,
     /* .pfnSuspend = */             NULL,
     /* .pfnResume = */              NULL,
     /* .pfnAttach = */              NULL,

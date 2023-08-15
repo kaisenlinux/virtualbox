@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2018-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2018-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -115,10 +115,10 @@ typedef unsigned hv_vm_space_t;
 
 /** @name Darwin: Our two-bit physical page state for PGMPAGE
  * @{ */
-# define NEM_DARWIN_PAGE_STATE_NOT_SET     0
-# define NEM_DARWIN_PAGE_STATE_UNMAPPED    1
-# define NEM_DARWIN_PAGE_STATE_READABLE    2
-# define NEM_DARWIN_PAGE_STATE_WRITABLE    3
+# define NEM_DARWIN_PAGE_STATE_UNMAPPED    0
+# define NEM_DARWIN_PAGE_STATE_RX          1
+# define NEM_DARWIN_PAGE_STATE_RW          2
+# define NEM_DARWIN_PAGE_STATE_RWX         3
 /** @} */
 
 /** The CPUMCTX_EXTRN_XXX mask for IEM. */
@@ -597,6 +597,9 @@ typedef struct NEMR0PERVM
 
 
 #ifdef IN_RING3
+
+int     nemR3DisableCpuIsaExt(PVM pVM, const char *pszIsaExt);
+
 int     nemR3NativeInit(PVM pVM, bool fFallback, bool fForced);
 int     nemR3NativeInitAfterCPUM(PVM pVM);
 int     nemR3NativeInitCompleted(PVM pVM, VMINITCOMPLETED enmWhat);
@@ -641,7 +644,8 @@ DECLHIDDEN(bool) nemR3NativeNotifyDebugEventChanged(PVM pVM, bool fUseDebugLoop)
  * @param   fUseDebugLoop   The current value determined by NEMR3NotifyDebugEventChangedPerCpu().
  */
 DECLHIDDEN(bool) nemR3NativeNotifyDebugEventChangedPerCpu(PVM pVM, PVMCPU pVCpu, bool fUseDebugLoop);
-#endif
+
+#endif /* IN_RING3 */
 
 void    nemHCNativeNotifyHandlerPhysicalRegister(PVMCC pVM, PGMPHYSHANDLERKIND enmKind, RTGCPHYS GCPhys, RTGCPHYS cb);
 void    nemHCNativeNotifyHandlerPhysicalModify(PVMCC pVM, PGMPHYSHANDLERKIND enmKind, RTGCPHYS GCPhysOld,

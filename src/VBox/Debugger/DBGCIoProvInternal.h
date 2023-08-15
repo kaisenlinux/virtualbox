@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2020-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2020-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -72,7 +72,6 @@ typedef struct DBGCIOPROVREG
     /**
      * Destroys the given I/O provider instance.
      *
-     * @returns nothing.
      * @param   hDbgcIoProv     The I/O provider instance handle to destroy.
      */
     DECLCALLBACKMEMBER(void, pfnDestroy, (DBGCIOPROV hDbgcIoProv));

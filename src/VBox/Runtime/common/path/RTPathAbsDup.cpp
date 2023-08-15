@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -42,13 +42,6 @@
 #include <iprt/path.h>
 
 
-/**
- * Same as RTPathAbs only the result is RTStrDup()'ed.
- *
- * @returns Pointer to real path. Use RTStrFree() to free this string.
- * @returns NULL if RTPathAbs() or RTStrDup() fails.
- * @param   pszPath         The path to resolve.
- */
 RTDECL(char *) RTPathAbsDup(const char *pszPath)
 {
     return RTPathAbsExDup(NULL, pszPath, RTPATH_STR_F_STYLE_HOST);

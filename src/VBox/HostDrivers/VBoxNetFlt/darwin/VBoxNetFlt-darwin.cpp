@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -591,7 +591,6 @@ DECLINLINE(unsigned) vboxNetFltDarwinMBufCalcSGSegs(PVBOXNETFLTINS pThis, mbuf_t
 /**
  * Initializes a SG list from an mbuf.
  *
- * @returns Number of segments.
  * @param   pThis               The instance.
  * @param   pMBuf               The mbuf.
  * @param   pSG                 The SG.

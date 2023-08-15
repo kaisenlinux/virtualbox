@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2015-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2015-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -56,7 +56,6 @@ DECLHIDDEN(int) HBDMgrCreate(PHBDMGR phHbdMgr);
 /**
  * Destroys the given block device manager unclaiming all managed block devices.
  *
- * @returns nothing.
  * @param   hHbdMgr     The block device manager.
  */
 DECLHIDDEN(void) HBDMgrDestroy(HBDMGR hHbdMgr);

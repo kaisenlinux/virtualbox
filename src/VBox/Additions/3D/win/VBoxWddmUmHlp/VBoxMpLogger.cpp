@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2018-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2018-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -104,7 +104,7 @@ DECLCALLBACK(void) VBoxDispMpLoggerLogF(const char *pszFormat, ...)
     va_list va;
     va_start(va, pszFormat);
 #ifdef IPRT_NO_CRT
-    RTStrPrintf(szBuffer, sizeof(szBuffer), pszFormat, va);
+    RTStrPrintfV(szBuffer, sizeof(szBuffer), pszFormat, va);
 #else
     _vsnprintf(szBuffer, sizeof(szBuffer), pszFormat, va);
     szBuffer[sizeof(szBuffer) - 1] = '\0'; /* Don't trust the _vsnprintf function terminate the string! */

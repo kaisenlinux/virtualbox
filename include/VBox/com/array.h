@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -812,6 +812,45 @@ public:
             return Size(m.arr->rgsabound[0].cElements);
         return 0;
 #endif
+    }
+
+    /**
+     * Prepends a copy of the given element at the beginning of the array.
+     *
+     * The array size is increased by one by this method and the additional
+     * space is allocated as needed.
+     *
+     * This method is handy in cases where you want to assign a copy of the
+     * existing value to the array element, for example:
+     * <tt>Bstr string; array.push_front(string);</tt>. If you create a string
+     * just to put it in the array, you may find #appendedRaw() more useful.
+     *
+     * @param aElement Element to prepend.
+     *
+     * @return          @c true on success and @c false if there is not enough
+     *                  memory for resizing.
+     */
+    bool push_front(const T &aElement)
+    {
+        if (!ensureCapacity(size() + 1))
+            return false;
+
+        for (size_t i = size(); i > 0; --i)
+        {
+#ifdef VBOX_WITH_XPCOM
+            SafeArray::Copy(m.arr[i - 1], m.arr[i]);
+#else
+            Copy(m.raw[i - 1], m.raw[i]);
+#endif
+        }
+
+#ifdef VBOX_WITH_XPCOM
+        SafeArray::Copy(aElement, m.arr[0]);
+        ++ m.size;
+#else
+        Copy(aElement, m.raw[0]);
+#endif
+        return true;
     }
 
     /**

@@ -5,7 +5,7 @@
 #
 
 #
-# Copyright (C) 2006-2022 Oracle and/or its affiliates.
+# Copyright (C) 2006-2023 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -139,9 +139,13 @@ status() {
     echo -n "Checking for VBoxService"
     if [ -f $PIDFILE ]; then
         echo " ...running"
+        RETVAL=0
     else
         echo " ...not running"
+        RETVAL=1
     fi
+
+    return $RETVAL
 }
 
 case "$1" in
@@ -165,5 +169,3 @@ cleanup)
     echo "Usage: $0 {start|stop|restart|status}"
     exit 1
 esac
-
-exit $RETVAL

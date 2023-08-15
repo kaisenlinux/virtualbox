@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2004-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2004-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -296,7 +296,6 @@ uint16_t scsi_cmd_packet(uint16_t device_id, uint8_t cmdlen, char __far *cmdbuf,
 /**
  * Enumerate attached devices.
  *
- * @returns nothing.
  * @param   hba_seg    Segement of the HBA controller block.
  * @param   idx_hba    The HBA driver index used for accessing the enumerated devices.
  */

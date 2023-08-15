@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -512,6 +512,16 @@ static bool vusbDevStdReqSetAddress(PVUSBDEV pDev, int EndPt, PVUSBSETUP pSetup,
     {
         LogFlow(("vusbDevStdReqSetAddress: error: %s: invalid device state %d !!!\n", pDev->pUsbIns->pszName, enmState));
         return false;
+    }
+
+    /*
+     * If wValue has any bits set beyond 0-6, throw them away.
+     */
+    if ((pSetup->wValue & VUSB_ADDRESS_MASK) != pSetup->wValue) {
+        LogRelMax(10, ("VUSB: %s: Warning: Ignoring high bits of requested address (wLength=0x%X), using only lower 7 bits.\n",
+                       pDev->pUsbIns->pszName, pSetup->wValue));
+
+        pSetup->wValue &= VUSB_ADDRESS_MASK;
     }
 
     pDev->u8NewAddress = pSetup->wValue;
@@ -1029,6 +1039,10 @@ void vusbDevSetAddress(PVUSBDEV pDev, uint8_t u8Address)
         return;
     }
 
+    /* Paranoia. */
+    Assert((u8Address & VUSB_ADDRESS_MASK) == u8Address);
+    u8Address &= VUSB_ADDRESS_MASK;
+
     /*
      * Ok, get on with it.
      */
@@ -1164,7 +1178,6 @@ static DECLCALLBACK(int) vusbDevCancelAllUrbsWorker(PVUSBDEV pDev, bool fDetachi
  * on a device. This is typically done as part of a reset and
  * before detaching a device.
  *
- * @returns nothing.
  * @param   pDev        The VUSB device instance.
  * @param   fDetaching  If set, we will unconditionally unlink (and leak)
  *                      any URBs which isn't reaped.

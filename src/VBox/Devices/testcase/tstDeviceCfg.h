@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2020-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2020-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -160,7 +160,6 @@ DECLHIDDEN(int) tstDevCfgLoad(const char *pszCfgFilename, PRTERRINFO pErrInfo, P
 /**
  * Destroys the given test configuration freeing all allocated resources.
  *
- * @returns nothing.
  * @param   pDevTstCfg              The test configuration to destroy.
  */
 DECLHIDDEN(void) tstDevCfgDestroy(PCTSTDEVCFG pDevTstCfg);

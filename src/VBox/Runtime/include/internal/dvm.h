@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -127,7 +127,6 @@ typedef struct RTDVMFMTOPS
     /**
      * Closes the volume format.
      *
-     * @returns nothing.
      * @param   hVolMgrFmt      The format specific volume manager handle.
      */
     DECLCALLBACKMEMBER(void, pfnClose,(RTDVMFMT hVolMgrFmt));
@@ -219,7 +218,6 @@ typedef struct RTDVMFMTOPS
     /**
      * Closes a volume handle.
      *
-     * @returns nothing.
      * @param   hVolFmt         The format specific volume handle.
      */
     DECLCALLBACKMEMBER(void, pfnVolumeClose,(RTDVMVOLUMEFMT hVolFmt));

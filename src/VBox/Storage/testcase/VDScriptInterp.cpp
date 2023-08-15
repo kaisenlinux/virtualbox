@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -184,7 +184,6 @@ static int vdScriptInterpreterError(PVDSCRIPTINTERPCTX pThis, int rc, RT_SRC_POS
 /**
  * Pops the topmost value from the value stack.
  *
- * @returns nothing.
  * @param   pThis      The interpreter context.
  * @param   pVal       Where to store the value.
  */
@@ -429,7 +428,6 @@ static int vdScriptInterpreterScopeCreate(PVDSCRIPTINTERPCTX pThis)
 /**
  * Destroys the current scope.
  *
- * @returns nothing.
  * @param   pThis          The interpreter context.
  */
 static void vdScriptInterpreterScopeDestroyCurr(PVDSCRIPTINTERPCTX pThis)

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -947,7 +947,6 @@ DECLINLINE(int) ohciR3SetInterruptInt(PPDMDEVINS pDevIns, POHCI ohci, int rcBusy
 /**
  * Sets the HC in the unrecoverable error state and raises the appropriate interrupt.
  *
- * @returns nothing.
  * @param   pDevIns             The device instance.
  * @param   pThis               The OHCI instance.
  * @param   iCode               Diagnostic code.
@@ -1480,7 +1479,6 @@ static void ohciR3PhysReadCacheRead(PPDMDEVINS pDevIns, POHCIPAGECACHE pPageCach
  * Updates the data in the given page cache if the given guest physical address is currently contained
  * in the cache.
  *
- * @returns nothing.
  * @param   pPageCache  The page cache to update.
  * @param   GCPhys      The guest physical address needing the update.
  * @param   pvBuf       Pointer to the buffer to update the page cache with.
@@ -1500,7 +1498,6 @@ static void ohciR3PhysCacheUpdate(POHCIPAGECACHE pPageCache, RTGCPHYS GCPhys, co
 /**
  * Update any cached ED data with the given endpoint descriptor at the given address.
  *
- * @returns nothing.
  * @param   pThisCC     The OHCI instance data for the current context.
  * @param   EdAddr      Endpoint descriptor address.
  * @param   pEd         The endpoint descriptor which got updated.
@@ -1514,7 +1511,6 @@ DECLINLINE(void) ohciR3CacheEdUpdate(POHCICC pThisCC, RTGCPHYS32 EdAddr, PCOHCIE
 /**
  * Update any cached TD data with the given transfer descriptor at the given address.
  *
- * @returns nothing.
  * @param   pThisCC     The OHCI instance data, current context.
  * @param   TdAddr      Transfer descriptor address.
  * @param   pTd         The transfer descriptor which got updated.
@@ -2049,6 +2045,31 @@ static int ohciR3InFlightRemove(POHCI pThis, POHCICC pThisCC, uint32_t GCPhysTD)
 
 
 /**
+ * Clear any possible leftover traces of a URB from the in-flight tracking.
+ * Useful if broken guests confuse the tracking logic by using the same TD
+ * for multiple URBs. See @bugref{10410}.
+ *
+ * @param   pThisCC     OHCI instance data, ring-3 edition.
+ * @param   pUrb        The URB.
+ */
+static void ohciR3InFlightClearUrb(POHCICC pThisCC, PVUSBURB pUrb)
+{
+    unsigned i = 0;
+    while (i < RT_ELEMENTS(pThisCC->aInFlight))
+    {
+        if (pThisCC->aInFlight[i].pUrb == pUrb)
+        {
+            Log2(("ohciR3InFlightClearUrb: clearing leftover URB!!\n"));
+            pThisCC->aInFlight[i].GCPhysTD = 0;
+            pThisCC->aInFlight[i].pUrb = NULL;
+            pThisCC->cInFlight--;
+        }
+        i++;
+    }
+}
+
+
+/**
  * Removes all TDs associated with a URB from the in-flight tracking.
  *
  * @returns 0 if found. For logged builds this is the number of frames the TD has been in-flight.
@@ -2066,6 +2087,7 @@ static int ohciR3InFlightRemoveUrb(POHCI pThis, POHCICC pThisCC, PVUSBURB pUrb)
             if (ohciR3InFlightRemove(pThis, pThisCC, pUrb->paTds[iTd].TdAddr) < 0)
                 cFramesInFlight = -1;
     }
+    ohciR3InFlightClearUrb(pThisCC, pUrb);
     return cFramesInFlight;
 }
 
@@ -2529,7 +2551,6 @@ static uint32_t ohciR3VUsbStatus2OhciStatus(VUSBSTATUS enmStatus)
 /**
  * Lock the given OHCI controller instance.
  *
- * @returns nothing.
  * @param   pThisCC     The OHCI controller instance to lock, ring-3 edition.
  */
 DECLINLINE(void) ohciR3Lock(POHCICC pThisCC)
@@ -2547,7 +2568,6 @@ DECLINLINE(void) ohciR3Lock(POHCICC pThisCC)
 /**
  * Unlocks the given OHCI controller instance.
  *
- * @returns nothing.
  * @param   pThisCC     The OHCI controller instance to unlock, ring-3 edition.
  */
 DECLINLINE(void) ohciR3Unlock(POHCICC pThisCC)
@@ -5668,7 +5688,6 @@ static DECLCALLBACK(int) ohciR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uin
 /**
  * Reset notification.
  *
- * @returns VBox status code.
  * @param   pDevIns     The device instance data.
  */
 static DECLCALLBACK(void) ohciR3Reset(PPDMDEVINS pDevIns)
@@ -5692,7 +5711,6 @@ static DECLCALLBACK(void) ohciR3Reset(PPDMDEVINS pDevIns)
 /**
  * Resume notification.
  *
- * @returns VBox status code.
  * @param   pDevIns     The device instance data.
  */
 static DECLCALLBACK(void) ohciR3Resume(PPDMDEVINS pDevIns)

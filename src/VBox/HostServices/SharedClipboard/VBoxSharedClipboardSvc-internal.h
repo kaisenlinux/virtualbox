@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -365,7 +365,6 @@ void ShClBackendDestroy(PSHCLBACKEND pBackend);
 /**
  * Called when a new HGCM client connects.
  *
- * @returns VBox status code.
  * @param   pBackend            Shared Clipboard backend to set callbacks for.
  * @param   pCallbacks          Backend callbacks to use.
  *                              When NULL is specified, the backend's default callbacks are being used.

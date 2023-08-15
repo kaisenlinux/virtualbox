@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -3708,7 +3708,6 @@ DECLINLINE(void) ASMAtomicUoWriteS64(volatile int64_t RT_FAR *pi64, int64_t i64)
 /**
  * Atomically writes a size_t value, ordered.
  *
- * @returns nothing.
  * @param   pcb     Pointer to the size_t variable to write.
  * @param   cb      The value to assign to *pcb.
  */
@@ -3730,7 +3729,6 @@ DECLINLINE(void) ASMAtomicWriteZ(volatile size_t RT_FAR *pcb, size_t cb) RT_NOTH
 /**
  * Atomically writes a size_t value, unordered.
  *
- * @returns nothing.
  * @param   pcb     Pointer to the size_t variable to write.
  * @param   cb      The value to assign to *pcb.
  */

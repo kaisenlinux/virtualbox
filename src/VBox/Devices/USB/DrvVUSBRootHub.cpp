@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2005-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2005-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -645,7 +645,6 @@ static void vusbRhR3CalcTimerIntervals(PVUSBROOTHUB pThis, uint32_t u32FrameRate
  * Calculates the new frame rate based on the idle detection and number of idle
  * cycles.
  *
- * @returns nothing.
  * @param   pThis    The roothub instance data.
  * @param   fIdle    Flag whether the last frame didn't produce any activity.
  */

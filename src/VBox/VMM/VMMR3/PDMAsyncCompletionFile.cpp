@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -106,7 +106,6 @@ static const DBGCCMD g_aCmds[] =
 /**
  * Frees a task.
  *
- * @returns nothing.
  * @param   pEndpoint    Pointer to the endpoint the segment was for.
  * @param   pTask        The task to free.
  */
@@ -516,7 +515,6 @@ int pdmacFileAioMgrCreate(PPDMASYNCCOMPLETIONEPCLASSFILE pEpClass, PPPDMACEPFILE
 /**
  * Destroys a async I/O manager.
  *
- * @returns nothing.
  * @param   pEpClassFile    Pointer to globals for the file endpoint class.
  * @param   pAioMgr         The async I/O manager to destroy.
  */

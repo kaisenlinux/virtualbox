@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -578,7 +578,6 @@ static int dbgDiggerWinNtDbgPrintResolveWorker(PDBGDIGGERWINNT pThis, PUVM pUVM,
  * Tries to resolve and hook into the worker for all the DbgPrint like wrappers to be able
  * to gather debug information from the system.
  *
- * @returns nothing.
  * @param   pThis           The instance data.
  * @param   pUVM            The user mode VM handle.
  */
@@ -659,7 +658,6 @@ static void dbgDiggerWinNtDbgPrintHook(PDBGDIGGERWINNT pThis, PUVM pUVM)
 /**
  * Tries to resolve the KPCR and KPCRB addresses for each vCPU.
  *
- * @returns nothing.
  * @param   pThis           The instance data.
  * @param   pUVM            The user mode VM handle.
  * @param   pVMM            The VMM function table.

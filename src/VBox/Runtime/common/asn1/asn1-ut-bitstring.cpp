@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -367,7 +367,7 @@ RTDECL(int) RTAsn1BitString_InitWithData(PRTASN1BITSTRING pThis, void const *pvS
         pThis->cBits    = cSrcBits;
         uint8_t *pbDst  = (uint8_t *)pThis->Asn1Core.uData.pu8;
         pThis->uBits.pv = pbDst + 1;
-        *pbDst = 8 - (cSrcBits & 7); /* unused bits */
+        *pbDst = (cSrcBits & 7) != 0 ? 8 - (cSrcBits & 7) : 0; /* unused bits */
         memcpy(pbDst + 1, pvSrc, cbToCopy);
     }
     return rc;

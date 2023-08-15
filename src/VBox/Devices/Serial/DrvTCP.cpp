@@ -6,7 +6,7 @@
 /*
  * Contributed by Alexey Eromenko (derived from DrvNamedPipe).
  *
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -147,7 +147,6 @@ static int drvTcpPollerKick(PDRVTCP pThis, uint8_t bReason)
 /**
  * Closes the connection.
  *
- * @returns nothing.
  * @param   pThis                  The TCP driver instance.
  */
 static void drvTcpConnectionClose(PDRVTCP pThis)

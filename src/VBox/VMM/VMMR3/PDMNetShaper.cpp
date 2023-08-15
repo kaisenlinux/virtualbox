@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -399,7 +399,6 @@ static DECLCALLBACK(void) pdmR3NsUnchokeTimer(PVM pVM, TMTIMERHANDLE hTimer, voi
 /**
  * Terminate the network shaper, groups, lock and everything.
  *
- * @returns VBox error code.
  * @param   pVM  The cross context VM structure.
  */
 void pdmR3NetShaperTerm(PVM pVM)

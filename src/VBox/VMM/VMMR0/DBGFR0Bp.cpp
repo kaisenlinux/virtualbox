@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2020-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2020-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -56,7 +56,6 @@
 /**
  * Used by DBGFR0InitPerVM() to initialize the breakpoint manager.
  *
- * @returns nothing.
  * @param   pGVM        The global (ring-0) VM structure.
  */
 DECLHIDDEN(void) dbgfR0BpInit(PGVM pGVM)

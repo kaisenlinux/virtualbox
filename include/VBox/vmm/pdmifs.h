@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1599,7 +1599,6 @@ typedef struct PDMIVMMDEVPORT
     /**
      * Notify the driver about a VBVA status change.
      *
-     * @returns Nothing. Because it is informational callback.
      * @param   pInterface      Pointer to the interface structure containing the called function pointer.
      * @param   fEnabled        Current VBVA status.
      */
@@ -2287,7 +2286,7 @@ typedef struct PDMIPCIRAWCONNECTOR
      */
     DECLR3CALLBACKMEMBER(int, pfnDeviceConstructComplete, (PPDMIPCIRAWCONNECTOR pInterface, const char *pcszName,
                                                            uint32_t uHostPciAddress, uint32_t uGuestPciAddress,
-                                                           int rc));
+                                                           int vrc));
 
 } PDMIPCIRAWCONNECTOR;
 /** PDMIPCIRAWCONNECTOR interface ID. */

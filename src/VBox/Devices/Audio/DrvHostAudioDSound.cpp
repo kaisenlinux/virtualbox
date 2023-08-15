@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -2685,7 +2685,7 @@ static LPCGUID dsoundConfigQueryGUID(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, const c
     {
         rc = RTUuidFromStr(pUuid, pszGuid);
         if (RT_SUCCESS(rc))
-            pGuid = (LPCGUID)&pUuid;
+            pGuid = (LPCGUID)pUuid;
         else
             DSLOGREL(("DSound: Error parsing device GUID for device '%s': %Rrc\n", pszName, rc));
 

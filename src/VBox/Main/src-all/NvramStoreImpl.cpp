@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2021-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2021-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -381,7 +381,7 @@ HRESULT NvramStore::getUefiVariableStore(ComPtr<IUefiVariableStore> &aUefiVarSto
 #ifndef VBOX_COM_INPROC
     /* the machine needs to be mutable */
     AutoMutableStateDependency adep(m->pParent);
-    if (FAILED(adep.rc())) return adep.rc();
+    if (FAILED(adep.hrc())) return adep.hrc();
 
     Utf8Str strPath;
     NvramStore::getNonVolatileStorageFile(strPath);
@@ -466,7 +466,7 @@ HRESULT NvramStore::initUefiVariableStore(ULONG aSize)
 
     /* the machine needs to be mutable */
     AutoMutableStateDependency adep(m->pParent);
-    if (FAILED(adep.rc())) return adep.rc();
+    if (FAILED(adep.hrc())) return adep.hrc();
 
     Utf8Str strPath;
     NvramStore::getNonVolatileStorageFile(strPath);
@@ -611,8 +611,8 @@ int NvramStore::i_loadStoreFromTar(RTVFSFSSTREAM hVfsFssTar)
     return vrc;
 }
 
-
 #ifdef VBOX_WITH_FULL_VM_ENCRYPTION
+
 /**
  * Sets up the encryption or decryption machinery.
  *
@@ -674,7 +674,6 @@ int NvramStore::i_setupEncryptionOrDecryption(RTVFSIOSTREAM hVfsIosInOut, bool f
 /**
  * Releases all resources acquired in NvramStore::i_setupEncryptionOrDecryption().
  *
- * @returns nothing.
  * @param   hVfsIos             Handle to the I/O stream previously created.
  * @param   pCryptoIf           Pointer to the cryptographic interface being released.
  * @param   pKey                Pointer to the key buffer being released.
@@ -690,8 +689,8 @@ void NvramStore::i_releaseEncryptionOrDecryptionResources(RTVFSIOSTREAM hVfsIos,
     pKey->release();
     RTVfsIoStrmRelease(hVfsIos);
 }
-#endif
 
+#endif /* VBOX_WITH_FULL_VM_ENCRYPTION */
 
 /**
  * Loads the NVRAM store.
@@ -744,9 +743,10 @@ int NvramStore::i_loadStore(const char *pszPath)
                         if (RT_SUCCESS(vrc))
                         {
                             /* Try to parse it as an EFI variable store. */
+                            RTERRINFOSTATIC ErrInfo;
                             RTVFS hVfsEfiVarStore;
-                            vrc = RTEfiVarStoreOpenAsVfs(hVfsFileNvram, RTVFSMNT_F_READ_ONLY, 0 /*fVarStoreFlags*/, &hVfsEfiVarStore,
-                                                         NULL /*pErrInfo*/);
+                            vrc = RTEfiVarStoreOpenAsVfs(hVfsFileNvram, RTVFSMNT_F_READ_ONLY, 0 /*fVarStoreFlags*/,
+                                                         &hVfsEfiVarStore, RTErrInfoInitStatic(&ErrInfo));
                             if (RT_SUCCESS(vrc))
                             {
                                 vrc = RTVfsFileSeek(hVfsFileNvram, 0 /*offSeek*/, RTFILE_SEEK_BEGIN, NULL /*poffActual*/);
@@ -778,7 +778,7 @@ int NvramStore::i_loadStore(const char *pszPath)
                                     LogRel(("The given NVRAM file is neither a raw UEFI variable store nor a tar archive (opening failed with %Rrc)\n", vrc));
                             }
                             else
-                                LogRel(("Opening the UEFI variable store '%s' failed with %Rrc\n", pszPath, vrc));
+                                LogRel(("Opening the UEFI variable store '%s' failed with %Rrc%RTeim\n", pszPath, vrc, &ErrInfo.Core));
 
                             RTVfsFileRelease(hVfsFileNvram);
                         }
@@ -798,8 +798,11 @@ int NvramStore::i_loadStore(const char *pszPath)
                 LogRelMax(10, ("NVRAM store '%s' couldn't be opened with %Rrc\n", pszPath, vrc));
         }
         else
+        {
             LogRelMax(10, ("NVRAM store '%s' exceeds limit of %u bytes, actual size is %u\n",
                            pszPath, _1M, cbStore));
+            vrc = VERR_OUT_OF_RANGE;
+        }
     }
     else if (vrc == VERR_FILE_NOT_FOUND) /* Valid for the first run where no NVRAM file is there. */
         vrc = VINF_SUCCESS;
@@ -987,7 +990,7 @@ HRESULT NvramStore::i_updateEncryptionSettings(const com::Utf8Str &strKeyId,
 {
     /* sanity */
     AutoCaller autoCaller(this);
-    AssertComRCReturnRC(autoCaller.rc());
+    AssertComRCReturnRC(autoCaller.hrc());
 
     AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
 
@@ -1011,7 +1014,7 @@ HRESULT NvramStore::i_getEncryptionSettings(com::Utf8Str &strKeyId,
                                             com::Utf8Str &strKeyStore)
 {
     AutoCaller autoCaller(this);
-    AssertComRCReturnRC(autoCaller.rc());
+    AssertComRCReturnRC(autoCaller.hrc());
 
     AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
 
@@ -1025,7 +1028,7 @@ HRESULT NvramStore::i_getEncryptionSettings(com::Utf8Str &strKeyId,
 int NvramStore::i_addPassword(const Utf8Str &strKeyId, const Utf8Str &strPassword)
 {
     AutoCaller autoCaller(this);
-    AssertComRCReturn(autoCaller.rc(), VERR_INVALID_STATE);
+    AssertComRCReturn(autoCaller.hrc(), VERR_INVALID_STATE);
 
     /* keep only required password */
     if (strKeyId != m->bd->strKeyId)
@@ -1039,7 +1042,7 @@ int NvramStore::i_addPassword(const Utf8Str &strKeyId, const Utf8Str &strPasswor
 int NvramStore::i_removePassword(const Utf8Str &strKeyId)
 {
     AutoCaller autoCaller(this);
-    AssertComRCReturn(autoCaller.rc(), VERR_INVALID_STATE);
+    AssertComRCReturn(autoCaller.hrc(), VERR_INVALID_STATE);
 
     AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
     return m->mpKeyStore->deleteSecretKey(strKeyId);
@@ -1049,7 +1052,7 @@ int NvramStore::i_removePassword(const Utf8Str &strKeyId)
 int NvramStore::i_removeAllPasswords()
 {
     AutoCaller autoCaller(this);
-    AssertComRCReturn(autoCaller.rc(), VERR_INVALID_STATE);
+    AssertComRCReturn(autoCaller.hrc(), VERR_INVALID_STATE);
 
     AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
     m->mpKeyStore->deleteAllSecretKeys(false, true);
@@ -1063,7 +1066,7 @@ HRESULT NvramStore::i_retainUefiVarStore(PRTVFS phVfs, bool fReadonly)
 {
     /* the machine needs to be mutable */
     AutoMutableStateDependency adep(m->pParent);
-    if (FAILED(adep.rc())) return adep.rc();
+    if (FAILED(adep.hrc())) return adep.hrc();
 
     AutoWriteLock wlock(this COMMA_LOCKVAL_SRC_POS);
 
@@ -1111,7 +1114,7 @@ HRESULT NvramStore::i_releaseUefiVarStore(RTVFS hVfs)
 HRESULT NvramStore::i_loadSettings(const settings::NvramSettings &data)
 {
     AutoCaller autoCaller(this);
-    AssertComRCReturnRC(autoCaller.rc());
+    AssertComRCReturnRC(autoCaller.hrc());
 
     AutoReadLock mlock(m->pParent COMMA_LOCKVAL_SRC_POS);
     AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
@@ -1142,7 +1145,7 @@ HRESULT NvramStore::i_loadSettings(const settings::NvramSettings &data)
 HRESULT NvramStore::i_saveSettings(settings::NvramSettings &data)
 {
     AutoCaller autoCaller(this);
-    AssertComRCReturnRC(autoCaller.rc());
+    AssertComRCReturnRC(autoCaller.hrc());
 
     AutoWriteLock wlock(this COMMA_LOCKVAL_SRC_POS);
 
@@ -1245,7 +1248,7 @@ void NvramStore::i_updateNonVolatileStorageFile(const Utf8Str &aNonVolatileStora
 {
     /* sanity */
     AutoCaller autoCaller(this);
-    AssertComRCReturnVoid(autoCaller.rc());
+    AssertComRCReturnVoid(autoCaller.hrc());
 
     AutoReadLock mlock(m->pParent COMMA_LOCKVAL_SRC_POS);
     AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);

@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -202,7 +202,7 @@ typedef struct PDMUSBREG
      * This can be done to do communication with other devices and other
      * initialization which requires everything to be in place.
      *
-     * @returns VBOX status code.
+     * @returns VBox status code.
      * @param   pUsbIns     The USB device instance data.
      * @remarks Optional.
      * @remarks Not called when hotplugged.
@@ -212,7 +212,6 @@ typedef struct PDMUSBREG
     /**
      * VM Power On notification.
      *
-     * @returns VBox status.
      * @param   pUsbIns     The USB device instance data.
      * @remarks Optional.
      */
@@ -221,7 +220,6 @@ typedef struct PDMUSBREG
     /**
      * VM Reset notification.
      *
-     * @returns VBox status.
      * @param   pUsbIns     The USB device instance data.
      * @remarks Optional.
      */
@@ -230,7 +228,6 @@ typedef struct PDMUSBREG
     /**
      * VM Suspend notification.
      *
-     * @returns VBox status.
      * @param   pUsbIns     The USB device instance data.
      * @remarks Optional.
      */
@@ -239,7 +236,9 @@ typedef struct PDMUSBREG
     /**
      * VM Resume notification.
      *
-     * @returns VBox status.
+     * This is not called when the device is hotplugged device, instead
+     * pfnHotPlugged will be called.
+     *
      * @param   pUsbIns     The USB device instance data.
      * @remarks Optional.
      */
@@ -259,9 +258,9 @@ typedef struct PDMUSBREG
     /**
      * Called after the constructor when attaching a device at run time.
      *
-     * This can be used to do tasks normally assigned to pfnInitComplete and/or pfnVMPowerOn.
+     * This can be used to do tasks normally assigned to pfnInitComplete and/or
+     * pfnVMPowerOn.  There will not be a call to pfnVMResume following this.
      *
-     * @returns VBox status.
      * @param   pUsbIns     The USB device instance data.
      * @remarks Optional.
      */
@@ -272,7 +271,6 @@ typedef struct PDMUSBREG
      *
      * This can be used to do tasks normally assigned to pfnVMSuspend and/or pfnVMPowerOff.
      *
-     * @returns VBox status.
      * @param   pUsbIns     The USB device instance data.
      * @remarks Optional.
      */
@@ -308,7 +306,7 @@ typedef struct PDMUSBREG
     /**
      * Query the base interface of a logical unit.
      *
-     * @returns VBOX status code.
+     * @returns VBox status code.
      * @param   pUsbIns     The USB device instance data.
      * @param   iLUN        The logicial unit to query.
      * @param   ppBase      Where to store the pointer to the base interface of the LUN.
@@ -756,7 +754,6 @@ typedef struct PDMUSBHLP
      *
      * Use the PDMUsbHlpSTAMRegister wrapper.
      *
-     * @returns VBox status.
      * @param   pUsbIns             The USB device instance.
      * @param   pvSample            Pointer to the sample.
      * @param   enmType             Sample type. This indicates what pvSample is pointing at.

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1009,7 +1009,6 @@ static DECLCALLBACK(void) kbdR3InfoState(PPDMDEVINS pDevIns, PCDBGFINFOHLP pHlp,
 /**
  * Reset notification.
  *
- * @returns VBox status code.
  * @param   pDevIns     The device instance data.
  */
 static DECLCALLBACK(void)  kbdR3Reset(PPDMDEVINS pDevIns)

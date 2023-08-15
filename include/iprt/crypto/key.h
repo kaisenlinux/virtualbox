@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -65,6 +65,10 @@ typedef enum RTCRKEYTYPE
     RTCRKEYTYPE_RSA_PRIVATE,
     /** RSA public key. */
     RTCRKEYTYPE_RSA_PUBLIC,
+    /** ECDSA private key. */
+    RTCRKEYTYPE_ECDSA_PRIVATE,
+    /** ECDSA public key. */
+    RTCRKEYTYPE_ECDSA_PUBLIC,
     /** End of key types. */
     RTCRKEYTYPE_END,
     /** The usual type size hack. */
@@ -74,8 +78,8 @@ typedef enum RTCRKEYTYPE
 
 RTDECL(int)             RTCrKeyCreateFromSubjectPublicKeyInfo(PRTCRKEY phKey, struct RTCRX509SUBJECTPUBLICKEYINFO const *pSrc,
                                                               PRTERRINFO pErrInfo, const char *pszErrorTag);
-RTDECL(int)             RTCrKeyCreateFromPublicAlgorithmAndBits(PRTCRKEY phKey,  PCRTASN1OBJID pAlgorithm,
-                                                                PCRTASN1BITSTRING pPublicKey,
+RTDECL(int)             RTCrKeyCreateFromPublicAlgorithmAndBits(PRTCRKEY phKey, PCRTASN1OBJID pAlgorithm,
+                                                                PCRTASN1DYNTYPE pParameters, PCRTASN1BITSTRING pPublicKey,
                                                                 PRTERRINFO pErrInfo, const char *pszErrorTag);
 RTDECL(int)             RTCrKeyCreateFromPemSection(PRTCRKEY phKey, uint32_t fFlags, struct RTCRPEMSECTION const *pSection,
                                                     const char *pszPassword, PRTERRINFO pErrInfo, const char *pszErrorTag);
@@ -104,6 +108,9 @@ RTDECL(bool)            RTCrKeyHasPublicPart(RTCRKEY hKey);
 RTDECL(uint32_t)        RTCrKeyGetBitCount(RTCRKEY hKey);
 RTDECL(int)             RTCrKeyQueryRsaModulus(RTCRKEY hKey, PRTBIGNUM pModulus);
 RTDECL(int)             RTCrKeyQueryRsaPrivateExponent(RTCRKEY hKey, PRTBIGNUM pPrivateExponent);
+RTDECL(int)             RTCrKeyVerifyParameterCompatibility(RTCRKEY hKey, PCRTASN1DYNTYPE pParameters, bool fForSignature,
+                                                            PCRTASN1OBJID pAlgorithm, PRTERRINFO pErrInfo);
+
 
 /** Public key markers. */
 extern RT_DECL_DATA_CONST(RTCRPEMMARKER const)  g_aRTCrKeyPublicMarkers[];

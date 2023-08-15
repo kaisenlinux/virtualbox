@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -117,6 +117,14 @@ RTDECL(int) RTAsn1DynType_SetToNull(PRTASN1DYNTYPE pThis)
     RTAsn1DynType_Delete(pThis);
     pThis->enmType = RTASN1TYPE_NULL;
     return RTAsn1Null_Init(&pThis->u.Asn1Null, NULL /*pAllocator*/);
+}
+
+
+RTDECL(int) RTAsn1DynType_SetToObjId(PRTASN1DYNTYPE pThis, PCRTASN1OBJID pSrc, PCRTASN1ALLOCATORVTABLE pAllocator)
+{
+    RTAsn1DynType_Delete(pThis);
+    pThis->enmType = RTASN1TYPE_OBJID;
+    return RTAsn1ObjId_Clone(&pThis->u.ObjId, pSrc, pAllocator);
 }
 
 

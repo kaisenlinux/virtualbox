@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -202,8 +202,8 @@ int GuestFsObjData::FromLs(const GuestProcessStreamBlock &strmBlk, bool fLong)
         mFileAttrs = szAttribs;
 
     /* Object size. */
-    int rc = strmBlk.GetInt64Ex("st_size", &mObjectSize);
-    ASSERT_GUEST_RC_RETURN(rc, rc);
+    int vrc = strmBlk.GetInt64Ex("st_size", &mObjectSize);
+    ASSERT_GUEST_RC_RETURN(vrc, vrc);
     strmBlk.GetInt64Ex("alloc", &mAllocatedSize);
 
     /* INode number and device. */
@@ -258,10 +258,10 @@ int GuestFsObjData::FromRm(const GuestProcessStreamBlock &strmBlk)
     strmBlk.DumpToLog();
 #endif
     /* Object name. */
-    mName = strmBlk.GetString("fname");
+    mName = strmBlk.GetString("fname"); /* Note: RTPathRmCmd() only sets this on failure. */
 
-    /* Return the stream block's rc. */
-    return strmBlk.GetRc();
+    /* Return the stream block's vrc. */
+    return strmBlk.GetVrc(true /* fSucceedIfNotFound */);
 }
 
 /**
@@ -295,11 +295,10 @@ int GuestFsObjData::FromMkTemp(const GuestProcessStreamBlock &strmBlk)
     mName = strmBlk.GetString("name");
     ASSERT_GUEST_RETURN(mName.isNotEmpty(), VERR_NOT_FOUND);
 
-    /* Assign the stream block's rc. */
-    int rc = strmBlk.GetRc();
-
-    LogFlowFuncLeaveRC(rc);
-    return rc;
+    /* Assign the stream block's vrc. */
+    int const vrc = strmBlk.GetVrc();
+    LogFlowFuncLeaveRC(vrc);
+    return vrc;
 }
 
 /**
@@ -341,9 +340,7 @@ RTFMODE GuestFsObjData::GetFileMode(void) const
 /** @todo Add exception handling for STL stuff! */
 
 GuestProcessStreamBlock::GuestProcessStreamBlock(void)
-{
-
-}
+    : m_fComplete(false) { }
 
 GuestProcessStreamBlock::~GuestProcessStreamBlock()
 {
@@ -355,7 +352,8 @@ GuestProcessStreamBlock::~GuestProcessStreamBlock()
  */
 void GuestProcessStreamBlock::Clear(void)
 {
-    mPairs.clear();
+    m_fComplete = false;
+    m_mapPairs.clear();
 }
 
 #ifdef DEBUG
@@ -364,11 +362,11 @@ void GuestProcessStreamBlock::Clear(void)
  */
 void GuestProcessStreamBlock::DumpToLog(void) const
 {
-    LogFlowFunc(("Dumping contents of stream block=0x%p (%ld items):\n",
-                 this, mPairs.size()));
+    LogFlowFunc(("Dumping contents of stream block=0x%p (%ld items, fComplete=%RTbool):\n",
+                 this, m_mapPairs.size(), m_fComplete));
 
-    for (GuestCtrlStreamPairMapIterConst it = mPairs.begin();
-         it != mPairs.end(); ++it)
+    for (GuestCtrlStreamPairMapIterConst it = m_mapPairs.begin();
+         it != m_mapPairs.end(); ++it)
     {
         LogFlowFunc(("\t%s=%s\n", it->first.c_str(), it->second.mValue.c_str()));
     }
@@ -416,7 +414,7 @@ int64_t GuestProcessStreamBlock::GetInt64(const char *pszKey) const
  */
 size_t GuestProcessStreamBlock::GetCount(void) const
 {
-    return mPairs.size();
+    return m_mapPairs.size();
 }
 
 /**
@@ -424,14 +422,17 @@ size_t GuestProcessStreamBlock::GetCount(void) const
  *
  * @return  VBox status code.
  * @retval  VERR_NOT_FOUND if the return code string ("rc") was not found.
+ * @param   fSucceedIfNotFound  When set to @c true, this reports back VINF_SUCCESS when the key ("rc") is not found.
+ *                              This can happen with some (older) IPRT-provided tools such as RTPathRmCmd(), which only outputs
+ *                              rc on failure but not on success. Defaults to @c false.
  */
-int GuestProcessStreamBlock::GetRc(void) const
+int GuestProcessStreamBlock::GetVrc(bool fSucceedIfNotFound /* = false */) const
 {
     const char *pszValue = GetString("rc");
     if (pszValue)
-    {
         return RTStrToInt16(pszValue);
-    }
+    if (fSucceedIfNotFound)
+        return VINF_SUCCESS;
     /** @todo We probably should have a dedicated error for that, VERR_GSTCTL_GUEST_TOOLBOX_whatever. */
     return VERR_NOT_FOUND;
 }
@@ -448,8 +449,8 @@ const char *GuestProcessStreamBlock::GetString(const char *pszKey) const
 
     try
     {
-        GuestCtrlStreamPairMapIterConst itPairs = mPairs.find(pszKey);
-        if (itPairs != mPairs.end())
+        GuestCtrlStreamPairMapIterConst itPairs = m_mapPairs.find(pszKey);
+        if (itPairs != m_mapPairs.end())
             return itPairs->second.mValue.c_str();
     }
     catch (const std::exception &ex)
@@ -490,8 +491,8 @@ int32_t GuestProcessStreamBlock::GetInt32(const char *pszKey, int32_t iDefault) 
     if (pszValue)
     {
         int32_t iRet;
-        int rc = RTStrToInt32Full(pszValue, 0, &iRet);
-        if (RT_SUCCESS(rc))
+        int vrc = RTStrToInt32Full(pszValue, 0, &iRet);
+        if (RT_SUCCESS(vrc))
             return iRet;
         ASSERT_GUEST_MSG_FAILED(("%s=%s\n", pszKey, pszValue));
     }
@@ -514,6 +515,56 @@ uint32_t GuestProcessStreamBlock::GetUInt32(const char *pszKey, uint32_t uDefaul
 }
 
 /**
+ * Sets a value to a key or deletes a key by setting a NULL value. Extended version.
+ *
+ * @return  VBox status code.
+ * @param   pszKey              Key name to process.
+ * @param   cwcKey              Maximum characters of \a pszKey to process.
+ * @param   pszValue            Value to set. Set NULL for deleting the key.
+ * @param   cwcValue            Maximum characters of \a pszValue to process.
+ * @param   fOverwrite          Whether a key can be overwritten with a new value if it already exists. Will assert otherwise.
+ */
+int GuestProcessStreamBlock::SetValueEx(const char *pszKey, size_t cwcKey, const char *pszValue, size_t cwcValue,
+                                        bool fOverwrite /* = false */)
+{
+    AssertPtrReturn(pszKey, VERR_INVALID_POINTER);
+    AssertReturn(cwcKey, VERR_INVALID_PARAMETER);
+
+    int vrc = VINF_SUCCESS;
+    try
+    {
+        Utf8Str const strKey(pszKey, cwcKey);
+
+        /* Take a shortcut and prevent crashes on some funny versions
+         * of STL if map is empty initially. */
+        if (!m_mapPairs.empty())
+        {
+            GuestCtrlStreamPairMapIter it = m_mapPairs.find(strKey);
+            if (it != m_mapPairs.end())
+            {
+                if (pszValue == NULL)
+                    m_mapPairs.erase(it);
+                else if (!fOverwrite)
+                    AssertMsgFailedReturn(("Key '%*s' already exists! Value is '%s'\n", cwcKey, pszKey, m_mapPairs[strKey].mValue.c_str()),
+                                          VERR_ALREADY_EXISTS);
+            }
+        }
+
+        if (pszValue)
+        {
+            GuestProcessStreamValue val(pszValue, cwcValue);
+            Log3Func(("strKey='%s', strValue='%s'\n", strKey.c_str(), val.mValue.c_str()));
+            m_mapPairs[strKey] = val;
+        }
+    }
+    catch (const std::exception &)
+    {
+        /** @todo set vrc?   */
+    }
+    return vrc;
+}
+
+/**
  * Sets a value to a key or deletes a key by setting a NULL value.
  *
  * @return  VBox status code.
@@ -522,33 +573,7 @@ uint32_t GuestProcessStreamBlock::GetUInt32(const char *pszKey, uint32_t uDefaul
  */
 int GuestProcessStreamBlock::SetValue(const char *pszKey, const char *pszValue)
 {
-    AssertPtrReturn(pszKey, VERR_INVALID_POINTER);
-
-    int rc = VINF_SUCCESS;
-    try
-    {
-        Utf8Str Utf8Key(pszKey);
-
-        /* Take a shortcut and prevent crashes on some funny versions
-         * of STL if map is empty initially. */
-        if (!mPairs.empty())
-        {
-            GuestCtrlStreamPairMapIter it = mPairs.find(Utf8Key);
-            if (it != mPairs.end())
-                 mPairs.erase(it);
-        }
-
-        if (pszValue)
-        {
-            GuestProcessStreamValue val(pszValue);
-            mPairs[Utf8Key] = val;
-        }
-    }
-    catch (const std::exception &ex)
-    {
-        RT_NOREF(ex);
-    }
-    return rc;
+    return SetValueEx(pszKey, RTSTR_MAX, pszValue, RTSTR_MAX);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -557,8 +582,9 @@ GuestProcessStream::GuestProcessStream(void)
     : m_cbMax(_32M)
     , m_cbAllocated(0)
     , m_cbUsed(0)
-    , m_offBuffer(0)
-    , m_pbBuffer(NULL) { }
+    , m_offBuf(0)
+    , m_pbBuffer(NULL)
+    , m_cBlocks(0) { }
 
 GuestProcessStream::~GuestProcessStream(void)
 {
@@ -578,13 +604,13 @@ int GuestProcessStream::AddData(const BYTE *pbData, size_t cbData)
     AssertPtrReturn(pbData, VERR_INVALID_POINTER);
     AssertReturn(cbData, VERR_INVALID_PARAMETER);
 
-    int rc = VINF_SUCCESS;
+    int vrc = VINF_SUCCESS;
 
     /* Rewind the buffer if it's empty. */
-    size_t     cbInBuf   = m_cbUsed - m_offBuffer;
+    size_t     cbInBuf   = m_cbUsed - m_offBuf;
     bool const fAddToSet = cbInBuf == 0;
     if (fAddToSet)
-        m_cbUsed = m_offBuffer = 0;
+        m_cbUsed = m_offBuf = 0;
 
     /* Try and see if we can simply append the data. */
     if (cbData + m_cbUsed <= m_cbAllocated)
@@ -595,14 +621,14 @@ int GuestProcessStream::AddData(const BYTE *pbData, size_t cbData)
     else
     {
         /* Move any buffered data to the front. */
-        cbInBuf = m_cbUsed - m_offBuffer;
+        cbInBuf = m_cbUsed - m_offBuf;
         if (cbInBuf == 0)
-            m_cbUsed = m_offBuffer = 0;
-        else if (m_offBuffer) /* Do we have something to move? */
+            m_cbUsed = m_offBuf = 0;
+        else if (m_offBuf) /* Do we have something to move? */
         {
-            memmove(m_pbBuffer, &m_pbBuffer[m_offBuffer], cbInBuf);
+            memmove(m_pbBuffer, &m_pbBuffer[m_offBuf], cbInBuf);
             m_cbUsed = cbInBuf;
-            m_offBuffer = 0;
+            m_offBuf = 0;
         }
 
         /* Do we need to grow the buffer? */
@@ -619,14 +645,14 @@ int GuestProcessStream::AddData(const BYTE *pbData, size_t cbData)
                     m_cbAllocated = cbAlloc;
                 }
                 else
-                    rc = VERR_NO_MEMORY;
+                    vrc = VERR_NO_MEMORY;
             }
             else
-                rc = VERR_TOO_MUCH_DATA;
+                vrc = VERR_TOO_MUCH_DATA;
         }
 
         /* Finally, copy the data. */
-        if (RT_SUCCESS(rc))
+        if (RT_SUCCESS(vrc))
         {
             if (cbData + m_cbUsed <= m_cbAllocated)
             {
@@ -634,11 +660,11 @@ int GuestProcessStream::AddData(const BYTE *pbData, size_t cbData)
                 m_cbUsed += cbData;
             }
             else
-                rc = VERR_BUFFER_OVERFLOW;
+                vrc = VERR_BUFFER_OVERFLOW;
         }
     }
 
-    return rc;
+    return vrc;
 }
 
 /**
@@ -654,7 +680,8 @@ void GuestProcessStream::Destroy(void)
 
     m_cbAllocated = 0;
     m_cbUsed = 0;
-    m_offBuffer = 0;
+    m_offBuf = 0;
+    m_cBlocks = 0;
 }
 
 #ifdef DEBUG
@@ -667,89 +694,158 @@ void GuestProcessStream::Destroy(void)
 void GuestProcessStream::Dump(const char *pszFile)
 {
     LogFlowFunc(("Dumping contents of stream=0x%p (cbAlloc=%u, cbSize=%u, cbOff=%u) to %s\n",
-                 m_pbBuffer, m_cbAllocated, m_cbUsed, m_offBuffer, pszFile));
+                 m_pbBuffer, m_cbAllocated, m_cbUsed, m_offBuf, pszFile));
 
     RTFILE hFile;
-    int rc = RTFileOpen(&hFile, pszFile, RTFILE_O_CREATE_REPLACE | RTFILE_O_WRITE | RTFILE_O_DENY_WRITE);
-    if (RT_SUCCESS(rc))
+    int vrc = RTFileOpen(&hFile, pszFile, RTFILE_O_CREATE_REPLACE | RTFILE_O_WRITE | RTFILE_O_DENY_WRITE);
+    if (RT_SUCCESS(vrc))
     {
-        rc = RTFileWrite(hFile, m_pbBuffer, m_cbUsed, NULL /* pcbWritten */);
+        vrc = RTFileWrite(hFile, m_pbBuffer, m_cbUsed, NULL /* pcbWritten */);
         RTFileClose(hFile);
     }
 }
-#endif
+#endif /* DEBUG */
 
 /**
- * Tries to parse the next upcoming pair block within the internal
- * buffer.
+ * Tries to parse the next upcoming pair block within the internal buffer.
  *
- * Returns VERR_NO_DATA is no data is in internal buffer or buffer has been
- * completely parsed already.
+ * Parsing behavior:
+ * - A stream can contain one or multiple blocks and is terminated by four (4) "\0".
+ * - A block (or "object") contains one or multiple key=value pairs and is terminated with two (2) "\0".
+ * - Each key=value pair is terminated by a single (1) "\0".
  *
- * Returns VERR_MORE_DATA if current block was parsed (with zero or more pairs
- * stored in stream block) but still contains incomplete (unterminated)
- * data.
+ * As new data can arrive at a later time eventually completing a pair / block / stream,
+ * the algorithm needs to be careful not intepreting its current data too early. So only skip termination
+ * sequences if we really know that the termination sequence is complete. See comments down below.
  *
- * Returns VINF_SUCCESS if current block was parsed until the next upcoming
- * block (with zero or more pairs stored in stream block).
+ * No locking done.
  *
  * @return VBox status code.
- * @param streamBlock               Reference to guest stream block to fill.
+ * @retval VINF_EOF if the stream reached its end.
+ * @param  streamBlock              Reference to guest stream block to fill
  */
 int GuestProcessStream::ParseBlock(GuestProcessStreamBlock &streamBlock)
 {
+    AssertMsgReturn(streamBlock.m_fComplete == false, ("Block object already marked as being completed\n"), VERR_WRONG_ORDER);
+
     if (   !m_pbBuffer
         || !m_cbUsed)
-        return VERR_NO_DATA;
+        return VINF_EOF;
 
-    AssertReturn(m_offBuffer <= m_cbUsed, VERR_INVALID_PARAMETER);
-    if (m_offBuffer == m_cbUsed)
-        return VERR_NO_DATA;
+    AssertReturn(m_offBuf <= m_cbUsed, VERR_INVALID_PARAMETER);
+    if (m_offBuf == m_cbUsed)
+        return VINF_EOF;
 
-    int          rc        = VINF_SUCCESS;
-    char * const pszOff    = (char *)&m_pbBuffer[m_offBuffer];
-    size_t       cbLeft    = m_offBuffer < m_cbUsed ? m_cbUsed - m_offBuffer : 0;
-    char        *pszStart  = pszOff;
-    while (cbLeft > 0 && *pszStart != '\0')
+    char * const  pszStart = (char *)&m_pbBuffer[m_offBuf];
+
+    size_t        cbLeftParsed    = m_offBuf < m_cbUsed ? m_cbUsed - m_offBuf : 0;
+    size_t        cbLeftLookAhead = cbLeftParsed;
+
+    char         *pszLookAhead = pszStart; /* Look ahead pointer to count terminators. */
+    char         *pszParsed    = pszStart; /* Points to data considered as being parsed already. */
+
+    Log4Func(("Current @ %zu/%zu:\n%.*Rhxd\n", m_offBuf, m_cbUsed, RT_MIN(cbLeftParsed, _1K), pszStart));
+
+    size_t cTerm = 0;
+
+    /*
+     * We have to be careful when handling single terminators ('\0') here, as we might not know yet
+     * if it's part of a multi-terminator seqeuence.
+     *
+     * So handle and skip those *only* when we hit a non-terminator char again.
+     */
+    int vrc = VINF_SUCCESS;
+    while (cbLeftLookAhead)
     {
-        char * const pszPairEnd = RTStrEnd(pszStart, cbLeft);
-        if (!pszPairEnd)
+        /* Count consequtive terminators. */
+        if (*pszLookAhead == GUESTTOOLBOX_STRM_TERM)
         {
-            rc = VERR_MORE_DATA;
+            cTerm++;
+            pszLookAhead++;
+            cbLeftLookAhead--;
+            continue;
+        }
+
+        pszParsed    = pszLookAhead;
+        cbLeftParsed = cbLeftLookAhead;
+
+        /* We hit a non-terminator (again); now interpret where we are, and
+         * bail out if we need to. */
+        if (cTerm >= 2)
+        {
+            Log2Func(("Hit end of termination sequence (%zu)\n", cTerm));
             break;
         }
-        size_t const cchPair = (size_t)(pszPairEnd - pszStart);
-        char *pszSep = (char *)memchr(pszStart, '=', cchPair);
-        if (pszSep)
-            *pszSep = '\0'; /* Terminate the separator so that we can  use pszStart as our key from now on. */
-        else
-        {
-            rc = VERR_MORE_DATA; /** @todo r=bird: This is BOGUS because we'll be stuck here if the guest feeds us bad data! */
+
+        cTerm = 0; /* Reset consequtive counter. */
+
+        char * const pszPairEnd = RTStrEnd(pszParsed, cbLeftParsed);
+        if (!pszPairEnd) /* No zero terminator found (yet), try next time. */
             break;
-        }
-        char const * const pszVal = pszSep + 1;
 
-        rc = streamBlock.SetValue(pszStart, pszVal);
-        if (RT_FAILURE(rc))
-            return rc;
+        Log3Func(("Pair '%s' (%u)\n", pszParsed, strlen(pszParsed)));
 
-        /* Next pair. */
-        pszStart = pszPairEnd + 1;
-        cbLeft  -= cchPair    + 1;
+        Assert(pszPairEnd != pszParsed);
+        size_t const cbPair = (size_t)(pszPairEnd - pszParsed);
+        Assert(cbPair);
+        const char  *pszSep = (const char *)memchr(pszParsed, '=', cbPair);
+        if (!pszSep) /* No separator found (yet), try next time. */
+            break;
+
+        /* Skip the separator so that pszSep points to the actual value. */
+        pszSep++;
+
+        char const * const pszKey = pszParsed;
+        char const * const pszVal = pszSep;
+
+        vrc = streamBlock.SetValueEx(pszKey, pszSep - pszKey - 1, pszVal, pszPairEnd - pszVal);
+        if (RT_FAILURE(vrc))
+            return vrc;
+
+        if (cbPair >= cbLeftParsed)
+            break;
+
+        /* Accounting for next iteration. */
+        pszParsed       = pszPairEnd;
+        Assert(cbLeftParsed >= cbPair);
+        cbLeftParsed   -= cbPair;
+
+        pszLookAhead    = pszPairEnd;
+        cbLeftLookAhead = cbLeftParsed;
+
+        if (cbLeftParsed)
+            Log4Func(("Next iteration @ %zu:\n%.*Rhxd\n", pszParsed - pszStart, cbLeftParsed, pszParsed));
     }
 
-    /* If we did not do any movement but we have stuff left
-     * in our buffer just skip the current termination so that
-     * we can try next time. */
-    size_t cbDistance = (pszStart - pszOff);
-    if (   !cbDistance
-        && cbLeft > 0
-        && *pszStart == '\0'
-        && m_offBuffer < m_cbUsed)
-        cbDistance++;
-    m_offBuffer += cbDistance;
+    if (cbLeftParsed)
+        Log4Func(("Done @ %zu:\n%.*Rhxd\n", pszParsed - pszStart, cbLeftParsed, pszParsed));
 
-    return rc;
+    m_offBuf += pszParsed - pszStart; /* Only account really parsed content. */
+    Assert(m_offBuf <= m_cbUsed);
+
+    /* Did we hit a block or stream termination sequence? */
+    if (cTerm >= GUESTTOOLBOX_STRM_BLK_TERM_CNT)
+    {
+        if (!streamBlock.IsEmpty()) /* Only account and complete blocks which have values in it. */
+        {
+            m_cBlocks++;
+            streamBlock.m_fComplete = true;
+#ifdef DEBUG
+            streamBlock.DumpToLog();
+#endif
+        }
+
+        if (cTerm >= GUESTTOOLBOX_STRM_TERM_CNT)
+        {
+            m_offBuf = m_cbUsed;
+            vrc = VINF_EOF;
+        }
+    }
+
+    LogFlowThisFunc(("cbLeft=%zu, offBuffer=%zu / cbUsed=%zu, cBlocks=%zu, cTerm=%zu -> current block has %RU64 pairs (complete = %RTbool), rc=%Rrc\n",
+                     cbLeftParsed, m_offBuf, m_cbUsed, m_cBlocks, cTerm, streamBlock.GetCount(), streamBlock.IsComplete(), vrc));
+
+    return vrc;
 }
 
 GuestBase::GuestBase(void)
@@ -769,10 +865,9 @@ GuestBase::~GuestBase(void)
  */
 int GuestBase::baseInit(void)
 {
-    int rc = RTCritSectInit(&mWaitEventCritSect);
-
-    LogFlowFuncLeaveRC(rc);
-    return rc;
+    int const vrc = RTCritSectInit(&mWaitEventCritSect);
+    LogFlowFuncLeaveRC(vrc);
+    return vrc;
 }
 
 /**
@@ -783,13 +878,13 @@ void GuestBase::baseUninit(void)
     LogFlowThisFuncEnter();
 
     /* Make sure to cancel any outstanding wait events. */
-    int rc2 = cancelWaitEvents();
-    AssertRC(rc2);
+    int vrc2 = cancelWaitEvents();
+    AssertRC(vrc2);
 
-    rc2 = RTCritSectDelete(&mWaitEventCritSect);
-    AssertRC(rc2);
+    vrc2 = RTCritSectDelete(&mWaitEventCritSect);
+    AssertRC(vrc2);
 
-    LogFlowFuncLeaveRC(rc2);
+    LogFlowFuncLeaveRC(vrc2);
     /* No return value. */
 }
 
@@ -802,8 +897,8 @@ int GuestBase::cancelWaitEvents(void)
 {
     LogFlowThisFuncEnter();
 
-    int rc = RTCritSectEnter(&mWaitEventCritSect);
-    if (RT_SUCCESS(rc))
+    int vrc = RTCritSectEnter(&mWaitEventCritSect);
+    if (RT_SUCCESS(vrc))
     {
         GuestEventGroup::iterator itEventGroups = mWaitEventGroups.begin();
         while (itEventGroups != mWaitEventGroups.end())
@@ -819,8 +914,8 @@ int GuestBase::cancelWaitEvents(void)
                  * wait events map. Don't delete it though, this (hopefully)
                  * is done by the caller using unregisterWaitEvent().
                  */
-                int rc2 = pEvent->Cancel();
-                AssertRC(rc2);
+                int vrc2 = pEvent->Cancel();
+                AssertRC(vrc2);
 
                 ++itEvents;
             }
@@ -828,13 +923,13 @@ int GuestBase::cancelWaitEvents(void)
             ++itEventGroups;
         }
 
-        int rc2 = RTCritSectLeave(&mWaitEventCritSect);
-        if (RT_SUCCESS(rc))
-            rc = rc2;
+        int vrc2 = RTCritSectLeave(&mWaitEventCritSect);
+        if (RT_SUCCESS(vrc))
+            vrc = vrc2;
     }
 
-    LogFlowFuncLeaveRC(rc);
-    return rc;
+    LogFlowFuncLeaveRC(vrc);
+    return vrc;
 }
 
 /**
@@ -883,9 +978,9 @@ int GuestBase::dispatchGeneric(PVBOXGUESTCTRLHOSTCBCTX pCtxCb, PVBOXGUESTCTRLHOS
                         GuestWaitEventPayload evPayload(dataCb.uType, dataCb.pvPayload, dataCb.cbPayload);
                         vrc = signalWaitEventInternal(pCtxCb, dataCb.rc, &evPayload);
                     }
-                    catch (int rcEx) /* Thrown by GuestWaitEventPayload constructor. */
+                    catch (int vrcEx) /* Thrown by GuestWaitEventPayload constructor. */
                     {
-                        vrc = rcEx;
+                        vrc = vrcEx;
                     }
                 }
                 else
@@ -902,9 +997,9 @@ int GuestBase::dispatchGeneric(PVBOXGUESTCTRLHOSTCBCTX pCtxCb, PVBOXGUESTCTRLHOS
     {
         vrc = VERR_NO_MEMORY;
     }
-    catch (int rc)
+    catch (int vrcCatch)
     {
-        vrc = rc;
+        vrc = vrcCatch;
     }
 
     LogFlowFuncLeaveRC(vrc);
@@ -989,19 +1084,19 @@ int GuestBase::registerWaitEventEx(uint32_t uSessionID, uint32_t uObjectID, cons
     AssertPtrReturn(ppEvent, VERR_INVALID_POINTER);
 
     uint32_t idContext;
-    int rc = generateContextID(uSessionID, uObjectID, &idContext);
-    AssertRCReturn(rc, rc);
+    int vrc = generateContextID(uSessionID, uObjectID, &idContext);
+    AssertRCReturn(vrc, vrc);
 
     GuestWaitEvent *pEvent = new GuestWaitEvent();
     AssertPtrReturn(pEvent, VERR_NO_MEMORY);
 
-    rc = pEvent->Init(idContext, lstEvents);
-    AssertRCReturn(rc, rc);
+    vrc = pEvent->Init(idContext, lstEvents);
+    AssertRCReturn(vrc, vrc);
 
     LogFlowThisFunc(("New event=%p, CID=%RU32\n", pEvent, idContext));
 
-    rc = RTCritSectEnter(&mWaitEventCritSect);
-    if (RT_SUCCESS(rc))
+    vrc = RTCritSectEnter(&mWaitEventCritSect);
+    if (RT_SUCCESS(vrc))
     {
         /*
          * Check that we don't have any context ID collisions (should be very unlikely).
@@ -1014,14 +1109,14 @@ int GuestBase::registerWaitEventEx(uint32_t uSessionID, uint32_t uObjectID, cons
             uint32_t cTries = 0;
             do
             {
-                rc = generateContextID(uSessionID, uObjectID, &idContext);
-                AssertRCBreak(rc);
+                vrc = generateContextID(uSessionID, uObjectID, &idContext);
+                AssertRCBreak(vrc);
                 LogFunc(("Found context ID duplicate; trying a different context ID: %#x\n", idContext));
                 if (mWaitEvents.find(idContext) != mWaitEvents.end())
-                    rc = VERR_GSTCTL_MAX_CID_COUNT_REACHED;
-            } while (RT_FAILURE_NP(rc) && cTries++ < 10);
+                    vrc = VERR_GSTCTL_MAX_CID_COUNT_REACHED;
+            } while (RT_FAILURE_NP(vrc) && cTries++ < 10);
         }
-        if (RT_SUCCESS(rc))
+        if (RT_SUCCESS(vrc))
         {
             /*
              * Insert event into matching event group. This is for faster per-group lookup of all events later.
@@ -1044,14 +1139,14 @@ int GuestBase::registerWaitEventEx(uint32_t uSessionID, uint32_t uObjectID, cons
                             --ItType;
                             mWaitEventGroups[*ItType].erase(idContext);
                         }
-                        rc = VERR_NO_MEMORY;
+                        vrc = VERR_NO_MEMORY;
                         break;
                     }
                 }
                 else
                     Assert(cInserts > 0); /* else: lstEvents has duplicate entries. */
             }
-            if (RT_SUCCESS(rc))
+            if (RT_SUCCESS(vrc))
             {
                 Assert(cInserts > 0 || lstEvents.size() == 0);
                 RT_NOREF(cInserts);
@@ -1067,23 +1162,23 @@ int GuestBase::registerWaitEventEx(uint32_t uSessionID, uint32_t uObjectID, cons
                 {
                     for (GuestEventTypes::const_iterator ItType = lstEvents.begin(); ItType != lstEvents.end(); ++ItType)
                         mWaitEventGroups[*ItType].erase(idContext);
-                    rc = VERR_NO_MEMORY;
+                    vrc = VERR_NO_MEMORY;
                 }
             }
         }
 
         RTCritSectLeave(&mWaitEventCritSect);
     }
-    if (RT_SUCCESS(rc))
+    if (RT_SUCCESS(vrc))
     {
         *ppEvent = pEvent;
-        return rc;
+        return vrc;
     }
 
     if (pEvent)
         delete pEvent;
 
-    return rc;
+    return vrc;
 }
 
 /**
@@ -1096,11 +1191,11 @@ int GuestBase::registerWaitEventEx(uint32_t uSessionID, uint32_t uObjectID, cons
  */
 int GuestBase::signalWaitEvent(VBoxEventType_T aType, IEvent *aEvent)
 {
-    int rc = RTCritSectEnter(&mWaitEventCritSect);
+    int vrc = RTCritSectEnter(&mWaitEventCritSect);
 #ifdef DEBUG
     uint32_t cEvents = 0;
 #endif
-    if (RT_SUCCESS(rc))
+    if (RT_SUCCESS(vrc))
     {
         GuestEventGroup::iterator itGroup = mWaitEventGroups.find(aType);
         if (itGroup != mWaitEventGroups.end())
@@ -1113,8 +1208,8 @@ int GuestBase::signalWaitEvent(VBoxEventType_T aType, IEvent *aEvent)
                                  ItWaitEvt->second, aType, ItWaitEvt->first, VBOX_GUESTCTRL_CONTEXTID_GET_SESSION(ItWaitEvt->first),
                                  VBOX_GUESTCTRL_CONTEXTID_GET_OBJECT(ItWaitEvt->first), VBOX_GUESTCTRL_CONTEXTID_GET_COUNT(ItWaitEvt->first)));
 
-                int rc2 = ItWaitEvt->second->SignalExternal(aEvent);
-                AssertRC(rc2);
+                int vrc2 = ItWaitEvt->second->SignalExternal(aEvent);
+                AssertRC(vrc2);
 
                 /* Take down the wait event object details before we erase it from this list and invalid ItGrpEvt. */
                 const GuestEventTypes &EvtTypes  = ItWaitEvt->second->Types();
@@ -1139,34 +1234,31 @@ int GuestBase::signalWaitEvent(VBoxEventType_T aType, IEvent *aEvent)
             }
         }
 
-        int rc2 = RTCritSectLeave(&mWaitEventCritSect);
-        if (RT_SUCCESS(rc))
-            rc = rc2;
+        int vrc2 = RTCritSectLeave(&mWaitEventCritSect);
+        if (RT_SUCCESS(vrc))
+            vrc = vrc2;
     }
 
 #ifdef DEBUG
-    LogFlowThisFunc(("Signalled %RU32 events, rc=%Rrc\n", cEvents, rc));
+    LogFlowThisFunc(("Signalled %RU32 events, vrc=%Rrc\n", cEvents, vrc));
 #endif
-    return rc;
+    return vrc;
 }
 
 /**
  * Signals a wait event which is registered to a specific callback (bound to a context ID (CID)).
  *
  * @returns VBox status code.
- * @param   pCbCtx              Pointer to host service callback context.
- * @param   rcGuest             Guest return code (rc) to set additionally, if rc is set to VERR_GSTCTL_GUEST_ERROR.
- * @param   pPayload            Additional wait event payload data set set on return. Optional.
+ * @param   pCbCtx      Pointer to host service callback context.
+ * @param   vrcGuest    Guest return VBox status code to set.
+ * @param   pPayload    Additional wait event payload data set set on return. Optional.
  */
-int GuestBase::signalWaitEventInternal(PVBOXGUESTCTRLHOSTCBCTX pCbCtx,
-                                       int rcGuest, const GuestWaitEventPayload *pPayload)
+int GuestBase::signalWaitEventInternal(PVBOXGUESTCTRLHOSTCBCTX pCbCtx, int vrcGuest, const GuestWaitEventPayload *pPayload)
 {
-    if (RT_SUCCESS(rcGuest))
-        return signalWaitEventInternalEx(pCbCtx, VINF_SUCCESS,
-                                         0 /* Guest rc */, pPayload);
+    if (RT_SUCCESS(vrcGuest))
+        return signalWaitEventInternalEx(pCbCtx, VINF_SUCCESS, VINF_SUCCESS /* vrcGuest */, pPayload);
 
-    return signalWaitEventInternalEx(pCbCtx, VERR_GSTCTL_GUEST_ERROR,
-                                     rcGuest, pPayload);
+    return signalWaitEventInternalEx(pCbCtx, VERR_GSTCTL_GUEST_ERROR, vrcGuest, pPayload);
 }
 
 /**
@@ -1174,39 +1266,39 @@ int GuestBase::signalWaitEventInternal(PVBOXGUESTCTRLHOSTCBCTX pCbCtx,
  * Extended version.
  *
  * @returns VBox status code.
- * @param   pCbCtx              Pointer to host service callback context.
- * @param   rc                  Return code (rc) to set as wait result.
- * @param   rcGuest             Guest return code (rc) to set additionally, if rc is set to VERR_GSTCTL_GUEST_ERROR.
- * @param   pPayload            Additional wait event payload data set set on return. Optional.
+ * @param   pCbCtx      Pointer to host service callback context.
+ * @param   vrc         Return VBox status code to set as wait result.
+ * @param   vrcGuest    Guest return VBox status code to set additionally, if
+ *                      vrc is set to VERR_GSTCTL_GUEST_ERROR.
+ * @param   pPayload    Additional wait event payload data set set on return. Optional.
  */
-int GuestBase::signalWaitEventInternalEx(PVBOXGUESTCTRLHOSTCBCTX pCbCtx,
-                                         int rc, int rcGuest,
+int GuestBase::signalWaitEventInternalEx(PVBOXGUESTCTRLHOSTCBCTX pCbCtx, int vrc, int vrcGuest,
                                          const GuestWaitEventPayload *pPayload)
 {
     AssertPtrReturn(pCbCtx, VERR_INVALID_POINTER);
     /* pPayload is optional. */
 
-    int rc2 = RTCritSectEnter(&mWaitEventCritSect);
-    if (RT_SUCCESS(rc2))
+    int vrc2 = RTCritSectEnter(&mWaitEventCritSect);
+    if (RT_SUCCESS(vrc2))
     {
         GuestWaitEvents::iterator itEvent = mWaitEvents.find(pCbCtx->uContextID);
         if (itEvent != mWaitEvents.end())
         {
-            LogFlowThisFunc(("Signalling event=%p (CID %RU32, rc=%Rrc, rcGuest=%Rrc, pPayload=%p) ...\n",
-                             itEvent->second, itEvent->first, rc, rcGuest, pPayload));
+            LogFlowThisFunc(("Signalling event=%p (CID %RU32, vrc=%Rrc, vrcGuest=%Rrc, pPayload=%p) ...\n",
+                             itEvent->second, itEvent->first, vrc, vrcGuest, pPayload));
             GuestWaitEvent *pEvent = itEvent->second;
             AssertPtr(pEvent);
-            rc2 = pEvent->SignalInternal(rc, rcGuest, pPayload);
+            vrc2 = pEvent->SignalInternal(vrc, vrcGuest, pPayload);
         }
         else
-            rc2 = VERR_NOT_FOUND;
+            vrc2 = VERR_NOT_FOUND;
 
-        int rc3 = RTCritSectLeave(&mWaitEventCritSect);
-        if (RT_SUCCESS(rc2))
-            rc2 = rc3;
+        int vrc3 = RTCritSectLeave(&mWaitEventCritSect);
+        if (RT_SUCCESS(vrc2))
+            vrc2 = vrc3;
     }
 
-    return rc2;
+    return vrc2;
 }
 
 /**
@@ -1222,8 +1314,8 @@ int GuestBase::unregisterWaitEvent(GuestWaitEvent *pWaitEvt)
     if (!pWaitEvt) /* Nothing to unregister. */
         return VINF_SUCCESS;
 
-    int rc = RTCritSectEnter(&mWaitEventCritSect);
-    if (RT_SUCCESS(rc))
+    int vrc = RTCritSectEnter(&mWaitEventCritSect);
+    if (RT_SUCCESS(vrc))
     {
         LogFlowThisFunc(("pWaitEvt=%p\n", pWaitEvt));
 
@@ -1280,15 +1372,15 @@ int GuestBase::unregisterWaitEvent(GuestWaitEvent *pWaitEvt)
         catch (const std::exception &ex)
         {
             RT_NOREF(ex);
-            AssertFailedStmt(rc = VERR_NOT_FOUND);
+            AssertFailedStmt(vrc = VERR_NOT_FOUND);
         }
 
-        int rc2 = RTCritSectLeave(&mWaitEventCritSect);
-        if (RT_SUCCESS(rc))
-            rc = rc2;
+        int vrc2 = RTCritSectLeave(&mWaitEventCritSect);
+        if (RT_SUCCESS(vrc))
+            vrc = vrc2;
     }
 
-    return rc;
+    return vrc;
 }
 
 /**
@@ -1317,8 +1409,8 @@ int GuestBase::waitForEvent(GuestWaitEvent *pWaitEvt, uint32_t msTimeout, VBoxEv
         {
             if (pType)
             {
-                HRESULT hr = pThisEvent->COMGETTER(Type)(pType);
-                if (FAILED(hr))
+                HRESULT hrc = pThisEvent->COMGETTER(Type)(pType);
+                if (FAILED(hrc))
                     vrc = VERR_COM_UNEXPECTED;
             }
             if (   RT_SUCCESS(vrc)
@@ -1354,7 +1446,7 @@ int GuestBase::waitForEvent(GuestWaitEvent *pWaitEvt, uint32_t msTimeout, VBoxEv
  */
 /* static */ Utf8Str GuestBase::getErrorAsString(const GuestErrorInfo& guestErrorInfo)
 {
-    AssertMsg(RT_FAILURE(guestErrorInfo.getRc()), ("Guest rc does not indicate a failure\n"));
+    AssertMsg(RT_FAILURE(guestErrorInfo.getVrc()), ("Guest vrc does not indicate a failure\n"));
 
     Utf8Str strErr;
 
@@ -1368,19 +1460,19 @@ int GuestBase::waitForEvent(GuestWaitEvent *pWaitEvt, uint32_t msTimeout, VBoxEv
     switch (guestErrorInfo.getType())
     {
         case GuestErrorInfo::Type_Session:
-            strErr = GuestSession::i_guestErrorToString(guestErrorInfo.getRc());
+            strErr = GuestSession::i_guestErrorToString(guestErrorInfo.getVrc());
             break;
 
         case GuestErrorInfo::Type_Process:
-            strErr = GuestProcess::i_guestErrorToString(guestErrorInfo.getRc(), guestErrorInfo.getWhat().c_str());
+            strErr = GuestProcess::i_guestErrorToString(guestErrorInfo.getVrc(), guestErrorInfo.getWhat().c_str());
             break;
 
         case GuestErrorInfo::Type_File:
-            strErr = GuestFile::i_guestErrorToString(guestErrorInfo.getRc(), guestErrorInfo.getWhat().c_str());
+            strErr = GuestFile::i_guestErrorToString(guestErrorInfo.getVrc(), guestErrorInfo.getWhat().c_str());
             break;
 
         case GuestErrorInfo::Type_Directory:
-            strErr = GuestDirectory::i_guestErrorToString(guestErrorInfo.getRc(), guestErrorInfo.getWhat().c_str());
+            strErr = GuestDirectory::i_guestErrorToString(guestErrorInfo.getVrc(), guestErrorInfo.getWhat().c_str());
             break;
 
         CASE_TOOL_ERROR(GuestErrorInfo::Type_ToolCat,    VBOXSERVICE_TOOL_CAT);
@@ -1391,9 +1483,9 @@ int GuestBase::waitForEvent(GuestWaitEvent *pWaitEvt, uint32_t msTimeout, VBoxEv
         CASE_TOOL_ERROR(GuestErrorInfo::Type_ToolStat,   VBOXSERVICE_TOOL_STAT);
 
         default:
-            AssertMsgFailed(("Type not implemented (type=%RU32, rc=%Rrc)\n", guestErrorInfo.getType(), guestErrorInfo.getRc()));
-            strErr = Utf8StrFmt("Unknown / Not implemented -- Please file a bug report (type=%RU32, rc=%Rrc)\n",
-                                guestErrorInfo.getType(), guestErrorInfo.getRc());
+            AssertMsgFailed(("Type not implemented (type=%RU32, vrc=%Rrc)\n", guestErrorInfo.getType(), guestErrorInfo.getVrc()));
+            strErr = Utf8StrFmt("Unknown / Not implemented -- Please file a bug report (type=%RU32, vrc=%Rrc)\n",
+                                guestErrorInfo.getType(), guestErrorInfo.getVrc());
             break;
     }
 
@@ -1551,7 +1643,7 @@ GuestWaitEventBase::GuestWaitEventBase(void)
     : mfAborted(false),
       mCID(0),
       mEventSem(NIL_RTSEMEVENT),
-      mRc(VINF_SUCCESS),
+      mVrc(VINF_SUCCESS),
       mGuestRc(VINF_SUCCESS)
 {
 }
@@ -1582,37 +1674,37 @@ int GuestWaitEventBase::Init(uint32_t uCID)
  * Signals a wait event.
  *
  * @returns VBox status code.
- * @param   rc                  Return code (rc) to set as wait result.
- * @param   rcGuest             Guest return code (rc) to set additionally, if rc is set to VERR_GSTCTL_GUEST_ERROR.
- * @param   pPayload            Additional wait event payload data set set on return. Optional.
+ * @param   vrc         Return VBox status code to set as wait result.
+ * @param   vrcGuest    Guest return VBox status code to set additionally, if
+ *                      @a vrc is set to VERR_GSTCTL_GUEST_ERROR.
+ * @param   pPayload    Additional wait event payload data set set on return. Optional.
  */
-int GuestWaitEventBase::SignalInternal(int rc, int rcGuest,
-                                       const GuestWaitEventPayload *pPayload)
+int GuestWaitEventBase::SignalInternal(int vrc, int vrcGuest, const GuestWaitEventPayload *pPayload)
 {
     if (mfAborted)
         return VERR_CANCELLED;
 
 #ifdef VBOX_STRICT
-    if (rc == VERR_GSTCTL_GUEST_ERROR)
-        AssertMsg(RT_FAILURE(rcGuest), ("Guest error indicated but no actual guest error set (%Rrc)\n", rcGuest));
+    if (vrc == VERR_GSTCTL_GUEST_ERROR)
+        AssertMsg(RT_FAILURE(vrcGuest), ("Guest error indicated but no actual guest error set (%Rrc)\n", vrcGuest));
     else
-        AssertMsg(RT_SUCCESS(rcGuest), ("No guest error indicated but actual guest error set (%Rrc)\n", rcGuest));
+        AssertMsg(RT_SUCCESS(vrcGuest), ("No guest error indicated but actual guest error set (%Rrc)\n", vrcGuest));
 #endif
 
-    int rc2;
+    int vrc2;
     if (pPayload)
-        rc2 = mPayload.CopyFromDeep(*pPayload);
+        vrc2 = mPayload.CopyFromDeep(*pPayload);
     else
-        rc2 = VINF_SUCCESS;
-    if (RT_SUCCESS(rc2))
+        vrc2 = VINF_SUCCESS;
+    if (RT_SUCCESS(vrc2))
     {
-        mRc = rc;
-        mGuestRc = rcGuest;
+        mVrc = vrc;
+        mGuestRc = vrcGuest;
 
-        rc2 = RTSemEventSignal(mEventSem);
+        vrc2 = RTSemEventSignal(mEventSem);
     }
 
-    return rc2;
+    return vrc2;
 }
 
 /**
@@ -1628,31 +1720,26 @@ int GuestWaitEventBase::SignalInternal(int rc, int rcGuest,
  */
 int GuestWaitEventBase::Wait(RTMSINTERVAL msTimeout)
 {
-    int rc = VINF_SUCCESS;
-
-    if (mfAborted)
-        rc = VERR_CANCELLED;
-
-    if (RT_SUCCESS(rc))
+    int vrc;
+    if (!mfAborted)
     {
         AssertReturn(mEventSem != NIL_RTSEMEVENT, VERR_CANCELLED);
 
-        rc = RTSemEventWait(mEventSem, msTimeout ? msTimeout : RT_INDEFINITE_WAIT);
-        if (   RT_SUCCESS(rc)
+        vrc = RTSemEventWait(mEventSem, msTimeout ? msTimeout : RT_INDEFINITE_WAIT);
+        if (   RT_SUCCESS(vrc)
             && mfAborted)
-        {
-            rc = VERR_CANCELLED;
-        }
+            vrc = VERR_CANCELLED;
 
-        if (RT_SUCCESS(rc))
+        if (RT_SUCCESS(vrc))
         {
             /* If waiting succeeded, return the overall
              * result code. */
-            rc = mRc;
+            vrc = mVrc;
         }
     }
-
-    return rc;
+    else
+        vrc = VERR_CANCELLED;
+    return vrc;
 }
 
 GuestWaitEvent::GuestWaitEvent(void)
@@ -1700,13 +1787,11 @@ int GuestWaitEvent::Init(uint32_t uCID)
  */
 int GuestWaitEvent::Init(uint32_t uCID, const GuestEventTypes &lstEvents)
 {
-    int rc = GuestWaitEventBase::Init(uCID);
-    if (RT_SUCCESS(rc))
-    {
+    int vrc = GuestWaitEventBase::Init(uCID);
+    if (RT_SUCCESS(vrc))
         mEventTypes = lstEvents;
-    }
 
-    return rc;
+    return vrc;
 }
 
 /**

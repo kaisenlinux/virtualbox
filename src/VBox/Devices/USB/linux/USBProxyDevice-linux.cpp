@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -259,7 +259,6 @@ static void usbProxyLinuxSetConnected(PUSBPROXYDEV pProxyDev, int iIf, bool fCon
 /**
  * Links the given URB into the in flight list.
  *
- * @returns nothing.
  * @param   pDevLnx         The proxy device instance - Linux specific data.
  * @param   pUrbLnx         The URB to link into the in flight list.
  */
@@ -275,7 +274,6 @@ static void usbProxyLinuxUrbLinkInFlight(PUSBPROXYDEVLNX pDevLnx, PUSBPROXYURBLN
 /**
  * Unlinks the given URB from the in flight list.
  *
- * @returns nothing.
  * @param   pDevLnx         The proxy device instance - Linux specific data.
  * @param   pUrbLnx         The URB to link into the in flight list.
  */

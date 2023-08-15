@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -506,7 +506,6 @@ static int vciBlkMapCreate(uint64_t cBlocks, PVCIBLKMAP *ppBlkMap, uint32_t *pcB
 /**
  * Frees a block map.
  *
- * @returns nothing.
  * @param   pBlkMap         The block bitmap to destroy.
  */
 static void vciBlkMapDestroy(PVCIBLKMAP pBlkMap)
@@ -925,7 +924,6 @@ static int vciBlkMapRealloc(PVCIBLKMAP pBlkMap, uint32_t cBlocksNew, uint64_t of
 /**
  * Frees a range of blocks.
  *
- * @returns nothing.
  * @param   pBlkMap          The block bitmap.
  * @param   offBlockAddr     Address of the first block to free.
  * @param   cBlocks          How many blocks to free.

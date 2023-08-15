@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -939,7 +939,6 @@ static int hmR0VmxAllocVmcsInfo(PVMCPUCC pVCpu, PVMXVMCSINFO pVmcsInfo, bool fIs
 /**
  * Free all VT-x structures for the VM.
  *
- * @returns IPRT status code.
  * @param   pVM     The cross context VM structure.
  */
 static void hmR0VmxStructsFree(PVMCC pVM)
@@ -1603,7 +1602,6 @@ static void hmR0VmxCheckAutoLoadStoreMsrs(PVMCPUCC pVCpu, PCVMXVMCSINFO pVmcsInf
 /**
  * Flushes the TLB using EPT.
  *
- * @returns VBox status code.
  * @param   pVCpu           The cross context virtual CPU structure of the calling
  *                          EMT.  Can be NULL depending on @a enmTlbFlush.
  * @param   pVmcsInfo       The VMCS info. object. Can be NULL depending on @a
@@ -1640,7 +1638,6 @@ static void hmR0VmxFlushEpt(PVMCPUCC pVCpu, PCVMXVMCSINFO pVmcsInfo, VMXTLBFLUSH
 /**
  * Flushes the TLB using VPID.
  *
- * @returns VBox status code.
  * @param   pVCpu           The cross context virtual CPU structure of the calling
  *                          EMT.  Can be NULL depending on @a enmTlbFlush.
  * @param   enmTlbFlush     Type of flush.
@@ -4392,7 +4389,6 @@ static void hmR0VmxReportWorldSwitchError(PVMCPUCC pVCpu, int rcVMRun, PVMXTRANS
  * If offsetting is not possible, cause VM-exits on RDTSC(P)s. Also sets up the
  * VMX-preemption timer.
  *
- * @returns VBox status code.
  * @param   pVCpu           The cross context virtual CPU structure.
  * @param   pVmxTransient   The VMX-transient structure.
  * @param   idCurrentCpu    The current CPU number.
@@ -4656,9 +4652,12 @@ static int hmR0VmxLeave(PVMCPUCC pVCpu, bool fImportState)
     /* Restore host debug registers if necessary. We will resync on next R0 reentry. */
 #ifdef VMX_WITH_MAYBE_ALWAYS_INTERCEPT_MOV_DRX
     Assert(   (pVmcsInfo->u32ProcCtls & VMX_PROC_CTLS_MOV_DR_EXIT)
+           ||  pVCpu->hmr0.s.vmx.fSwitchedToNstGstVmcs
            || (!CPUMIsHyperDebugStateActive(pVCpu) && !pVCpu->CTX_SUFF(pVM)->hmr0.s.vmx.fAlwaysInterceptMovDRx));
 #else
-    Assert((pVmcsInfo->u32ProcCtls & VMX_PROC_CTLS_MOV_DR_EXIT) || !CPUMIsHyperDebugStateActive(pVCpu));
+    Assert(   (pVmcsInfo->u32ProcCtls & VMX_PROC_CTLS_MOV_DR_EXIT)
+           ||  pVCpu->hmr0.s.vmx.fSwitchedToNstGstVmcs
+           || !CPUMIsHyperDebugStateActive(pVCpu));
 #endif
     CPUMR0DebugStateMaybeSaveGuestAndRestoreHost(pVCpu, true /* save DR6 */);
     Assert(!CPUMIsGuestDebugStateActive(pVCpu));

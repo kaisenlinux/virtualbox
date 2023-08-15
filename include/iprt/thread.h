@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -687,7 +687,6 @@ typedef enum RTTHREADCTXEVENT
  * Do NOT acquire locks, sleep or yield the thread for instance.  IRQ safe
  * spinlocks are fine though.
  *
- * @returns IPRT status code.
  * @param   enmEvent    The thread-context event.  Please quitely ignore unknown
  *                      events, we may add more (thread exit, ++) later.
  * @param   pvUser      User argument.

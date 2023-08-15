@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -555,7 +555,6 @@ DECLINLINE(int) rtIoQueueLnxEventfd2(uint32_t uValInit, uint32_t fFlags, int *pi
 /**
  * Checks the completion event queue for pending events.
  *
- * @returns nothing.
  * @param   pThis               The provider instance.
  * @param   paCEvt              Pointer to the array of completion events.
  * @param   cCEvt               Maximum number of completion events the array can hold.

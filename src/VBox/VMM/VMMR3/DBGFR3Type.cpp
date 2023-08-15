@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1226,7 +1226,6 @@ VMMR3DECL(int) DBGFR3TypeQueryValByType(PUVM pUVM, PCDBGFADDRESS pAddress, const
  * Frees all acquired resources of a value previously obtained with
  * DBGFR3TypeQueryValByType().
  *
- * @returns nothing.
  * @param   pVal                The value to free.
  */
 VMMR3DECL(void) DBGFR3TypeValFree(PDBGFTYPEVAL pVal)

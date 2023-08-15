@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -563,20 +563,26 @@ UIPortForwardingDataList UIPortForwardingModel::rules() const
 void UIPortForwardingModel::setRules(const UIPortForwardingDataList &newRules)
 {
     /* Clear old data first of all: */
-    beginRemoveRows(QModelIndex(), 0, m_dataList.size() - 1);
-    foreach (const UIPortForwardingRow *pRow, m_dataList)
-        delete pRow;
-    m_dataList.clear();
-    endRemoveRows();
+    if (!m_dataList.isEmpty())
+    {
+        beginRemoveRows(QModelIndex(), 0, m_dataList.size() - 1);
+        foreach (const UIPortForwardingRow *pRow, m_dataList)
+            delete pRow;
+        m_dataList.clear();
+        endRemoveRows();
+    }
 
     /* Fetch incoming data: */
-    beginInsertRows(QModelIndex(), 0, newRules.size() - 1);
-    foreach (const UIDataPortForwardingRule &rule, newRules)
-        m_dataList << new UIPortForwardingRow(qobject_cast<QITableView*>(parent()),
-                                              rule.name, rule.protocol,
-                                              rule.hostIp, rule.hostPort,
-                                              rule.guestIp, rule.guestPort);
-    endInsertRows();
+    if (!newRules.isEmpty())
+    {
+        beginInsertRows(QModelIndex(), 0, newRules.size() - 1);
+        foreach (const UIDataPortForwardingRule &rule, newRules)
+            m_dataList << new UIPortForwardingRow(qobject_cast<QITableView*>(parent()),
+                                                  rule.name, rule.protocol,
+                                                  rule.hostIp, rule.hostPort,
+                                                  rule.guestIp, rule.guestPort);
+        endInsertRows();
+    }
 }
 
 void UIPortForwardingModel::addRule(const QModelIndex &index)

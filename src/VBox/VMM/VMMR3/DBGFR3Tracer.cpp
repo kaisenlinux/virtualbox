@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2020-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2020-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1045,7 +1045,6 @@ DECLHIDDEN(int) dbgfR3TracerInit(PVM pVM)
 /**
  * Terminates any configured tracer for the given VM instance.
  *
- * @returns nothing.
  * @param   pVM                     The cross context VM structure.
  */
 DECLHIDDEN(void) dbgfR3TracerTerm(PVM pVM)

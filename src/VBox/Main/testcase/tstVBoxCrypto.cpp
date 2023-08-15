@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2022 Oracle and/or its affiliates.
+ * Copyright (C) 2022-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -239,7 +239,6 @@ static int tstCryptoVfsReadAndVerify(RTVFSFILE hVfsFile, size_t cbFile)
 /**
  * Testing some basics of the encrypted file VFS code.
  *
- * @returns nothing.
  * @param   pCryptoIf           Pointer to the callback table.
  */
 static void tstCryptoVfsBasics(PCVBOXCRYPTOIF pCryptoIf)
@@ -325,7 +324,6 @@ static void tstCryptoVfsBasics(PCVBOXCRYPTOIF pCryptoIf)
 /**
  * Testing some basics of the crypto keystore code.
  *
- * @returns nothing.
  * @param   pCryptoIf           Pointer to the callback table.
  */
 static void tstCryptoKeyStoreBasics(PCVBOXCRYPTOIF pCryptoIf)

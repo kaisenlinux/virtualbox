@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -5210,7 +5210,6 @@ static DECLCALLBACK(VBOXSTRICTRC) pgmR3PhysChangeMemBalloonRendezvous(PVM pVM, P
 /**
  * Frees a range of ram pages, replacing them with ZERO pages; helper for PGMR3PhysFreeRamPages
  *
- * @returns VBox status code.
  * @param   pVM         The cross context VM structure.
  * @param   fInflate    Inflate or deflate memory balloon
  * @param   cPages      Number of pages to free
@@ -5684,7 +5683,6 @@ static DECLCALLBACK(VBOXSTRICTRC) pgmR3PhysUnmapChunkRendezvous(PVM pVM, PVMCPU 
 /**
  * Unmap a chunk to free up virtual address space (request packet handler for pgmR3PhysChunkMap)
  *
- * @returns VBox status code.
  * @param   pVM         The cross context VM structure.
  */
 static DECLCALLBACK(void) pgmR3PhysUnmapChunk(PVM pVM)

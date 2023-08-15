@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2017-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2017-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -79,7 +79,6 @@ typedef const RTKRNLMODINFOINT *PCRTKRNLMODINFOINT;
 /**
  * Destroy the given kernel module information record.
  *
- * @returns nothing.
  * @param   pThis            The record to destroy.
  */
 static void rtKrnlModInfoDestroy(PRTKRNLMODINFOINT pThis)

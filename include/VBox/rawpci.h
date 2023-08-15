@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2010-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -565,8 +565,6 @@ typedef struct RAWPCIFACTORY
 
     /**
      * Deinitialize per-VM data related to PCI passthrough.
-     *
-     * @returns VBox status code.
      *
      * @param   pFactory    Pointer to this structure.
      * @param   pVM         The cross context VM structure.

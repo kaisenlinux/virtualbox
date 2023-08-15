@@ -11,7 +11,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -806,7 +806,6 @@ static int virtioScsiR3SendEvent(PPDMDEVINS pDevIns, PVIRTIOSCSI pThis, uint16_t
 /**
  * Releases one reference from the given controller instances active request counter.
  *
- * @returns nothing.
  * @param   pDevIns     The device instance.
  * @param   pThis       VirtIO SCSI shared instance data.
  * @param   pThisCC     VirtIO SCSI ring-3 instance data.
@@ -822,7 +821,6 @@ DECLINLINE(void) virtioScsiR3Release(PPDMDEVINS pDevIns, PVIRTIOSCSI pThis, PVIR
 /**
  * Retains one reference for the given controller instances active request counter.
  *
- * @returns nothing.
  * @param   pThis       VirtIO SCSI shared instance data.
  */
 DECLINLINE(void) virtioScsiR3Retain(PVIRTIOSCSI pThis)

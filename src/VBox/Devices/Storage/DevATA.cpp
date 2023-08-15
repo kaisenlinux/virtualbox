@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1274,7 +1274,6 @@ static void ataHCPIOTransferLimitATAPI(PATADEVSTATE s)
 /**
  * Enters the lock protecting the controller data against concurrent access.
  *
- * @returns nothing.
  * @param   pDevIns     The device instance.
  * @param   pCtl        The controller to lock.
  */
@@ -1289,7 +1288,6 @@ DECLINLINE(void) ataR3LockEnter(PPDMDEVINS pDevIns, PATACONTROLLER pCtl)
 /**
  * Leaves the lock protecting the controller against concurrent data access.
  *
- * @returns nothing.
  * @param   pDevIns     The device instance.
  * @param   pCtl        The controller to unlock.
  */
@@ -1722,6 +1720,16 @@ static void ataR3WarningISCSI(PPDMDEVINS pDevIns)
     AssertRC(rc);
 }
 
+static void ataR3WarningFileStale(PPDMDEVINS pDevIns)
+{
+    int rc;
+    LogRel(("PIIX3 ATA: File handle became stale\n"));
+    rc = PDMDevHlpVMSetRuntimeError(pDevIns, VMSETRTERR_FLAGS_SUSPEND | VMSETRTERR_FLAGS_NO_WAIT, "DevATA_FILESTALE",
+                                    N_("The file became stale (often due to a restarted NFS server). VM execution is suspended. You can resume when it is available again"));
+    AssertRC(rc);
+}
+
+
 static bool ataR3IsRedoSetWarning(PPDMDEVINS pDevIns, PATACONTROLLER pCtl, int rc)
 {
     Assert(!PDMDevHlpCritSectIsOwner(pDevIns, &pCtl->lock));
@@ -1743,6 +1751,12 @@ static bool ataR3IsRedoSetWarning(PPDMDEVINS pDevIns, PATACONTROLLER pCtl, int r
         /* iSCSI connection abort (first error) or failure to reestablish
          * connection (second error). Pause VM. On resume we'll retry. */
         ataR3WarningISCSI(pDevIns);
+        return true;
+    }
+    if (rc == VERR_STALE_FILE_HANDLE)
+    {
+        pCtl->fRedoIdle = true;
+        ataR3WarningFileStale(pDevIns);
         return true;
     }
     if (rc == VERR_VD_DEK_MISSING)
@@ -7119,7 +7133,6 @@ static DECLCALLBACK(int)  ataR3Attach(PPDMDEVINS pDevIns, unsigned iLUN, uint32_
 /**
  * Resume notification.
  *
- * @returns VBox status code.
  * @param   pDevIns     The device instance data.
  */
 static DECLCALLBACK(void) ataR3Resume(PPDMDEVINS pDevIns)
@@ -7584,7 +7597,6 @@ static void ataR3SuspendOrPowerOff(PPDMDEVINS pDevIns)
 /**
  * Power Off notification.
  *
- * @returns VBox status code.
  * @param   pDevIns     The device instance data.
  */
 static DECLCALLBACK(void) ataR3PowerOff(PPDMDEVINS pDevIns)
@@ -7597,7 +7609,6 @@ static DECLCALLBACK(void) ataR3PowerOff(PPDMDEVINS pDevIns)
 /**
  * Suspend notification.
  *
- * @returns VBox status code.
  * @param   pDevIns     The device instance data.
  */
 static DECLCALLBACK(void) ataR3Suspend(PPDMDEVINS pDevIns)

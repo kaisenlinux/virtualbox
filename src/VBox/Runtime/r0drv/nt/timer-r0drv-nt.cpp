@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -312,7 +312,6 @@ static void rtTimerNtRearmInternval(PRTTIMER pTimer, PKDPC pMasterDpc)
 /**
  * Common timer callback worker for the non-omni timers.
  *
- * @returns HRTIMER_NORESTART or HRTIMER_RESTART depending on whether it's a one-shot or interval timer.
  * @param   pTimer          The timer.
  */
 static void rtTimerNtSimpleCallbackWorker(PRTTIMER pTimer)

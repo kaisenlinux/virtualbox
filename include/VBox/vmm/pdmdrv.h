@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -154,7 +154,6 @@ typedef FNPDMDRVPOWERON *PFNPDMDRVPOWERON;
 /**
  * Reset notification.
  *
- * @returns VBox status.
  * @param   pDrvIns     The driver instance data.
  */
 typedef DECLCALLBACKTYPE(void, FNPDMDRVRESET,(PPDMDRVINS pDrvIns));
@@ -164,7 +163,6 @@ typedef FNPDMDRVRESET *PFNPDMDRVRESET;
 /**
  * Suspend notification.
  *
- * @returns VBox status.
  * @param   pDrvIns     The driver instance data.
  */
 typedef DECLCALLBACKTYPE(void, FNPDMDRVSUSPEND,(PPDMDRVINS pDrvIns));
@@ -174,7 +172,6 @@ typedef FNPDMDRVSUSPEND *PFNPDMDRVSUSPEND;
 /**
  * Resume notification.
  *
- * @returns VBox status.
  * @param   pDrvIns     The driver instance data.
  */
 typedef DECLCALLBACKTYPE(void, FNPDMDRVRESUME,(PPDMDRVINS pDrvIns));

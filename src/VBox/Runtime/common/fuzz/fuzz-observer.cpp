@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2018-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2018-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -438,7 +438,6 @@ static int rtFuzzObsExecCtxCreate(PPRTFUZZOBSEXECCTX ppExecCtx, PRTFUZZOBSINT pT
 /**
  * Destroys the given execution context.
  *
- * @returns nothing.
  * @param   pThis               The internal fuzzing observer state.
  * @param   pExecCtx            The execution context to destroy.
  */

@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2018-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2018-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -71,7 +71,6 @@ typedef struct UARTCORE *PUARTCORE;
 /**
  * UART core IRQ request callback to let the core instance raise/clear interrupt requests.
  *
- * @returns nothing.
  * @param   pDevIns             The owning device instance.
  * @param   pThis               The shared UART core instance data.
  * @param   iLUN                The LUN associated with the UART core.

@@ -28,6 +28,7 @@ Build-Depends: bzip2,
                libglu1-mesa-dev,
                libgsoap-dev,
                liblzf-dev,
+               liblzma-dev,
                libidl-dev,
                libogg-dev,
                libpam0g-dev,
@@ -38,6 +39,7 @@ Build-Depends: bzip2,
                libqt5opengl5-dev,
                qttools5-dev,
                libsdl1.2-dev,
+               libsdl2-dev,
                libssl-dev,
                libtpms-dev,
                libvncserver-dev,
@@ -212,7 +214,3 @@ Description: x86 virtualization solution - non-X11 guest utilities
  utilities are meant to be run inside the virtual machine.
  They provide closer integration and allow to share data through shared folders
  between the host system and the virtual machine.
- .
- Either the virtualbox-guest-dkms or the virtualbox-guest-source package is
- also required in order to compile the kernel modules needed for
- virtualbox-guest-utils.

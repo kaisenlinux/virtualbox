@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -90,7 +90,6 @@ typedef FNPDMSRVPOWERON *PFNPDMSRVPOWERON;
 /**
  * Reset notification.
  *
- * @returns VBox status.
  * @param   pSrvIns     The service instance data.
  */
 typedef DECLCALLBACKTYPE(void, FNPDMSRVRESET,(PPDMSRVINS pSrvIns));
@@ -100,7 +99,6 @@ typedef FNPDMSRVRESET *PFNPDMSRVRESET;
 /**
  * Suspend notification.
  *
- * @returns VBox status.
  * @param   pSrvIns     The service instance data.
  */
 typedef DECLCALLBACKTYPE(void, FNPDMSRVSUSPEND,(PPDMSRVINS pSrvIns));
@@ -110,7 +108,6 @@ typedef FNPDMSRVSUSPEND *PFNPDMSRVSUSPEND;
 /**
  * Resume notification.
  *
- * @returns VBox status.
  * @param   pSrvIns     The service instance data.
  */
 typedef DECLCALLBACKTYPE(void, FNPDMSRVRESUME,(PPDMSRVINS pSrvIns));

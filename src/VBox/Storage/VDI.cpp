@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -350,7 +350,6 @@ static unsigned vdiTranslateVDI2ImageFlags(VDIIMAGETYPE enmType)
 /**
  * Internal: Init VDI header. Always use latest header version.
  *
- * @returns nothing.
  * @param   pHeader      Assumes it was initially initialized to all zeros.
  * @param   uImageFlags  Flags for this image.
  * @param   pszComment   Optional comment to set for the image.

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -66,7 +66,7 @@ public:
      * @{ */
         /** Pass a non-const ref since for some reason CGuest::GetAdditionsStatus
             is non-const?! */
-       static bool    isGuestAdditionsAvailable(const CGuest &guest);
+       static bool    isGuestAdditionsAvailable(const CGuest &guest, const char *pszMinimumVersion);
        static QString getFsObjTypeString(KFsObjType type);
     /** @} */
 

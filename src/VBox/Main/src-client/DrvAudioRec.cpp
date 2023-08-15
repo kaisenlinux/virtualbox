@@ -16,7 +16,7 @@
  */
 
 /*
- * Copyright (C) 2016-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -629,7 +629,6 @@ static DECLCALLBACK(void *) drvAudioVideoRecQueryInterface(PPDMIBASE pInterface,
 /**
  * Shuts down (closes) a recording sink,
  *
- * @returns VBox status code.
  * @param   pSink               Recording sink to shut down.
  */
 static void avRecSinkShutdown(PAVRECSINK pSink)

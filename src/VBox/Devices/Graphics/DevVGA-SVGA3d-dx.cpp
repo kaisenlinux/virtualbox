@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2020-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2020-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -576,7 +576,7 @@ int vmsvga3dDXSetSamplers(PVGASTATECC pThisCC, uint32_t idDXContext, SVGA3dCmdDX
 
 
 #ifdef DUMP_BITMAPS
-static void vmsvga3dDXDrawDumpRenderTargets(PVGASTATECC pThisCC, PVMSVGA3DDXCONTEXT pDXContext)
+static void vmsvga3dDXDrawDumpRenderTargets(PVGASTATECC pThisCC, PVMSVGA3DDXCONTEXT pDXContext, const char *pszPrefix = NULL)
 {
     for (uint32_t i = 0; i < SVGA3D_MAX_SIMULTANEOUS_RENDER_TARGETS; ++i)
     {
@@ -593,7 +593,7 @@ static void vmsvga3dDXDrawDumpRenderTargets(PVGASTATECC pThisCC, PVMSVGA3DDXCONT
             int rc = vmsvga3dSurfaceMap(pThisCC, &image, NULL, VMSVGA3D_SURFACE_MAP_READ, &map);
             if (RT_SUCCESS(rc))
             {
-                vmsvga3dMapWriteBmpFile(&map, "rt-");
+                vmsvga3dMapWriteBmpFile(&map, pszPrefix ? pszPrefix : "rt-");
                 vmsvga3dSurfaceUnmap(pThisCC, &image, &map, /* fWritten =  */ false);
             }
             else
@@ -1989,6 +1989,10 @@ static int dxBindShader(DXShaderInfo *pShaderInfo, PVMSVGAMOB pMob, SVGACOTableD
                 pShaderInfo->cPatchConstantSignature = pSignatureHeader->numPatchConstantSignatures;
                 memcpy(pShaderInfo->aPatchConstantSignature, pu8Signatures, pSignatureHeader->numPatchConstantSignatures * sizeof(SVGA3dDXSignatureEntry));
 
+                /* Sort must be called before GenerateSemantics which assigns attribute indices
+                 * based on the order of attributes.
+                 */
+                DXShaderSortSignatures(pShaderInfo);
                 DXShaderGenerateSemantics(pShaderInfo);
             }
         }
@@ -2480,11 +2484,11 @@ int vmsvga3dDXBufferUpdate(PVGASTATECC pThisCC, uint32_t idDXContext)
 }
 
 
-int vmsvga3dDXSetVSConstantBufferOffset(PVGASTATECC pThisCC, uint32_t idDXContext)
+int vmsvga3dDXSetConstantBufferOffset(PVGASTATECC pThisCC, uint32_t idDXContext, SVGA3dCmdDXSetConstantBufferOffset const *pCmd, SVGA3dShaderType type)
 {
     int rc;
     PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
-    AssertReturn(pSvgaR3State->pFuncsDX && pSvgaR3State->pFuncsDX->pfnDXSetVSConstantBufferOffset, VERR_INVALID_STATE);
+    AssertReturn(pSvgaR3State->pFuncsDX && pSvgaR3State->pFuncsDX->pfnDXSetSingleConstantBuffer, VERR_INVALID_STATE);
     PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
     AssertReturn(p3dState, VERR_INVALID_STATE);
 
@@ -2492,92 +2496,18 @@ int vmsvga3dDXSetVSConstantBufferOffset(PVGASTATECC pThisCC, uint32_t idDXContex
     rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
     AssertRCReturn(rc, rc);
 
-    rc = pSvgaR3State->pFuncsDX->pfnDXSetVSConstantBufferOffset(pThisCC, pDXContext);
-    return rc;
-}
+    ASSERT_GUEST_RETURN(pCmd->slot < SVGA3D_DX_MAX_CONSTBUFFERS, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
 
+    uint32_t const idxShaderState = type - SVGA3D_SHADERTYPE_MIN;
+    SVGA3dConstantBufferBinding *pCBB = &pDXContext->svgaDXContext.shaderState[idxShaderState].constantBuffers[pCmd->slot];
 
-int vmsvga3dDXSetPSConstantBufferOffset(PVGASTATECC pThisCC, uint32_t idDXContext)
-{
-    int rc;
-    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
-    AssertReturn(pSvgaR3State->pFuncsDX && pSvgaR3State->pFuncsDX->pfnDXSetPSConstantBufferOffset, VERR_INVALID_STATE);
-    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
-    AssertReturn(p3dState, VERR_INVALID_STATE);
+    /* Only 'offsetInBytes' is updated. */
+    // pCBB->sid;
+    pCBB->offsetInBytes = pCmd->offsetInBytes;
+    // pCBB->sizeInBytes;
 
-    PVMSVGA3DDXCONTEXT pDXContext;
-    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
-    AssertRCReturn(rc, rc);
-
-    rc = pSvgaR3State->pFuncsDX->pfnDXSetPSConstantBufferOffset(pThisCC, pDXContext);
-    return rc;
-}
-
-
-int vmsvga3dDXSetGSConstantBufferOffset(PVGASTATECC pThisCC, uint32_t idDXContext)
-{
-    int rc;
-    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
-    AssertReturn(pSvgaR3State->pFuncsDX && pSvgaR3State->pFuncsDX->pfnDXSetGSConstantBufferOffset, VERR_INVALID_STATE);
-    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
-    AssertReturn(p3dState, VERR_INVALID_STATE);
-
-    PVMSVGA3DDXCONTEXT pDXContext;
-    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
-    AssertRCReturn(rc, rc);
-
-    rc = pSvgaR3State->pFuncsDX->pfnDXSetGSConstantBufferOffset(pThisCC, pDXContext);
-    return rc;
-}
-
-
-int vmsvga3dDXSetHSConstantBufferOffset(PVGASTATECC pThisCC, uint32_t idDXContext)
-{
-    int rc;
-    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
-    AssertReturn(pSvgaR3State->pFuncsDX && pSvgaR3State->pFuncsDX->pfnDXSetHSConstantBufferOffset, VERR_INVALID_STATE);
-    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
-    AssertReturn(p3dState, VERR_INVALID_STATE);
-
-    PVMSVGA3DDXCONTEXT pDXContext;
-    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
-    AssertRCReturn(rc, rc);
-
-    rc = pSvgaR3State->pFuncsDX->pfnDXSetHSConstantBufferOffset(pThisCC, pDXContext);
-    return rc;
-}
-
-
-int vmsvga3dDXSetDSConstantBufferOffset(PVGASTATECC pThisCC, uint32_t idDXContext)
-{
-    int rc;
-    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
-    AssertReturn(pSvgaR3State->pFuncsDX && pSvgaR3State->pFuncsDX->pfnDXSetDSConstantBufferOffset, VERR_INVALID_STATE);
-    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
-    AssertReturn(p3dState, VERR_INVALID_STATE);
-
-    PVMSVGA3DDXCONTEXT pDXContext;
-    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
-    AssertRCReturn(rc, rc);
-
-    rc = pSvgaR3State->pFuncsDX->pfnDXSetDSConstantBufferOffset(pThisCC, pDXContext);
-    return rc;
-}
-
-
-int vmsvga3dDXSetCSConstantBufferOffset(PVGASTATECC pThisCC, uint32_t idDXContext)
-{
-    int rc;
-    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
-    AssertReturn(pSvgaR3State->pFuncsDX && pSvgaR3State->pFuncsDX->pfnDXSetCSConstantBufferOffset, VERR_INVALID_STATE);
-    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
-    AssertReturn(p3dState, VERR_INVALID_STATE);
-
-    PVMSVGA3DDXCONTEXT pDXContext;
-    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
-    AssertRCReturn(rc, rc);
-
-    rc = pSvgaR3State->pFuncsDX->pfnDXSetCSConstantBufferOffset(pThisCC, pDXContext);
+    rc = pSvgaR3State->pFuncsDX->pfnDXSetSingleConstantBuffer(pThisCC, pDXContext, pCmd->slot, type, pCBB->sid, pCBB->offsetInBytes, pCBB->sizeInBytes);
     return rc;
 }
 
@@ -2633,7 +2563,7 @@ int vmsvga3dDXGrowCOTable(PVGASTATECC pThisCC, SVGA3dCmdDXGrowCOTable const *pCm
 }
 
 
-int vmsvga3dIntraSurfaceCopy(PVGASTATECC pThisCC, uint32_t idDXContext)
+int vmsvga3dIntraSurfaceCopy(PVGASTATECC pThisCC, uint32_t idDXContext, SVGA3dCmdIntraSurfaceCopy const *pCmd)
 {
     int rc;
     PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
@@ -2645,7 +2575,7 @@ int vmsvga3dIntraSurfaceCopy(PVGASTATECC pThisCC, uint32_t idDXContext)
     rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
     AssertRCReturn(rc, rc);
 
-    rc = pSvgaR3State->pFuncsDX->pfnIntraSurfaceCopy(pThisCC, pDXContext);
+    rc = pSvgaR3State->pFuncsDX->pfnIntraSurfaceCopy(pThisCC, pDXContext, pCmd->surface, pCmd->box);
     return rc;
 }
 

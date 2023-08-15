@@ -45,6 +45,7 @@ rm -fr ${ORIG_TARBALL_DIR}/src/libs/openssl*
 rm -fr ${ORIG_TARBALL_DIR}/src/libs/libxml2*
 rm -fr ${ORIG_TARBALL_DIR}/src/libs/libxslt*
 rm -fr ${ORIG_TARBALL_DIR}/src/libs/liblzf*
+rm -fr ${ORIG_TARBALL_DIR}/src/libs/liblzma*
 rm -fr ${ORIG_TARBALL_DIR}/src/libs/libogg*
 rm -fr ${ORIG_TARBALL_DIR}/src/libs/libtpms*
 rm -fr ${ORIG_TARBALL_DIR}/src/libs/libvorbis*
@@ -67,5 +68,5 @@ rm -fr ${ORIG_TARBALL_DIR}/src/VBox/HostDrivers/Support/win/winstub.com
 
 tar --exclude .svn --exclude '.git*' --exclude debian --directory ${WORKING_DIR} -cJf ${DEST_TARBALL_NAME} ${ORIG_TARBALL_DIR_STRIP} || exit 1
 rm -rf ${ORIG_TARBALL_DIR}
-echo "Done, now you can run gbp import-orig ${DEST_TARBALL_NAME}"
+echo "Done, now you can run \ngbp import-orig ${DEST_TARBALL_NAME}"
 exit 0

@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2008-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -146,7 +146,6 @@ void OVFReader::parse()
  * @param pReferencesElem "References" element from OVF, for looking up file specifications;
  *                        can be NULL if no such element is present.
  * @param pCurElem Element whose children are to be analyzed here.
- * @return
  */
 void OVFReader::LoopThruSections(const xml::ElementNode *pReferencesElem,
                                  const xml::ElementNode *pCurElem)
@@ -317,8 +316,6 @@ void OVFReader::HandleDiskSection(const xml::ElementNode *pReferencesElem,
 /**
  * Private helper method that handles network sections in the OVF XML.
  * Gets called indirectly from IAppliance::read().
- *
- * @return
  */
 void OVFReader::HandleNetworkSection(const xml::ElementNode * /* pSectionElem */)
 {
@@ -344,7 +341,6 @@ void OVFReader::HandleNetworkSection(const xml::ElementNode * /* pSectionElem */
  * Gets called indirectly from IAppliance::read().
  *
  * @param pelmVirtualSystem
- * @return
  */
 void OVFReader::HandleVirtualSystemContent(const xml::ElementNode *pelmVirtualSystem)
 {

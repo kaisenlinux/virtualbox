@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2020-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2020-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -75,7 +75,6 @@ static int tstDevCfgErrorRc(PRTERRINFO pErrInfo, int rc, const char *pszFormat, 
 /**
  * Destroys the given configuration item array freeing all allocated resources.
  *
- * @returns nothing.
  * @param   paCfg               The configuration item array to destroy.
  * @param   cCfgItems           Number of items in the array.
  */

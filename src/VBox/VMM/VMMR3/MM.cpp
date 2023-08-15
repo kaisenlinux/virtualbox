@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -455,7 +455,6 @@ VMMR3DECL(int) MMR3Term(PVM pVM)
  * Termination means cleaning up and freeing all resources,
  * the VM it self is at this point powered off or suspended.
  *
- * @returns VBox status code.
  * @param   pUVM        Pointer to the user mode VM structure.
  */
 VMMR3DECL(void) MMR3TermUVM(PUVM pUVM)

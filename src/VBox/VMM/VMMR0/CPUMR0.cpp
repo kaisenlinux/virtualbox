@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -772,7 +772,6 @@ VMMR0_INT_DECL(void) CPUMR0LoadGuestDebugState(PVMCPUCC pVCpu, bool fDr6)
 /**
  * Lazily sync in the hypervisor debug state
  *
- * @returns VBox status code.
  * @param   pVCpu       The cross context virtual CPU structure of the calling EMT.
  * @param   fDr6        Whether to include DR6 or not.
  * @thread  EMT(pVCpu)

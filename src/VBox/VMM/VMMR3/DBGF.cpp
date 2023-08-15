@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -228,7 +228,6 @@ VMMR3_INT_DECL(int) DBGFR3Term(PVM pVM)
 /**
  * This is for tstCFGM and others to avoid trigger leak detection.
  *
- * @returns VBox status code.
  * @param   pUVM    The user mode VM structure.
  */
 VMMR3DECL(void) DBGFR3TermUVM(PUVM pUVM)

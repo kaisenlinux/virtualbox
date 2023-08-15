@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -43,6 +43,9 @@
 #include <iprt/crypto/pkix.h>
 
 extern DECL_HIDDEN_DATA(RTCRPKIXSIGNATUREDESC const) g_rtCrPkixSigningHashWithRsaDesc;
+#ifdef IPRT_WITH_OPENSSL
+extern DECL_HIDDEN_DATA(RTCRPKIXSIGNATUREDESC const) g_rtCrPkixSigningHashWithEcdsaDesc;
+#endif
 
 #endif /* !IPRT_INCLUDED_SRC_common_crypto_pkix_signature_builtin_h */
 

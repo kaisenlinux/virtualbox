@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -171,7 +171,6 @@ RTDECL(int) RTUtf16ReallocTag(PRTUTF16 *ppwsz, size_t cbNew, const char *pszTag)
  * Free a UTF-16 string allocated by RTStrToUtf16(), RTStrToUtf16Ex(),
  * RTLatin1ToUtf16(), RTLatin1ToUtf16Ex(), RTUtf16Dup() or RTUtf16DupEx().
  *
- * @returns iprt status code.
  * @param   pwszString      The UTF-16 string to free. NULL is accepted.
  */
 RTDECL(void)  RTUtf16Free(PRTUTF16 pwszString);

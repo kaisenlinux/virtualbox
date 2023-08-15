@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2020-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2020-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -519,7 +519,6 @@ static int rtFuzzCfgAddFuzzCtxInputs(PRTFUZZCFGINT pThis, RTJSONVAL hJsonValCorp
 /**
  * Destroys the given fuzzing config.
  *
- * @returns nothing.
  * @param   pThis                   The fuzzing config instance to destroy.
  */
 static void rtFuzzCfgDestroy(PRTFUZZCFGINT pThis)

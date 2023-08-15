@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2022 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2023 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -161,7 +161,7 @@ class HGCMService
         HGCMService();
         ~HGCMService() {};
 
-        static DECLCALLBACK(int)  svcHlpCallComplete(VBOXHGCMCALLHANDLE callHandle, int32_t rc);
+        static DECLCALLBACK(int)  svcHlpCallComplete(VBOXHGCMCALLHANDLE callHandle, int32_t vrc);
         static DECLCALLBACK(int)  svcHlpDisconnectClient(void *pvInstance, uint32_t idClient);
         static DECLCALLBACK(bool) svcHlpIsCallRestored(VBOXHGCMCALLHANDLE callHandle);
         static DECLCALLBACK(bool) svcHlpIsCallCancelled(VBOXHGCMCALLHANDLE callHandle);
@@ -468,9 +468,8 @@ int HGCMService::loadServiceDLL(void)
     return vrc;
 }
 
-/** Helper function to free a local service DLL.
- *
- *  @return VBox code
+/**
+ * Helper function to free a local service DLL.
  */
 void HGCMService::unloadServiceDLL(void)
 {
@@ -958,7 +957,7 @@ DECLCALLBACK(void) hgcmServiceThread(HGCMThread *pThread, void *pvUser)
 /**
  * @interface_method_impl{VBOXHGCMSVCHELPERS,pfnCallComplete}
  */
-/* static */ DECLCALLBACK(int) HGCMService::svcHlpCallComplete(VBOXHGCMCALLHANDLE callHandle, int32_t rc)
+/* static */ DECLCALLBACK(int) HGCMService::svcHlpCallComplete(VBOXHGCMCALLHANDLE callHandle, int32_t vrc)
 {
    HGCMMsgCore *pMsgCore = (HGCMMsgCore *)callHandle;
 
@@ -967,7 +966,7 @@ DECLCALLBACK(void) hgcmServiceThread(HGCMThread *pThread, void *pvUser)
     * any other messages.
     */
    AssertMsgReturn(pMsgCore->MsgId() == SVC_MSG_GUESTCALL, ("%d\n", pMsgCore->MsgId()), VERR_WRONG_TYPE);
-   return hgcmMsgComplete(pMsgCore, rc);
+   return hgcmMsgComplete(pMsgCore, vrc);
 }
 
 /**
@@ -1333,7 +1332,7 @@ int HGCMService::loadClientState(uint32_t u32ClientId, PSSMHANDLE pSSM, PCVMMR3V
  * @param   pVMM               The VMM vtable (for statistics and such).
  * @param   pHgcmPort          The VMMDev HGCM port interface.
  *
- * @return  VBox rc.
+ * @return  VBox status code.
  * @thread  main HGCM
  */
 /* static */ int HGCMService::LoadService(const char *pszServiceLibrary, const char *pszServiceName,
@@ -1454,7 +1453,7 @@ void HGCMService::UnloadService(bool fUvmIsInvalid)
  *
  * @param ppSvc          Where to store the pointer to the service.
  * @param pszServiceName The name of the service.
- * @return VBox rc.
+ * @return VBox status code.
  * @thread main HGCM
  */
 /* static */ int HGCMService::ResolveService(HGCMService **ppSvc, const char *pszServiceName)
@@ -1916,7 +1915,7 @@ int HGCMService::DisconnectClient(uint32_t u32ClientId, bool fFromService, HGCMC
         fReleaseService = true;
     }
 
-    LogFunc(("idClient=%u m_cClients=%u m_acClients[%u]=%u %s (cPendingCalls=%u) rc=%Rrc\n", u32ClientId, m_cClients,
+    LogFunc(("idClient=%u m_cClients=%u m_acClients[%u]=%u %s (cPendingCalls=%u) vrc=%Rrc\n", u32ClientId, m_cClients,
              pClient->idxCategory, m_acClients[pClient->idxCategory], m_pszSvcName, pClient->cPendingCalls, vrc));
 
     /*
@@ -2031,7 +2030,7 @@ static DECLCALLBACK(int) hgcmMsgCallCompletionCallback(int32_t result, HGCMMsgCo
  * @param cParms         Number of parameters.
  * @param paParms        Pointer to array of parameters.
  * @param tsArrival      The STAM_GET_TS() value when the request arrived.
- * @return VBox rc.
+ * @return VBox status code.
  * @retval VINF_HGCM_ASYNC_EXECUTE on success.
  */
 int HGCMService::GuestCall(PPDMIHGCMPORT pHGCMPort, PVBOXHGCMCMD pCmd, uint32_t u32ClientId, HGCMClient *pClient,
@@ -2098,7 +2097,6 @@ int HGCMService::GuestCall(PPDMIHGCMPORT pHGCMPort, PVBOXHGCMCMD pCmd, uint32_t 
  * @param   pHGCMPort      The port to be used for completion confirmation
  * @param   pCmd           The VBox HGCM context.
  * @param   idClient       The client handle to be disconnected and deleted.
- * @return  VBox rc.
  */
 void HGCMService::GuestCancelled(PPDMIHGCMPORT pHGCMPort, PVBOXHGCMCMD pCmd, uint32_t idClient)
 {
@@ -2127,7 +2125,7 @@ void HGCMService::GuestCancelled(PPDMIHGCMPORT pHGCMPort, PVBOXHGCMCMD pCmd, uin
  * @param u32Function    The function number.
  * @param cParms         Number of parameters.
  * @param paParms        Pointer to array of parameters.
- * @return VBox rc.
+ * @return VBox status code.
  */
 int HGCMService::HostCall(uint32_t u32Function, uint32_t cParms, VBOXHGCMSVCPARM *paParms)
 {
@@ -2573,7 +2571,7 @@ static HGCMThread *g_pHgcmThread = 0;
  * @param pUVM               The user mode VM handle (for statistics and such).
  * @param pVMM               The VMM vtable (for statistics and such).
  * @param pHgcmPort          The HGCM port on the VMMDev device (for session ID and such).
- * @return VBox rc.
+ * @return VBox status code.
  */
 int HGCMHostLoad(const char *pszServiceLibrary,
                  const char *pszServiceName,
@@ -2613,7 +2611,7 @@ int HGCMHostLoad(const char *pszServiceLibrary,
  * @param pszServiceName     The name of the service.
  * @param pfnExtension       The extension entry point (callback).
  * @param pvExtension        The extension pointer.
- * @return VBox rc.
+ * @return VBox status code.
  */
 int HGCMHostRegisterServiceExtension(HGCMSVCEXTHANDLE *pHandle,
                                      const char *pszServiceName,
@@ -2676,7 +2674,7 @@ void HGCMHostUnregisterServiceExtension(HGCMSVCEXTHANDLE handle)
  * @param pCmd           The VBox HGCM context.
  * @param pszServiceName The name of the service to be connected to.
  * @param pu32ClientId   Where the store the created client handle.
- * @return VBox rc.
+ * @return VBox status code.
  */
 int HGCMGuestConnect(PPDMIHGCMPORT pHGCMPort,
                      PVBOXHGCMCMD pCmd,
@@ -2711,7 +2709,7 @@ int HGCMGuestConnect(PPDMIHGCMPORT pHGCMPort,
         vrc = hgcmMsgPost(pMsg, hgcmMsgCompletionCallback);
     }
 
-    LogFlowFunc(("rc = %Rrc\n", vrc));
+    LogFlowFunc(("vrc = %Rrc\n", vrc));
     return vrc;
 }
 
@@ -2720,7 +2718,7 @@ int HGCMGuestConnect(PPDMIHGCMPORT pHGCMPort,
  * @param pHGCMPort      The port to be used for completion confirmation.
  * @param pCmd           The VBox HGCM context.
  * @param u32ClientId    The client handle to be disconnected and deleted.
- * @return VBox rc.
+ * @return VBox status code.
  */
 int HGCMGuestDisconnect(PPDMIHGCMPORT pHGCMPort,
                         PVBOXHGCMCMD pCmd,
@@ -2760,7 +2758,7 @@ int HGCMGuestDisconnect(PPDMIHGCMPORT pHGCMPort,
  * @param pVMM      The VMM vtable.
  * @param idMsg    The message to be sent: HGCM_MSG_SAVESTATE or HGCM_MSG_LOADSTATE.
  * @param uVersion The state version being loaded.
- * @return VBox rc.
+ * @return VBox status code.
  */
 static int hgcmHostLoadSaveState(PSSMHANDLE pSSM, PCVMMR3VTABLE pVMM, uint32_t idMsg, uint32_t uVersion)
 {
@@ -2816,7 +2814,7 @@ int HGCMHostLoadState(PSSMHANDLE pSSM, PCVMMR3VTABLE pVMM, uint32_t uVersion)
  * @param cParms         Number of parameters.
  * @param paParms        Pointer to array of parameters.
  * @param tsArrival      The STAM_GET_TS() value when the request arrived.
- * @return VBox rc.
+ * @return VBox status code.
  */
 int HGCMGuestCall(PPDMIHGCMPORT pHGCMPort,
                   PVBOXHGCMCMD pCmd,
@@ -2888,7 +2886,7 @@ void HGCMGuestCancelled(PPDMIHGCMPORT pHGCMPort, PVBOXHGCMCMD pCmd, uint32_t idC
  * @param u32Function    The function number.
  * @param cParms         Number of parameters.
  * @param paParms        Pointer to array of parameters.
- * @return VBox rc.
+ * @return VBox status code.
  */
 int HGCMHostCall(const char *pszServiceName,
                  uint32_t u32Function,
@@ -2931,7 +2929,7 @@ int HGCMHostCall(const char *pszServiceName,
 /** Posts a notification event to all services.
  *
  * @param   enmEvent    The notification event.
- * @return  VBox rc.
+ * @return  VBox status code.
  */
 int HGCMBroadcastEvent(HGCMNOTIFYEVENT enmEvent)
 {
