@@ -34,7 +34,7 @@
  */
 #include "vbox_drv.h"
 
-#if RTLNX_VER_MIN(6,3,0)
+#if RTLNX_VER_MIN(6,3,0) || RTLNX_RHEL_RANGE(8,9, 8,99) || RTLNX_RHEL_MAJ_PREREQ(9,3)
 # include <drm/ttm/ttm_tt.h>
 #endif
 
@@ -321,7 +321,7 @@ static struct ttm_tt *vbox_ttm_tt_create(struct ttm_buffer_object *bo,
 #if RTLNX_VER_MAX(5,10,0) && !RTLNX_RHEL_RANGE(8,5, 8,99)
 	tt->func = &vbox_tt_backend_func;
 #endif
-#if RTLNX_VER_MIN(5,19,0) || RTLNX_RHEL_RANGE(8,8, 8,99) || RTLNX_RHEL_MAJ_PREREQ(9,2)
+#if RTLNX_VER_MIN(5,19,0) || RTLNX_RHEL_RANGE(8,8, 8,99) || RTLNX_RHEL_MAJ_PREREQ(9,2) || RTLNX_SUSE_MAJ_PREREQ(15,5)
 	if (ttm_tt_init(tt, bo, page_flags, ttm_write_combined, 0)) {
 #elif RTLNX_VER_MIN(5,11,0) || RTLNX_RHEL_RANGE(8,5, 8,99)
 	if (ttm_tt_init(tt, bo, page_flags, ttm_write_combined)) {
@@ -363,6 +363,19 @@ static int vbox_bo_move(struct ttm_buffer_object *bo, bool evict,
 	struct ttm_operation_ctx *ctx, struct ttm_resource *new_mem,
 	struct ttm_place *hop)
 {
+# if RTLNX_VER_MIN(6,4,0)
+	if (!bo->resource)
+	{
+		if (new_mem->mem_type != TTM_PL_SYSTEM)
+		{
+			hop->mem_type = TTM_PL_SYSTEM;
+			hop->flags = TTM_PL_FLAG_TEMPORARY;
+			return -EMULTIHOP;
+		}
+		ttm_bo_move_null(bo, new_mem);
+		return 0;
+	}
+# endif
 	return ttm_bo_move_memcpy(bo, ctx, new_mem);
 }
 #endif
@@ -576,6 +589,10 @@ void vbox_ttm_placement(struct vbox_bo *bo, u32 mem_type)
 static const struct drm_gem_object_funcs vbox_drm_gem_object_funcs = {
 	.free   = vbox_gem_free_object,
 	.print_info = drm_gem_ttm_print_info,
+# if RTLNX_VER_MIN(6,5,0)
+	.vmap   = drm_gem_ttm_vmap,
+	.vunmap = drm_gem_ttm_vunmap,
+# endif
 # if RTLNX_VER_MIN(5,14,0) || RTLNX_RHEL_RANGE(8,6, 8,99)
 	.mmap = drm_gem_ttm_mmap,
 # endif
@@ -628,7 +645,7 @@ int vbox_bo_create(struct drm_device *dev, int size, int align,
 	drm_vma_node_reset(&vboxbo->bo.base.vma_node);
 #endif
 
-#if RTLNX_VER_MIN(6,1,0)
+#if RTLNX_VER_MIN(6,1,0) || RTLNX_RHEL_RANGE(8,9, 8,99) || RTLNX_RHEL_MAJ_PREREQ(9,3) || RTLNX_SUSE_MAJ_PREREQ(15,5)
 	ret = ttm_bo_init_validate(&vbox->ttm.bdev, &vboxbo->bo,
 #else
 	ret = ttm_bo_init(&vbox->ttm.bdev, &vboxbo->bo, size,

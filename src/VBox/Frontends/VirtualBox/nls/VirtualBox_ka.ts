@@ -5213,6 +5213,11 @@
         <comment>details (system/secure boot)</comment>
         <translation>ჩართული</translation>
     </message>
+    <message>
+        <source>Nested VT-x/AMD-V</source>
+        <comment>details (system)</comment>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UIDetailsElement</name>
@@ -5934,10 +5939,6 @@
         <translation>ფაილების მმართველი ვერ მუშაობს: სტუმარი შეჩერებულია.</translation>
     </message>
     <message>
-        <source>File manager cannot work since the selected guest does not have the guest additions.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Enter a valid user name and password to initiate the file manager.</source>
         <translation>ფაილების მმართველის გასაშვებად სწორი მომხმარებელი და პაროლია საჭირო.</translation>
     </message>
@@ -5948,6 +5949,14 @@
     <message>
         <source>Some error has occurred. Please check the log panel.</source>
         <translation>მოულოდნელი შეცდომა. გადაამოწმეთ ჟურნალის პანელი.</translation>
+    </message>
+    <message>
+        <source>File manager cannot work since no guest additions were detected.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>File manager cannot work. The guest additions need to be updated.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

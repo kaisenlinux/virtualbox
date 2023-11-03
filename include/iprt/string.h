@@ -47,6 +47,7 @@
 #if defined(RT_OS_LINUX) && defined(__KERNEL__)
   /* no C++ hacks ('new' etc) here anymore! */
 # include <linux/string.h>
+# include <iprt/linux/version.h>
 
 #elif defined(IN_XF86_MODULE) && !defined(NO_ANSIC)
   RT_C_DECLS_BEGIN
@@ -132,6 +133,33 @@ RT_C_DECLS_END
 #endif
 
 
+/** @defgroup grp_rt_str    RTStr - String Manipulation
+ * Mostly UTF-8 related helpers where the standard string functions won't do.
+ * @ingroup grp_rt
+ * @{
+ */
+
+RT_C_DECLS_BEGIN
+
+
+/**
+ * The maximum string length.
+ */
+#define RTSTR_MAX       (~(size_t)0)
+
+
+/** @def RTSTR_TAG
+ * The default allocation tag used by the RTStr allocation APIs.
+ *
+ * When not defined before the inclusion of iprt/string.h, this will default to
+ * the pointer to the current file name.  The string API will make of use of
+ * this as pointer to a volatile but read-only string.
+ */
+#if !defined(RTSTR_TAG) || defined(DOXYGEN_RUNNING)
+# define RTSTR_TAG      (__FILE__)
+#endif
+
+
 /**
  * Byte zero the specified object.
  *
@@ -191,32 +219,31 @@ RT_C_DECLS_END
         memcpy((a_pDst), (void const *)a_pvVolatileSrc_BCopy_Volatile, (a_cbToCopy)); \
     } while (0)
 
-
-/** @defgroup grp_rt_str    RTStr - String Manipulation
- * Mostly UTF-8 related helpers where the standard string functions won't do.
- * @ingroup grp_rt
- * @{
- */
-
-RT_C_DECLS_BEGIN
-
-
-/**
- * The maximum string length.
- */
-#define RTSTR_MAX       (~(size_t)0)
-
-
-/** @def RTSTR_TAG
- * The default allocation tag used by the RTStr allocation APIs.
+/** @def RT_BCOPY_UNFORTIFIED
+ * For copying a number of bytes from/to variable length structures.
  *
- * When not defined before the inclusion of iprt/string.h, this will default to
- * the pointer to the current file name.  The string API will make of use of
- * this as pointer to a volatile but read-only string.
+ * This is for working around false positives ("field-spanning writes") in the
+ * linux kernel's fortified memcpy (v5.18+) when copying from/to
+ * RT_FLEXIBLE_ARRAY fields and similar tricks going beyond the strict
+ * definition of a target or source structure.
+ *
+ * @param   a_pDst          Pointer to the destination buffer.
+ * @param   a_pSrc          Pointer to the source buffer.
+ * @param   a_cbToCopy      Number of bytes to copy.
+ * @see @bugref{10209}, @ticketref{21410}
  */
-#if !defined(RTSTR_TAG) || defined(DOXYGEN_RUNNING)
-# define RTSTR_TAG      (__FILE__)
-#endif
+#if defined(RT_OS_LINUX) && defined(__KERNEL__)
+# if (RTLNX_VER_MIN(5,18,0) || RTLNX_RHEL_RANGE(9,3, 9,99)) \
+  && !defined(__NO_FORTIFY) \
+  && defined(__OPTIMIZE__) \
+  && defined(CONFIG_FORTIFY_SOURCE)
+#  define RT_BCOPY_UNFORTIFIED(a_pDst, a_pSrc, a_cbToCopy)  __underlying_memcpy((a_pDst), (a_pSrc), (a_cbToCopy))
+# else
+#  define RT_BCOPY_UNFORTIFIED(a_pDst, a_pSrc, a_cbToCopy)  memcpy((a_pDst), (a_pSrc), (a_cbToCopy))
+# endif
+#else  /* !RT_OS_LINUX && !__KERNEL__ */
+# define RT_BCOPY_UNFORTIFIED(a_pDst, a_pSrc, a_cbToCopy)   memcpy((a_pDst), (a_pSrc), (a_cbToCopy))
+#endif /* !RT_OS_LINUX && !__KERNEL__ */
 
 
 #ifdef IN_RING3

@@ -5200,6 +5200,11 @@
         <comment>details (system/secure boot)</comment>
         <translation>啟用</translation>
     </message>
+    <message>
+        <source>Nested VT-x/AMD-V</source>
+        <comment>details (system)</comment>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UIDetailsElement</name>
@@ -5922,7 +5927,7 @@
     </message>
     <message>
         <source>File manager cannot work since the selected guest does not have the guest additions.</source>
-        <translation>檔案管理員無法工作，因為選取的客體沒有客體附加元件。</translation>
+        <translation type="vanished">檔案管理員無法工作，因為選取的客體沒有客體附加元件。</translation>
     </message>
     <message>
         <source>Enter a valid user name and password to initiate the file manager.</source>
@@ -5935,6 +5940,14 @@
     <message>
         <source>Some error has occurred. Please check the log panel.</source>
         <translation>發生一些錯誤。 請檢查日誌面板。</translation>
+    </message>
+    <message>
+        <source>File manager cannot work since no guest additions were detected.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>File manager cannot work. The guest additions need to be updated.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

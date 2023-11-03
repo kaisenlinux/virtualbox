@@ -6855,6 +6855,11 @@
         <comment>details (system/secure boot)</comment>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Nested VT-x/AMD-V</source>
+        <comment>details (system)</comment>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UIDetailsBlock</name>
@@ -8746,7 +8751,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>File manager cannot work since the selected guest does not have the guest additions.</source>
-        <translation>Файловый менеджер не может получить доступ так как выбранная машина не имеет дополнений гостевой ОС.</translation>
+        <translation type="vanished">Файловый менеджер не может получить доступ так как выбранная машина не имеет дополнений гостевой ОС.</translation>
     </message>
     <message>
         <source>Enter a valid user name and password to initiate the file manager.</source>
@@ -8759,6 +8764,14 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>Some error has occurred. Please check the log panel.</source>
         <translation>Произошла ошибка. Для более подробной информации, пожалуйста, обратитесь к панели логов.</translation>
+    </message>
+    <message>
+        <source>File manager cannot work since no guest additions were detected.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>File manager cannot work. The guest additions need to be updated.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

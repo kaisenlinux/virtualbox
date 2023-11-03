@@ -3618,7 +3618,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+124"/>
+        <location line="+128"/>
         <source>The selected path is invalid.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3877,21 +3877,21 @@
 <context>
     <name>UICloudConsoleManager</name>
     <message>
-        <location filename="../src/cloud/consolemanager/UICloudConsoleManager.cpp" line="+1187"/>
+        <location filename="../src/cloud/consolemanager/UICloudConsoleManager.cpp" line="+1191"/>
         <source>Cloud Console Manager</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../src/cloud/consolemanager/UICloudConsoleDetailsWidget.cpp" line="+116"/>
         <location line="+3"/>
-        <location filename="../src/cloud/consolemanager/UICloudConsoleManager.cpp" line="-901"/>
-        <location line="+109"/>
+        <location filename="../src/cloud/consolemanager/UICloudConsoleManager.cpp" line="-905"/>
+        <location line="+111"/>
         <source>Name:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="-2"/>
-        <location filename="../src/cloud/consolemanager/UICloudConsoleManager.cpp" line="-108"/>
+        <location filename="../src/cloud/consolemanager/UICloudConsoleManager.cpp" line="-110"/>
         <source>Path:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3899,7 +3899,7 @@
         <location line="+1"/>
         <location line="+2"/>
         <location filename="../src/cloud/consolemanager/UICloudConsoleManager.cpp" line="+1"/>
-        <location line="+108"/>
+        <location line="+110"/>
         <source>Argument:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3930,7 +3930,7 @@
     </message>
     <message>
         <location line="+6"/>
-        <location filename="../src/cloud/consolemanager/UICloudConsoleManager.cpp" line="+794"/>
+        <location filename="../src/cloud/consolemanager/UICloudConsoleManager.cpp" line="+796"/>
         <source>Reset</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3946,17 +3946,17 @@
         <translation type="unfinished">Uveljavi</translation>
     </message>
     <message>
-        <location filename="../src/cloud/consolemanager/UICloudConsoleManager.cpp" line="-906"/>
+        <location filename="../src/cloud/consolemanager/UICloudConsoleManager.cpp" line="-910"/>
         <source>Add Application</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+109"/>
+        <location line="+111"/>
         <source>Add Profile</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+106"/>
+        <location line="+108"/>
         <source>Application</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4043,7 +4043,7 @@
 <context>
     <name>UICloudProfileManager</name>
     <message>
-        <location filename="../src/cloud/profilemanager/UICloudProfileManager.cpp" line="+352"/>
+        <location filename="../src/cloud/profilemanager/UICloudProfileManager.cpp" line="+354"/>
         <source>Add Profile</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4110,7 +4110,7 @@
         <translation type="unfinished">Uveljavi</translation>
     </message>
     <message>
-        <location filename="../src/cloud/profilemanager/UICloudProfileManager.cpp" line="-752"/>
+        <location filename="../src/cloud/profilemanager/UICloudProfileManager.cpp" line="-754"/>
         <source>Source</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4125,7 +4125,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+751"/>
+        <location line="+753"/>
         <source>Close</source>
         <translation type="unfinished">Zapri</translation>
     </message>
@@ -4207,7 +4207,7 @@
         <translation type="unfinished">MB</translation>
     </message>
     <message>
-        <location filename="../src/runtime/UIIndicatorsPool.cpp" line="+774"/>
+        <location filename="../src/runtime/UIIndicatorsPool.cpp" line="+777"/>
         <source>&lt;nobr&gt;%1 MB&lt;/nobr&gt;</source>
         <comment>details report</comment>
         <translation type="unfinished">&lt;nobr&gt;%1 MB&lt;/nobr&gt;</translation>
@@ -6420,7 +6420,7 @@
         <translation type="obsolete">Uporabniško določeno</translation>
     </message>
     <message>
-        <location filename="../src/globals/UIDetailsGenerator.cpp" line="+559"/>
+        <location filename="../src/globals/UIDetailsGenerator.cpp" line="+562"/>
         <location filename="../src/medium/UIMedium.cpp" line="+557"/>
         <source>Inaccessible</source>
         <comment>medium</comment>
@@ -6546,7 +6546,7 @@
 <context>
     <name>UICustomFileSystemModel</name>
     <message>
-        <location filename="../src/guestctrl/UIFileManagerTable.cpp" line="+1129"/>
+        <location filename="../src/guestctrl/UIFileManagerTable.cpp" line="+1169"/>
         <source>New Directory</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6611,7 +6611,7 @@
     <name>UIDetails</name>
     <message>
         <location filename="../src/snapshots/UISnapshotDetailsWidget.cpp" line="+1279"/>
-        <location filename="../src/globals/UIDetailsGenerator.cpp" line="-464"/>
+        <location filename="../src/globals/UIDetailsGenerator.cpp" line="-467"/>
         <source>Name</source>
         <comment>details (general)</comment>
         <translation type="unfinished">Ime</translation>
@@ -6641,7 +6641,7 @@
         <location filename="../src/globals/UIDetailsGenerator.cpp" line="-60"/>
         <location line="+77"/>
         <location line="+89"/>
-        <location line="+147"/>
+        <location line="+150"/>
         <location line="+123"/>
         <location line="+95"/>
         <location line="+79"/>
@@ -6656,7 +6656,7 @@
     </message>
     <message>
         <location filename="../src/snapshots/UISnapshotDetailsWidget.cpp" line="+12"/>
-        <location filename="../src/globals/UIDetailsGenerator.cpp" line="-894"/>
+        <location filename="../src/globals/UIDetailsGenerator.cpp" line="-897"/>
         <source>Base Memory</source>
         <comment>details (system)</comment>
         <translation type="unfinished">Osnovni pomnilnik</translation>
@@ -6715,14 +6715,14 @@
     </message>
     <message>
         <location line="+61"/>
-        <location filename="../src/globals/UIDetailsGenerator.cpp" line="+121"/>
+        <location filename="../src/globals/UIDetailsGenerator.cpp" line="+124"/>
         <source>Graphics Controller</source>
         <comment>details (display)</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+304"/>
-        <location filename="../src/globals/UIDetailsGenerator.cpp" line="-120"/>
+        <location filename="../src/globals/UIDetailsGenerator.cpp" line="-123"/>
         <source>Enabled</source>
         <comment>details (system/EFI)</comment>
         <translation type="unfinished">Omogočeno</translation>
@@ -6749,7 +6749,7 @@
     </message>
     <message>
         <location line="+5"/>
-        <location filename="../src/globals/UIDetailsGenerator.cpp" line="+4"/>
+        <location filename="../src/globals/UIDetailsGenerator.cpp" line="+7"/>
         <source>PAE/NX</source>
         <comment>details (system)</comment>
         <translation type="unfinished">PAE/NX</translation>
@@ -7120,7 +7120,7 @@
         <translation type="unfinished">Onemogočeno</translation>
     </message>
     <message>
-        <location filename="../src/globals/UIDetailsGenerator.cpp" line="-868"/>
+        <location filename="../src/globals/UIDetailsGenerator.cpp" line="-871"/>
         <source>Enabled</source>
         <comment>details (cloud value)</comment>
         <translation type="unfinished">Omogočeno</translation>
@@ -7133,12 +7133,12 @@
     </message>
     <message>
         <location line="+59"/>
-        <location line="+149"/>
+        <location line="+152"/>
         <source>%1 MB</source>
         <translation type="unfinished">%1 MB</translation>
     </message>
     <message>
-        <location line="-100"/>
+        <location line="-103"/>
         <source>TPM Type</source>
         <comment>details (system)</comment>
         <translation type="unfinished"></translation>
@@ -7156,7 +7156,13 @@
         <translation type="unfinished">Omogočeno</translation>
     </message>
     <message>
-        <location line="+430"/>
+        <location line="+17"/>
+        <source>Nested VT-x/AMD-V</source>
+        <comment>details (system)</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+416"/>
         <source>Host-only Network, &apos;%1&apos;</source>
         <comment>details (network)</comment>
         <translation type="unfinished"></translation>
@@ -7948,7 +7954,7 @@
 <context>
     <name>UIFDCreationDialog</name>
     <message>
-        <location filename="../src/medium/UIFDCreationDialog.cpp" line="+141"/>
+        <location filename="../src/medium/UIFDCreationDialog.cpp" line="+142"/>
         <location line="+2"/>
         <source>Floppy Disk Creator</source>
         <translation type="unfinished"></translation>
@@ -8276,7 +8282,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+243"/>
+        <location line="+244"/>
         <source>Guest File System:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -8297,7 +8303,12 @@
     </message>
     <message>
         <location line="+4"/>
-        <source>File manager cannot work since the selected guest does not have the guest additions.</source>
+        <source>File manager cannot work since no guest additions were detected.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location line="+4"/>
+        <source>File manager cannot work. The guest additions need to be updated.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -10161,7 +10172,7 @@
 <context>
     <name>UIHelpBrowserWidget</name>
     <message>
-        <location filename="../src/helpbrowser/UIHelpBrowserDialog.cpp" line="+85"/>
+        <location filename="../src/helpbrowser/UIHelpBrowserDialog.cpp" line="+89"/>
         <source>Oracle VM VirtualBox User Manual</source>
         <translation type="unfinished"></translation>
     </message>
@@ -12823,7 +12834,7 @@
 <context>
     <name>UIMachineSettingsPortForwardingDlg</name>
     <message>
-        <location filename="../src/settings/machine/UIMachineSettingsPortForwardingDlg.cpp" line="+109"/>
+        <location filename="../src/settings/machine/UIMachineSettingsPortForwardingDlg.cpp" line="+111"/>
         <source>Port Forwarding Rules</source>
         <translation>Pravila posredovanja vrat</translation>
     </message>
@@ -19134,7 +19145,7 @@
 <context>
     <name>UIPortForwardingTable</name>
     <message>
-        <location filename="../src/widgets/UIPortForwardingTable.cpp" line="+648"/>
+        <location filename="../src/widgets/UIPortForwardingTable.cpp" line="+654"/>
         <source>Name</source>
         <translation>Ime</translation>
     </message>
@@ -19564,7 +19575,7 @@
 <context>
     <name>UISessionStateStatusBarIndicator</name>
     <message>
-        <location filename="../src/runtime/UIIndicatorsPool.cpp" line="-1138"/>
+        <location filename="../src/runtime/UIIndicatorsPool.cpp" line="-1141"/>
         <source>%1 status-bar indicator</source>
         <comment>like &apos;hard-disk status-bar indicator&apos;</comment>
         <translation>Kazalnik vrstice stanja za %1</translation>
@@ -19596,7 +19607,7 @@
 <context>
     <name>UISettingsDialogGlobal</name>
     <message>
-        <location filename="../src/settings/UISettingsDialogSpecific.cpp" line="+95"/>
+        <location filename="../src/settings/UISettingsDialogSpecific.cpp" line="+96"/>
         <source>General</source>
         <translation>Splošno</translation>
     </message>
@@ -20083,7 +20094,7 @@
 <context>
     <name>UISnapshotItem</name>
     <message>
-        <location filename="../src/snapshots/UISnapshotPane.cpp" line="+334"/>
+        <location filename="../src/snapshots/UISnapshotPane.cpp" line="+361"/>
         <source>Current State (changed)</source>
         <comment>Current State (Modified)</comment>
         <translation type="unfinished">Trenutno stanje (spremenjeno)</translation>
@@ -20202,7 +20213,7 @@
         <translation type="vanished">Zajeto %1</translation>
     </message>
     <message>
-        <location line="+103"/>
+        <location line="+135"/>
         <source>Contains the snapshot tree of the current virtual machine</source>
         <translation>Vsebuje drevo posnetkov stanja trenutnega navideznega računalnika</translation>
     </message>
@@ -20279,7 +20290,7 @@
         <translation>Zajeto</translation>
     </message>
     <message>
-        <location line="+994"/>
+        <location line="+1004"/>
         <source>Snapshot %1</source>
         <translation>Posnetek stanja %1</translation>
     </message>
@@ -20635,7 +20646,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="+479"/>
+        <location line="+483"/>
         <source>Layout</source>
         <translation type="unfinished"></translation>
     </message>
@@ -22356,7 +22367,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/activity/vmactivity/UIVMActivityMonitor.cpp" line="+346"/>
+        <location filename="../src/activity/vmactivity/UIVMActivityMonitor.cpp" line="+347"/>
         <source>Reset</source>
         <translation type="unfinished"></translation>
     </message>
@@ -23050,7 +23061,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/manager/UIVirtualBoxManagerWidget.cpp" line="+301"/>
+        <location filename="../src/manager/UIVirtualBoxManagerWidget.cpp" line="+302"/>
         <source>Show Toolbar Text</source>
         <translation type="unfinished">Prikaži besedilo orodnih vrstic</translation>
     </message>
@@ -24844,7 +24855,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../src/wizards/newvm/UIWizardNewVMNameOSTypePage.cpp" line="+493"/>
+        <location filename="../src/wizards/newvm/UIWizardNewVMNameOSTypePage.cpp" line="+497"/>
         <source>Virtual machine Name and Operating System</source>
         <translation type="unfinished"></translation>
     </message>
@@ -27011,7 +27022,7 @@
 <context>
     <name>VBoxLicenseViewer</name>
     <message>
-        <location filename="../src/VBoxLicenseViewer.cpp" line="+161"/>
+        <location filename="../src/VBoxLicenseViewer.cpp" line="+162"/>
         <source>VirtualBox License</source>
         <translation>Dovoljenje za VirtualBox</translation>
     </message>

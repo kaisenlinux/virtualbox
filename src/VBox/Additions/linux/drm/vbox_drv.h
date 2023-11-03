@@ -157,7 +157,7 @@
 # include <drm/drm_device.h>
 # include <drm/drm_ioctl.h>
 # include <drm/drm_fourcc.h>
-# if RTLNX_VER_MAX(5,15,0) && !RTLNX_RHEL_RANGE(8,7, 8,99) && !RTLNX_RHEL_MAJ_PREREQ(9,1)
+# if RTLNX_VER_MAX(5,15,0) && !RTLNX_RHEL_RANGE(8,7, 8,99) && !RTLNX_RHEL_MAJ_PREREQ(9,1) && !RTLNX_SUSE_MAJ_PREREQ(15,5)
 #  include <drm/drm_irq.h>
 # endif
 # include <drm/drm_vblank.h>
@@ -172,7 +172,7 @@
 # include <drm/drm_gem.h>
 #endif
 
-#if RTLNX_VER_MIN(6,3,0)
+#if RTLNX_VER_MIN(6,3,0) || RTLNX_RHEL_RANGE(8,9, 8,99) || RTLNX_RHEL_MAJ_PREREQ(9,3)
 # include <drm/ttm/ttm_bo.h>
 #else
 # include <drm/ttm/ttm_bo_api.h>
@@ -189,7 +189,7 @@
 # include <drm/ttm/ttm_resource.h>
 #endif
 
-#if RTLNX_VER_MIN(6,0,0) || RTLNX_RHEL_RANGE(8,8, 8,99) || RTLNX_RHEL_MAJ_PREREQ(9,2)
+#if RTLNX_VER_MIN(6,0,0) || RTLNX_RHEL_RANGE(8,8, 8,99) || RTLNX_RHEL_MAJ_PREREQ(9,2) || RTLNX_SUSE_MAJ_PREREQ(15,5)
 # include <drm/drm_framebuffer.h>
 #endif
 
@@ -249,7 +249,7 @@ static inline void drm_gem_object_put(struct drm_gem_object *obj)
 /** Field "num_pages" of struct ttm_resource was renamed to "size" in 6.2 and
  * now represents number of bytes. This macro handles this change. Input
  * argument is a pointer to struct ttm_resource. */
-#if RTLNX_VER_MIN(6,2,0)
+#if RTLNX_VER_MIN(6,2,0) || RTLNX_RHEL_RANGE(8,9, 8,99) || RTLNX_RHEL_MAJ_PREREQ(9,3)
 # define VBOX_BO_RESOURCE_NUM_PAGES(_resource) PFN_UP(_resource->size)
 #else
 # define VBOX_BO_RESOURCE_NUM_PAGES(_resource) _resource->num_pages
@@ -529,14 +529,16 @@ struct drm_gem_object *vbox_gem_prime_import_sg_table(
 #endif
 void *vbox_gem_prime_vmap(struct drm_gem_object *obj);
 void vbox_gem_prime_vunmap(struct drm_gem_object *obj, void *vaddr);
+#if RTLNX_VER_MAX(6,6,0)
 int vbox_gem_prime_mmap(struct drm_gem_object *obj,
 			struct vm_area_struct *area);
+#endif
 
 /* vbox_irq.c */
 int vbox_irq_init(struct vbox_private *vbox);
 void vbox_irq_fini(struct vbox_private *vbox);
 void vbox_report_hotplug(struct vbox_private *vbox);
-#if RTLNX_VER_MAX(5,15,0) && !RTLNX_RHEL_MAJ_PREREQ(9,1)
+#if RTLNX_VER_MAX(5,15,0) && !RTLNX_RHEL_MAJ_PREREQ(9,1) && !RTLNX_SUSE_MAJ_PREREQ(15,5)
 irqreturn_t vbox_irq_handler(int irq, void *arg);
 #endif
 

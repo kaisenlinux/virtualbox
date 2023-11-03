@@ -320,7 +320,7 @@
     <name>QIRichTextLabel</name>
     <message>
         <source>&amp;Copy</source>
-        <translation type="unfinished">&amp;Copia</translation>
+        <translation>&amp;Copia</translation>
     </message>
 </context>
 <context>
@@ -7057,6 +7057,11 @@
         <comment>details (system/secure boot)</comment>
         <translation>Abilitato</translation>
     </message>
+    <message>
+        <source>Nested VT-x/AMD-V</source>
+        <comment>details (system)</comment>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UIDetailsBlock</name>
@@ -8842,7 +8847,7 @@ una sessione del guest</translation>
     </message>
     <message>
         <source>File manager cannot work since the selected guest does not have the guest additions.</source>
-        <translation>Il gestore dei file non può funzionare poiché il guest selezionato non ha le Guest Additions.</translation>
+        <translation type="vanished">Il gestore dei file non può funzionare poiché il guest selezionato non ha le Guest Additions.</translation>
     </message>
     <message>
         <source>Enter a valid user name and password to initiate the file manager.</source>
@@ -8863,6 +8868,14 @@ una sessione del guest</translation>
     <message>
         <source>Host</source>
         <translation>Host</translation>
+    </message>
+    <message>
+        <source>File manager cannot work since no guest additions were detected.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>File manager cannot work. The guest additions need to be updated.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -15648,7 +15661,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>In Host Pipe mode: Holds the path to the serial port&apos;s pipe on the host. Examples: &quot;\\.\pipe\myvbox&quot; or &quot;/tmp/myvbox&quot;, for Windows and UNIX-like systems respectively. In Host Device mode: Holds the host serial device name. Examples: &quot;COM1&quot; or &quot;/dev/ttyS0&quot;. In Raw File mode: Holds the file-path on the host system, where the serial output will be dumped. In TCP mode: Holds the TCP &quot;port&quot; when in server mode, or &quot;hostname:port&quot; when in client mode.</source>
-        <translation>In modalità Pipe host: mantiene il percorso della pipe della porta seriale sull&apos;host. Esempi: &quot;\\.\pipe\myvbox&quot; o &quot;/tmp/myvbox&quot;, rispettivamente per sistemi simili a Windows e UNIX. In modalità Fispositivo host: contiene il nome del dispositivo seriale dell&apos;host. Esempi: &quot;COM1&quot; o &quot;/dev/ttyS0&quot;. In modalità File non elaborato: contiene il percorso del file sul sistema host, in cui verrà eseguito il dump dell&apos;output seriale. In modalità TCP: contiene la &quot;porta&quot; TCP in modalità server o &quot;nome host:porta&quot; in modalità client.</translation>
+        <translation>In modalità Pipe host: mantiene il percorso della pipe della porta seriale sull&apos;host. Esempi: &quot;\\.\pipe\myvbox&quot; o &quot;/tmp/myvbox&quot;, rispettivamente per sistemi simili a Windows e UNIX. In modalità Dispositivo host: contiene il nome del dispositivo seriale dell&apos;host. Esempi: &quot;COM1&quot; o &quot;/dev/ttyS0&quot;. In modalità File non elaborato: contiene il percorso del file sul sistema host, in cui verrà eseguito il dump dell&apos;output seriale. In modalità TCP: contiene la &quot;porta&quot; TCP in modalità server o &quot;nome host:porta&quot; in modalità client.</translation>
     </message>
 </context>
 <context>
@@ -29134,7 +29147,7 @@ La cartelle Home possono essere modificate singolarmente (per macchina virtuale)
     </message>
     <message>
         <source>You can modify virtual machine&apos;s hardware by changing amount of RAM and virtual CPU count. Enabling EFI is also possible.</source>
-        <translation>È possibile modificare l&apos;hardware della macchina virtuale modificando la quantità di RAM e il numro di CPU virtuali. È anche possibile abilitare EFI.</translation>
+        <translation>È possibile modificare l&apos;hardware della macchina virtuale modificando la quantità di RAM e il numero di CPU virtuali. È anche possibile abilitare EFI.</translation>
     </message>
     <message>
         <source>Virtual Hard disk</source>
@@ -29210,7 +29223,7 @@ La cartelle Home possono essere modificate singolarmente (per macchina virtuale)
     </message>
     <message>
         <source>Invalid username and/or password</source>
-        <translation>Username e/o password non validi</translation>
+        <translation>Nome utente e/o password non validi</translation>
     </message>
     <message>
         <source>Invalid hostname or domain name</source>

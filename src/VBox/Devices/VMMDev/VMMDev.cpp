@@ -231,6 +231,7 @@ static void vmmdevLogGuestOsInfo(VBoxGuestInfo *pGuestInfo)
         case VBOXOSTYPE_Debian9:                          pszOs = "Debian 9";       break;
         case VBOXOSTYPE_Debian10:                         pszOs = "Debian 10";      break;
         case VBOXOSTYPE_Debian11:                         pszOs = "Debian 11";      break;
+        case VBOXOSTYPE_Debian12:                         pszOs = "Debian 12";      break;
         case VBOXOSTYPE_OpenSUSE:                         pszOs = "openSUSE";       break;
         case VBOXOSTYPE_OpenSUSE_Leap_x64 & ~VBOXOSTYPE_x64: pszOs = "openSUSE Leap";      break;
         case VBOXOSTYPE_OpenSUSE_Tumbleweed:              pszOs = "openSUSE Tumbleweed";   break;
@@ -241,13 +242,14 @@ static void vmmdevLogGuestOsInfo(VBoxGuestInfo *pGuestInfo)
         case VBOXOSTYPE_OpenMandriva_Lx:                  pszOs = "OpenMandriva Lx"; break;
         case VBOXOSTYPE_PCLinuxOS:                        pszOs = "PCLinuxOS";      break;
         case VBOXOSTYPE_Mageia:                           pszOs = "Mageia";         break;
-        case VBOXOSTYPE_RedHat:                           pszOs = "RedHat";         break;
-        case VBOXOSTYPE_RedHat3:                          pszOs = "RedHat 3";       break;
-        case VBOXOSTYPE_RedHat4:                          pszOs = "RedHat 4";       break;
-        case VBOXOSTYPE_RedHat5:                          pszOs = "RedHat 5";       break;
-        case VBOXOSTYPE_RedHat6:                          pszOs = "RedHat 6";       break;
-        case VBOXOSTYPE_RedHat7_x64 & ~VBOXOSTYPE_x64:    pszOs = "RedHat 7";       break;
-        case VBOXOSTYPE_RedHat8_x64 & ~VBOXOSTYPE_x64:    pszOs = "RedHat 8";       break;
+        case VBOXOSTYPE_RedHat:                           pszOs = "Red Hat";        break;
+        case VBOXOSTYPE_RedHat3:                          pszOs = "Red Hat 3";      break;
+        case VBOXOSTYPE_RedHat4:                          pszOs = "Red Hat 4";      break;
+        case VBOXOSTYPE_RedHat5:                          pszOs = "Red Hat 5";      break;
+        case VBOXOSTYPE_RedHat6:                          pszOs = "Red Hat 6";      break;
+        case VBOXOSTYPE_RedHat7_x64 & ~VBOXOSTYPE_x64:    pszOs = "Red Hat 7";      break;
+        case VBOXOSTYPE_RedHat8_x64 & ~VBOXOSTYPE_x64:    pszOs = "Red Hat 8";      break;
+        case VBOXOSTYPE_RedHat9_x64 & ~VBOXOSTYPE_x64:    pszOs = "Red Hat 9";      break;
         case VBOXOSTYPE_Turbolinux:                       pszOs = "TurboLinux";     break;
         case VBOXOSTYPE_Ubuntu:                           pszOs = "Ubuntu";         break;
         case VBOXOSTYPE_Ubuntu10_LTS:                     pszOs = "Ubuntu 10.04 LTS"; break;
@@ -270,6 +272,7 @@ static void vmmdevLogGuestOsInfo(VBoxGuestInfo *pGuestInfo)
         case VBOXOSTYPE_Ubuntu21_x64 & ~VBOXOSTYPE_x64:   pszOs = "Ubuntu 21.x";    break;
         case VBOXOSTYPE_Ubuntu22_LTS_x64 & ~VBOXOSTYPE_x64: pszOs = "Ubuntu 22.04 LTS"; break;
         case VBOXOSTYPE_Ubuntu22_x64 & ~VBOXOSTYPE_x64:   pszOs = "Ubuntu 22.10";   break;
+        case VBOXOSTYPE_Ubuntu23_x64 & ~VBOXOSTYPE_x64:   pszOs = "Ubuntu 23.04";   break;
         case VBOXOSTYPE_Lubuntu:                          pszOs = "Lubuntu";        break;
         case VBOXOSTYPE_Xubuntu:                          pszOs = "Xubuntu";        break;
         case VBOXOSTYPE_Xandros:                          pszOs = "Xandros";        break;
@@ -279,6 +282,7 @@ static void vmmdevLogGuestOsInfo(VBoxGuestInfo *pGuestInfo)
         case VBOXOSTYPE_Oracle6:                          pszOs = "Oracle Linux 6"; break;
         case VBOXOSTYPE_Oracle7_x64 & ~VBOXOSTYPE_x64:    pszOs = "Oracle Linux 7"; break;
         case VBOXOSTYPE_Oracle8_x64 & ~VBOXOSTYPE_x64:    pszOs = "Oracle Linux 8"; break;
+        case VBOXOSTYPE_Oracle9_x64 & ~VBOXOSTYPE_x64:    pszOs = "Oracle Linux 9"; break;
         case VBOXOSTYPE_FreeBSD:                          pszOs = "FreeBSD";        break;
         case VBOXOSTYPE_OpenBSD:                          pszOs = "OpenBSD";        break;
         case VBOXOSTYPE_NetBSD:                           pszOs = "NetBSD";         break;

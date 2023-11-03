@@ -73,6 +73,128 @@ Rules for adding a changelog entry to make them look more uniform:
                            So, we use chapter and xpointer="xpointer(/chapter/)" with xi:include. -->
   <sect1>
 
+    <title>Version 7.0.12 (2023-10-17)</title>
+
+    <para>This is a maintenance release. The following items were fixed and/or
+      added:</para>
+
+    <itemizedlist>
+
+      <listitem>
+        <para>VMM: Fixed using a debugger inside the guest under certain
+          circumstances (bugs #21413 and #21546)</para>
+      </listitem>
+
+      <listitem>
+       <para>VMM: Fixed detection of VT-x being used by other hypervisors (bug #21867)</para>
+      </listitem>
+
+      <listitem>
+        <para>VMM: Introduced additional improvements in Split Lock Detection feature of
+          recent Intel CPUs on Linux hosts (bug #20180)</para>
+      </listitem>
+
+      <listitem>
+        <para>GUI: Fixed issue when the nested hardware virtualization setting
+          was not displayed in the VM details panel (bug #21707)</para>
+      </listitem>
+
+      <listitem>
+        <para>GUI: Introduced NLS update for Croatian, Indonesian, Italian,
+          Japanese, Korean, Dutch and Turkish languages as well as added
+          general look-and-feel improvements</para>
+      </listitem>
+
+      <listitem>
+        <para>Devices: Fixed black screen in Windows guests with multiple guest
+          screens when 3D is disabled (7.0.10 regression)</para>
+      </listitem>
+
+      <listitem>
+        <para>Devices: Fixed PCI device identifiers for the VirtIO network interface
+          (bug #21516)</para>
+      </listitem>
+
+      <listitem>
+        <para>Devices: Fixed VLAN support for the VirtIO network interface
+          (bug #21778)</para>
+      </listitem>
+
+      <listitem>
+        <para>Devices: Fixed loading saved states when a TPM is configured
+          (7.0.10 regression, bug #21773)</para>
+      </listitem>
+
+      <listitem>
+        <para>Networking: Fixed memory leaks in the VBoxIntNetSwitch process
+          on macOS (bug #21752)</para>
+      </listitem>
+
+      <listitem>
+        <para>Networking: Fixed TCP connections with IP addresses ending on .2
+          when the NAT network attachment is used (bug #21513)</para>
+      </listitem>
+
+      <listitem>
+        <para>Audio: Fixed switching host audio devices on Windows hosts
+          using the WAS backend (bugs #20431, #21517, #20630 and #20723)</para>
+      </listitem>
+
+      <listitem>
+        <para>VRDP: Added general improvements</para>
+      </listitem>
+
+      <listitem>
+        <para>VBoxManage: Added improvements for "list usbfilters" command</para>
+      </listitem>
+
+      <listitem>
+        <para>Unattended: Added kick start file support for Oracle Linux 8 and Oracle Linux 9.</para>
+      </listitem>
+
+      <listitem>
+        <para>Main: Added more Linux OS subtypes</para>
+      </listitem>
+
+      <listitem>
+        <para>Host Services: Fixed Guest Properties service crash under rare
+          circumstance</para>
+      </listitem>
+
+      <listitem>
+        <para>Linux Host and Guest: Fixed few "field-spanning write" kernel
+          warnings (bugs #21410 and #21862)</para>
+      </listitem>
+
+      <listitem>
+        <para>Linux Guest Additions: Added more fixes for RHEL 8.9 and 9.3 kernel</para>
+      </listitem>
+
+      <listitem>
+        <para>Linux Guest Additions: Added more fixes for kernel 6.4</para>
+      </listitem>
+
+      <listitem>
+        <para>Linux Guest Additions: Added initial support for OpenSUSE 15.5 kernel</para>
+      </listitem>
+
+      <listitem>
+        <para>Linux Guest Additions: Added initial support for kernels 6.5 and 6.6</para>
+      </listitem>
+
+      <listitem>
+        <para>Linux Guest Additions: Added version reporting for "rcvboxadd status-kernel"
+          and "rcvboxadd status-user" commands</para>
+      </listitem>
+
+      <listitem>
+        <para>BIOS: Restored support for ISA SCSI HBAs in the BIOS (bug #21736)</para>
+      </listitem>
+    </itemizedlist>
+  </sect1>
+
+  <sect1>
+
     <title>Version 7.0.10 (2023-07-18)</title>
 
     <para>This is a maintenance release. The following items were fixed and/or
@@ -115,9 +237,9 @@ Rules for adding a changelog entry to make them look more uniform:
       </listitem>
 
       <listitem>
-        <para>Guest Control/VBoxManage: Fixed behavior of how handling argument 0 for a started guest process
-          works: One can now explicitly specify it with the newly added option "--arg0". This will effectively
-          restore the behavior of former VirtualBox versions</para>
+        <para>Guest Control/VBoxManage: One can now explicitly specify an executable
+          argument 0 via "--arg0" with the "run" and "start" commands. See VBoxManage
+          help for examples</para>
       </listitem>
 
       <listitem>

@@ -301,7 +301,7 @@
     <name>QIRichTextLabel</name>
     <message>
         <source>&amp;Copy</source>
-        <translation type="unfinished">&amp;Salin</translation>
+        <translation>&amp;Salin</translation>
     </message>
 </context>
 <context>
@@ -3088,23 +3088,23 @@
     </message>
     <message>
         <source>&amp;Stop</source>
-        <translation type="unfinished"></translation>
+        <translation>&amp;Hentikan</translation>
     </message>
     <message>
         <source>&amp;Upgrade Guest Additions...</source>
-        <translation type="unfinished"></translation>
+        <translation>Perbar&amp;ui Guest Additions...</translation>
     </message>
     <message>
         <source>Upgrade Guest Additions</source>
-        <translation type="unfinished"></translation>
+        <translation>Tingkatkan Guest Additions</translation>
     </message>
     <message>
         <source>Virtual Screen %1</source>
-        <translation type="unfinished">Layar Virtual %1</translation>
+        <translation>Layar Virtual %1</translation>
     </message>
     <message>
         <source>Use Host Screen %1</source>
-        <translation type="unfinished">Gunakan Layar Host %1</translation>
+        <translation>Gunakan Layar Host %1</translation>
     </message>
 </context>
 <context>
@@ -3617,11 +3617,11 @@
     </message>
     <message>
         <source>Moves selected boot item up.</source>
-        <translation>Naikkan butir boot yang dipilih.</translation>
+        <translation>Menaikkan butir boot yang dipilih.</translation>
     </message>
     <message>
         <source>Moves selected boot item down.</source>
-        <translation>Turunkan butir boot yang dipilih.</translation>
+        <translation>Menurunkan butir boot yang dipilih.</translation>
     </message>
 </context>
 <context>
@@ -6578,6 +6578,11 @@
         <comment>details (system/secure boot)</comment>
         <translation>Difungsikan</translation>
     </message>
+    <message>
+        <source>Nested VT-x/AMD-V</source>
+        <comment>details (system)</comment>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UIDetailsBlock</name>
@@ -8063,7 +8068,7 @@
     </message>
     <message>
         <source>File manager cannot work since the selected guest does not have the guest additions.</source>
-        <translation>Manajer berkas tidak dapat bekerja karena guest yang dipilih tidak memiliki guest addition.</translation>
+        <translation type="vanished">Manajer berkas tidak dapat bekerja karena guest yang dipilih tidak memiliki guest addition.</translation>
     </message>
     <message>
         <source>Enter a valid user name and password to initiate the file manager.</source>
@@ -8096,6 +8101,14 @@
     <message>
         <source>Permissions</source>
         <translation>Izin</translation>
+    </message>
+    <message>
+        <source>File manager cannot work since no guest additions were detected.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>File manager cannot work. The guest additions need to be updated.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -8339,19 +8352,19 @@
     <name>UIFontScaleEditor</name>
     <message>
         <source>F&amp;ont Scaling:</source>
-        <translation type="unfinished"></translation>
+        <translation>Penskalaan F&amp;onta:</translation>
     </message>
     <message>
         <source>Holds the scaling factor for the font size.</source>
-        <translation type="unfinished"></translation>
+        <translation>Menyimpan faktor skala bagi ukuran fonta.</translation>
     </message>
     <message>
         <source>Minimum possible scale factor.</source>
-        <translation type="unfinished">Faktor skala minimum yang mungkin.</translation>
+        <translation>Faktor skala minimum yang mungkin.</translation>
     </message>
     <message>
         <source>Maximum possible scale factor.</source>
-        <translation type="unfinished">Faktor skala maksimum yang mungkin.</translation>
+        <translation>Faktor skala maksimum yang mungkin.</translation>
     </message>
 </context>
 <context>
@@ -16736,7 +16749,7 @@
     </message>
     <message>
         <source>&lt;p&gt;A new version of VirtualBox has been released! Version &lt;b&gt;%1&lt;/b&gt; is available at &lt;a href=&quot;https://www.virtualbox.org/&quot;&gt;virtualbox.org&lt;/a&gt;.&lt;/p&gt;&lt;p&gt;You can download this version using the link:&lt;/p&gt;&lt;p&gt;&lt;a href=%2&gt;%3&lt;/a&gt;&lt;/p&gt;</source>
-        <translation>&lt;p&gt;Sebuah versi baru VirtualBox telah dirlis! Versi &lt;b&gt;%1&lt;/b&gt; tersedia di &lt;a href=&quot;https://www.virtualbox.org/&quot;&gt;virtualbox.org&lt;/a&gt;.&lt;/p&gt;&lt;p&gt;Anda dapat mendownload versi ini memakai taut:&lt;/p&gt;&lt;p&gt;&lt;a href=%2&gt;%3&lt;/a&gt;&lt;/p&gt;</translation>
+        <translation>&lt;p&gt;Sebuah versi baru VirtualBox telah dirilis! Versi &lt;b&gt;%1&lt;/b&gt; tersedia di &lt;a href=&quot;https://www.virtualbox.org/&quot;&gt;virtualbox.org&lt;/a&gt;.&lt;/p&gt;&lt;p&gt;Anda dapat mendownload versi ini memakai taut:&lt;/p&gt;&lt;p&gt;&lt;a href=%2&gt;%3&lt;/a&gt;&lt;/p&gt;</translation>
     </message>
     <message>
         <source>&lt;p&gt;Are you sure you want to release the %1 &lt;nobr&gt;&lt;b&gt;%2&lt;/b&gt;&lt;/nobr&gt;?&lt;/p&gt;&lt;p&gt;This will detach it from the following virtual machine(s): &lt;b&gt;%3&lt;/b&gt;.&lt;/p&gt;</source>
@@ -19610,11 +19623,11 @@
     </message>
     <message>
         <source>Configure Adapter &amp;Automatically</source>
-        <translation>Konfigurasi Adaptor Secara Otom&amp;atis</translation>
+        <translation>Konfigurasikan Adaptor Secara Otom&amp;atis</translation>
     </message>
     <message>
         <source>Configure Adapter &amp;Manually</source>
-        <translation>Konfigurasi Adaptor Secara &amp;Manual</translation>
+        <translation>Konfigurasikan Adaptor Secara &amp;Manual</translation>
     </message>
     <message>
         <source>&amp;IPv4 Address:</source>
@@ -20783,7 +20796,7 @@ langkah ini dan memasang hard disk pada waktu lain menggunakan dialog Setting Me
     <name>UINotificationCenter</name>
     <message>
         <source>Open notification center</source>
-        <translation>Buka pusat pemberitahuan</translation>
+        <translation>Membuka pusat pemberitahuan</translation>
     </message>
     <message>
         <source>Toggle ascending/descending order</source>
@@ -22527,7 +22540,7 @@ langkah ini dan memasang hard disk pada waktu lain menggunakan dialog Setting Me
     </message>
     <message>
         <source>Use Host I/O Cache</source>
-        <translation>Gunakan Cache I/O host</translation>
+        <translation>Gunakan Cache I/O Host</translation>
     </message>
     <message>
         <source>Selects the slot on the storage controller used by this attachment. The available slots depend on the type of the controller and other attachments on it.</source>
@@ -24437,7 +24450,7 @@ langkah ini dan memasang hard disk pada waktu lain menggunakan dialog Setting Me
     <name>UIVRDESettingsEditor</name>
     <message>
         <source>&amp;Enable Server</source>
-        <translation>Aktifkan S&amp;erver</translation>
+        <translation>Fungsikan S&amp;erver</translation>
     </message>
     <message>
         <source>When checked, the VM will act as a Remote Desktop Protocol (RDP) server, allowing remote clients to connect and operate the VM (when it is running) using a standard RDP client.</source>
@@ -24916,7 +24929,7 @@ langkah ini dan memasang hard disk pada waktu lain menggunakan dialog Setting Me
     </message>
     <message>
         <source>Source to add from</source>
-        <translation>Sumber untuk ditambahkan</translation>
+        <translation>Asal sumber yang akan ditambahkan</translation>
     </message>
     <message>
         <source>Please choose the source to add cloud virtual machine from.  This can be one of known cloud service providers below.</source>
@@ -25201,7 +25214,7 @@ langkah ini dan memasang hard disk pada waktu lain menggunakan dialog Setting Me
     </message>
     <message>
         <source>Hard Disk File &amp;Type and Variant</source>
-        <translation>&amp;Tipe dan Varian Berkas Hard Disk</translation>
+        <translation>Varian dan &amp;Tipe Berkas Hard Disk</translation>
     </message>
 </context>
 <context>
@@ -26468,7 +26481,7 @@ langkah ini dan memasang hard disk pada waktu lain menggunakan dialog Setting Me
     </message>
     <message>
         <source>&amp;Skip Unattended Installation</source>
-        <translation>Lewati In&amp;stalasi Tak Terdampingi</translation>
+        <translation>Lewati In&amp;stalasi Tak Didampingi</translation>
     </message>
     <message>
         <source>When checked, the unattended install is disabled and the selected ISO is mounted on the vm.</source>
@@ -26556,7 +26569,7 @@ langkah ini dan memasang hard disk pada waktu lain menggunakan dialog Setting Me
     </message>
     <message>
         <source>Please choose whether the new virtual hard disk file should grow as it is used (dynamically allocated) or if it should be created at its maximum size (fixed size).</source>
-        <translation>Silakan pilih apakah berkas hard disk virtual baru mesti mengembang ketika dipakai (dialokasikan secara dinamik) atau mesti diciptakan pada ukuran maksimumnya (ukuran tetap).</translation>
+        <translation>Silakan pilih apakah berkas hard disk virtual baru mesti tumbuh ketika dipakai (dialokasikan secara dinamik) atau mesti diciptakan pada ukuran maksimumnya (ukuran tetap).</translation>
     </message>
     <message>
         <source>&lt;p&gt;A &lt;b&gt;dynamically allocated&lt;/b&gt; hard disk file will only use space on your physical hard disk as it fills up (up to a maximum &lt;b&gt;fixed size&lt;/b&gt;), although it will not shrink again automatically when space on it is freed.&lt;/p&gt;</source>
@@ -26572,7 +26585,7 @@ langkah ini dan memasang hard disk pada waktu lain menggunakan dialog Setting Me
     </message>
     <message>
         <source>&amp;Unattended Install</source>
-        <translation>Instalasi &amp;Tak Terdampingi</translation>
+        <translation>Instalasi &amp;Tak Didampingi</translation>
     </message>
     <message>
         <source>Hard Dis&amp;k</source>
@@ -26636,11 +26649,11 @@ langkah ini dan memasang hard disk pada waktu lain menggunakan dialog Setting Me
     </message>
     <message>
         <source>Skip Unattended Install</source>
-        <translation>Lewati Instalasi Tak Terdampingi</translation>
+        <translation>Lewati Instalasi Tak Didampingi</translation>
     </message>
     <message>
         <source>Unattended Install</source>
-        <translation>Instalasi Tak Terdampingi</translation>
+        <translation>Instalasi Tak Didampingi</translation>
     </message>
     <message>
         <source>Username</source>

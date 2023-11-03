@@ -6607,6 +6607,11 @@
         <comment>details (system/secure boot)</comment>
         <translation>已启用</translation>
     </message>
+    <message>
+        <source>Nested VT-x/AMD-V</source>
+        <comment>details (system)</comment>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UIDetailsBlock</name>
@@ -8151,7 +8156,7 @@
     </message>
     <message>
         <source>File manager cannot work since the selected guest does not have the guest additions.</source>
-        <translation>文件管理器不可用，由于此虚拟机尚未安装增强功能。</translation>
+        <translation type="vanished">文件管理器不可用，由于此虚拟机尚未安装增强功能。</translation>
     </message>
     <message>
         <source>Enter a valid user name and password to initiate the file manager.</source>
@@ -8172,6 +8177,14 @@
     <message>
         <source>Host</source>
         <translation>主机</translation>
+    </message>
+    <message>
+        <source>File manager cannot work since no guest additions were detected.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>File manager cannot work. The guest additions need to be updated.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

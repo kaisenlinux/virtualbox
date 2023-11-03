@@ -399,6 +399,8 @@ UIIconPoolGeneral::UIIconPoolGeneral()
     m_guestOSTypeIconNames.insert("Debian10_64",     ":/os_debian_64.png");
     m_guestOSTypeIconNames.insert("Debian11",        ":/os_debian.png");
     m_guestOSTypeIconNames.insert("Debian11_64",     ":/os_debian_64.png");
+    m_guestOSTypeIconNames.insert("Debian12",        ":/os_debian.png");
+    m_guestOSTypeIconNames.insert("Debian12_64",     ":/os_debian_64.png");
     m_guestOSTypeIconNames.insert("OpenSUSE",        ":/os_opensuse.png");
     m_guestOSTypeIconNames.insert("OpenSUSE_64",     ":/os_opensuse_64.png");
     m_guestOSTypeIconNames.insert("OpenSUSE_Leap_64", ":/os_opensuse_64.png");
@@ -471,6 +473,7 @@ UIIconPoolGeneral::UIIconPoolGeneral()
     m_guestOSTypeIconNames.insert("Ubuntu21_64",     ":/os_ubuntu_64.png");
     m_guestOSTypeIconNames.insert("Ubuntu22_LTS_64", ":/os_ubuntu_64.png");
     m_guestOSTypeIconNames.insert("Ubuntu22_64",     ":/os_ubuntu_64.png");
+    m_guestOSTypeIconNames.insert("Ubuntu23_64",     ":/os_ubuntu_64.png");
     m_guestOSTypeIconNames.insert("Lubuntu",         ":/os_ubuntu.png");
     m_guestOSTypeIconNames.insert("Lubuntu_64",      ":/os_ubuntu_64.png");
     m_guestOSTypeIconNames.insert("Xubuntu",         ":/os_ubuntu.png");

@@ -30,7 +30,7 @@
 ]>
 <refentry id="vboxmanage-guestcontrol" lang="en">
   <refentryinfo>
-    <pubdate>$Date: 2023-05-15 08:45:23 +0200 (Mon, 15 May 2023) $</pubdate>
+    <pubdate>$Date: 2023-08-08 17:18:00 +0200 (Tue, 08 Aug 2023) $</pubdate>
     <title>VBoxManage guestcontrol</title>
   </refentryinfo>
 
@@ -1334,6 +1334,14 @@ $ VBoxManage --nologo guestcontrol "My OL VM" run --exe "/usr/bin/busybox" \
       The <option>--arg0</option> option explicitly specifies the argument 0
       to use for the command to execute.
     </para>
+    <note>
+      <para>If this option is not set, argument 0 will be taken from
+        the value of <option>--exe</option>, or, if
+        <option>--exe</option> is also not set, the first value
+        passed after <option>--</option>.</para>
+      <para>Use <option>--verbose</option> to see the effective
+        command line passed to the guest.</para>
+    </note>
   <para>
     The default behavior of argument 0 is to either use
     the value from <option>--exe</option>, or, if not set, the first

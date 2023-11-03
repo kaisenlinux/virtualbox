@@ -52,6 +52,7 @@
 #include <VBox/msi.h>
 #include <VBox/version.h>
 #include <VBox/log.h>
+#include <VBox/pci.h>
 
 
 #ifdef IN_RING3
@@ -209,8 +210,6 @@ static const VIRTIO_FEATURES_LIST s_aDevSpecificFeatures[] =
             (virtioCoreVirtqAvailBufCount(pDevIns, pVirtio, uVirtqNbr) == 0)
 
 #define PCI_DEVICE_ID_VIRTIONET_HOST               0x1000      /**< VirtIO transitional device ID for network card  */
-#define PCI_CLASS_BASE_NETWORK_CONTROLLER          0x0200      /**< PCI Network device class                        */
-#define PCI_CLASS_SUB_NET_ETHERNET_CONTROLLER      0x00        /**< PCI NET Controller subclass                     */
 #define PCI_CLASS_PROG_UNSPECIFIED                 0x00        /**< Programming interface. N/A.                     */
 #define VIRTIONET_PCI_CLASS                        0x01        /**< Base class Mass Storage?                        */
 
@@ -2326,12 +2325,12 @@ static uint8_t virtioNetR3CtrlMac(PVIRTIONET pThis, PVIRTIONET_CTRL_HDR_T pCtrlP
 
             Log7Func(("[%s] Guest provided %d unicast MAC Table entries\n", pThis->szInst, cMacs));
 
+            AssertMsgReturn(cMacs <= RT_ELEMENTS(pThis->aMacUnicastFilter),
+                            ("Guest provided Unicast MAC filter table exceeds hardcoded table size"), VIRTIONET_ERROR);
+
             if (cMacs)
             {
                 uint32_t cbMacs = cMacs * sizeof(RTMAC);
-
-                AssertMsgReturn(cbMacs <= sizeof(pThis->aMacUnicastFilter)  / sizeof(RTMAC),
-                                ("Guest provided Unicast MAC filter table exceeds hardcoded table size"), VIRTIONET_ERROR);
 
                 AssertMsgReturn(cbRemaining >= cbMacs,
                                 ("Virtq buffer too small to process CTRL_MAC_TABLE_SET cmd\n"), VIRTIONET_ERROR);
@@ -2353,12 +2352,12 @@ static uint8_t virtioNetR3CtrlMac(PVIRTIONET pThis, PVIRTIONET_CTRL_HDR_T pCtrlP
 
             Log10Func(("[%s] Guest provided %d multicast MAC Table entries\n", pThis->szInst, cMacs));
 
+            AssertMsgReturn(cMacs <= RT_ELEMENTS(pThis->aMacMulticastFilter),
+                            ("Guest provided Unicast MAC filter table exceeds hardcoded table size"), VIRTIONET_ERROR);
+
             if (cMacs)
             {
                 uint32_t cbMacs = cMacs * sizeof(RTMAC);
-
-                AssertMsgReturn(cbMacs <= sizeof(pThis->aMacMulticastFilter)  / sizeof(RTMAC),
-                                ("Guest provided Unicast MAC filter table exceeds hardcoded table size"), VIRTIONET_ERROR);
 
                 AssertMsgReturn(cbRemaining >= cbMacs,
                                 ("Virtq buffer too small to process CTRL_MAC_TABLE_SET cmd\n"), VIRTIONET_ERROR);
@@ -2404,15 +2403,15 @@ static uint8_t virtioNetR3CtrlMultiQueue(PVIRTIONET pThis, PVIRTIONETCC pThisCC,
     {
         case VIRTIONET_CTRL_MQ_VQ_PAIRS_SET:
         {
-            size_t cbRemaining = pVirtqBuf->cbPhysSend - sizeof(*pCtrlPktHdr);
+            size_t cbRemaining = pVirtqBuf->cbPhysSend;
 
-            AssertMsgReturn(cbRemaining > sizeof(cVirtqPairs),
+            AssertMsgReturn(cbRemaining >= sizeof(cVirtqPairs),
                 ("DESC chain too small for VIRTIONET_CTRL_MQ cmd processing"), VIRTIONET_ERROR);
 
             /* Fetch number of virtq pairs from guest buffer */
             virtioCoreR3VirtqBufDrain(&pThis->Virtio, pVirtqBuf, &cVirtqPairs, sizeof(cVirtqPairs));
 
-            AssertMsgReturn(cVirtqPairs > VIRTIONET_MAX_QPAIRS,
+            AssertMsgReturn(cVirtqPairs <= VIRTIONET_MAX_QPAIRS,
                 ("[%s] Guest CTRL MQ virtq pair count out of range [%d])\n", pThis->szInst, cVirtqPairs), VIRTIONET_ERROR);
 
             LogFunc(("[%s] Guest specifies %d VQ pairs in use\n", pThis->szInst, cVirtqPairs));
@@ -2456,15 +2455,15 @@ static uint8_t virtioNetR3CtrlVlan(PVIRTIONET pThis, PVIRTIONET_CTRL_HDR_T pCtrl
     LogFunc(("[%s] Processing CTRL VLAN command\n", pThis->szInst));
 
     uint16_t uVlanId;
-    size_t cbRemaining = pVirtqBuf->cbPhysSend - sizeof(*pCtrlPktHdr);
+    size_t cbRemaining = pVirtqBuf->cbPhysSend;
 
-    AssertMsgReturn(cbRemaining > sizeof(uVlanId),
+    AssertMsgReturn(cbRemaining >= sizeof(uVlanId),
         ("DESC chain too small for VIRTIONET_CTRL_VLAN cmd processing"), VIRTIONET_ERROR);
 
     /* Fetch VLAN ID from guest buffer */
     virtioCoreR3VirtqBufDrain(&pThis->Virtio, pVirtqBuf, &uVlanId, sizeof(uVlanId));
 
-    AssertMsgReturn(uVlanId > VIRTIONET_MAX_VLAN_ID,
+    AssertMsgReturn(uVlanId < VIRTIONET_MAX_VLAN_ID,
         ("%s VLAN ID out of range (VLAN ID=%u)\n", pThis->szInst, uVlanId), VIRTIONET_ERROR);
 
     LogFunc(("[%s] uCommand=%u VLAN ID=%u\n", pThis->szInst, pCtrlPktHdr->uCmd, uVlanId));
@@ -2523,12 +2522,10 @@ static void virtioNetR3Ctrl(PPDMDEVINS pDevIns, PVIRTIONET pThis, PVIRTIONETCC p
     /*
      * Allocate buffer and read in the control command
      */
-    AssertMsgReturnVoid(pVirtqBuf->cbPhysSend >= sizeof(VIRTIONET_CTRL_HDR_T),
-                        ("DESC chain too small for CTRL pkt header"));
-
     VIRTIONET_CTRL_HDR_T CtrlPktHdr; RT_ZERO(CtrlPktHdr);
-    virtioCoreR3VirtqBufDrain(&pThis->Virtio, pVirtqBuf, &CtrlPktHdr,
-                              RT_MIN(pVirtqBuf->cbPhysSend, sizeof(CtrlPktHdr)));
+    AssertLogRelMsgReturnVoid(pVirtqBuf->cbPhysSend >= sizeof(CtrlPktHdr),
+                              ("DESC chain too small for CTRL pkt header"));
+    virtioCoreR3VirtqBufDrain(&pThis->Virtio, pVirtqBuf, &CtrlPktHdr, sizeof(CtrlPktHdr));
 
     Log7Func(("[%s] CTRL COMMAND: class=%d command=%d\n", pThis->szInst, CtrlPktHdr.uClass, CtrlPktHdr.uCmd));
 
@@ -3557,8 +3554,8 @@ static DECLCALLBACK(int) virtioNetR3Construct(PPDMDEVINS pDevIns, int iInstance,
 
     VIRTIOPCIPARAMS VirtioPciParams;
     VirtioPciParams.uDeviceId                      = PCI_DEVICE_ID_VIRTIONET_HOST;
-    VirtioPciParams.uClassBase                     = PCI_CLASS_BASE_NETWORK_CONTROLLER;
-    VirtioPciParams.uClassSub                      = PCI_CLASS_SUB_NET_ETHERNET_CONTROLLER;
+    VirtioPciParams.uClassBase                     = VBOX_PCI_CLASS_NETWORK;
+    VirtioPciParams.uClassSub                      = VBOX_PCI_SUB_NETWORK_ETHERNET;
     VirtioPciParams.uClassProg                     = PCI_CLASS_PROG_UNSPECIFIED;
     VirtioPciParams.uSubsystemId                   = DEVICE_PCI_NETWORK_SUBSYSTEM;  /* VirtIO 1.0 allows PCI Device ID here */
     VirtioPciParams.uInterruptLine                 = 0x00;

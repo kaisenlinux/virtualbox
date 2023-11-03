@@ -6086,6 +6086,11 @@
         <comment>details (system/secure boot)</comment>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Nested VT-x/AMD-V</source>
+        <comment>details (system)</comment>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UIDetailsElement</name>
@@ -7160,7 +7165,7 @@ a guest session</source>
     </message>
     <message>
         <source>File manager cannot work since the selected guest does not have the guest additions.</source>
-        <translation>Dateimanager kann nicht gestartet werden, da der ausgewählte Gast keine Gasterweiterungen installiert hat.</translation>
+        <translation type="vanished">Dateimanager kann nicht gestartet werden, da der ausgewählte Gast keine Gasterweiterungen installiert hat.</translation>
     </message>
     <message>
         <source>Enter a valid user name and password to initiate the file manager.</source>
@@ -7173,6 +7178,14 @@ a guest session</source>
     <message>
         <source>Some error has occurred. Please check the log panel.</source>
         <translation>Ein Fehler ist aufgetreten. Bitte die Logansicht überprüfen.</translation>
+    </message>
+    <message>
+        <source>File manager cannot work since no guest additions were detected.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>File manager cannot work. The guest additions need to be updated.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

@@ -1,3 +1,28 @@
+virtualbox (7.0.12-1kaisen) kaisen-packages; urgency=medium
+
+  * Import the 7.0.12 release
+
+ -- Kevin Chevreuil - Kaisen <kaisen@kaisenlinux.org>  Fri, 03 Nov 2023 15:42:52 +0100
+
+virtualbox (7.0.12-dfsg-1) unstable; urgency=medium
+
+  * New upstream version 7.0.12-dfsg
+  * Refresh patches
+  * Drop patches now part of upstream codebase:
+    {100436,100653,100677,100799,100800,
+    virtualbox-modules-7.0.10-kernel-6.4.10}.patch
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Wed, 18 Oct 2023 13:22:21 +0200
+
+virtualbox (7.0.10-dfsg-3) unstable; urgency=medium
+
+  * {100436,100653,100677,100799,100800}.patch
+    - cherry-pick upstream fixes for kernel 6.5
+  * virtualbox-modules-7.0.10-kernel-6.4.10.patch
+    - cherry-pick gentoo fix for kernel 6.4.10 (Closes: #1050096)
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Fri, 25 Aug 2023 10:52:23 +0200
+
 virtualbox (7.0.10-1kaisen) kaisen-packages; urgency=medium
 
   * Import the 7.0.10 release

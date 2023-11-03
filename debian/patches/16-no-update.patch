@@ -28,7 +28,7 @@ Index: virtualbox/src/VBox/Frontends/VirtualBox/src/extradata/UIExtraDataManager
 ===================================================================
 --- virtualbox.orig/src/VBox/Frontends/VirtualBox/src/extradata/UIExtraDataManager.cpp
 +++ virtualbox/src/VBox/Frontends/VirtualBox/src/extradata/UIExtraDataManager.cpp
-@@ -2421,7 +2421,7 @@
+@@ -2420,7 +2420,7 @@
  bool UIExtraDataManager::applicationUpdateEnabled()
  {
      /* 'True' unless 'restriction' feature allowed: */
@@ -41,7 +41,7 @@ Index: virtualbox/src/VBox/Frontends/VirtualBox/src/settings/UISettingsDialogSpe
 ===================================================================
 --- virtualbox.orig/src/VBox/Frontends/VirtualBox/src/settings/UISettingsDialogSpecific.cpp
 +++ virtualbox/src/VBox/Frontends/VirtualBox/src/settings/UISettingsDialogSpecific.cpp
-@@ -47,10 +47,10 @@
+@@ -48,10 +48,10 @@
  #ifdef VBOX_WS_WIN
  # include "UIGlobalSettingsInterface.h"
  #endif
@@ -56,7 +56,7 @@ Index: virtualbox/src/VBox/Frontends/VirtualBox/src/settings/UISettingsDialogSpe
  
  /* GUI includes: Machine Settings: */
  #include "UIMachineSettingsAudio.h"
-@@ -99,7 +99,7 @@
+@@ -100,7 +100,7 @@
  
  #ifdef VBOX_GUI_WITH_NETWORK_MANAGER
      /* Update page: */
@@ -65,7 +65,7 @@ Index: virtualbox/src/VBox/Frontends/VirtualBox/src/settings/UISettingsDialogSpe
  #endif
  
      /* Language page: */
-@@ -110,7 +110,7 @@
+@@ -111,7 +111,7 @@
  
  #ifdef VBOX_GUI_WITH_NETWORK_MANAGER
      /* Proxy page: */
@@ -74,7 +74,7 @@ Index: virtualbox/src/VBox/Frontends/VirtualBox/src/settings/UISettingsDialogSpe
  #endif
  
  #ifdef VBOX_WS_WIN
-@@ -226,14 +226,14 @@
+@@ -227,14 +227,14 @@
                  }
  #ifdef VBOX_GUI_WITH_NETWORK_MANAGER
                  /* Update page: */
@@ -91,7 +91,7 @@ Index: virtualbox/src/VBox/Frontends/VirtualBox/src/settings/UISettingsDialogSpe
  #endif /* VBOX_GUI_WITH_NETWORK_MANAGER */
                  /* Language page: */
                  case GlobalSettingsPageType_Language:
-@@ -255,14 +255,14 @@
+@@ -256,14 +256,14 @@
                  }
  #ifdef VBOX_GUI_WITH_NETWORK_MANAGER
                  /* Proxy page: */

@@ -6900,6 +6900,11 @@
         <comment>details (system/secure boot)</comment>
         <translation>Habilitado</translation>
     </message>
+    <message>
+        <source>Nested VT-x/AMD-V</source>
+        <comment>details (system)</comment>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UIDetailsBlock</name>
@@ -8882,7 +8887,7 @@ una sesión invitado</translation>
     </message>
     <message>
         <source>File manager cannot work since the selected guest does not have the guest additions.</source>
-        <translation>El administrador de archivos no puede funcionar dado que el invitado seleccionado no tiene los complementos del invitado.</translation>
+        <translation type="vanished">El administrador de archivos no puede funcionar dado que el invitado seleccionado no tiene los complementos del invitado.</translation>
     </message>
     <message>
         <source>Enter a valid user name and password to initiate the file manager.</source>
@@ -8895,6 +8900,14 @@ una sesión invitado</translation>
     <message>
         <source>Some error has occurred. Please check the log panel.</source>
         <translation>Ha ocurrido algún error. Compruebe el panel de trazas.</translation>
+    </message>
+    <message>
+        <source>File manager cannot work since no guest additions were detected.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>File manager cannot work. The guest additions need to be updated.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>

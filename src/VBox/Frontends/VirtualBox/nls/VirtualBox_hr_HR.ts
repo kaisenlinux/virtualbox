@@ -173,7 +173,7 @@
     <name>QIRichTextLabel</name>
     <message>
         <source>&amp;Copy</source>
-        <translation type="unfinished">&amp;Kopiraj</translation>
+        <translation>&amp;Kopiraj</translation>
     </message>
 </context>
 <context>
@@ -5242,6 +5242,11 @@
         <comment>details (system/secure boot)</comment>
         <translation>Omogućen</translation>
     </message>
+    <message>
+        <source>Nested VT-x/AMD-V</source>
+        <comment>details (system)</comment>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UIDetailsElement</name>
@@ -5964,7 +5969,7 @@
     </message>
     <message>
         <source>File manager cannot work since the selected guest does not have the guest additions.</source>
-        <translation>Upravitelj datoteka ne može raditi jer odabrani gost nema dodatke gosta.</translation>
+        <translation type="vanished">Upravitelj datoteka ne može raditi jer odabrani gost nema dodatke gosta.</translation>
     </message>
     <message>
         <source>Enter a valid user name and password to initiate the file manager.</source>
@@ -5977,6 +5982,14 @@
     <message>
         <source>Some error has occurred. Please check the log panel.</source>
         <translation>Dogodila se neka greška. Provjerite ploču dnevnika.</translation>
+    </message>
+    <message>
+        <source>File manager cannot work since no guest additions were detected.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>File manager cannot work. The guest additions need to be updated.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -12762,11 +12775,11 @@
     </message>
     <message>
         <source>&amp;Restore current snapshot &apos;%1&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>&amp;Vrati trenutačni snimak &apos;%1&apos;</translation>
     </message>
     <message>
         <source>&lt;p&gt;When checked, the machine will be returned to the state stored in the current snapshot after it is turned off. This is useful if you are sure that you want to discard the results of your last sessions and start again at that snapshot.&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
+        <translation>&lt;p&gt;Kada je označeno, stroj će biti vraćen na stanje pohranjeno u trenutačnom snimku nakon što je isključen. Ovo je korisno ako ste sigurni da želite odbaciti rezultate prethodne sjednice i početi ispočetka na tom snimku.&lt;/p&gt;</translation>
     </message>
 </context>
 <context>
