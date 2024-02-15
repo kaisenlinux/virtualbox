@@ -68,5 +68,6 @@ rm -fr ${ORIG_TARBALL_DIR}/src/VBox/HostDrivers/Support/win/winstub.com
 
 tar --exclude .svn --exclude '.git*' --exclude debian --directory ${WORKING_DIR} -cJf ${DEST_TARBALL_NAME} ${ORIG_TARBALL_DIR_STRIP} || exit 1
 rm -rf ${ORIG_TARBALL_DIR}
-echo "Done, now you can run \ngbp import-orig ${DEST_TARBALL_NAME}"
-exit 0
+
+echo "Done, now you can run:"
+echo "gbp import-orig ../${PACKAGE_NAME}_${UPSTREAM_VERSION}.orig.tar.xz"

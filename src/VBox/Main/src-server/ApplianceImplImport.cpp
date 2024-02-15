@@ -343,7 +343,8 @@ HRESULT Appliance::interpret()
                 && pNewDesc->m->pConfig->hardwareMachine.ulMemorySizeMB)
                 ullMemSizeVBox = (uint64_t)pNewDesc->m->pConfig->hardwareMachine.ulMemorySizeMB * _1M;
             else
-                ullMemSizeVBox = vsysThis.ullMemorySize;  /* already in bytes via OVFReader::HandleVirtualSystemContent() */
+                /* already in bytes via OVFReader::HandleVirtualSystemContent() */
+                ullMemSizeVBox = vsysThis.ullMemorySize;
             /* Check for the constraints */
             if (    ullMemSizeVBox != 0
                  && (    ullMemSizeVBox < MM_RAM_MIN
@@ -355,7 +356,7 @@ HRESULT Appliance::interpret()
                                 "however VirtualBox supports a minimum of %u MB and a maximum of %u MB "
                                 "of memory."),
                                 vsysThis.strName.c_str(), ullMemSizeVBox / _1M, MM_RAM_MIN_IN_MB, MM_RAM_MAX_IN_MB);
-                ullMemSizeVBox = RT_MIN(RT_MAX(ullMemSizeVBox, MM_RAM_MIN), MM_RAM_MAX);
+                ullMemSizeVBox = RT_MIN(RT_MAX(ullMemSizeVBox, MM_RAM_MIN_IN_MB), MM_RAM_MAX_IN_MB);
             }
             if (vsysThis.ullMemorySize == 0)
             {
@@ -371,6 +372,7 @@ HRESULT Appliance::interpret()
                 /* IGuestOSType::recommendedRAM() returns the size in MB so convert to bytes */
                 ullMemSizeVBox = (uint64_t)memSizeVBox2 * _1M;
             }
+            /* It's always stored in bytes in VSD according to the old internal agreement within the team */
             pNewDesc->i_addEntry(VirtualSystemDescriptionType_Memory,
                                  "",
                                  Utf8StrFmt("%RU64", vsysThis.ullMemorySize),
@@ -415,7 +417,7 @@ HRESULT Appliance::interpret()
                 uint32_t maxNetworkAdapters = Global::getMaxNetworkAdapters(pNewDesc->m->pConfig->hardwareMachine.chipsetType);
 
                 const settings::NetworkAdaptersList &llNetworkAdapters = pNewDesc->m->pConfig->hardwareMachine.llNetworkAdapters;
-                /* Check for the constrains */
+                /* Check for the constraints */
                 if (llNetworkAdapters.size() > maxNetworkAdapters)
                     i_addWarning(tr("Virtual appliance \"%s\" was configured with %zu network adapters however "
                                     "VirtualBox supports a maximum of %u network adapters.", "", llNetworkAdapters.size()),
@@ -445,7 +447,7 @@ HRESULT Appliance::interpret()
                 size_t cEthernetAdapters = vsysThis.llEthernetAdapters.size();
                 uint32_t maxNetworkAdapters = Global::getMaxNetworkAdapters(ChipsetType_PIIX3);
 
-                /* Check for the constrains */
+                /* Check for the constraints */
                 if (cEthernetAdapters > maxNetworkAdapters)
                     i_addWarning(tr("Virtual appliance \"%s\" was configured with %zu network adapters however "
                                     "VirtualBox supports a maximum of %u network adapters.", "", cEthernetAdapters),
@@ -578,6 +580,7 @@ HRESULT Appliance::interpret()
             uint16_t cSATAused = 0; NOREF(cSATAused);
             uint16_t cSCSIused = 0; NOREF(cSCSIused);
             uint16_t cVIRTIOSCSIused = 0; NOREF(cVIRTIOSCSIused);
+            uint16_t cNVMeused = 0; NOREF(cNVMeused);
 
             ovf::ControllersMap::const_iterator hdcIt;
             /* Iterate through all storage controllers */
@@ -590,7 +593,7 @@ HRESULT Appliance::interpret()
                 switch (hdc.system)
                 {
                     case ovf::HardDiskController::IDE:
-                        /* Check for the constrains */
+                        /* Check for the constraints */
                         if (cIDEused < 4)
                         {
                             /// @todo figure out the IDE types
@@ -617,7 +620,7 @@ HRESULT Appliance::interpret()
                     break;
 
                     case ovf::HardDiskController::SATA:
-                        /* Check for the constrains */
+                        /* Check for the constraints */
                         if (cSATAused < 1)
                         {
                             /// @todo figure out the SATA types
@@ -641,7 +644,7 @@ HRESULT Appliance::interpret()
                     break;
 
                     case ovf::HardDiskController::SCSI:
-                        /* Check for the constrains */
+                        /* Check for the constraints */
                         if (cSCSIused < 1)
                         {
                             VirtualSystemDescriptionType_T vsdet = VirtualSystemDescriptionType_HardDiskControllerSCSI;
@@ -670,7 +673,7 @@ HRESULT Appliance::interpret()
                     break;
 
                     case ovf::HardDiskController::VIRTIOSCSI:
-                        /* Check for the constrains */
+                        /* Check for the constraints */
                         if (cVIRTIOSCSIused < 1)
                         {
                             pNewDesc->i_addEntry(VirtualSystemDescriptionType_HardDiskControllerVirtioSCSI,
@@ -689,6 +692,28 @@ HRESULT Appliance::interpret()
 
                         }
                         ++cVIRTIOSCSIused;
+                    break;
+
+                    case ovf::HardDiskController::NVMe:
+                        /* Check for the constraints */
+                        if (cNVMeused < 1)
+                        {
+                            pNewDesc->i_addEntry(VirtualSystemDescriptionType_HardDiskControllerNVMe,
+                                                 hdc.strIdController,
+                                                 hdc.strControllerType,
+                                                 "NVMe");
+                        }
+                        else
+                        {
+                            /* Warn only once */
+                            if (cNVMeused == 1)
+                                i_addWarning(tr("Virtual appliance \"%s\" was configured with more than one "
+                                                "NVMe controller however VirtualBox supports a maximum "
+                                                "of one NVMe controller."),
+                                                vsysThis.strName.c_str());
+
+                        }
+                        ++cNVMeused;
                     break;
 
                 }
@@ -1531,10 +1556,11 @@ HRESULT Appliance::i_importCloudImpl(TaskCloud *pTask)
                                         NULL);
 
                 // RAM
+                /* It's always stored in bytes in VSD according to the old internal agreement within the team */
                 GET_VSD_DESCRIPTION_BY_TYPE(VirtualSystemDescriptionType_Memory);
-                if (aVBoxValues.size() == 0)//1000MB by default
+                if (aVBoxValues.size() == 0)//1024MB by default, 1,073,741,824 in bytes
                     vsd->AddDescription(VirtualSystemDescriptionType_Memory,
-                                        Bstr("1000").raw(),
+                                        Bstr("1073741824").raw(),
                                         NULL);
 
                 // audio adapter
@@ -1796,18 +1822,21 @@ HRESULT Appliance::i_importCloudImpl(TaskCloud *pTask)
                     LogRel(("%s: Number of CPUs is %s\n", __FUNCTION__, vsdData.c_str()));
                 }
 
-                ULONG memory;//Mb
-                pGuestOSType->COMGETTER(RecommendedRAM)(&memory);
+                ULONG memoryInMB;
+                pGuestOSType->COMGETTER(RecommendedRAM)(&memoryInMB);//returned in MB
+                uint64_t memoryInBytes = memoryInMB * _1M;//convert to bytes
                 {
+                    /* It's always stored in bytes in VSD according to the old internal agreement within the team */
                     GET_VSD_DESCRIPTION_BY_TYPE(VirtualSystemDescriptionType_Memory); //aVBoxValues is set in this #define
                     if (aVBoxValues.size() != 0)
                     {
                         vsdData = aVBoxValues[0];
-                        if (memory > vsdData.toUInt32())
-                            memory = vsdData.toUInt32();
+                        memoryInBytes = RT_MIN((uint64_t)(RT_MAX(vsdData.toUInt64(), (uint64_t)MM_RAM_MIN)), MM_RAM_MAX);
+
                     }
-                    vsys.ullMemorySize = memory;
-                    LogRel(("%s: Size of RAM is %d MB\n", __FUNCTION__, vsys.ullMemorySize));
+                    //and set in ovf::VirtualSystem in bytes
+                    vsys.ullMemorySize = memoryInBytes;
+                    LogRel(("%s: Size of RAM is %d MB\n", __FUNCTION__, vsys.ullMemorySize / _1M));
                 }
 
                 {
@@ -4842,6 +4871,29 @@ void Appliance::i_importMachineGeneric(const ovf::VirtualSystem &vsysThis,
             throw setError(VBOX_E_FILE_ERROR, tr("Invalid VirtioSCSI controller type \"%s\""), hdcVBox.c_str());
     }
 
+    /* Storage controller NVMe */
+    std::list<VirtualSystemDescriptionEntry*> vsdeHDCNVMe =
+        vsdescThis->i_findByType(VirtualSystemDescriptionType_HardDiskControllerNVMe);
+    if (vsdeHDCNVMe.size() > 1)
+        throw setError(VBOX_E_FILE_ERROR,
+                       tr("Too many NVMe controllers in OVF; import facility only supports one"));
+    if (!vsdeHDCNVMe.empty())
+    {
+        ComPtr<IStorageController> pController;
+        Utf8Str strName("NVMe");
+        const Utf8Str &hdcVBox = vsdeHDCNVMe.front()->strVBoxCurrent;
+        if (hdcVBox == "NVMe")
+        {
+            hrc = pNewMachine->AddStorageController(Bstr(strName).raw(), StorageBus_PCIe, pController.asOutParam());
+            if (FAILED(hrc)) throw hrc;
+
+            hrc = pController->COMSETTER(ControllerType)(StorageControllerType_NVMe);
+            if (FAILED(hrc)) throw hrc;
+        }
+        else
+            throw setError(VBOX_E_FILE_ERROR, tr("Invalid NVMe controller type \"%s\""), hdcVBox.c_str());
+    }
+
     /* Now its time to register the machine before we add any storage devices */
     hrc = mVirtualBox->RegisterMachine(pNewMachine);
     if (FAILED(hrc)) throw hrc;
@@ -6113,6 +6165,7 @@ void Appliance::i_importMachines(ImportStack &stack)
         std::list<VirtualSystemDescriptionEntry*> vsdeRAM = vsdescThis->i_findByType(VirtualSystemDescriptionType_Memory);
         if (vsdeRAM.size() != 1)
             throw setError(VBOX_E_FILE_ERROR, tr("RAM size missing"));
+        /* It's always stored in bytes in VSD according to the old internal agreement within the team */
         uint64_t ullMemorySizeMB = vsdeRAM.front()->strVBoxCurrent.toUInt64() / _1M;
         stack.ulMemorySizeMB = (uint32_t)ullMemorySizeMB;
 

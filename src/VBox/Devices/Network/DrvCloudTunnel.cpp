@@ -59,7 +59,7 @@ typedef int socklen_t;
 # define closesocket close
 # define INVALID_SOCKET -1
 # define SOCKET_ERROR   -1
- int WSAGetLastError() { return errno; }
+DECLINLINE(int) WSAGetLastError() { return errno; }
 #endif
 
 /* Prevent inclusion of Winsock2.h */
@@ -754,7 +754,13 @@ static int drvCloudTunnelReceiveCallback(ssh_session session, ssh_channel channe
     return len;
 }
 
+
+/* See ssh_channel_write_wontblock_callback in libssh/callbacks.h. */
+#if LIBSSH_VERSION_INT >= SSH_VERSION_INT(0,10,0)
+static int channelWriteWontblockCallback(ssh_session, ssh_channel, uint32_t, void *)
+#else
 static int channelWriteWontblockCallback(ssh_session, ssh_channel, size_t, void *)
+#endif
 {
     return 0;
 }
@@ -1264,7 +1270,7 @@ static int establishTunnel(PDRVCLOUDTUNNEL pThis)
 }
 
 
-DECL_NOTHROW(void) drvCloudTunnelSshLogCallback(int priority, const char *function, const char *buffer, void *userdata)
+static DECL_NOTHROW(void) drvCloudTunnelSshLogCallback(int priority, const char *function, const char *buffer, void *userdata)
 {
     PDRVCLOUDTUNNEL pThis = (PDRVCLOUDTUNNEL)userdata;
 #ifdef LOG_ENABLED

@@ -516,11 +516,17 @@ void OVFReader::HandleVirtualSystemContent(const xml::ElementNode *pelmVirtualSy
                         break;
 
                     case ResourceType_Memory:        // 4
+                        /* It's always stored in bytes in VSD according to the old internal agreement within the team */
                         if (    i.strAllocationUnits == "MegaBytes"           // found in OVF created by OVF toolkit
                              || i.strAllocationUnits == "MB"                  // found in MS docs
                              || i.strAllocationUnits == "byte * 2^20"         // suggested by OVF spec DSP0243 page 21
                            )
                             vsys.ullMemorySize = i.ullVirtualQuantity * _1M;
+                        else if ( i.strAllocationUnits == "GigaBytes"
+                                  || i.strAllocationUnits == "GB"
+                                  || i.strAllocationUnits == "byte * 2^30"
+                           )
+                            vsys.ullMemorySize = i.ullVirtualQuantity * _1G;
                         else
                             throw OVFLogicError(N_("Error reading \"%s\": Invalid allocation unit \"%s\" specified with memory size item, line %d"),
                                                 m_strPath.c_str(),
@@ -646,7 +652,7 @@ void OVFReader::HandleVirtualSystemContent(const xml::ElementNode *pelmVirtualSy
                         // handled separately in second loop below
                         break;
 
-                    case ResourceType_OtherStorageDevice:        // 20       SATA controller
+                    case ResourceType_OtherStorageDevice:        // 20       SATA/Virtio-SCSI/NVMe controller
                     {
                         /* <Item>
                             <rasd:Description>SATA Controller</rasd:Description>
@@ -671,14 +677,24 @@ void OVFReader::HandleVirtualSystemContent(const xml::ElementNode *pelmVirtualSy
                                  || i.strResourceSubType.compare("virtio-scsi", RTCString::CaseInsensitive) == 0 )
                         {
                             HardDiskController hdc;
-                            hdc.system = HardDiskController::VIRTIOSCSI; /**< r=klaus: GUI needs to learn about this in the import dialog, currently shown as "Unknown Hardware Item". */
+                            hdc.system = HardDiskController::VIRTIOSCSI;
                             hdc.strIdController = i.strInstanceID;
                             //<rasd:ResourceSubType>VirtioSCSI</rasd:ResourceSubType>
                             hdc.strControllerType = i.strResourceSubType;
                             vsys.mapControllers[i.strInstanceID] = hdc;
                         }
+                        else if (   i.strResourceSubType.compare("NVMe", RTCString::CaseInsensitive) == 0
+                                 || i.strResourceSubType.compare("vmware.nvme.controller", RTCString::CaseInsensitive) == 0 )
+                        {
+                            HardDiskController hdc;
+                            hdc.system = HardDiskController::NVMe;
+                            hdc.strIdController = i.strInstanceID;
+                            //<rasd:ResourceSubType>NVMe</rasd:ResourceSubType>
+                            hdc.strControllerType = i.strResourceSubType;
+                            vsys.mapControllers[i.strInstanceID] = hdc;
+                        }
                         else
-                            throw OVFLogicError(N_("Error reading \"%s\": Host resource of type \"Other Storage Device (%d)\" is supported with SATA AHCI or virtio-scsi controllers only, line %d (subtype:%s)"),
+                            throw OVFLogicError(N_("Error reading \"%s\": Host resource of type \"Other Storage Device (%d)\" is supported with SATA AHCI or Virtio-SCSI or NVMe controllers only, line %d (subtype:%s)"),
                                                 m_strPath.c_str(),
                                                 ResourceType_OtherStorageDevice,
                                                 i.m_iLineNumber, i.strResourceSubType.c_str() );

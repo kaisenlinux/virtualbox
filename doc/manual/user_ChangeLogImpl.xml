@@ -73,6 +73,85 @@ Rules for adding a changelog entry to make them look more uniform:
                            So, we use chapter and xpointer="xpointer(/chapter/)" with xi:include. -->
   <sect1>
 
+    <title>Version 7.0.14 (2024-01-16)</title>
+
+    <para>This is a maintenance release. The following items were fixed and/or
+      added:</para>
+
+    <itemizedlist>
+
+      <listitem>
+        <para>Audio: Added more fixes for switching host audio devices on Windows
+          hosts using the WAS backend</para>
+      </listitem>
+
+      <listitem>
+        <para>3D: Added general improvements</para>
+      </listitem>
+
+      <listitem>
+        <para>OCI: Fixed wrong guest RAM unit usage in VirtualSystemDescription,
+          memory is provided in bytes, "Byte" is the base unit</para>
+      </listitem>
+
+      <listitem>
+        <para>Main: OVF Import/Export: Added support for importing and exporting
+          VMs containing NVMe storage controllers (bug #19320)</para>
+      </listitem>
+
+      <listitem>
+        <para>Main: OVF Import/Export: Added support for exporting a VM which
+          contains a medium inserted into a virtual CD/DVD drive which is attached
+          to a Virtio-SCSI controller</para>
+      </listitem>
+
+      <listitem>
+        <para>Devices: Fixed a problem where Windows guests "forget" in-progress
+          touch events when the user holds down a finger without moving it for
+          a period of time.</para>
+      </listitem>
+
+      <listitem>
+        <para>macOS Host USB: Added support for newer storage devices</para>
+      </listitem>
+
+      <listitem>
+        <para>macOS Host: Fixed memory Leak in the VBoxIntNetSwitch process when VM
+          was configured to use 'Internal Networking' (bug #21752)</para>
+      </listitem>
+
+      <listitem>
+        <para>Linux Host and Guest: Added initial support for RHEL 9.4 kernel</para>
+      </listitem>
+
+      <listitem>
+        <para>Linux Guest Additions: Fixed kernel panic on RHEL 8.9 kernel
+          caused by vboxvideo (bugs #10381 and #21911)</para>
+      </listitem>
+
+      <listitem>
+        <para>Solaris Guest Additions: Added support for the Additions to be installed
+          into an alternate root path ('pkgadd -R')</para>
+      </listitem>
+
+      <listitem>
+        <para>Solaris Guest Additions: Removed requirement to reboot VM after uninstalling GAs</para>
+      </listitem>
+
+      <listitem>
+        <para>RDP: Fix possible crash when connecting with the Apple Silicon
+          variant of the Microsoft Remote Desktop application (bug #21820).</para>
+      </listitem>
+
+      <listitem>
+        <para>BIOS: Fixed handle number used for DMI OEM table (bug #19781)</para>
+      </listitem>
+
+    </itemizedlist>
+  </sect1>
+
+  <sect1>
+
     <title>Version 7.0.12 (2023-10-17)</title>
 
     <para>This is a maintenance release. The following items were fixed and/or

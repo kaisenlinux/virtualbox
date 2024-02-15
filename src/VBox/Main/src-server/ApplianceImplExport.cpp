@@ -186,7 +186,7 @@ HRESULT Machine::exportTo(const ComPtr<IAppliance> &aAppliance, const com::Utf8S
                              strCpuCount,
                              strCpuCount);
 
-        /* Memory */
+        /* Memory, it's always stored in bytes in VSD according to the old internal agreement within the team */
         Utf8Str strMemory = Utf8StrFmt("%RI64", (uint64_t)ulMemSizeMB * _1M);
         pNewDesc->i_addEntry(VirtualSystemDescriptionType_Memory,
                              "",
@@ -200,6 +200,7 @@ HRESULT Machine::exportTo(const ComPtr<IAppliance> &aAppliance, const com::Utf8S
         int32_t lSATAControllerIndex = 0;
         int32_t lSCSIControllerIndex = 0;
         int32_t lVirtioSCSIControllerIndex = 0;
+        int32_t lNVMeControllerIndex = 0;
 
         /* Fetch all available storage controllers */
         com::SafeIfaceArray<IStorageController> nwControllers;
@@ -209,8 +210,9 @@ HRESULT Machine::exportTo(const ComPtr<IAppliance> &aAppliance, const com::Utf8S
         ComPtr<IStorageController> pIDEController;
         ComPtr<IStorageController> pSATAController;
         ComPtr<IStorageController> pSCSIController;
-        ComPtr<IStorageController> pVirtioSCSIController;
         ComPtr<IStorageController> pSASController;
+        ComPtr<IStorageController> pVirtioSCSIController;
+        ComPtr<IStorageController> pNVMeController;
         for (size_t j = 0; j < nwControllers.size(); ++j)
         {
             StorageBus_T eType;
@@ -231,6 +233,9 @@ HRESULT Machine::exportTo(const ComPtr<IAppliance> &aAppliance, const com::Utf8S
             else if (   eType == StorageBus_VirtioSCSI
                      && pVirtioSCSIController.isNull())
                 pVirtioSCSIController = nwControllers[j];
+            else if (   eType == StorageBus_PCIe
+                     && pNVMeController.isNull())
+                pNVMeController = nwControllers[j];
         }
 
 //     <const name="HardDiskControllerIDE" value="6" />
@@ -333,6 +338,16 @@ HRESULT Machine::exportTo(const ComPtr<IAppliance> &aAppliance, const com::Utf8S
                 throw hrc;
         }
 
+        if (!pNVMeController.isNull())
+        {
+            Utf8Str strVBox = "NVMe";
+            lNVMeControllerIndex = (int32_t)pNewDesc->m->maDescriptions.size();
+            pNewDesc->i_addEntry(VirtualSystemDescriptionType_HardDiskControllerNVMe,
+                                 Utf8StrFmt("%d", lNVMeControllerIndex),
+                                 strVBox,
+                                 strVBox);
+        }
+
 //     <const name="HardDiskImage" value="9" />
 //     <const name="Floppy" value="18" />
 //     <const name="CDROM" value="19" />
@@ -385,6 +400,8 @@ HRESULT Machine::exportTo(const ComPtr<IAppliance> &aAppliance, const com::Utf8S
                     strStBus = "SCSI";
                 else if ( storageBus == StorageBus_SAS)
                     strStBus = "SAS";
+                else if ( storageBus == StorageBus_PCIe)
+                    strStBus = "PCIe";
                 else if ( storageBus == StorageBus_VirtioSCSI)
                     strStBus = "VirtioSCSI";
 
@@ -567,6 +584,11 @@ HRESULT Machine::exportTo(const ComPtr<IAppliance> &aAppliance, const com::Utf8S
                 case StorageBus_SAS:
                     lChannelVsys = lChannel;        // should be between 0 and 15
                     lControllerVsys = lSCSIControllerIndex;
+                    break;
+
+                case StorageBus_PCIe:
+                    lChannelVsys = lChannel;        // should be between 0 and 255
+                    lControllerVsys = lNVMeControllerIndex;
                     break;
 
                 case StorageBus_Floppy:
@@ -1525,6 +1547,8 @@ void Appliance::i_buildXMLForOneVirtualSystem(AutoWriteLockBase& writeLock,
     int32_t lSCSIControllerIndex = 0;
     uint32_t idVirtioSCSIController = 0;
     int32_t lVirtioSCSIControllerIndex = 0;
+    uint32_t idNVMeController = 0;
+    int32_t lNVMeControllerIndex = 0;
 
     uint32_t ulInstanceID = 1;
 
@@ -1547,6 +1571,7 @@ void Appliance::i_buildXMLForOneVirtualSystem(AutoWriteLockBase& writeLock,
                           : desc.type == VirtualSystemDescriptionType_HardDiskControllerSATA ? "HardDiskControllerSATA"
                           : desc.type == VirtualSystemDescriptionType_HardDiskControllerSCSI ? "HardDiskControllerSCSI"
                           : desc.type == VirtualSystemDescriptionType_HardDiskControllerSAS ? "HardDiskControllerSAS"
+                          : desc.type == VirtualSystemDescriptionType_HardDiskControllerNVMe ? "HardDiskControllerNVMe"
                           : desc.type == VirtualSystemDescriptionType_HardDiskImage ? "HardDiskImage"
                           : Utf8StrFmt("%d", desc.type).c_str()),
                          desc.strRef.c_str(),
@@ -1616,7 +1641,8 @@ void Appliance::i_buildXMLForOneVirtualSystem(AutoWriteLockBase& writeLock,
                         strDescription = "Memory Size";
                         type = ovf::ResourceType_Memory; // 4
                         desc.strVBoxCurrent.toInt(uTemp);
-                        lVirtualQuantity = (int32_t)(uTemp / _1M);
+                        /* It's always stored in bytes in VSD according to the old internal agreement within the team */
+                        lVirtualQuantity = (int32_t)(uTemp / _1M);//convert to MB
                         strAllocationUnits = "MegaBytes";
                         strCaption = Utf8StrFmt("%d MB of memory", lVirtualQuantity);     // without this ovftool
                                                                                           // won't eat the item
@@ -1762,6 +1788,30 @@ void Appliance::i_buildXMLForOneVirtualSystem(AutoWriteLockBase& writeLock,
                     }
                     break;
 
+                case VirtualSystemDescriptionType_HardDiskControllerNVMe:
+                    /*  <Item>
+                            <rasd:Caption>NVMeController0</rasd:Caption>
+                            <rasd:Description>NVMe Controller</rasd:Description>
+                            <rasd:InstanceId>4</rasd:InstanceId>
+                            <rasd:ResourceType>20</rasd:ResourceType>
+                            <rasd:Address>0</rasd:Address>
+                            <rasd:BusNumber>0</rasd:BusNumber>
+                        </Item>
+                    */
+                    if (uLoop == 1)
+                    {
+                        strDescription = "NVMe Controller";
+                        strCaption = "nvmeController0";
+                        type = ovf::ResourceType_OtherStorageDevice; // 20
+                        lAddress = 0;
+                        lBusNumber = 0;
+                        strResourceSubType = "NVMe";
+                        // remember this ID
+                        idNVMeController = ulInstanceID;
+                        lNVMeControllerIndex = lIndexThis;
+                    }
+                    break;
+
                 case VirtualSystemDescriptionType_HardDiskImage:
                     /*  <Item>
                             <rasd:Caption>disk1</rasd:Caption>
@@ -1800,6 +1850,8 @@ void Appliance::i_buildXMLForOneVirtualSystem(AutoWriteLockBase& writeLock,
                                 ulParent = idSATAController;
                             else if (lControllerIndex == lVirtioSCSIControllerIndex)
                                 ulParent = idVirtioSCSIController;
+                            else if (lControllerIndex == lNVMeControllerIndex)
+                                ulParent = idNVMeController;
                         }
                         if (pos2 != Utf8Str::npos)
                             RTStrToInt32Ex(desc.strExtraConfigCurrent.c_str() + pos2 + 8, NULL, 0, &lAddressOnParent);
@@ -1877,6 +1929,8 @@ void Appliance::i_buildXMLForOneVirtualSystem(AutoWriteLockBase& writeLock,
                                 ulParent = idSCSIController;
                             else if (lControllerIndex == lSATAControllerIndex)
                                 ulParent = idSATAController;
+                            else if (lControllerIndex == lVirtioSCSIControllerIndex)
+                                ulParent = idVirtioSCSIController;
                         }
                         if (pos2 != Utf8Str::npos)
                             RTStrToInt32Ex(desc.strExtraConfigCurrent.c_str() + pos2 + 8, NULL, 0, &lAddressOnParent);

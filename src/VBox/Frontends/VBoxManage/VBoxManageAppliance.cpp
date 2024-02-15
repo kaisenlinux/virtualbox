@@ -757,7 +757,8 @@ RTEXITCODE handleImportAppliance(HandlerArg *arg)
                                     RTPrintf(Appliance::tr("%2u: Guest memory specified with --memory: %RU32 MB\n"),
                                              a, ulMemMB);
 
-                                    /* IVirtualSystemDescription guest memory size is in bytes */
+                                    /* IVirtualSystemDescription guest memory size is in bytes.
+                                      It's always stored in bytes in VSD according to the old internal agreement within the team */
                                     uint64_t ullMemBytes = (uint64_t)ulMemMB * _1M;
                                     strOverride = Utf8StrFmt("%RU64", ullMemBytes);
                                     bstrFinalValue = strOverride;
@@ -862,6 +863,22 @@ RTEXITCODE handleImportAppliance(HandlerArg *arg)
                             }
                             else
                                 RTPrintf(Appliance::tr("%2u: VirtioSCSI controller, type %ls\n"
+                                            "    (disable with \"--vsys %u --unit %u --ignore\")\n"),
+                                        a,
+                                        aVBoxValues[a],
+                                        i, a);
+                            break;
+
+                        case VirtualSystemDescriptionType_HardDiskControllerNVMe:
+                            if (fIgnoreThis)
+                            {
+                                RTPrintf(Appliance::tr("%2u: NVMe controller, type %ls -- disabled\n"),
+                                         a,
+                                         aVBoxValues[a]);
+                                aEnabled[a] = false;
+                            }
+                            else
+                                RTPrintf(Appliance::tr("%2u: NVMe controller, type %ls\n"
                                             "    (disable with \"--vsys %u --unit %u --ignore\")\n"),
                                         a,
                                         aVBoxValues[a],

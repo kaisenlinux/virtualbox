@@ -1216,7 +1216,7 @@ RTDECL(struct page *) rtR0MemObjLinuxVirtToPage(void *pv)
     }
 #endif
 
-#if RTLNX_VER_MIN(6,5,0)
+#if RTLNX_VER_MIN(6,5,0) || RTLNX_RHEL_RANGE(9,4, 9,99)
     pEntry = __pte_map(&u.Middle, ulAddr);
 #elif RTLNX_VER_MIN(2,5,5) || defined(pte_offset_map) /* As usual, RHEL 3 had pte_offset_map earlier. */
     pEntry = pte_offset_map(&u.Middle, ulAddr);

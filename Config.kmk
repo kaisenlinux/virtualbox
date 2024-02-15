@@ -4355,11 +4355,10 @@ ifdef VBOX_SIGNING_MODE
   VBOX_SIGN_ADDITIONS   ?= 1
   ## Set if we should include the legacy timestamp CA.
   ifndef VBOX_WITH_VBOX_LEGACY_TS_CA
-   if "$(findstring 55287c0d517e273696d67c690dd5d9f0a1d6d725,$(VBOX_TSA_URL_ARGS))" != ""
+   if "$(findstring 805af82410a4827b71f59479a222670391bec2d5,$(VBOX_TSA_URL_ARGS))" != ""
     VBOX_WITH_VBOX_LEGACY_TS_CA = 1
    endif
   endif
-  VBOX_LEGACY_TS_CA_FILE = $(VBOX_PATH_SRC_CERTIFICATES)/Timestamp-VBoxLegacyWinCA.crt
 
  else ifeq ($(KBUILD_HOST),darwin)
 
@@ -4931,7 +4930,7 @@ endif
 
 # openssl
 SDK_VBoxOpenSslStatic                        := OpenSSL - Only for VBoxRT and/or statically linked programs.
-SDK_VBoxOpenSslStatic_VBOX_DEFAULT_INCS      := $(PATH_OUT)/obj/crypto-3.1.3-headers/include
+SDK_VBoxOpenSslStatic_VBOX_DEFAULT_INCS      := $(PATH_OUT)/obj/crypto-3.1.4-headers/include
 SDK_VBoxOpenSslStatic_INCS                   ?= $(SDK_VBoxOpenSslStatic_VBOX_DEFAULT_INCS)
 SDK_VBoxOpenSslStatic_ORDERDEPS              ?= $(crypto-headers_1_TARGET)
 if   !defined(VBOX_ONLY_SDK) \
@@ -4945,7 +4944,7 @@ SDK_VBoxOpenSslStatic_LIBS                   ?= \
 	$(PATH_STAGE_LIB)/VBox-libcrypto$(VBOX_SUFF_LIB)
 
 SDK_VBoxOpenSslStatic-x86                    := OpenSSL/x86 - Only for VBoxRT and/or statically linked programs.
-SDK_VBoxOpenSslStatic-x86_VBOX_DEFAULT_INCS  := $(PATH_OUT)/obj/crypto-3.1.3-headers/include
+SDK_VBoxOpenSslStatic-x86_VBOX_DEFAULT_INCS  := $(PATH_OUT)/obj/crypto-3.1.4-headers/include
 SDK_VBoxOpenSslStatic-x86_INCS               ?= $(SDK_VBoxOpenSslStatic_VBOX_DEFAULT_INCS)
 SDK_VBoxOpenSslStatic-x86_ORDERDEPS          ?= $(crypto-headers_1_TARGET)
 if ("$(SDK_VBoxOpenSslStatic_INCS)" == "$(SDK_VBoxOpenSslStatic_VBOX_DEFAULT_INCS)")
@@ -4960,7 +4959,7 @@ ifdef VBOX_WITH_BLD_RTSIGNTOOL_SIGNING
  SDK_VBoxOpenSslBldProg_INCS          ?= $(SDK_VBoxOpenSslStatic_VBOX_DEFAULT_INCS)
  SDK_VBoxOpenSslBldProg_ORDERDEPS     ?= $(crypto-headers_1_TARGET)
  if   !defined(VBOX_ONLY_SDK) \
-   && ("$(SDK_VBoxOpenSsl_INCS)" == "$(SDK_VBoxOpenSslStatic_VBOX_DEFAULT_INCS)")
+   && ("$(SDK_VBoxOpenSslStatic_INCS)" == "$(SDK_VBoxOpenSslStatic_VBOX_DEFAULT_INCS)")
   SDK_VBoxOpenSslBldProg_DEPS         ?= $(SDK_VBoxOpenSslStatic_INCS)/openssl/openssl-mangling.h
  endif
  SDK_VBoxOpenSslBldProg_LIBS          ?= \
@@ -4970,7 +4969,7 @@ endif
 
 SDK_VBoxOpenSsl              := This is what you should be using!  It links against VBoxRT.
 SDK_VBoxOpenSsl_EXTENDS      := VBoxOpenSslStatic
-if "$(SDK_VBoxOpenSsl_INCS)" == "$(SDK_VBoxOpenSslStatic_VBOX_DEFAULT_INCS)"
+if "$(SDK_VBoxOpenSslStatic_INCS)" == "$(SDK_VBoxOpenSslStatic_VBOX_DEFAULT_INCS)"
  SDK_VBoxOpenSsl_LIBS         = $(NO_SUCH_VARIABLE)
 endif
 
@@ -5028,7 +5027,7 @@ SDK_VBoxSoftFloatGuestR3Shared_LIBS.$(KBUILD_TARGET_ARCH) = \
 
 ifdef VBOX_WITH_LIBSSH
  SDK_VBoxLibSsh                := libssh for dynamic dll loading with assembly stubs.
- SDK_VBoxLibSsh_INCS           ?= $(PATH_ROOT)/src/libs/libssh-0.9.6/include
+ SDK_VBoxLibSsh_INCS           ?= $(PATH_ROOT)/src/libs/libssh-0.10.5/include
  # SDK_VBoxLibSsh_LIBS is not defined, as VBoxLibSsh dll is not linked, but loaded explicitly
  # by auto-generated stub code (lazy loading)
 endif
@@ -9007,7 +9006,7 @@ endif
 SVN                    ?= svn$(HOSTSUFF_EXE)
 VBOX_SVN_REV_KMK        = $(PATH_OUT)/revision.kmk
 ifndef VBOX_SVN_REV
- VBOX_SVN_REV_CONFIG_FALLBACK := $(patsubst %:,,  $Rev: 159460 $  )
+ VBOX_SVN_REV_CONFIG_FALLBACK := $(patsubst %:,,  $Rev: 161085 $  )
  VBOX_SVN_REV_FALLBACK := $(if-expr $(VBOX_SVN_REV_CONFIG_FALLBACK) > $(VBOX_SVN_REV_VERSION_FALLBACK),$(VBOX_SVN_REV_CONFIG_FALLBACK),$(VBOX_SVN_REV_VERSION_FALLBACK))
  VBOX_SVN_DEP          := $(firstword $(wildcard $(PATH_ROOT)/.svn/wc.db $(abspath $(PATH_ROOT)/../.svn/wc.db) $(abspath $(PATH_ROOT)/../../.svn/wc.db) $(PATH_ROOT)/.svn/entries))
  ifeq ($(which $(SVN)),)

@@ -811,22 +811,6 @@ static void drvHostAudioWasCacheDestroyDevConfig(PDRVHOSTAUDIOWAS pThis, PDRVHOS
     RTMemFree(pDevCfg);
 }
 
-/**
- * Invalidates device cache entry configurations.
- *
- * @param   pThis       The WASAPI host audio driver instance data.
- * @param   pDevEntry   The device entry to invalidate.
- */
-static void drvHostAudioWasCacheInvalidateDevEntryConfig(PDRVHOSTAUDIOWAS pThis, PDRVHOSTAUDIOWASCACHEDEV pDevEntry)
-{
-    RT_NOREF(pThis);
-
-    Log8Func(("Invalidating cache entry configurations: %p - '%ls'\n", pDevEntry, pDevEntry->wszDevId));
-
-    PDRVHOSTAUDIOWASCACHEDEVCFG pDevCfg, pDevCfgNext;
-    RTListForEachSafe(&pDevEntry->ConfigList, pDevCfg, pDevCfgNext, DRVHOSTAUDIOWASCACHEDEVCFG, ListEntry)
-        pDevCfg->pIAudioClient = NULL;
-}
 
 /**
  * Destroys a device cache entry.
@@ -840,9 +824,7 @@ static void drvHostAudioWasCacheDestroyDevEntry(PDRVHOSTAUDIOWAS pThis, PDRVHOST
 
     PDRVHOSTAUDIOWASCACHEDEVCFG pDevCfg, pDevCfgNext;
     RTListForEachSafe(&pDevEntry->ConfigList, pDevCfg, pDevCfgNext, DRVHOSTAUDIOWASCACHEDEVCFG, ListEntry)
-    {
         drvHostAudioWasCacheDestroyDevConfig(pThis, pDevCfg);
-    }
 
     uint32_t cDevRefs = 0;
     if (pDevEntry->pIDevice /* paranoia */)
@@ -1234,6 +1216,8 @@ static int drvHostAudioWasCacheLookupOrCreate(PDRVHOSTAUDIOWAS pThis, IMMDevice 
     HRESULT hrc = pIDevice->GetId(&pwszDevId);
     if (SUCCEEDED(hrc))
     {
+        LogRel2(("WasAPI: Checking for cached device '%ls' ...\n", pwszDevId));
+
         size_t cwcDevId = RTUtf16Len(pwszDevId);
 
         /*
@@ -1251,32 +1235,31 @@ static int drvHostAudioWasCacheLookupOrCreate(PDRVHOSTAUDIOWAS pThis, IMMDevice 
                  * Cache hit -- here we now need to also check if the device interface we want to look up
                  * actually matches the one we have in the cache entry.
                  *
-                 * If it doesn't, invalidate + remove the cache entry from the cache and bail out.
-                 * Add a new device entry to the cache with the new interface below then.
+                 * If it doesn't, bail out and add a new device entry to the cache with the new interface below then.
                  *
                  * This is needed when switching audio interfaces and the device interface becomes invalid via
                  * AUDCLNT_E_DEVICE_INVALIDATED.  See @bugref{10503}
                  */
-                if (pIDevice != pDevEntry->pIDevice)
+                if (pDevEntry->pIDevice != pIDevice)
                 {
-                    Log2Func(("Cache hit for device '%ls': Stale interface (new: %p, old: %p)\n",
+                    LogRel2(("WasAPI: Cache hit for device '%ls': Stale interface (new: %p, old: %p)\n",
                               pDevEntry->wszDevId, pIDevice, pDevEntry->pIDevice));
 
-                    drvHostAudioWasCacheInvalidateDevEntryConfig(pThis, pDevEntry);
-                    RTListNodeRemove(&pDevEntry->ListEntry);
-                    drvHostAudioWasCacheDestroyDevEntry(pThis, pDevEntry);
-                    pDevEntry = NULL;
+                    LogRel(("WasAPI: Stale audio interface '%ls' detected!\n", pDevEntry->wszDevId));
                     break;
                 }
 
+                LogRel2(("WasAPI: Cache hit for device '%ls' (%p)\n", pwszDevId, pIDevice));
+
                 CoTaskMemFree(pwszDevId);
-                Log8Func(("Cache hit for device '%ls': %p\n", pDevEntry->wszDevId, pDevEntry));
+                pwszDevId = NULL;
+
                 return drvHostAudioWasCacheLookupOrCreateConfig(pThis, pDevEntry, pCfgReq, fOnWorker, ppDevCfg);
             }
         }
         RTCritSectLeave(&pThis->CritSectCache);
 
-        Log8Func(("Cache miss for device '%ls': %p\n", pDevEntry->wszDevId, pDevEntry));
+        LogRel2(("WasAPI: Cache miss for device '%ls' (%p)\n", pwszDevId, pIDevice));
 
         /*
          * Device not in the cache, add it.
@@ -1307,6 +1290,9 @@ static int drvHostAudioWasCacheLookupOrCreate(PDRVHOSTAUDIOWAS pThis, IMMDevice 
             RTListForEach(&pThis->CacheHead, pDevEntry2, DRVHOSTAUDIOWASCACHEDEV, ListEntry)
             {
                 if (   pDevEntry2->cwcDevId == cwcDevId
+                    /* Note: We have to compare the device interface here as well, as a cached device entry might
+                     * have a stale audio interface for the same device. In such a case a new device entry will be created below. */
+                    && pDevEntry2->pIDevice == pIDevice
                     && pDevEntry2->enmDir   == pCfgReq->enmDir
                     && RTUtf16Cmp(pDevEntry2->wszDevId, pDevEntry->wszDevId) == 0)
                 {
@@ -1314,13 +1300,13 @@ static int drvHostAudioWasCacheLookupOrCreate(PDRVHOSTAUDIOWAS pThis, IMMDevice 
                     RTMemFree(pDevEntry);
                     pDevEntry = NULL;
 
-                    Log8Func(("Lost race adding device '%ls': %p\n", pDevEntry2->wszDevId, pDevEntry2));
+                    LogRel2(("WasAPI: Lost race adding device '%ls': %p\n", pDevEntry2->wszDevId, pDevEntry2));
                     return drvHostAudioWasCacheLookupOrCreateConfig(pThis, pDevEntry2, pCfgReq, fOnWorker, ppDevCfg);
                 }
             }
             RTListPrepend(&pThis->CacheHead, &pDevEntry->ListEntry);
 
-            Log8Func(("Added device '%ls' to cache: %p\n", pDevEntry->wszDevId, pDevEntry));
+            LogRel2(("WasAPI: Added device '%ls' to cache: %p\n", pDevEntry->wszDevId, pDevEntry));
             return drvHostAudioWasCacheLookupOrCreateConfig(pThis, pDevEntry, pCfgReq, fOnWorker, ppDevCfg);
         }
         CoTaskMemFree(pwszDevId);
