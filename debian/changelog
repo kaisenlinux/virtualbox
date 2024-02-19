@@ -1,3 +1,10 @@
+virtualbox (7.0.14-2kaisen) kaisen-packages; urgency=medium
+
+  * Add the linux-headers-amd64 and dkms packages as dependancy for virtualbox-dkms
+  * Add a version check for virtualbox-ext-pack and virtualbox-guest-additions-iso
+
+ -- Kevin Chevreuil - Kaisen <kaisen@kaisenlinux.org>  Mon, 19 Feb 2024 02:03:05 +0100
+
 virtualbox (7.0.14-1kaisen) kaisen-packages; urgency=medium
 
   * Import the 7.0.14 release

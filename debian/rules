@@ -205,3 +205,8 @@ override_dh_auto_clean:
 	rm -f debian/$(pdkms).links
 
 	find . -name "*.pyc" -exec rm -f {} \;
+
+override_dh_gencontrol:
+	dh_gencontrol -- \
+		-Vvirtualbox-ext-pack:Version=$(DEB_VERSION_UPSTREAM)-1kaisen -Vvirtualbox-ext-pack:nextVersion=$(DEB_VERSION_UPSTREAM)-zkaisen \
+		-Vvirtualbox-guest-additions-iso:Version=$(DEB_VERSION_UPSTREAM)-1kaisen -Vvirtualbox-guest-additions-iso:nextVersion=$(DEB_VERSION_UPSTREAM)-zkaisen

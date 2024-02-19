@@ -104,8 +104,10 @@ Depends: adduser,
          virtualbox-qt (= ${binary:Version}),
          virtualbox-dkms (= ${binary:Version}),
          virtualbox-source (= ${binary:Version}),
-         virtualbox-ext-pack,
-         virtualbox-guest-additions-iso,
+         virtualbox-ext-pack (>= ${virtualbox-ext-pack:Version}),
+	 virtualbox-ext-pack (<< ${virtualbox-ext-pack:nextVersion}),
+         virtualbox-guest-additions-iso (>= ${virtualbox-guest-additions-iso:Version}),
+	 virtualbox-guest-additions-iso (<< ${virtualbox-guest-additions-iso:nextVersion}),
          ${misc:Depends},
          ${python3:Depends},
          ${shlibs:Depends}
@@ -140,8 +142,7 @@ Description: x86 virtualization solution - base binaries
 Package: virtualbox-dkms
 Section: contrib/kernel
 Architecture: amd64
-Depends: ${misc:Depends}
-Recommends: virtualbox (>= ${source:Version})
+Depends: ${misc:Depends}, virtualbox (= ${binary:Version}), linux-headers-amd64, dkms
 Provides: virtualbox-modules
 Description: x86 virtualization solution - kernel module sources for dkms
  VirtualBox is a free x86 virtualization solution allowing a wide range
@@ -155,7 +156,7 @@ Description: x86 virtualization solution - kernel module sources for dkms
 Package: virtualbox-source
 Section: contrib/kernel
 Architecture: amd64
-Depends: virtualbox (= ${source:Version}),
+Depends: virtualbox (= ${binary:Version}),
 	 build-essential,
          bzip2,
          debhelper-compat (= 12),
