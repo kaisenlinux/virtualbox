@@ -1287,8 +1287,9 @@
 
       <listitem>
         <para>
-          Currently only Linux and Oracle Solaris Guest Additions
-          support symlinks.
+          The guest VM must have a version of the Guest Additions
+          installed which supports symlinks. Currently only the Linux and
+          Oracle Solaris Guest Additions support symlinks.
         </para>
       </listitem>
 
@@ -1296,14 +1297,30 @@
         <para>
           For security reasons the guest OS is not allowed to create
           symlinks by default. If you trust the guest OS to not abuse
-          the functionality, you can enable creation of symlinks for a
-          shared folder as follows:
+          the functionality, you can enable the creation of symlinks for
+          a shared folder as follows:
         </para>
 
-<screen>VBoxManage setextradata "VM name" VBoxInternal2/SharedFoldersEnableSymlinksCreate/<replaceable>sharename</replaceable> 1</screen>
+<screen>VBoxManage setextradata <replaceable>VM-name</replaceable> VBoxInternal2/SharedFoldersEnableSymlinksCreate/<replaceable>sharename</replaceable> 1</screen>
       </listitem>
 
     </itemizedlist>
+
+    <para>
+      If a symbolic link is created inside a shared folder on the host
+      and the installed Guest Additions don't support symbolic links
+      then the guest will see the target of the symlink as a file
+      inside the shared folder. For example, if a symlink is created
+      to a file on a Linux host:
+    </para>
+
+<screen>$ cd /SharedFolder &amp;&amp; ln -s filename symlink-to-filename</screen>
+
+    <para>
+      And then the shared folder is viewed on a Windows guest there
+      will be two identical files listed, <emphasis>filename</emphasis>
+      and <emphasis>symlink-to-filename</emphasis>.
+    </para>
 
     <sect2 id="sf_mount_manual">
 

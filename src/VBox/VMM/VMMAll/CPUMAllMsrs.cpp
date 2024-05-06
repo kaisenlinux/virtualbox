@@ -1731,7 +1731,8 @@ static DECLCALLBACK(VBOXSTRICTRC) cpumMsrRd_Amd64SyscallFlagMask(PVMCPUCC pVCpu,
 static DECLCALLBACK(VBOXSTRICTRC) cpumMsrWr_Amd64SyscallFlagMask(PVMCPUCC pVCpu, uint32_t idMsr, PCCPUMMSRRANGE pRange, uint64_t uValue, uint64_t uRawValue)
 {
     RT_NOREF_PV(idMsr); RT_NOREF_PV(pRange); RT_NOREF_PV(uRawValue);
-    pVCpu->cpum.s.Guest.msrSFMASK = uValue;
+    /* The high bits are ignored and read-as-zero, writing to them does not raise #GP. See @bugref{10610}.*/
+    pVCpu->cpum.s.Guest.msrSFMASK = uValue & UINT32_MAX;
     return VINF_SUCCESS;
 }
 
@@ -1749,8 +1750,13 @@ static DECLCALLBACK(VBOXSTRICTRC) cpumMsrRd_Amd64FsBase(PVMCPUCC pVCpu, uint32_t
 static DECLCALLBACK(VBOXSTRICTRC) cpumMsrWr_Amd64FsBase(PVMCPUCC pVCpu, uint32_t idMsr, PCCPUMMSRRANGE pRange, uint64_t uValue, uint64_t uRawValue)
 {
     RT_NOREF_PV(idMsr); RT_NOREF_PV(pRange); RT_NOREF_PV(uRawValue);
-    pVCpu->cpum.s.Guest.fs.u64Base = uValue;
-    return VINF_SUCCESS;
+    if (X86_IS_CANONICAL(uValue))
+    {
+        pVCpu->cpum.s.Guest.fs.u64Base = uValue;
+        return VINF_SUCCESS;
+    }
+    Log(("CPUM: wrmsr %s(%#x), %#llx -> #GP - not canonical\n", pRange->szName, idMsr, uValue));
+    return VERR_CPUM_RAISE_GP_0;
 }
 
 
@@ -1766,8 +1772,13 @@ static DECLCALLBACK(VBOXSTRICTRC) cpumMsrRd_Amd64GsBase(PVMCPUCC pVCpu, uint32_t
 static DECLCALLBACK(VBOXSTRICTRC) cpumMsrWr_Amd64GsBase(PVMCPUCC pVCpu, uint32_t idMsr, PCCPUMMSRRANGE pRange, uint64_t uValue, uint64_t uRawValue)
 {
     RT_NOREF_PV(idMsr); RT_NOREF_PV(pRange); RT_NOREF_PV(uRawValue);
-    pVCpu->cpum.s.Guest.gs.u64Base = uValue;
-    return VINF_SUCCESS;
+    if (X86_IS_CANONICAL(uValue))
+    {
+        pVCpu->cpum.s.Guest.gs.u64Base = uValue;
+        return VINF_SUCCESS;
+    }
+    Log(("CPUM: wrmsr %s(%#x), %#llx -> #GP - not canonical\n", pRange->szName, idMsr, uValue));
+    return VERR_CPUM_RAISE_GP_0;
 }
 
 
@@ -1784,8 +1795,13 @@ static DECLCALLBACK(VBOXSTRICTRC) cpumMsrRd_Amd64KernelGsBase(PVMCPUCC pVCpu, ui
 static DECLCALLBACK(VBOXSTRICTRC) cpumMsrWr_Amd64KernelGsBase(PVMCPUCC pVCpu, uint32_t idMsr, PCCPUMMSRRANGE pRange, uint64_t uValue, uint64_t uRawValue)
 {
     RT_NOREF_PV(idMsr); RT_NOREF_PV(pRange); RT_NOREF_PV(uRawValue);
-    pVCpu->cpum.s.Guest.msrKERNELGSBASE = uValue;
-    return VINF_SUCCESS;
+    if (X86_IS_CANONICAL(uValue))
+    {
+        pVCpu->cpum.s.Guest.msrKERNELGSBASE = uValue;
+        return VINF_SUCCESS;
+    }
+    Log(("CPUM: wrmsr %s(%#x), %#llx -> #GP - not canonical\n", pRange->szName, idMsr, uValue));
+    return VERR_CPUM_RAISE_GP_0;
 }
 
 

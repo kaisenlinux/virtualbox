@@ -32,6 +32,9 @@
 # pragma once
 #endif
 
+/* Some temporary printouts to release log in descriptor chain handling */
+//#define VIRTIO_REL_INFO_DUMP 1
+
 /* Do not allocate VIRTQBUF from the heap when possible */
 #define VIRTIO_VBUF_ON_STACK 1
 

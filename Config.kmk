@@ -1147,6 +1147,9 @@ ifndef VBOX_WITH_HARDENING
   VBOX_WITH_ORIGIN = 1
  endif
 endif
+# Building windows without a kernel code signing certificate (as good as
+# impossible to get these days, so enabled by default).
+VBOX_WITHOUT_WINDOWS_KERNEL_CODE_SIGNING_CERT = 1
 # Enable the system wide support service/daemon.
 # Very sketchy work in progress.
 #VBOX_WITH_SUPSVC = 1
@@ -2507,7 +2510,7 @@ VBOX_PATH_NSIS ?= $(KBUILD_DEVTOOLS)/win.x86/nsis/v3.08-log
 
 # Windows install tools...
 # Note! The scripts has been moved to Bin in v8.0.
-VBOX_PATH_WIX       ?= $(KBUILD_DEVTOOLS)/win.x86/wix/v3.11.2
+VBOX_PATH_WIX       ?= $(KBUILD_DEVTOOLS)/win.x86/wix/v3.14.1
 ifdef VBOX_WITH_NEW_WINDOWS_SDK
  VBOX_PATH_MSITRAN  ?= $(PATH_SDK_$(VBOX_WINPSDK)_BIN)/../x86/MsiTran.Exe
  VBOX_PATH_MSIDB    ?= $(PATH_SDK_$(VBOX_WINPSDK)_BIN)/../x86/MsiDb.Exe
@@ -4057,7 +4060,7 @@ ifdef VBOX_SIGNING_MODE
  # @param  $2  The file to be submitted for signing.
  # @param  $3  The directory to put the signed file in. Defaults to $(dir $2).
  # @param  $4  Additional options.
- VBOX_CCS_SIGN_CMD    = $(VBOX_RETRY) $(VBOX_JAVA) -jar "$(VBOX_CCS_CLIENT_JAR)" \
+ VBOX_CCS_SIGN_CMD    = $(VBOX_RETRY) $(VBOX_JAVA) -Xmx256m -jar "$(VBOX_CCS_CLIENT_JAR)" \
  	sign -user "$(VBOX_CCS_USER)" -global_uid "$(VBOX_CCS_GLOBAL_UID)" \
  	-job_timeout 90 -server_timeout 75 -server "$(VBOX_CCS_SERVER)" \
  	-sign_method "$1" -file_to_sign "$2" -signed_location "$(if $3,$3,$(call VBOX_DIRX,$2))" $4
@@ -4163,25 +4166,24 @@ ifdef VBOX_SIGNING_MODE
   # @param 4  Set to 2 if the expression will be expanded twice before chopped into commands (for _CMDS).
   # @param 5  Disables dual signing if non-empty, picking the SHA2 signature (since 2022-07-18).
   # @param 6  non-zero for alternative command separator.  This is used for generating repacking scripts.
+  # @param 7  non-zero for timed execution if possible
   ifndef VBOX_SIGN_FILE_FN
    if $(intersects win all 1,$(VBOX_WITH_CORP_CODE_SIGNING))
-    VBOX_SIGN_FILE_FN     = $(call VBOX_CCS_SIGN_CMD,driver$(if-expr "$3" == "/ph",_pagehash,),$1,,-digest_algo $(if-expr "$5" == "",SHA1,SHA2)) \
-    	$(if-expr "$5" == "", \
-    	$(if-expr "$6" == "",$(if-expr "$4" == "2",$$(NLTAB),$(NLTAB)),$6) \
-    	$(call VBOX_CCS_SIGN_CMD,driver$(if-expr "$3" == "/ph",_pagehash,),$1,,-dual_sign -digest_algo SHA2))
+    # CCS has lost the ability to do dual signing a while ago, can do SHA256 only
+    VBOX_SIGN_FILE_FN     = $(if $(strip $7),$(TIME) ,)$(call VBOX_CCS_SIGN_CMD,driver$(if-expr "$3" == "/ph",_pagehash,),$1,,-digest_algo SHA2)
    else ifdef VBOX_CERTIFICATE_SHA2_SUBJECT_NAME
     ifdef VBOX_CERTIFICATE_SUBJECT_NAME
-     VBOX_SIGN_FILE_FN     = $(if-expr "$5" == "",$(VBOX_SIGNTOOL_SHA1) \
-     	sign /fd sha1 \
-     	$(VBOX_CROSS_CERTIFICATE_FILE_ARGS) \
-     	$(VBOX_CERTIFICATE_STORE_ARGS) \
-     	$(VBOX_CERTIFICATE_SUBJECT_NAME_ARGS) \
-     	$(VBOX_CERTIFICATE_FINGERPRINT_ARGS) \
-     	$(VBOX_TSA_URL_ARGS) \
-     	$(if $(strip $(2)),/d "$(strip $(2))",) \
-     	$(3) \
-     	"$(1)" \
-     	$(if-expr "$6" == "",$(if-expr "$4" == "2",$$(NLTAB),$(NLTAB)),$6))$(VBOX_SIGNTOOL_SHA2) \
+     VBOX_SIGN_FILE_FN     = $(if-expr "$5" == "",$(if $(strip $7),$(TIME) ,)$(VBOX_SIGNTOOL_SHA1) \
+     		sign /fd sha1 \
+     		$(VBOX_CROSS_CERTIFICATE_FILE_ARGS) \
+     		$(VBOX_CERTIFICATE_STORE_ARGS) \
+     		$(VBOX_CERTIFICATE_SUBJECT_NAME_ARGS) \
+     		$(VBOX_CERTIFICATE_FINGERPRINT_ARGS) \
+     		$(VBOX_TSA_URL_ARGS) \
+     		$(if $(strip $(2)),/d "$(strip $(2))",) \
+     		$(3) \
+     		"$(1)" \
+     		$(if-expr "$6" == "",$(if-expr "$4" == "2",$$(NLTAB),$(NLTAB)),$6))$(if $(strip $7),$(TIME) ,)$(VBOX_SIGNTOOL_SHA2) \
      	sign $(if-expr "$5" == "",/as,) /fd sha256 \
      	$(VBOX_CROSS_CERTIFICATE_SHA2_FILE_ARGS) \
      	$(VBOX_CERTIFICATE_SHA2_STORE_ARGS) \
@@ -4192,7 +4194,7 @@ ifdef VBOX_SIGNING_MODE
      	$(3) \
      	"$(1)"
     else
-     VBOX_SIGN_FILE_FN     = $(VBOX_SIGNTOOL_SHA2) \
+     VBOX_SIGN_FILE_FN     = $(if $(strip $7),$(TIME) ,)$(VBOX_SIGNTOOL_SHA2) \
      	sign /fd sha256 \
      	$(VBOX_CROSS_CERTIFICATE_SHA2_FILE_ARGS) \
      	$(VBOX_CERTIFICATE_SHA2_STORE_ARGS) \
@@ -4204,7 +4206,7 @@ ifdef VBOX_SIGNING_MODE
      	"$(1)"
     endif
    else
-    VBOX_SIGN_FILE_FN     = $(VBOX_SIGNTOOL) \
+    VBOX_SIGN_FILE_FN     = $(if $(strip $7),$(TIME) ,)$(VBOX_SIGNTOOL) \
     	sign /fd $(firstword $(VBOX_TEST_SIGN_ALGORITHM) sha256) \
     	$(VBOX_CROSS_CERTIFICATE_FILE_ARGS) \
     	$(VBOX_CERTIFICATE_STORE_ARGS) \
@@ -4707,7 +4709,8 @@ if defined(VBOX_SIGNING_MODE) && "$(KBUILD_TARGET)" == "win"
 	$(RM) -f -- "$@"
 	$(CP) -- "$(quote-sh-dq $<)" "$@"
 	$(CHMOD) a+rw -- "$@"
-	$(VBOX_VCC_EDITBIN) /LargeAddressAware /DynamicBase /NxCompat /Release /IntegrityCheck \
+	$(VBOX_VCC_EDITBIN) /LargeAddressAware /DynamicBase /NxCompat /Release \
+		$(if-expr !defined(VBOX_WITHOUT_WINDOWS_KERNEL_CODE_SIGNING_CERT),/IntegrityCheck,) \
 		/Version:$(VBOX_VERSION_MAJOR)0$(VBOX_VERSION_MINOR).$(VBOX_VERSION_BUILD) \
 		"$@"
 	$(call VBOX_SIGN_IMAGE_FN,$@)
@@ -4729,7 +4732,8 @@ if defined(VBOX_SIGNING_MODE) && "$(KBUILD_TARGET)" == "win"
 	$(RM) -f -- "$@"
 	$(CP) -- "$<" "$@"
 	$(CHMOD) a+rw -- "$@"
-	$(VBOX_VCC_EDITBIN) /LargeAddressAware /DynamicBase /NxCompat /Release /IntegrityCheck \
+	$(VBOX_VCC_EDITBIN) /LargeAddressAware /DynamicBase /NxCompat /Release \
+		$(if-expr !defined(VBOX_WITHOUT_WINDOWS_KERNEL_CODE_SIGNING_CERT),/IntegrityCheck,) \
 		/Version:$(VBOX_VERSION_MAJOR)0$(VBOX_VERSION_MINOR).$(VBOX_VERSION_BUILD) \
 		"$@"
 	$(call VBOX_SIGN_IMAGE_FN,$@)
@@ -4899,12 +4903,12 @@ endif
 
 ifdef VBOX_WITH_LIBCURL
  SDK_VBoxLibCurl              := libcurl for dll linking.
- SDK_VBoxLibCurl_INCS         ?= $(PATH_ROOT)/src/libs/curl-8.4.0/include
+ SDK_VBoxLibCurl_INCS         ?= $(PATH_ROOT)/src/libs/curl-8.7.1/include
  SDK_VBoxLibCurl_LIBS         ?= $(PATH_STAGE_LIB)/VBox-libcurl$(VBOX_SUFF_LIB)
  SDK_VBoxLibCurl_DEFS         ?= BUILDING_LIBCURL
 
  SDK_VBoxLibCurl-x86           = libcurl/x86 for dll linking.
- SDK_VBoxLibCurl-x86_INCS     ?= $(PATH_ROOT)/src/libs/curl-8.4.0/include
+ SDK_VBoxLibCurl-x86_INCS     ?= $(PATH_ROOT)/src/libs/curl-8.7.1/include
  SDK_VBoxLibCurl-x86_LIBS.x86 ?= $(PATH_STAGE_LIB)/VBox-libcurl-x86$(VBOX_SUFF_LIB)
  SDK_VBoxLibCurl-x86_DEFS     ?= BUILDING_LIBCURL
 endif
@@ -4930,7 +4934,7 @@ endif
 
 # openssl
 SDK_VBoxOpenSslStatic                        := OpenSSL - Only for VBoxRT and/or statically linked programs.
-SDK_VBoxOpenSslStatic_VBOX_DEFAULT_INCS      := $(PATH_OUT)/obj/crypto-3.1.4-headers/include
+SDK_VBoxOpenSslStatic_VBOX_DEFAULT_INCS      := $(PATH_OUT)/obj/crypto-3.1.5-headers/include
 SDK_VBoxOpenSslStatic_INCS                   ?= $(SDK_VBoxOpenSslStatic_VBOX_DEFAULT_INCS)
 SDK_VBoxOpenSslStatic_ORDERDEPS              ?= $(crypto-headers_1_TARGET)
 if   !defined(VBOX_ONLY_SDK) \
@@ -4944,7 +4948,7 @@ SDK_VBoxOpenSslStatic_LIBS                   ?= \
 	$(PATH_STAGE_LIB)/VBox-libcrypto$(VBOX_SUFF_LIB)
 
 SDK_VBoxOpenSslStatic-x86                    := OpenSSL/x86 - Only for VBoxRT and/or statically linked programs.
-SDK_VBoxOpenSslStatic-x86_VBOX_DEFAULT_INCS  := $(PATH_OUT)/obj/crypto-3.1.4-headers/include
+SDK_VBoxOpenSslStatic-x86_VBOX_DEFAULT_INCS  := $(PATH_OUT)/obj/crypto-3.1.5-headers/include
 SDK_VBoxOpenSslStatic-x86_INCS               ?= $(SDK_VBoxOpenSslStatic_VBOX_DEFAULT_INCS)
 SDK_VBoxOpenSslStatic-x86_ORDERDEPS          ?= $(crypto-headers_1_TARGET)
 if ("$(SDK_VBoxOpenSslStatic_INCS)" == "$(SDK_VBoxOpenSslStatic_VBOX_DEFAULT_INCS)")
@@ -5027,7 +5031,7 @@ SDK_VBoxSoftFloatGuestR3Shared_LIBS.$(KBUILD_TARGET_ARCH) = \
 
 ifdef VBOX_WITH_LIBSSH
  SDK_VBoxLibSsh                := libssh for dynamic dll loading with assembly stubs.
- SDK_VBoxLibSsh_INCS           ?= $(PATH_ROOT)/src/libs/libssh-0.10.5/include
+ SDK_VBoxLibSsh_INCS           ?= $(PATH_ROOT)/src/libs/libssh-0.10.6/include
  # SDK_VBoxLibSsh_LIBS is not defined, as VBoxLibSsh dll is not linked, but loaded explicitly
  # by auto-generated stub code (lazy loading)
 endif
@@ -5063,7 +5067,7 @@ endif
 
 # libxml2
 SDK_VBoxLibXml2               := libxml2 for dll linking.
-SDK_VBoxLibXml2_INCS          ?= $(PATH_ROOT)/src/libs/libxml2-2.9.14/include
+SDK_VBoxLibXml2_INCS          ?= $(PATH_ROOT)/src/libs/libxml2-2.12.6/include
 SDK_VBoxLibXml2_DEFS          ?= _REENTRANT LIBXML_STATIC LIBXML_STATIC_FOR_DLL
 SDK_VBoxLibXml2_DEFS.win      ?= WIN32 _WINDOWS _MBCS HAVE_WIN32_THREADS HAVE_COMPILER_TLS
 # Note: no linking to LIB here, we do that explicitly in src/VBox/Runtime/Makefile.kmk to link
@@ -5247,7 +5251,7 @@ ifdef VBOX_WITH_RAW_MODE
   	-Driver -Subsystem:NATIVE -Incremental:NO -Align:64 -MapInfo:Exports -NoD $(VBOX_VCC_LD_WERR) -Release -Debug -Opt:Ref -Opt:Icf \
   	-Version:$(VBOX_VERSION_MAJOR)0$(VBOX_VERSION_MINOR).$(VBOX_VERSION_BUILD) \
   	-Stub:$(PATH_ROOT)/src/VBox/HostDrivers/Support/win/winstub.com
-  ifdef VBOX_SIGNING_MODE
+  if defined(VBOX_SIGNING_MODE) && !defined(VBOX_WITHOUT_WINDOWS_KERNEL_CODE_SIGNING_CERT)
    TEMPLATE_VBoxRc_LDFLAGS          += -IntegrityCheck
   endif
   TEMPLATE_VBoxRc_SDKS.x86          += VBoxWinInt64Lib
@@ -6187,7 +6191,7 @@ ifeq ($(KBUILD_TARGET),win)
  ifdef VBOX_WITH_DTRACE_R3
   TEMPLATE_VBoxR3Exe_LDFLAGS          += -Merge:VTGPrLc.Data=VTGPrLc.Begin -Merge:VTGPrLc.End=VTGPrLc.Begin -Merge:VTGPrLc.Begin=VTGObj
  endif
- if defined(VBOX_SIGNING_MODE) && defined(VBOX_WITH_HARDENING)
+ if defined(VBOX_SIGNING_MODE) && defined(VBOX_WITH_HARDENING) && !defined(VBOX_WITHOUT_WINDOWS_KERNEL_CODE_SIGNING_CERT)
   TEMPLATE_VBoxR3Exe_LDFLAGS          += -IntegrityCheck
  endif
  TEMPLATE_VBoxR3Exe_LDFLAGS.win.amd64  = $(VBOX_VCC_LD_HIGH_ENTRYOPY_VA)
@@ -6834,7 +6838,8 @@ TEMPLATE_VBoxR3HardenedTstExe_INST = $(INST_TESTCASE)
 TEMPLATE_VBoxR3HardenedTstDll = VBox Ring-3 Hardened Testcase Dll (currently windows only!)
 TEMPLATE_VBoxR3HardenedTstDll_EXTENDS = VBoxR3TstDll
 TEMPLATE_VBoxR3HardenedTstDll_INST = $(INST_TESTCASE)
-TEMPLATE_VBoxR3HardenedTstDll_LDFLAGS.win  = $(TEMPLATE_VBoxR3TstDll_LDFLAGS.win) -IntegrityCheck
+TEMPLATE_VBoxR3HardenedTstDll_LDFLAGS.win  = $(TEMPLATE_VBoxR3TstDll_LDFLAGS.win) \
+	$(if-expr !defined(VBOX_WITHOUT_WINDOWS_KERNEL_CODE_SIGNING_CERT),-IntegrityCheck,)
 ifn1of ($(KBUILD_TARGET), win os2)
  TEMPLATE_VBoxR3HardenedTstDll_LDFLAGS       = $(filter-out '$(VBOX_GCC_RPATH_OPT)%,$(TEMPLATE_VBoxR3TstDll_LDFLAGS))
  TEMPLATE_VBoxR3HardenedTstDll_LDFLAGS.linux = $(filter-out $(VBOX_GCC_ORIGIN_OPT),$(TEMPLATE_VBoxR3TstDll_LDFLAGS.linux))
@@ -7135,7 +7140,7 @@ ifeq ($(KBUILD_TARGET),win)
  	/DISALLOWLIB:libvcruntimed.lib \
  	/DISALLOWLIB:libucrt.lib \
  	/DISALLOWLIB:libucrtd.lib
- if defined(VBOX_SIGNING_MODE) && defined(VBOX_WITH_HARDENING)
+ if defined(VBOX_SIGNING_MODE) && defined(VBOX_WITH_HARDENING) && !defined(VBOX_WITHOUT_WINDOWS_KERNEL_CODE_SIGNING_CERT)
   TEMPLATE_VBoxMainExe_LDFLAGS          += -IntegrityCheck
  endif
  ifdef VBOX_WITH_DTRACE_R3_MAIN
@@ -7795,7 +7800,7 @@ ifdef VBOX_WITH_QTGUI
   	$(VBOX_VCC_LD_GUARD_CF)  $(VBOX_VCC_SANITIZER_LDFLAGS) \
   	/Version:$(VBOX_VERSION_MAJOR)0$(VBOX_VERSION_MINOR).$(VBOX_VERSION_BUILD) \
   	/STUB:$(PATH_ROOT)/src/VBox/HostDrivers/Support/win/winstub.com
-  if defined(VBOX_SIGNING_MODE) && defined(VBOX_WITH_HARDENING)
+  if defined(VBOX_SIGNING_MODE) && defined(VBOX_WITH_HARDENING) && !defined(VBOX_WITHOUT_WINDOWS_KERNEL_CODE_SIGNING_CERT)
    TEMPLATE_VBoxQtGuiExe_LDFLAGS += -IntegrityCheck
   endif
   if "$(VBOX_VCC_TOOL_STEM)" >= "VCC142" # Don't waste space on x86/amd64-on-arm emulation optimizations.
@@ -9006,7 +9011,7 @@ endif
 SVN                    ?= svn$(HOSTSUFF_EXE)
 VBOX_SVN_REV_KMK        = $(PATH_OUT)/revision.kmk
 ifndef VBOX_SVN_REV
- VBOX_SVN_REV_CONFIG_FALLBACK := $(patsubst %:,,  $Rev: 161085 $  )
+ VBOX_SVN_REV_CONFIG_FALLBACK := $(patsubst %:,,  $Rev: 162950 $  )
  VBOX_SVN_REV_FALLBACK := $(if-expr $(VBOX_SVN_REV_CONFIG_FALLBACK) > $(VBOX_SVN_REV_VERSION_FALLBACK),$(VBOX_SVN_REV_CONFIG_FALLBACK),$(VBOX_SVN_REV_VERSION_FALLBACK))
  VBOX_SVN_DEP          := $(firstword $(wildcard $(PATH_ROOT)/.svn/wc.db $(abspath $(PATH_ROOT)/../.svn/wc.db) $(abspath $(PATH_ROOT)/../../.svn/wc.db) $(PATH_ROOT)/.svn/entries))
  ifeq ($(which $(SVN)),)

@@ -1169,14 +1169,14 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
         Bstr strCipher;
         Bstr strPasswordId;
         HRESULT hrc2 = machine->GetEncryptionSettings(strCipher.asOutParam(), strPasswordId.asOutParam());
+
+        SHOW_UTF8_STRING(      "encryption",              Info::tr("Encryption:"),
+                                                          SUCCEEDED(hrc2) ? "enabled" : "disabled");
         if (SUCCEEDED(hrc2))
         {
-            RTPrintf("Encryption:     enabled\n");
-            RTPrintf("Cipher:         %ls\n", strCipher.raw());
-            RTPrintf("Password ID:    %ls\n", strPasswordId.raw());
+            SHOW_BSTR_STRING(      "enc_cipher",          Info::tr("Cipher:"), strCipher);
+            SHOW_BSTR_STRING(      "enc_password_id",     Info::tr("Password ID:"), strPasswordId);
         }
-        else
-            RTPrintf("Encryption:     disabled\n");
     }
     SHOW_STRINGARRAY_PROP( machine, Groups,                     "groups",               Info::tr("Groups:"));
     Bstr osTypeId;
@@ -1372,7 +1372,7 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
     Bstr bstrNVRAMFile;
     CHECK_ERROR2I_RET(nvramStore, COMGETTER(NonVolatileStorageFile)(bstrNVRAMFile.asOutParam()), hrcCheck);
     if (bstrNVRAMFile.isNotEmpty())
-        SHOW_BSTR_STRING("BIOS NVRAM File", Info::tr("BIOS NVRAM File:"), bstrNVRAMFile);
+        SHOW_BSTR_STRING("NvramFile", Info::tr("BIOS NVRAM File:"), bstrNVRAMFile);
     SHOW_BOOLEAN_PROP_EX(machine,   RTCUseUTC, "rtcuseutc", Info::tr("RTC:"), "UTC", Info::tr("local time"));
     SHOW_BOOLEAN_METHOD(machine, GetHWVirtExProperty(HWVirtExPropertyType_Enabled,   &f),   "hwvirtex",     Info::tr("Hardware Virtualization:"));
     SHOW_BOOLEAN_METHOD(machine, GetHWVirtExProperty(HWVirtExPropertyType_NestedPaging, &f),"nestedpaging", Info::tr("Nested Paging:"));

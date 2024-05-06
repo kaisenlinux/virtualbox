@@ -19,6 +19,7 @@
 #include <cstring>
 #include <iterator>
 #include <type_traits>
+#include <stdint.h> /* VBox: for uint32_t and gcc 13.x */
 
 namespace dxvk::bit {
 

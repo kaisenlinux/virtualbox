@@ -56,6 +56,50 @@
 
     </sect2>
 
+    <sect2 id="install-win-installdir-req">
+
+      <title>Windows Installation Directory Security Requirements</title>
+
+      <para>
+        The installation directory on Windows hosts must meet certain security requirements, in
+        order to be accepted by the Windows installer.
+      </para>
+
+      <para>
+        This also applies for upgrades of &product-name;.
+      </para>
+      
+      <para>
+        For example, when installing &product-name; into a custom location at
+        X:\Data\MyPrograms\&product-name;, all parent directories of this path
+        (namely X:\Data and X:\Data\MyPrograms) have to meet the following
+        Discretionary Access Control List (DACL):
+        <screen>
+          Users               S-1-5-32-545:(OI)(CI)(RX)
+          Users               S-1-5-32-545:(DE,WD,AD,WEA,WA)
+          Authenticated Users S-1-5-11:(OI)(CI)(RX)
+          Authenticated Users S-1-5-11:(DE,WD,AD,WEA,WA)
+        </screen>
+        Directory inheritance must also be disabled for all parent directories.
+      </para>
+      
+      <para>
+        You can use the <command>icacls</command> Windows command line tool
+        to meet the security requirements. For example:
+        <screen>
+          icacls &lt;Directory&gt; /reset /t /c
+          icacls &lt;Directory&gt; /inheritance:d /t /c
+          icacls &lt;Directory&gt; /grant *S-1-5-32-545:(OI)(CI)(RX)
+          icacls &lt;Directory&gt; /deny  *S-1-5-32-545:(DE,WD,AD,WEA,WA)
+          icacls &lt;Directory&gt; /grant *S-1-5-11:(OI)(CI)(RX)
+          icacls &lt;Directory&gt; /deny  *S-1-5-11:(DE,WD,AD,WEA,WA)
+        </screen>
+        Note that these commands must be repeated for all parent directories
+        (X:\Data and X:\Data\MyPrograms in this example).
+      </para>
+    
+    </sect2>
+
     <sect2 id="install-win-performing">
 
       <title>Performing the Installation</title>
@@ -1363,60 +1407,72 @@ virtualbox virtualbox/delete-old-modules boolean true</screen>
 
     <sect2 id="solaris-zones">
 
-      <title>Configuring a Zone for Running &product-name;</title>
+      <title>Configuring a Non-Global Zone for Running &product-name;</title>
 
       <para>
-        Assuming that &product-name; has already been installed into
-        your zone, you need to give the zone access to &product-name;'s
-        device node. This is done by performing the following steps.
-        Start a root terminal and run the following command:
+        After installing &product-name; in the global zone
+        (see <xref linkend="install-solaris-host"/> for the installation instructions)
+        the first step required to run &product-name; in a
+        non-global zone is to modify the zone's configuration to be able to access the
+        &product-name; device nodes located in the global zone.
+        This is done by performing the following steps as a zone administrator in the global zone.
       </para>
 
-<screen>zonecfg -z <replaceable>vboxzone</replaceable></screen>
+<screen>global$ zonecfg -z <replaceable>vboxzone</replaceable></screen>
 
       <para>
         Replace <replaceable>vboxzone</replaceable> with the name of the
-        zone where you intend to run &product-name;.
+        non-global zone where you plan to run &product-name;.
       </para>
 
       <para>
-        Use <command>zonecfg</command> to add the
-        <literal>device</literal> resource and <literal>match</literal>
-        properties to the zone, as follows:
+        Use <command>zonecfg(8)</command> to add the
+        <literal>device</literal> resource and the <literal>match</literal>
+        property for each &product-name; device node in the global zone to
+        the non-global zone as follows:
       </para>
 
-<screen>zonecfg:vboxzone&gt;add device
-zonecfg:vboxzone:device&gt;set match=/dev/vboxdrv
-zonecfg:vboxzone:device&gt;end
-zonecfg:vboxzone&gt;add device
-zonecfg:vboxzone:device&gt;set match=/dev/vboxdrvu
-zonecfg:vboxzone:device&gt;end
-zonecfg:vboxzone&gt;exit</screen>
+<screen>zonecfg:vboxzone&gt; add device
+zonecfg:vboxzone:device&gt; set match=/dev/vboxdrv
+zonecfg:vboxzone:device&gt; end
+zonecfg:vboxzone&gt; add device
+zonecfg:vboxzone:device&gt; set match=/dev/vboxdrvu
+zonecfg:vboxzone:device&gt; end
+zonecfg:vboxzone&gt; exit</screen>
 
       <para>
-        On Oracle Solaris 11 or later, you may also add a device for
-        <filename>/dev/vboxusbmon</filename>, similar to that shown
-        above.
+        On Oracle Solaris 11 if you plan to use VMs configured to use a USB device, e.g. a USB
+        pointing device or a USB pass-through device, you should also pass through the
+        <filename>/dev/vboxusbmon</filename> device using the steps above.
       </para>
 
       <para>
-        If you are not using sparse root zones, you will need to
+        Oracle Solaris 11 doesn't support sparse root zones so you will need to
         loopback mount <filename>/opt/VirtualBox</filename> from the
         global zone into the non-global zone at the same path. This is
-        specified below using the <literal>dir</literal> attribute and
-        the <literal>special</literal> attribute. For example:
+        done using <command>zonecfg(8)</command> to set the <literal>dir</literal>
+        attribute and the <literal>special</literal> attribute for this directory.
+        For example:
       </para>
 
-<screen>zonecfg:vboxzone&gt;add fs
-zonecfg:vboxzone:device&gt;set dir=/opt/VirtualBox
-zonecfg:vboxzone:device&gt;set special=/opt/VirtualBox
-zonecfg:vboxzone:device&gt;set type=lofs
-zonecfg:vboxzone:device&gt;end
+<screen>zonecfg:vboxzone&gt; add fs
+zonecfg:vboxzone:fs&gt; set dir=/opt/VirtualBox
+zonecfg:vboxzone:fs&gt; set special=/opt/VirtualBox
+zonecfg:vboxzone:fs&gt; set type=lofs
+zonecfg:vboxzone:fs&gt; add options [readonly]
+zonecfg:vboxzone:fs&gt; end
 zonecfg:vboxzone&gt;exit</screen>
 
       <para>
-        Reboot the zone using <command>zoneadm</command> and you should
-        be able to run &product-name; from within the configured zone.
+        After making the above changes using <command>zonecfg(8)</command>, reboot the zone
+        using <command>zoneadm(8)</command> as follows:
+      </para>
+
+<screen>global$ zoneadm -z <replaceable>vboxzone</replaceable> reboot</screen>
+
+      <para>
+        for the changes to take effect.  You will then be able to run
+        &product-name; from /opt/VirtualBox within the configured non-global zone.
       </para>
 
     </sect2>

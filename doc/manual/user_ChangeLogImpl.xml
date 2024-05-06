@@ -73,6 +73,113 @@ Rules for adding a changelog entry to make them look more uniform:
                            So, we use chapter and xpointer="xpointer(/chapter/)" with xi:include. -->
   <sect1>
 
+    <title>Version 7.0.18 (2024-05-07)</title>
+
+    <para>This is a maintenance release. The following items were fixed and/or
+      added:</para>
+
+    <itemizedlist>
+
+      <listitem>
+       <para>Networking: Fixed an issue which caused host system crash
+         when VM was using bridged or host-only network adapter (bug #22045)</para>
+      </listitem>
+
+      <listitem>
+       <para>Linux Guest Additions: Added more fixes to prevent UBSAN
+         warnings (bug #21877)</para>
+      </listitem>
+
+      <listitem>
+       <para>Linux Guest Additions: Fixed issue when time stamps were displayed
+         incorrectly within mounted shared folder (bug #22047)</para>
+      </listitem>
+
+    </itemizedlist>
+  </sect1>
+
+  <sect1>
+
+    <title>Version 7.0.16 (2024-04-16)</title>
+
+    <para>This is a maintenance release. The following items were fixed and/or
+      added:</para>
+
+    <itemizedlist>
+
+      <listitem>
+       <para>VMM: Fixed a guru meditation executing nested-guests using the KVM hypervisor in the
+         guest on Intel hosts (bug #21805)</para>
+      </listitem>
+
+      <listitem>
+       <para>VMM: Fixed Linux VM crash on some recent AMD models</para>
+      </listitem>
+
+      <listitem>
+       <para>USB: Fixed issue when EHCI controller was mishandling short
+         packets (bug #20726)</para>
+      </listitem>
+
+      <listitem>
+       <para>Audio: Introduced general improvements</para>
+      </listitem>
+
+      <listitem>
+       <para>VBoxManage and vboximg-mount: Updated usage information and
+         documentation (bugs #21895, #21992 and #21993)</para>
+      </listitem>
+
+      <listitem>
+       <para>Guest Control: Fixed starting Windows guest processes in the correct Windows session
+         (7.0 regression)</para>
+      </listitem>
+
+      <listitem>
+       <para>Linux Host: Fixed issue when VBox.sh was deleting wrong VBoxSVC IPC socket
+         when VM was started using sudo (bug #20928)</para>
+      </listitem>
+
+      <listitem>
+       <para>Linux Host: Fixed kernel modules build failure when using GCC 13.2</para>
+      </listitem>
+
+      <listitem>
+       <para>macOS Host: Fixed issue when App Nap was affecting VM performance (bug #18678)</para>
+      </listitem>
+
+      <listitem>
+       <para>Linux Host and Guest: Added fixes related to UBSAN warnings discovered on
+         recent Linux distributions (bug #21877)</para>
+      </listitem>
+
+      <listitem>
+       <para>Linux Host and Guest: Added possibility to prevent kernel module
+         from automatic loading during system boot by adding mod_name.disabled=1 into
+         kernel command line</para>
+      </listitem>
+
+      <listitem>
+       <para>Linux Host and Guest: Added initial support for kernel 6.9 (bug #22033)</para>
+      </listitem>
+
+      <listitem>
+       <para>Linux Host and Guest: Fixed mk_pte warning introduced in kernel 6.6 (bug #21898)</para>
+      </listitem>
+
+      <listitem>
+       <para>Linux Guest Additions: Added initial support for kernel 6.8</para>
+      </listitem>
+
+      <listitem>
+       <para>Windows Guest Additions: Introduced general improvements in graphics area</para>
+      </listitem>
+
+    </itemizedlist>
+  </sect1>
+
+  <sect1>
+
     <title>Version 7.0.14 (2024-01-16)</title>
 
     <para>This is a maintenance release. The following items were fixed and/or
@@ -108,7 +215,7 @@ Rules for adding a changelog entry to make them look more uniform:
       <listitem>
         <para>Devices: Fixed a problem where Windows guests "forget" in-progress
           touch events when the user holds down a finger without moving it for
-          a period of time.</para>
+          a period of time</para>
       </listitem>
 
       <listitem>
@@ -140,7 +247,7 @@ Rules for adding a changelog entry to make them look more uniform:
 
       <listitem>
         <para>RDP: Fix possible crash when connecting with the Apple Silicon
-          variant of the Microsoft Remote Desktop application (bug #21820).</para>
+          variant of the Microsoft Remote Desktop application (bug #21820)</para>
       </listitem>
 
       <listitem>
@@ -228,7 +335,7 @@ Rules for adding a changelog entry to make them look more uniform:
       </listitem>
 
       <listitem>
-        <para>Unattended: Added kick start file support for Oracle Linux 8 and Oracle Linux 9.</para>
+        <para>Unattended: Added kick start file support for Oracle Linux 8 and Oracle Linux 9</para>
       </listitem>
 
       <listitem>
@@ -624,7 +731,7 @@ Rules for adding a changelog entry to make them look more uniform:
       </listitem>
 
       <listitem>
-        <para>GUI: Added a new menu item to the devices menu to optionally upgrade the guest additions.</para>
+        <para>GUI: Added a new menu item to the devices menu to optionally upgrade the guest additions</para>
       </listitem>
 
       <listitem>
@@ -792,22 +899,22 @@ Rules for adding a changelog entry to make them look more uniform:
 
       <listitem>
         <para>GUI: Improved theme support on all platforms. Linux and macOS
-          use native engine while for Windows host it is separately implemented.</para>
+          use native engine while for Windows host it is separately implemented</para>
       </listitem>
 
       <listitem>
-        <para>GUI: Large icon update.</para>
+        <para>GUI: Large icon update</para>
       </listitem>
 
       <listitem>
         <para>Audio recording: Now using Vorbis as the default audio format for WebM containers.
-          Opus is no longer being used.</para>
+          Opus is no longer being used</para>
       </listitem>
 
       <listitem>
         <para>Audio: Added "default" host driver type to make it possible to move VMs (appliances) between different platforms
           without the need of changing the audio driver explicitly. When the "default" driver is selected, the best audio backend
-          option for a platform will be used. This is the default for newly created VMs.</para>
+          option for a platform will be used. This is the default for newly created VMs</para>
       </listitem>
 
       <listitem>
@@ -835,13 +942,13 @@ Rules for adding a changelog entry to make them look more uniform:
         <para>macOS host: Dropped all kernel extensions. VirtualBox relies fully on
           the hypervisor and vmnet frameworks provided by Apple now. At the moment
           the implementation lacks "Internal Networking" functionality. This will be
-          provided at a later date.</para>
+          provided at a later date</para>
       </listitem>
 
       <listitem>
         <para>macOS host: Providing a Developer Preview package for systems with
           an Apple silicon CPU. This is unsupported work in progress, and is known
-          to have very modest performance.</para>
+          to have very modest performance</para>
       </listitem>
 
       <listitem>
@@ -922,7 +1029,7 @@ Rules for adding a changelog entry to make them look more uniform:
       </listitem>
 
       <listitem>
-        <para>GUI: Migrating to recent Qt versions.</para>
+        <para>GUI: Migrating to recent Qt versions</para>
       </listitem>
 
     </itemizedlist>

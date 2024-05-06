@@ -73,6 +73,7 @@
 #include <VBox/intnetinline.h>
 #include <VBox/vmm/pdmnetinline.h>
 #include <VBox/param.h>
+#include <VBox/VBoxLnxModInline.h>
 #include <iprt/alloca.h>
 #include <iprt/assert.h>
 #include <iprt/spinlock.h>
@@ -165,6 +166,17 @@ typedef struct VBOXNETFLTNOTIFIER *PVBOXNETFLTNOTIFIER;
 #  define qstats stats
 # endif
 #endif
+
+#if RTLNX_VER_MIN(6,9,0)
+# define VBOX_SKB_FRAG_LEN(_pFrag)       ((_pFrag)->len)
+# define VBOX_SKB_FRAG_OFFSET(_pFrag)    ((_pFrag)->offset)
+#elif RTLNX_VER_MIN(5,4,0) || RTLNX_SUSE_MAJ_PREREQ(15, 2)
+# define VBOX_SKB_FRAG_LEN(_pFrag)       ((_pFrag)->bv_len)
+# define VBOX_SKB_FRAG_OFFSET(_pFrag)    ((_pFrag)->bv_offset)
+#else /* < KERNEL_VERSION(5, 4, 0) */
+# define VBOX_SKB_FRAG_LEN(_pFrag)       ((_pFrag)->size)
+# define VBOX_SKB_FRAG_OFFSET(_pFrag)    ((_pFrag)->page_offset)
+#endif /* > KERNEL_VERSION(6, 9, 0) */
 
 #if RTLNX_VER_MIN(3,20,0) || RTLNX_RHEL_RANGE(7,2,  8,0) || RTLNX_RHEL_RANGE(6,8,  7,0)
 # define VBOX_HAVE_SKB_VLAN
@@ -273,6 +285,11 @@ unsigned dev_get_flags(const struct net_device *dev)
 static int __init VBoxNetFltLinuxInit(void)
 {
     int rc;
+
+    /* Check if modue loading was disabled. */
+    if (!vbox_mod_should_load())
+        return -EINVAL;
+
     /*
      * Initialize IPRT.
      */
@@ -926,13 +943,8 @@ static void vboxNetFltLinuxSkBufToSG(PVBOXNETFLTINS pThis, struct sk_buff *pBuf,
     for (i = 0; i < skb_shinfo(pBuf)->nr_frags; i++)
     {
         skb_frag_t *pFrag = &skb_shinfo(pBuf)->frags[i];
-# if RTLNX_VER_MIN(5,4,0) || RTLNX_SUSE_MAJ_PREREQ(15, 2)
-        pSG->aSegs[iSeg].cb = pFrag->bv_len;
-        pSG->aSegs[iSeg].pv = VBOX_SKB_KMAP_FRAG(pFrag) + pFrag->bv_offset;
-# else /* < KERNEL_VERSION(5, 4, 0) */
-        pSG->aSegs[iSeg].cb = pFrag->size;
-        pSG->aSegs[iSeg].pv = VBOX_SKB_KMAP_FRAG(pFrag) + pFrag->page_offset;
-# endif /* >= KERNEL_VERSION(5, 4, 0) */
+        pSG->aSegs[iSeg].cb = VBOX_SKB_FRAG_LEN(pFrag);
+        pSG->aSegs[iSeg].pv = VBOX_SKB_KMAP_FRAG(pFrag) + VBOX_SKB_FRAG_OFFSET(pFrag);
         Log6((" %p", pSG->aSegs[iSeg].pv));
         pSG->aSegs[iSeg++].Phys = NIL_RTHCPHYS;
         Assert(iSeg <= pSG->cSegsAlloc);
@@ -947,13 +959,8 @@ static void vboxNetFltLinuxSkBufToSG(PVBOXNETFLTINS pThis, struct sk_buff *pBuf,
         for (i = 0; i < skb_shinfo(pFragBuf)->nr_frags; i++)
         {
             skb_frag_t *pFrag = &skb_shinfo(pFragBuf)->frags[i];
-# if RTLNX_VER_MIN(5,4,0) || RTLNX_SUSE_MAJ_PREREQ(15, 2)
-            pSG->aSegs[iSeg].cb = pFrag->bv_len;
-            pSG->aSegs[iSeg].pv = VBOX_SKB_KMAP_FRAG(pFrag) + pFrag->bv_offset;
-# else /* < KERNEL_VERSION(5, 4, 0) */
-            pSG->aSegs[iSeg].cb = pFrag->size;
-            pSG->aSegs[iSeg].pv = VBOX_SKB_KMAP_FRAG(pFrag) + pFrag->page_offset;
-# endif /* >= KERNEL_VERSION(5, 4, 0) */
+            pSG->aSegs[iSeg].cb = VBOX_SKB_FRAG_LEN(pFrag);
+            pSG->aSegs[iSeg].pv = VBOX_SKB_KMAP_FRAG(pFrag) + VBOX_SKB_FRAG_OFFSET(pFrag);
             Log6((" %p", pSG->aSegs[iSeg].pv));
             pSG->aSegs[iSeg++].Phys = NIL_RTHCPHYS;
             Assert(iSeg <= pSG->cSegsAlloc);

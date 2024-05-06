@@ -1,3 +1,125 @@
+virtualbox (7.0.18-1kaisen) kaisen-packages; urgency=medium
+
+  * Import the 7.0.18 release
+
+ -- Kevin Chevreuil - Kaisen <kaisen@kaisenlinux.org>  Mon, 06 May 2024 12:52:52 +0100
+
+virtualbox (7.0.18-dfsg-1) unstable; urgency=medium
+
+  * New upstream version 7.0.18-dfsg
+  * Fixup link for tarball import
+  * Drop patch 162843, upstream. Refresh vnc patch
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Fri, 03 May 2024 16:44:26 +0200
+
+virtualbox (7.0.16-dfsg-9) unstable; urgency=medium
+
+  * Drop old NEWS file
+  * Update dependency of libgl1-mesa-dev
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Fri, 03 May 2024 11:29:23 +0200
+
+virtualbox (7.0.16-dfsg-8) unstable; urgency=medium
+
+  * Drop dh_installsystemd.
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Fri, 03 May 2024 09:43:22 +0200
+
+virtualbox (7.0.16-dfsg-7) unstable; urgency=medium
+
+  * replace dh_systemd_enable with dh_installsystemd
+  * Drop old lintian override
+  * Drop priority optional, useless. Move package to contrib/oldlibs instead of just oldlibs
+  * Drop X-Python-Version
+  * Drop NEWS file
+  * Fix duplicate long description
+  * Fix duplicate short description
+  * Drop debug symbols migration code.
+  * Bump compat level to 13
+  * Drop trailing whitespace
+  * Bump std-version to 4.7.0
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Fri, 03 May 2024 08:46:00 +0200
+
+virtualbox (7.0.16-dfsg-6) unstable; urgency=medium
+
+  * Add versioning to breaks/replaces
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Thu, 02 May 2024 20:25:27 +0200
+
+virtualbox (7.0.16-dfsg-5) unstable; urgency=medium
+
+  * Add -hwe as transitional packages (To be dropped after 26.04)
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Sun, 28 Apr 2024 08:56:40 +0200
+
+virtualbox (7.0.16-dfsg-4) unstable; urgency=medium
+
+  * Provide hwe package, to let virtualbox-hwe disappear from
+    Ubuntu (and also xorg-lts-transitional)
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Sat, 27 Apr 2024 15:21:15 +0200
+
+virtualbox (7.0.16-dfsg-3) unstable; urgency=medium
+
+  * Add patch 162843 to fix an host crash with some network modes.
+    LP: #2063841
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Fri, 26 Apr 2024 12:51:11 +0200
+
+virtualbox (7.0.16-dfsg-2) unstable; urgency=medium
+
+  * Update manpages
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Wed, 17 Apr 2024 08:41:38 +0200
+
+virtualbox (7.0.16-dfsg-1) unstable; urgency=medium
+
+  * New upstream version 7.0.16-dfsg
+  * Update get-orig-source script
+  * Drop patches part of upstream codebase:
+    - 102989
+    - 102990
+    - 102992
+    - 102993
+    - 102994
+    - 102999
+    - 103024
+    - 103066
+    - 103067
+    - fix-kernel-build gcc-13
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Tue, 16 Apr 2024 23:14:45 +0200
+
+virtualbox (7.0.14-dfsg-4) unstable; urgency=medium
+
+  * Add patch from Xu Zhen (xuzhen666) to fix kernel module build LP: #2053024)
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Tue, 27 Feb 2024 17:02:07 +0100
+
+virtualbox (7.0.14-dfsg-3) unstable; urgency=medium
+
+  * Install man page for help (LP: #2054788)
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Tue, 27 Feb 2024 11:13:01 +0100
+
+virtualbox (7.0.14-dfsg-2) unstable; urgency=medium
+
+  * Cherry-pick upstream fixes for kernel 6.8 and USBSAN (LP: #2053024
+    LP: #2037082, Closes: #1061917)
+  * debian/patches:
+    - 102989.patch
+    - 102990.patch
+    - 102992.patch
+    - 102993.patch
+    - 102994.patch
+    - 102999.patch
+    - 103024.patch
+    - 103066.patch
+    - 103067.patch
+
+ -- Gianfranco Costamagna <locutusofborg@debian.org>  Mon, 19 Feb 2024 16:43:37 +0100
+
 virtualbox (7.0.14-2kaisen) kaisen-packages; urgency=medium
 
   * Add the linux-headers-amd64 and dkms packages as dependancy for virtualbox-dkms

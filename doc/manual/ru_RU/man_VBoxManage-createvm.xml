@@ -30,7 +30,7 @@
 ]>
 <refentry id="vboxmanage-createvm" lang="en">
   <refentryinfo>
-    <pubdate>$Date: 2023-01-17 15:15:46 +0100 (Tue, 17 Jan 2023) $</pubdate>
+    <pubdate>$Date: 2024-02-19 16:32:13 +0100 (Mon, 19 Feb 2024) $</pubdate>
     <title>VBoxManage createvm</title>
   </refentryinfo>
 
@@ -52,7 +52,7 @@
       <arg choice="req">--name=<replaceable>имя-ВМ</replaceable></arg>
       <arg>--basefolder=<replaceable>основная-папка</replaceable></arg>
       <arg>--default</arg>
-      <arg>--group=<replaceable>ID-группы</replaceable>,...</arg>
+      <arg>--groups=<replaceable>ID-группы</replaceable>,...</arg>
       <arg>--ostype=<replaceable>тип-ОС</replaceable></arg>
       <arg>--register</arg>
       <arg>--uuid=<replaceable>uuid</replaceable></arg>
@@ -108,7 +108,7 @@
           </para></listitem>
       </varlistentry>
       <varlistentry>
-        <term><option>--group=<replaceable>ID-группы</replaceable>,...</option></term>
+        <term><option>--groups=<replaceable>ID-группы</replaceable>,...</option></term>
         <listitem><para>
             Назначает ВМ на указанные группы. Если указывается более
             чем одна группа, разделите их запятыми.

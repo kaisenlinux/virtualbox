@@ -4843,7 +4843,7 @@
     <message>
         <source>Dynamically allocated storage</source>
         <comment>MediumVariant</comment>
-        <translation>Almacenamiento resevado dinámicamente</translation>
+        <translation>Almacenamiento reservado dinámicamente</translation>
     </message>
     <message>
         <source>New dynamically allocated storage</source>
@@ -4853,7 +4853,7 @@
     <message>
         <source>Dynamically allocated differencing storage</source>
         <comment>MediumVariant</comment>
-        <translation>Almacenamiento diferenciado resevado dinámicamente</translation>
+        <translation>Almacenamiento diferenciado reservado dinámicamente</translation>
     </message>
     <message>
         <source>Fixed size storage</source>
@@ -4878,7 +4878,7 @@
     <message>
         <source>Dynamically allocated compressed storage</source>
         <comment>MediumVariant</comment>
-        <translation>Almacenamiento comprimido resevado dinámicamente</translation>
+        <translation>Almacenamiento comprimido reservado dinámicamente</translation>
     </message>
     <message>
         <source>Dynamically allocated differencing compressed storage</source>
@@ -31727,7 +31727,7 @@ Versión %1</translation>
     </message>
     <message>
         <source>Dynamically allocated storage</source>
-        <translation type="obsolete">Almacenamiento resevado dinámicamente</translation>
+        <translation type="obsolete">Almacenamiento reservado dinámicamente</translation>
     </message>
     <message>
         <source>Fixed size storage</source>
@@ -31833,12 +31833,12 @@ Versión %1</translation>
     <message>
         <source>Dynamically allocated storage</source>
         <comment>MediumVariant</comment>
-        <translation type="vanished">Almacenamiento resevado dinámicamente</translation>
+        <translation type="vanished">Almacenamiento reservado dinámicamente</translation>
     </message>
     <message>
         <source>Dynamically allocated differencing storage</source>
         <comment>MediumVariant</comment>
-        <translation type="vanished">Almacenamiento diferenciado resevado dinámicamente</translation>
+        <translation type="vanished">Almacenamiento diferenciado reservado dinámicamente</translation>
     </message>
     <message>
         <source>Fixed size storage</source>
@@ -31863,7 +31863,7 @@ Versión %1</translation>
     <message>
         <source>Dynamically allocated compressed storage</source>
         <comment>MediumVariant</comment>
-        <translation type="vanished">Almacenamiento comprimido resevado dinámicamente</translation>
+        <translation type="vanished">Almacenamiento comprimido reservado dinámicamente</translation>
     </message>
     <message>
         <source>Dynamically allocated differencing compressed storage</source>

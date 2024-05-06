@@ -55,6 +55,15 @@
 #include <iprt/param.h>
 #include <iprt/uuid.h>
 
+#if defined(RT_OS_LINUX)
+# if RTLNX_VER_MIN(4,15,10)
+#  include <asm/nospec-branch.h>
+# endif /* < 4.15.10 */
+# if RTLNX_VER_MIN(5,17,0)
+#  include <asm/linkage.h>
+# endif /* < 5.17.0 */
+#endif /* !RT_OS_LINUX */
+
 
 /*********************************************************************************************************************************
 *   Structures and Typedefs                                                                                                      *
@@ -96,7 +105,8 @@ typedef struct SUPDRVTPPROVIDER
      *  tracer. */
     bool                    fRegistered;
     /** The provider name (for logging purposes). */
-    char                    szName[1];
+    RT_FLEXIBLE_ARRAY_EXTENSION
+    char                    szName[RT_FLEXIBLE_ARRAY];
 } SUPDRVTPPROVIDER;
 /** Pointer to the data for a tracepoint provider. */
 typedef SUPDRVTPPROVIDER *PSUPDRVTPPROVIDER;
@@ -161,7 +171,8 @@ typedef struct SUPDRVTRACERUMOD
     /** The number of probe locations. */
     uint32_t                cProbeLocs;
     /** Ring-0 probe location info. */
-    SUPDRVPROBELOC          aProbeLocs[1];
+    RT_FLEXIBLE_ARRAY_EXTENSION
+    SUPDRVPROBELOC          aProbeLocs[RT_FLEXIBLE_ARRAY];
 } SUPDRVTRACERUMOD;
 /** Magic value for SUPDRVVTGCOPY. */
 #define SUPDRVTRACERUMOD_MAGIC UINT32_C(0x00080486)
@@ -1495,11 +1506,25 @@ SUPR0TracerFireProbe:                                                   \n\
 # if   defined(RT_ARCH_AMD64)
 __asm__("\
             movq    g_pfnSupdrvProbeFireKernel(%rip), %rax              \n\
+            "
+#  if defined(RT_OS_LINUX)
+#   if RTLNX_VER_MIN(4,15,10)
+            ANNOTATE_RETPOLINE_SAFE
+#   endif
+#  endif
+            " \n\
             jmp     *%rax \n\
 ");
 # elif defined(RT_ARCH_X86)
 __asm__("\
             movl    g_pfnSupdrvProbeFireKernel, %eax                    \n\
+            "
+#  if defined(RT_OS_LINUX)
+#   if RTLNX_VER_MIN(4,15,10)
+            ANNOTATE_RETPOLINE_SAFE
+#   endif
+#  endif
+            " \n\
             jmp     *%eax \n\
 ");
 # else
@@ -1511,8 +1536,20 @@ __asm__("\
         .type supdrvTracerProbeFireStub,@function                       \n\
         .global supdrvTracerProbeFireStub                               \n\
 supdrvTracerProbeFireStub:                                              \n\
-        ret                                                             \n\
-        .size supdrvTracerProbeFireStub, . - supdrvTracerProbeFireStub  \n\
+        "
+# if defined(RT_OS_LINUX)
+#  if RTLNX_VER_MIN(5,17,0)
+        ASM_RET "\n\
+        "
+#  else /* < 5.17.0 */
+        "ret \n\
+        "
+#  endif /* < 5.17.0 */
+# else /* !RT_OS_LINUX */
+        "ret \n\
+        "
+# endif /* !RT_OS_LINUX */
+        ".size supdrvTracerProbeFireStub, . - supdrvTracerProbeFireStub  \n\
                                                                         \n\
         .previous                                                       \n\
 ");

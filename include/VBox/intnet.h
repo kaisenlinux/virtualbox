@@ -348,14 +348,15 @@ typedef struct INTNETSG
     uint16_t volatile   fFlags;
 #if ARCH_BITS == 64
     /** Alignment padding. */
-    uint16_t            uPadding;
+    uint32_t            uPadding;
 #endif
     /** The number of segments allocated. */
     uint16_t            cSegsAlloc;
     /** The number of segments actually used. */
     uint16_t            cSegsUsed;
     /** Variable sized list of segments. */
-    INTNETSEG           aSegs[1];
+    RT_FLEXIBLE_ARRAY_EXTENSION
+    INTNETSEG           aSegs[RT_FLEXIBLE_ARRAY];
 } INTNETSG;
 AssertCompileSizeAlignment(INTNETSG, 8);
 /** Pointer to a scatter / gather list. */

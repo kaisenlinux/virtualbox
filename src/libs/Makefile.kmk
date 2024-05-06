@@ -42,8 +42,8 @@ if   defined(VBOX_WITH_LIBCURL) \
   && !defined(VBOX_ONLY_EXTPACKS_USE_IMPLIBS) \
   && !defined(VBOX_ONLY_SDK) \
   && (!defined(VBOX_ONLY_VALIDATIONKIT) || defined(VBOX_WITH_VALIDATIONKIT_UNITTESTS_PACKING)) \
-  && "$(SDK_VBoxLibCurl_INCS)" == "$(PATH_ROOT)/src/libs/curl-8.4.0/include"
- include $(PATH_SUB_CURRENT)/curl-8.4.0/Makefile.kmk
+  && "$(SDK_VBoxLibCurl_INCS)" == "$(PATH_ROOT)/src/libs/curl-8.7.1/include"
+ include $(PATH_SUB_CURRENT)/curl-8.7.1/Makefile.kmk
 endif
 
 
@@ -74,7 +74,7 @@ endif
 if   defined(VBOX_WITH_LIBSSH) \
   && !defined(VBOX_ONLY_BUILD) \
   && "$(intersects $(KBUILD_TARGET_ARCH),$(VBOX_SUPPORTED_HOST_ARCHS))" != ""
- include $(PATH_SUB_CURRENT)/libssh-0.10.5/Makefile.kmk
+ include $(PATH_SUB_CURRENT)/libssh-0.10.6/Makefile.kmk
 endif
 
 
@@ -90,8 +90,8 @@ endif
 if   !defined(VBOX_ONLY_EXTPACKS_USE_IMPLIBS) \
   && !defined(VBOX_ONLY_ADDITIONS) \
   && !defined(VBOX_ONLY_SDK)
- ifeq ($(SDK_VBoxLibXml2_INCS),$(PATH_ROOT)/src/libs/libxml2-2.9.14/include)
-  include $(PATH_SUB_CURRENT)/libxml2-2.9.14/Makefile.kmk
+ ifeq ($(SDK_VBoxLibXml2_INCS),$(PATH_ROOT)/src/libs/libxml2-2.12.6/include)
+  include $(PATH_SUB_CURRENT)/libxml2-2.12.6/Makefile.kmk
  endif
 endif
 
@@ -101,7 +101,7 @@ if   !defined(VBOX_ONLY_SDK) \
   && (!defined(VBOX_ONLY_ADDITIONS) || !defined(VBOX_ONLY_ADDITIONS_WITHOUT_RTISOMAKER)) \
   && (!defined(VBOX_ONLY_EXTPACKS) || defined(VBOX_NEED_EXTPACK_OPENSSL) || defined(VBOX_WITH_BLD_RTSIGNTOOL_SIGNING) || !defined(VBOX_ONLY_EXTPACKS_USE_IMPLIBS)) \
   && ("$(SDK_VBoxOpenSslStatic_INCS)" == "$(SDK_VBoxOpenSslStatic_VBOX_DEFAULT_INCS)" || defined(VBOX_NEED_EXTPACK_OPENSSL))
- include $(PATH_SUB_CURRENT)/openssl-3.1.4/Makefile.kmk
+ include $(PATH_SUB_CURRENT)/openssl-3.1.5/Makefile.kmk
 endif
 
 

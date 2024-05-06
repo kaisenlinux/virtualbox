@@ -730,6 +730,7 @@ static DECLCALLBACK(VBOXSTRICTRC) ich9pciMcfgMMIORead(PPDMDEVINS pDevIns, void *
                 break;
             default:
                 ASSERT_GUEST_MSG_FAILED(("cb=%u off=%RGp\n", cb, off)); /** @todo how the heck should this work? Split it, right? */
+                rcStrict = VINF_IOM_MMIO_UNUSED_00;
                 break;
         }
     }

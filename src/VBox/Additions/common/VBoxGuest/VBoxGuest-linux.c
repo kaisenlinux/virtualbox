@@ -79,6 +79,7 @@
 #include <iprt/string.h>
 #include <VBox/err.h>
 #include <VBox/log.h>
+#include <VBox/VBoxLnxModInline.h>
 
 
 /*********************************************************************************************************************************
@@ -660,6 +661,10 @@ static int __init vgdrvLinuxModInit(void)
     static const char * const   s_apszGroups[] = VBOX_LOGGROUP_NAMES;
     PRTLOGGER                   pRelLogger;
     int                         rc;
+
+    /* Check if modue loading was disabled. */
+    if (!vbox_mod_should_load())
+        return -EINVAL;
 
     /*
      * Initialize IPRT first.
@@ -1361,8 +1366,7 @@ static int vgdrvLinuxParamLogGrpSet(const char *pszValue, CONST_4_15 struct kern
             RTLogGroupSettings(pLogger, pszValue);
     }
     else if (pParam->name[0] != 'd')
-        strlcpy(&g_szLogGrp[0], pszValue, sizeof(g_szLogGrp));
-
+        RTStrCopy(&g_szLogGrp[0], sizeof(g_szLogGrp), pszValue);
     return 0;
 }
 
@@ -1387,7 +1391,7 @@ static int vgdrvLinuxParamLogFlagsSet(const char *pszValue, CONST_4_15 struct ke
             RTLogFlags(pLogger, pszValue);
     }
     else if (pParam->name[0] != 'd')
-        strlcpy(&g_szLogFlags[0], pszValue, sizeof(g_szLogFlags));
+        RTStrCopy(&g_szLogFlags[0], sizeof(g_szLogFlags), pszValue);
     return 0;
 }
 
@@ -1412,7 +1416,7 @@ static int vgdrvLinuxParamLogDstSet(const char *pszValue, CONST_4_15 struct kern
             RTLogDestinations(pLogger, pszValue);
     }
     else if (pParam->name[0] != 'd')
-        strlcpy(&g_szLogDst[0], pszValue, sizeof(g_szLogDst));
+        RTStrCopy(&g_szLogDst[0], sizeof(g_szLogDst), pszValue);
     return 0;
 }
 

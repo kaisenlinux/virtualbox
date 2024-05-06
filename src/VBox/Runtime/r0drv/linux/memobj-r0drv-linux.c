@@ -144,7 +144,8 @@ typedef struct RTR0MEMOBJLNX
     /** The pages in the apPages array. */
     size_t              cPages;
     /** Array of struct page pointers. (variable size) */
-    struct page        *apPages[1];
+    RT_FLEXIBLE_ARRAY_EXTENSION
+    struct page        *apPages[RT_FLEXIBLE_ARRAY];
 } RTR0MEMOBJLNX;
 /** Pointer to the linux memory object. */
 typedef RTR0MEMOBJLNX *PRTR0MEMOBJLNX;
@@ -215,9 +216,21 @@ static pgprot_t rtR0MemObjLinuxConvertProt(unsigned fProt, bool fKernel)
 #if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64)
             if (fKernel)
             {
+# if RTLNX_VER_MIN(6,6,0)
+                /* In kernel 6.6 mk_pte() macro was fortified with additional
+                 * check which does not allow to use our custom mask anymore
+                 * (see kernel commit ae1f05a617dcbc0a732fbeba0893786cd009536c).
+                 * For this particular mapping case, an existing mask PAGE_KERNEL_ROX
+                 * can be used instead. PAGE_KERNEL_ROX was introduced in
+                 * kernel 5.8, however, lets apply it for kernels 6.6 and newer
+                 * to be on a safe side.
+                 */
+                return PAGE_KERNEL_ROX;
+# else
                 pgprot_t fPg = MY_PAGE_KERNEL_EXEC;
                 pgprot_val(fPg) &= ~_PAGE_RW;
                 return fPg;
+# endif
             }
             return PAGE_READONLY_EXEC;
 #else
@@ -1174,7 +1187,11 @@ RTDECL(struct page *) rtR0MemObjLinuxVirtToPage(void *pv)
     u.Four  = *p4d_offset(&u.Global, ulAddr);
     if (RT_UNLIKELY(p4d_none(u.Four)))
         return NULL;
+#   if RTLNX_VER_MIN(5,6,0)
+    if (p4d_leaf(u.Four))
+#   else        
     if (p4d_large(u.Four))
+#   endif    
     {
         pPage = p4d_page(u.Four);
         AssertReturn(pPage, NULL);
@@ -1190,7 +1207,11 @@ RTDECL(struct page *) rtR0MemObjLinuxVirtToPage(void *pv)
     if (RT_UNLIKELY(pud_none(u.Upper)))
         return NULL;
 # if RTLNX_VER_MIN(2,6,25)
+#   if RTLNX_VER_MIN(5,6,0)
+    if (pud_leaf(u.Upper))
+#   else
     if (pud_large(u.Upper))
+#   endif    
     {
         pPage = pud_page(u.Upper);
         AssertReturn(pPage, NULL);
@@ -1206,7 +1227,11 @@ RTDECL(struct page *) rtR0MemObjLinuxVirtToPage(void *pv)
     if (RT_UNLIKELY(pmd_none(u.Middle)))
         return NULL;
 #if RTLNX_VER_MIN(2,6,0)
+#  if RTLNX_VER_MIN(5,6,0)
+    if (pmd_leaf(u.Middle))
+#  else
     if (pmd_large(u.Middle))
+#  endif    
     {
         pPage = pmd_page(u.Middle);
         AssertReturn(pPage, NULL);

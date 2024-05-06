@@ -450,6 +450,8 @@ VSCSILUNDESC g_VScsiLunTypeSsc =
     "SSC",
     /** cbLun */
     sizeof(VSCSILUNSSC),
+    /** pacbCdbOpc */
+    NULL,
     /** cSupOpcInfo */
     0,
     /** paSupOpcInfo */

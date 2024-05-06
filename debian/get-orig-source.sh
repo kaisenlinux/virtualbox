@@ -70,4 +70,4 @@ tar --exclude .svn --exclude '.git*' --exclude debian --directory ${WORKING_DIR}
 rm -rf ${ORIG_TARBALL_DIR}
 
 echo "Done, now you can run:"
-echo "gbp import-orig ../${PACKAGE_NAME}_${UPSTREAM_VERSION}.orig.tar.xz"
+echo "gbp import-orig ${DEST_TARBALL_NAME}"

@@ -39,7 +39,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 162363 $"
 
 
 # Standard Python imports.
@@ -301,7 +301,7 @@ def getHostOsVersion():
         sVersion += ' / OS X ' + sOsxVersion + ' (' + getMacVersionName(sOsxVersion) + ')'
 
     elif sOs == 'win':
-        class OSVersionInfoEx(ctypes.Structure):
+        class OSVersionInfoEx(ctypes.Structure): # pylint: disable=used-before-assignment
             """ OSVERSIONEX """
             kaFields = [
                     ('dwOSVersionInfoSize', ctypes.c_ulong),
@@ -424,7 +424,7 @@ def openNoDenyDeleteNoInherit(sFile, sMode = 'r'):
         # Need to use CreateFile directly to open the file so we can feed it FILE_SHARE_DELETE.
         # pylint: disable=no-member,c-extension-no-member
         fAccess = 0;
-        fDisposition = win32file.OPEN_EXISTING;
+        fDisposition = win32file.OPEN_EXISTING; # pylint: disable=used-before-assignment
         if 'r' in sMode or '+' in sMode:
             fAccess |= win32file.GENERIC_READ;
         if 'a' in sMode:
@@ -458,7 +458,7 @@ def openNoDenyDeleteNoInherit(sFile, sMode = 'r'):
             fOpen |= os.O_APPEND;
         if 'b' in sMode or 't' in sMode:
             fOpen |= os.O_TEXT;                                         # pylint: disable=no-member
-        fdFile = msvcrt.open_osfhandle(hDetachedFile, fOpen);
+        fdFile = msvcrt.open_osfhandle(hDetachedFile, fOpen);           # pylint: disable=used-before-assignment
 
         # Tell python to use this handle.
         oFile = os.fdopen(fdFile, sMode);
@@ -1016,8 +1016,8 @@ def processExists(uPid):
         try:
             hProcess = win32api.OpenProcess(win32con.SYNCHRONIZE,           # pylint: disable=no-member,c-extension-no-member
                                             False, uPid);
-        except pywintypes.error as oXcpt:                                   # pylint: disable=no-member
-            if oXcpt.winerror == winerror.ERROR_ACCESS_DENIED:
+        except pywintypes.error as oXcpt:                                   # pylint: disable=no-member,used-before-assignment
+            if oXcpt.winerror == winerror.ERROR_ACCESS_DENIED:              # pylint: disable=used-before-assignment
                 fRc = True;
         except:
             pass;

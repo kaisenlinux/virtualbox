@@ -979,10 +979,12 @@ typedef struct ESCMD
     unsigned char   uReserved2 : 3;
     /** Length of the SCSI CDB. */
     uint8_t         cbCDB;
-    /** The SCSI CDB.  (A CDB can be 12 bytes long.)   */
-    uint8_t         abCDB[12];
+    /** The SCSI CDB.  (A CDB from our BIOS can be up to 16 bytes long
+     * which works with our emulation even though the original BusLogic HBA
+     * supports only 12 byte CDBs). */
+    uint8_t         abCDB[16];
 } ESCMD, *PESCMD;
-AssertCompileSize(ESCMD, 24);
+AssertCompileSize(ESCMD, 28);
 
 /**
  * Task state for a CCB request.
@@ -3161,7 +3163,8 @@ static int buslogicR3DeviceSCSIRequestSetup(PPDMDEVINS pDevIns, PBUSLOGIC pThis,
     blPhysReadMeta(pDevIns, pThis, GCPhysAddrCCB, &CCBGuest, sizeof(CCB32));
 
     uTargetIdCCB = pThis->fMbxIs24Bit ? CCBGuest.o.uTargetId : CCBGuest.n.uTargetId;
-    if (RT_LIKELY(uTargetIdCCB < RT_ELEMENTS(pThisCC->aDeviceStates)))
+    if (   RT_LIKELY(uTargetIdCCB < RT_ELEMENTS(pThisCC->aDeviceStates))
+        && CCBGuest.c.cbCDB <= RT_ELEMENTS(CCBGuest.c.abCDB))
     {
         PBUSLOGICDEVICE pTgtDev = &pThisCC->aDeviceStates[uTargetIdCCB];
 
@@ -3378,7 +3381,7 @@ static void buslogicR3ProcessBiosReq(PPDMDEVINS pDevIns, PBUSLOGIC pThis, PBUSLO
     PESCMD pCmd = (PESCMD)pThis->aCommandBuffer;
 
     if (RT_LIKELY(   pCmd->uTargetId < RT_ELEMENTS(pThisCC->aDeviceStates)
-                  && pCmd->cbCDB <= 16))
+                  && pCmd->cbCDB <= RT_ELEMENTS(pCmd->abCDB)))
     {
         PBUSLOGICDEVICE pTgtDev = &pThisCC->aDeviceStates[pCmd->uTargetId];
 

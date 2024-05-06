@@ -1912,7 +1912,7 @@ static VBOXSTRICTRC PortInvalid_r(PPDMDEVINS pDevIns, PAHCI pThis, PAHCIPORT pAh
 {
     RT_NOREF(pDevIns, pThis, pAhciPort, iReg, pu32Value);
     ahciLog(("%s: Read denied!!! iReg=%u\n", __FUNCTION__, iReg));
-    return VINF_SUCCESS;
+    return VINF_IOM_MMIO_UNUSED_00;
 }
 
 /**
@@ -2356,10 +2356,10 @@ ahciLegacyFakeWrite(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT offPort, uint32_t
 static DECLCALLBACK(VBOXSTRICTRC)
 ahciLegacyFakeRead(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT offPort, uint32_t *pu32, unsigned cb)
 {
-    /** @todo we should set *pu32 to something. */
-    RT_NOREF(pDevIns, pvUser, offPort, pu32, cb);
+    *pu32 = 0;
+    RT_NOREF(pDevIns, pvUser, offPort, cb);
     ASSERT_GUEST_MSG_FAILED(("Should not happen\n"));
-    return VINF_SUCCESS;
+    return VERR_IOM_IOPORT_UNUSED;
 }
 
 

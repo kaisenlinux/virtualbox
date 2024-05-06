@@ -30,7 +30,7 @@
 ]>
 <refentry id="vboxmanage-modifyvm" lang="en">
   <refentryinfo>
-    <pubdate>$Date: 2023-01-17 15:15:46 +0100 (Tue, 17 Jan 2023) $</pubdate>
+    <pubdate>$Date: 2024-02-19 16:32:13 +0100 (Mon, 19 Feb 2024) $</pubdate>
     <title>VBoxManage modifyvm</title>
   </refentryinfo>
 
@@ -1067,7 +1067,7 @@ it unless this changes. -->
             </para></listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--accelerated3d=on | off</option></term>
+          <term><option>--accelerate-3d=on | off</option></term>
           <listitem><para>
               Включает или выключает аппаратное 3D ускорение для
               графических адаптеров, поддерживающих это. Эта опция
@@ -1076,7 +1076,7 @@ it unless this changes. -->
             </para></listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--accelerated2dvideo=on | off</option></term>
+          <term><option>--accelerate-2d-video=on | off</option></term>
           <listitem><para>
               Включает или отключает 2D видео ускорение для графических
               адаптеров, поддерживающих это. Эта опция работает только

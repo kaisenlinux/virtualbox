@@ -190,10 +190,11 @@ int vbsf_nls_to_shflstring(struct vbsf_super_info *pSuperInfo, const char *pszNl
         if (cchNls + 1 < _64K) {
             pString = (PSHFLSTRING)kmalloc(SHFLSTRING_HEADER_SIZE + cchNls + 1, GFP_KERNEL);
             if (pString) {
+                char *pchDst = pString->String.ach;
                 pString->u16Length = (uint16_t)cchNls;
                 pString->u16Size   = (uint16_t)(cchNls + 1);
-                RT_BCOPY_UNFORTIFIED(pString->String.ach, pszNls, cchNls);
-                pString->String.ach[cchNls] = '\0';
+                RT_BCOPY_UNFORTIFIED(pchDst, pszNls, cchNls);
+                pchDst[cchNls] = '\0';
                 rc = 0;
             } else {
                 Log(("vbsf_nls_to_shflstring: failed to allocate %u bytes\n", SHFLSTRING_HEADER_SIZE + cchNls + 1));
@@ -297,10 +298,21 @@ DECLINLINE(int) sf_file_mode_to_linux(uint32_t fVBoxMode, int fFixedMode, int fC
  */
 static void vbsf_update_inode_timestamps(struct inode *pInode, PSHFLFSOBJINFO pObjInfo)
 {
-#if RTLNX_VER_MIN(6,6,0)
-    struct timespec64 ts;
-    vbsf_time_to_linux(&ts, &pObjInfo->ChangeTime);
-    inode_set_ctime_to_ts(pInode, ts);
+#if RTLNX_VER_MIN(6,7,0)
+    struct timespec64 tsAccessTime, tsChangeTime, ModificationTime;
+
+    vbsf_time_to_linux(&tsAccessTime,       &pObjInfo->AccessTime);
+    vbsf_time_to_linux(&tsChangeTime,       &pObjInfo->ChangeTime);
+    vbsf_time_to_linux(&ModificationTime,   &pObjInfo->ModificationTime);
+
+    inode_set_atime_to_ts(pInode, tsAccessTime);
+    inode_set_ctime_to_ts(pInode, tsChangeTime);
+    inode_set_mtime_to_ts(pInode, ModificationTime);
+
+# elif RTLNX_VER_MIN(6,6,0)
+    vbsf_time_to_linux(&pInode->i_atime, &pObjInfo->AccessTime);
+    vbsf_time_to_linux(&pInode->__i_ctime, &pObjInfo->ChangeTime);
+    vbsf_time_to_linux(&pInode->i_mtime, &pObjInfo->ModificationTime);
 #else
     vbsf_time_to_linux(&pInode->i_atime, &pObjInfo->AccessTime);
     vbsf_time_to_linux(&pInode->i_ctime, &pObjInfo->ChangeTime);
@@ -1046,10 +1058,11 @@ static int vbsf_make_path(const char *caller, struct vbsf_inode_info *sf_i,
     if (fRoot)
         RT_BCOPY_UNFORTIFIED(&tmp->String.utf8[0], d_name, d_len + 1);
     else {
-        RT_BCOPY_UNFORTIFIED(&tmp->String.utf8[0], p_name, p_len);
-        tmp->String.utf8[p_len] = '/';
-        RT_BCOPY_UNFORTIFIED(&tmp->String.utf8[p_len + 1], d_name, d_len);
-        tmp->String.utf8[p_len + 1 + d_len] = '\0';
+        uint8_t *pszPath = tmp->String.utf8;
+        RT_BCOPY_UNFORTIFIED(&pszPath[0], p_name, p_len);
+        pszPath[p_len] = '/';
+        RT_BCOPY_UNFORTIFIED(&pszPath[p_len + 1], d_name, d_len);
+        pszPath[p_len + 1 + d_len] = '\0';
     }
 
     *result = tmp;

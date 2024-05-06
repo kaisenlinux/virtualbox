@@ -163,15 +163,12 @@ override_dh_installinit:
 	dh_installinit -p$(uxname) --no-start --update-rcd-params="start 45 S ."
 	dh_installinit --remaining-packages --no-start
 
-override_dh_systemd_enable:
-	dh_systemd_enable -p$(uname) debian/$(uname).service
-
 override_dh_dkms:
 	dh_dkms -V $(VERSION)
 
 override_dh_strip:
 ifneq (,$(filter $(sname), $(shell dh_listpackages)))
-	dh_strip --dbgsym-migration='$(sname)-dbg'
+	dh_strip
 
 	# strip files not handled by dh_strip
 ifeq (,$(filter nostrip,$(DEB_BUILD_OPTIONS)))
@@ -192,7 +189,7 @@ endif
 	dh_shlibdeps --remaining-packages
 
 override_dh_compress:
-	dh_compress -X.pdf
+	dh_compress -X.pdf -X.qhc -X.qch
 
 override_dh_auto_clean:
 	dh_auto_clean

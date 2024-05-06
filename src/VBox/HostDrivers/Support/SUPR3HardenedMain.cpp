@@ -1398,6 +1398,21 @@ static void supR3HardenedGetFullExePath(void)
         default:
             supR3HardenedFatal("supR3HardenedExecDir: Unknown program binary location: %#x\n", g_fSupHardenedMain);
     }
+
+#ifdef RTPATH_APP_PRIVATE_ARCH
+    /*
+     * If the location is fixed, do not continue if it is not correct. Binaries
+     * must not be allowed to be started from anywhere else.  (@bugref{10626})
+     */
+    if (suplibHardenedStrCmp(g_szSupLibHardenedAppBinPath, RTPATH_APP_PRIVATE_ARCH) != 0)
+        supR3HardenedFatal("supR3HardenedExecDir: Invalid program binary location: %s (expected %s)\n",
+                           g_szSupLibHardenedAppBinPath, RTPATH_APP_PRIVATE_ARCH);
+# ifdef RT_OS_WINDOWS
+#  error "Didn't expect RTPATH_APP_PRIVATE_ARCH to be defined on Windows."
+# endif
+#elif defined(RT_OS_LINUX) || defined(RT_OS_FREEBSD) || defined(RT_OS_SOLARIS) || defined(RT_OS_DARWIN)
+# error "Expected RTPATH_APP_PRIVATE_ARCH to be define on this host."
+#endif
 }
 
 
