@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1742,7 +1742,7 @@ VMMR3DECL(int) DBGFR3FlowTraceReportQueryFiltered(DBGFFLOWTRACEREPORT hFlowTrace
 
     int rc = VINF_SUCCESS;
     PDBGFFLOWTRACEREPORTINT pReportFiltered = dbgfR3FlowTraceReportCreate(pReport->pUVM, pReport->cRecords);
-    if (RT_LIKELY(pReport))
+    if (RT_LIKELY(pReportFiltered))
     {
         uint32_t idxFiltered = 0;
 

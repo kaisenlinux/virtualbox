@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,13 +32,12 @@
 #endif
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
+#include "UIEditor.h"
 #include "UIExtraDataDefs.h"
 
 /* Forward declartions: */
 class QHBoxLayout;
 class QTreeWidgetItem;
-class QILabelSeparator;
 class QIToolBar;
 class QITreeWidget;
 class SFTreeViewItem;
@@ -89,8 +88,8 @@ struct UIDataSharedFolder
     QString             m_strAutoMountPoint;
 };
 
-/** QWidget subclass used as a shared folders editor. */
-class SHARED_LIBRARY_STUFF UISharedFoldersEditor : public QIWithRetranslateUI<QWidget>
+/** UIEditor sub-class used as a shared folders editor. */
+class SHARED_LIBRARY_STUFF UISharedFoldersEditor : public UIEditor
 {
     Q_OBJECT;
 
@@ -111,9 +110,6 @@ public:
 
 protected:
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
     /** Handles show @a pEvent. */
     virtual void showEvent(QShowEvent *pEvent) RT_OVERRIDE;
 
@@ -121,6 +117,9 @@ protected:
     virtual void resizeEvent(QResizeEvent *pEvent) RT_OVERRIDE;
 
 private slots:
+
+    /** Handles translation event. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
     /** Performs request to adjust tree. */
     void sltAdjustTree();
@@ -176,8 +175,6 @@ private:
 
     /** @name Widgets
      * @{ */
-        /** Holds the widget separator instance. */
-        QILabelSeparator *m_pLabelSeparator;
         /** Holds the tree layout instance. */
         QHBoxLayout      *m_pLayoutTree;
         /** Holds the tree-widget instance. */

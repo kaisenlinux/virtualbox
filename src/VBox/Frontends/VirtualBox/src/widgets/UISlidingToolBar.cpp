@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2014-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2014-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,6 +26,8 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
+#include <QCloseEvent>
 #include <QHBoxLayout>
 
 /* GUI includes: */
@@ -34,7 +36,6 @@
 #include "UISlidingToolBar.h"
 #include "UIAnimationFramework.h"
 #include "UIMachineWindow.h"
-#include "UIMenuBarEditorWindow.h"
 #ifdef VBOX_WS_MAC
 # include "VBoxUtils-darwin.h"
 #endif
@@ -135,13 +136,13 @@ void UISlidingToolBar::prepare()
     setAttribute(Qt::WA_NoSystemBackground);
     /* Use Qt API to enable translucency: */
     setAttribute(Qt::WA_TranslucentBackground);
-#elif defined(VBOX_WS_X11)
+#elif defined(VBOX_WS_NIX)
     if (uiCommon().isCompositingManagerRunning())
     {
         /* Use Qt API to enable translucency: */
         setAttribute(Qt::WA_TranslucentBackground);
     }
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
 
     /* Prepare contents: */
     prepareContents();
@@ -211,7 +212,7 @@ void UISlidingToolBar::prepareGeometry()
         }
     }
 
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     if (!uiCommon().isCompositingManagerRunning())
     {
         /* Use Xshape otherwise: */
@@ -269,7 +270,7 @@ void UISlidingToolBar::adjustGeometry()
     /* And move sub-window to corresponding position: */
     m_pWidget->setGeometry(0, 0, qMax(width(), sh.width()), sh.height());
 
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     if (!uiCommon().isCompositingManagerRunning())
     {
         /* Use Xshape otherwise: */
@@ -305,7 +306,7 @@ void UISlidingToolBar::setWidgetGeometry(const QRect &rect)
     /* Apply sub-window geometry: */
     m_pWidget->setGeometry(rect);
 
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     if (!uiCommon().isCompositingManagerRunning())
     {
         /* Use Xshape otherwise: */

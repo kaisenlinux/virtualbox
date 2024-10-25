@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,19 +31,19 @@
 # pragma once
 #endif
 
+class UILogScrollLabel;
+
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
+#include "UILibraryDefs.h"
 #include "UIVMLogBookmark.h"
 
 /* Qt includes: */
 #include <QPlainTextEdit>
-#include <QPair>
-
 
 /* QPlainTextEdit extension with some addtional context menu items,
    a special scrollbar, line number area, bookmarking support,
    background watermarking etc.: */
-class UIVMLogViewerTextEdit : public QIWithRetranslateUI<QPlainTextEdit>
+class UIVMLogViewerTextEdit : public QPlainTextEdit
 {
     Q_OBJECT;
 
@@ -64,7 +64,8 @@ public:
     void clearScrollBarMarkingsVector();
 
     void scrollToLine(int lineNumber);
-    void scrollToEnd();
+    void scrollToBottom();
+    void scrollToTop();
     void setBookmarkLineSet(const QSet<int>& lineSet);
     void setShownTextIsFiltered(bool warning);
 
@@ -90,7 +91,7 @@ protected:
     virtual void resizeEvent(QResizeEvent *pEvent) RT_OVERRIDE;
     virtual void mouseMoveEvent(QMouseEvent *pEvent) RT_OVERRIDE;
     virtual void leaveEvent(QEvent * pEvent) RT_OVERRIDE;
-    virtual void retranslateUi() RT_OVERRIDE;
+    virtual bool eventFilter(QObject *pObject, QEvent *pEvent) RT_OVERRIDE;
 
 private slots:
 
@@ -98,6 +99,7 @@ private slots:
     void sltUpdateLineNumberAreaWidth(int newBlockCount);
     void sltHandleUpdateRequest(const QRect &, int);
     int  visibleLineCount();
+    void sltRetranslateUI();
 
 private:
 
@@ -128,6 +130,9 @@ private:
     friend class UILineNumberArea;
     bool         m_bHasContextMenu;
     int          m_iVerticalScrollBarValue;
+    UILogScrollLabel *m_pScrollToBottomLabel;
+    UILogScrollLabel *m_pScrollToTopLabel;
+    QCursor      m_originalCursor;
  };
 
 

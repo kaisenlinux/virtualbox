@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -34,10 +34,10 @@
 /* GUI includes: */
 #include "UIMachineWindow.h"
 
-#if defined(VBOX_WS_WIN) || defined(VBOX_WS_X11)
+#if defined(VBOX_WS_WIN) || defined(VBOX_WS_NIX)
 /* Forward declarations: */
 class UIMiniToolBar;
-#endif /* VBOX_WS_WIN || VBOX_WS_X11 */
+#endif /* VBOX_WS_WIN || VBOX_WS_NIX */
 
 /** UIMachineWindow subclass used as seamless machine window implementation. */
 class UIMachineWindowSeamless : public UIMachineWindow
@@ -51,9 +51,9 @@ public:
 
 private slots:
 
-#if defined(VBOX_WS_WIN) || defined(VBOX_WS_X11)
+#if defined(VBOX_WS_WIN) || defined(VBOX_WS_NIX)
     /** Handles machine state change event. */
-    void sltMachineStateChanged();
+    void sltMachineStateChanged() RT_OVERRIDE RT_FINAL;
 
     /** Revokes window activation. */
     void sltRevokeWindowActivation();
@@ -61,7 +61,7 @@ private slots:
     /** Handles signal about mini-toolbar auto-hide toggled.
       * @param  fEnabled  Brings whether auto-hide is enabled. */
     void sltHandleMiniToolBarAutoHideToggled(bool fEnabled);
-#endif /* VBOX_WS_WIN || VBOX_WS_X11 */
+#endif /* VBOX_WS_WIN || VBOX_WS_NIX */
 
     /** Shows window in minimized state. */
     void sltShowMinimized();
@@ -69,32 +69,32 @@ private slots:
 private:
 
     /** Prepare visual-state routine. */
-    void prepareVisualState();
-#if defined(VBOX_WS_WIN) || defined(VBOX_WS_X11)
+    void prepareVisualState() RT_OVERRIDE RT_FINAL;
+#if defined(VBOX_WS_WIN) || defined(VBOX_WS_NIX)
     /** Prepare mini-toolbar routine. */
     void prepareMiniToolbar();
-#endif /* VBOX_WS_WIN || VBOX_WS_X11 */
+#endif /* VBOX_WS_WIN || VBOX_WS_NIX */
 
-#if defined(VBOX_WS_WIN) || defined(VBOX_WS_X11)
+#if defined(VBOX_WS_WIN) || defined(VBOX_WS_NIX)
     /** Cleanup mini-toolbar routine. */
     void cleanupMiniToolbar();
-#endif /* VBOX_WS_WIN || VBOX_WS_X11 */
+#endif /* VBOX_WS_WIN || VBOX_WS_NIX */
     /** Cleanup visual-state routine. */
-    void cleanupVisualState();
+    void cleanupVisualState() RT_OVERRIDE RT_FINAL;
 
     /** Updates geometry according to visual-state. */
     void placeOnScreen();
     /** Updates visibility according to visual-state. */
-    void showInNecessaryMode();
+    void showInNecessaryMode() RT_OVERRIDE RT_FINAL;
 
-#if defined(VBOX_WS_WIN) || defined(VBOX_WS_X11)
+#if defined(VBOX_WS_WIN) || defined(VBOX_WS_NIX)
     /** Common update routine. */
-    void updateAppearanceOf(int iElement);
-#endif /* VBOX_WS_WIN || VBOX_WS_X11 */
+    void updateAppearanceOf(int iElement) RT_OVERRIDE RT_FINAL;
+#endif /* VBOX_WS_WIN || VBOX_WS_NIX */
 
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     /** X11: Handles @a pEvent about state change. */
-    void changeEvent(QEvent *pEvent);
+    void changeEvent(QEvent *pEvent) RT_OVERRIDE RT_FINAL;
 #endif
 
 #ifdef VBOX_WS_WIN
@@ -104,13 +104,13 @@ private:
 
 #ifdef VBOX_WITH_MASKED_SEAMLESS
     /** Assigns guest seamless mask. */
-    void setMask(const QRegion &maskGuest);
+    void setMask(const QRegion &maskGuest) RT_OVERRIDE RT_FINAL;
 #endif /* VBOX_WITH_MASKED_SEAMLESS */
 
-#if defined(VBOX_WS_WIN) || defined(VBOX_WS_X11)
+#if defined(VBOX_WS_WIN) || defined(VBOX_WS_NIX)
     /** Holds the mini-toolbar instance. */
     UIMiniToolBar *m_pMiniToolBar;
-#endif /* VBOX_WS_WIN || VBOX_WS_X11 */
+#endif /* VBOX_WS_WIN || VBOX_WS_NIX */
 
 #ifdef VBOX_WITH_MASKED_SEAMLESS
     /** Holds the full seamless mask. */
@@ -122,7 +122,7 @@ private:
     /** Holds whether the window was minimized before became hidden.
       * Used to restore minimized state when the window shown again. */
     bool m_fWasMinimized;
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     /** X11: Holds whether the window minimization is currently requested.
       * Used to prevent accidentally restoring to seamless state. */
     bool m_fIsMinimizationRequested;

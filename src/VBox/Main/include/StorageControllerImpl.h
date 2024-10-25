@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -73,6 +73,9 @@ public:
     // (ensure there is a caller and a read lock before calling them!)
 
     void i_unshare();
+
+    // public static methods
+    static com::Utf8Str i_controllerNameFromBusType(StorageBus_T aBusType);
 
     /** @note this doesn't require a read lock since mParent is constant. */
     Machine* i_getMachine();

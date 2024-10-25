@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -123,7 +123,9 @@ io_connect_t    g_hSmcConnect = IO_OBJECT_NULL;
 
 static int ConnectToSmc(void)
 {
-    g_hSmcService = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching("AppleSMC"));
+    RT_GCC_NO_WARN_DEPRECATED_BEGIN
+    g_hSmcService = IOServiceGetMatchingService(kIOMasterPortDefault, IOServiceMatching("AppleSMC")); /* kIOMasterPortDefault: Deprecated since 12.0. */
+    RT_GCC_NO_WARN_DEPRECATED_END
     if (g_hSmcService == IO_OBJECT_NULL)
         return VERR_NOT_FOUND;
 
@@ -337,15 +339,15 @@ int main(int argc, char **argv)
         /*
          * Known keys that doesn't make it into the enumeration.
          */
-        DisplayKeyByName('OSK0');
-        DisplayKeyByName('OSK1');
-        DisplayKeyByName('OSK2');
+        DisplayKeyByName(RT_MAKE_U32_FROM_MSB_U8('O','S','K','0'));
+        DisplayKeyByName(RT_MAKE_U32_FROM_MSB_U8('O','S','K','1'));
+        DisplayKeyByName(RT_MAKE_U32_FROM_MSB_U8('O','S','K','2'));
 
         /* Negative checks, sometimes maybe. */
-        DisplayKeyByName('$Num');
-        DisplayKeyByName('MSTf');
-        DisplayKeyByName('MSDS');
-        DisplayKeyByName('LSOF');
+        DisplayKeyByName(RT_MAKE_U32_FROM_MSB_U8('$','N','u','m'));
+        DisplayKeyByName(RT_MAKE_U32_FROM_MSB_U8('M','S','T','f'));
+        DisplayKeyByName(RT_MAKE_U32_FROM_MSB_U8('M','S','D','S'));
+        DisplayKeyByName(RT_MAKE_U32_FROM_MSB_U8('L','S','O','F'));
     }
     DisconnectFromSmc();
 

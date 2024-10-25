@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -44,6 +44,7 @@
 #include "internal/iprt.h"
 #include <iprt/bignum.h>
 
+#include <iprt/asm-mem.h>
 #include <iprt/asm.h>
 #include <iprt/asm-math.h>
 #include <iprt/err.h>

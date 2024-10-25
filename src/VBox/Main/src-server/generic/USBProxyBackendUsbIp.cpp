@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2015-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2015-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -492,7 +492,7 @@ int USBProxyBackendUsbIp::wait(RTMSINTERVAL aMillies)
      * service about changes.
      */
     while (   !fDeviceListChangedOrWokenUp
-           && (aMillies == RT_INDEFINITE_WAIT || aMillies > 0)
+           && aMillies > 0
            && RT_SUCCESS(vrc))
     {
         RTMSINTERVAL msWait = aMillies;

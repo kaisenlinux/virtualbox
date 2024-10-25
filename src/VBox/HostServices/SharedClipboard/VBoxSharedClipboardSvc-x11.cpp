@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -43,7 +43,17 @@
 #include <VBox/HostServices/VBoxClipboardSvc.h>
 #include <iprt/errcore.h>
 
+#ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS
+# include <VBox/GuestHost/SharedClipboard-transfers.h>
+# ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS_HTTP
+#  include <VBox/GuestHost/SharedClipboard-transfers.h>
+# endif
+#endif
+
 #include "VBoxSharedClipboardSvc-internal.h"
+#ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS
+# include "VBoxSharedClipboardSvc-transfers.h"
+#endif
 
 /* Number of currently extablished connections. */
 static volatile uint32_t g_cShClConnections;
@@ -73,11 +83,22 @@ struct SHCLCONTEXT
 /*********************************************************************************************************************************
 *   Prototypes                                                                                                                   *
 *********************************************************************************************************************************/
-static DECLCALLBACK(int) shClReportFormatsCallback(PSHCLCONTEXT pCtx, uint32_t fFormats, void *pvUser);
-static DECLCALLBACK(int) shClSendDataToDestCallback(PSHCLCONTEXT pCtx, void *pv, uint32_t cb, void *pvUser);
-static DECLCALLBACK(int) shClRequestDataFromSourceCallback(PSHCLCONTEXT pCtx, SHCLFORMAT uFmt, void **ppv, uint32_t *pcb, void *pvUser);
+static DECLCALLBACK(int) shClSvcX11ReportFormatsCallback(PSHCLCONTEXT pCtx, uint32_t fFormats, void *pvUser);
+static DECLCALLBACK(int) shClSvcX11RequestDataFromSourceCallback(PSHCLCONTEXT pCtx, SHCLFORMAT uFmt, void **ppv, uint32_t *pcb, void *pvUser);
+
+#ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS
+static DECLCALLBACK(void) shClSvcX11TransferOnCreatedCallback(PSHCLTRANSFERCALLBACKCTX pCbCtx);
+static DECLCALLBACK(int)  shClSvcX11TransferOnInitCallback(PSHCLTRANSFERCALLBACKCTX pCbCtx);
+static DECLCALLBACK(void) shClSvcX11TransferOnDestroyCallback(PSHCLTRANSFERCALLBACKCTX pCbCtx);
+static DECLCALLBACK(void) shClSvcX11TransferOnUnregisteredCallback(PSHCLTRANSFERCALLBACKCTX pCbCtx, PSHCLTRANSFERCTX pTransferCtx);
+
+static DECLCALLBACK(int) shClSvcX11TransferIfaceHGRootListRead(PSHCLTXPROVIDERCTX pCtx);
+#endif
 
 
+/*********************************************************************************************************************************
+*   Backend implementation                                                                                                       *
+*********************************************************************************************************************************/
 int ShClBackendInit(PSHCLBACKEND pBackend, VBOXHGCMSVCFNTABLE *pTable)
 {
     RT_NOREF(pBackend);
@@ -90,9 +111,8 @@ int ShClBackendInit(PSHCLBACKEND pBackend, VBOXHGCMSVCFNTABLE *pTable)
 
     RT_ZERO(pBackend->Callbacks);
     /* Use internal callbacks by default. */
-    pBackend->Callbacks.pfnReportFormats           = shClReportFormatsCallback;
-    pBackend->Callbacks.pfnOnRequestDataFromSource = shClRequestDataFromSourceCallback;
-    pBackend->Callbacks.pfnOnSendDataToDest        = shClSendDataToDestCallback;
+    pBackend->Callbacks.pfnReportFormats           = shClSvcX11ReportFormatsCallback;
+    pBackend->Callbacks.pfnOnRequestDataFromSource = shClSvcX11RequestDataFromSourceCallback;
 
     return VINF_SUCCESS;
 }
@@ -111,10 +131,7 @@ void ShClBackendSetCallbacks(PSHCLBACKEND pBackend, PSHCLCALLBACKS pCallbacks)
         pBackend->Callbacks.pfn##a_Fn = pCallbacks->pfn##a_Fn;
 
     SET_FN_IF_NOT_NULL(ReportFormats);
-    SET_FN_IF_NOT_NULL(OnClipboardRead);
-    SET_FN_IF_NOT_NULL(OnClipboardWrite);
     SET_FN_IF_NOT_NULL(OnRequestDataFromSource);
-    SET_FN_IF_NOT_NULL(OnSendDataToDest);
 
 #undef SET_FN_IF_NOT_NULL
 }
@@ -146,6 +163,24 @@ int ShClBackendConnect(PSHCLBACKEND pBackend, PSHCLCLIENT pClient, bool fHeadles
             {
                 pClient->State.pCtx = pCtx;
                 pCtx->pClient = pClient;
+
+#ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS
+                /*
+                 * Set callbacks.
+                 * Those will be registered within ShClSvcTransferInit() when a new transfer gets initialized.
+                 *
+                 * Used for starting / stopping the HTTP server.
+                 */
+                RT_ZERO(pClient->Transfers.Callbacks);
+
+                pClient->Transfers.Callbacks.pvUser = pCtx; /* Assign context as user-provided callback data. */
+                pClient->Transfers.Callbacks.cbUser = sizeof(SHCLCONTEXT);
+
+                pClient->Transfers.Callbacks.pfnOnCreated      = shClSvcX11TransferOnCreatedCallback;
+                pClient->Transfers.Callbacks.pfnOnInitialize   = shClSvcX11TransferOnInitCallback;
+                pClient->Transfers.Callbacks.pfnOnDestroy      = shClSvcX11TransferOnDestroyCallback;
+                pClient->Transfers.Callbacks.pfnOnUnregistered = shClSvcX11TransferOnUnregisteredCallback;
+#endif /* VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS */
 
                 rc = ShClX11ThreadStart(&pCtx->X11, true /* grab shared clipboard */);
                 if (RT_FAILURE(rc))
@@ -184,13 +219,11 @@ int ShClBackendSync(PSHCLBACKEND pBackend, PSHCLCLIENT pClient)
     /* Tell the guest we have no data in case X11 is not available.  If
      * there is data in the host clipboard it will automatically be sent to
      * the guest when the clipboard starts up. */
-    if (ShClSvcIsBackendActive())
-        return ShClSvcHostReportFormats(pClient, VBOX_SHCL_FMT_NONE);
-    return VINF_SUCCESS;
+    return ShClSvcReportFormats(pClient, VBOX_SHCL_FMT_NONE);
 }
 
-/*
- * Shut down the shared clipboard service and "disconnect" the guest.
+/**
+ * Shuts down the shared clipboard service and "disconnect" the guest.
  * Note!  Host glue code
  */
 int ShClBackendDisconnect(PSHCLBACKEND pBackend, PSHCLCLIENT pClient)
@@ -224,34 +257,25 @@ int ShClBackendDisconnect(PSHCLBACKEND pBackend, PSHCLCLIENT pClient)
     return rc;
 }
 
+/**
+ * Reports clipboard formats to the host clipboard.
+ */
 int ShClBackendReportFormats(PSHCLBACKEND pBackend, PSHCLCLIENT pClient, SHCLFORMATS fFormats)
 {
     RT_NOREF(pBackend);
 
-    int rc = ShClX11ReportFormatsToX11(&pClient->State.pCtx->X11, fFormats);
+    int rc = ShClX11ReportFormatsToX11Async(&pClient->State.pCtx->X11, fFormats);
 
     LogFlowFuncLeaveRC(rc);
     return rc;
 }
 
-/** Structure describing a request for clipoard data from the guest. */
-struct CLIPREADCBREQ
-{
-    /** User-supplied data pointer, based on the request type. */
-    void                *pv;
-    /** The size (in bytes) of the the user-supplied pointer in pv. */
-    uint32_t             cb;
-    /** The actual size of the data written. */
-    uint32_t            *pcbActual;
-    /** The request's event ID. */
-    SHCLEVENTID          idEvent;
-};
-
 /**
+ * Reads data from the host clipboard.
+ *
+ * Schedules a request to the X11 event thread.
+ *
  * @note   We always fail or complete asynchronously.
- * @note   On success allocates a CLIPREADCBREQ structure which must be
- *         freed in ClipCompleteDataRequestFromX11 when it is called back from
- *         the backend code.
  */
 int ShClBackendReadData(PSHCLBACKEND pBackend, PSHCLCLIENT pClient, PSHCLCLIENTCMDCTX pCmdCtx, SHCLFORMAT uFormat,
                         void *pvData, uint32_t cbData, uint32_t *pcbActual)
@@ -268,49 +292,14 @@ int ShClBackendReadData(PSHCLBACKEND pBackend, PSHCLCLIENT pClient, PSHCLCLIENTC
     LogFlowFunc(("pClient=%p, uFormat=%#x, pv=%p, cb=%RU32, pcbActual=%p\n",
                  pClient, uFormat, pvData, cbData, pcbActual));
 
-    int rc;
-
-    CLIPREADCBREQ *pReq = (CLIPREADCBREQ *)RTMemAllocZ(sizeof(CLIPREADCBREQ));
-    if (pReq)
+    uint32_t cbRead;
+    int rc = ShClX11ReadDataFromX11(&pClient->State.pCtx->X11, &pClient->EventSrc,
+                                    SHCL_TIMEOUT_DEFAULT_MS, uFormat, pvData, cbData, &cbRead);
+    if (RT_SUCCESS(rc))
     {
-        PSHCLEVENT pEvent;
-        rc = ShClEventSourceGenerateAndRegisterEvent(&pClient->EventSrc, &pEvent);
-        if (RT_SUCCESS(rc))
-        {
-            pReq->pv        = pvData;
-            pReq->cb        = cbData;
-            pReq->pcbActual = pcbActual;
-            pReq->idEvent   = pEvent->idEvent;
-
-            /* Note: ShClX11ReadDataFromX11() will consume pReq on success. */
-            rc = ShClX11ReadDataFromX11(&pClient->State.pCtx->X11, uFormat, pReq);
-            if (RT_SUCCESS(rc))
-            {
-                PSHCLEVENTPAYLOAD pPayload;
-                rc = ShClEventWait(pEvent, 30 * 1000, &pPayload);
-                if (RT_SUCCESS(rc))
-                {
-                    if (pPayload)
-                    {
-                        memcpy(pvData, pPayload->pvData, RT_MIN(cbData, pPayload->cbData));
-
-                        *pcbActual = (uint32_t)pPayload->cbData;
-
-                        ShClPayloadFree(pPayload);
-                    }
-                    else /* No payload given; could happen on invalid / not-expected formats. */
-                        *pcbActual = 0;
-                }
-            }
-
-            ShClEventRelease(pEvent);
-        }
-
-        if (RT_FAILURE(rc))
-            RTMemFree(pReq);
+        LogRel2(("Shared Clipboard: Read %RU32 bytes host X11 clipboard data\n", cbRead));
+        *pcbActual = cbRead;
     }
-    else
-        rc = VERR_NO_MEMORY;
 
     if (RT_FAILURE(rc))
         LogRel(("Shared Clipboard: Error reading host clipboard data from X11, rc=%Rrc\n", rc));
@@ -319,7 +308,8 @@ int ShClBackendReadData(PSHCLBACKEND pBackend, PSHCLCLIENT pClient, PSHCLCLIENTC
     return rc;
 }
 
-int ShClBackendWriteData(PSHCLBACKEND pBackend, PSHCLCLIENT pClient, PSHCLCLIENTCMDCTX pCmdCtx, SHCLFORMAT uFormat, void *pvData, uint32_t cbData)
+int ShClBackendWriteData(PSHCLBACKEND pBackend, PSHCLCLIENT pClient, PSHCLCLIENTCMDCTX pCmdCtx,
+                         SHCLFORMAT uFormat, void *pvData, uint32_t cbData)
 {
     RT_NOREF(pBackend, pClient, pCmdCtx, uFormat, pvData, cbData);
 
@@ -331,8 +321,12 @@ int ShClBackendWriteData(PSHCLBACKEND pBackend, PSHCLCLIENT pClient, PSHCLCLIENT
     return VINF_SUCCESS;
 }
 
-/** @copydoc SHCLCALLBACKS::pfnReportFormats */
-static DECLCALLBACK(int) shClReportFormatsCallback(PSHCLCONTEXT pCtx, uint32_t fFormats, void *pvUser)
+/**
+ * @copydoc SHCLCALLBACKS::pfnReportFormats
+ *
+ * Reports clipboard formats to the guest.
+ */
+static DECLCALLBACK(int) shClSvcX11ReportFormatsCallback(PSHCLCONTEXT pCtx, uint32_t fFormats, void *pvUser)
 {
     RT_NOREF(pvUser);
 
@@ -342,77 +336,203 @@ static DECLCALLBACK(int) shClReportFormatsCallback(PSHCLCONTEXT pCtx, uint32_t f
     PSHCLCLIENT pClient = pCtx->pClient;
     AssertPtr(pClient);
 
-    rc = RTCritSectEnter(&pClient->CritSect);
-    if (RT_SUCCESS(rc))
+    rc = ShClSvcReportFormats(pClient, fFormats);
+
+    LogFlowFuncLeaveRC(rc);
+    return rc;
+}
+
+#ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS
+/**
+ * @copydoc SHCLTRANSFERCALLBACKS::pfnOnCreated
+ *
+ * @thread Service main thread.
+ */
+static DECLCALLBACK(void) shClSvcX11TransferOnCreatedCallback(PSHCLTRANSFERCALLBACKCTX pCbCtx)
+{
+    LogFlowFuncEnter();
+
+    PSHCLCONTEXT pCtx = (PSHCLCONTEXT)pCbCtx->pvUser;
+    AssertPtr(pCtx);
+
+    PSHCLTRANSFER pTransfer = pCbCtx->pTransfer;
+    AssertPtr(pTransfer);
+
+    PSHCLCLIENT const pClient = pCtx->pClient;
+    AssertPtr(pClient);
+
+    /*
+     * Set transfer provider.
+     * Those will be registered within ShClSvcTransferInit() when a new transfer gets initialized.
+     */
+
+    /* Set the interface to the local provider by default first. */
+    RT_ZERO(pClient->Transfers.Provider);
+    ShClTransferProviderLocalQueryInterface(&pClient->Transfers.Provider);
+
+    PSHCLTXPROVIDERIFACE pIface = &pClient->Transfers.Provider.Interface;
+
+    pClient->Transfers.Provider.enmSource = pClient->State.enmSource;
+    pClient->Transfers.Provider.pvUser    = pClient;
+
+    switch (ShClTransferGetDir(pTransfer))
     {
-        if (ShClSvcIsBackendActive())
+        case SHCLTRANSFERDIR_FROM_REMOTE: /* Guest -> Host. */
         {
-            /** @todo r=bird: BUGBUG: Revisit this   */
-            if (fFormats != VBOX_SHCL_FMT_NONE) /* No formats to report? */
-            {
-                rc = ShClSvcHostReportFormats(pCtx->pClient, fFormats);
-            }
+            pIface->pfnRootListRead  = ShClSvcTransferIfaceGHRootListRead;
+
+            pIface->pfnListOpen      = ShClSvcTransferIfaceGHListOpen;
+            pIface->pfnListClose     = ShClSvcTransferIfaceGHListClose;
+            pIface->pfnListHdrRead   = ShClSvcTransferIfaceGHListHdrRead;
+            pIface->pfnListEntryRead = ShClSvcTransferIfaceGHListEntryRead;
+
+            pIface->pfnObjOpen       = ShClSvcTransferIfaceGHObjOpen;
+            pIface->pfnObjClose      = ShClSvcTransferIfaceGHObjClose;
+            pIface->pfnObjRead       = ShClSvcTransferIfaceGHObjRead;
+            break;
         }
 
-        RTCritSectLeave(&pClient->CritSect);
+        case SHCLTRANSFERDIR_TO_REMOTE: /* Host -> Guest. */
+        {
+            pIface->pfnRootListRead  = shClSvcX11TransferIfaceHGRootListRead;
+            break;
+        }
+
+        default:
+            AssertFailed();
+    }
+
+    int rc = ShClTransferSetProvider(pTransfer, &pClient->Transfers.Provider); RT_NOREF(rc);
+
+    LogFlowFuncLeaveRC(rc);
+}
+
+/**
+ * @copydoc SHCLTRANSFERCALLBACKS::pfnOnInitialize
+ *
+ * For G->H: Starts the HTTP server if not done yet and registers the transfer with it.
+ * For H->G: Called on transfer intialization to populate the transfer's root list.
+ *
+ * @thread  Service main thread.
+ */
+static DECLCALLBACK(int) shClSvcX11TransferOnInitCallback(PSHCLTRANSFERCALLBACKCTX pCbCtx)
+{
+    LogFlowFuncEnter();
+
+# ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS_HTTP
+    PSHCLCONTEXT pCtx = (PSHCLCONTEXT)pCbCtx->pvUser;
+    AssertPtr(pCtx);
+# endif
+
+    PSHCLTRANSFER pTransfer = pCbCtx->pTransfer;
+    AssertPtr(pTransfer);
+
+    int rc;
+
+    switch (ShClTransferGetDir(pTransfer))
+    {
+        case SHCLTRANSFERDIR_FROM_REMOTE: /* G->H */
+        {
+# ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS_HTTP
+            /* We only need to start the HTTP server when we actually receive data from the remote (host). */
+            rc = ShClTransferHttpServerMaybeStart(&pCtx->X11.HttpCtx);
+# endif
+            break;
+        }
+
+        case SHCLTRANSFERDIR_TO_REMOTE: /* H->G */
+        {
+            rc = ShClTransferRootListRead(pTransfer); /* Calls shClSvcX11TransferIfaceHGRootListRead(). */
+            break;
+        }
+
+        default:
+            AssertFailedStmt(rc = VERR_NOT_SUPPORTED);
+            break;
     }
 
     LogFlowFuncLeaveRC(rc);
     return rc;
 }
 
-/** @copydoc SHCLCALLBACKS::pfnOnSendDataToDest */
-static DECLCALLBACK(int) shClSendDataToDestCallback(PSHCLCONTEXT pCtx, void *pv, uint32_t cb, void *pvUser)
+/**
+ * @copydoc SHCLTRANSFERCALLBACKS::pfnOnDestroy
+ *
+ * This stops the HTTP server if not done yet.
+ *
+ * @thread Service main thread.
+ */
+static DECLCALLBACK(void) shClSvcX11TransferOnDestroyCallback(PSHCLTRANSFERCALLBACKCTX pCbCtx)
 {
-    AssertPtrReturn(pCtx,   VERR_INVALID_POINTER);
-    AssertPtrReturn(pvUser, VERR_INVALID_POINTER);
+    LogFlowFuncEnter();
 
-    PSHCLX11READDATAREQ pData = (PSHCLX11READDATAREQ)pvUser;
-    CLIPREADCBREQ      *pReq  = pData->pReq;
+# ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS_HTTP
+    PSHCLCONTEXT pCtx = (PSHCLCONTEXT)pCbCtx->pvUser;
+    AssertPtr(pCtx);
 
-    LogFlowFunc(("rcCompletion=%Rrc, pReq=%p, pv=%p, cb=%RU32, idEvent=%RU32\n",
-                 pData->rcCompletion, pReq, pv, cb, pReq->idEvent));
+    PSHCLTRANSFER pTransfer = pCbCtx->pTransfer;
+    AssertPtr(pTransfer);
 
-    if (pReq->idEvent != NIL_SHCLEVENTID)
-    {
-        int rc2;
+    if (ShClTransferGetDir(pTransfer) == SHCLTRANSFERDIR_FROM_REMOTE)
+        ShClTransferHttpServerMaybeStop(&pCtx->X11.HttpCtx);
+# else
+    RT_NOREF(pCbCtx);
+# endif
 
-        PSHCLEVENTPAYLOAD pPayload = NULL;
-        if (   RT_SUCCESS(pData->rcCompletion)
-            && pv
-            && cb)
-        {
-            rc2 = ShClPayloadAlloc(pReq->idEvent, pv, cb, &pPayload);
-            AssertRC(rc2);
-        }
-
-        rc2 = RTCritSectEnter(&pCtx->pClient->CritSect);
-        if (RT_SUCCESS(rc2))
-        {
-            const PSHCLEVENT pEvent = ShClEventSourceGetFromId(&pCtx->pClient->EventSrc, pReq->idEvent);
-            if (pEvent)
-                rc2 = ShClEventSignal(pEvent, pPayload);
-
-            RTCritSectLeave(&pCtx->pClient->CritSect);
-
-            if (RT_SUCCESS(rc2))
-                pPayload = NULL;
-        }
-
-        if (pPayload)
-            ShClPayloadFree(pPayload);
-    }
-
-    if (pReq)
-        RTMemFree(pReq);
-
-    LogRel2(("Shared Clipboard: Reading X11 clipboard data from host completed with %Rrc\n", pData->rcCompletion));
-
-    return VINF_SUCCESS;
+    LogFlowFuncLeave();
 }
 
-/** @copydoc SHCLCALLBACKS::pfnOnRequestDataFromSource */
-static DECLCALLBACK(int) shClRequestDataFromSourceCallback(PSHCLCONTEXT pCtx, SHCLFORMAT uFmt, void **ppv, uint32_t *pcb, void *pvUser)
+/**
+ * Unregisters a transfer from a HTTP server.
+ *
+ * This also stops the HTTP server if no active transfers are found anymore.
+ *
+ * @param   pCtx                Shared clipboard context to unregister transfer for.
+ * @param   pTransfer           Transfer to unregister.
+ *
+ * @thread Clipboard main thread.
+ */
+static void shClSvcX11HttpTransferUnregister(PSHCLCONTEXT pCtx, PSHCLTRANSFER pTransfer)
+{
+    if (ShClTransferGetDir(pTransfer) == SHCLTRANSFERDIR_FROM_REMOTE)
+    {
+# ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS_HTTP
+        if (ShClTransferHttpServerIsInitialized(&pCtx->X11.HttpCtx.HttpServer))
+        {
+            ShClTransferHttpServerUnregisterTransfer(&pCtx->X11.HttpCtx.HttpServer, pTransfer);
+            ShClTransferHttpServerMaybeStop(&pCtx->X11.HttpCtx);
+        }
+# else
+        RT_NOREF(pCtx);
+# endif
+    }
+
+    //ShClTransferRelease(pTransfer);
+}
+
+/**
+ * @copydoc SHCLTRANSFERCALLBACKS::pfnOnUnregistered
+ *
+ * Unregisters a (now) unregistered transfer from the HTTP server.
+ *
+ * @thread Clipboard main thread.
+ */
+static DECLCALLBACK(void) shClSvcX11TransferOnUnregisteredCallback(PSHCLTRANSFERCALLBACKCTX pCbCtx, PSHCLTRANSFERCTX pTransferCtx)
+{
+    RT_NOREF(pTransferCtx);
+    shClSvcX11HttpTransferUnregister((PSHCLCONTEXT)pCbCtx->pvUser, pCbCtx->pTransfer);
+}
+#endif /* VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS */
+
+/**
+ * @copydoc SHCLCALLBACKS::pfnOnRequestDataFromSource
+ *
+ * Requests clipboard data from the guest.
+ *
+ * @thread  Called from X11 event thread.
+ */
+static DECLCALLBACK(int) shClSvcX11RequestDataFromSourceCallback(PSHCLCONTEXT pCtx,
+                                                                 SHCLFORMAT uFmt, void **ppv, uint32_t *pcb, void *pvUser)
 {
     RT_NOREF(pvUser);
 
@@ -425,139 +545,139 @@ static DECLCALLBACK(int) shClRequestDataFromSourceCallback(PSHCLCONTEXT pCtx, SH
         return VERR_WRONG_ORDER;
     }
 
-    PSHCLCLIENT pClient = pCtx->pClient;
-    AssertPtr(pClient);
+    PSHCLCLIENT const pClient = pCtx->pClient;
+    int rc = ShClSvcReadDataFromGuest(pClient, uFmt, ppv, pcb);
+    if (RT_FAILURE(rc))
+        return rc;
 
-    RTCritSectEnter(&pClient->CritSect);
-
-    int rc = VINF_SUCCESS;
-
-#ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS
     /*
-     * Note: We always return a generic URI list here.
+     * Note: We always return a generic URI list (as HTTP links) here.
      *       As we don't know which Atom target format was requested by the caller, the X11 clipboard codes needs
      *       to decide & transform the list into the actual clipboard Atom target format the caller wanted.
      */
+#ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS
     if (uFmt == VBOX_SHCL_FMT_URI_LIST)
     {
         PSHCLTRANSFER pTransfer;
-        rc = shClSvcTransferStart(pCtx->pClient,
-                                  SHCLTRANSFERDIR_FROM_REMOTE, SHCLSOURCE_REMOTE,
-                                  &pTransfer);
+        rc = ShClSvcTransferCreate(pClient, SHCLTRANSFERDIR_FROM_REMOTE, SHCLSOURCE_REMOTE,
+                                   NIL_SHCLTRANSFERID /* Creates a new transfer ID */, &pTransfer);
         if (RT_SUCCESS(rc))
         {
-
+            /* Initialize the transfer on the host side. */
+            rc = ShClSvcTransferInit(pClient, pTransfer);
+            if (RT_FAILURE(rc))
+                 ShClSvcTransferDestroy(pClient, pTransfer);
         }
-        else
-            LogRel(("Shared Clipboard: Initializing read transfer from guest failed with %Rrc\n", rc));
 
-        *ppv = NULL;
-        *pcb = 0;
-
-        rc = VERR_NO_DATA;
-    }
-#endif
-
-    if (RT_SUCCESS(rc))
-    {
-        /* Request data from the guest. */
-        PSHCLEVENT pEvent;
-        rc = ShClSvcGuestDataRequest(pCtx->pClient, uFmt, &pEvent);
         if (RT_SUCCESS(rc))
         {
-            RTCritSectLeave(&pClient->CritSect);
-
-            PSHCLEVENTPAYLOAD pPayload;
-            rc = ShClEventWait(pEvent, 30 * 1000, &pPayload);
+            /* We have to wait for the guest reporting the transfer as being initialized.
+             * Only then we can start reading stuff. */
+            rc = ShClTransferWaitForStatus(pTransfer, SHCL_TIMEOUT_DEFAULT_MS, SHCLTRANSFERSTATUS_INITIALIZED);
             if (RT_SUCCESS(rc))
             {
-                if (   !pPayload
-                    || !pPayload->cbData)
+                rc = ShClTransferRootListRead(pTransfer);
+                if (RT_SUCCESS(rc))
                 {
-                    rc = VERR_NO_DATA;
-                }
-                else
-                {
-                    *ppv = pPayload->pvData;
-                    *pcb = pPayload->cbData;
+# ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS_HTTP
+                    /* As soon as we register the transfer with the HTTP server, the transfer needs to have its roots set. */
+                    PSHCLHTTPSERVER const pHttpSrv = &pCtx->X11.HttpCtx.HttpServer;
+                    rc = ShClTransferHttpServerRegisterTransfer(pHttpSrv, pTransfer);
+                    if (RT_SUCCESS(rc))
+                    {
+                        char  *pszData;
+                        size_t cbData;
+                        rc = ShClTransferHttpConvertToStringList(pHttpSrv, pTransfer, &pszData, &cbData);
+                        if (RT_SUCCESS(rc))
+                        {
+                            *ppv = pszData;
+                            *pcb = cbData;
+                            /* ppv has ownership of pszData now. */
+                        }
+                    }
+# else
+                    rc = VERR_NOT_SUPPORTED;
+# endif /* VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS_HTTP */
                 }
             }
-
-            RTCritSectEnter(&pClient->CritSect);
-
-            ShClEventRelease(pEvent);
         }
     }
-
-    RTCritSectLeave(&pClient->CritSect);
+#endif /* VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS */
 
     if (RT_FAILURE(rc))
-        LogRel(("Shared Clipboard: Requesting data in format %#x for X11 host failed with %Rrc\n", uFmt, rc));
+        LogRel(("Shared Clipboard: Requesting X11 data in format %#x from guest failed with %Rrc\n", uFmt, rc));
 
     LogFlowFuncLeaveRC(rc);
     return rc;
 }
 
 #ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS
-
-int ShClBackendTransferCreate(PSHCLBACKEND pBackend, PSHCLCLIENT pClient, PSHCLTRANSFER pTransfer)
+/**
+ * Handles transfer status replies from the guest.
+ */
+int ShClBackendTransferHandleStatusReply(PSHCLBACKEND pBackend, PSHCLCLIENT pClient, PSHCLTRANSFER pTransfer, SHCLSOURCE enmSource, SHCLTRANSFERSTATUS enmStatus, int rcStatus)
 {
-    RT_NOREF(pBackend);
-#ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS_HTTP
-    return ShClHttpTransferRegister(&pClient->State.pCtx->X11.HttpCtx, pTransfer);
-#else
-    RT_NOREF(pClient, pTransfer);
-#endif
-    return VERR_NOT_IMPLEMENTED;
-}
+    RT_NOREF(pBackend, pClient, enmSource, rcStatus);
 
-int ShClBackendTransferDestroy(PSHCLBACKEND pBackend, PSHCLCLIENT pClient, PSHCLTRANSFER pTransfer)
-{
-    RT_NOREF(pBackend);
+    PSHCLCONTEXT pCtx = pClient->State.pCtx; RT_NOREF(pCtx);
+
+    if (ShClTransferGetDir(pTransfer) == SHCLTRANSFERDIR_FROM_REMOTE) /* Guest -> Host */
+    {
+        switch (enmStatus)
+        {
+            case SHCLTRANSFERSTATUS_INITIALIZED:
+            {
 #ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS_HTTP
-    return ShClHttpTransferUnregister(&pClient->State.pCtx->X11.HttpCtx, pTransfer);
-#else
-    RT_NOREF(pClient, pTransfer);
-#endif
+                int rc2 = ShClTransferHttpServerMaybeStart(&pCtx->X11.HttpCtx);
+                if (RT_SUCCESS(rc2))
+                {
+
+                }
+
+                if (RT_FAILURE(rc2))
+                    LogRel(("Shared Clipboard: Registering HTTP transfer failed: %Rrc\n", rc2));
+#endif /* VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS_HTTP */
+                break;
+            }
+
+            default:
+                break;
+        }
+    }
 
     return VINF_SUCCESS;
 }
 
-int ShClBackendTransferGetRoots(PSHCLBACKEND pBackend, PSHCLCLIENT pClient, PSHCLTRANSFER pTransfer)
-{
-    RT_NOREF(pBackend);
 
+/*********************************************************************************************************************************
+*   Provider interface implementation                                                                                            *
+*********************************************************************************************************************************/
+
+/** @copydoc SHCLTXPROVIDERIFACE::pfnRootListRead */
+static DECLCALLBACK(int) shClSvcX11TransferIfaceHGRootListRead(PSHCLTXPROVIDERCTX pCtx)
+{
     LogFlowFuncEnter();
 
-    PSHCLEVENT pEvent;
-    int rc = ShClEventSourceGenerateAndRegisterEvent(&pClient->EventSrc, &pEvent);
+    PSHCLCLIENT pClient = (PSHCLCLIENT)pCtx->pvUser;
+    AssertPtr(pClient);
+
+    AssertPtr(pClient->State.pCtx);
+    PSHCLX11CTX pX11 = &pClient->State.pCtx->X11;
+
+    /* X supplies the data asynchronously, so we need to wait for data to arrive first. */
+    void    *pvData;
+    uint32_t cbData;
+    int rc = ShClX11ReadDataFromX11Ex(pX11, &pClient->EventSrc, SHCL_TIMEOUT_DEFAULT_MS, VBOX_SHCL_FMT_URI_LIST,
+                                      &pvData, &cbData);
     if (RT_SUCCESS(rc))
     {
-        CLIPREADCBREQ *pReq = (CLIPREADCBREQ *)RTMemAllocZ(sizeof(CLIPREADCBREQ));
-        if (pReq)
-        {
-            pReq->idEvent = pEvent->idEvent;
+        rc = ShClTransferRootsSetFromStringList(pCtx->pTransfer, (const char *)pvData, cbData);
+        if (RT_SUCCESS(rc))
+            LogRel2(("Shared Clipboard: Host reported %RU64 X11 root entries for transfer to guest\n",
+                     ShClTransferRootsCount(pCtx->pTransfer)));
 
-            rc = ShClX11ReadDataFromX11(&pClient->State.pCtx->X11, VBOX_SHCL_FMT_URI_LIST, pReq);
-            if (RT_SUCCESS(rc))
-            {
-                /* X supplies the data asynchronously, so we need to wait for data to arrive first. */
-                PSHCLEVENTPAYLOAD pPayload;
-                rc = ShClEventWait(pEvent, 30 * 1000, &pPayload);
-                if (RT_SUCCESS(rc))
-                {
-                    rc = ShClTransferRootsSet(pTransfer,
-                                              (char *)pPayload->pvData, pPayload->cbData + 1 /* Include termination */);
-                }
-            }
-        }
-        else
-            rc = VERR_NO_MEMORY;
-
-        ShClEventRelease(pEvent);
+        RTMemFree(pvData);
     }
-    else
-        rc = VERR_SHCLPB_MAX_EVENTS_REACHED;
 
     LogFlowFuncLeaveRC(rc);
     return rc;

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -2887,7 +2887,7 @@ static int scmHelp(PCRTGETOPTDEF paOpts, size_t cOpts)
                             );
             if (cExtraAdvance)
                 RTPrintf("  %s, %s\n", paOpts[i].pszLong, paOpts[i + 1].pszLong);
-            else if (paOpts[i].iShort != SCMOPT_NO_UPDATE_LICENSE)
+            else if (paOpts[i].iShort != SCMOPT_NO_UPDATE_LICENSE || i + 6 >= cOpts /* paranoia */)
                 RTPrintf("  %s\n", paOpts[i].pszLong);
             else
             {
@@ -3146,7 +3146,7 @@ int main(int argc, char **argv)
             case 'V':
             {
                 /* The following is assuming that svn does it's job here. */
-                static const char s_szRev[] = "$Revision: 155710 $";
+                static const char s_szRev[] = "$Revision: 164827 $";
                 const char *psz = RTStrStripL(strchr(s_szRev, ' '));
                 RTPrintf("r%.*s\n", strchr(psz, ' ') - psz, psz);
                 return 0;

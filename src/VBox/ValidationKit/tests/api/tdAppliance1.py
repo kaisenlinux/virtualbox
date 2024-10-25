@@ -8,7 +8,7 @@ VirtualBox Validation Kit - IAppliance Test #1
 
 __copyright__ = \
 """
-Copyright (C) 2010-2023 Oracle and/or its affiliates.
+Copyright (C) 2010-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -37,7 +37,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 
 # Standard Python imports.
@@ -46,7 +46,7 @@ import sys
 import tarfile
 
 # Only the main script needs to modify the path.
-try:    __file__
+try:    __file__                            # pylint: disable=used-before-assignment
 except: __file__ = sys.argv[0]
 g_ksValidationKitDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(g_ksValidationKitDir)
@@ -171,7 +171,10 @@ class SubTstDrvAppliance1(base.SubTestDriverBase):
         try:
             os.mkdir(sTmpDir, 0o755);
             oTarFile = tarfile.open(sOva, 'r:*'); # No 'with' support in 2.6.   pylint: disable=consider-using-with
-            oTarFile.extractall(sTmpDir);
+            if hasattr(tarfile, 'tar_filter'):
+                oTarFile.extractall(sTmpDir, filter = 'tar');
+            else:
+                oTarFile.extractall(sTmpDir);
             oTarFile.close();
         except:
             return reporter.errorXcpt('Unpacking "%s" to "%s" for OVF style importing failed' % (sOvf, sTmpDir,));

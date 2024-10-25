@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2017-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2017-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -39,16 +39,18 @@
 #include <QMouseEvent>
 #include <QStyleOption>
 #include <QPainter>
+#include <QPainterPath>
+#include <QStyle>
+#include <QToolButton>
+#include <QWindow>
 #ifdef VBOX_WS_MAC
 # include <QStackedLayout>
 #endif
-#include <QStyle>
-#include <QToolButton>
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
 #include "UIIconPool.h"
 #include "UITabBar.h"
+#include "UITranslationEventListener.h"
 
 /* Other VBox includes: */
 #include "iprt/assert.h"
@@ -70,7 +72,7 @@ class QToolButton;
 
 
 /** Our own skinnable implementation of tabs for tab-bar. */
-class UITabBarItem : public QIWithRetranslateUI<QWidget>
+class UITabBarItem : public QWidget
 {
     Q_OBJECT;
 
@@ -110,9 +112,6 @@ protected:
     /** Handles any Qt @a pEvent. */
     virtual bool event(QEvent *pEvent) RT_OVERRIDE;
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
     /** Handles paint @a pEvent. */
     virtual void paintEvent(QPaintEvent *pEvent) RT_OVERRIDE;
 
@@ -123,11 +122,7 @@ protected:
     /** Handles mouse-move @a pEvent. */
     virtual void mouseMoveEvent(QMouseEvent *pEvent) RT_OVERRIDE;
     /** Handles mouse-enter @a pEvent. */
-#ifdef VBOX_IS_QT6_OR_LATER /* QWidget::enterEvent uses QEnterEvent since qt6 */
     virtual void enterEvent(QEnterEvent *pEvent) RT_OVERRIDE;
-#else
-    virtual void enterEvent(QEvent *pEvent) RT_OVERRIDE;
-#endif
     /** Handles mouse-leave @a pEvent. */
     virtual void leaveEvent(QEvent *pEvent) RT_OVERRIDE;
 
@@ -135,6 +130,9 @@ private slots:
 
     /** Handles close button click. */
     void sltCloseClicked() { emit sigCloseClicked(this); }
+
+    /** Handles translation event. */
+    void sltRetranslateUI();
 
 private:
 
@@ -243,10 +241,10 @@ bool UITabBarItem::event(QEvent *pEvent)
     }
 
     /* Call to base-class: */
-    return QIWithRetranslateUI<QWidget>::event(pEvent);
+    return QWidget::event(pEvent);
 }
 
-void UITabBarItem::retranslateUi()
+void UITabBarItem::sltRetranslateUI()
 {
     /* Translate label: */
     m_pLabelName->setText(m_pAction->text().remove('&'));
@@ -542,7 +540,7 @@ void UITabBarItem::mousePressEvent(QMouseEvent *pEvent)
         return QWidget::mousePressEvent(pEvent);
 
     /* Remember mouse-press position: */
-    m_mousePressPosition = pEvent->globalPos();
+    m_mousePressPosition = pEvent->globalPosition().toPoint();
 }
 
 void UITabBarItem::mouseReleaseEvent(QMouseEvent *pEvent)
@@ -565,7 +563,8 @@ void UITabBarItem::mouseMoveEvent(QMouseEvent *pEvent)
         return QWidget::mouseMoveEvent(pEvent);
 
     /* Make sure item is now being dragged: */
-    if (QLineF(pEvent->globalPos(), m_mousePressPosition).length() < QApplication::startDragDistance())
+    const QPoint gPos = pEvent->globalPosition().toPoint();
+    if (QLineF(gPos, m_mousePressPosition).length() < QApplication::startDragDistance())
         return QWidget::mouseMoveEvent(pEvent);
 
     /* Revoke hovered state: */
@@ -584,15 +583,12 @@ void UITabBarItem::mouseMoveEvent(QMouseEvent *pEvent)
     pMimeData->setData(MimeType, uuid().toByteArray());
     pDrag->setMimeData(pMimeData);
     const int iMetric = QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize);
-    pDrag->setPixmap(m_pAction->icon().pixmap(window()->windowHandle(), QSize(iMetric, iMetric)));
+    const qreal fDevicePixelRatio = window() && window()->windowHandle() ? window()->windowHandle()->devicePixelRatio() : 1;
+    pDrag->setPixmap(m_pAction->icon().pixmap(QSize(iMetric, iMetric), fDevicePixelRatio));
     pDrag->exec();
 }
 
-#ifdef VBOX_IS_QT6_OR_LATER /* QWidget::enterEvent uses QEnterEvent since qt6 */
 void UITabBarItem::enterEvent(QEnterEvent *pEvent)
-#else
-void UITabBarItem::enterEvent(QEvent *pEvent)
-#endif
 {
     /* Make sure button isn't hovered: */
     if (m_fHovered)
@@ -716,14 +712,17 @@ void UITabBarItem::prepare()
     updatePixmap();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+        this, &UITabBarItem::sltRetranslateUI);
 }
 
 void UITabBarItem::updatePixmap()
 {
     /* Configure label icon: */
     const int iMetric = QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize);
-    m_pLabelIcon->setPixmap(m_pAction->icon().pixmap(window()->windowHandle(), QSize(iMetric, iMetric)));
+    const qreal fDevicePixelRatio = window() && window()->windowHandle() ? window()->windowHandle()->devicePixelRatio() : 1;
+    m_pLabelIcon->setPixmap(m_pAction->icon().pixmap(QSize(iMetric, iMetric), fDevicePixelRatio));
 }
 
 
@@ -894,6 +893,8 @@ void UITabBar::dragMoveEvent(QDragMoveEvent *pEvent)
 {
     /* Make sure event is valid: */
     AssertPtrReturnVoid(pEvent);
+    const QPoint lPos = pEvent->position().toPoint();
+
     /* And mime-data is set: */
     const QMimeData *pMimeData = pEvent->mimeData();
     AssertPtrReturnVoid(pMimeData);
@@ -906,15 +907,13 @@ void UITabBar::dragMoveEvent(QDragMoveEvent *pEvent)
     m_pItemToken = 0;
     m_fDropAfterTokenItem = true;
 
-    /* Get event position: */
-    const QPoint pos = pEvent->pos();
     /* Search for most suitable item: */
     foreach (UITabBarItem *pItem, m_aItems)
     {
         /* Advance token: */
         m_pItemToken = pItem;
         const QRect geo = m_pItemToken->geometry();
-        if (pos.x() < geo.center().x())
+        if (lPos.x() < geo.center().x())
         {
             m_fDropAfterTokenItem = false;
             break;
@@ -1080,4 +1079,3 @@ void UITabBar::updateChildrenStyles()
 }
 
 #include "UITabBar.moc"
-

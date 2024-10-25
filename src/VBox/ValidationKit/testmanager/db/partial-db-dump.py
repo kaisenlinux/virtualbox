@@ -9,7 +9,7 @@ Utility for dumping the last X days of data.
 
 __copyright__ = \
 """
-Copyright (C) 2012-2023 Oracle and/or its affiliates.
+Copyright (C) 2012-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -38,7 +38,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 # Standard python imports
 import sys;
@@ -264,8 +264,8 @@ COPY (SELECT * FROM TestBoxStrTab WHERE idStr IN (
 
         try:
             oZipFile = zipfile.ZipFile(self.oConfig.sFilename, 'r');
-        except:
-            print('error: Dump file "%s" cannot be opened! Use "-f <file>" to specify a file.' % (self.oConfig.sFilename,));
+        except oXcpt:
+            print('error: Failed to open dump file "%s": %s' % (self.oConfig.sFilename, oXcpt));
             return 1;
 
         asTablesInLoadOrder = [

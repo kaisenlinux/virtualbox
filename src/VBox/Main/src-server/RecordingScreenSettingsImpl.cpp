@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2018-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2018-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -52,6 +52,7 @@ struct RecordingScreenSettings::Data
 {
     Data()
         : pParent(NULL)
+        , uScreenId(0)
         , cRefs(0)
     { }
 
@@ -63,7 +64,7 @@ struct RecordingScreenSettings::Data
     int32_t                                  cRefs;
 
     // use the XML settings structure in the members for simplicity
-    Backupable<settings::RecordingScreenSettings> bd;
+    Backupable<settings::RecordingScreen>    bd;
 };
 
 // constructor / destructor
@@ -91,7 +92,7 @@ void RecordingScreenSettings::FinalRelease()
  * @returns COM result indicator
  */
 HRESULT RecordingScreenSettings::init(RecordingSettings *aParent, uint32_t uScreenId,
-                                      const settings::RecordingScreenSettings& aThat)
+                                      const settings::RecordingScreen& aThat)
 {
     LogFlowThisFunc(("aParent: %p\n", aParent));
 
@@ -1090,9 +1091,9 @@ int RecordingScreenSettings::i_initInternal(void)
  * May be called once right after this object creation.
  *
  * @returns HRESULT
- * @param   data                Configuration settings to load.
+ * @param   Settings            Screen settings to load.
  */
-HRESULT RecordingScreenSettings::i_loadSettings(const settings::RecordingScreenSettings &data)
+HRESULT RecordingScreenSettings::i_loadSettings(const settings::RecordingScreen &Settings)
 {
     AutoCaller autoCaller(this);
     AssertComRCReturnRC(autoCaller.hrc());
@@ -1101,7 +1102,7 @@ HRESULT RecordingScreenSettings::i_loadSettings(const settings::RecordingScreenS
     AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
 
     // simply copy
-    m->bd.assignCopy(&data);
+    m->bd.assignCopy(&Settings);
     return S_OK;
 }
 
@@ -1109,9 +1110,9 @@ HRESULT RecordingScreenSettings::i_loadSettings(const settings::RecordingScreenS
  *  Saves settings to the given machine node.
  *
  *  @returns HRESULT
- *  @param   data               Configuration settings to save to.
+ *  @param   Settings           Screen settings to save to.
  */
-HRESULT RecordingScreenSettings::i_saveSettings(settings::RecordingScreenSettings &data)
+HRESULT RecordingScreenSettings::i_saveSettings(settings::RecordingScreen &Settings)
 {
     LogThisFunc(("%p: Screen %RU32\n", this, m ? m->uScreenId : UINT32_MAX));
 
@@ -1121,7 +1122,7 @@ HRESULT RecordingScreenSettings::i_saveSettings(settings::RecordingScreenSetting
 
     AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
 
-    data = *m->bd.data();
+    Settings = *m->bd.data();
 
     return S_OK;
 }
@@ -1195,7 +1196,7 @@ void RecordingScreenSettings::i_applyDefaults(void)
     m->bd->applyDefaults();
 }
 
-settings::RecordingScreenSettings &RecordingScreenSettings::i_getData(void)
+settings::RecordingScreen &RecordingScreenSettings::i_getData(void)
 {
     /* sanity */
     AutoCaller autoCaller(this);

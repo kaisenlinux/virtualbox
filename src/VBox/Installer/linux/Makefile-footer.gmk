@@ -6,7 +6,7 @@
 #
 
 #
-# Copyright (C) 2006-2023 Oracle and/or its affiliates.
+# Copyright (C) 2006-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -39,7 +39,19 @@ VBOXMOD_0_KFLAGS := -D__KERNEL__ -DMODULE -DRT_WITHOUT_PRAGMA_ONCE $(addprefix -
 ifeq ($(VBOX_KBUILD_TARGET_ARCH),amd64)
 VBOXMOD_0_KFLAGS += -DRT_ARCH_AMD64
 else
-VBOXMOD_0_KFLAGS += -DRT_ARCH_X86
+ ifeq ($(VBOX_KBUILD_TARGET_ARCH),x86)
+  VBOXMOD_0_KFLAGS += -DRT_ARCH_X86
+ else
+  ifeq ($(VBOX_KBUILD_TARGET_ARCH),arm64)
+   VBOXMOD_0_KFLAGS += -DRT_ARCH_ARM64
+  else
+   ifeq ($(VBOX_KBUILD_TARGET_ARCH),arm32)
+    VBOXMOD_0_KFLAGS += -DRT_ARCH_ARM32
+   else
+    $(error The variable VBOX_KBUILD_TARGET_ARCH doesn't contain any of the following: amd64, x86, arm64, arm32)
+   endif
+  endif
+ endif
 endif
 
 ifeq ($(VBOX_KBUILD_TYPE),debug)

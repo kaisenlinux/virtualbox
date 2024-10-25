@@ -3,7 +3,7 @@
  * VBox USB Monitor Device Filtering functionality
  */
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1687,8 +1687,8 @@ NTSTATUS VBoxUsbFltInit()
      */
     RTL_QUERY_REGISTRY_TABLE aParams[] =
     {
-        {vboxUsbFltRegKeyQuery, 0, L"ForceReplugWhenDevPopulateFails", &g_VBoxUsbFltGlobals.dwForceReplugWhenDevPopulateFails, REG_DWORD, &g_VBoxUsbFltGlobals.dwForceReplugWhenDevPopulateFails, sizeof(ULONG) },
-        {                 NULL, 0,                               NULL,                                                   NULL,         0,                                                     0,             0 }
+        {vboxUsbFltRegKeyQuery, 0, (PWSTR)L"ForceReplugWhenDevPopulateFails", &g_VBoxUsbFltGlobals.dwForceReplugWhenDevPopulateFails, REG_DWORD, &g_VBoxUsbFltGlobals.dwForceReplugWhenDevPopulateFails, sizeof(ULONG) },
+        {                 NULL, 0,                                      NULL,                                                   NULL,         0,                                                      0,             0 }
     };
     UNICODE_STRING UnicodePath = RTL_CONSTANT_STRING(L"\\VBoxUSB");
 

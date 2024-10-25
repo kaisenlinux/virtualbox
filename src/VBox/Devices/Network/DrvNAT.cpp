@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -270,11 +270,9 @@ static DECLCALLBACK(int) drvNATRecvWakeup(PPDMDRVINS pDrvIns, PPDMTHREAD pThread
 {
     RT_NOREF(pThread);
     PDRVNAT pThis = PDMINS_2_DATA(pDrvIns, PDRVNAT);
-    int rc;
-    rc = RTSemEventSignal(pThis->EventRecv);
 
     STAM_COUNTER_INC(&pThis->StatNATRecvWakeups);
-    return VINF_SUCCESS;
+    return RTSemEventSignal(pThis->EventRecv);
 }
 
 
@@ -514,8 +512,8 @@ static DECLCALLBACK(int) drvNATNetworkUp_AllocBuf(PPDMINETWORKUP pInterface, siz
      */
     if (pThis->pSlirpThread->enmState != PDMTHREADSTATE_RUNNING)
     {
-        Log(("drvNATNetowrkUp_AllocBuf: returns VERR_NET_NO_NETWORK\n"));
-        return VERR_NET_NO_NETWORK;
+        Log(("drvNATNetowrkUp_AllocBuf: returns VERR_NET_DOWN\n"));
+        return VERR_NET_DOWN;
     }
 
     /*
@@ -611,8 +609,7 @@ static DECLCALLBACK(int) drvNATNetworkUp_SendBuf(PPDMINETWORKUP pInterface, PPDM
     int rc;
     if (pThis->pSlirpThread->enmState == PDMTHREADSTATE_RUNNING)
     {
-        rc = RTReqQueueCallEx(pThis->hSlirpReqQueue, NULL /*ppReq*/, 0 /*cMillies*/,
-                              RTREQFLAGS_VOID | RTREQFLAGS_NO_WAIT,
+        rc = RTReqQueueCallEx(pThis->hSlirpReqQueue, NULL /*ppReq*/, 0 /*cMillies*/, RTREQFLAGS_VOID | RTREQFLAGS_NO_WAIT,
                               (PFNRT)drvNATSendWorker, 2, pThis, pSgBuf);
         if (RT_SUCCESS(rc))
         {
@@ -964,13 +961,13 @@ static DECLCALLBACK(int) drvNATHostResWakeup(PPDMDRVINS pDrvIns, PPDMTHREAD pThr
     Assert(pThis != NULL);
 
     int rc;
-    rc = RTReqQueueCallEx(pThis->hHostResQueue, NULL /*ppReq*/, 0 /*cMillies*/,
-                          RTREQFLAGS_IPRT_STATUS | RTREQFLAGS_NO_WAIT,
+    rc = RTReqQueueCallEx(pThis->hHostResQueue, NULL /*ppReq*/, 0 /*cMillies*/, RTREQFLAGS_IPRT_STATUS | RTREQFLAGS_NO_WAIT,
                           (PFNRT)drvNATReqQueueInterrupt, 0);
     return rc;
 }
 
 
+#if 0 /* unused */
 /**
  * Function called by slirp to check if it's possible to feed incoming data to the network port.
  * @returns 1 if possible.
@@ -982,12 +979,13 @@ int slirp_can_output(void *pvUser)
     return 1;
 }
 
-void slirp_push_recv_thread(void *pvUser)
+static void slirp_push_recv_thread(void *pvUser)
 {
     PDRVNAT pThis = (PDRVNAT)pvUser;
     Assert(pThis);
     drvNATUrgRecvWakeup(pThis->pDrvIns, pThis->pUrgRecvThread);
 }
+#endif
 
 void slirp_urg_output(void *pvUser, struct mbuf *m, const uint8_t *pu8Buf, int cb)
 {
@@ -1045,8 +1043,7 @@ void slirp_output(void *pvUser, struct mbuf *m, const uint8_t *pu8Buf, int cb)
 /*
  * Call a function on the slirp thread.
  */
-int slirp_call(void *pvUser, PRTREQ *ppReq, RTMSINTERVAL cMillies,
-               unsigned fFlags, PFNRT pfnFunction, unsigned cArgs, ...)
+int slirp_call(void *pvUser, PRTREQ *ppReq, RTMSINTERVAL cMillies, unsigned fFlags, PFNRT pfnFunction, unsigned cArgs, ...)
 {
     PDRVNAT pThis = (PDRVNAT)pvUser;
     Assert(pThis);
@@ -1084,8 +1081,7 @@ int slirp_call_hostres(void *pvUser, PRTREQ *ppReq, RTMSINTERVAL cMillies,
     va_list va;
     va_start(va, cArgs);
 
-    rc = RTReqQueueCallV(pThis->hHostResQueue, ppReq, cMillies, fFlags,
-                         pfnFunction, cArgs, va);
+    rc = RTReqQueueCallV(pThis->hHostResQueue, ppReq, cMillies, fFlags, pfnFunction, cArgs, va);
 
     va_end(va);
     return rc;
@@ -1100,8 +1096,9 @@ int slirp_call_hostres(void *pvUser, PRTREQ *ppReq, RTMSINTERVAL cMillies,
  * the current setup we don't get any details and just reread that
  * information ourselves.
  */
-static DECLCALLBACK(void) drvNATNotifyDnsChanged(PPDMINETWORKNATCONFIG pInterface)
+static DECLCALLBACK(void) drvNATNotifyDnsChanged(PPDMINETWORKNATCONFIG pInterface, PCPDMINETWORKNATDNSCONFIG pDnsConf)
 {
+    RT_NOREF(pDnsConf);
     PDRVNAT pThis = RT_FROM_MEMBER(pInterface, DRVNAT, INetworkNATCfg);
     drvNATUpdateDNS(pThis, /* fFlapLink */ true);
 }
@@ -1290,8 +1287,7 @@ DECLINLINE(void) drvNATUpdateDNS(PDRVNAT pThis, bool fFlapLink)
              * It's unsafe to to do it directly on non-NAT thread
              * so we schedule the worker and kick the NAT thread.
              */
-            int rc = RTReqQueueCallEx(pThis->hSlirpReqQueue, NULL /*ppReq*/, 0 /*cMillies*/,
-                                      RTREQFLAGS_VOID | RTREQFLAGS_NO_WAIT,
+            int rc = RTReqQueueCallEx(pThis->hSlirpReqQueue, NULL /*ppReq*/, 0 /*cMillies*/, RTREQFLAGS_VOID | RTREQFLAGS_NO_WAIT,
                                       (PFNRT)drvNATReinitializeHostNameResolving, 1, pThis);
             if (RT_SUCCESS(rc))
                 drvNATNotifyNATThread(pThis, "drvNATUpdateDNS");
@@ -1759,9 +1755,15 @@ static DECLCALLBACK(int) drvNATConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, uin
             rc = RTReqQueueCreate(&pThis->hHostResQueue);
             AssertRCReturn(rc, rc);
 
+#if defined(RT_OS_LINUX) && defined(RT_ARCH_ARM64)
+            /* 64KiB stacks are not supported at least linux.arm64 (thread creation fails). */
+            size_t const cbStack = _128K;
+#else
+            size_t const cbStack = _64K;
+#endif
             rc = PDMDrvHlpThreadCreate(pThis->pDrvIns, &pThis->pHostResThread,
                                        pThis, drvNATHostResThread, drvNATHostResWakeup,
-                                       64 * _1K, RTTHREADTYPE_IO, "HOSTRES");
+                                       cbStack, RTTHREADTYPE_IO, "HOSTRES");
             AssertRCReturn(rc, rc);
 
             rc = RTCritSectInit(&pThis->DevAccessLock);
@@ -1912,4 +1914,3 @@ const PDMDRVREG g_DrvNAT =
     /* u32EndVersion */
     PDM_DRVREG_VERSION
 };
-

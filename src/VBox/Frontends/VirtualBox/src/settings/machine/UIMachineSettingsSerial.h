@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -36,23 +36,23 @@
 
 /* Forward declarations: */
 class QITabWidget;
-class UIMachineSettingsSerialPage;
+class UISerialSettingsEditor;
 struct UIDataSettingsMachineSerial;
 struct UIDataSettingsMachineSerialPort;
 typedef UISettingsCache<UIDataSettingsMachineSerialPort> UISettingsCacheMachineSerialPort;
 typedef UISettingsCachePool<UIDataSettingsMachineSerial, UISettingsCacheMachineSerialPort> UISettingsCacheMachineSerial;
 
 /** Machine settings: Serial page. */
-class SHARED_LIBRARY_STUFF UIMachineSettingsSerialPage : public UISettingsPageMachine
+class SHARED_LIBRARY_STUFF UIMachineSettingsSerial : public UISettingsPageMachine
 {
     Q_OBJECT;
 
 public:
 
     /** Constructs Serial settings page. */
-    UIMachineSettingsSerialPage();
+    UIMachineSettingsSerial();
     /** Destructs Serial settings page. */
-    virtual ~UIMachineSettingsSerialPage() RT_OVERRIDE;
+    virtual ~UIMachineSettingsSerial() RT_OVERRIDE;
 
     /** Returns ports. */
     QVector<QPair<QString, QString> > ports() const { return m_ports; }
@@ -81,9 +81,6 @@ protected:
     /** Performs validation, updates @a messages list if something is wrong. */
     virtual bool validate(QList<UIValidationMessage> &messages) RT_OVERRIDE;
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
     /** Performs final page polishing. */
     virtual void polishPage() RT_OVERRIDE;
 
@@ -93,18 +90,45 @@ private slots:
     void sltHandlePortChange();
     /** Handles path change. */
     void sltHandlePathChange();
+    /** Handles translation event. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 
     /** Prepares all. */
     void prepare();
+    /** Prepares widgets. */
+    void prepareWidgets();
+    /** Prepare tab. */
+    void prepareTab();
+    /** Prepares connections. */
+    void prepareConnections(UISerialSettingsEditor *pTabEditor);
     /** Cleanups all. */
     void cleanup();
+
+    /** Performs tab polishing for specified @a iSlot. */
+    void polishTab(int iSlot);
+
+    /** Loads port data for specified @a iSlot from @a portCache to corresponding widgets. */
+    void getFromCache(int iSlot, const UISettingsCacheMachineSerialPort &portCache);
+    /** Saves port data for specified @a iSlot from corresponding widgets to @a portCache. */
+    void putToCache(int iSlot, UISettingsCacheMachineSerialPort &portCache);
+
+    /** Returns IRQ for specified @a iSlot. */
+    QString irq(int iSlot) const;
+    /** Returns IO address for specified @a iSlot. */
+    QString ioAddress(int iSlot) const;
+
+    /** Performs validation for specified @a iSlot, updates @a messages list if something is wrong. */
+    bool validate(int iSlot, QList<UIValidationMessage> &messages);
 
     /** Repopulates ports. */
     void refreshPorts();
     /** Repopulates paths. */
     void refreshPaths();
+
+    /** Returns tab title for specified @a iSlot. */
+    static QString tabTitle(int iSlot);
 
     /** Saves existing data from cache. */
     bool saveData();
@@ -121,6 +145,9 @@ private:
 
     /** Holds the tab-widget instance. */
     QITabWidget *m_pTabWidget;
+
+    /** Holds the list of tab-editors. */
+    QList<UISerialSettingsEditor*>  m_tabEditors;
 };
 
 #endif /* !FEQT_INCLUDED_SRC_settings_machine_UIMachineSettingsSerial_h */

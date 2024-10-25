@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2022-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2022-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -34,6 +34,8 @@
 #include <VBox/com/VirtualBox.h>
 #include <VBox/com/errorprint.h>
 
+#include <iprt/crypto/shacrypt.h>
+
 #include <iprt/file.h>
 #include <iprt/path.h>
 #include <iprt/test.h>
@@ -56,7 +58,8 @@ Unattended::Unattended()
     , mpInstaller(NULL), mpTimeZoneInfo(NULL), mfIsDefaultAuxiliaryBasePath(true), mfDoneDetectIsoOS(false)
 {
     mStrUser                            = "vboxuser";
-    mStrPassword                        = "changeme";
+    mStrUserPassword                    = "changeme";
+    mStrAdminPassword                   = "adminpw";
     mStrFullUserName                    = "VBox & VBox;";
     mStrProductKey                      = "911";
     mStrIsoPath                         = "/iso/path/file.iso";
@@ -86,6 +89,7 @@ Unattended::Unattended()
     mStrDetectedOSFlavor                = "server";
     //mDetectedOSLanguages                = "en_UK"
     mStrDetectedOSHints                 = "nudge nudge wink wink";
+    mStrAdditionsInstallPackage         = "Something-none-existing.run";
 }
 
 Unattended::~Unattended()
@@ -164,13 +168,25 @@ HRESULT Unattended::setUser(const com::Utf8Str &user)
     return E_NOTIMPL;
 }
 
-HRESULT Unattended::getPassword(com::Utf8Str &password)
+HRESULT Unattended::getUserPassword(com::Utf8Str &password)
 {
     RT_NOREF(password);
     return E_NOTIMPL;
 }
 
-HRESULT Unattended::setPassword(const com::Utf8Str &password)
+HRESULT Unattended::setUserPassword(const com::Utf8Str &password)
+{
+    RT_NOREF(password);
+    return E_NOTIMPL;
+}
+
+HRESULT Unattended::getAdminPassword(com::Utf8Str &password)
+{
+    RT_NOREF(password);
+    return E_NOTIMPL;
+}
+
+HRESULT Unattended::setAdminPassword(const com::Utf8Str &password)
 {
     RT_NOREF(password);
     return E_NOTIMPL;
@@ -248,6 +264,30 @@ HRESULT Unattended::setInstallTestExecService(BOOL aInstallTestExecService)
     return E_NOTIMPL;
 }
 
+HRESULT Unattended::getUserPayloadIsoPath(com::Utf8Str &userPayloadIsoPath)
+{
+    RT_NOREF(userPayloadIsoPath);
+    return E_NOTIMPL;
+}
+
+HRESULT Unattended::setUserPayloadIsoPath(const com::Utf8Str &userPayloadIsoPath)
+{
+    RT_NOREF(userPayloadIsoPath);
+    return E_NOTIMPL;
+}
+
+HRESULT Unattended::getInstallUserPayload(BOOL *installUserPayload)
+{
+    RT_NOREF(installUserPayload);
+    return E_NOTIMPL;
+}
+
+HRESULT Unattended::setInstallUserPayload(BOOL installUserPayload)
+{
+    RT_NOREF(installUserPayload);
+    return E_NOTIMPL;
+}
+
 HRESULT Unattended::getTimeZone(com::Utf8Str &aTimeZone)
 {
     RT_NOREF(aTimeZone);
@@ -257,6 +297,30 @@ HRESULT Unattended::getTimeZone(com::Utf8Str &aTimeZone)
 HRESULT Unattended::setTimeZone(const com::Utf8Str &aTimezone)
 {
     RT_NOREF(aTimezone);
+    return E_NOTIMPL;
+}
+
+HRESULT Unattended::getKeyboardLayout(com::Utf8Str &aKeyboardLayout)
+{
+    RT_NOREF(aKeyboardLayout);
+    return E_NOTIMPL;
+}
+
+HRESULT Unattended::setKeyboardLayout(const com::Utf8Str &aKeyboardLayout)
+{
+    RT_NOREF(aKeyboardLayout);
+    return E_NOTIMPL;
+}
+
+HRESULT Unattended::getKeyboardVariant(com::Utf8Str &aKeyboardVariant)
+{
+    RT_NOREF(aKeyboardVariant);
+    return E_NOTIMPL;
+}
+
+HRESULT Unattended::setKeyboardVariant(const com::Utf8Str &aKeyboardVariant)
+{
+    RT_NOREF(aKeyboardVariant);
     return E_NOTIMPL;
 }
 
@@ -492,9 +556,16 @@ Utf8Str const &Unattended::i_getUser() const
     return mStrUser;
 }
 
-Utf8Str const &Unattended::i_getPassword() const
+Utf8Str const &Unattended::i_getUserPassword() const
 {
-    return mStrPassword;
+    return mStrUserPassword;
+}
+
+Utf8Str const &Unattended::i_getAdminPassword() const
+{
+    /* If no Administrator / 'root' password is being set, the user password will be used instead.
+     * Also see API documentation. */
+    return mStrAdminPassword.isEmpty() ? mStrUserPassword : mStrAdminPassword;
 }
 
 Utf8Str const &Unattended::i_getFullUserName() const
@@ -607,6 +678,11 @@ Utf8Str const &Unattended::i_getExtraInstallKernelParameters() const
     return mStrExtraInstallKernelParameters;
 }
 
+Utf8Str const &Unattended::i_getAdditionsInstallPackage() const
+{
+    return mStrAdditionsInstallPackage;
+}
+
 bool Unattended::i_isRtcUsingUtc() const
 {
     return mfRtcUseUtc;
@@ -696,7 +772,7 @@ static void doTest1()
     /* Compare the two. */
     if (strExpected != strActual)
     {
-        RTTestIFailed("Output does not match tstUnattendedScript-1.expect!");
+        RTTestIFailed("Output does not match tstUnattendedScript-1.expected!");
         RTTestIFailureDetails("------ BEGIN OUTPUT ------\n");
         RTStrmWrite(g_pStdErr, strActual.c_str(), strActual.length());
         RTTestIFailureDetails("------- END OUTPUT -------\n");

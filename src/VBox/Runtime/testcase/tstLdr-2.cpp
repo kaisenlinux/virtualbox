@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -48,15 +48,15 @@
 #include <iprt/string.h>
 
 
-bool MyDisBlock(uint8_t const *pbCodeBlock, int32_t cbMax)
+static bool MyDisBlock(uint8_t const *pbCodeBlock, int32_t cbMax)
 {
-    DISCPUSTATE Cpu;
+    DISSTATE Dis;
     int32_t i = 0;
     while (i < cbMax)
     {
         char        szOutput[256];
         uint32_t    cbInstr;
-        if (RT_FAILURE(DISInstrToStr(pbCodeBlock + i, DISCPUMODE_32BIT, &Cpu, &cbInstr, szOutput, sizeof(szOutput))))
+        if (RT_FAILURE(DISInstrToStr(pbCodeBlock + i, DISCPUMODE_32BIT, &Dis, &cbInstr, szOutput, sizeof(szOutput))))
             return false;
 
         RTPrintf("%s", szOutput);

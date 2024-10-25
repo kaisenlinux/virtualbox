@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,17 +32,16 @@
 
 /* GUI includes: */
 #include "QIAdvancedSlider.h"
-#include "UICommon.h"
 #include "UIDesktopWidgetWatchdog.h"
+#include "UIGlobalSession.h"
 #include "UIMonitorCountEditor.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CSystemProperties.h"
 
 
 UIMonitorCountEditor::UIMonitorCountEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent, true /* show in basic mode? */)
     , m_iValue(1)
     , m_pLayout(0)
     , m_pLabel(0)
@@ -82,7 +81,7 @@ void UIMonitorCountEditor::setMinimumLayoutIndent(int iIndent)
         m_pLayout->setColumnMinimumWidth(0, iIndent);
 }
 
-void UIMonitorCountEditor::retranslateUi()
+void UIMonitorCountEditor::sltRetranslateUI()
 {
     if (m_pLabel)
         m_pLabel->setText(tr("Mo&nitor Count:"));
@@ -129,7 +128,7 @@ void UIMonitorCountEditor::sltHandleSpinBoxChange()
 void UIMonitorCountEditor::prepare()
 {
     /* Prepare common variables: */
-    const CSystemProperties comProperties = uiCommon().virtualBox().GetSystemProperties();
+    const CSystemProperties comProperties = gpGlobalSession->virtualBox().GetSystemProperties();
 
     /* Prepare main layout: */
     m_pLayout = new QGridLayout(this);
@@ -200,9 +199,9 @@ void UIMonitorCountEditor::prepare()
         connect(m_pSlider, &QIAdvancedSlider::valueChanged,
                 this, &UIMonitorCountEditor::sltHandleSliderChange);
     if (m_pSpinBox)
-        connect(m_pSpinBox, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged),
+        connect(m_pSpinBox, &QSpinBox::valueChanged,
                 this, &UIMonitorCountEditor::sltHandleSpinBoxChange);
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }

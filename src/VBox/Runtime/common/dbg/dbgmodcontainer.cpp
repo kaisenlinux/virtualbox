@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -878,9 +878,9 @@ static DECLCALLBACK(int) rtDbgModContainer_Close(PRTDBGMODINT pMod)
 
 
 /** @copydoc RTDBGMODVTDBG::pfnTryOpen */
-static DECLCALLBACK(int) rtDbgModContainer_TryOpen(PRTDBGMODINT pMod, RTLDRARCH enmArch)
+static DECLCALLBACK(int) rtDbgModContainer_TryOpen(PRTDBGMODINT pMod, RTLDRARCH enmArch, RTDBGCFG hDbgCfg)
 {
-    NOREF(pMod); NOREF(enmArch);
+    NOREF(pMod); NOREF(enmArch); RT_NOREF_PV(hDbgCfg);
     return VERR_INTERNAL_ERROR_5;
 }
 

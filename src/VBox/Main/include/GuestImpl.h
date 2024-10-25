@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -130,7 +130,7 @@ public:
     int         i_dispatchToSession(PVBOXGUESTCTRLHOSTCBCTX pCtxCb, PVBOXGUESTCTRLHOSTCALLBACK pSvcCb);
     int         i_sessionCreate(const GuestSessionStartupInfo &ssInfo, const GuestCredentials &guestCreds,
                                 ComObjPtr<GuestSession> &pGuestSession);
-    int         i_sessionDestroy(uint32_t uSessionID);
+    int         i_sessionRemove(uint32_t uSessionID);
     inline bool i_sessionExists(uint32_t uSessionID);
     /** Returns the VBOX_GUESTCTRL_GF_0_XXX mask reported by the guest. */
     uint64_t    i_getGuestControlFeatures0() const { return mData.mfGuestFeatures0; }

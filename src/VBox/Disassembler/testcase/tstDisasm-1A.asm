@@ -4,7 +4,7 @@
 ;
 
 ;
-; Copyright (C) 2006-2023 Oracle and/or its affiliates.
+; Copyright (C) 2006-2024 Oracle and/or its affiliates.
 ;
 ; This file is part of VirtualBox base platform packages, as
 ; available from https://www.virtualbox.org.
@@ -163,6 +163,8 @@ BEGINPROC   TestProc32
         paddd       mm1, mm3
         paddd       xmm1, xmm3
 
+        lds eax, [ebx]
+        les ebp, [esp]
 %if __YASM_VERSION_ID__ >= 001030000h ; Old yasm doesn't support the instructions below
         adcx        eax, ebx
         adcx        eax, [edi]
@@ -180,6 +182,8 @@ BEGINPROC   TestProc32
         vpmovzxbq  ymm1, [100h]
         vgatherqps xmm0,dword [eax+xmm0*2],xmm0
         vgatherqpd xmm0,qword [eax+xmm0*2],xmm0
+        vpsrld      ymm5, ymm1, 009h
+        vpslld      ymm0, ymm7, 01ah
 %endif
 
         movbe       eax, [edi]
@@ -385,6 +389,10 @@ BEGINPROC TestProc64
         vpunpcklbw ymm1, ymm2, ymm3
         vpmovsxbw  ymm4,[0x100]
         vgatherqpd xmm0,qword [rbx+xmm11*2],xmm2
+
+        vpsrld      ymm5, ymm1, 009h
+        vpsrld      ymm8, ymm12, 011h
+        vpslld      ymm0, ymm7, 01ah
 %endif
 
         popcnt      ax, bx
@@ -467,6 +475,85 @@ BEGINPROC TestProc64
         vpmovmskb eax, xmm3
         vpmovmskb rax, xmm3
         vpmovmskb r11, ymm9
+
+        sha1nexte xmm0, xmm1
+        sha1msg1  xmm0, xmm1
+        sha1msg2  xmm0, xmm1
+        sha1rnds4 xmm1, xmm2, 0
+        sha1rnds4 xmm1, xmm2, 1
+        sha256msg1 xmm0, xmm1
+        sha256msg2 xmm0, xmm1
+        sha256rnds2 xmm0, xmm1
+
+        vpsrldq xmm1, xmm2, 3
+        db 066h
+        vpsrldq xmm1, xmm2, 3
+        vpsllq xmm15, xmm8, 99
+        vcmpps xmm1, xmm2, xmm3, 1
+        vcmpps ymm1, ymm2, ymm3, 1
+        vcmppd xmm1, xmm2, xmm3, 1
+        vcmppd ymm1, ymm2, ymm3, 1
+        vcmpss xmm1, xmm2, xmm3, 1
+        vcmpsd xmm1, xmm2, xmm3, 1
+
+        vcvtsi2ss xmm0, xmm1, ecx
+        vcvtsi2ss xmm0, xmm1, rcx
+        vcvtsi2sd xmm0, xmm1, ecx
+        vcvtsi2sd xmm0, xmm1, rcx
+
+        vcvttss2si ecx, xmm0
+        vcvttss2si ecx, [rax]
+        vcvttss2si ecx, [eax]
+        vcvttss2si rcx, xmm0
+        vcvttss2si rcx, [rax]
+        vcvttss2si rcx, [eax]
+        vcvtss2si  ecx, xmm0
+        vcvtss2si  ecx, [rax]
+        vcvtss2si  ecx, [eax]
+        vcvtss2si  rcx, xmm0
+        vcvtss2si  rcx, [rax]
+        vcvtss2si  rcx, [eax]
+        vcvttsd2si ecx, xmm0
+        vcvttsd2si ecx, [rax]
+        vcvttsd2si ecx, [eax]
+        vcvttsd2si rcx, xmm0
+        vcvttsd2si rcx, [rax]
+        vcvttsd2si rcx, [eax]
+        vcvtsd2si  ecx, xmm0
+        vcvtsd2si  ecx, [rax]
+        vcvtsd2si  ecx, [eax]
+        vcvtsd2si  rcx, xmm0
+        vcvtsd2si  rcx, [rax]
+        vcvtsd2si  rcx, [eax]
+
+        ; group 7 stuff.
+        vmcall
+        vmlaunch
+        vmresume
+        vmxoff
+        monitor
+        mwait
+        clac
+        stac
+        encls
+        xgetbv
+        xsetbv
+        vmfunc
+        xend
+        xtest
+        enclu
+        swpgs
+        rdtscp
+        rdfsbase rax
+        wrgsbase r15
+        rdrand rax
+        vmxon [rax]
+
+        cmpxchg8b [rdi]
+        lock cmpxchg8b [rdi]
+        cmpxchg16b [rdi]
+        lock cmpxchg16b [rdi]
+        vmptrst [rsi + 1]
 
         ret
 ENDPROC   TestProc64

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,28 +35,21 @@
 #include <QWidget>
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CGuest.h"
 #include "CEventListener.h"
 
 /* GUI includes: */
 #include "QIManagerDialog.h"
-#include "QIWithRetranslateUI.h"
 #include "UIMainEventListener.h"
 
 /* Forward declarations: */
-class QITreeWidget;
 class QVBoxLayout;
-class QSplitter;
-class UIGuestControlConsole;
-class UIGuestControlInterface;
-class UIGuestSessionsEventHandler;
-class UIGuestControlTreeWidget;
 class QIToolBar;
+class UIGuestControlTreeWidget;
 
 /** QWidget extension
   * providing GUI with guest session information and control tab in session-information window. */
-class UIGuestProcessControlWidget : public QIWithRetranslateUI<QWidget>
+class UIGuestProcessControlWidget : public QWidget
 {
     Q_OBJECT;
 
@@ -66,14 +59,11 @@ public:
                                 QString strMachineName = QString(), bool fShowToolbar = false);
     ~UIGuestProcessControlWidget();
     /** When true we delete the corresponding tree item as soon as the guest session/process is unregistered. */
-    static const bool           m_fDeleteAfterUnregister;
-
-protected:
-
-    void retranslateUi();
+    static const bool  s_fDeleteAfterUnregister;
 
 private slots:
 
+    void sltRetranslateUI();
     void sltGuestSessionsUpdated();
     void sltGuestSessionRegistered(CGuestSession guestSession);
     void sltGuestSessionUnregistered(CGuestSession guestSession);
@@ -100,10 +90,11 @@ private:
 
     /** Holds the Qt event listener instance. */
     ComObjPtr<UIMainEventListenerImpl> m_pQtListener;
+
     /** Holds the COM event listener instance. */
-    CEventListener m_comEventListener;
-    const bool     m_fShowToolbar;
-    QString        m_strMachineName;
+    CEventListener  m_comEventListener;
+    const bool      m_fShowToolbar;
+    QString         m_strMachineName;
 };
 
 #endif /* !FEQT_INCLUDED_SRC_guestctrl_UIGuestProcessControlWidget_h */

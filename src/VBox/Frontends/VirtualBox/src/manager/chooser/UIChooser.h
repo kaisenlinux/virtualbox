@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -42,6 +42,7 @@ class UIActionPool;
 class UIChooserModel;
 class UIChooserView;
 class UIVirtualMachineItem;
+class UIVirtualMachineItemCloud;
 
 /** QWidget extension used as VM Chooser-pane. */
 class UIChooser : public QWidget
@@ -49,12 +50,6 @@ class UIChooser : public QWidget
     Q_OBJECT;
 
 signals:
-
-    /** @name Cloud machine stuff.
-      * @{ */
-        /** Notifies listeners about state change for cloud machine with certain @a uId. */
-        void sigCloudMachineStateChange(const QUuid &uId);
-    /** @} */
 
     /** @name Group saving stuff.
       * @{ */
@@ -64,14 +59,23 @@ signals:
 
     /** @name Cloud update stuff.
       * @{ */
+        /** Notifies listeners about cloud profile state change.
+          * @param  strProviderShortName  Brings the cloud provider short name.
+          * @param  strProfileName        Brings the cloud profile name. */
+        void sigCloudProfileStateChange(const QString &strProviderShortName,
+                                        const QString &strProfileName);
+        /** Notifies listeners about cloud machine state change.
+          * @param  uId  Brings the cloud machine ID. */
+        void sigCloudMachineStateChange(const QUuid &uId);
+
         /** Notifies listeners about cloud update state change. */
         void sigCloudUpdateStateChanged();
     /** @} */
 
     /** @name Tool stuff.
       * @{ */
-        /** Notifies listeners about tool popup-menu request for certain @a enmClass and @a position. */
-        void sigToolMenuRequested(UIToolClass enmClass, const QPoint &position);
+        /** Notifies listeners about tool popup-menu request for certain @a position and optionally machine @a pItem. */
+        void sigToolMenuRequested(const QPoint &position, UIVirtualMachineItem *pItem);
     /** @} */
 
     /** @name Selection stuff.
@@ -122,8 +126,14 @@ public:
 
     /** @name Cloud update stuff.
       * @{ */
+        /** Defines whether real cloud nodes should be kept updated. */
+        void setKeepCloudNodesUpdated(bool fUpdate);
+
         /** Returns whether at least one cloud profile currently being updated. */
         bool isCloudProfileUpdateInProgress() const;
+
+        /** Returns a list of real cloud machine items. */
+        QList<UIVirtualMachineItemCloud*> cloudMachineItems() const;
     /** @} */
 
     /** @name Current-item stuff.
@@ -197,8 +207,8 @@ private slots:
 
     /** @name General stuff.
       * @{ */
-        /** Handles signal about tool popup-menu request for certain tool @a enmClass and in specified @a position. */
-        void sltToolMenuRequested(UIToolClass enmClass, const QPoint &position);
+        /** Handles signal about tool popup-menu request for certain @a position and optionally machine @a pItem. */
+        void sltToolMenuRequested(const QPoint &position, UIVirtualMachineItem *pItem);
     /** @} */
 
 private:

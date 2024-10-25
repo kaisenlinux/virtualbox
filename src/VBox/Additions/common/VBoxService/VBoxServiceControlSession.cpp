@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -100,7 +100,87 @@ static bool vgsvcGstCtrlSessionGrowScratchBuf(void **ppvScratchBuf, uint32_t *pc
 }
 
 
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+/**
+ * Free's a guest directory entry.
+ *
+ * @returns VBox status code.
+ * @param   pDir                Directory entry to free.
+ *                              The pointer will be invalid on success.
+ */
+static int vgsvcGstCtrlSessionDirFree(PVBOXSERVICECTRLDIR pDir)
+{
+    if (!pDir)
+        return VINF_SUCCESS;
 
+    RTMemFree(pDir->pDirEntryEx);
+
+    int rc;
+    if (pDir->hDir != NIL_RTDIR)
+    {
+        rc = RTDirClose(pDir->hDir);
+        pDir->hDir = NIL_RTDIR;
+    }
+    else
+        rc = VINF_SUCCESS;
+
+    if (RT_SUCCESS(rc))
+    {
+        RTStrFree(pDir->pszPathAbs);
+        RTListNodeRemove(&pDir->Node);
+        RTMemFree(pDir);
+    }
+
+    return rc;
+}
+
+
+/**
+ * Acquires an internal guest directory.
+ *
+ * Must be released via vgsvcGstCtrlSessionDirRelease().
+ *
+ * @returns Guest directory entry on success, or NULL if not found.
+ * @param   pSession            Guest control session to acquire guest directory for.
+ * @param   uHandle             Handle of directory to acquire.
+ *
+ * @note    No locking done yet.
+ */
+static PVBOXSERVICECTRLDIR vgsvcGstCtrlSessionDirAcquire(const PVBOXSERVICECTRLSESSION pSession, uint32_t uHandle)
+{
+    AssertPtrReturn(pSession, NULL);
+
+    /** @todo Use a map later! */
+    PVBOXSERVICECTRLDIR pDirCur;
+    RTListForEach(&pSession->lstDirs, pDirCur, VBOXSERVICECTRLDIR, Node)
+    {
+        if (pDirCur->uHandle == uHandle)
+            return pDirCur;
+    }
+
+    return NULL;
+}
+
+
+/**
+ * Releases a formerly acquired guest directory.
+ *
+ * @param   pDir                Directory to release.
+ */
+static void vgsvcGstCtrlSessionDirRelease(PVBOXSERVICECTRLDIR pDir)
+{
+    RT_NOREF(pDir);
+}
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS */
+
+
+/**
+ * Free's a guest file entry.
+ *
+ * @returns VBox status code.
+ * @param   pFile               Guest file entry to free.
+ *                              The pointer wil be invalid on success.
+ */
 static int vgsvcGstCtrlSessionFileFree(PVBOXSERVICECTRLFILE pFile)
 {
     AssertPtrReturn(pFile, VERR_INVALID_POINTER);
@@ -120,8 +200,18 @@ static int vgsvcGstCtrlSessionFileFree(PVBOXSERVICECTRLFILE pFile)
 }
 
 
-/** @todo No locking done yet! */
-static PVBOXSERVICECTRLFILE vgsvcGstCtrlSessionFileGetLocked(const PVBOXSERVICECTRLSESSION pSession, uint32_t uHandle)
+/**
+ * Acquires an internal guest file entry.
+ *
+ * Must be released via vgsvcGstCtrlSessionFileRelease().
+ *
+ * @returns Guest file entry on success, or NULL if not found.
+ * @param   pSession            Guest session to use.
+ * @param   uHandle             Handle of guest file entry to acquire.
+ *
+ * @note    No locking done yet.
+ */
+static PVBOXSERVICECTRLFILE vgsvcGstCtrlSessionFileAcquire(const PVBOXSERVICECTRLSESSION pSession, uint32_t uHandle)
 {
     AssertPtrReturn(pSession, NULL);
 
@@ -134,6 +224,17 @@ static PVBOXSERVICECTRLFILE vgsvcGstCtrlSessionFileGetLocked(const PVBOXSERVICEC
     }
 
     return NULL;
+}
+
+
+/**
+ * Releases a formerly acquired guest file.
+ *
+ * @param   pFile               File to release.
+ */
+static void vgsvcGstCtrlSessionFileRelease(PVBOXSERVICECTRLFILE pFile)
+{
+    RT_NOREF(pFile);
 }
 
 
@@ -389,7 +490,7 @@ static int vgsvcGstCtrlSessionHandleFileOpen(PVBOXSERVICECTRLSESSION pSession, P
             }
             else
             {
-                VGSvcError("[File %s] empty filename!\n", szFile);
+                VGSvcError("Opening file failed: Empty filename!\n");
                 rc = VERR_INVALID_NAME;
             }
 
@@ -440,7 +541,7 @@ static int vgsvcGstCtrlSessionHandleFileClose(const PVBOXSERVICECTRLSESSION pSes
     int rc = VbglR3GuestCtrlFileGetClose(pHostCtx, &uHandle /* File handle to close */);
     if (RT_SUCCESS(rc))
     {
-        PVBOXSERVICECTRLFILE pFile = vgsvcGstCtrlSessionFileGetLocked(pSession, uHandle);
+        PVBOXSERVICECTRLFILE pFile = vgsvcGstCtrlSessionFileAcquire(pSession, uHandle);
         if (pFile)
         {
             VGSvcVerbose(2, "[File %s] Closing (handle=%RU32)\n", pFile ? pFile->pszName : "<Not found>", uHandle);
@@ -494,7 +595,7 @@ static int vgsvcGstCtrlSessionHandleFileRead(const PVBOXSERVICECTRLSESSION pSess
          */
         uint32_t offNew = 0;
         size_t   cbRead = 0;
-        PVBOXSERVICECTRLFILE pFile = vgsvcGstCtrlSessionFileGetLocked(pSession, uHandle);
+        PVBOXSERVICECTRLFILE pFile = vgsvcGstCtrlSessionFileAcquire(pSession, uHandle);
         if (pFile)
         {
             if (*pcbScratchBuf < cbToRead)
@@ -503,6 +604,7 @@ static int vgsvcGstCtrlSessionHandleFileRead(const PVBOXSERVICECTRLSESSION pSess
             rc = RTFileRead(pFile->hFile, *ppvScratchBuf, RT_MIN(cbToRead, *pcbScratchBuf), &cbRead);
             offNew = (int64_t)RTFileTell(pFile->hFile);
             VGSvcVerbose(5, "[File %s] Read %zu/%RU32 bytes, rc=%Rrc, offNew=%RI64\n", pFile->pszName, cbRead, cbToRead, rc, offNew);
+            vgsvcGstCtrlSessionFileRelease(pFile);
         }
         else
         {
@@ -557,7 +659,7 @@ static int vgsvcGstCtrlSessionHandleFileReadAt(const PVBOXSERVICECTRLSESSION pSe
          */
         int64_t offNew = 0;
         size_t  cbRead = 0;
-        PVBOXSERVICECTRLFILE pFile = vgsvcGstCtrlSessionFileGetLocked(pSession, uHandle);
+        PVBOXSERVICECTRLFILE pFile = vgsvcGstCtrlSessionFileAcquire(pSession, uHandle);
         if (pFile)
         {
             if (*pcbScratchBuf < cbToRead)
@@ -572,6 +674,7 @@ static int vgsvcGstCtrlSessionHandleFileReadAt(const PVBOXSERVICECTRLSESSION pSe
             else
                 offNew = (int64_t)RTFileTell(pFile->hFile);
             VGSvcVerbose(5, "[File %s] Read %zu bytes @ %RU64, rc=%Rrc, offNew=%RI64\n", pFile->pszName, cbRead, offReadAt, rc, offNew);
+            vgsvcGstCtrlSessionFileRelease(pFile);
         }
         else
         {
@@ -625,13 +728,14 @@ static int vgsvcGstCtrlSessionHandleFileWrite(const PVBOXSERVICECTRLSESSION pSes
          */
         int64_t offNew    = 0;
         size_t  cbWritten = 0;
-        PVBOXSERVICECTRLFILE pFile = vgsvcGstCtrlSessionFileGetLocked(pSession, uHandle);
+        PVBOXSERVICECTRLFILE pFile = vgsvcGstCtrlSessionFileAcquire(pSession, uHandle);
         if (pFile)
         {
             rc = RTFileWrite(pFile->hFile, *ppvScratchBuf, RT_MIN(cbToWrite, *pcbScratchBuf), &cbWritten);
             offNew = (int64_t)RTFileTell(pFile->hFile);
             VGSvcVerbose(5, "[File %s] Writing %p LB %RU32 =>  %Rrc, cbWritten=%zu, offNew=%RI64\n",
                          pFile->pszName, *ppvScratchBuf, RT_MIN(cbToWrite, *pcbScratchBuf), rc, cbWritten, offNew);
+            vgsvcGstCtrlSessionFileRelease(pFile);
         }
         else
         {
@@ -686,7 +790,7 @@ static int vgsvcGstCtrlSessionHandleFileWriteAt(const PVBOXSERVICECTRLSESSION pS
          */
         int64_t offNew    = 0;
         size_t  cbWritten = 0;
-        PVBOXSERVICECTRLFILE pFile = vgsvcGstCtrlSessionFileGetLocked(pSession, uHandle);
+        PVBOXSERVICECTRLFILE pFile = vgsvcGstCtrlSessionFileAcquire(pSession, uHandle);
         if (pFile)
         {
             rc = RTFileWriteAt(pFile->hFile, (RTFOFF)offWriteAt, *ppvScratchBuf, RT_MIN(cbToWrite, *pcbScratchBuf), &cbWritten);
@@ -704,6 +808,7 @@ static int vgsvcGstCtrlSessionHandleFileWriteAt(const PVBOXSERVICECTRLSESSION pS
                 offNew = (int64_t)RTFileTell(pFile->hFile);
             VGSvcVerbose(5, "[File %s] Writing %p LB %RU32 @ %RU64 =>  %Rrc, cbWritten=%zu, offNew=%RI64\n",
                          pFile->pszName, *ppvScratchBuf, RT_MIN(cbToWrite, *pcbScratchBuf), offWriteAt, rc, cbWritten, offNew);
+            vgsvcGstCtrlSessionFileRelease(pFile);
         }
         else
         {
@@ -765,12 +870,13 @@ static int vgsvcGstCtrlSessionHandleFileSeek(const PVBOXSERVICECTRLSESSION pSess
             /*
              * Locate the file and do the seek.
              */
-            PVBOXSERVICECTRLFILE pFile = vgsvcGstCtrlSessionFileGetLocked(pSession, uHandle);
+            PVBOXSERVICECTRLFILE pFile = vgsvcGstCtrlSessionFileAcquire(pSession, uHandle);
             if (pFile)
             {
                 rc = RTFileSeek(pFile->hFile, (int64_t)offSeek, s_abMethods[uSeekMethod], &offActual);
                 VGSvcVerbose(5, "[File %s]: Seeking to offSeek=%RI64, uSeekMethodIPRT=%u, rc=%Rrc\n",
                              pFile->pszName, offSeek, s_abMethods[uSeekMethod], rc);
+                vgsvcGstCtrlSessionFileRelease(pFile);
             }
             else
             {
@@ -820,11 +926,12 @@ static int vgsvcGstCtrlSessionHandleFileTell(const PVBOXSERVICECTRLSESSION pSess
          * Locate the file and ask for the current position.
          */
         uint64_t offCurrent = 0;
-        PVBOXSERVICECTRLFILE pFile = vgsvcGstCtrlSessionFileGetLocked(pSession, uHandle);
+        PVBOXSERVICECTRLFILE pFile = vgsvcGstCtrlSessionFileAcquire(pSession, uHandle);
         if (pFile)
         {
             offCurrent = RTFileTell(pFile->hFile);
             VGSvcVerbose(5, "[File %s]: Telling offCurrent=%RU64\n", pFile->pszName, offCurrent);
+            vgsvcGstCtrlSessionFileRelease(pFile);
         }
         else
         {
@@ -868,11 +975,12 @@ static int vgsvcGstCtrlSessionHandleFileSetSize(const PVBOXSERVICECTRLSESSION pS
         /*
          * Locate the file and ask for the current position.
          */
-        PVBOXSERVICECTRLFILE pFile = vgsvcGstCtrlSessionFileGetLocked(pSession, uHandle);
+        PVBOXSERVICECTRLFILE pFile = vgsvcGstCtrlSessionFileAcquire(pSession, uHandle);
         if (pFile)
         {
             rc = RTFileSetSize(pFile->hFile, cbNew);
             VGSvcVerbose(5, "[File %s]: Changing size to %RU64 (%#RX64), rc=%Rrc\n", pFile->pszName, cbNew, cbNew, rc);
+            vgsvcGstCtrlSessionFileRelease(pFile);
         }
         else
         {
@@ -899,6 +1007,507 @@ static int vgsvcGstCtrlSessionHandleFileSetSize(const PVBOXSERVICECTRLSESSION pS
     }
     return rc;
 }
+
+
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+static int vgsvcGstCtrlSessionHandleFileRemove(const PVBOXSERVICECTRLSESSION pSession, PVBGLR3GUESTCTRLCMDCTX pHostCtx)
+{
+    AssertPtrReturn(pSession, VERR_INVALID_POINTER);
+    AssertPtrReturn(pHostCtx, VERR_INVALID_POINTER);
+
+    /*
+     * Retrieve the request.
+     */
+    char szPath[RTPATH_MAX];
+    int rc = VbglR3GuestCtrlFileGetRemove(pHostCtx, szPath, sizeof(szPath));
+    if (RT_SUCCESS(rc))
+    {
+        VGSvcVerbose(4, "Deleting file szPath=%s\n", szPath);
+        rc = RTFileDelete(szPath);
+
+        /*
+         * Report result back to host.
+         */
+        int rc2 = VbglR3GuestCtrlMsgReply(pHostCtx, rc);
+        if (RT_FAILURE(rc2))
+        {
+            VGSvcError("Failed to report file deletion status, rc=%Rrc\n", rc2);
+            if (RT_SUCCESS(rc))
+                rc = rc2;
+        }
+    }
+    else
+    {
+        VGSvcError("Error fetching parameters for file deletion operation: %Rrc\n", rc);
+        VbglR3GuestCtrlMsgSkip(pHostCtx->uClientID, rc, UINT32_MAX);
+    }
+    VGSvcVerbose(5, "Deleting file returned rc=%Rrc\n", rc);
+    return rc;
+}
+
+
+static int vgsvcGstCtrlSessionHandleDirOpen(const PVBOXSERVICECTRLSESSION pSession, PVBGLR3GUESTCTRLCMDCTX pHostCtx)
+{
+    AssertPtrReturn(pSession, VERR_INVALID_POINTER);
+    AssertPtrReturn(pHostCtx, VERR_INVALID_POINTER);
+
+    char               szPath[RTPATH_MAX];
+    uint32_t           fFlags;
+    GSTCTLDIRFILTER    enmFilter;
+    uint32_t           uHandle = 0;
+    uint32_t           fReadFlags;
+    GSTCTLFSOBJATTRADD enmAttrAdd;
+    int rc = VbglR3GuestCtrlDirGetOpen(pHostCtx, szPath, sizeof(szPath), &fFlags, &enmFilter, &enmAttrAdd, &fReadFlags);
+    VGSvcVerbose(4, "[Dir %s]: fFlags=%#x, enmFilter=%#x, rc=%Rrc\n", szPath, fFlags, enmFilter, rc);
+    if (RT_SUCCESS(rc))
+    {
+        PVBOXSERVICECTRLDIR pDir = (PVBOXSERVICECTRLDIR)RTMemAllocZ(sizeof(VBOXSERVICECTRLDIR));
+        AssertPtrReturn(pDir, VERR_NO_MEMORY);
+        pDir->hDir = NIL_RTDIR; /* Not zero or NULL! */
+        if (szPath[0])
+        {
+            pDir->pszPathAbs = RTStrDup(szPath);
+            if (pDir->pszPathAbs)
+            {
+                /* Save reading parameters for subsequent directory entry read calls later. */
+                pDir->fRead          = fReadFlags;
+                pDir->enmReadAttrAdd = enmAttrAdd;
+
+                pDir->cbDirEntryEx = GSTCTL_DIRENTRY_MAX_SIZE;
+                pDir->pDirEntryEx  = (PRTDIRENTRYEX)RTMemAlloc(pDir->cbDirEntryEx);
+                if (pDir->pDirEntryEx)
+                {
+                    rc = RTDirOpenFiltered(&pDir->hDir, pDir->pszPathAbs, (RTDIRFILTER)enmFilter, fFlags);
+                    if (RT_SUCCESS(rc))
+                    {
+                        uHandle = VBOX_GUESTCTRL_CONTEXTID_GET_OBJECT(pHostCtx->uContextID);
+                        pDir->uHandle = uHandle;
+                        RTListAppend(&pSession->lstDirs, &pDir->Node);
+                        VGSvcVerbose(2, "[Dir %s] Opened (ID=%RU32)\n", pDir->pszPathAbs, pDir->uHandle);
+                    }
+                }
+                else
+                    rc = VERR_NO_MEMORY;
+            }
+            else
+                rc = VERR_NO_MEMORY;
+        }
+        else
+        {
+            VGSvcError("Opening directory failed: Empty path!\n");
+            rc = VERR_INVALID_NAME;
+        }
+
+        /* Clean up if we failed. */
+        if (RT_FAILURE(rc))
+        {
+            RTStrFree(pDir->pszPathAbs);
+            pDir->pszPathAbs = NULL;
+            if (pDir->hDir != NIL_RTDIR)
+                RTDirClose(pDir->hDir);
+            RTMemFree(pDir);
+            pDir = NULL;
+        }
+
+        /*
+         * Report result back to host.
+         */
+        int rc2 = VbglR3GuestCtrlDirCbOpen(pHostCtx, rc, uHandle);
+        if (RT_FAILURE(rc2))
+        {
+            VGSvcError("[Dir %s]: Failed to report directory open status, rc=%Rrc\n", szPath, rc2);
+            if (RT_SUCCESS(rc))
+                rc = rc2;
+        }
+    }
+    else
+    {
+        VGSvcError("Error fetching parameters for directory open operation: %Rrc\n", rc);
+        VbglR3GuestCtrlMsgSkip(pHostCtx->uClientID, rc, UINT32_MAX);
+    }
+
+    VGSvcVerbose(4, "[Dir %s] Opening (flags=%#x, filter flags=%#x) returned rc=%Rrc\n",
+                 szPath, fFlags, enmFilter, rc);
+    return rc;
+}
+
+
+static int vgsvcGstCtrlSessionHandleDirClose(const PVBOXSERVICECTRLSESSION pSession, PVBGLR3GUESTCTRLCMDCTX pHostCtx)
+{
+    AssertPtrReturn(pSession, VERR_INVALID_POINTER);
+    AssertPtrReturn(pHostCtx, VERR_INVALID_POINTER);
+
+    /*
+     * Retrieve the message.
+     */
+    uint32_t uHandle = 0;
+    int rc = VbglR3GuestCtrlDirGetClose(pHostCtx, &uHandle /* Dir handle to close */);
+    if (RT_SUCCESS(rc))
+    {
+        PVBOXSERVICECTRLDIR pDir = vgsvcGstCtrlSessionDirAcquire(pSession, uHandle);
+        if (pDir)
+        {
+            VGSvcVerbose(2, "[Dir %s] Closing (handle=%RU32)\n", pDir ? pDir->pszPathAbs : "<Not found>", uHandle);
+            rc = vgsvcGstCtrlSessionDirFree(pDir);
+        }
+        else
+        {
+            VGSvcError("Directory %u (%#x) not found!\n", uHandle, uHandle);
+            rc = VERR_NOT_FOUND;
+        }
+
+        /*
+         * Report result back to host.
+         */
+        int rc2 = VbglR3GuestCtrlDirCbClose(pHostCtx, rc);
+        if (RT_FAILURE(rc2))
+        {
+            VGSvcError("Failed to report directory close status, rc=%Rrc\n", rc2);
+            if (RT_SUCCESS(rc))
+                rc = rc2;
+        }
+    }
+    else
+    {
+        VGSvcError("Error fetching parameters for directory close operation: %Rrc\n", rc);
+        VbglR3GuestCtrlMsgSkip(pHostCtx->uClientID, rc, UINT32_MAX);
+    }
+    return rc;
+}
+
+
+/**
+ * Worker function for reading a next guest directory entry.
+ *
+ * @returns VBox status code.
+ * @param   pSession            Guest Control session to use.
+ * @param   pDir                Guest directory to read the next entry for.
+ * @param   ppDirEntryEx        Where to store the pointer to the next guest directory entry on success.
+ * @param   pcbDirEntryEx       Where to return the size (in bytes) of \a ppGstCtlDirEntryEx on success.
+ * @param   ppszUser            Where to return the resolved user name string.
+ * @param   ppszGroups          Where to return the resolved groups string.
+ */
+static int vgsvcGstCtrlSessionDirReadNext(const PVBOXSERVICECTRLSESSION pSession,
+                                          PVBOXSERVICECTRLDIR pDir,
+                                          PGSTCTLDIRENTRYEX *ppDirEntryEx, size_t *pcbDirEntryEx,
+                                          const char **ppszUser, const char **ppszGroups)
+{
+    PRTDIRENTRYEX pDirEntryEx = pDir->pDirEntryEx;
+
+    size_t cbDirEntryEx = pDir->cbDirEntryEx;
+    int rc = RTDirReadEx(pDir->hDir, pDir->pDirEntryEx, &cbDirEntryEx, (RTFSOBJATTRADD)pDir->enmReadAttrAdd, pDir->fRead);
+
+    VGSvcVerbose(2, "[Dir %s] Read next entry '%s' -> %Rrc (%zu bytes)\n",
+                 pDir->pszPathAbs, RT_SUCCESS(rc) ? pDirEntryEx->szName : "<None>", rc, cbDirEntryEx);
+
+    if (RT_FAILURE(rc))
+        return rc;
+
+    /* Paranoia. */
+    AssertReturn(cbDirEntryEx <= pDir->cbDirEntryEx, VERR_BUFFER_OVERFLOW);
+
+    *ppszUser   = VGSvcIdCacheGetUidName(&pSession->UidCache,
+                                         pDirEntryEx->Info.Attr.u.Unix.uid, pDirEntryEx->szName, pDir->pszPathAbs);
+    *ppszGroups = VGSvcIdCacheGetGidName(&pSession->GidCache,
+                                         pDirEntryEx->Info.Attr.u.Unix.gid, pDirEntryEx->szName, pDir->pszPathAbs);
+
+    VGSvcVerbose(2, "[Dir %s] Entry '%s': %zu bytes, uid=%s (%d), gid=%s (%d)\n",
+                 pDir->pszPathAbs, pDirEntryEx->szName, pDirEntryEx->Info.cbObject,
+                 *ppszUser, pDirEntryEx->Info.Attr.u.UnixOwner.uid,
+                 *ppszGroups, pDirEntryEx->Info.Attr.u.UnixGroup.gid);
+
+    /*
+     * For now we ASSUME that RTDIRENTRYEX == GSTCTLDIRENTRYEX, which implies that we simply can cast RTDIRENTRYEX
+     * to GSTCTLDIRENTRYEX. This might change in the future, however, so be extra cautious here.
+     *
+     * Ditto for RTFSOBJATTRADD == GSTCTLFSOBJATTRADD.
+     */
+    AssertCompile(sizeof(GSTCTLDIRENTRYEX)              == sizeof(RTDIRENTRYEX));
+    AssertCompile(RT_OFFSETOF(GSTCTLDIRENTRYEX, Info)   == RT_OFFSETOF(RTDIRENTRYEX, Info));
+    AssertCompile(RT_OFFSETOF(GSTCTLDIRENTRYEX, cbName) == RT_OFFSETOF(RTDIRENTRYEX, cbName));
+    AssertCompile(RT_OFFSETOF(GSTCTLDIRENTRYEX, szName) == RT_OFFSETOF(RTDIRENTRYEX, szName));
+    AssertCompile(RT_OFFSETOF(GSTCTLFSOBJINFO,  Attr)   == RT_OFFSETOF(RTFSOBJINFO,  Attr));
+
+    if (RT_SUCCESS(rc))
+    {
+        *ppDirEntryEx  = (PGSTCTLDIRENTRYEX)pDirEntryEx;
+        *pcbDirEntryEx = cbDirEntryEx;
+    }
+
+    return rc;
+}
+
+
+static int vgsvcGstCtrlSessionHandleDirRead(const PVBOXSERVICECTRLSESSION pSession, PVBGLR3GUESTCTRLCMDCTX pHostCtx)
+{
+    AssertPtrReturn(pSession, VERR_INVALID_POINTER);
+    AssertPtrReturn(pHostCtx, VERR_INVALID_POINTER);
+
+    /*
+     * Retrieve the message.
+     */
+    uint32_t uHandle;
+    int rc = VbglR3GuestCtrlDirGetRead(pHostCtx, &uHandle);
+    if (RT_SUCCESS(rc))
+    {
+        PVBOXSERVICECTRLDIR pDir = vgsvcGstCtrlSessionDirAcquire(pSession, uHandle);
+        if (pDir)
+        {
+            PGSTCTLDIRENTRYEX pDirEntryEx;
+            size_t            cbDirEntryEx;
+            const char       *pszUser   = NULL;
+            const char       *pszGroups = NULL;
+            rc = vgsvcGstCtrlSessionDirReadNext(pSession, pDir,
+                                                &pDirEntryEx, &cbDirEntryEx, &pszUser, &pszGroups);
+
+            VGSvcVerbose(2, "[Dir %s] %Rrc\n", pDir->pszPathAbs, rc);
+
+            int rc2;
+            if (RT_SUCCESS(rc))
+                rc2 = VbglR3GuestCtrlDirCbReadEx(pHostCtx, rc, pDirEntryEx, (uint32_t)cbDirEntryEx, pszUser, pszGroups);
+            else
+                rc2 = VbglR3GuestCtrlDirCbRead(pHostCtx, rc, NULL /* pEntry */, 0 /* cbSize */);
+            if (RT_FAILURE(rc2))
+                VGSvcError("Failed to report directory read status (%Rrc), rc=%Rrc\n", rc, rc2);
+
+            VGSvcVerbose(2, "[Dir %s] 2 %Rrc\n", pDir->pszPathAbs, rc);
+
+            if (rc == VERR_NO_MORE_FILES) /* Directory reading done. */
+                rc = VINF_SUCCESS;
+
+            vgsvcGstCtrlSessionDirRelease(pDir);
+        }
+        else
+        {
+            VGSvcError("Directory %u (%#x) not found!\n", uHandle, uHandle);
+            rc = VERR_NOT_FOUND;
+        }
+    }
+    else
+    {
+        VGSvcError("Error fetching parameters for directory read operation: %Rrc\n", rc);
+        VbglR3GuestCtrlMsgSkip(pHostCtx->uClientID, rc, UINT32_MAX);
+    }
+    return rc;
+}
+
+
+static int vgsvcGstCtrlSessionHandleDirRewind(const PVBOXSERVICECTRLSESSION pSession, PVBGLR3GUESTCTRLCMDCTX pHostCtx)
+{
+    AssertPtrReturn(pSession, VERR_INVALID_POINTER);
+    AssertPtrReturn(pHostCtx, VERR_INVALID_POINTER);
+
+    /*
+     * Retrieve the message.
+     */
+    uint32_t uHandle = 0;
+    int rc = VbglR3GuestCtrlDirGetRewind(pHostCtx, &uHandle);
+    if (RT_SUCCESS(rc))
+    {
+        PVBOXSERVICECTRLDIR pDir = vgsvcGstCtrlSessionDirAcquire(pSession, uHandle);
+        if (pDir)
+        {
+            VGSvcVerbose(2, "[Dir %s] Rewinding (handle=%RU32)\n", pDir ? pDir->pszPathAbs : "<Not found>", uHandle);
+
+            rc = RTDirRewind(pDir->hDir);
+
+            vgsvcGstCtrlSessionDirRelease(pDir);
+        }
+        else
+        {
+            VGSvcError("Directory %u (%#x) not found!\n", uHandle, uHandle);
+            rc = VERR_NOT_FOUND;
+        }
+
+        /*
+         * Report result back to host.
+         */
+        int rc2 = VbglR3GuestCtrlDirCbRewind(pHostCtx, rc);
+        if (RT_FAILURE(rc2))
+        {
+            VGSvcError("Failed to report directory rewind status, rc=%Rrc\n", rc2);
+            if (RT_SUCCESS(rc))
+                rc = rc2;
+        }
+    }
+    else
+    {
+        VGSvcError("Error fetching parameters for directory rewind operation: %Rrc\n", rc);
+        VbglR3GuestCtrlMsgSkip(pHostCtx->uClientID, rc, UINT32_MAX);
+    }
+    return rc;
+}
+
+
+static int vgsvcGstCtrlSessionHandleDirCreate(const PVBOXSERVICECTRLSESSION pSession, PVBGLR3GUESTCTRLCMDCTX pHostCtx)
+{
+    AssertPtrReturn(pSession, VERR_INVALID_POINTER);
+    AssertPtrReturn(pHostCtx, VERR_INVALID_POINTER);
+
+    /*
+     * Retrieve the request.
+     */
+    char     szPath[RTPATH_MAX];
+    RTFMODE  fMode;
+    uint32_t fCreate;
+    int rc = VbglR3GuestCtrlDirGetCreate(pHostCtx, szPath, sizeof(szPath), &fMode, &fCreate);
+    if (RT_SUCCESS(rc))
+    {
+        if (!(fCreate & ~GSTCTL_CREATEDIRECTORY_F_VALID_MASK))
+        {
+            /* Translate flags. */
+            int fCreateRuntime = 0; /* RTDIRCREATE_FLAGS_XXX */
+            if (fCreate & GSTCTL_CREATEDIRECTORY_F_NO_SYMLINKS)
+                fCreateRuntime |= RTDIRCREATE_FLAGS_NO_SYMLINKS;
+            if (fCreate & GSTCTL_CREATEDIRECTORY_F_IGNORE_UMASK)
+                fCreateRuntime |= RTDIRCREATE_FLAGS_IGNORE_UMASK;
+
+            if (fCreate & GSTCTL_CREATEDIRECTORY_F_PARENTS)
+                rc = RTDirCreateFullPath(szPath, fMode);
+            else
+                rc = RTDirCreate(szPath, fMode, fCreateRuntime);
+
+            VGSvcVerbose(4, "Creating directory (szPath='%s', fMode=%#x, fCreate=%#x) -> rc=%Rrc\n", szPath, fMode, fCreate, rc);
+        }
+        else
+        {
+            VGSvcError("Invalid directory creation flags: %#x\n", fCreate);
+            rc = VERR_NOT_SUPPORTED;
+        }
+
+        /*
+         * Report result back to host.
+         */
+        int rc2 = VbglR3GuestCtrlMsgReply(pHostCtx, rc);
+        if (RT_FAILURE(rc2))
+        {
+            VGSvcError("Failed to report directory creation status, rc=%Rrc\n", rc2);
+            if (RT_SUCCESS(rc))
+                rc = rc2;
+        }
+    }
+    else
+    {
+        VGSvcError("Error fetching parameters for directory creation operation: %Rrc\n", rc);
+        VbglR3GuestCtrlMsgSkip(pHostCtx->uClientID, rc, UINT32_MAX);
+    }
+    VGSvcVerbose(5, "Creating directory returned rc=%Rrc\n", rc);
+    return rc;
+}
+
+static int vgsvcGstCtrlSessionHandleDirList(const PVBOXSERVICECTRLSESSION pSession, PVBGLR3GUESTCTRLCMDCTX pHostCtx)
+{
+    AssertPtrReturn(pSession, VERR_INVALID_POINTER);
+    AssertPtrReturn(pHostCtx, VERR_INVALID_POINTER);
+
+    /*
+     * Retrieve the request.
+     */
+    uint32_t uHandle;
+    uint32_t cEntries;
+    uint32_t cEntriesRead = 0;
+    uint32_t fFlags;
+    int rc = VbglR3GuestCtrlDirGetList(pHostCtx, &uHandle, &cEntries, &fFlags);
+    if (RT_SUCCESS(rc))
+    {
+        size_t cbGrowSize = _64K;
+        void  *pvBuf      = RTMemAlloc(cbGrowSize);
+        if (!pvBuf)
+            rc = VERR_NO_MEMORY;
+        size_t cbBufUsed  = 0;
+        if (RT_SUCCESS(rc))
+        {
+            if (!(fFlags & ~GSTCTL_DIRLIST_F_VALID_MASK))
+            {
+                size_t cbBufSize = cbGrowSize;
+
+                PVBOXSERVICECTRLDIR pDir = vgsvcGstCtrlSessionDirAcquire(pSession, uHandle);
+                if (pDir)
+                {
+                    PGSTCTLDIRENTRYEX pDirEntryEx;
+                    size_t            cbDirEntryEx;
+                    const char       *pszUser   = NULL;
+                    const char       *pszGroups = NULL;
+
+                    while (cEntries--)
+                    {
+                        rc = vgsvcGstCtrlSessionDirReadNext(pSession, pDir,
+                                                            &pDirEntryEx, &cbDirEntryEx, &pszUser, &pszGroups);
+                        if (RT_FAILURE(rc)) /* Might be VERR_NO_MORE_FILES. */
+                            break;
+
+                        size_t const cbHdr    = sizeof(GSTCTLDIRENTRYLISTHDR);
+                        size_t const cbUser   = strlen(pszUser)   + 1; /* Include terminator. */
+                        size_t const cbGroups = strlen(pszGroups) + 1; /* Ditto. */
+                        size_t const cbTotal  = cbHdr + cbDirEntryEx + cbUser + cbGroups;
+
+                        if (cbBufSize - cbBufUsed < cbTotal) /* Grow buffer, if needed. */
+                        {
+                            AssertBreakStmt(cbTotal <= cbGrowSize, rc = VERR_BUFFER_OVERFLOW);
+                            pvBuf      = RTMemRealloc(pvBuf, cbBufSize + cbGrowSize);
+                            AssertPtrBreakStmt(pvBuf, rc = VERR_NO_MEMORY);
+                            cbBufSize += cbGrowSize;
+                        }
+
+                        GSTCTLDIRENTRYLISTHDR Hdr;
+                        Hdr.cbDirEntryEx = (uint32_t)cbDirEntryEx;
+                        Hdr.cbUser       = (uint32_t)cbUser;
+                        Hdr.cbGroups     = (uint32_t)cbGroups;
+
+                        memcpy((uint8_t *)pvBuf + cbBufUsed, &Hdr, cbHdr);
+                        cbBufUsed += cbHdr;
+                        memcpy((uint8_t *)pvBuf + cbBufUsed, pDirEntryEx, cbDirEntryEx);
+                        cbBufUsed += cbDirEntryEx;
+                        memcpy((uint8_t *)pvBuf + cbBufUsed, pszUser, cbUser);
+                        cbBufUsed += cbUser;
+                        memcpy((uint8_t *)pvBuf + cbBufUsed, pszGroups, cbGroups);
+                        cbBufUsed += cbGroups;
+
+                        Assert(cbBufUsed <= cbBufSize);
+                        cEntriesRead++;
+                    }
+
+                    vgsvcGstCtrlSessionDirRelease(pDir);
+                }
+
+                VGSvcVerbose(4, "Read %RU32 directory entries (requested %RU32 entries) -> %zu bytes, rc=%Rrc\n",
+                             cEntriesRead, cEntries, cbBufUsed, rc);
+
+                /* Directory reading done? */
+                if (   cEntriesRead
+                    && rc == VERR_NO_MORE_FILES)
+                    rc = VINF_SUCCESS;
+
+                /* Note: Subsequent calls will return VERR_NO_MORE_FILES to the host. */
+            }
+            else
+            {
+                VGSvcError("Unsupported directory listing flags: %#x (all %#x)\n", (fFlags & ~GSTCTL_DIRLIST_F_VALID_MASK), fFlags);
+                rc = VERR_NOT_SUPPORTED;
+            }
+        }
+
+        /*
+         * Report result back to host.
+         */
+        int rc2 = VbglR3GuestCtrlDirCbList(pHostCtx, rc, cEntriesRead, pvBuf, (uint32_t)cbBufUsed);
+        if (RT_FAILURE(rc2))
+            VGSvcError("Failed to report directory listing (%Rrc), rc=%Rrc\n", rc, rc2);
+
+        if (rc == VERR_NO_MORE_FILES) /* Directory reading done? */
+            rc = VINF_SUCCESS;
+
+        RTMemFree(pvBuf);
+    }
+    else
+    {
+        VGSvcError("Error fetching parameters for directory listing operation: %Rrc\n", rc);
+        VbglR3GuestCtrlMsgSkip(pHostCtx->uClientID, rc, UINT32_MAX);
+    }
+    VGSvcVerbose(5, "Listing directory returned rc=%Rrc\n", rc);
+    return rc;
+}
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS */
 
 
 static int vgsvcGstCtrlSessionHandlePathRename(PVBOXSERVICECTRLSESSION pSession, PVBGLR3GUESTCTRLCMDCTX pHostCtx)
@@ -1028,7 +1637,7 @@ static int vgsvcGstCtrlSessionHandleShutdown(PVBOXSERVICECTRLSESSION pSession, P
         }
         else
         {
-            int fSystemShutdown = RTSYSTEM_SHUTDOWN_PLANNED;
+            uint32_t fSystemShutdown = RTSYSTEM_SHUTDOWN_PLANNED;
 
             /* Translate SHUTDOWN_FLAG_ into RTSYSTEM_SHUTDOWN_ flags. */
             if (fAction & GUEST_SHUTDOWN_FLAG_REBOOT)
@@ -1101,6 +1710,102 @@ static int vgsvcGstCtrlSessionHandlePathUserHome(PVBOXSERVICECTRLSESSION pSessio
 }
 
 /**
+ * Structure for keeping a mount point enumeration context.
+ */
+typedef struct VGSVCMOUNTPOINTENUMCTX
+{
+    /** Mount points as strings, delimited with a string terminator ('\0').
+     *  List ends with an additional string terminator. Might get re-allocated, so don't rely on this pointer! */
+    char  *psz;
+    /** Current size of \a psz in bytes. Includes ending terminator. */
+    size_t cb;
+    /** Total allocation Size of \a psz in bytes. */
+    size_t cbAlloc;
+} VGSVCMOUNTPOINTENUMCTX;
+/** Pointer to a structure for keeping a mount point enumeration context. */
+typedef VGSVCMOUNTPOINTENUMCTX *PVGSVCMOUNTPOINTENUMCTX;
+
+/**
+ * Enumeration callback for storing the mount points.
+ *
+ * @returns VBox status code.
+ * @param   pszMountpoint       Mount point to handle.
+ * @param   pvUser              Pointer of type PVGSVCMOUNTPOINTENUMCTX.
+ */
+static DECLCALLBACK(int) vgsvcGstCtrlSessionHandleMountPointsEnumCallback(const char *pszMountpoint, void *pvUser)
+{
+    PVGSVCMOUNTPOINTENUMCTX pCtx = (PVGSVCMOUNTPOINTENUMCTX)pvUser;
+    AssertPtrReturn(pCtx, VERR_INVALID_POINTER);
+
+    size_t const cch = strlen(pszMountpoint) + 1 /* Entry terminator */;
+    AssertReturn(cch < RTPATH_MAX, VERR_INVALID_PARAMETER); /* Paranoia. */
+    if (cch > pCtx->cbAlloc - pCtx->cb - 1 /* Ending terminator */)
+    {
+        int rc2 = RTStrRealloc(&pCtx->psz, pCtx->cbAlloc + RT_MAX(_4K, cch));
+        AssertRCReturn(rc2, rc2);
+    }
+
+    memcpy(&pCtx->psz[pCtx->cb], pszMountpoint, cch);
+    pCtx->cb += cch;
+    AssertReturn(pCtx->cb <= pCtx->cbAlloc, VERR_BUFFER_OVERFLOW); /* Paranoia. */
+
+    return VINF_SUCCESS;
+}
+
+/**
+ * Handles getting the current mount points.
+ *
+ * @returns VBox status code.
+ * @param   pSession        Guest session.
+ * @param   pHostCtx        Host context.
+ */
+static int vgsvcGstCtrlSessionHandleMountPoints(PVBOXSERVICECTRLSESSION pSession, PVBGLR3GUESTCTRLCMDCTX pHostCtx)
+{
+    AssertPtrReturn(pSession, VERR_INVALID_POINTER);
+    AssertPtrReturn(pHostCtx, VERR_INVALID_POINTER);
+
+    /*
+     * Retrieve the request.
+     */
+    uint32_t fFlags;
+    int rc = VbglR3GuestCtrlGetMountPoints(pHostCtx, &fFlags);
+    if (RT_SUCCESS(rc))
+    {
+        /* Note: fFlags is currently unused, so we simply ignore this here. */
+
+        VGSVCMOUNTPOINTENUMCTX Ctx;
+        Ctx.cb      = 0;
+        Ctx.cbAlloc = _4K; /* Start with something sensible. */
+        Ctx.psz     = RTStrAlloc(Ctx.cbAlloc);
+        if (!Ctx.psz)
+            rc = VERR_NO_MEMORY;
+
+        if (RT_SUCCESS(rc))
+            rc = RTFsMountpointsEnum(vgsvcGstCtrlSessionHandleMountPointsEnumCallback, &Ctx);
+
+        /* Report back in any case. */
+        int rc2 = VbglR3GuestCtrlMsgReplyEx(pHostCtx, rc, 0 /* Type */, Ctx.psz,
+                                            RT_SUCCESS(rc) ? (uint32_t)Ctx.cb : 0);
+        if (RT_FAILURE(rc2))
+        {
+            VGSvcError("Failed to report mount points, rc=%Rrc\n", rc2);
+            if (RT_SUCCESS(rc))
+                rc = rc2;
+        }
+
+        RTStrFree(Ctx.psz);
+        Ctx.psz = NULL;
+    }
+    else
+    {
+        VGSvcError("Error fetching parameters for getting mount points request: %Rrc\n", rc);
+        VbglR3GuestCtrlMsgSkip(pHostCtx->uClientID, rc, UINT32_MAX);
+    }
+    return rc;
+}
+
+
+/**
  * Handles starting a guest processes.
  *
  * @returns VBox status code.
@@ -1119,10 +1824,11 @@ static int vgsvcGstCtrlSessionHandleProcExec(PVBOXSERVICECTRLSESSION pSession, P
     int rc = VbglR3GuestCtrlProcGetStart(pHostCtx, &pStartupInfo);
     if (RT_SUCCESS(rc))
     {
-        VGSvcVerbose(3, "Request to start process szCmd=%s, fFlags=0x%x, szArgs=%s, szEnv=%s, uTimeout=%RU32\n",
+        VGSvcVerbose(3, "Request to start process szCmd=%s, fFlags=0x%x, szArgs=%s, szEnv=%s, szCwd=%s, uTimeout=%RU32\n",
                      pStartupInfo->pszCmd, pStartupInfo->fFlags,
                      pStartupInfo->cArgs    ? pStartupInfo->pszArgs : "<None>",
                      pStartupInfo->cEnvVars ? pStartupInfo->pszEnv  : "<None>",
+                     pStartupInfo->cbCwd    ? pStartupInfo->pszCwd  : "<None>",
                      pStartupInfo->uTimeLimitMS);
 
         bool fStartAllowed = false; /* Flag indicating whether starting a process is allowed or not. */
@@ -1367,6 +2073,319 @@ static int vgsvcGstCtrlSessionHandleProcWaitFor(const PVBOXSERVICECTRLSESSION pS
 }
 
 
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+static int vgsvcGstCtrlSessionHandleFsQueryInfo(const PVBOXSERVICECTRLSESSION pSession, PVBGLR3GUESTCTRLCMDCTX pHostCtx)
+{
+    AssertPtrReturn(pSession, VERR_INVALID_POINTER);
+    AssertPtrReturn(pHostCtx, VERR_INVALID_POINTER);
+
+    /*
+     * Retrieve the request.
+     */
+    char szPath[RTPATH_MAX];
+    int rc = VbglR3GuestCtrlFsGetQueryInfo(pHostCtx, szPath, sizeof(szPath));
+    if (RT_SUCCESS(rc))
+    {
+        GSTCTLFSINFO fsInfo;
+        RT_ZERO(fsInfo);
+
+        /* Query as much as we can; ignore any errors and continue. */
+        int rc2 = RTFsQuerySizes(szPath, (RTFOFF *)&fsInfo.cbTotalSize, (RTFOFF *)&fsInfo.cbFree,
+                                 &fsInfo.cbBlockSize, &fsInfo.cbSectorSize);
+        if (RT_FAILURE(rc2))
+            VGSvcError("Error calling RTFsQuerySizes() for fsqueryinfo operation: %Rrc\n", rc2);
+
+        RTFSPROPERTIES fsProps;
+        rc2 = RTFsQueryProperties(szPath, &fsProps);
+        if (RT_SUCCESS(rc2))
+        {
+            /* Regular (status) flags. */
+            fsInfo.cMaxComponent = fsProps.cbMaxComponent;
+            if (fsProps.fRemote)
+                fsInfo.fFlags |= GSTCTLFSINFO_F_IS_REMOTE;
+            if (fsProps.fCaseSensitive)
+                fsInfo.fFlags |= GSTCTLFSINFO_F_IS_CASE_SENSITIVE;
+            if (fsProps.fReadOnly)
+                fsInfo.fFlags |= GSTCTLFSINFO_F_IS_READ_ONLY;
+            if (fsProps.fCompressed)
+                fsInfo.fFlags |= GSTCTLFSINFO_F_IS_COMPRESSED;
+
+            /* Feature flags. */
+            if (fsProps.fSupportsUnicode)
+                fsInfo.fFeatures |= GSTCTLFSINFO_FEATURE_F_UNICODE;
+            if (fsProps.fFileCompression)
+                fsInfo.fFeatures |= GSTCTLFSINFO_FEATURE_F_FILE_COMPRESSION;
+        }
+        else
+            VGSvcError("Error calling RTFsQueryProperties() for fsqueryinfo operation: %Rrc\n", rc2);
+
+        rc2 = RTFsQuerySerial(szPath, &fsInfo.uSerialNumber);
+        if (RT_FAILURE(rc2))
+            VGSvcError("Error calling RTFsQuerySerial() for fsqueryinfo operation: %Rrc\n", rc2);
+
+#if 0 /** @todo Enable as soon as RTFsQueryLabel() is implemented. */
+        rc2 = RTFsQueryLabel(szPath, fsInfo.szLabel, sizeof(fsInfo.szLabel));
+        if (RT_FAILURE(rc2))
+            VGSvcError("Error calling RTFsQueryLabel() for fsqueryinfo operation: %Rrc\n", rc2);
+#endif
+
+        RTFSTYPE enmFsType;
+        rc2 = RTFsQueryType(szPath, &enmFsType);
+        if (RT_SUCCESS(rc2))
+        {
+            if (RTStrPrintf2(fsInfo.szName, sizeof(fsInfo.szName), "%s", RTFsTypeName(enmFsType)) <= 0)
+                VGSvcError("Error printing type returned by RTFsQueryType()\n");
+        }
+        else
+            VGSvcError("Error calling RTFsQueryType() for fsqueryinfo operation: %Rrc\n", rc2);
+
+#if 0 /** @todo Enable as soon as RTFsQueryMountpoint() is implemented. */
+        char szMountpoint[RTPATH_MAX];
+        rc2 = RTFsQueryMountpoint(szPath, szMountpoint, sizeof(szMountpoint));
+        if (RT_SUCCESS(rc2))
+        {
+            #error "Implement me"
+        }
+        else
+            VGSvcError("Error calling RTFsQueryMountpoint() for fsqueryinfo operation: %Rrc\n", rc2);
+#endif
+
+        if (RT_SUCCESS(rc))
+        {
+            VGSvcVerbose(3, "cbTotalSize=%RU64, cbFree=%RU64, cbBlockSize=%RU32, cbSectorSize=%RU32, fFlags=%#x, fFeatures=%#x\n",
+                         fsInfo.cbTotalSize, fsInfo.cbFree, fsInfo.cbBlockSize, fsInfo.cbSectorSize,
+                         fsInfo.fFlags, fsInfo.fFeatures);
+            VGSvcVerbose(3, "szName=%s, szLabel=%s\n", fsInfo.szName, fsInfo.szLabel);
+        }
+
+        uint32_t const cbFsInfo = sizeof(GSTCTLFSINFO); /** @todo Needs tweaking as soon as we resolve the mountpoint above. */
+
+        rc2 = VbglR3GuestCtrlFsCbQueryInfo(pHostCtx, rc, &fsInfo, cbFsInfo);
+        if (RT_FAILURE(rc2))
+        {
+            VGSvcError("Failed to reply to fsobjquerinfo request %Rrc, rc=%Rrc\n", rc, rc2);
+            if (RT_SUCCESS(rc))
+                rc = rc2;
+        }
+    }
+    else
+    {
+        VGSvcError("Error fetching parameters for fsqueryinfo operation: %Rrc\n", rc);
+        VbglR3GuestCtrlMsgSkip(pHostCtx->uClientID, rc, UINT32_MAX);
+    }
+    return rc;
+}
+
+static int vgsvcGstCtrlSessionHandleFsObjQueryInfo(const PVBOXSERVICECTRLSESSION pSession, PVBGLR3GUESTCTRLCMDCTX pHostCtx)
+{
+    AssertPtrReturn(pSession, VERR_INVALID_POINTER);
+    AssertPtrReturn(pHostCtx, VERR_INVALID_POINTER);
+
+    /*
+     * Retrieve the request.
+     */
+    char               szPath[RTPATH_MAX];
+    GSTCTLFSOBJATTRADD enmAttrAdd;
+    uint32_t           fFlags;
+    RTFSOBJINFO        objInfoRuntime;
+
+    int rc = VbglR3GuestCtrlFsObjGetQueryInfo(pHostCtx, szPath, sizeof(szPath), &enmAttrAdd, &fFlags);
+    if (RT_SUCCESS(rc))
+    {
+        uint32_t fFlagsRuntime = 0;
+
+        if (!(fFlags & ~GSTCTL_PATH_F_VALID_MASK))
+        {
+            if (fFlags & GSTCTL_PATH_F_ON_LINK)
+                fFlagsRuntime |= RTPATH_F_ON_LINK;
+            if (fFlags & GSTCTL_PATH_F_FOLLOW_LINK)
+                fFlagsRuntime |= RTPATH_F_FOLLOW_LINK;
+            if (fFlags & GSTCTL_PATH_F_NO_SYMLINKS)
+                fFlagsRuntime |= RTPATH_F_NO_SYMLINKS;
+
+            if (!RTPATH_F_IS_VALID(fFlagsRuntime, 0))
+                rc = VERR_INVALID_PARAMETER;
+        }
+        else
+            rc = VERR_INVALID_PARAMETER;
+
+        if (RT_FAILURE(rc))
+            VGSvcError("Invalid fsobjqueryinfo flags: %#x (%#x)\n", fFlags, fFlagsRuntime);
+
+        if (RT_SUCCESS(rc))
+        {
+#define CASE_ATTR_ADD_VAL(a_Val) \
+            case GSTCTL##a_Val: enmAttrRuntime = RT##a_Val; break;
+
+            RTFSOBJATTRADD enmAttrRuntime;
+            switch (enmAttrAdd)
+            {
+                CASE_ATTR_ADD_VAL(FSOBJATTRADD_NOTHING);
+                CASE_ATTR_ADD_VAL(FSOBJATTRADD_UNIX);
+                CASE_ATTR_ADD_VAL(FSOBJATTRADD_UNIX_OWNER);
+                CASE_ATTR_ADD_VAL(FSOBJATTRADD_UNIX_GROUP);
+                CASE_ATTR_ADD_VAL(FSOBJATTRADD_EASIZE);
+                default:
+                    enmAttrRuntime = RTFSOBJATTRADD_NOTHING;
+                    break;
+            }
+
+#undef CASE_ATTR_ADD_VAL
+
+            /*
+             * For now we ASSUME that RTFSOBJINFO == GSTCTLFSOBJINFO, which implies that we simply can cast RTFSOBJINFO
+             * to GSTCTLFSOBJINFO. This might change in the future, however, so be extra cautious here.
+             *
+             * Ditto for RTFSOBJATTR == GSTCTLFSOBJATTR.
+             */
+            AssertCompileSize(objInfoRuntime, sizeof(GSTCTLFSOBJINFO));
+            AssertCompile    (RT_OFFSETOF(GSTCTLFSOBJINFO, cbObject) == RT_OFFSETOF(GSTCTLFSOBJINFO, cbObject));
+            AssertCompile    (RT_OFFSETOF(GSTCTLFSOBJINFO, Attr)     == RT_OFFSETOF(GSTCTLFSOBJINFO, Attr));
+            AssertCompileSize(RTFSOBJATTR, sizeof(GSTCTLFSOBJATTR));
+
+            rc = RTPathQueryInfoEx(szPath, &objInfoRuntime, enmAttrRuntime, fFlagsRuntime);
+        }
+
+        PGSTCTLFSOBJINFO pObjInfo = (PGSTCTLFSOBJINFO)&objInfoRuntime;
+
+        const char *pszUser  = VGSvcIdCacheGetUidName(&pSession->UidCache, pObjInfo->Attr.u.Unix.uid, szPath, NULL /* pszRelativeTo */);
+        const char *pszGroup = VGSvcIdCacheGetGidName(&pSession->GidCache, pObjInfo->Attr.u.Unix.gid, szPath, NULL /* pszRelativeTo */);
+
+        int rc2 = VbglR3GuestCtrlFsObjCbQueryInfoEx(pHostCtx, rc, pObjInfo, pszUser, pszGroup);
+        if (RT_FAILURE(rc2))
+        {
+            VGSvcError("Failed to reply to fsobjquerinfo request %Rrc, rc=%Rrc\n", rc, rc2);
+            if (RT_SUCCESS(rc))
+                rc = rc2;
+        }
+    }
+    else
+    {
+        VGSvcError("Error fetching parameters for fsobjqueryinfo operation: %Rrc\n", rc);
+        VbglR3GuestCtrlMsgSkip(pHostCtx->uClientID, rc, UINT32_MAX);
+    }
+    return rc;
+}
+
+
+static int vgsvcGstCtrlSessionHandleFsCreateTemp(const PVBOXSERVICECTRLSESSION pSession, PVBGLR3GUESTCTRLCMDCTX pHostCtx)
+{
+    AssertPtrReturn(pSession, VERR_INVALID_POINTER);
+    AssertPtrReturn(pHostCtx, VERR_INVALID_POINTER);
+
+    /*
+     * Retrieve the request.
+     */
+    char     szTemplate[RTPATH_MAX];
+    char     szTempPathAbs[RTPATH_MAX] = ""; /* Absolute path to temporary directory / file created. */
+    char     szPath[RTPATH_MAX];
+    uint32_t fFlags = GSTCTL_CREATETEMP_F_NONE;
+    RTFMODE  fMode  = 0700;
+    int rc = VbglR3GuestCtrlFsGetCreateTemp(pHostCtx, szTemplate, sizeof(szTemplate), szPath, sizeof(szPath), &fFlags, &fMode);
+    if (RT_SUCCESS(rc))
+    {
+        if (!(fFlags & ~GSTCTL_CREATETEMP_F_VALID_MASK))
+        {
+            const char *pszWhat = fFlags & GSTCTL_CREATETEMP_F_DIRECTORY ? "directory" : "file";
+
+            /* Validate that the template is as IPRT requires (asserted by IPRT). */
+            if (   RTPathHasPath(szTemplate)
+                || (   !strstr(szTemplate, "XXX")
+                    && szTemplate[strlen(szTemplate) - 1] != 'X'))
+            {
+                VGSvcError("createtemp: Template '%s' should contain a file name with no path and at least three consecutive 'X' characters or ending in 'X'\n",
+                            szTemplate);
+                rc = VERR_INVALID_PARAMETER;
+            }
+
+            if (   RT_SUCCESS(rc)
+                && szPath[0] != '\0' && !RTPathStartsWithRoot(szPath))
+            {
+                VGSvcError("createtemp: Path '%s' must be absolute\n", szPath);
+                rc = VERR_INVALID_PARAMETER;
+            }
+
+            if (RT_SUCCESS(rc))
+            {
+                if (szPath[0] != '\0')
+                {
+                    rc = RTStrCopy(szTempPathAbs, sizeof(szTempPathAbs), szPath);
+                    if (RT_FAILURE(rc))
+                    {
+                        VGSvcError("createtemp: Path '%s' too long\n", szPath);
+                        rc = VERR_INVALID_PARAMETER;
+                    }
+                }
+                else
+                {
+                    rc = RTPathTemp(szTempPathAbs, sizeof(szTempPathAbs));
+                    if (RT_FAILURE(rc))
+                    {
+                        VGSvcError("createtemp: Failed to get the temporary directory (%Rrc)", rc);
+                        rc = VERR_INVALID_PARAMETER;
+                    }
+                }
+
+                if (RT_SUCCESS(rc))
+                {
+                    rc = RTPathAppend(szTempPathAbs, sizeof(szTempPathAbs), szTemplate);
+                    if (RT_FAILURE(rc))
+                    {
+                        VGSvcError("createtemp: Template '%s' too long for path\n", szTemplate);
+                        rc = VERR_INVALID_PARAMETER;
+                    }
+                    else
+                    {
+                        bool const fSecure = RT_BOOL(fFlags & GSTCTL_CREATETEMP_F_SECURE);
+                        if (fFlags & GSTCTL_CREATETEMP_F_DIRECTORY)
+                        {
+                            if (fSecure)
+                                rc = RTDirCreateTempSecure(szTempPathAbs); /* File mode is fixed to 0700. */
+                            else
+                                rc = RTDirCreateTemp(szTempPathAbs, fMode);
+                        }
+                        else /* File */
+                        {
+                            if (fSecure)
+                                rc = RTFileCreateTempSecure(szTempPathAbs); /* File mode is fixed to 0700. */
+                            else
+                                rc = RTFileCreateTemp(szTempPathAbs, fMode);
+                        }
+
+                        VGSvcVerbose(3, "Creating temporary %s (szTemplate='%s', fFlags=%#x, fMode=%#x) -> %s, rc=%Rrc\n",
+                                     pszWhat, szTemplate, fFlags, fMode, szTempPathAbs, rc);
+                    }
+                }
+            }
+        }
+        else
+        {
+            VGSvcError("Invalid temporary directory/file creation flags: %#x\n", fFlags);
+            rc = VERR_NOT_SUPPORTED;
+        }
+
+        /*
+         * Report result back to host.
+         */
+        int rc2 = VbglR3GuestCtrlFsCbCreateTemp(pHostCtx, rc, szTempPathAbs);
+        if (RT_FAILURE(rc2))
+        {
+            VGSvcError("Failed to report temporary file/directory creation status, rc=%Rrc\n", rc2);
+            if (RT_SUCCESS(rc))
+                rc = rc2;
+        }
+    }
+    else
+    {
+        VGSvcError("Error fetching parameters for file/directory creation operation: %Rrc\n", rc);
+        VbglR3GuestCtrlMsgSkip(pHostCtx->uClientID, rc, UINT32_MAX);
+    }
+    VGSvcVerbose(3, "Creating temporary file/directory returned rc=%Rrc\n", rc);
+    return rc;
+}
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS */
+
+
 int VGSvcGstCtrlSessionHandler(PVBOXSERVICECTRLSESSION pSession, uint32_t uMsg, PVBGLR3GUESTCTRLCMDCTX pHostCtx,
                                void **ppvScratchBuf, uint32_t *pcbScratchBuf, volatile bool *pfShutdown)
 {
@@ -1393,11 +2412,6 @@ int VGSvcGstCtrlSessionHandler(PVBOXSERVICECTRLSESSION pSession, uint32_t uMsg, 
             *pfShutdown = true; /* Shutdown in any case. */
             break;
 
-        case HOST_MSG_DIR_REMOVE:
-            if (fImpersonated)
-                rc = vgsvcGstCtrlSessionHandleDirRemove(pSession, pHostCtx);
-            break;
-
         case HOST_MSG_EXEC_CMD:
             rc = vgsvcGstCtrlSessionHandleProcExec(pSession, pHostCtx);
             break;
@@ -1417,6 +2431,23 @@ int VGSvcGstCtrlSessionHandler(PVBOXSERVICECTRLSESSION pSession, uint32_t uMsg, 
         case HOST_MSG_EXEC_WAIT_FOR:
             rc = vgsvcGstCtrlSessionHandleProcWaitFor(pSession, pHostCtx);
             break;
+
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+        case HOST_MSG_FS_OBJ_QUERY_INFO:
+            if (fImpersonated)
+                rc = vgsvcGstCtrlSessionHandleFsObjQueryInfo(pSession, pHostCtx);
+            break;
+
+        case HOST_MSG_FS_CREATE_TEMP:
+            if (fImpersonated)
+                rc = vgsvcGstCtrlSessionHandleFsCreateTemp(pSession, pHostCtx);
+            break;
+
+        case HOST_MSG_FS_QUERY_INFO:
+            if (fImpersonated)
+                rc = vgsvcGstCtrlSessionHandleFsQueryInfo(pSession, pHostCtx);
+            break;
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS */
 
         case HOST_MSG_FILE_OPEN:
             if (fImpersonated)
@@ -1463,6 +2494,48 @@ int VGSvcGstCtrlSessionHandler(PVBOXSERVICECTRLSESSION pSession, uint32_t uMsg, 
                 rc = vgsvcGstCtrlSessionHandleFileSetSize(pSession, pHostCtx);
             break;
 
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+        case HOST_MSG_FILE_REMOVE:
+            if (fImpersonated)
+                rc = vgsvcGstCtrlSessionHandleFileRemove(pSession, pHostCtx);
+            break;
+
+        case HOST_MSG_DIR_OPEN:
+            if (fImpersonated)
+                rc = vgsvcGstCtrlSessionHandleDirOpen(pSession, pHostCtx);
+            break;
+
+        case HOST_MSG_DIR_CLOSE:
+            if (fImpersonated)
+                rc = vgsvcGstCtrlSessionHandleDirClose(pSession, pHostCtx);
+            break;
+
+        case HOST_MSG_DIR_READ:
+            if (fImpersonated)
+                rc = vgsvcGstCtrlSessionHandleDirRead(pSession, pHostCtx);
+            break;
+
+        case HOST_MSG_DIR_REWIND:
+            if (fImpersonated)
+                rc = vgsvcGstCtrlSessionHandleDirRewind(pSession, pHostCtx);
+            break;
+
+        case HOST_MSG_DIR_CREATE:
+            if (fImpersonated)
+                rc = vgsvcGstCtrlSessionHandleDirCreate(pSession, pHostCtx);
+            break;
+
+        case HOST_MSG_DIR_LIST:
+            if (fImpersonated)
+                rc = vgsvcGstCtrlSessionHandleDirList(pSession, pHostCtx);
+            break;
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS */
+
+        case HOST_MSG_DIR_REMOVE:
+            if (fImpersonated)
+                rc = vgsvcGstCtrlSessionHandleDirRemove(pSession, pHostCtx);
+            break;
+
         case HOST_MSG_PATH_RENAME:
             if (fImpersonated)
                 rc = vgsvcGstCtrlSessionHandlePathRename(pSession, pHostCtx);
@@ -1478,6 +2551,11 @@ int VGSvcGstCtrlSessionHandler(PVBOXSERVICECTRLSESSION pSession, uint32_t uMsg, 
                 rc = vgsvcGstCtrlSessionHandlePathUserHome(pSession, pHostCtx);
             break;
 
+        case HOST_MSG_MOUNT_POINTS:
+            if (fImpersonated)
+                rc = vgsvcGstCtrlSessionHandleMountPoints(pSession, pHostCtx);
+            break;
+
         case HOST_MSG_SHUTDOWN:
             rc = vgsvcGstCtrlSessionHandleShutdown(pSession, pHostCtx);
             break;
@@ -1488,7 +2566,8 @@ int VGSvcGstCtrlSessionHandler(PVBOXSERVICECTRLSESSION pSession, uint32_t uMsg, 
     if (RT_SUCCESS(rc))
     { /* likely */ }
     else if (rc != VERR_NOT_SUPPORTED) /* Note: Reply to host must must be sent by above handler. */
-        VGSvcError("Error while handling message (uMsg=%RU32, cParms=%RU32), rc=%Rrc\n", uMsg, pHostCtx->uNumParms, rc);
+        VGSvcError("Error while handling message %s (%#x, cParms=%RU32), rc=%Rrc\n",
+                   GstCtrlHostMsgtoStr((eHostMsg)uMsg), uMsg, pHostCtx->uNumParms, rc);
     else
     {
         /* We must skip and notify host here as best we can... */
@@ -1499,9 +2578,6 @@ int VGSvcGstCtrlSessionHandler(PVBOXSERVICECTRLSESSION pSession, uint32_t uMsg, 
             VbglR3GuestCtrlMsgSkipOld(pHostCtx->uClientID);
         rc = VINF_SUCCESS;
     }
-
-    if (RT_FAILURE(rc))
-        VGSvcError("Error while handling message (uMsg=%RU32, cParms=%RU32), rc=%Rrc\n", uMsg, pHostCtx->uNumParms, rc);
 
     return rc;
 }
@@ -2035,6 +3111,12 @@ int VGSvcGstCtrlSessionClose(PVBOXSERVICECTRLSESSION pSession)
             pFile = NULL; /* To make it obvious. */
         }
 
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+        AssertMsg(pSession->cDirs == 0,
+                  ("Session directory list still contains %RU32 when it should not\n", pSession->cDirs));
+        AssertMsg(RTListIsEmpty(&pSession->lstDirs),
+                  ("Session directory list is not empty when it should\n"));
+#endif
         AssertMsg(pSession->cFiles == 0,
                   ("Session file list still contains %RU32 when it should not\n", pSession->cFiles));
         AssertMsg(RTListIsEmpty(&pSession->lstFiles),
@@ -2067,12 +3149,20 @@ int VGSvcGstCtrlSessionInit(PVBOXSERVICECTRLSESSION pSession, uint32_t fFlags)
     AssertPtrReturn(pSession, VERR_INVALID_POINTER);
 
     RTListInit(&pSession->lstProcesses);
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+    RTListInit(&pSession->lstDirs);
+#endif
     RTListInit(&pSession->lstFiles);
 
     pSession->cProcesses = 0;
     pSession->cFiles     = 0;
 
     pSession->fFlags = fFlags;
+
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+    RT_ZERO(pSession->UidCache);
+    RT_ZERO(pSession->GidCache);
+#endif
 
     /* Init critical section for protecting the thread lists. */
     int rc = RTCritSectInit(&pSession->CritSect);
@@ -2643,7 +3733,7 @@ int VGSvcGstCtrlSessionThreadCreate(PRTLISTANCHOR pList, const PVBGLR3GUESTCTRLS
  * @param   uTimeoutMS              Waiting timeout (in ms).
  * @param   fFlags                  Closing flags.
  */
-int VGSvcGstCtrlSessionThreadWait(PVBOXSERVICECTRLSESSIONTHREAD pThread, uint32_t uTimeoutMS, uint32_t fFlags)
+static int VGSvcGstCtrlSessionThreadWait(PVBOXSERVICECTRLSESSIONTHREAD pThread, uint32_t uTimeoutMS, uint32_t fFlags)
 {
     RT_NOREF(fFlags);
     AssertPtrReturn(pThread, VERR_INVALID_POINTER);

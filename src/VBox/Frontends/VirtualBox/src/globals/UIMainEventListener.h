@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -41,7 +41,6 @@
 #include "UILibraryDefs.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CGuestProcess.h"
 #include "CGuestSession.h"
 #include "CMedium.h"
@@ -49,6 +48,12 @@
 #include "CNetworkAdapter.h"
 #include "CUSBDevice.h"
 #include "CVirtualBoxErrorInfo.h"
+#include "KClipboardMode.h"
+#include "KDnDMode.h"
+#include "KGuestMonitorChangedEventType.h"
+#include "KMachineState.h"
+#include "KSessionState.h"
+#include "KVBoxEventType.h"
 
 /* Other VBox includes: */
 #include <VBox/com/listeners.h> /** @todo This drags in VirtualBox.h! It may be possible avoid it for XPCOM, but not COM due to VBoxEventType_T. */
@@ -122,6 +127,10 @@ signals:
         void sigCloudProfileRegistered(const QUuid &uProviderId, const QString &strName, bool fRegistered);
         /** Notifies about cloud profile with specified @a strName of provider with specified @a uProviderId is changed. */
         void sigCloudProfileChanged(const QUuid &uProviderId, const QString &strName);
+        /** Notifies about ext.pack installation @a strname is the name of the installed ext. pack. */
+        void sigExtensionPackInstalled(const QString &strName);
+        /** Notifies about ext.pack uninstallation @a strname is the name of the installed ext. pack. */
+        void sigExtensionPackUninstalled(const QString &strName);
     /** @} */
 
     /** @name VirtualBox Extra-data related signals
@@ -168,7 +177,7 @@ signals:
           * @param  fContainsData  Brings whether the @a uX and @a uY values are valid and could be used by the GUI now. */
         void sigCursorPositionChange(bool fContainsData, unsigned long uX, unsigned long uY);
         /** Notifies about keyboard LEDs change for @a fNumLock, @a fCapsLock and @a fScrollLock. */
-        void sigKeyboardLedsChangeEvent(bool fNumLock, bool fCapsLock, bool fScrollLock);
+        void sigKeyboardLedsChange(bool fNumLock, bool fCapsLock, bool fScrollLock);
         /** Notifies about machine @a state change. */
         void sigStateChange(KMachineState state);
         /** Notifies about guest additions state change. */
@@ -199,6 +208,8 @@ signals:
         void sigAudioAdapterChange();
         /** Notifies about the clipboard mode change. */
         void sigClipboardModeChange(KClipboardMode enmClipboardMode);
+        /** Notifies about a clipboard error. */
+        void sigClipboardError(const QString &strMsg);
         /** Notifies about the drag and drop mode change. */
         void sigDnDModeChange(KDnDMode enmDnDMode);
     /** @} */

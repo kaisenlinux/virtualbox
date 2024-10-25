@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,8 +26,8 @@
  */
 
 /* GUI includes: */
+#include "UIGlobalSession.h"
 #include "UIMediumDefs.h"
-#include "UICommon.h"
 
 /* COM includes: */
 #include "CMediumFormat.h"
@@ -115,7 +115,7 @@ QList<QPair<QString, QString> > UIMediumDefs::FloppyBackends(const CVirtualBox &
 
 QString UIMediumDefs::getPreferredExtensionForMedium(KDeviceType enmDeviceType)
 {
-    CSystemProperties comSystemProperties = uiCommon().virtualBox().GetSystemProperties();
+    CSystemProperties comSystemProperties = gpGlobalSession->virtualBox().GetSystemProperties();
     QVector<CMediumFormat> mediumFormats = comSystemProperties.GetMediumFormats();
     for (int i = 0; i < mediumFormats.size(); ++i)
     {
@@ -133,22 +133,4 @@ QString UIMediumDefs::getPreferredExtensionForMedium(KDeviceType enmDeviceType)
         }
     }
     return QString();
-}
-
-QVector<CMediumFormat> UIMediumDefs::getFormatsForDeviceType(KDeviceType enmDeviceType)
-{
-    CSystemProperties comSystemProperties = uiCommon().virtualBox().GetSystemProperties();
-    QVector<CMediumFormat> mediumFormats = comSystemProperties.GetMediumFormats();
-    QVector<CMediumFormat> formatList;
-    for (int i = 0; i < mediumFormats.size(); ++i)
-    {
-        /* File extensions */
-        QVector <QString> fileExtensions;
-        QVector <KDeviceType> deviceTypes;
-
-        mediumFormats[i].DescribeFileExtensions(fileExtensions, deviceTypes);
-        if (deviceTypes.contains(enmDeviceType))
-            formatList.push_back(mediumFormats[i]);
-    }
-    return formatList;
 }

@@ -35,6 +35,7 @@
  * the terms of any one of the MPL, the GPL or the LGPL.
  *
  * ***** END LICENSE BLOCK ***** */
+#include <iprt/string.h>
 
 #include "nsAtomTable.h"
 #include "nsStaticAtom.h"
@@ -42,7 +43,6 @@
 #include "nsReadableUtils.h"
 #include "nsCRT.h"
 #include "pldhash.h"
-#include "prenv.h"
 #include "nsVoidArray.h"
 
 #define PL_ARENA_CONST_ALIGN_MASK 3
@@ -181,7 +181,7 @@ AtomTableMatchKey(PLDHashTable *table,
 {
   const AtomTableEntry *he = NS_STATIC_CAST(const AtomTableEntry*, entry);
   const char* keyStr = NS_STATIC_CAST(const char*, key);
-  return nsCRT::strcmp(keyStr, he->get()) == 0;
+  return RTStrCmp(keyStr, he->get()) == 0;
 }
 
 PR_STATIC_CALLBACK(void)
@@ -263,15 +263,6 @@ void PromoteToPermanent(AtomImpl* aAtom)
 void NS_PurgeAtomTable()
 {
   if (gAtomTable.ops) {
-#ifdef DEBUG
-    if (PR_GetEnv("MOZ_DUMP_ATOM_LEAKS")) {
-      PRUint32 leaked = 0;
-      printf("*** %d atoms still exist (including permanent):\n",
-             gAtomTable.entryCount);
-      PL_DHashTableEnumerate(&gAtomTable, DumpAtomLeaks, &leaked);
-      printf("*** %u non-permanent atoms leaked\n", leaked);
-    }
-#endif
     PL_DHashTableFinish(&gAtomTable);
     gAtomTable.entryCount = 0;
     gAtomTable.ops = nsnull;

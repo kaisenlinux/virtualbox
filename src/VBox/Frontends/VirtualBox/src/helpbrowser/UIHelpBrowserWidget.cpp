@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,20 +26,17 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QClipboard>
 #include <QComboBox>
 #include <QtGlobal>
-#ifdef VBOX_WITH_QHELP_VIEWER
-# include <QtHelp/QHelpEngine>
-# include <QtHelp/QHelpContentWidget>
-# include <QtHelp/QHelpIndexWidget>
-# include <QtHelp/QHelpSearchEngine>
-# include <QtHelp/QHelpSearchQueryWidget>
-# include <QtHelp/QHelpSearchResultWidget>
-# if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
-#  include <QtHelp/QHelpLink>
-# endif
-#endif
+#include <QtHelp/QHelpContentWidget>
+#include <QtHelp/QHelpEngine>
+#include <QtHelp/QHelpLink>
+#include <QtHelp/QHelpSearchEngine>
+#include <QtHelp/QHelpSearchQueryWidget>
+#include <QtHelp/QHelpSearchResultWidget>
+
 #include <QLabel>
 #include <QListWidget>
 #include <QMenu>
@@ -48,28 +45,21 @@
 #include <QtPrintSupport/QPrinter>
 #include <QSplitter>
 #include <QVBoxLayout>
-#ifdef RT_OS_SOLARIS
-# include <QFontDatabase>
-#endif
 #include <QWidgetAction>
 
 /* GUI includes: */
-#include "QIAdvancedSlider.h"
 #include "QITabWidget.h"
 #include "QIToolBar.h"
 #include "QIToolButton.h"
-#include "UIActionPool.h"
 #include "UIExtraDataManager.h"
 #include "UIHelpViewer.h"
 #include "UIHelpBrowserWidget.h"
 #include "UIIconPool.h"
+#include "UITranslationEventListener.h"
 
+/* Other VBox includes: */
+#include <iprt/assert.h>
 
-/* COM includes: */
-#include "COMEnums.h"
-#include "CSystemProperties.h"
-
-#ifdef VBOX_WITH_QHELP_VIEWER
 
 enum HelpBrowserTabs
 {
@@ -90,7 +80,7 @@ const QPair<int, int> zoomPercentageMinMax = QPair<int, int>(20, 300);
 /*********************************************************************************************************************************
 *   UIZoomMenuAction definition.                                                                                                 *
 *********************************************************************************************************************************/
-class UIZoomMenuAction : public QIWithRetranslateUI<QWidgetAction>
+class UIZoomMenuAction : public QWidgetAction
 {
 
     Q_OBJECT;
@@ -104,13 +94,10 @@ public:
     UIZoomMenuAction(QWidget *pParent = 0);
     void setZoomPercentage(int iZoomPercentage);
 
-protected:
-
-    void retranslateUi() RT_OVERRIDE;
-
 private slots:
 
     void sltZoomOperation();
+    void sltRetranslateUI();
 
 private:
 
@@ -150,7 +137,7 @@ protected:
 /*********************************************************************************************************************************
 *   UIBookmarksListContainer definition.                                                                                         *
 *********************************************************************************************************************************/
-class UIBookmarksListContainer : public QIWithRetranslateUI<QWidget>
+class UIBookmarksListContainer : public QWidget
 {
 
     Q_OBJECT;
@@ -173,12 +160,6 @@ public:
     void sltDeleteSelectedBookmark();
     void sltDeleteAllBookmarks();
 
-protected:
-
-    void retranslateUi() RT_OVERRIDE;
-
-private slots:
-
 private:
 
     void prepare();
@@ -192,7 +173,7 @@ private:
 *   UIHelpBrowserTab definition.                                                                                        *
 *********************************************************************************************************************************/
 
-class UIHelpBrowserTab : public QIWithRetranslateUI<QWidget>
+class UIHelpBrowserTab : public QWidget
 {
     Q_OBJECT;
 
@@ -242,13 +223,13 @@ private slots:
     void sltAddressBarIndexChanged(int index);
     void sltAnchorClicked(const QUrl &link);
     void sltFindInPageWidgetVisibilityChanged(bool  fVisible);
+    void sltRetranslateUI();
 
 private:
 
     void prepare(const QUrl &initialUrl);
     void prepareWidgets(const QUrl &initialUrl);
     void prepareToolBarAndAddressBar();
-    virtual void retranslateUi() RT_OVERRIDE;
     void setActionTextAndToolTip(QAction *pAction, const QString &strText, const QString &strToolTip);
 
     QAction     *m_pHomeAction;
@@ -365,7 +346,7 @@ private:
 *   UIZoomMenuAction implementation.                                                                                *
 *********************************************************************************************************************************/
 UIZoomMenuAction::UIZoomMenuAction(QWidget *pParent /* = 0 */)
-    :QIWithRetranslateUI<QWidgetAction>(pParent)
+    : QWidgetAction(pParent)
     , m_pMinusButton(0)
     , m_pResetButton(0)
     , m_pPlusButton(0)
@@ -373,7 +354,9 @@ UIZoomMenuAction::UIZoomMenuAction(QWidget *pParent /* = 0 */)
     , m_pLabel(0)
 {
     prepare();
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+        this, &UIZoomMenuAction::sltRetranslateUI);
 }
 
 void UIZoomMenuAction::setZoomPercentage(int iZoomPercentage)
@@ -382,7 +365,7 @@ void UIZoomMenuAction::setZoomPercentage(int iZoomPercentage)
         m_pValueLabel->setText(QString("%1%2").arg(QString::number(iZoomPercentage)).arg("%"));
 }
 
-void UIZoomMenuAction::retranslateUi()
+void UIZoomMenuAction::sltRetranslateUI()
 {
     if (m_pLabel)
         m_pLabel->setText(UIHelpBrowserWidget::tr("Zoom"));
@@ -460,7 +443,7 @@ void UIBookmarksListWidget::mouseDoubleClickEvent(QMouseEvent *event)
 
 void UIBookmarksListWidget::mousePressEvent(QMouseEvent *pEvent)
 {
-    if (!indexAt(pEvent->pos()).isValid())
+    if (!indexAt(pEvent->position().toPoint()).isValid())
     {
         clearSelection();
         setCurrentItem(0);
@@ -474,7 +457,7 @@ void UIBookmarksListWidget::mousePressEvent(QMouseEvent *pEvent)
 *********************************************************************************************************************************/
 
 UIBookmarksListContainer::UIBookmarksListContainer(QWidget *pParent /* = 0 */)
-    :QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_pMainLayout(0)
     , m_pListWidget(0)
 {
@@ -528,10 +511,6 @@ void UIBookmarksListContainer::sltDeleteAllBookmarks()
         m_pListWidget->clear();
 }
 
-void UIBookmarksListContainer::retranslateUi()
-{
-}
-
 void UIBookmarksListContainer::prepare()
 {
     m_pMainLayout = new QVBoxLayout(this);
@@ -566,7 +545,7 @@ int UIBookmarksListContainer::itemIndex(const QUrl &url)
 
 UIHelpBrowserTab::UIHelpBrowserTab(const QHelpEngine  *pHelpEngine, const QUrl &homeUrl,
                                    const QUrl &initialUrl, QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_pHomeAction(0)
     , m_pForwardAction(0)
     , m_pBackwardAction(0)
@@ -676,7 +655,9 @@ void UIHelpBrowserTab::prepare(const QUrl &initialUrl)
     AssertReturnVoid(m_pMainLayout);
     prepareToolBarAndAddressBar();
     prepareWidgets(initialUrl);
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+        this, &UIHelpBrowserTab::sltRetranslateUI);
 }
 
 void UIHelpBrowserTab::prepareWidgets(const QUrl &initialUrl)
@@ -705,7 +686,7 @@ void UIHelpBrowserTab::prepareWidgets(const QUrl &initialUrl)
             this, &UIHelpBrowserTab::sltHomeAction);
     connect(m_pContentViewer, &UIHelpViewer::sigAddBookmark,
             this, &UIHelpBrowserTab::sltAddBookmarkAction);
-    connect(m_pContentViewer, static_cast<void(UIHelpViewer::*)(const QUrl&)>(&UIHelpViewer::highlighted),
+    connect(m_pContentViewer, &UIHelpViewer::highlighted,
             this, &UIHelpBrowserTab::sigLinkHighlighted);
     connect(m_pContentViewer, &UIHelpViewer::copyAvailable,
             this, &UIHelpBrowserTab::sigCopyAvailableChanged);
@@ -766,9 +747,8 @@ void UIHelpBrowserTab::prepareToolBarAndAddressBar()
 
     m_pAddressBar = new QComboBox();
     m_pAddressBar->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    connect(m_pAddressBar, static_cast<void(QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+    connect(m_pAddressBar, &QComboBox::currentIndexChanged,
             this, &UIHelpBrowserTab::sltAddressBarIndexChanged);
-
 
     QHBoxLayout *pTopLayout = new QHBoxLayout;
     pTopLayout->addWidget(m_pToolBar);
@@ -784,7 +764,7 @@ void UIHelpBrowserTab::setActionTextAndToolTip(QAction *pAction, const QString &
     pAction->setToolTip(strToolTip);
 }
 
-void UIHelpBrowserTab::retranslateUi()
+void UIHelpBrowserTab::sltRetranslateUI()
 {
     setActionTextAndToolTip(m_pHomeAction, UIHelpBrowserWidget::tr("Home"), UIHelpBrowserWidget::tr("Return to Start Page"));
     setActionTextAndToolTip(m_pBackwardAction, UIHelpBrowserWidget::tr("Backward"), UIHelpBrowserWidget::tr("Go Back to Previous Page"));
@@ -921,14 +901,16 @@ UIHelpBrowserTabManager::UIHelpBrowserTabManager(const QHelpEngine  *pHelpEngine
 
 void UIHelpBrowserTabManager::addNewTab(const QUrl &initialUrl, bool fBackground)
 {
+#if 0
     /* If there is already a tab with a source which is equal to @initialUrl then make it current: */
     int iExistIndex = findTab(initialUrl);
     if (iExistIndex != -1)
     {
         setCurrentIndex(iExistIndex);
+        setSource(initialUrl);
         return;
     }
-
+#endif
     UIHelpBrowserTab *pTabWidget = new  UIHelpBrowserTab(m_pHelpEngine, m_homeUrl, initialUrl);
     AssertReturnVoid(pTabWidget);
     pTabWidget->setToolBarVisible(m_fToolBarVisible);
@@ -1346,7 +1328,7 @@ void UIHelpBrowserTabManager::clearAndDeleteTabs()
 *********************************************************************************************************************************/
 
 UIHelpBrowserWidget::UIHelpBrowserWidget(EmbedTo enmEmbedding, const QString &strHelpFilePath, QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_enmEmbedding(enmEmbedding)
     , m_fIsPolished(false)
     , m_pMainLayout(0)
@@ -1445,7 +1427,9 @@ void UIHelpBrowserWidget::prepare()
     prepareConnections();
     prepareSearchWidgets();
     loadBookmarks();
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+        this, &UIHelpBrowserWidget::sltRetranslateUI);
 }
 
 void UIHelpBrowserWidget::prepareActions()
@@ -1810,18 +1794,8 @@ void UIHelpBrowserWidget::cleanup()
     saveBookmarks();
 }
 
-void UIHelpBrowserWidget::retranslateUi()
+void UIHelpBrowserWidget::sltRetranslateUI()
 {
-    /* Translate toolbar: */
-#ifdef VBOX_WS_MAC
-    // WORKAROUND:
-    // There is a bug in Qt Cocoa which result in showing a "more arrow" when
-    // the necessary size of the toolbar is increased. Also for some languages
-    // the with doesn't match if the text increase. So manually adjust the size
-    // after changing the text. */
-    if (m_pToolBar)
-        m_pToolBar->updateLayout();
-#endif
     if (m_pTabWidget)
     {
         m_pTabWidget->setTabText(HelpBrowserTabs_TOC, tr("Contents"));
@@ -1881,22 +1855,12 @@ void UIHelpBrowserWidget::keyPressEvent(QKeyEvent *pEvent)
 
 void UIHelpBrowserWidget::findAndShowUrlForKeyword(const QString &strKeyword)
 {
-#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
     QList<QHelpLink> links = m_pHelpEngine->documentsForIdentifier(strKeyword);
     if (!links.isEmpty())
     {
         /* We have to a have a single url per keyword in this case: */
         m_pTabManager->setSource(links.first().url, true /* new tab */);
     }
-#else
-    QMap<QString, QUrl> map = m_pHelpEngine->linksForIdentifier(strKeyword);
-    if (!map.isEmpty())
-    {
-        /* We have to a have a single url per keyword in this case: */
-        QUrl keywordUrl = map.first();
-        m_pTabManager->setSource(keywordUrl, true /* new tab */);
-    }
-#endif
 }
 
 void UIHelpBrowserWidget::sltWidgetVisibilityToggle(bool fToggled)
@@ -1949,10 +1913,19 @@ void UIHelpBrowserWidget::sltHistoryChanged(bool fBackwardAvailable, bool fForwa
 
 void UIHelpBrowserWidget::sltLinkHighlighted(const QUrl &url)
 {
-    QString strMessage = url.url();
-    if (url.scheme() != "qthelp")
-        strMessage = QString("%1: %2").arg(tr("Click to open this link in an external browser")).arg(strMessage);
+    if (url.isEmpty())
+    {
+        emit sigStatusBarMessage("", 0);
+        return;
+    }
 
+    QString strMessage = url.url();
+    if (url.scheme() == "https" || url.scheme() == "http")
+        strMessage = QString("%1: %2").arg(tr("Click to open the following URL with an external browser")).arg(strMessage);
+    else if (url.scheme() == "qthelp")
+        strMessage = QString("%1: %2").arg(tr("Click to navigate to internal URL")).arg(strMessage);
+    else
+        strMessage = "";
     emit sigStatusBarMessage(strMessage, 0);
 }
 
@@ -1984,7 +1957,7 @@ void UIHelpBrowserWidget::sltFindInPageWidgetVisibilityChanged(bool fVisible)
 
 void UIHelpBrowserWidget::sltShowPrintDialog()
 {
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     if (!m_pTabManager)
         return;
     QPrinter printer;
@@ -2100,18 +2073,21 @@ void UIHelpBrowserWidget::sltShowLinksContextMenu(const QPoint &pos)
 
     QMenu menu;
     QAction *pOpen = menu.addAction(tr("Open Link"));
-    QAction *pOpenInNewTab = menu.addAction(tr("Open Link in New Tab"));
+    if (url.scheme() == "qthelp")
+    {
+        QAction *pOpenInNewTab = menu.addAction(tr("Open Link in New Tab"));
+        pOpenInNewTab->setData(url);
+        pOpenInNewTab->setEnabled(fURLValid);
+        connect(pOpenInNewTab, &QAction::triggered, this, &UIHelpBrowserWidget::sltOpenLinkInNewTab);
+    }
     QAction *pCopyLink = menu.addAction(tr("Copy Link"));
 
     pOpen->setData(url);
-    pOpenInNewTab->setData(url);
     pCopyLink->setData(url);
 
     pOpen->setEnabled(fURLValid);
-    pOpenInNewTab->setEnabled(fURLValid);
     pCopyLink->setEnabled(fURLValid);
 
-    connect(pOpenInNewTab, &QAction::triggered, this, &UIHelpBrowserWidget::sltOpenLinkInNewTab);
     connect(pOpen, &QAction::triggered, this, &UIHelpBrowserWidget::sltOpenLink);
     connect(pCopyLink, &QAction::triggered, this, &UIHelpBrowserWidget::sltCopyLink);
 
@@ -2273,5 +2249,3 @@ void UIHelpBrowserWidget::addActionToMenu(QMenu *pMenu, QAction *pAction)
 }
 
 #include "UIHelpBrowserWidget.moc"
-
-#endif /*#ifdef VBOX_WITH_QHELP_VIEWER*/

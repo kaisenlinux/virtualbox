@@ -3,7 +3,7 @@
     manpage, user manual, usage: VBoxManage
 -->
 <!--
-    Copyright (C) 2006-2023 Oracle and/or its affiliates.
+    Copyright (C) 2006-2024 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.
@@ -30,7 +30,7 @@
 ]>
 <refentry id="vboxmanage-common" lang="en">
   <refentryinfo>
-    <pubdate>$Date: 2023-01-17 15:15:46 +0100 (Tue, 17 Jan 2023) $</pubdate>
+    <pubdate>$Date: 2024-09-16 16:03:52 +0200 (Mon, 16 Sep 2024) $</pubdate>
     <title>VBoxManage</title>
   </refentryinfo>
 
@@ -50,22 +50,34 @@
 <!-- The 'id' is mandatory and must start with 'synopsis-'. -->
       <command>VBoxManage</command>
       <group>
-        <arg choice="plain">-V</arg>
-        <arg choice="plain">--version</arg>
-      </group>
-      <arg>--dump-build-type</arg>
-      <group>
         <arg choice="plain">-q</arg>
         <arg choice="plain">--nologo</arg>
       </group>
       <arg>--settingspw=<replaceable>password</replaceable></arg>
       <arg>--settingspwfile=<replaceable>pw-file</replaceable></arg>
       <arg>@<replaceable>response-file</replaceable></arg>
-      <arg><arg>help</arg> <replaceable>subcommand</replaceable></arg>
+      <arg><replaceable>subcommand</replaceable></arg>
+    </cmdsynopsis>
+    <cmdsynopsis  id="synopsis-vboxmanage-common-help">
+      <command>VBoxManage help</command>
+      <arg><replaceable>subcommand</replaceable></arg>
+    </cmdsynopsis>
+    <cmdsynopsis id="synopsis-vboxmanage-common-commands">
+      <command>VBoxManage commands</command>
+    </cmdsynopsis>
+    <cmdsynopsis id="synopsis-vboxmanage-common-version">
+      <command>VBoxManage</command>
+      <group>
+        <arg choice="plain">-V</arg>
+        <arg choice="plain">--version</arg>
+      </group>
+    </cmdsynopsis>
+    <cmdsynopsis id="synopsis-vboxmanage-common-dump-build-type">
+      <command>VBoxManage</command> <arg>--dump-build-type</arg>
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-common-description">
     <title>Description</title>
     <para>
       The <command>VBoxManage</command> command is the command-line
@@ -110,11 +122,6 @@
         </para></listitem>
     </itemizedlist>
     <para>
-      In addition to managing virtual machines (VMs) with this CLI or
-      the GUI, you can use the <command>VBoxHeadless</command> CLI to
-      manage VMs remotely.
-    </para>
-    <para>
       The <command>VBoxManage</command> command performs particular
       tasks by using subcommands, such as <command>list</command>,
       <command>createvm</command>, and <command>startvm</command>. See
@@ -131,8 +138,8 @@
       names and associated UUIDs.
     </para>
     <para>
-      Note that you must enclose the entire VM name in double quotes if
-      it contains spaces.
+      Note that VM names which contain spaces or special characters
+      must be enclosed in quotes.
     </para>
     <refsect2 id="vboxmanage-common-options">
       <title>General Options</title>
@@ -159,10 +166,12 @@
               stored settings, which are stored as plain text by
               default.
             </para><para>
-              You cannot unencrypt encrypted settings. So, if the
-              settings are encrypted, you must continue to specify the
+              Settings which have been encrypted are done so using a
+              one-way encryption algorithm so cannot be decrypted. Thus,
+              if the settings are encrypted you must include the
               <option>--settingspw</option> or
-              <option>--settingspwfile</option> option.
+              <option>--settingspwfile</option> option every time
+              <command>VBoxManage</command> is used.
             </para><para>
               Only the iSCSI secret is encrypted at this time.
             </para><remark>
@@ -213,7 +222,7 @@
     </refsect2>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-common-examples">
     <title>Examples</title>
     <remark role="help-scope" condition="GLOBAL"/>
     <para>
@@ -241,7 +250,7 @@ Settings file: '/home/<replaceable>username</replaceable>/VirtualBox VMs/Win8/Wi
 <screen>$ VBoxManage modifyvm "Windows XP" --memory 1024</screen>
     <para>
       Note that you can use the <command>VBoxManage modifyvm</command>
-      command even when the VM is powered off.
+      command only for VMs that are powered off.
     </para>
     <para>
       You can use the <command>VBoxManage storagectl</command> command
@@ -266,7 +275,7 @@ Settings file: '/home/<replaceable>username</replaceable>/VirtualBox VMs/Win8/Wi
 <screen>$ VBoxManage controlvm ol6u9 audioin on</screen>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-common-see-also">
     <title>See Also</title>
     <para>
       <xref linkend="vboxmanage-controlvm" />,

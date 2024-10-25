@@ -11,7 +11,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -41,6 +41,7 @@
 #include <VBox/err.h>
 
 #include <VBox/log.h>
+#include <iprt/asm-mem.h>
 #include <iprt/asm.h>
 #include <iprt/assert.h>
 #include <iprt/string.h>

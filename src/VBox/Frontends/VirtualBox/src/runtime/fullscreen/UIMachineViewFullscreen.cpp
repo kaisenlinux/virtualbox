@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -27,29 +27,28 @@
 
 /* Qt includes: */
 #include <QApplication>
+#include <QResizeEvent>
 #include <QMainWindow>
 #include <QTimer>
 #ifdef VBOX_WS_MAC
 # include <QMenuBar>
-#endif /* VBOX_WS_MAC */
+#endif
 
 /* GUI includes: */
-#include "UISession.h"
 #include "UIActionPoolRuntime.h"
-#include "UIMachineLogicFullscreen.h"
-#include "UIMachineWindow.h"
-#include "UIMachineViewFullscreen.h"
-#include "UIFrameBuffer.h"
-#include "UIExtraDataManager.h"
 #include "UIDesktopWidgetWatchdog.h"
-
-/* Other VBox includes: */
-#include "VBox/log.h"
+#include "UIExtraDataManager.h"
+#include "UIFrameBuffer.h"
+#include "UILoggingDefs.h"
+#include "UIMachine.h"
+#include "UIMachineLogicFullscreen.h"
+#include "UIMachineViewFullscreen.h"
+#include "UIMachineWindow.h"
 
 /* External includes: */
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
 # include <limits.h>
-#endif /* VBOX_WS_X11 */
+#endif
 
 
 UIMachineViewFullscreen::UIMachineViewFullscreen(UIMachineWindow *pMachineWindow, ulong uScreenId)
@@ -117,7 +116,7 @@ void UIMachineViewFullscreen::prepareConsoleConnections()
     UIMachineView::prepareConsoleConnections();
 
     /* Guest additions state-change updater: */
-    connect(uisession(), &UISession::sigAdditionsStateActualChange, this, &UIMachineViewFullscreen::sltAdditionsStateChanged);
+    connect(uimachine(), &UIMachine::sigAdditionsStateActualChange, this, &UIMachineViewFullscreen::sltAdditionsStateChanged);
 }
 
 void UIMachineViewFullscreen::setGuestAutoresizeEnabled(bool fEnabled)
@@ -126,7 +125,7 @@ void UIMachineViewFullscreen::setGuestAutoresizeEnabled(bool fEnabled)
     {
         m_fGuestAutoresizeEnabled = fEnabled;
 
-        if (m_fGuestAutoresizeEnabled && uisession()->isGuestSupportsGraphics())
+        if (m_fGuestAutoresizeEnabled && uimachine()->isGuestSupportsGraphics())
             sltPerformGuestResize();
     }
 }
@@ -134,7 +133,7 @@ void UIMachineViewFullscreen::setGuestAutoresizeEnabled(bool fEnabled)
 void UIMachineViewFullscreen::adjustGuestScreenSize()
 {
     /* Step 1: Is guest-screen visible? */
-    if (!uisession()->isScreenVisible(screenId()))
+    if (!uimachine()->isScreenVisible(screenId()))
     {
         LogRel(("GUI: UIMachineViewFullscreen::adjustGuestScreenSize: "
                 "Guest-screen #%d is not visible, adjustment is not required.\n",
@@ -170,7 +169,7 @@ void UIMachineViewFullscreen::adjustGuestScreenSize()
             desiredSizeHint.width(), desiredSizeHint.height(), screenId()));
     sltPerformGuestResize(sizeToApply);
     /* And remember the size to know what we are resizing out of when we exit: */
-    uisession()->setLastFullScreenSize(screenId(), scaledForward(desiredSizeHint));
+    uimachine()->setLastFullScreenSize(screenId(), scaledForward(desiredSizeHint));
 }
 
 QRect UIMachineViewFullscreen::workingArea() const

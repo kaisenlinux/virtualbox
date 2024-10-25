@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -202,6 +202,8 @@ typedef struct VBOXNETFLTINS
             struct sk_buff_head   XmitQueue;
             struct work_struct    XmitTask;
 #  endif
+            /** Unique identifier of network namespace of device to attach to. */
+            uint32_t uNamespaceInode;
             /** @} */
 # elif defined(RT_OS_SOLARIS)
             /** @name Solaris instance data.
@@ -492,6 +494,11 @@ DECLHIDDEN(int) vboxNetFltOsInitInstance(PVBOXNETFLTINS pThis, void *pvContext);
 DECLHIDDEN(int) vboxNetFltOsPreInitInstance(PVBOXNETFLTINS pThis);
 /** @} */
 
+#ifdef RT_OS_WINDOWS
+/** The NDIS_STRING_CONST macro doesn't work in /permissive- mode, so "fix" that.
+ * Putting it in this header as it's the only common to all users.  */
+# define VBOX_NDIS_STRING_CONST(a_sz)  { sizeof(L##a_sz) - sizeof(WCHAR), sizeof(L##a_sz), (PWSTR)L##a_sz }
+#endif
 
 RT_C_DECLS_END
 

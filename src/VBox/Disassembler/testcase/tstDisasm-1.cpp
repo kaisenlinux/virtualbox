@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -88,7 +88,7 @@ static void testDisas(const char *pszSub, uint8_t const *pabInstrs, uintptr_t uE
         uint32_t        cbOnly = 1;
         DISSTATE        DisOnly;
         rc = DISInstrWithPrefetchedBytes((uintptr_t)&pabInstrs[off], enmDisCpuMode,  0 /*fFilter - none */,
-                                         Dis.abInstr, Dis.cbCachedInstr, NULL, NULL, &DisOnly, &cbOnly);
+                                         Dis.Instr.ab, Dis.cbCachedInstr, NULL, NULL, &DisOnly, &cbOnly);
 
         RTTESTI_CHECK_RC(rc, VINF_SUCCESS);
         RTTESTI_CHECK(cbOnly == DisOnly.cbInstr);
@@ -108,7 +108,7 @@ static void testDisas(const char *pszSub, uint8_t const *pabInstrs, uintptr_t uE
 static DECLCALLBACK(int) testReadBytes(PDISSTATE pDis, uint8_t offInstr, uint8_t cbMinRead, uint8_t cbMaxRead)
 {
     RT_NOREF1(cbMinRead);
-    memcpy(&pDis->abInstr[offInstr], (void *)((uintptr_t)pDis->uInstrAddr + offInstr), cbMaxRead);
+    memcpy(&pDis->Instr.ab[offInstr], (void *)((uintptr_t)pDis->uInstrAddr + offInstr), cbMaxRead);
     pDis->cbCachedInstr = offInstr + cbMaxRead;
     return VINF_SUCCESS;
 }
@@ -137,7 +137,7 @@ static void testPerformance(const char *pszSub, uint8_t const *pabInstrs, uintpt
     RTTestIValueF(cNsElapsed / cInstrs, RTTESTUNIT_NS_PER_CALL, "%s-per-instruction", pszSub);
 }
 
-void testTwo(void)
+static void testTwo(void)
 {
     static const struct
     {
@@ -159,16 +159,16 @@ void testTwo(void)
         if (rc == VINF_SUCCESS)
         {
             uint32_t cb2;
-            RTTESTI_CHECK_MSG((cb2 = DISGetParamSize(&Dis, &Dis.Param1)) == s_gInstrs[i].cbParam1,
+            RTTESTI_CHECK_MSG((cb2 = DISGetParamSize(&Dis, &Dis.aParams[0])) == s_gInstrs[i].cbParam1,
                               ("%u: %#x vs %#x\n", i , cb2, s_gInstrs[i].cbParam1));
 #ifndef DIS_CORE_ONLY
-            RTTESTI_CHECK_MSG((cb2 = DISGetParamSize(&Dis, &Dis.Param2)) == s_gInstrs[i].cbParam2,
+            RTTESTI_CHECK_MSG((cb2 = DISGetParamSize(&Dis, &Dis.aParams[1])) == s_gInstrs[i].cbParam2,
                               ("%u: %#x vs %#x (%s)\n", i , cb2, s_gInstrs[i].cbParam2, Dis.pCurInstr->pszOpcode));
 #else
-            RTTESTI_CHECK_MSG((cb2 = DISGetParamSize(&Dis, &Dis.Param2)) == s_gInstrs[i].cbParam2,
+            RTTESTI_CHECK_MSG((cb2 = DISGetParamSize(&Dis, &Dis.aParams[1])) == s_gInstrs[i].cbParam2,
                               ("%u: %#x vs %#x\n", i , cb2, s_gInstrs[i].cbParam2));
 #endif
-            RTTESTI_CHECK_MSG((cb2 = DISGetParamSize(&Dis, &Dis.Param3)) == s_gInstrs[i].cbParam3,
+            RTTESTI_CHECK_MSG((cb2 = DISGetParamSize(&Dis, &Dis.aParams[2])) == s_gInstrs[i].cbParam3,
                               ("%u: %#x vs %#x\n", i , cb2, s_gInstrs[i].cbParam3));
         }
     }

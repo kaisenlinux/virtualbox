@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2007-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2007-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -333,6 +333,7 @@ static void VBoxGuestNetBSDAttach(device_t parent, device_t self, void *aux)
              * Call the common device extension initializer.
              */
             rc = VGDrvCommonInitDevExt(&g_DevExt, sc->sc_iobase,
+                                       NULL /*pvMmioReq*/,
                                        bus_space_vaddr(sc->sc_memt, sc->sc_memh),
                                        sc->sc_memsize,
 #if ARCH_BITS == 64

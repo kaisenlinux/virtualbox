@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -78,9 +78,9 @@ size_t disFormatBytes(PCDISSTATE pDis, char *pszDst, size_t cchDst, uint32_t fFl
     for (uint32_t i = 0; i < cb; i++)
     {
         if (i != 0 && (fFlags & DIS_FMT_FLAGS_BYTES_SPACED))
-            PUT_NUM(3, " %02x", pDis->abInstr[i]);
+            PUT_NUM(3, " %02x", pDis->Instr.ab[i]);
         else
-            PUT_NUM(2, "%02x", pDis->abInstr[i]);
+            PUT_NUM(2, "%02x", pDis->Instr.ab[i]);
     }
 
     if (fFlags & DIS_FMT_FLAGS_BYTES_BRACKETS)

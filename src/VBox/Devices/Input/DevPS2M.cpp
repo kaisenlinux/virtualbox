@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2007-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2007-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -422,7 +422,7 @@ static void ps2mReportAccumulatedEvents(PPS2M pThis, PPS2QHDR pQHdr, size_t cQEl
 
 
 /* Determine whether a reporting rate is one of the valid ones. */
-bool ps2mIsRateSupported(uint8_t rate)
+static bool ps2mIsRateSupported(uint8_t rate)
 {
     static uint8_t  aValidRates[] = { 10, 20, 40, 60, 80, 100, 200 };
     size_t          i;

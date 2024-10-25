@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,7 +26,9 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QHBoxLayout>
+#include <QKeyEvent>
 #include <QLabel>
 #include <QPainter>
 #include <QPushButton>
@@ -40,12 +42,13 @@
 #include "UICommon.h"
 #include "UIDesktopWidgetWatchdog.h"
 #include "UIExtraDataManager.h"
+#include "UIHelpBrowserDialog.h"
 #include "UIIconPool.h"
-#include "UIMessageCenter.h"
 #include "UINativeWizard.h"
 #include "UINativeWizardPage.h"
 #include "UINotificationCenter.h"
-
+#include "UIShortcutPool.h"
+#include "UITranslationEventListener.h"
 
 #ifdef VBOX_WS_MAC
 UIFrame::UIFrame(QWidget *pParent)
@@ -90,13 +93,14 @@ void UIFrame::paintEvent(QPaintEvent *pEvent)
 
 UINativeWizard::UINativeWizard(QWidget *pParent,
                                WizardType enmType,
-                               WizardMode enmMode /* = WizardMode_Auto */,
-                               const QString &strHelpTag /* = QString() */)
-    : QIWithRetranslateUI<QDialog>(pParent)
+                               const QString &strHelpKeyword /* = QString() */)
+    : QDialog(pParent, Qt::Window)
     , m_enmType(enmType)
-    , m_enmMode(enmMode == WizardMode_Auto ? gEDataManager->modeForWizardType(m_enmType) : enmMode)
-    , m_strHelpHashtag(strHelpTag)
+    , m_enmMode(gEDataManager->isSettingsInExpertMode() ? WizardMode_Expert : WizardMode_Basic)
+    , m_strHelpKeyword(strHelpKeyword)
     , m_iLastIndex(-1)
+    , m_fAborted(true)
+    , m_fClosed(false)
     , m_pLabelPixmap(0)
     , m_pLayoutRight(0)
     , m_pLabelPageTitle(0)
@@ -118,9 +122,7 @@ UINotificationCenter *UINativeWizard::notificationCenter() const
 
 bool UINativeWizard::handleNotificationProgressNow(UINotificationProgress *pProgress)
 {
-    wizardButton(WizardButtonType_Expert)->setEnabled(false);
     const bool fResult = m_pNotificationCenter->handleNow(pProgress);
-    wizardButton(WizardButtonType_Expert)->setEnabled(true);
     return fResult;
 }
 
@@ -135,7 +137,16 @@ int UINativeWizard::exec()
     init();
 
     /* Call to base-class: */
-    return QIWithRetranslateUI<QDialog>::exec();
+    return QDialog::exec();
+}
+
+void UINativeWizard::show()
+{
+    /* Init wizard: */
+    init();
+
+    /* Call to base-class: */
+    return QDialog::show();
 }
 
 void UINativeWizard::setPixmapName(const QString &strName)
@@ -156,7 +167,7 @@ void UINativeWizard::setPageVisible(int iIndex, bool fVisible)
     else
         m_invisiblePages.insert(iIndex);
     /* Update the button labels since the last visible page might have changed. Thus 'Next' <-> 'Finish' might be needed: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 int UINativeWizard::addPage(UINativeWizardPage *pPage)
@@ -185,7 +196,7 @@ int UINativeWizard::addPage(UINativeWizardPage *pPage)
     return iIndex;
 }
 
-void UINativeWizard::retranslateUi()
+void UINativeWizard::sltRetranslateUI()
 {
     /* Translate Help button: */
     QPushButton *pButtonHelp = wizardButton(WizardButtonType_Help);
@@ -193,26 +204,6 @@ void UINativeWizard::retranslateUi()
     {
         pButtonHelp->setText(tr("&Help"));
         pButtonHelp->setToolTip(tr("Open corresponding Help topic."));
-    }
-
-    /* Translate basic/expert button: */
-    QPushButton *pButtonExpert = wizardButton(WizardButtonType_Expert);
-    AssertMsgReturnVoid(pButtonExpert, ("No Expert wizard button found!\n"));
-    switch (m_enmMode)
-    {
-        case WizardMode_Basic:
-            pButtonExpert->setText(tr("&Expert Mode"));
-            pButtonExpert->setToolTip(tr("Switch to the Expert Mode, "
-                                         "a one-page dialog for experienced users."));
-            break;
-        case WizardMode_Expert:
-            pButtonExpert->setText(tr("&Guided Mode"));
-            pButtonExpert->setToolTip(tr("Switch to the Guided Mode, "
-                                         "a step-by-step dialog with detailed explanations."));
-            break;
-        default:
-            AssertMsgFailed(("Invalid wizard mode: %d", m_enmMode));
-            break;
     }
 
     /* Translate Back button: */
@@ -242,10 +233,70 @@ void UINativeWizard::retranslateUi()
     pButtonCancel->setToolTip(tr("Cancel wizard execution."));
 }
 
+void UINativeWizard::keyPressEvent(QKeyEvent *pEvent)
+{
+    // WORKAROUND:
+    // In non-modal case we'll have to handle Escape button ourselves.
+    // In modal case QDialog does this itself internally by unwinding the event-loop.
+
+    /* Different handling depending on current modality: */
+    const Qt::WindowModality enmModality = windowHandle()->modality();
+
+    /* For non-modal case: */
+    if (enmModality == Qt::NonModal)
+    {
+        /* Special pre-processing for some keys: */
+        switch (pEvent->key())
+        {
+            case Qt::Key_Escape:
+            {
+                close();
+                return;
+            }
+            default:
+                break;
+        }
+    }
+
+    /* Call to base-class: */
+    return QDialog::keyPressEvent(pEvent);
+}
+
+void UINativeWizard::closeEvent(QCloseEvent *pEvent)
+{
+    /* Different handling depending on current modality: */
+    const Qt::WindowModality enmModality = windowHandle()->modality();
+
+    /* For non-modal case: */
+    if (enmModality == Qt::NonModal)
+    {
+        /* Ignore event initially: */
+        pEvent->ignore();
+
+        /* Let the notification-center abort blocking operations: */
+        if (m_pNotificationCenter->hasOperationsPending())
+            m_pNotificationCenter->abortOperations();
+        else
+        /* Tell the listener to close us (once): */
+        if (!m_fClosed)
+        {
+            m_fClosed = true;
+            if (m_fAborted)
+                cleanWizard();
+            emit sigClose(m_enmType);
+        }
+
+        return;
+    }
+
+    /* Call to base-class: */
+    QDialog::closeEvent(pEvent);
+}
+
 void UINativeWizard::sltCurrentIndexChanged(int iIndex /* = -1 */)
 {
     /* Update translation: */
-    retranslateUi();
+    sltRetranslateUI();
 
     /* Sanity check: */
     AssertPtrReturnVoid(m_pWidgetStack);
@@ -253,16 +304,6 @@ void UINativeWizard::sltCurrentIndexChanged(int iIndex /* = -1 */)
     /* -1 means current one page: */
     if (iIndex == -1)
         iIndex = m_pWidgetStack->currentIndex();
-
-    /* Hide/show Expert button (hidden by default): */
-    bool fIsExpertButtonAvailable = false;
-    /* Show Expert button for 1st page: */
-    if (iIndex == 0)
-        fIsExpertButtonAvailable = true;
-    /* Hide/show Expert button finally: */
-    QPushButton *pButtonExpert = wizardButton(WizardButtonType_Expert);
-    AssertMsgReturnVoid(pButtonExpert, ("No Expert wizard button found!\n"));
-    pButtonExpert->setVisible(fIsExpertButtonAvailable);
 
     /* Disable/enable Back button: */
     QPushButton *pButtonBack = wizardButton(WizardButtonType_Back);
@@ -297,22 +338,6 @@ void UINativeWizard::sltCompleteChanged()
     QPushButton *pButtonNext = wizardButton(WizardButtonType_Next);
     AssertMsgReturnVoid(pButtonNext, ("No Next wizard button found!\n"));
     pButtonNext->setEnabled(pPage->isComplete());
-}
-
-void UINativeWizard::sltExpert()
-{
-    /* Toggle mode: */
-    switch (m_enmMode)
-    {
-        case WizardMode_Basic:  m_enmMode = WizardMode_Expert; break;
-        case WizardMode_Expert: m_enmMode = WizardMode_Basic;  break;
-        default: AssertMsgFailed(("Invalid mode: %d", m_enmMode)); break;
-    }
-    gEDataManager->setModeForWizardType(m_enmType, m_enmMode);
-
-    /* Reinit everything: */
-    deinit();
-    init();
 }
 
 void UINativeWizard::sltPrevious()
@@ -353,7 +378,21 @@ void UINativeWizard::sltNext()
         m_pWidgetStack->setCurrentIndex(iIteratedIndex);
     /* For last one we just accept the wizard: */
     else
-        accept();
+    {
+        /* Different handling depending on current modality: */
+        if (windowHandle()->modality() == Qt::NonModal)
+        {
+            m_fAborted = false;
+            close();
+        }
+        else
+            accept();
+    }
+}
+
+void UINativeWizard::sltHandleHelpRequest()
+{
+    UIHelpBrowserDialog::findManualFileAndShow(uiCommon().helpKeyword(this));
 }
 
 void UINativeWizard::prepare()
@@ -484,9 +523,9 @@ void UINativeWizard::prepare()
                 for (int i = WizardButtonType_Invalid + 1; i < WizardButtonType_Max; ++i)
                 {
                     const WizardButtonType enmType = (WizardButtonType)i;
-                    /* Create Help button only if help hash tag is set.
+                    /* Create Help button only if help keyword is set.
                      * Create other buttons in any case: */
-                    if (enmType != WizardButtonType_Help || !m_strHelpHashtag.isEmpty())
+                    if (enmType != WizardButtonType_Help || !m_strHelpKeyword.isEmpty())
                         m_buttons[enmType] = new QPushButton(pWidgetBottom);
                     QPushButton *pButton = wizardButton(enmType);
                     if (pButton)
@@ -501,18 +540,16 @@ void UINativeWizard::prepare()
                 if (wizardButton(WizardButtonType_Help))
                 {
                     connect(wizardButton(WizardButtonType_Help), &QPushButton::clicked,
-                            &(msgCenter()), &UIMessageCenter::sltHandleHelpRequest);
-                    wizardButton(WizardButtonType_Help)->setShortcut(QKeySequence::HelpContents);
-                    uiCommon().setHelpKeyword(wizardButton(WizardButtonType_Help), m_strHelpHashtag);
+                            this, &UINativeWizard::sltHandleHelpRequest);
+                    wizardButton(WizardButtonType_Help)->setShortcut(UIShortcutPool::standardSequence(QKeySequence::HelpContents));
+                    uiCommon().setHelpKeyword(this, m_strHelpKeyword);
                 }
-                connect(wizardButton(WizardButtonType_Expert), &QPushButton::clicked,
-                        this, &UINativeWizard::sltExpert);
                 connect(wizardButton(WizardButtonType_Back), &QPushButton::clicked,
                         this, &UINativeWizard::sltPrevious);
                 connect(wizardButton(WizardButtonType_Next), &QPushButton::clicked,
                         this, &UINativeWizard::sltNext);
                 connect(wizardButton(WizardButtonType_Cancel), &QPushButton::clicked,
-                        this, &UINativeWizard::reject);
+                        this, &UINativeWizard::close);
             }
 
             /* Add to layout: */
@@ -522,6 +559,12 @@ void UINativeWizard::prepare()
 
     /* Prepare local notification-center: */
     m_pNotificationCenter = new UINotificationCenter(this);
+    if (m_pNotificationCenter)
+        connect(m_pNotificationCenter, &UINotificationCenter::sigOperationsAborted,
+                this, &UINativeWizard::close, Qt::QueuedConnection);
+
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UINativeWizard::sltRetranslateUI);
 }
 
 void UINativeWizard::cleanup()
@@ -537,7 +580,7 @@ void UINativeWizard::init()
     populatePages();
 
     /* Translate wizard: */
-    retranslateUi();
+    sltRetranslateUI();
     /* Translate wizard pages: */
     retranslatePages();
 
@@ -546,27 +589,6 @@ void UINativeWizard::init()
 
     /* Make sure current page initialized: */
     sltCurrentIndexChanged();
-}
-
-void UINativeWizard::deinit()
-{
-    /* Remove all the pages: */
-    m_pWidgetStack->blockSignals(true);
-    while (m_pWidgetStack->count() > 0)
-    {
-        QWidget *pLastWidget = m_pWidgetStack->widget(m_pWidgetStack->count() - 1);
-        m_pWidgetStack->removeWidget(pLastWidget);
-        delete pLastWidget;
-    }
-    m_pWidgetStack->blockSignals(false);
-
-    /* Update last index: */
-    m_iLastIndex = -1;
-    /* Update invisible pages: */
-    m_invisiblePages.clear();
-
-    /* Clean wizard finally: */
-    cleanWizard();
 }
 
 void UINativeWizard::retranslatePages()
@@ -690,7 +712,8 @@ void UINativeWizard::assignBackground()
 
     /* Acquire pixmap of required size and scale (on basis of parent-widget's device pixel ratio): */
     const QSize standardSize(620, 440);
-    const QPixmap pixmapOld = icon.pixmap(parentWidget()->windowHandle(), standardSize);
+    const qreal fDevicePixelRatio = parentWidget() && parentWidget()->windowHandle() ? parentWidget()->windowHandle()->devicePixelRatio() : 1;
+    const QPixmap pixmapOld = icon.pixmap(standardSize, fDevicePixelRatio);
 
     /* Assign background finally: */
     m_pLabelPixmap->setPixmap(pixmapOld);
@@ -706,7 +729,8 @@ void UINativeWizard::assignWatermark()
 
     /* Acquire pixmap of required size and scale (on basis of parent-widget's device pixel ratio): */
     const QSize standardSize(145, 290);
-    const QPixmap pixmapOld = icon.pixmap(parentWidget()->windowHandle(), standardSize);
+    const qreal fDevicePixelRatio = parentWidget() && parentWidget()->windowHandle() ? parentWidget()->windowHandle()->devicePixelRatio() : 1;
+    const QPixmap pixmapOld = icon.pixmap(standardSize, fDevicePixelRatio);
 
     /* Convert watermark to image which allows to manage pixel data directly: */
     const QImage imageOld = pixmapOld.toImage();

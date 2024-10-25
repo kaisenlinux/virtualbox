@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -94,9 +94,6 @@ protected:
 
     /** @name Event-handling stuff.
       * @{ */
-        /** Handles translation event. */
-        virtual void retranslateUi() RT_OVERRIDE;
-
         /** Handles show @a pEvent. */
         virtual void showEvent(QShowEvent *pEvent) RT_OVERRIDE;
 
@@ -190,6 +187,12 @@ private slots:
 
         /** Updates first row maximum width. */
         void sltUpdateFirstRowMaximumWidth() { updateFirstRowMaximumWidth(); }
+    /** @} */
+
+    /** @name Event handling stuff.
+     * @{ */
+       /** Handles translation event. */
+       void sltRetranslateUI();
     /** @} */
 
 private:

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -34,7 +34,7 @@
 #include <QMenu>
 #include <QPointer>
 #include <QReadWriteLock>
-#include <QRegExp>
+#include <QRegularExpression>
 #include <QScrollBar>
 #include <QTimer>
 #include <QVBoxLayout>
@@ -45,9 +45,13 @@
 #include "QIToolBar.h"
 #include "QITreeWidget.h"
 #include "UIActionPoolManager.h"
+#include "UICommon.h"
 #include "UIConverter.h"
 #include "UIExtraDataManager.h"
 #include "UIIconPool.h"
+#include "UILocalMachineStuff.h"
+#include "UILoggingDefs.h"
+#include "UIMediumTools.h"
 #include "UIMessageCenter.h"
 #include "UIModalWindowManager.h"
 #include "UINotificationCenter.h"
@@ -55,6 +59,7 @@
 #include "UISnapshotPane.h"
 #include "UITakeSnapshotDialog.h"
 #include "UITranslator.h"
+#include "UITranslationEventListener.h"
 #include "UIVirtualBoxEventHandler.h"
 #include "UIVirtualMachineItem.h"
 #include "UIVirtualMachineItemLocal.h"
@@ -62,6 +67,7 @@
 
 /* COM includes: */
 #include "CConsole.h"
+#include "CSnapshot.h"
 
 
 /** Snapshot tree column tags. */
@@ -386,11 +392,7 @@ void UISnapshotItem::recache()
         m_fOnline = m_comSnapshot.GetOnline();
         setIcon(Column_Name, *m_pSnapshotWidget->snapshotItemIcon(m_fOnline));
         m_strDescription = m_comSnapshot.GetDescription();
-#if QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
         m_timestamp.setSecsSinceEpoch(m_comSnapshot.GetTimeStamp() / 1000);
-#else
-        m_timestamp.setTime_t(m_comSnapshot.GetTimeStamp() / 1000);
-#endif
         m_fCurrentStateModified = false;
     }
 
@@ -419,11 +421,7 @@ void UISnapshotItem::setMachineState(KMachineState enmState)
     /* Set corresponding icon: */
     setIcon(Column_Name, gpConverter->toIcon(m_enmMachineState));
     /* Update timestamp: */
-#if QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
     m_timestamp.setSecsSinceEpoch(m_comMachine.GetLastStateChange() / 1000);
-#else
-    m_timestamp.setTime_t(m_comMachine.GetLastStateChange() / 1000);
-#endif
 }
 
 SnapshotAgeFormat UISnapshotItem::updateAge()
@@ -584,7 +582,7 @@ UISnapshotTree::UISnapshotTree(QWidget *pParent)
 *********************************************************************************************************************************/
 
 UISnapshotPane::UISnapshotPane(UIActionPool *pActionPool, bool fShowToolbar /* = true */, QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_pActionPool(pActionPool)
     , m_fShowToolbar(fShowToolbar)
     , m_pLockReadWrite(0)
@@ -645,21 +643,17 @@ bool UISnapshotPane::isCurrentStateItemSelected() const
     return m_currentStateItems.values().contains(pSnapshotItem);
 }
 
-void UISnapshotPane::retranslateUi()
+QUuid UISnapshotPane::currentSnapshotId()
+{
+    UISnapshotItem *pSnapshotItem = UISnapshotItem::toSnapshotItem(m_pSnapshotTree->currentItem());
+    CSnapshot comSnapshot = pSnapshotItem ? pSnapshotItem->snapshot() : CSnapshot();
+    return comSnapshot.isNotNull() ? comSnapshot.GetId() : QUuid();
+}
+
+void UISnapshotPane::sltRetranslateUI()
 {
     /* Translate snapshot tree: */
     m_pSnapshotTree->setWhatsThis(tr("Contains the snapshot tree of the current virtual machine"));
-
-    /* Translate toolbar: */
-#ifdef VBOX_WS_MAC
-    // WORKAROUND:
-    // There is a bug in Qt Cocoa which result in showing a "more arrow" when
-    // the necessary size of the toolbar is increased. Also for some languages
-    // the with doesn't match if the text increase. So manually adjust the size
-    // after changing the text. */
-    if (m_pToolBar)
-        m_pToolBar->updateLayout();
-#endif
 
     /* Translate snapshot tree: */
     const QStringList fields = QStringList()
@@ -674,7 +668,7 @@ void UISnapshotPane::retranslateUi()
 void UISnapshotPane::resizeEvent(QResizeEvent *pEvent)
 {
     /* Call to base-class: */
-    QIWithRetranslateUI<QWidget>::resizeEvent(pEvent);
+    QWidget::resizeEvent(pEvent);
 
     /* Adjust snapshot tree: */
     adjustTreeWidget();
@@ -683,7 +677,7 @@ void UISnapshotPane::resizeEvent(QResizeEvent *pEvent)
 void UISnapshotPane::showEvent(QShowEvent *pEvent)
 {
     /* Call to base-class: */
-    QIWithRetranslateUI<QWidget>::showEvent(pEvent);
+    QWidget::showEvent(pEvent);
 
     /* Adjust snapshot tree: */
     adjustTreeWidget();
@@ -1094,9 +1088,9 @@ void UISnapshotPane::sltApplySnapshotDetailsChanges()
         /* Open a session (this call will handle all errors): */
         CSession comSession;
         if (m_sessionStates.value(pSnapshotItem->machineID()) != KSessionState_Unlocked)
-            comSession = uiCommon().openExistingSession(pSnapshotItem->machineID());
+            comSession = openExistingSession(pSnapshotItem->machineID());
         else
-            comSession = uiCommon().openSession(pSnapshotItem->machineID());
+            comSession = openSession(pSnapshotItem->machineID());
         if (comSession.isNotNull())
         {
             /* Get corresponding machine object: */
@@ -1228,7 +1222,7 @@ void UISnapshotPane::sltHandleItemChange(QTreeWidgetItem *pItem)
             if (comSnapshot.GetName() != pSnapshotItem->name())
             {
                 /* We need to open a session when we manipulate the snapshot data of a machine: */
-                CSession comSession = uiCommon().openExistingSession(comSnapshot.GetMachine().GetId());
+                CSession comSession = openExistingSession(comSnapshot.GetMachine().GetId());
                 if (!comSession.isNull())
                 {
                     /// @todo Add settings save validation.
@@ -1330,7 +1324,9 @@ void UISnapshotPane::prepare()
     uiCommon().setHelpKeyword(this, "snapshots");
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+        this, &UISnapshotPane::sltRetranslateUI);
 }
 
 void UISnapshotPane::prepareConnections()
@@ -1370,8 +1366,6 @@ void UISnapshotPane::prepareActions()
             this, &UISnapshotPane::sltRestoreSnapshot);
     connect(m_pActionPool->action(UIActionIndexMN_M_Snapshot_T_Properties), &UIAction::toggled,
             this, &UISnapshotPane::sltToggleSnapshotDetailsVisibility);
-    connect(m_pActionPool->action(UIActionIndexMN_M_Snapshot_S_Clone), &UIAction::triggered,
-            this, &UISnapshotPane::sltCloneSnapshot);
 }
 
 void UISnapshotPane::prepareWidgets()
@@ -1669,16 +1663,18 @@ bool UISnapshotPane::takeSnapshot(bool fAutomatically /* = false */)
     /* Search for a maximum existing snapshot index: */
     int iMaximumIndex = 0;
     const QString strNameTemplate = tr("Snapshot %1");
-    const QRegExp reName(QString("^") + strNameTemplate.arg("([0-9]+)") + QString("$"));
+    const QRegularExpression re(QString("^") + strNameTemplate.arg("([0-9]+)") + QString("$"));
     QTreeWidgetItemIterator iterator(m_pSnapshotTree);
     while (*iterator)
     {
         const QString strName = static_cast<UISnapshotItem*>(*iterator)->name();
-        const int iPosition = reName.indexIn(strName);
-        if (iPosition != -1)
-            iMaximumIndex = reName.cap(1).toInt() > iMaximumIndex
-                          ? reName.cap(1).toInt()
-                          : iMaximumIndex;
+        const QRegularExpressionMatch mt = re.match(strName);
+        if (mt.hasMatch())
+        {
+            const int iFoundIndex = mt.captured(1).toInt();
+            iMaximumIndex = iFoundIndex > iMaximumIndex
+                          ? iFoundIndex : iMaximumIndex;
+        }
         ++iterator;
     }
 
@@ -1689,9 +1685,13 @@ bool UISnapshotPane::takeSnapshot(bool fAutomatically /* = false */)
     /* In manual mode we should show take snapshot dialog: */
     if (!fAutomatically)
     {
+        /* First of all, we should calculate amount of immutable images: */
+        ulong cAmountOfImmutableMediums = 0;
+        UIMediumTools::acquireAmountOfImmutableImages(comMachine, cAmountOfImmutableMediums);
+
         /* Create take-snapshot dialog: */
         QWidget *pDlgParent = windowManager().realParentWindow(this);
-        QPointer<UITakeSnapshotDialog> pDlg = new UITakeSnapshotDialog(pDlgParent, comMachine);
+        QPointer<UITakeSnapshotDialog> pDlg = new UITakeSnapshotDialog(pDlgParent, cAmountOfImmutableMediums);
         windowManager().registerNewParent(pDlg, pDlgParent);
 
         /* Assign corresponding icon: */
@@ -1801,32 +1801,6 @@ bool UISnapshotPane::restoreSnapshot(bool fAutomatically /* = false */)
 
     /* Return result: */
     return true;
-}
-
-void UISnapshotPane::cloneSnapshot()
-{
-    /* Acquire "current snapshot" item: */
-    const UISnapshotItem *pSnapshotItem = UISnapshotItem::toSnapshotItem(m_pSnapshotTree->currentItem());
-    AssertReturnVoid(pSnapshotItem);
-
-    /* Get desired machine/snapshot: */
-    CMachine comMachine;
-    CSnapshot comSnapshot;
-    if (pSnapshotItem->isCurrentStateItem())
-        comMachine = pSnapshotItem->machine();
-    else
-    {
-        comSnapshot = pSnapshotItem->snapshot();
-        AssertReturnVoid(!comSnapshot.isNull());
-        comMachine = comSnapshot.GetMachine();
-    }
-    AssertReturnVoid(!comMachine.isNull());
-
-    /* Show Clone VM wizard: */
-    QPointer<UINativeWizard> pWizard = new UIWizardCloneVM(this, comMachine, QString(), comSnapshot);
-    pWizard->exec();
-    if (pWizard)
-        delete pWizard;
 }
 
 void UISnapshotPane::adjustTreeWidget()

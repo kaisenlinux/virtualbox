@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -206,7 +206,7 @@ bool UIGlobalSettingsProxy::validate(QList<UIValidationMessage> &messages)
     return fPass;
 }
 
-void UIGlobalSettingsProxy::retranslateUi()
+void UIGlobalSettingsProxy::sltRetranslateUI()
 {
 }
 
@@ -218,10 +218,9 @@ void UIGlobalSettingsProxy::prepare()
 
     /* Prepare everything: */
     prepareWidgets();
-    prepareConnections();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIGlobalSettingsProxy::prepareWidgets()
@@ -233,19 +232,18 @@ void UIGlobalSettingsProxy::prepareWidgets()
         /* Prepare 'proxy features' editor: */
         m_pEditorProxyFeatures = new UIProxyFeaturesEditor(this);
         if (m_pEditorProxyFeatures)
+        {
+            connect(m_pEditorProxyFeatures, &UIProxyFeaturesEditor::sigProxyModeChanged,
+                    this, &UIGlobalSettingsProxy::revalidate);
+            connect(m_pEditorProxyFeatures, &UIProxyFeaturesEditor::sigProxyHostChanged,
+                    this, &UIGlobalSettingsProxy::revalidate);
+            addEditor(m_pEditorProxyFeatures);
             pLayout->addWidget(m_pEditorProxyFeatures);
+        }
 
         /* Add stretch to the end: */
         pLayout->addStretch();
     }
-}
-
-void UIGlobalSettingsProxy::prepareConnections()
-{
-    connect(m_pEditorProxyFeatures, &UIProxyFeaturesEditor::sigProxyModeChanged,
-            this, &UIGlobalSettingsProxy::revalidate);
-    connect(m_pEditorProxyFeatures, &UIProxyFeaturesEditor::sigProxyHostChanged,
-            this, &UIGlobalSettingsProxy::revalidate);
 }
 
 void UIGlobalSettingsProxy::cleanup()

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,8 +26,8 @@
  */
 
 /* GUI includes: */
-#include "UICommon.h"
 #include "UIExtraDataManager.h"
+#include "UIGlobalSession.h"
 #include "UIMainEventListener.h"
 #include "UIVirtualBoxClientEventHandler.h"
 
@@ -117,11 +117,10 @@ void UIVirtualBoxClientEventHandlerProxy::prepareListener()
     m_comEventListener = CEventListener(m_pQtListener);
 
     /* Get VirtualBoxClient: */
-    const CVirtualBoxClient comVBoxClient = uiCommon().virtualBoxClient();
-    AssertWrapperOk(comVBoxClient);
+    const CVirtualBoxClient comVBoxClient = gpGlobalSession->virtualBoxClient();
     /* Get VirtualBoxClient event source: */
     m_comEventSource = comVBoxClient.GetEventSource();
-    AssertWrapperOk(m_comEventSource);
+    Assert(comVBoxClient.isOk());
 
     /* Enumerate all the required event-types: */
     QVector<KVBoxEventType> eventTypes;
@@ -130,7 +129,7 @@ void UIVirtualBoxClientEventHandlerProxy::prepareListener()
 
     /* Register event listener for event source aggregator: */
     m_comEventSource.RegisterListener(m_comEventListener, eventTypes, FALSE /* active? */);
-    AssertWrapperOk(m_comEventSource);
+    Assert(m_comEventSource.isOk());
 
     /* Register event sources in their listeners as well: */
     m_pQtListener->getWrapped()->registerSource(m_comEventSource, m_comEventListener);

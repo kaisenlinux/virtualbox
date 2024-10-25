@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -47,14 +47,17 @@ public:
 
     UIWizardNewVMSummaryPage();
 
+private slots:
+
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
+
 private:
 
     void prepare();
     void createConnections();
-    virtual void retranslateUi() /* override final */;
-    virtual void initializePage() /* override final */;
-    virtual bool isComplete() const /* override final */;
-    virtual bool validatePage() /* override final */;
+    virtual void initializePage() RT_OVERRIDE RT_FINAL;
+    virtual bool isComplete() const RT_OVERRIDE RT_FINAL;
+    virtual bool validatePage() RT_OVERRIDE RT_FINAL;
     /** @name Widgets
      * @{ */
        QIRichTextLabel *m_pLabel;

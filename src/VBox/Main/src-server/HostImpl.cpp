@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2004-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2004-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -40,6 +40,7 @@
 #include "VBox/com/ptr.h"
 
 #include "HostImpl.h"
+#include "HostX86Impl.h"
 
 #ifdef VBOX_WITH_USB
 # include "HostUSBDeviceImpl.h"
@@ -71,7 +72,7 @@
 # include "PerformanceImpl.h"
 #endif /* VBOX_WITH_RESOURCE_USAGE_API */
 
-#if defined(RT_OS_DARWIN) && ARCH_BITS == 32
+#if defined(RT_OS_DARWIN)
 # include <sys/types.h>
 # include <sys/sysctl.h>
 #endif
@@ -149,28 +150,23 @@ typedef SOLARISFIXEDDISK *PSOLARISFIXEDDISK;
 # include "darwin/iokit.h"
 #endif
 
-#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
-# include <iprt/asm-amd64-x86.h>
-#endif
 #ifdef RT_OS_SOLARIS
 # include <iprt/ctype.h>
 #endif
 #if defined(RT_OS_SOLARIS) || defined(RT_OS_WINDOWS)
 # include <iprt/file.h>
 #endif
-#include <iprt/mp.h>
 #include <iprt/env.h>
 #include <iprt/mem.h>
 #include <iprt/param.h>
 #include <iprt/string.h>
 #include <iprt/system.h>
-#ifndef RT_OS_WINDOWS
-# include <iprt/path.h>
-#endif
+#include <iprt/path.h>
 #include <iprt/time.h>
 #ifdef RT_OS_WINDOWS
 # include <iprt/dir.h>
 # include <iprt/vfs.h>
+# include <iprt/utf16.h>
 #endif
 
 #ifdef VBOX_WITH_HOSTNETIF_API
@@ -181,9 +177,6 @@ typedef SOLARISFIXEDDISK *PSOLARISFIXEDDISK;
 #include <VBox/err.h>
 #include <VBox/settings.h>
 #include <VBox/sup.h>
-#ifdef VBOX_WITH_3D_ACCELERATION
-# include <VBox/VBoxOGL.h>
-#endif
 #include <iprt/x86.h>
 
 #include "VBox/com/MultiResult.h"
@@ -209,6 +202,7 @@ struct Host::Data
 {
     Data()
         :
+          pParent(NULL),
           fDVDDrivesListBuilt(false),
           fFloppyDrivesListBuilt(false),
           fPersistentConfigUpToDate(false)
@@ -251,9 +245,6 @@ struct Host::Data
 
     /** @}  */
 
-    /** 3D hardware acceleration supported? Tristate, -1 meaning not probed. */
-    int                     f3DAccelerationSupported;
-
     HostPowerService        *pHostPowerService;
     /** Host's DNS information fetching */
     HostDnsMonitorProxy     hostDnsMonitorProxy;
@@ -265,6 +256,8 @@ struct Host::Data
     /** Reference to the host update agent. */
     const ComObjPtr<HostUpdateAgent> pUpdateHost;
 #endif
+    /** Reference to the x86 host specific portions of the host object. */
+    const ComObjPtr<HostX86>         pHostX86;
 };
 
 
@@ -303,6 +296,11 @@ HRESULT Host::init(VirtualBox *aParent)
     m = new Data();
 
     m->pParent = aParent;
+
+    hrc = unconst(m->pHostX86).createObject();
+    if (SUCCEEDED(hrc))
+        hrc = m->pHostX86->init();
+    AssertComRCReturn(hrc, hrc);
 
 #ifdef VBOX_WITH_USB
     /*
@@ -418,6 +416,26 @@ HRESULT Host::init(VirtualBox *aParent)
             }
         }
     }
+#elif defined(RT_ARCH_ARM64)
+    m->fLongModeSupported = true; /* Misnomer but means 64-bit guest support, we are running on 64-bit so it must be available. */
+
+# if defined(RT_OS_DARWIN)
+    /*
+     * The kern.hv_support parameter indicates support for the hypervisor API in the
+     * kernel, which is the only way for virtualization on macOS on Apple Silicon.
+     */
+    int32_t fHvSupport = 0;
+    size_t  cbOld = sizeof(fHvSupport);
+    if (sysctlbyname("kern.hv_support", &fHvSupport, &cbOld, NULL, 0) == 0)
+    {
+        if (fHvSupport != 0)
+        {
+            m->fVTSupported                = true;
+            m->fUnrestrictedGuestSupported = true;
+            m->fNestedPagingSupported      = true;
+        }
+    }
+# endif
 #endif /* defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86) */
 
 
@@ -434,13 +452,6 @@ HRESULT Host::init(VirtualBox *aParent)
         m->fVTSupported = m->fNestedPagingSupported = true;
         m->fRecheckVTSupported = false;
     }
-
-#ifdef VBOX_WITH_3D_ACCELERATION
-    /* Test for 3D hardware acceleration support later when (if ever) need. */
-    m->f3DAccelerationSupported = -1;
-#else
-    m->f3DAccelerationSupported = false;
-#endif
 
 #if defined(VBOX_WITH_HOSTNETIF_API) && (defined(RT_OS_LINUX) || defined(RT_OS_DARWIN) || defined(RT_OS_FREEBSD))
     /* Extract the list of configured host-only interfaces */
@@ -517,6 +528,12 @@ void Host::uninit()
 
     m->hostDnsMonitorProxy.uninit();
 
+    if (m->pHostX86)
+    {
+        m->pHostX86->uninit();
+        unconst(m->pHostX86).setNull();
+    }
+
 #ifdef VBOX_WITH_UPDATE_AGENT
     if (m->pUpdateHost)
     {
@@ -584,6 +601,19 @@ void Host::uninit()
 // IHost public methods
 //
 ////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Returns the host's platform architecture.
+ *
+ * @returns COM status code
+ * @param   platformArchitecture    Where to return the host's platform architecture.
+ */
+HRESULT Host::getArchitecture(PlatformArchitecture_T *platformArchitecture)
+{
+    *platformArchitecture = Host::s_getPlatformArchitecture();
+
+    return S_OK;
+}
 
 /**
  * Returns a list of host DVD drives.
@@ -1209,6 +1239,7 @@ HRESULT Host::getProcessorDescription(ULONG aCpuId, com::Utf8Str &aDescription)
  */
 void Host::i_updateProcessorFeatures()
 {
+#ifndef RT_ARCH_ARM64
     /* Perhaps the driver is available now... */
     int vrc = SUPR3InitEx(SUPR3INIT_F_LIMITED, NULL);
     if (RT_SUCCESS(vrc))
@@ -1242,6 +1273,7 @@ void Host::i_updateProcessorFeatures()
         m->fVirtVmsaveVmload           = (fVTCaps & SUPVTCAPS_AMDV_VIRT_VMSAVE_VMLOAD) != 0;
         m->fRecheckVTSupported = false; /* No need to try again, we cached everything. */
     }
+#endif
 }
 
 /**
@@ -1323,47 +1355,6 @@ HRESULT Host::getProcessorFeature(ProcessorFeature_T aFeature, BOOL *aSupported)
         }
     }
     return hrc;
-}
-
-/**
- * Returns the specific CPUID leaf.
- *
- * @returns COM status code
- * @param   aCpuId              The CPU number. Mostly ignored.
- * @param   aLeaf               The leaf number.
- * @param   aSubLeaf            The sub-leaf number.
- * @param   aValEAX             Where to return EAX.
- * @param   aValEBX             Where to return EBX.
- * @param   aValECX             Where to return ECX.
- * @param   aValEDX             Where to return EDX.
- */
-HRESULT Host::getProcessorCPUIDLeaf(ULONG aCpuId, ULONG aLeaf, ULONG aSubLeaf,
-                                    ULONG *aValEAX, ULONG *aValEBX, ULONG *aValECX, ULONG *aValEDX)
-{
-    // no locking required
-
-    /* Check that the CPU is online. */
-    /** @todo later use RTMpOnSpecific. */
-    if (!RTMpIsCpuOnline(aCpuId))
-        return RTMpIsCpuPresent(aCpuId)
-             ? setError(E_FAIL, tr("CPU no.%u is not present"), aCpuId)
-             : setError(E_FAIL, tr("CPU no.%u is not online"), aCpuId);
-
-#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
-    uint32_t uEAX, uEBX, uECX, uEDX;
-    ASMCpuId_Idx_ECX(aLeaf, aSubLeaf, &uEAX, &uEBX, &uECX, &uEDX);
-    *aValEAX = uEAX;
-    *aValEBX = uEBX;
-    *aValECX = uECX;
-    *aValEDX = uEDX;
-#else
-    *aValEAX = 0;
-    *aValEBX = 0;
-    *aValECX = 0;
-    *aValEDX = 0;
-#endif
-
-    return S_OK;
 }
 
 /**
@@ -1469,36 +1460,6 @@ HRESULT Host::getUTCTime(LONG64 *aUTCTime)
     *aUTCTime = RTTimeSpecGetMilli(RTTimeNow(&now));
 
     return S_OK;
-}
-
-
-HRESULT Host::getAcceleration3DAvailable(BOOL *aSupported)
-{
-    HRESULT hrc = S_OK;
-    AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
-    if (m->f3DAccelerationSupported != -1)
-        *aSupported = m->f3DAccelerationSupported;
-    else
-    {
-        alock.release();
-
-#ifdef VBOX_WITH_3D_ACCELERATION
-        bool fSupported = VBoxOglIs3DAccelerationSupported();
-#else
-        bool fSupported = false; /* shouldn't get here, but just in case. */
-#endif
-        AutoWriteLock alock2(this COMMA_LOCKVAL_SRC_POS);
-
-        m->f3DAccelerationSupported = fSupported;
-        alock2.release();
-        *aSupported = fSupported;
-    }
-
-#ifdef DEBUG_misha
-    AssertMsgFailed(("should not be here any more!\n"));
-#endif
-
-    return hrc;
 }
 
 HRESULT Host::createHostOnlyNetworkInterface(ComPtr<IHostNetworkInterface> &aHostInterface,
@@ -2003,6 +1964,17 @@ HRESULT Host::getVideoInputDevices(std::vector<ComPtr<IHostVideoInputDevice> > &
     return S_OK;
 }
 
+/**
+ * Returns the x86 host specific portions of the host object.
+ *
+ * @returns x86 host specific portions of the host object.
+ * @param   aHostX86            Where to return the x86 host specific portions of the host objects.
+ */
+HRESULT Host::getX86(ComPtr<IHostX86> &aHostX86)
+{
+    return m->pHostX86.queryInterfaceTo(aHostX86.asOutParam());
+}
+
 HRESULT Host::addUSBDeviceSource(const com::Utf8Str &aBackend, const com::Utf8Str &aId, const com::Utf8Str &aAddress,
                                  const std::vector<com::Utf8Str> &aPropertyNames, const std::vector<com::Utf8Str> &aPropertyValues)
 {
@@ -2069,6 +2041,77 @@ HRESULT  Host::getHostDrives(std::vector<ComPtr<IHostDrive> > &aHostDrives)
         }
     }
     return hrc;
+}
+
+
+HRESULT Host::isExecutionEngineSupported(CPUArchitecture_T enmCpuArchitecture, VMExecutionEngine_T enmExecutionEngine, BOOL *pfIsSupported)
+{
+    *pfIsSupported = FALSE;
+
+    /* No need to lock anything as this is constant. */
+    switch (enmCpuArchitecture)
+    {
+        case CPUArchitecture_x86:
+        case CPUArchitecture_AMD64:
+        {
+            switch (enmExecutionEngine)
+            {
+                case VMExecutionEngine_Default:
+                case VMExecutionEngine_Interpreter:
+                    *pfIsSupported = TRUE;
+                    break;
+                case VMExecutionEngine_Recompiler:
+#ifdef VBOX_WITH_IEM_NATIVE_RECOMPILER
+                    *pfIsSupported = TRUE;
+#endif
+                    break;
+#ifdef RT_ARCH_AMD64
+# ifndef VBOX_WITH_DRIVERLESS_FORCED
+                case VMExecutionEngine_HwVirt:
+                    *pfIsSupported = TRUE; /** @todo Check whether our driver is actually accessible?. */
+                    break;
+# endif
+# ifdef VBOX_WITH_NATIVE_NEM
+                case VMExecutionEngine_NativeApi:
+                    *pfIsSupported = i_HostIsNativeApiSupported();
+                    break;
+# endif
+#endif
+                default:
+                    break;
+            }
+            break;
+        }
+
+        case CPUArchitecture_ARMv8_64:
+        {
+#ifdef VBOX_WITH_VIRT_ARMV8
+            switch (enmExecutionEngine)
+            {
+#ifdef RT_ARCH_ARM64
+# ifdef VBOX_WITH_NATIVE_NEM
+                case VMExecutionEngine_NativeApi:
+                    *pfIsSupported = i_HostIsNativeApiSupported();
+                    break;
+# endif
+#endif
+                default:
+                    break;
+            }
+#endif
+            break;
+        }
+
+        /* Not supported at all right now. */
+        case CPUArchitecture_ARMv8_32:
+            break;
+
+        default:
+            AssertFailed();
+            break;
+    }
+
+    return S_OK;
 }
 
 
@@ -3966,6 +4009,24 @@ void Host::i_generateMACAddress(Utf8Str &mac)
                      guid.raw()->au8[0], guid.raw()->au8[1], guid.raw()->au8[2]);
 }
 
+/**
+ * Returns the host's platform architecture.
+ *
+ * @returns The host's platform architecture.
+ */
+/* static */
+PlatformArchitecture_T Host::s_getPlatformArchitecture()
+{
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+    return PlatformArchitecture_x86;
+#elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
+    return PlatformArchitecture_ARM;
+#else
+# error "Port me!"
+    return PlatformArchitecture_None;
+#endif
+}
+
 #ifdef RT_OS_WINDOWS
 HRESULT Host::i_getFixedDrivesFromGlobalNamespace(std::list<std::pair<com::Utf8Str, com::Utf8Str> > &aDriveList) RT_NOEXCEPT
 {
@@ -4159,5 +4220,72 @@ HRESULT Host::i_getDrivesPathsList(std::list<std::pair<com::Utf8Str, com::Utf8St
     return E_NOTIMPL;
 #endif
 }
+
+
+#ifdef VBOX_WITH_NATIVE_NEM
+BOOL Host::i_HostIsNativeApiSupported()
+{
+# ifdef RT_OS_WINDOWS
+    WCHAR wszPath[MAX_PATH + 64];
+    UINT  cwcPath = GetSystemDirectoryW(wszPath, MAX_PATH);
+    if (cwcPath >= MAX_PATH || cwcPath < 2)
+        return FALSE;
+
+    if (wszPath[cwcPath - 1] != '\\' || wszPath[cwcPath - 1] != '/')
+        wszPath[cwcPath++] = '\\';
+    RTUtf16CopyAscii(&wszPath[cwcPath], RT_ELEMENTS(wszPath) - cwcPath, "WinHvPlatform.dll");
+    if (GetFileAttributesW(wszPath) == INVALID_FILE_ATTRIBUTES)
+        return FALSE;
+
+#  ifdef RT_ARCH_AMD64
+    /*
+     * Check that we're in a VM and that the hypervisor identifies itself as Hyper-V.
+     */
+    if (!ASMHasCpuId())
+        return FALSE;
+    if (!RTX86IsValidStdRange(ASMCpuId_EAX(0)))
+        return FALSE;
+    if (!(ASMCpuId_ECX(1) & X86_CPUID_FEATURE_ECX_HVP))
+        return FALSE;
+
+    uint32_t cMaxHyperLeaf = 0;
+    uint32_t uEbx = 0;
+    uint32_t uEcx = 0;
+    uint32_t uEdx = 0;
+    ASMCpuIdExSlow(0x40000000, 0, 0, 0, &cMaxHyperLeaf, &uEbx, &uEcx, &uEdx);
+    if (!RTX86IsValidHypervisorRange(cMaxHyperLeaf))
+        return FALSE;
+    if (   uEbx != UINT32_C(0x7263694d) /* Micr */
+        || uEcx != UINT32_C(0x666f736f) /* osof */
+        || uEdx != UINT32_C(0x76482074) /* t Hv */)
+        return FALSE;
+    if (cMaxHyperLeaf >= UINT32_C(0x40000005))
+        return TRUE;
+#  endif
+# elif defined(RT_OS_LINUX)
+    int fdKvm = open("/dev/kvm", O_RDWR | O_CLOEXEC);
+    if (fdKvm >= 0)
+    {
+        /** @todo Do we need to do anything else here? */
+        close(fdKvm);
+        return TRUE;
+    }
+# elif defined(RT_OS_DARWIN)
+    /*
+     * The kern.hv_support parameter indicates support for the hypervisor API
+     * in the kernel.
+     */
+    int32_t fHvSupport = 0;
+    size_t  cbOld = sizeof(fHvSupport);
+    if (sysctlbyname("kern.hv_support", &fHvSupport, &cbOld, NULL, 0) == 0)
+    {
+        if (fHvSupport != 0)
+            return TRUE;
+    }
+# endif
+    return FALSE;
+}
+#endif
+
 
 /* vi: set tabstop=4 shiftwidth=4 expandtab: */

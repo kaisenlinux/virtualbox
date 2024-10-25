@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -351,22 +351,23 @@ RTDECL(int)  RTFileOpenEx(const char *pszFilename, uint64_t fOpen, PRTFILE phFil
         }
     }
 
+    /*
+     * If temporary file, delete it.
+     */
+    if (   fh >= 0
+        && (fOpen & RTFILE_O_TEMP_AUTO_DELETE))
+    {
+        /** @todo Use funlinkat/funlink or similar here when available!  Or better,
+         *        use O_TMPFILE, only that may require fallback as not supported by
+         *        all file system on linux. */
+        iErr = unlink(pszNativeFilename);
+        Assert(iErr == 0);
+    }
+
     rtPathFreeNative(pszNativeFilename, pszFilename);
     if (fh >= 0)
     {
         iErr = 0;
-
-        /*
-         * If temporary file, delete it.
-         */
-        if (fOpen & RTFILE_O_TEMP_AUTO_DELETE)
-        {
-            /** @todo Use funlinkat/funlink or similar here when available!  Or better,
-             *        use O_TMPFILE, only that may require fallback as not supported by
-             *        all file system on linux. */
-            iErr = unlink(pszNativeFilename);
-            Assert(iErr == 0);
-        }
 
         /*
          * Mark the file handle close on exec, unless inherit is specified.

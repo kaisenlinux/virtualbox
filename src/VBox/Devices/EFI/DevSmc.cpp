@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2013-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -542,8 +542,10 @@ static int getSmcKeyOs(char *pabKey, uint32_t cbKey)
 
     AssertReturn(cbKey >= 65, VERR_INTERNAL_ERROR);
 
+    RT_GCC_NO_WARN_DEPRECATED_BEGIN /* kIOMasterPortDefault: Deprecated since 12.0. */
     io_service_t service = IOServiceGetMatchingService(kIOMasterPortDefault,
                                                        IOServiceMatching("AppleSMC"));
+    RT_GCC_NO_WARN_DEPRECATED_END
     if (!service)
         return VERR_NOT_FOUND;
 
@@ -560,7 +562,7 @@ static int getSmcKeyOs(char *pabKey, uint32_t cbKey)
 
     for (int i = 0; i < 2; i++)
     {
-        inputStruct.key = (uint32_t)(i == 0 ? 'OSK0' : 'OSK1');
+        inputStruct.key = i == 0 ? RT_MAKE_U32_FROM_MSB_U8('O','S','K','0') : RT_MAKE_U32_FROM_MSB_U8('O','S','K','1');
         kr = IOConnectCallStructMethod((mach_port_t)port,
                                        (uint32_t)2,
                                        (const void *)&inputStruct,

@@ -10,7 +10,7 @@ Test Manager - Fetch test results.
 
 __copyright__ = \
 """
-Copyright (C) 2012-2023 Oracle and/or its affiliates.
+Copyright (C) 2012-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -39,7 +39,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 
 # Standard python imports.
@@ -617,6 +617,8 @@ class TestResultListingData(ModelDataBase): # pylint: disable=too-many-instance-
         self.fCpuHwVirt              = None;
         self.fCpuNestedPaging        = None;
         self.fCpu64BitGuest          = None;
+        self.fChipsetIoMmu           = None;
+        self.fNativeApi              = None;
         self.idTestBox               = None
         self.sTestBoxName            = None
 
@@ -664,36 +666,38 @@ class TestResultListingData(ModelDataBase): # pylint: disable=too-many-instance-
         self.fCpuHwVirt              = aoRow[15];
         self.fCpuNestedPaging        = aoRow[16];
         self.fCpu64BitGuest          = aoRow[17];
-        self.idTestBox               = aoRow[18];
-        self.sTestBoxName            = aoRow[19];
+        self.fChipsetIoMmu           = aoRow[18];
+        self.fNativeApi              = aoRow[19];
+        self.idTestBox               = aoRow[20];
+        self.sTestBoxName            = aoRow[21];
 
-        self.tsCreated               = aoRow[20];
-        self.tsElapsed               = aoRow[21];
-        self.enmStatus               = aoRow[22];
-        self.cErrors                 = aoRow[23];
+        self.tsCreated               = aoRow[22];
+        self.tsElapsed               = aoRow[23];
+        self.enmStatus               = aoRow[24];
+        self.cErrors                 = aoRow[25];
 
-        self.idTestCase              = aoRow[24];
-        self.sTestCaseName           = aoRow[25];
-        self.sBaseCmd                = aoRow[26];
-        self.sArgs                   = aoRow[27];
-        self.sSubName                = aoRow[28];
+        self.idTestCase              = aoRow[26];
+        self.sTestCaseName           = aoRow[27];
+        self.sBaseCmd                = aoRow[28];
+        self.sArgs                   = aoRow[29];
+        self.sSubName                = aoRow[30];
 
-        self.idBuildTestSuite        = aoRow[29];
-        self.iRevisionTestSuite      = aoRow[30];
+        self.idBuildTestSuite        = aoRow[31];
+        self.iRevisionTestSuite      = aoRow[32];
 
         self.aoFailureReasons         = [];
-        for i, _ in enumerate(aoRow[31]):
-            if   aoRow[31][i] is not None \
-              or aoRow[32][i] is not None \
-              or aoRow[33][i] is not None \
-              or aoRow[34][i] is not None:
+        for i, _ in enumerate(aoRow[33]):
+            if   aoRow[33][i] is not None \
+              or aoRow[34][i] is not None \
+              or aoRow[35][i] is not None \
+              or aoRow[36][i] is not None:
                 oReason = self.FailureReasonListingData();
-                if aoRow[31][i] is not None:
-                    oReason.oFailureReason      = oFailureReasonLogic.cachedLookup(aoRow[31][i]);
-                if aoRow[32][i] is not None:
-                    oReason.oFailureReasonAssigner = oUserAccountLogic.cachedLookup(aoRow[32][i]);
-                oReason.tsFailureReasonAssigned = aoRow[33][i];
-                oReason.sFailureReasonComment   = aoRow[34][i];
+                if aoRow[33][i] is not None:
+                    oReason.oFailureReason      = oFailureReasonLogic.cachedLookup(aoRow[33][i]);
+                if aoRow[34][i] is not None:
+                    oReason.oFailureReasonAssigner = oUserAccountLogic.cachedLookup(aoRow[34][i]);
+                oReason.tsFailureReasonAssigned = aoRow[35][i];
+                oReason.sFailureReasonComment   = aoRow[36][i];
                 self.aoFailureReasons.append(oReason);
 
         return self
@@ -763,6 +767,8 @@ class TestResultFilter(ModelFilterBase):
     kiTbMisc_NoHwVirt         =  7;
     kiTbMisc_IoMmu            =  8;
     kiTbMisc_NoIoMmu          =  9;
+    kiTbMisc_NativeApi        = 10;
+    kiTbMisc_NoNativeApi      = 11;
 
     def __init__(self):
         ModelFilterBase.__init__(self);
@@ -872,6 +878,8 @@ class TestResultFilter(ModelFilterBase):
             FilterCriterionValueAndDescription(self.kiTbMisc_No64BitGuest,      "w/o 64-bit guests"),
             FilterCriterionValueAndDescription(self.kiTbMisc_HwVirt,            "req VT-x / AMD-V"),
             FilterCriterionValueAndDescription(self.kiTbMisc_NoHwVirt,          "w/o VT-x / AMD-V"),
+            FilterCriterionValueAndDescription(self.kiTbMisc_NativeApi,         "req NEM"),
+            FilterCriterionValueAndDescription(self.kiTbMisc_NoNativeApi,       "w/o NEM"),
             #FilterCriterionValueAndDescription(self.kiTbMisc_IoMmu,             "req I/O MMU"), - not implemented yet.
             #FilterCriterionValueAndDescription(self.kiTbMisc_NoIoMmu,           "w/o I/O MMU"), - not implemented yet.
         ];
@@ -894,6 +902,8 @@ class TestResultFilter(ModelFilterBase):
         kiTbMisc_NoNestedPaging:  'TestBoxesWithStrings.fCpuNestedPaging IS FALSE',
         kiTbMisc_RawMode:         'TestBoxesWithStrings.fRawMode IS TRUE',
         kiTbMisc_NoRawMode:       'TestBoxesWithStrings.fRawMode IS NOT TRUE',
+        kiTbMisc_NativeApi:       'TestBoxesWithStrings.fNativeApi IS TRUE',
+        kiTbMisc_NoNativeApi:     'TestBoxesWithStrings.fNativeApi IS NOT TRUE',
         kiTbMisc_64BitGuest:      'TestBoxesWithStrings.fCpu64BitGuest IS TRUE',
         kiTbMisc_No64BitGuest:    'TestBoxesWithStrings.fCpu64BitGuest IS FALSE',
         kiTbMisc_HwVirt:          'TestBoxesWithStrings.fCpuHwVirt IS TRUE',
@@ -1307,6 +1317,8 @@ class TestResultLogic(ModelLogicBase): # pylint: disable=too-few-public-methods
                   '       TestBoxesWithStrings.fCpuHwVirt,\n' \
                   '       TestBoxesWithStrings.fCpuNestedPaging,\n' \
                   '       TestBoxesWithStrings.fCpu64BitGuest,\n' \
+                  '       TestBoxesWithStrings.fChipsetIoMmu,\n' \
+                  '       TestBoxesWithStrings.fNativeApi,\n' \
                   '       TestBoxesWithStrings.idTestBox,\n' \
                   '       TestBoxesWithStrings.sName,\n' \
                   '       TestResults.tsCreated,\n' \
@@ -1369,7 +1381,7 @@ class TestResultLogic(ModelLogicBase): # pylint: disable=too-few-public-methods
         #       because TestSets.idGenTestBox is a foreign key and unique in TestBoxes.  So, let's do what ever is faster.
         sQuery += '       ) AS TestSets\n' \
                   '       LEFT OUTER JOIN TestBoxesWithStrings\n' \
-                  '                    ON TestSets.idGenTestBox     = TestBoxesWithStrings.idGenTestBox' \
+                  '                    ON TestSets.idGenTestBox     = TestBoxesWithStrings.idGenTestBox\n' \
                   '       LEFT OUTER JOIN Builds AS TestSuiteBits\n' \
                   '                    ON TestSuiteBits.idBuild     =  TestSets.idBuildTestSuite\n' \
                   '                   AND TestSuiteBits.tsExpire    >  TestSets.tsCreated\n' \
@@ -1414,6 +1426,8 @@ class TestResultLogic(ModelLogicBase): # pylint: disable=too-few-public-methods
                   '         TestBoxesWithStrings.fCpuHwVirt,\n' \
                   '         TestBoxesWithStrings.fCpuNestedPaging,\n' \
                   '         TestBoxesWithStrings.fCpu64BitGuest,\n' \
+                  '         TestBoxesWithStrings.fChipsetIoMmu,\n' \
+                  '         TestBoxesWithStrings.fNativeApi,\n' \
                   '         TestBoxesWithStrings.idTestBox,\n' \
                   '         TestBoxesWithStrings.sName,\n' \
                   '         TestResults.tsCreated,\n' \
@@ -2325,8 +2339,8 @@ class TestResultLogic(ModelLogicBase): # pylint: disable=too-few-public-methods
     def _stringifyStack(aoStack):
         """Returns a string rep of the stack."""
         sRet = '';
-        for i, _ in enumerate(aoStack):
-            sRet += 'aoStack[%d]=%s\n' % (i, aoStack[i]);
+        for i, oFrame in enumerate(aoStack):
+            sRet += 'aoStack[%d]=%s\n' % (i, oFrame);
         return sRet;
 
     def _getResultStack(self, idTestSet):
@@ -2343,8 +2357,8 @@ class TestResultLogic(ModelLogicBase): # pylint: disable=too-few-public-methods
         for aoRow in self._oDb.fetchAll():
             aoStack.append(TestResultData().initFromDbRow(aoRow));
 
-        for i, _ in enumerate(aoStack):
-            assert aoStack[i].iNestingDepth == len(aoStack) - i - 1, self._stringifyStack(aoStack);
+        for i, oFrame in enumerate(aoStack):
+            assert oFrame.iNestingDepth == len(aoStack) - i - 1, self._stringifyStack(aoStack);
 
         return aoStack;
 

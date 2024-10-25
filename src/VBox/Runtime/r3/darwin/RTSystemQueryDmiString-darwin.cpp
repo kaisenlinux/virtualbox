@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -81,7 +81,10 @@ RTDECL(int) RTSystemQueryDmiString(RTSYSDMISTR enmString, char *pszBuf, size_t c
     }
 
     mach_port_t MasterPort;
-    kern_return_t kr = IOMasterPort(MACH_PORT_NULL, &MasterPort);
+
+    RT_GCC_NO_WARN_DEPRECATED_BEGIN
+    kern_return_t kr = IOMasterPort(MACH_PORT_NULL, &MasterPort); /* Deprecated since 12.0. */
+    RT_GCC_NO_WARN_DEPRECATED_END
     if (kr != kIOReturnSuccess)
     {
         if (kr == KERN_NO_ACCESS)

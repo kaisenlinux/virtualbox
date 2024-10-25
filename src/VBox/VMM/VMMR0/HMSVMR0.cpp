@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -605,7 +605,8 @@ VMMR0DECL(int) SVMR0GlobalInit(void)
      * intercept all IO accesses, it's done once globally here instead of per-VM.
      */
     Assert(g_hMemObjIOBitmap == NIL_RTR0MEMOBJ);
-    int rc = RTR0MemObjAllocCont(&g_hMemObjIOBitmap, SVM_IOPM_PAGES << X86_PAGE_4K_SHIFT, false /* fExecutable */);
+    int rc = RTR0MemObjAllocCont(&g_hMemObjIOBitmap, SVM_IOPM_PAGES << X86_PAGE_4K_SHIFT,
+                                 NIL_RTHCPHYS /*PhysHighest*/, false /* fExecutable */);
     if (RT_FAILURE(rc))
         return rc;
 
@@ -765,36 +766,33 @@ VMMR0DECL(int) SVMR0InitVM(PVMCC pVM)
          * Allocate one page for the host-context VM control block (VMCB). This is used for additional host-state (such as
          * FS, GS, Kernel GS Base, etc.) apart from the host-state save area specified in MSR_K8_VM_HSAVE_PA.
          */
-/** @todo Does this need to be below 4G? */
-        rc = RTR0MemObjAllocCont(&pVCpu->hmr0.s.svm.hMemObjVmcbHost, SVM_VMCB_PAGES << HOST_PAGE_SHIFT, false /* fExecutable */);
+        rc = RTR0MemObjAllocCont(&pVCpu->hmr0.s.svm.hMemObjVmcbHost, SVM_VMCB_PAGES << HOST_PAGE_SHIFT,
+                                 NIL_RTHCPHYS /*PhysHighest*/, false /* fExecutable */);
         if (RT_FAILURE(rc))
             goto failure_cleanup;
 
         void *pvVmcbHost                    = RTR0MemObjAddress(pVCpu->hmr0.s.svm.hMemObjVmcbHost);
         pVCpu->hmr0.s.svm.HCPhysVmcbHost    = RTR0MemObjGetPagePhysAddr(pVCpu->hmr0.s.svm.hMemObjVmcbHost, 0 /* iPage */);
-        Assert(pVCpu->hmr0.s.svm.HCPhysVmcbHost < _4G);
         RT_BZERO(pvVmcbHost, HOST_PAGE_SIZE);
 
         /*
          * Allocate one page for the guest-state VMCB.
          */
-/** @todo Does this need to be below 4G? */
-        rc = RTR0MemObjAllocCont(&pVCpu->hmr0.s.svm.hMemObjVmcb, SVM_VMCB_PAGES << HOST_PAGE_SHIFT, false /* fExecutable */);
+        rc = RTR0MemObjAllocCont(&pVCpu->hmr0.s.svm.hMemObjVmcb, SVM_VMCB_PAGES << HOST_PAGE_SHIFT,
+                                 NIL_RTHCPHYS /*PhysHighest*/, false /* fExecutable */);
         if (RT_FAILURE(rc))
             goto failure_cleanup;
 
         pVCpu->hmr0.s.svm.pVmcb             = (PSVMVMCB)RTR0MemObjAddress(pVCpu->hmr0.s.svm.hMemObjVmcb);
         pVCpu->hmr0.s.svm.HCPhysVmcb        = RTR0MemObjGetPagePhysAddr(pVCpu->hmr0.s.svm.hMemObjVmcb, 0 /* iPage */);
-        Assert(pVCpu->hmr0.s.svm.HCPhysVmcb < _4G);
         RT_BZERO(pVCpu->hmr0.s.svm.pVmcb, HOST_PAGE_SIZE);
 
         /*
          * Allocate two pages (8 KB) for the MSR permission bitmap. There doesn't seem to be a way to convince
          * SVM to not require one.
          */
-/** @todo Does this need to be below 4G? */
         rc = RTR0MemObjAllocCont(&pVCpu->hmr0.s.svm.hMemObjMsrBitmap, SVM_MSRPM_PAGES << HOST_PAGE_SHIFT,
-                                 false /* fExecutable */);
+                                 NIL_RTHCPHYS /*PhysHighest*/, false /* fExecutable */);
         if (RT_FAILURE(rc))
             goto failure_cleanup;
 
@@ -3417,12 +3415,6 @@ static void hmR0SvmTrpmTrapToPendingEvent(PVMCPUCC pVCpu)
         Event.n.u3Type = SVM_EVENT_EXCEPTION;
         switch (uVector)
         {
-            case X86_XCPT_NMI:
-            {
-                Event.n.u3Type = SVM_EVENT_NMI;
-                break;
-            }
-
             case X86_XCPT_BP:
             case X86_XCPT_OF:
                 AssertMsgFailed(("Invalid TRPM vector %d for event type %d\n", uVector, enmTrpmEvent));
@@ -3446,6 +3438,8 @@ static void hmR0SvmTrpmTrapToPendingEvent(PVMCPUCC pVCpu)
         Event.n.u3Type = SVM_EVENT_EXTERNAL_IRQ;
     else if (enmTrpmEvent == TRPM_SOFTWARE_INT)
         Event.n.u3Type = SVM_EVENT_SOFTWARE_INT;
+    else if (enmTrpmEvent == TRPM_NMI)
+        Event.n.u3Type = SVM_EVENT_NMI;
     else
         AssertMsgFailed(("Invalid TRPM event type %d\n", enmTrpmEvent));
 
@@ -6040,7 +6034,7 @@ static VBOXSTRICTRC hmR0SvmHandleExitDtraceEvents(PVMCPUCC pVCpu, PSVMTRANSIENT 
     if (fDtrace1 || fDtrace2)
     {
         hmR0SvmImportGuestState(pVCpu, HMSVM_CPUMCTX_EXTRN_ALL);
-        PCPUMCTX pCtx = &pVCpu->cpum.GstCtx;
+        PCPUMCTX pCtx = &pVCpu->cpum.GstCtx; RT_NOREF(pCtx); /* Shut up Clang 13. */
         switch (enmEvent1)
         {
             /** @todo consider which extra parameters would be helpful for each probe.   */
@@ -7410,7 +7404,7 @@ static VBOXSTRICTRC hmR0SvmExitWriteMsr(PVMCPUCC pVCpu, PSVMVMCB pVmcb, PSVMTRAN
             cbInstr = pVmcb->ctrl.u64NextRIP - pVCpu->cpum.GstCtx.rip;
         else
         {
-            PDISCPUSTATE pDis = &pVCpu->hmr0.s.svm.DisState;
+            PDISSTATE pDis = &pVCpu->hmr0.s.svm.Dis;
             int rc = EMInterpretDisasCurrent(pVCpu, pDis, &cbInstr);
             if (   rc == VINF_SUCCESS
                 && pDis->pCurInstr->uOpcode == OP_WRMSR)
@@ -7639,7 +7633,7 @@ HMSVM_EXIT_DECL hmR0SvmExitIOInstr(PVMCPUCC pVCpu, PSVMTRANSIENT pSvmTransient)
     static uint32_t const s_aIOSize[8]  = { 0, 1, 2, 0, 4, 0, 0, 0 };                   /* Size of the I/O accesses in bytes. */
     static uint32_t const s_aIOOpAnd[8] = { 0, 0xff, 0xffff, 0, 0xffffffff, 0, 0, 0 };  /* AND masks for saving
                                                                                            the result (in AL/AX/EAX). */
-    PVMCC      pVM   = pVCpu->CTX_SUFF(pVM);
+    PVMCC    pVM   = pVCpu->CTX_SUFF(pVM);
     PCPUMCTX pCtx  = &pVCpu->cpum.GstCtx;
     PSVMVMCB pVmcb = hmR0SvmGetCurrentVmcb(pVCpu);
 
@@ -7757,17 +7751,33 @@ HMSVM_EXIT_DECL hmR0SvmExitIOInstr(PVMCPUCC pVCpu, PSVMTRANSIENT pSvmTransient)
             }
             else
             {
-                uint32_t u32Val = 0;
-                rcStrict = IOMIOPortRead(pVM, pVCpu, IoExitInfo.n.u16Port, &u32Val, cbValue);
-                if (IOM_SUCCESS(rcStrict))
+                rcStrict = VERR_GCM_NOT_HANDLED;
+                if (GCMIsInterceptingIOPortRead(pVCpu, IoExitInfo.n.u16Port, cbValue))
                 {
-                    /* Save result of I/O IN instr. in AL/AX/EAX. */
-                    /** @todo r=bird: 32-bit op size should clear high bits of rax! */
-                    pCtx->eax = (pCtx->eax & ~uAndVal) | (u32Val & uAndVal);
+                    rcStrict = GCMInterceptedIOPortRead(pVCpu, pCtx, IoExitInfo.n.u16Port, cbValue);
+                    if (rcStrict == VINF_GCM_HANDLED_ADVANCE_RIP || rcStrict == VINF_GCM_HANDLED)
+                    {
+                        fUpdateRipAlready = rcStrict != VINF_GCM_HANDLED_ADVANCE_RIP;
+                        rcStrict = VINF_SUCCESS;
+                    }
+                    else
+                        Assert(rcStrict == VERR_GCM_NOT_HANDLED);
                 }
-                else if (    rcStrict == VINF_IOM_R3_IOPORT_READ
-                         && !pCtx->eflags.Bits.u1TF)
-                    rcStrict = EMRZSetPendingIoPortRead(pVCpu, IoExitInfo.n.u16Port, cbInstr, cbValue);
+
+                if (RT_LIKELY(rcStrict == VERR_GCM_NOT_HANDLED))
+                {
+                    uint32_t u32Val = 0;
+                    rcStrict = IOMIOPortRead(pVM, pVCpu, IoExitInfo.n.u16Port, &u32Val, cbValue);
+                    if (IOM_SUCCESS(rcStrict))
+                    {
+                        /* Save result of I/O IN instr. in AL/AX/EAX. */
+                        /** @todo r=bird: 32-bit op size should clear high bits of rax! */
+                        pCtx->eax = (pCtx->eax & ~uAndVal) | (u32Val & uAndVal);
+                    }
+                    else if (    rcStrict == VINF_IOM_R3_IOPORT_READ
+                             && !pCtx->eflags.Bits.u1TF)
+                        rcStrict = EMRZSetPendingIoPortRead(pVCpu, IoExitInfo.n.u16Port, cbInstr, cbValue);
+                }
 
                 STAM_COUNTER_INC(&pVCpu->hm.s.StatExitIORead);
             }
@@ -8110,7 +8120,7 @@ HMSVM_EXIT_DECL hmR0SvmExitVmmCall(PVMCPUCC pVCpu, PSVMTRANSIENT pSvmTransient)
         }
         else
         {
-            PDISCPUSTATE pDis = &pVCpu->hmr0.s.svm.DisState;
+            PDISSTATE pDis = &pVCpu->hmr0.s.svm.Dis;
             int rc = EMInterpretDisasCurrent(pVCpu, pDis, &cbInstr);
             if (   rc == VINF_SUCCESS
                 && pDis->pCurInstr->uOpcode == OP_VMMCALL)
@@ -8154,7 +8164,7 @@ HMSVM_EXIT_DECL hmR0SvmExitPause(PVMCPUCC pVCpu, PSVMTRANSIENT pSvmTransient)
     }
     else
     {
-        PDISCPUSTATE pDis = &pVCpu->hmr0.s.svm.DisState;
+        PDISSTATE pDis = &pVCpu->hmr0.s.svm.Dis;
         int rc = EMInterpretDisasCurrent(pVCpu, pDis, &cbInstr);
         if (   rc == VINF_SUCCESS
             && pDis->pCurInstr->uOpcode == OP_PAUSE)
@@ -8364,25 +8374,16 @@ HMSVM_EXIT_DECL hmR0SvmExitXcptDE(PVMCPUCC pVCpu, PSVMTRANSIENT pSvmTransient)
     if (pVCpu->hm.s.fGCMTrapXcptDE)
     {
         HMSVM_CPUMCTX_IMPORT_STATE(pVCpu, HMSVM_CPUMCTX_EXTRN_ALL);
-        uint8_t cbInstr = 0;
-        VBOXSTRICTRC rcStrict = GCMXcptDE(pVCpu, &pVCpu->cpum.GstCtx, NULL /* pDis */, &cbInstr);
-        if (rcStrict == VINF_SUCCESS)
-            rc = VINF_SUCCESS;      /* Restart instruction with modified guest register context. */
-        else if (rcStrict == VERR_NOT_FOUND)
-            rc = VERR_NOT_FOUND;    /* Deliver the exception. */
-        else
-            Assert(RT_FAILURE(VBOXSTRICTRC_VAL(rcStrict)));
+        rc = GCMXcptDE(pVCpu, &pVCpu->cpum.GstCtx);
+        AssertMsg(rc == VINF_SUCCESS /* restart */ || rc == VERR_NOT_FOUND /* deliver exception */, ("rc=%Rrc\n", rc));
     }
 
     /* If the GCM #DE exception handler didn't succeed or wasn't needed, raise #DE. */
     if (RT_FAILURE(rc))
-    {
         hmR0SvmSetPendingXcptDE(pVCpu);
-        rc = VINF_SUCCESS;
-    }
 
     STAM_COUNTER_INC(&pVCpu->hm.s.StatExitGuestDE);
-    return rc;
+    return VINF_SUCCESS;
 }
 
 
@@ -8508,7 +8509,7 @@ HMSVM_EXIT_DECL hmR0SvmExitXcptMF(PVMCPUCC pVCpu, PSVMTRANSIENT pSvmTransient)
 
     if (!(pCtx->cr0 & X86_CR0_NE))
     {
-        PDISSTATE pDis = &pVCpu->hmr0.s.svm.DisState;
+        PDISSTATE pDis = &pVCpu->hmr0.s.svm.Dis;
         unsigned  cbInstr;
         int rc = EMInterpretDisasCurrent(pVCpu, pDis, &cbInstr);
         if (RT_SUCCESS(rc))
@@ -9106,7 +9107,7 @@ HMSVM_EXIT_DECL hmR0SvmExitVmrun(PVMCPUCC pVCpu, PSVMTRANSIENT pSvmTransient)
     }
     else
     {
-        /* We use IEMExecOneBypassEx() here as it supresses attempt to continue emulating any
+        /* We use IEMExecOneBypassEx() here as it suppresses attempt to continue emulating any
            instruction(s) when interrupt inhibition is set as part of emulating the VMRUN
            instruction itself, see @bugref{7243#c126} */
         rcStrict = IEMExecOneBypassEx(pVCpu, NULL /* pcbWritten */);

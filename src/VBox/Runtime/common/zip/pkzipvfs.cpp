@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2014-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2014-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -532,7 +532,7 @@ static int rtZipPkzipParseCentrDirHeaderExtra(PRTZIPPKZIPREADER pThis, uint8_t *
         *penmCompMethod = (RTZIPPKZIP_COMP_METHOD)pThis->cdh.u16ComprMethod;
         *pcbCompressed  = rtZipPkzipReaderCompressed(pThis);
     }
-    return VINF_SUCCESS;
+    return rc;
 }
 
 
@@ -874,9 +874,10 @@ static DECLCALLBACK(int) rtZipPkzipFssIosReadHelper(void *pvThis, void *pvBuf, s
     int rc = VINF_SUCCESS;
     if (!cbToRead)
         return rc;
-    if (   pThis->fPassZipType
-        && cbToRead > 0)
+    if (pThis->fPassZipType)
     {
+        Assert(cbToRead);
+
         uint8_t *pu8Buf = (uint8_t*)pvBuf;
         pu8Buf[0] = pThis->enmZipType;
         pvBuf = &pu8Buf[1];
@@ -906,7 +907,7 @@ static DECLCALLBACK(int) rtZipPkzipFssIosReadHelper(void *pvThis, void *pvBuf, s
 /**
  * @interface_method_impl{RTVFSIOSTREAMOPS,pfnRead}
  */
-static DECLCALLBACK(int) rtZipPkzipFssIos_Read(void *pvThis, RTFOFF off, PCRTSGBUF pSgBuf, bool fBlocking, size_t *pcbRead)
+static DECLCALLBACK(int) rtZipPkzipFssIos_Read(void *pvThis, RTFOFF off, PRTSGBUF pSgBuf, bool fBlocking, size_t *pcbRead)
 {
     PRTZIPPKZIPIOSTREAM pThis = (PRTZIPPKZIPIOSTREAM)pvThis;
     Assert(pSgBuf->cSegs == 1);
@@ -985,6 +986,8 @@ static DECLCALLBACK(int) rtZipPkzipFssIos_Read(void *pvThis, RTFOFF off, PCRTSGB
         pcbRead = &cbReadStack;
     int rc = RTZipDecompress(pThis->pZip, pSgBuf->paSegs[0].pvSeg, cbToRead, pcbRead);
     pThis->offFile = off + *pcbRead;
+    RTSgBufAdvance(pSgBuf, *pcbRead);
+
     if (pThis->offFile >= pThis->cbFile)
     {
         Assert(pThis->offFile == pThis->cbFile);
@@ -994,7 +997,7 @@ static DECLCALLBACK(int) rtZipPkzipFssIos_Read(void *pvThis, RTFOFF off, PCRTSGB
     return rc;
 }
 
-static DECLCALLBACK(int) rtZipPkzipFssIos_Write(void *pvThis, RTFOFF off, PCRTSGBUF pSgBuf, bool fBlocking, size_t *pcbWritten)
+static DECLCALLBACK(int) rtZipPkzipFssIos_Write(void *pvThis, RTFOFF off, PRTSGBUF pSgBuf, bool fBlocking, size_t *pcbWritten)
 {
     RT_NOREF_PV(pvThis); RT_NOREF_PV(off); RT_NOREF_PV(pSgBuf); RT_NOREF_PV(fBlocking); RT_NOREF_PV(pcbWritten);
     return VERR_NOT_IMPLEMENTED;

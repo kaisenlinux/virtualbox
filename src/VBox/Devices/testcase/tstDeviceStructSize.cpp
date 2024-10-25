@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -387,7 +387,7 @@ int main()
 #endif
     CHECK_MEMBER_ALIGNMENT(DEVPCIBUS, apDevices, 64);
     CHECK_MEMBER_ALIGNMENT(DEVPCIROOT, auPciApicIrqLevels, 16);
-    CHECK_MEMBER_ALIGNMENT(DEVPCIROOT, Piix3.auPciLegacyIrqLevels, 16);
+    CHECK_MEMBER_ALIGNMENT(DEVPCIROOT, u.Piix3.auPciLegacyIrqLevels, 16);
     CHECK_MEMBER_ALIGNMENT(PCNETSTATE, u64LastPoll, 8);
     CHECK_MEMBER_ALIGNMENT(PCNETSTATE, CritSect, 8);
     CHECK_MEMBER_ALIGNMENT(PCNETSTATE, StatReceiveBytes, 8);

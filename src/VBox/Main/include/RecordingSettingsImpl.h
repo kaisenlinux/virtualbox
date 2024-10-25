@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2018-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2018-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,8 +35,8 @@
 
 namespace settings
 {
-    struct RecordingSettings;
-    struct RecordingScreenSettings;
+    struct Recording;
+    struct RecordingScreen;
 }
 
 class RecordingScreenSettings;
@@ -58,8 +58,8 @@ public:
     void uninit();
 
     // public methods only for internal purposes
-    HRESULT i_loadSettings(const settings::RecordingSettings &data);
-    HRESULT i_saveSettings(settings::RecordingSettings &data);
+    HRESULT i_loadSettings(const settings::Recording &Settings);
+    HRESULT i_saveSettings(settings::Recording &Settings);
 
     void    i_rollback(void);
     void    i_commit(void);
@@ -77,8 +77,11 @@ private:
     typedef std::map <uint32_t, ComObjPtr<RecordingScreenSettings> > RecordingScreenSettingsObjMap;
 
     void i_reset(void);
+    int i_progressSet(uint64_t msTimestamp);
+    int i_start(void);
+    int i_stop(void);
     int i_syncToMachineDisplays(uint32_t cDisplays);
-    int i_createScreenObj(RecordingScreenSettingsObjMap &screenSettingsMap, uint32_t idScreen, const settings::RecordingScreenSettings &data);
+    int i_createScreenObj(RecordingScreenSettingsObjMap &screenSettingsMap, uint32_t idScreen, const settings::RecordingScreen &data);
     int i_destroyScreenObj(RecordingScreenSettingsObjMap &screenSettingsMap, uint32_t idScreen);
     int i_destroyAllScreenObj(RecordingScreenSettingsObjMap &screenSettingsMap);
 
@@ -88,9 +91,11 @@ private:
     HRESULT getEnabled(BOOL *enabled);
     HRESULT setEnabled(BOOL enable);
     HRESULT getScreens(std::vector<ComPtr<IRecordingScreenSettings> > &aRecordScreenSettings);
+    HRESULT getProgress(ComPtr<IProgress> &aProgress);
 
     // wrapped IRecordingSettings methods
     HRESULT getScreenSettings(ULONG uScreenId, ComPtr<IRecordingScreenSettings> &aRecordScreenSettings);
+    HRESULT start(ComPtr<IProgress> &aProgress);
 
 private:
 

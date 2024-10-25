@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -33,16 +33,16 @@
 
 /* Qt includes: */
 #include <QObject>
+#include <QReadWriteLock>
 #include <QSet>
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
 #include "UILibraryDefs.h"
 #include "UIMedium.h"
 
 /* COM includes: */
-# include "CMedium.h"
-# include "CMediumAttachment.h"
+#include "CMedium.h"
+#include "CMediumAttachment.h"
 
 /* Forward declarations: */
 class UITask;
@@ -54,7 +54,7 @@ typedef QMap<QUuid, CMedium> CMediumMap;
 /** QObject extension operating as medium-enumeration object.
   * Manages access to cached UIMedium information via public API.
   * Updates cache on corresponding Main events using thread-pool interface. */
-class SHARED_LIBRARY_STUFF UIMediumEnumerator : public QIWithRetranslateUI3<QObject>
+class SHARED_LIBRARY_STUFF UIMediumEnumerator : public QObject
 {
     Q_OBJECT;
 
@@ -72,10 +72,19 @@ signals:
     /** Notifies listeners about consolidated medium-enumeration process has finished. */
     void sigMediumEnumerationFinished();
 
+    /** Notifies listeners about update of recently media list. */
+    void sigRecentMediaListUpdated(UIMediumDeviceType enmMediumType);
+
 public:
 
-    /** Constructs medium-enumerator object. */
-    UIMediumEnumerator();
+    /** Creates singleton instance. */
+    static void create();
+    /** Destroys singleton instance. */
+    static void destroy();
+    /** Returns singleton instance. */
+    static UIMediumEnumerator *instance();
+    /** Returns whether singleton intance really exists. */
+    static bool exists();
 
     /** Returns cached UIMedium ID list. */
     QList<QUuid> mediumIDs() const;
@@ -103,10 +112,15 @@ public:
       *        by a worker COM-aware thread. */
     void refreshMedia();
 
-protected:
+    /** Update extra data related to recently used/referred media.
+      * @param  enmMediumType       Passes the medium type.
+      * @param  strMediumLocation   Passes the medium location. */
+    void updateRecentlyUsedMediumListAndFolder(UIMediumDeviceType enmMediumType, QString strMediumLocation);
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
+public slots:
+
+    /** Handles signal about @a comMedium was created. */
+    void sltHandleMediumCreated(const CMedium &comMedium);
 
 private slots:
 
@@ -135,7 +149,26 @@ private slots:
     /** Handles medium-enumeration @a pTask complete signal. */
     void sltHandleMediumEnumerationTaskComplete(UITask *pTask);
 
+    /** Handles translation event. */
+    void sltRetranslateUI();
+
 private:
+
+    /** Constructs medium-enumerator object. */
+    UIMediumEnumerator();
+
+    /** Subroutine for mediumIDs() call, executed under proper lock. */
+    QList<QUuid> mediumIDsSub() const;
+    /** Subroutine for medium() call, executed under proper lock. */
+    UIMedium mediumSub(const QUuid &uMediumID) const;
+
+    /** Subroutine for createMedium() call, executed under proper lock. */
+    void createMediumSub(const UIMedium &guiMedium);
+
+    /** Subroutine for enumerateMedia() call, executed under proper lock. */
+    void enumerateMediaSub(const CMediumVector &comMedia = CMediumVector());
+    /** Subroutine for enumerateMedia() call, executed under proper lock. */
+    void refreshMediaSub();
 
     /** Creates medium-enumeration task for certain @a guiMedium. */
     void createMediumEnumerationTask(const UIMedium &guiMedium);
@@ -162,6 +195,11 @@ private:
       *                 IDs to be appended with newly enumerated. */
     void enumerateAllMediaOfMediumWithId(const QUuid &uMediumId, QList<QUuid> &result);
 
+    /** Returns singleton instance. */
+    static UIMediumEnumerator *s_pInstance;
+    /** Holds the cleanup protection token. */
+    static QReadWriteLock      s_guiCleanupProtectionToken;
+
     /** Holds whether full consolidated medium-enumeration process is requested. */
     bool  m_fFullMediumEnumerationRequested;
     /** Holds whether any consolidated medium-enumeration process is in progress. */
@@ -174,6 +212,12 @@ private:
     UIMediumMap  m_media;
     /** Holds a set of currently registered media IDs. */
     QSet<QUuid>  m_registeredMediaIds;
+
+    /** Holds the list of medium names to be excluded from recently used media extra data. */
+    QStringList  m_recentMediaExcludeList;
 };
+
+/** Singleton Medium Enumerator 'official' name. */
+#define gpMediumEnumerator UIMediumEnumerator::instance()
 
 #endif /* !FEQT_INCLUDED_SRC_medium_UIMediumEnumerator_h */

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,7 +35,6 @@
 #include <QMimeData>
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CConsole.h"
 #include "CDnDSource.h"
 #include "CGuest.h"
@@ -87,7 +86,7 @@ signals:
      * @param vaType                Qt's variant type of the MIME data.
      * @param vaData                Reference to QVariant where to store the retrieved data.
      */
-    int sigGetData(Qt::DropAction dropAction, const QString &strMIMEType, QVariant::Type vaType, QVariant &vaData) const;
+    int sigGetData(Qt::DropAction dropAction, const QString &strMIMEType, QMetaType::Type vaType, QVariant &vaData) const;
 
 public slots:
 
@@ -100,11 +99,11 @@ public slots:
 protected:
     /** @name Overridden functions of QMimeData.
      * @{ */
-    virtual QStringList formats(void) const;
+    virtual QStringList formats(void) const RT_OVERRIDE;
 
-    virtual bool hasFormat(const QString &mimeType) const;
+    virtual bool hasFormat(const QString &mimeType) const RT_OVERRIDE;
 
-    virtual QVariant retrieveData(const QString &strMIMEType, QVariant::Type vaType) const;
+    virtual QVariant retrieveData(const QString &strMIMEType, QMetaType metaType) const RT_OVERRIDE;
     /** @}  */
 
 public:
@@ -113,12 +112,12 @@ public:
      * @{ */
 
     /**
-     * Returns the matching variant type of a given MIME type.
+     * Returns the matching meta type of a given MIME type.
      *
-     * @returns Variant type.
+     * @returns Meta type.
      * @param strMIMEType               MIME type to retrieve variant type for.
      */
-    static QVariant::Type getVariantType(const QString &strMIMEType);
+    static QMetaType::Type getMetaType(const QString &strMIMEType);
 
     /**
      * Fills a QVariant with data according to the given type and data.
@@ -130,7 +129,7 @@ public:
      * @param   vaData                  Variant holding the transformed result.
      *                                  Note: The variant's type might be different from the input vaType!
      */
-    static int getDataAsVariant(const QVector<uint8_t> &vecData, const QString &strMIMEType, QVariant::Type vaType, QVariant &vaData);
+    static int getDataAsVariant(const QVector<uint8_t> &vecData, const QString &strMIMEType, QMetaType::Type vaType, QVariant &vaData);
     /** @}  */
 
 protected:

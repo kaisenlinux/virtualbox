@@ -7,7 +7,7 @@ Test Manager WUI - Reports.
 
 __copyright__ = \
 """
-Copyright (C) 2012-2023 Oracle and/or its affiliates.
+Copyright (C) 2012-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -36,7 +36,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 
 # Validation Kit imports.
@@ -218,12 +218,12 @@ class WuiReportSuccessRate(WuiReportBase):
         #
         if fTailoredForGoogleCharts:
             if cTotalSkipped > 0:
-                oTable = WuiHlpGraphDataTable(None, [ 'Succeeded', 'Skipped', 'Failed' ]);
+                oTable = WuiHlpGraphDataTable(None, [ 'Succeeded', 'Failed', 'Skipped' ]);
             else:
                 oTable = WuiHlpGraphDataTable(None, [ 'Succeeded', 'Failed' ]);
         else:
             if cTotalSkipped > 0:
-                oTable = WuiHlpGraphDataTable('When', [ 'Succeeded', 'Skipped', 'Failed' ]);
+                oTable = WuiHlpGraphDataTable('When', [ 'Succeeded', 'Failed', 'Skipped' ]);
             else:
                 oTable = WuiHlpGraphDataTable('When', [ 'Succeeded', 'Failed' ]);
 
@@ -239,11 +239,11 @@ class WuiReportSuccessRate(WuiReportBase):
                 if cTotalSkipped > 0:
                     oTable.addRow(sPeriod,
                                   [ cSuccesses * 100 // cTotal if cTotal else 0,
-                                    cSkipped   * 100 // cTotal if cTotal else 0,
-                                    cFailures  * 100 // cTotal if cTotal else 0, ],
+                                    cFailures  * 100 // cTotal if cTotal else 0,
+                                    cSkipped   * 100 // cTotal if cTotal else 0, ],
                                   [ self.fmtPct(cSuccesses, cTotal) if cSuccesses else None,
-                                    self.fmtPct(cSkipped,   cTotal) if cSkipped   else None,
-                                    self.fmtPct(cFailures,  cTotal) if cFailures  else None, ]);
+                                    self.fmtPct(cFailures,  cTotal) if cFailures  else None,
+                                    self.fmtPct(cSkipped,   cTotal) if cSkipped   else None, ]);
                 else:
                     oTable.addRow(sPeriod,
                                   [ cSuccesses * 100 // cTotal if cTotal else 0,
@@ -254,11 +254,11 @@ class WuiReportSuccessRate(WuiReportBase):
                 if cTotalSkipped > 0:
                     oTable.addRow(sPeriod,
                                   [ cSuccesses * 100 // cTotal,
-                                    cSkipped * 100 // cTotal,
-                                    cFailures * 100 // cTotal, ],
+                                    cFailures * 100 // cTotal,
+                                    cSkipped * 100 // cTotal, ],
                                   [ self.fmtPctWithHits(cSuccesses, cTotal),
-                                    self.fmtPctWithHits(cSkipped, cTotal),
-                                    self.fmtPctWithHits(cFailures, cTotal), ]);
+                                    self.fmtPctWithHits(cFailures, cTotal),
+                                    self.fmtPctWithHits(cSkipped, cTotal), ]);
                 else:
                     oTable.addRow(sPeriod,
                                   [ cSuccesses * 100 // cTotal,
@@ -282,7 +282,7 @@ class WuiReportSuccessRate(WuiReportBase):
         #
         if fTailoredForGoogleCharts:
             if cTotalSkipped > 0:
-                oTable = WuiHlpGraphDataTable(None, [ 'Succeeded', 'Skipped', 'Failed' ]);
+                oTable = WuiHlpGraphDataTable(None, [ 'Succeeded', 'Failed', 'Skipped' ]);
             else:
                 oTable = WuiHlpGraphDataTable(None, [ 'Succeeded', 'Failed' ]);
             for i, dStatuses in enumerate(adPeriods):
@@ -292,10 +292,10 @@ class WuiReportSuccessRate(WuiReportBase):
 
                 if cTotalSkipped > 0:
                     oTable.addRow(None, #self._oModel.getPeriodDesc(i),
-                                  [ cSuccesses, cSkipped, cFailures, ],
+                                  [ cSuccesses, cFailures, cSkipped, ],
                                   [ str(cSuccesses) if cSuccesses > 0 else None,
-                                    str(cSkipped) if cSkipped > 0 else None,
-                                    str(cFailures) if cFailures > 0 else None, ]);
+                                    str(cFailures) if cFailures > 0 else None,
+                                    str(cSkipped) if cSkipped > 0 else None, ]);
                 else:
                     oTable.addRow(None, #self._oModel.getPeriodDesc(i),
                                   [ cSuccesses, cFailures, ],
@@ -758,6 +758,7 @@ class WuiReportTestBoxFailures(WuiReportFailuresWithTotalBase):
         if oTestBox.fCpuNestedPaging:   sHtml += u', np';
         elif oTestBox.fCpuHwVirt:       sHtml += u', hw';
         else:                           sHtml += u', raw';
+        if oTestBox.fNativeApi:         sHtml += u', nem';
         if oTestBox.fCpu64BitGuest:     sHtml += u', 64';
         sHtml += u'</td>';
         return sHtml;

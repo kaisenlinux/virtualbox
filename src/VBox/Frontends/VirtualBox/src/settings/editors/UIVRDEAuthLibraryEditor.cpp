@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -30,13 +30,13 @@
 #include <QLabel>
 
 /* GUI includes: */
-#include "UICommon.h"
 #include "UIFilePathSelector.h"
+#include "UIGlobalSession.h"
 #include "UIVRDEAuthLibraryEditor.h"
 
 
 UIVRDEAuthLibraryEditor::UIVRDEAuthLibraryEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent)
     , m_strValue(QString())
     , m_pLabel(0)
     , m_pSelector(0)
@@ -72,7 +72,7 @@ void UIVRDEAuthLibraryEditor::setMinimumLayoutIndent(int iIndent)
         m_pLayout->setColumnMinimumWidth(0, iIndent);
 }
 
-void UIVRDEAuthLibraryEditor::retranslateUi()
+void UIVRDEAuthLibraryEditor::sltRetranslateUI()
 {
     if (m_pLabel)
         m_pLabel->setText(tr("V&RDP Authentication Library:"));
@@ -104,7 +104,7 @@ void UIVRDEAuthLibraryEditor::prepare()
         {
             if (m_pLabel)
                 m_pLabel->setBuddy(m_pSelector);
-            m_pSelector->setInitialPath(uiCommon().homeFolder());
+            m_pSelector->setInitialPath(gpGlobalSession->homeFolder());
             m_pSelector->setMode(UIFilePathSelector::Mode_File_Open);
 
             m_pLayout->addWidget(m_pSelector, 0, 1);
@@ -112,5 +112,5 @@ void UIVRDEAuthLibraryEditor::prepare()
     }
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }

@@ -8,7 +8,7 @@
 #
 
 #
-# Copyright (C) 2017-2023 Oracle and/or its affiliates.
+# Copyright (C) 2017-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -33,7 +33,13 @@
 #
 # Globals.
 #
-MY_TARGET="/target"
+
+# subiquity will execute this script inside the target already
+if [ "$1" = "--direct" ]; then
+    MY_TARGET="/"
+else
+    MY_TARGET="/target"
+fi
 MY_LOGFILE="${MY_TARGET}/var/log/vboxpostinstall.log"
 MY_CHROOT_CDROM="/cdrom"
 MY_CDROM_NOCHROOT="/cdrom"
@@ -205,6 +211,10 @@ fi
 
 
 #
+# GAs
+#
+@@VBOX_COND_IS_INSTALLING_ADDITIONS@@
+#
 # Packages needed for GAs.
 #
 echo "--------------------------------------------------" >> "${MY_LOGFILE}"
@@ -212,15 +222,10 @@ echo '** Installing packages for building kernel modules...' | tee -a "${MY_LOGF
 log_command_in_target apt-get -y install build-essential
 log_command_in_target apt-get -y install linux-headers-$(uname -r)
 
-
-#
-# GAs
-#
-@@VBOX_COND_IS_INSTALLING_ADDITIONS@@
 echo "--------------------------------------------------" >> "${MY_LOGFILE}"
 echo '** Installing VirtualBox Guest Additions...' | tee -a "${MY_LOGFILE}"
 MY_IGNORE_EXITCODE=2  # returned if modules already loaded and reboot required.
-log_command_in_target /bin/bash "${MY_CHROOT_CDROM}/vboxadditions/VBoxLinuxAdditions.run" --nox11
+log_command_in_target /bin/bash "${MY_CHROOT_CDROM}/vboxadditions/@@VBOX_INSERT_ADDITIONS_INSTALL_PACKAGE_NAME@@" --nox11
 log_command_in_target /bin/bash -c "udevadm control --reload-rules" # GAs doesn't yet do this.
 log_command_in_target /bin/bash -c "udevadm trigger"                 # (ditto)
 MY_IGNORE_EXITCODE=

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -50,9 +50,9 @@ class SHARED_LIBRARY_STUFF QITableViewCell : public QObject
 
 public:
 
-    /** Constructs table-view cell for passed @a pParent. */
-    QITableViewCell(QITableViewRow *pParent)
-        : m_pRow(pParent)
+    /** Constructs table-view cell for passed @a pParentRow. */
+    QITableViewCell(QITableViewRow *pParentRow)
+        : m_pRow(pParentRow)
     {}
 
     /** Defines the parent @a pRow reference. */
@@ -77,9 +77,9 @@ class SHARED_LIBRARY_STUFF QITableViewRow : public QObject
 
 public:
 
-    /** Constructs table-view row for passed @a pParent. */
-    QITableViewRow(QITableView *pParent)
-        : m_pTable(pParent)
+    /** Constructs table-view row for passed @a pParentTable. */
+    QITableViewRow(QITableView *pParentTable)
+        : m_pTable(pParentTable)
     {}
 
     /** Defines the parent @a pTable reference. */
@@ -115,11 +115,6 @@ public:
     QITableView(QWidget *pParent = 0);
     /** Destructs table-view. */
     virtual ~QITableView() RT_OVERRIDE;
-
-    /** Returns the number of children. */
-    virtual int childCount() const { return 0; }
-    /** Returns the child item with @a iIndex. */
-    virtual QITableViewRow *childItem(int /* iIndex */) const { return 0; }
 
     /** Makes sure current editor data committed. */
     void makeSureEditorDataCommitted();

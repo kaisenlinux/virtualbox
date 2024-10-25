@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -33,21 +33,19 @@
 
 /* Qt includes: */
 #include <QWidget>
-#include <QList>
 #include <QMap>
 
 /* GUI includes: */
 #include "UIExtraDataDefs.h"
 
 /* COM includes: */
-#include "COMEnums.h"
+#include "KDeviceActivity.h"
 
 /* Forward declarations: */
-class UISession;
-class CSession;
-class QIStatusBarIndicator;
-class QHBoxLayout;
 class QTimer;
+class QHBoxLayout;
+class QIStatusBarIndicator;
+class UIMachine;
 
 /** QWidget extension
   * providing Runtime UI with status-bar indicators. */
@@ -64,11 +62,11 @@ signals:
 
 public:
 
-    /** Constructor, passes @a pParent to the QWidget constructor.
-      * @param pSession is used to retrieve appearance information. */
-    UIIndicatorsPool(UISession *pSession, QWidget *pParent = 0);
-    /** Destructor. */
-    ~UIIndicatorsPool();
+    /** Constructs indicator-pool passing @a pParent to the base-class.
+      * @param  pMachine  Brings the machine UI reference. */
+    UIIndicatorsPool(UIMachine *pMachine, QWidget *pParent = 0);
+    /** Destructs indicator-pool. */
+    virtual ~UIIndicatorsPool() RT_OVERRIDE;
 
     /** Updates appearance for passed @a indicatorType. */
     void updateAppearance(IndicatorType indicatorType);
@@ -112,7 +110,7 @@ private:
     void cleanup();
 
     /** Context-menu event handler. */
-    void contextMenuEvent(QContextMenuEvent *pEvent);
+    void contextMenuEvent(QContextMenuEvent *pEvent) RT_OVERRIDE;
 
     /** Returns position for passed @a indicatorType. */
     int indicatorPosition(IndicatorType indicatorType) const;
@@ -120,21 +118,25 @@ private:
     /** Updates passed @a pIndicator with current @a state value. */
     void updateIndicatorStateForDevice(QIStatusBarIndicator *pIndicator, KDeviceActivity state);
 
-    /** Holds the UI session reference. */
-    UISession *m_pSession;
+    /** Holds the machine UI reference. */
+    UIMachine *m_pMachine;
+
     /** Holds whether status-bar is enabled. */
-    bool m_fEnabled;
+    bool  m_fEnabled;
+
     /** Holds the cached restrictions. */
-    QList<IndicatorType> m_restrictions;
+    QList<IndicatorType>  m_restrictions;
     /** Holds the cached order. */
-    QList<IndicatorType> m_order;
+    QList<IndicatorType>  m_order;
+
     /** Holds cached indicator instances. */
-    QMap<IndicatorType, QIStatusBarIndicator*> m_pool;
+    QMap<IndicatorType, QIStatusBarIndicator*>  m_pool;
+
     /** Holds the main-layout instance. */
     QHBoxLayout *m_pMainLayout;
+
     /** Holds the auto-update timer instance. */
     QTimer *m_pTimerAutoUpdate;
 };
 
 #endif /* !FEQT_INCLUDED_SRC_runtime_UIIndicatorsPool_h */
-

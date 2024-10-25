@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -73,7 +73,7 @@ public:
                      const QString &strTarget,
                      const UserDictionary &requestHeaders);
     /** Destructs network-request. */
-    virtual ~UINetworkRequest() /* override final */;
+    virtual ~UINetworkRequest() RT_OVERRIDE RT_FINAL;
 
     /** Returns the request reply. */
     UINetworkReply *reply() { return m_pReply; }

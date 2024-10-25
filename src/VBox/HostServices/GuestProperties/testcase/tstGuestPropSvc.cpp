@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -83,7 +83,7 @@ static DECLCALLBACK(int) callComplete(VBOXHGCMCALLHANDLE callHandle, int32_t rc)
  * service
  * @param  pTable the table to initialise
  */
-void initTable(VBOXHGCMSVCFNTABLE *pTable, VBOXHGCMSVCHELPERS *pHelpers)
+static void initTable(VBOXHGCMSVCFNTABLE *pTable, VBOXHGCMSVCHELPERS *pHelpers)
 {
     RT_ZERO(*pHelpers);
     pHelpers->pfnCallComplete   = callComplete;
@@ -425,9 +425,9 @@ static void testEnumPropsHost(VBOXHGCMSVCFNTABLE *ptable)
  * @param   useSetProp  whether SET_PROP[_HOST] should be used rather than
  *                      SET_PROP_VALUE[_HOST]
  */
-int doSetProperty(VBOXHGCMSVCFNTABLE *pTable, const char *pcszName,
-                  const char *pcszValue, const char *pcszFlags, bool isHost,
-                  bool useSetProp)
+static int doSetProperty(VBOXHGCMSVCFNTABLE *pTable, const char *pcszName,
+                         const char *pcszValue, const char *pcszFlags, bool isHost,
+                         bool useSetProp)
 {
     RTThreadSleep(1); /* stupid, stupid timestamp fudge to avoid asserting in getOldNotification() */
 

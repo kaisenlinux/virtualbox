@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,25 +32,16 @@
 #endif
 
 /* Qt includes: */
-#include <QMap>
 #include <QString>
+#include <QUuid>
 
 /* GUI includes: */
 #include "QIManagerDialog.h"
-#include "QIWithRetranslateUI.h"
-#include "UILibraryDefs.h"
-
-/* COM includes: */
-#include "COMEnums.h"
-#include "CMachine.h"
 
 /* Forward declarations: */
-class QDialogButtonBox;
-class QVBoxLayout;
+class QAbstractButton;
 class UIActionPool;
-class UIVMLogViewerDialog;
 class UIVirtualMachineItem;
-class CMachine;
 
 
 /** QIManagerDialogFactory extension used as a factory for Log Viewer dialog. */
@@ -60,8 +51,9 @@ public:
 
     /** Constructs Log Viewer factory acquiring additional arguments.
       * @param  pActionPool  Brings the action-pool reference.
-      * @param  uMachineId   Brings the machine id for which VM Log-Viewer is requested. */
-    UIVMLogViewerDialogFactory(UIActionPool *pActionPool = 0, const QUuid &uMachineId = QUuid(),
+      * @param  machineIDs   Brings the list of machine IDs. */
+    UIVMLogViewerDialogFactory(UIActionPool *pActionPool = 0,
+                               const QList<QUuid> &machineIDs = QList<QUuid>(),
                                const QString &strMachineName = QString());
 
 protected:
@@ -72,14 +64,14 @@ protected:
 
     /** Holds the action-pool reference. */
     UIActionPool *m_pActionPool;
-    /** Holds the machine id. */
-    QUuid      m_uMachineId;
-    QString    m_strMachineName;
+    /** Holds the list of machine IDs. */
+    QList<QUuid>  m_machineIDs;
+    QString       m_strMachineName;
 };
 
 
 /** QIManagerDialog extension providing GUI with the dialog displaying machine logs. */
-class SHARED_LIBRARY_STUFF UIVMLogViewerDialog : public QIWithRetranslateUI<QIManagerDialog>
+class SHARED_LIBRARY_STUFF UIVMLogViewerDialog : public QIManagerDialog
 {
     Q_OBJECT;
 
@@ -88,19 +80,18 @@ public:
     /** Constructs Log Viewer dialog.
       * @param  pCenterWidget  Brings the widget reference to center according to.
       * @param  pActionPool    Brings the action-pool reference.
-      * @param  machine id     Brings the machine id. */
+      * @param  machineIDs     Brings the list of machine IDs. */
     UIVMLogViewerDialog(QWidget *pCenterWidget, UIActionPool *pActionPool,
-                        const QUuid &uMachineId = QUuid(), const QString &strMachineName = QString());
+                        const QList<QUuid> &machineIDs = QList<QUuid>(),
+                        const QString &strMachineName = QString());
     ~UIVMLogViewerDialog();
     void setSelectedVMListItems(const QList<UIVirtualMachineItem*> &items);
-    void addSelectedVMListItems(const QList<UIVirtualMachineItem*> &items);
 
 protected:
 
     /** @name Event-handling stuff.
       * @{ */
         /** Handles translation event. */
-        virtual void retranslateUi() RT_OVERRIDE;
         virtual bool event(QEvent *pEvent) RT_OVERRIDE;
     /** @} */
 
@@ -110,6 +101,8 @@ protected:
         virtual void configure() RT_OVERRIDE;
         /** Configures central-widget. */
         virtual void configureCentralWidget() RT_OVERRIDE;
+        /** Configures button-box. */
+        virtual void configureButtonBox() RT_OVERRIDE;
         /** Perform final preparations. */
         virtual void finalize() RT_OVERRIDE;
         /** Loads dialog geometry from extradata. */
@@ -130,15 +123,18 @@ private slots:
     /** Must be handles soemthing related to close @a shortcut. */
     void sltSetCloseButtonShortCut(QKeySequence shortcut);
 
+    /** Handles button-box button click. */
+    void sltHandleButtonBoxClick(QAbstractButton *pButton);
+    void sltRetranslateUI();
+
 private:
 
-    void manageEscapeShortCut();
     /** Holds the action-pool reference. */
     UIActionPool *m_pActionPool;
-    /** Holds the machine id. */
-    QUuid      m_uMachineId;
-    int m_iGeometrySaveTimerId;
-    QString    m_strMachineName;
+    /** Holds the list of machine IDs. */
+    QList<QUuid>  m_machineIDs;
+    int           m_iGeometrySaveTimerId;
+    QString       m_strMachineName;
 };
 
 

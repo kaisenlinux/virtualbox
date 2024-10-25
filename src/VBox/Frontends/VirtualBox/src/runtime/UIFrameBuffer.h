@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -54,15 +54,16 @@ class UIFrameBuffer : public QObject
 
 public:
 
-    /** Frame-buffer constructor. */
+    /** Constructs frame-buffer. */
     UIFrameBuffer();
-
-    /** Frame-buffer destructor. */
-    ~UIFrameBuffer();
+    /** Destructs frame-buffer. */
+    virtual ~UIFrameBuffer() RT_OVERRIDE;
 
     /** Frame-buffer initialization.
       * @param pMachineView defines machine-view this frame-buffer is bounded to. */
     HRESULT init(UIMachineView *pMachineView);
+    /** Returns whether frame-buffer was initialized already. */
+    bool isInitialized() const { return m_fInitialized; }
 
     /** Assigns machine-view frame-buffer will be bounded to.
       * @param pMachineView defines machine-view this frame-buffer is bounded to. */
@@ -74,7 +75,7 @@ public:
     void detach();
 
     /** Returns frame-buffer data address. */
-    uchar* address();
+    uchar *address();
     /** Returns frame-buffer width. */
     ulong width() const;
     /** Returns frame-buffer height. */
@@ -83,8 +84,6 @@ public:
     ulong bitsPerPixel() const;
     /** Returns frame-buffer bytes-per-line value. */
     ulong bytesPerLine() const;
-    /** Returns the visual-state this frame-buffer is used for. */
-    UIVisualStateType visualState() const;
 
     /** Defines whether frame-buffer is <b>unused</b>.
       * @note Calls to this and any other EMT callback are synchronized (from GUI side). */
@@ -140,8 +139,16 @@ public:
 
 private:
 
+    /** Prepares everything. */
+    void prepare();
+    /** Cleanups everything. */
+    void cleanup();
+
     /** Holds the frame-buffer private instance. */
-    ComObjPtr<UIFrameBufferPrivate> m_pFrameBuffer;
+    ComObjPtr<UIFrameBufferPrivate>  m_pFrameBuffer;
+
+    /** Holds whether frame-buffer was initialized already. */
+    bool  m_fInitialized;
 };
 
 #endif /* !FEQT_INCLUDED_SRC_runtime_UIFrameBuffer_h */

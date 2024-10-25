@@ -50,6 +50,7 @@
  * routines, we simply return 0.
  */
 
+#include <iprt/cdefs.h>
 
 #include "nsCRT.h"
 #include "nsIServiceManager.h"
@@ -248,9 +249,7 @@ PRUnichar* nsCRT::strdup(const PRUnichar* str)
 
 PRUnichar* nsCRT::strndup(const PRUnichar* str, PRUint32 len)
 {
-	nsCppSharedAllocator<PRUnichar> shared_allocator;
-	PRUnichar* rslt = shared_allocator.allocate(len + 1); // add one for the null
-  // PRUnichar* rslt = new PRUnichar[len + 1];
+	PRUnichar* rslt = (PRUnichar *)RTMemAlloc(sizeof(PRUnichar) * (len + 1)); // add one for the null
 
   if (rslt == NULL) return NULL;
   memcpy(rslt, str, len * sizeof(PRUnichar));
@@ -371,11 +370,11 @@ PRUint32 nsCRT::HashCodeAsUTF8(const PRUnichar* str, PRUint32* resultingStrLen)
               // an unrolled loop for hashing any remaining bytes in this sequence
             switch ( code_length )
               {  // falling through in each case
-                case 6:   h = (h>>28) ^ (h<<4) ^ (0x80 | ((U>>24) & 0x003F));
-                case 5:   h = (h>>28) ^ (h<<4) ^ (0x80 | ((U>>18) & 0x003F));
-                case 4:   h = (h>>28) ^ (h<<4) ^ (0x80 | ((U>>12) & 0x003F));
-                case 3:   h = (h>>28) ^ (h<<4) ^ (0x80 | ((U>>6 ) & 0x003F));
-                case 2:   h = (h>>28) ^ (h<<4) ^ (0x80 | ( U      & 0x003F));
+                case 6:   h = (h>>28) ^ (h<<4) ^ (0x80 | ((U>>24) & 0x003F)); RT_FALL_THROUGH();
+                case 5:   h = (h>>28) ^ (h<<4) ^ (0x80 | ((U>>18) & 0x003F)); RT_FALL_THROUGH();
+                case 4:   h = (h>>28) ^ (h<<4) ^ (0x80 | ((U>>12) & 0x003F)); RT_FALL_THROUGH();
+                case 3:   h = (h>>28) ^ (h<<4) ^ (0x80 | ((U>>6 ) & 0x003F)); RT_FALL_THROUGH();
+                case 2:   h = (h>>28) ^ (h<<4) ^ (0x80 | ( U      & 0x003F)); RT_FALL_THROUGH();
                 default:  code_length = 0;
                   break;
               }
@@ -417,7 +416,8 @@ PRInt64 nsCRT::atoll(const char *str)
     if (!str)
         return LL_Zero();
 
-    PRInt64 ll = LL_Zero(), digitll = LL_Zero();
+    PRInt64 ll = LL_Zero();
+    PRInt64 digitll;
 
     while (*str && *str >= '0' && *str <= '9') {
         LL_MUL(ll, ll, 10);

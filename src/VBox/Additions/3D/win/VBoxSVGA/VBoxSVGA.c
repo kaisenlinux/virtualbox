@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,6 +26,8 @@
  */
 
 #include <VBoxWddmUmHlp.h>
+
+#include <iprt/initterm.h>
 
 #include "svga_public.h"
 #include "svga_screen.h"
@@ -69,7 +71,7 @@ GaDrvGetSurfaceId(struct pipe_screen *pScreen, struct pipe_resource *pResource)
 
         if (pScreen->resource_get_handle(pScreen, NULL, pResource, &whandle, 0))
         {
-            u32Sid = (uint32_t)whandle.handle;
+            u32Sid = (uint32_t)(uintptr_t)whandle.handle;
         }
     }
 
@@ -113,6 +115,7 @@ GaDrvContextFlush(struct pipe_context *pPipeContext)
         pPipeContext->flush(pPipeContext, NULL, PIPE_FLUSH_END_OF_FRAME);
 }
 
+#ifndef VBOX_MESA_STATIC_DRIVER
 BOOL WINAPI DllMain(HINSTANCE hDLLInst,
                     DWORD fdwReason,
                     LPVOID lpvReserved)
@@ -124,7 +127,7 @@ BOOL WINAPI DllMain(HINSTANCE hDLLInst,
     switch (fdwReason)
     {
         case DLL_PROCESS_ATTACH:
-            //RTR3InitDll(RTR3INIT_FLAGS_UNOBTRUSIVE);
+            RTR3InitDll(RTR3INIT_FLAGS_UNOBTRUSIVE);
             D3DKMTLoad();
             break;
 
@@ -144,3 +147,4 @@ BOOL WINAPI DllMain(HINSTANCE hDLLInst,
 
     return fReturn;
 }
+#endif

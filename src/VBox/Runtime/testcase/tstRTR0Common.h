@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -210,7 +210,7 @@ static uint32_t volatile g_cErrors;
 /**
  * Report an error.
  */
-void RTR0TestR0Error(const char *pszFormat, ...)
+DECLINLINE(void) RTR0TestR0Error(const char *pszFormat, ...)
 {
     size_t off = RTStrNLen(g_szErr, sizeof(g_szErr) - 1);
     size_t cbLeft = sizeof(g_szErr) - off;
@@ -238,7 +238,7 @@ void RTR0TestR0Error(const char *pszFormat, ...)
 /**
  * Append error details.
  */
-void RTR0TestR0AppendDetails(const char *pszFormat, ...)
+static void RTR0TestR0AppendDetails(const char *pszFormat, ...)
 {
     size_t      off = RTStrNLen(g_szErr, sizeof(g_szErr) - 1);
     va_list     va;
@@ -251,7 +251,7 @@ void RTR0TestR0AppendDetails(const char *pszFormat, ...)
 /**
  * Informational message.
  */
-void RTR0TestR0Info(const char *pszFormat, ...)
+DECLINLINE(void) RTR0TestR0Info(const char *pszFormat, ...)
 {
     size_t off = RTStrNLen(g_szErr, sizeof(g_szErr) - 1);
     size_t cbLeft = sizeof(g_szErr) - off;
@@ -278,7 +278,7 @@ void RTR0TestR0Info(const char *pszFormat, ...)
 /**
  * Report an error.
  */
-void RTR0TestR0Skip(const char *pszFormat, ...)
+DECLINLINE(void) RTR0TestR0Skip(const char *pszFormat, ...)
 {
     size_t off = RTStrNLen(g_szErr, sizeof(g_szErr) - 1);
     size_t cbLeft = sizeof(g_szErr) - off;
@@ -308,7 +308,7 @@ void RTR0TestR0Skip(const char *pszFormat, ...)
  *
  * @returns true if there are errors, false if none.
  */
-bool RTR0TestR0HaveErrors(void)
+DECLINLINE(bool) RTR0TestR0HaveErrors(void)
 {
     return ASMAtomicUoReadU32(&g_cErrors) > 0;
 }

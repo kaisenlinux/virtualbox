@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,21 +32,17 @@
 /* GUI includes: */
 #include "UIWizardNewVDSizeLocationPage.h"
 #include "UIWizardNewVD.h"
-#include "UICommon.h"
+#include "UIGlobalSession.h"
 #include "UINotificationCenter.h"
 #include "UIWizardDiskEditors.h"
 
 /* COM includes: */
 #include "CSystemProperties.h"
 
-UIWizardNewVDSizeLocationPage::UIWizardNewVDSizeLocationPage(const QString &strDefaultName,
-                                                             const QString &strDefaultPath, qulonglong uDefaultSize)
+UIWizardNewVDSizeLocationPage::UIWizardNewVDSizeLocationPage(qulonglong uDiskMinimumSize)
     : m_pMediumSizePathGroup(0)
-    , m_uMediumSizeMin(_4M)
-    , m_uMediumSizeMax(uiCommon().virtualBox().GetSystemProperties().GetInfoVDSize())
-    , m_strDefaultName(strDefaultName.isEmpty() ? QString("NewVirtualDisk1") : strDefaultName)
-    , m_strDefaultPath(strDefaultPath)
-    , m_uDefaultSize(uDefaultSize)
+    , m_uMediumSizeMin(uDiskMinimumSize)
+    , m_uMediumSizeMax(gpGlobalSession->virtualBox().GetSystemProperties().GetInfoVDSize())
 {
     prepare();
 }
@@ -55,7 +51,7 @@ void UIWizardNewVDSizeLocationPage::prepare()
 {
     QVBoxLayout *pMainLayout = new QVBoxLayout(this);
     AssertReturnVoid(pMainLayout);
-    m_pMediumSizePathGroup = new UIMediumSizeAndPathGroupBox(false /* fExpertMode */, 0 /* parent */, _4M /* minimum size */);
+    m_pMediumSizePathGroup = new UIMediumSizeAndPathGroupBox(false /* fExpertMode */, 0 /* parent */, m_uMediumSizeMin);
     connect(m_pMediumSizePathGroup, &UIMediumSizeAndPathGroupBox::sigMediumSizeChanged,
             this, &UIWizardNewVDSizeLocationPage::sltMediumSizeChanged);
     connect(m_pMediumSizePathGroup, &UIMediumSizeAndPathGroupBox::sigMediumPathChanged,
@@ -64,7 +60,7 @@ void UIWizardNewVDSizeLocationPage::prepare()
             this, &UIWizardNewVDSizeLocationPage::sltSelectLocationButtonClicked);
     pMainLayout->addWidget(m_pMediumSizePathGroup);
     pMainLayout->addStretch();
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIWizardNewVDSizeLocationPage::sltSelectLocationButtonClicked()
@@ -73,13 +69,13 @@ void UIWizardNewVDSizeLocationPage::sltSelectLocationButtonClicked()
     AssertReturnVoid(pWizard);
     QString strSelectedPath =
         UIWizardDiskEditors::openFileDialogForDiskFile(pWizard->mediumPath(), pWizard->mediumFormat(),
-                                                                KDeviceType_HardDisk, pWizard);
+                                                                pWizard->deviceType(), pWizard);
 
     if (strSelectedPath.isEmpty())
         return;
     QString strMediumPath =
         UIWizardDiskEditors::appendExtension(strSelectedPath,
-                                              UIWizardDiskEditors::defaultExtension(pWizard->mediumFormat(), KDeviceType_HardDisk));
+                                              UIWizardDiskEditors::defaultExtension(pWizard->mediumFormat(), pWizard->deviceType()));
     QFileInfo mediumPath(strMediumPath);
     m_pMediumSizePathGroup->setMediumFilePath(QDir::toNativeSeparators(mediumPath.absoluteFilePath()));
 }
@@ -99,14 +95,14 @@ void UIWizardNewVDSizeLocationPage::sltMediumPathChanged(const QString &strPath)
     m_userModifiedParameters << "MediumPath";
     QString strMediumPath =
         UIWizardDiskEditors::appendExtension(strPath,
-                                              UIWizardDiskEditors::defaultExtension(pWizard->mediumFormat(), KDeviceType_HardDisk));
+                                              UIWizardDiskEditors::defaultExtension(pWizard->mediumFormat(), pWizard->deviceType()));
     pWizard->setMediumPath(strMediumPath);
     emit completeChanged();
 }
 
-void UIWizardNewVDSizeLocationPage::retranslateUi()
+void UIWizardNewVDSizeLocationPage::sltRetranslateUI()
 {
-    setTitle(UIWizardNewVD::tr("File location and size"));
+    setTitle(UIWizardNewVD::tr("Location and size of the disk image"));
 }
 
 void UIWizardNewVDSizeLocationPage::initializePage()
@@ -114,13 +110,15 @@ void UIWizardNewVDSizeLocationPage::initializePage()
     UIWizardNewVD *pWizard = wizardWindow<UIWizardNewVD>();
     AssertReturnVoid(pWizard && m_pMediumSizePathGroup);
 
-    QString strExtension = UIWizardDiskEditors::defaultExtension(pWizard->mediumFormat(), KDeviceType_HardDisk);
+    QString strExtension = UIWizardDiskEditors::defaultExtension(pWizard->mediumFormat(), pWizard->deviceType());
     QString strMediumFilePath;
     /* Initialize the medium file path with default name and path if user has not exclusively modified them yet: */
     if (!m_userModifiedParameters.contains("MediumPath"))
+    {
         strMediumFilePath =
-            UIWizardDiskEditors::constructMediumFilePath(UIWizardDiskEditors::appendExtension(m_strDefaultName,
-                                                                                                strExtension), m_strDefaultPath);
+            UIWizardDiskEditors::constructMediumFilePath(UIWizardDiskEditors::appendExtension(pWizard->defaultName(),
+                                                                                              strExtension), pWizard->defaultPath());
+    }
     /* Initialize the medium file path with file path and file name from the location editor. This part is to update the
      * file extention correctly in case user has gone back and changed the file format after modifying medium file path: */
     else
@@ -135,11 +133,12 @@ void UIWizardNewVDSizeLocationPage::initializePage()
     if (!m_userModifiedParameters.contains("MediumSize"))
     {
         m_pMediumSizePathGroup->blockSignals(true);
-        m_pMediumSizePathGroup->setMediumSize(m_uDefaultSize > m_uMediumSizeMin && m_uDefaultSize < m_uMediumSizeMax ? m_uDefaultSize : m_uMediumSizeMin);
+        qulonglong uDefaultSize = pWizard->defaultSize();
+        m_pMediumSizePathGroup->setMediumSize(uDefaultSize > m_uMediumSizeMin && uDefaultSize < m_uMediumSizeMax ? uDefaultSize : m_uMediumSizeMin);
         m_pMediumSizePathGroup->blockSignals(false);
         pWizard->setMediumSize(m_pMediumSizePathGroup->mediumSize());
     }
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 bool UIWizardNewVDSizeLocationPage::isComplete() const
@@ -149,6 +148,8 @@ bool UIWizardNewVDSizeLocationPage::isComplete() const
     if (pWizard->mediumPath().isEmpty())
         return false;
     if (pWizard->mediumSize() > m_uMediumSizeMax || pWizard->mediumSize() < m_uMediumSizeMin)
+        return false;
+    if (!m_pMediumSizePathGroup->filePathUnique() || !m_pMediumSizePathGroup->pathExists())
         return false;
     return true;
 }

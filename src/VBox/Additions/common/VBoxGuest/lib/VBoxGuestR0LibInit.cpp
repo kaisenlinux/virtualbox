@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -114,9 +114,24 @@ static int vbglR0QueryDriverInfo(void)
 
                     g_vbgldata.portVMMDev    = PortInfo.u.Out.IoPort;
                     g_vbgldata.pVMMDevMemory = (VMMDevMemory *)PortInfo.u.Out.pvVmmDevMapping;
-                    g_vbgldata.status        = VbglStatusReady;
+                    g_vbgldata.pMmioReq      = PortInfo.u.Out.pMmioReq;
 
-                    vbglR0QueryHostVersion();
+                    /*
+                     * Initialize the physical heap, only allocate memory below 4GiB if the new
+                     * MMIO interface isn't available and we are using a 32-bit OUT instruction to pass a block
+                     * physical address to the host.
+                     */
+                    rc = VbglR0PhysHeapInit(g_vbgldata.pMmioReq == NULL ? _4G - 1 : NIL_RTHCPHYS /*HCPhysMax*/);
+                    if (RT_SUCCESS(rc))
+                    {
+                        g_vbgldata.status = VbglStatusReady;
+                        vbglR0QueryHostVersion();
+                    }
+                    else
+                    {
+                        LogRel(("vbglR0QueryDriverInfo: VbglR0PhysHeapInit() -> %Rrc\n", rc));
+                        g_vbgldata.status = VbglStatusNotInitialized;
+                    }
                 }
             }
 
@@ -159,21 +174,9 @@ int vbglR0Enter(void)
 
 static int vbglR0InitCommon(void)
 {
-    int rc;
-
     RT_ZERO(g_vbgldata);
     g_vbgldata.status = VbglStatusInitializing;
-
-    rc = VbglR0PhysHeapInit();
-    if (RT_SUCCESS(rc))
-    {
-        dprintf(("vbglR0InitCommon: returns rc = %d\n", rc));
-        return rc;
-    }
-
-    LogRel(("vbglR0InitCommon: VbglR0PhysHeapInit failed: rc=%Rrc\n", rc));
-    g_vbgldata.status = VbglStatusNotInitialized;
-    return rc;
+    return VINF_SUCCESS;
 }
 
 
@@ -185,7 +188,7 @@ static void vbglR0TerminateCommon(void)
 
 #ifdef VBGL_VBOXGUEST
 
-DECLR0VBGL(int) VbglR0InitPrimary(RTIOPORT portVMMDev, VMMDevMemory *pVMMDevMemory, uint32_t *pfFeatures)
+DECLR0VBGL(int) VbglR0InitPrimary(RTIOPORT portVMMDev, uintptr_t volatile *pMmioReq, VMMDevMemory *pVMMDevMemory, uint32_t *pfFeatures)
 {
     int rc;
 
@@ -207,11 +210,27 @@ DECLR0VBGL(int) VbglR0InitPrimary(RTIOPORT portVMMDev, VMMDevMemory *pVMMDevMemo
     {
         g_vbgldata.portVMMDev    = portVMMDev;
         g_vbgldata.pVMMDevMemory = pVMMDevMemory;
-        g_vbgldata.status        = VbglStatusReady;
+        g_vbgldata.pMmioReq      = pMmioReq;
 
-        vbglR0QueryHostVersion();
-        *pfFeatures = g_vbgldata.hostVersion.features;
-        return VINF_SUCCESS;
+        /*
+         * Initialize the physical heap, only allocate memory below 4GiB if the new
+         * MMIO interface isn't available and we are using a 32-bit OUT instruction to pass a block
+         * physical address to the host.
+         */
+        rc = VbglR0PhysHeapInit(g_vbgldata.pMmioReq == NULL ? _4G - 1 : NIL_RTHCPHYS /*HCPhysMax*/);
+        if (RT_SUCCESS(rc))
+        {
+            g_vbgldata.status = VbglStatusReady;
+
+            vbglR0QueryHostVersion();
+            *pfFeatures = g_vbgldata.hostVersion.features;
+            return VINF_SUCCESS;
+        }
+        else
+        {
+            LogRel(("VbglR0InitPrimary: VbglR0PhysHeapInit() -> %Rrc\n", rc));
+            g_vbgldata.status = VbglStatusNotInitialized;
+        }
     }
 
     g_vbgldata.status = VbglStatusNotInitialized;

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,6 +26,7 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -40,24 +41,28 @@
 #include "QILabel.h"
 #include "QIMessageBox.h"
 #include "QITabWidget.h"
+#include "QIToolBar.h"
 #include "UIActionPoolManager.h"
 #include "UICommon.h"
-#include "UIExtraDataManager.h"
 #include "UIIconPool.h"
+#include "UIExtraDataManager.h"
+#include "UIGlobalSession.h"
+#include "UIIconPool.h"
+#include "UILoggingDefs.h"
+#include "UIMedium.h"
 #include "UIMediumDetailsWidget.h"
 #include "UIMediumItem.h"
+#include "UIMediumEnumerator.h"
 #include "UIMediumManager.h"
 #include "UIMediumSearchWidget.h"
-#include "UINotificationCenter.h"
-#include "UIWizardCloneVD.h"
+#include "UIMediumTools.h"
 #include "UIMessageCenter.h"
-#include "QIToolBar.h"
-#include "UIIconPool.h"
-#include "UIMedium.h"
+#include "UINotificationCenter.h"
+#include "UIShortcutPool.h"
+#include "UITranslationEventListener.h"
 #include "UIVirtualBoxEventHandler.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CMachine.h"
 #include "CMediumAttachment.h"
 #include "CMediumFormat.h"
@@ -79,7 +84,7 @@ public:
 
 private:
     /** Determines whether passed UIMediumItem is suitable by @a uID. */
-    bool isItSuitable(UIMediumItem *pItem) const { return pItem->id() == m_uID; }
+    bool isItSuitable(UIMediumItem *pItem) const  RT_OVERRIDE RT_FINAL { return pItem->id() == m_uID; }
     /** Holds the @a uID to compare to. */
     QUuid m_uID;
 };
@@ -93,7 +98,7 @@ public:
 
 private:
     /** Determines whether passed UIMediumItem is suitable by @a state. */
-    bool isItSuitable(UIMediumItem *pItem) const { return pItem->state() == m_state; }
+    bool isItSuitable(UIMediumItem *pItem) const  RT_OVERRIDE RT_FINAL { return pItem->state() == m_state; }
     /** Holds the @a state to compare to. */
     KMediumState m_state;
 };
@@ -158,7 +163,7 @@ void UIEnumerationProgressBar::prepare()
 
 UIMediumManagerWidget::UIMediumManagerWidget(EmbedTo enmEmbedding, UIActionPool *pActionPool,
                                              bool fShowToolbar /* = true */, QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_enmEmbedding(enmEmbedding)
     , m_pActionPool(pActionPool)
     , m_fShowToolbar(fShowToolbar)
@@ -191,22 +196,11 @@ void UIMediumManagerWidget::setProgressBar(UIEnumerationProgressBar *pProgressBa
     m_pProgressBar = pProgressBar;
 
     /* Update translation: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
-void UIMediumManagerWidget::retranslateUi()
+void UIMediumManagerWidget::sltRetranslateUI()
 {
-    /* Adjust toolbar: */
-#ifdef VBOX_WS_MAC
-    // WORKAROUND:
-    // There is a bug in Qt Cocoa which result in showing a "more arrow" when
-    // the necessary size of the toolbar is increased. Also for some languages
-    // the with doesn't match if the text increase. So manually adjust the size
-    // after changing the text. */
-    if (m_pToolBar)
-        m_pToolBar->updateLayout();
-#endif
-
     /* Translate tab-widget: */
     if (m_pTabWidget)
     {
@@ -282,7 +276,7 @@ void UIMediumManagerWidget::sltApplyMediumDetailsChanges()
     UIDataMedium newData = m_pDetailsWidget->data();
 
     /* Search for corresponding medium: */
-    CMedium comMedium = uiCommon().medium(pMediumItem->id()).medium();
+    CMedium comMedium = gpMediumEnumerator->medium(pMediumItem->id()).medium();
 
     /* Try to assign new medium type: */
     if (   comMedium.isOk()
@@ -334,7 +328,7 @@ void UIMediumManagerWidget::sltApplyMediumDetailsChanges()
 void UIMediumManagerWidget::sltHandleMediumCreated(const QUuid &uMediumID)
 {
     /* Search for corresponding medium: */
-    UIMedium medium = uiCommon().medium(uMediumID);
+    UIMedium medium = gpMediumEnumerator->medium(uMediumID);
 
     /* Ignore non-interesting media: */
     if (medium.isNull() || medium.isHostDrive())
@@ -357,7 +351,7 @@ void UIMediumManagerWidget::sltHandleMediumCreated(const QUuid &uMediumID)
      * 2. if there is no currently medium-item selected
      * we have to choose newly added medium-item as current one: */
     if (   !m_fPreventChangeCurrentItem
-        && (   !uiCommon().isMediumEnumerationInProgress()
+        && (   !gpMediumEnumerator->isMediumEnumerationInProgress()
             || !mediumItem(medium.type())))
         setCurrentItem(treeWidget(medium.type()), pMediumItem);
 }
@@ -381,7 +375,7 @@ void UIMediumManagerWidget::sltHandleMediumEnumerationStart()
     /* Reset and show progress-bar: */
     if (m_pProgressBar)
     {
-        m_pProgressBar->setMaximum(uiCommon().mediumIDs().size());
+        m_pProgressBar->setMaximum(gpMediumEnumerator->mediumIDs().size());
         m_pProgressBar->setValue(0);
         m_pProgressBar->show();
     }
@@ -410,7 +404,7 @@ void UIMediumManagerWidget::sltHandleMediumEnumerationStart()
 void UIMediumManagerWidget::sltHandleMediumEnumerated(const QUuid &uMediumID)
 {
     /* Search for corresponding medium: */
-    UIMedium medium = uiCommon().medium(uMediumID);
+    UIMedium medium = gpMediumEnumerator->medium(uMediumID);
 
     /* Ignore non-interesting media: */
     if (medium.isNull() || medium.isHostDrive())
@@ -464,14 +458,21 @@ void UIMediumManagerWidget::sltHandleMachineStateChange(const QUuid &uId, const 
 
 void UIMediumManagerWidget::sltAddMedium()
 {
-    QString strDefaultMachineFolder = uiCommon().virtualBox().GetSystemProperties().GetDefaultMachineFolder();
-    uiCommon().openMediumWithFileOpenDialog(currentMediumType(), this,
-                                              strDefaultMachineFolder, true /* use most recent medium folder */);
+    QString strDefaultMachineFolder = gpGlobalSession->virtualBox().GetSystemProperties().GetDefaultMachineFolder();
+    UIMediumTools::openMediumWithFileOpenDialog(currentMediumType(), this,
+                                                strDefaultMachineFolder, true /* use most recent medium folder */);
 }
 
 void UIMediumManagerWidget::sltCreateMedium()
 {
-    uiCommon().openMediumCreatorDialog(m_pActionPool, this, currentMediumType());
+    /* What's with current medium type? */
+    const UIMediumDeviceType enmMediumType = currentMediumType();
+
+    /* Ask listener to start hard-disk creation: */
+    if (enmMediumType == UIMediumDeviceType_HardDisk)
+        emit sigCreateMedium();
+    else
+        UIMediumTools::openMediumCreatorDialog(m_pActionPool, this, currentMediumType());
 }
 
 void UIMediumManagerWidget::sltCopyMedium()
@@ -481,17 +482,8 @@ void UIMediumManagerWidget::sltCopyMedium()
     AssertMsgReturnVoid(pMediumItem, ("Current item must not be null"));
     AssertReturnVoid(!pMediumItem->id().isNull());
 
-    /* Copy current medium-item: */
-    //pMediumItem->copy();
-
-    /* Show Clone VD wizard: */
-    UIMedium medium = pMediumItem->medium();
-    QPointer<UINativeWizard> pWizard = new UIWizardCloneVD(currentTreeWidget(), medium.medium());
-    pWizard->exec();
-
-    /* Delete if still exists: */
-    if (pWizard)
-        delete pWizard;
+    /* Ask listener to start medium copying: */
+    emit sigCopyMedium(pMediumItem->medium().id());
 }
 
 void UIMediumManagerWidget::sltMoveMedium()
@@ -589,7 +581,7 @@ void UIMediumManagerWidget::sltToggleMediumSearchVisibility(bool fVisible)
 void UIMediumManagerWidget::sltRefreshAll()
 {
     /* Restart full medium-enumeration: */
-    uiCommon().enumerateMedia();
+    gpMediumEnumerator->enumerateMedia();
 }
 
 void UIMediumManagerWidget::sltHandleMoveProgressFinished()
@@ -746,11 +738,14 @@ void UIMediumManagerWidget::prepare()
     loadSettings();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIMediumManagerWidget::sltRetranslateUI);
 
     /* Start full medium-enumeration (if necessary): */
-    if (!uiCommon().isFullMediumEnumerationRequested())
-        uiCommon().enumerateMedia();
+    if (!gpMediumEnumerator->isFullMediumEnumerationRequested())
+        gpMediumEnumerator->enumerateMedia();
     /* Emulate medium-enumeration otherwise: */
     else
     {
@@ -758,7 +753,7 @@ void UIMediumManagerWidget::prepare()
         sltHandleMediumEnumerationStart();
 
         /* Emulate medium-enumeration finish (if necessary): */
-        if (!uiCommon().isMediumEnumerationInProgress())
+        if (!gpMediumEnumerator->isMediumEnumerationInProgress())
             sltHandleMediumEnumerationFinish();
     }
     uiCommon().setHelpKeyword(this,"virtual-media-manager");
@@ -771,17 +766,17 @@ void UIMediumManagerWidget::prepareConnections()
             this, &UIMediumManagerWidget::sltHandleMachineStateChange);
 
     /* Configure medium-processing connections: */
-    connect(&uiCommon(), &UICommon::sigMediumCreated,
+    connect(gpMediumEnumerator, &UIMediumEnumerator::sigMediumCreated,
             this, &UIMediumManagerWidget::sltHandleMediumCreated);
-    connect(&uiCommon(), &UICommon::sigMediumDeleted,
+    connect(gpMediumEnumerator, &UIMediumEnumerator::sigMediumDeleted,
             this, &UIMediumManagerWidget::sltHandleMediumDeleted);
 
     /* Configure medium-enumeration connections: */
-    connect(&uiCommon(), &UICommon::sigMediumEnumerationStarted,
+    connect(gpMediumEnumerator, &UIMediumEnumerator::sigMediumEnumerationStarted,
             this, &UIMediumManagerWidget::sltHandleMediumEnumerationStart);
-    connect(&uiCommon(), &UICommon::sigMediumEnumerated,
+    connect(gpMediumEnumerator, &UIMediumEnumerator::sigMediumEnumerated,
             this, &UIMediumManagerWidget::sltHandleMediumEnumerated);
-    connect(&uiCommon(), &UICommon::sigMediumEnumerationFinished,
+    connect(gpMediumEnumerator, &UIMediumEnumerator::sigMediumEnumerationFinished,
             this, &UIMediumManagerWidget::sltHandleMediumEnumerationFinish);
 
     /* Configure COM related connections: */
@@ -1061,7 +1056,7 @@ void UIMediumManagerWidget::repopulateTreeWidgets()
 
     /* Create medium-items (do not change current one): */
     m_fPreventChangeCurrentItem = true;
-    foreach (const QUuid &uMediumID, uiCommon().mediumIDs())
+    foreach (const QUuid &uMediumID, gpMediumEnumerator->mediumIDs())
         sltHandleMediumCreated(uMediumID);
     m_fPreventChangeCurrentItem = false;
 
@@ -1124,18 +1119,18 @@ void UIMediumManagerWidget::updateActions()
     UIMediumItem *pMediumItem = currentMediumItem();
 
     /* Calculate actions accessibility: */
-    bool fNotInEnumeration = !uiCommon().isMediumEnumerationInProgress();
+    const bool fNotInEnumeration = !UIMediumEnumerator::exists() || !gpMediumEnumerator->isMediumEnumerationInProgress();
 
     /* Apply actions accessibility: */
-    bool fActionEnabledCopy = fNotInEnumeration && pMediumItem && checkMediumFor(pMediumItem, Action_Copy);
+    const bool fActionEnabledCopy = fNotInEnumeration && pMediumItem && checkMediumFor(pMediumItem, Action_Copy);
     m_pActionPool->action(UIActionIndexMN_M_Medium_S_Copy)->setEnabled(fActionEnabledCopy);
-    bool fActionEnabledMove = fNotInEnumeration && pMediumItem && checkMediumFor(pMediumItem, Action_Edit);
+    const bool fActionEnabledMove = fNotInEnumeration && pMediumItem && checkMediumFor(pMediumItem, Action_Edit);
     m_pActionPool->action(UIActionIndexMN_M_Medium_S_Move)->setEnabled(fActionEnabledMove);
-    bool fActionEnabledRemove = fNotInEnumeration && pMediumItem && checkMediumFor(pMediumItem, Action_Remove);
+    const bool fActionEnabledRemove = fNotInEnumeration && pMediumItem && checkMediumFor(pMediumItem, Action_Remove);
     m_pActionPool->action(UIActionIndexMN_M_Medium_S_Remove)->setEnabled(fActionEnabledRemove);
-    bool fActionEnabledRelease = fNotInEnumeration && pMediumItem && checkMediumFor(pMediumItem, Action_Release);
+    const bool fActionEnabledRelease = fNotInEnumeration && pMediumItem && checkMediumFor(pMediumItem, Action_Release);
     m_pActionPool->action(UIActionIndexMN_M_Medium_S_Release)->setEnabled(fActionEnabledRelease);
-    bool fActionEnabledDetails = true;
+    const bool fActionEnabledDetails = true;
     m_pActionPool->action(UIActionIndexMN_M_Medium_T_Details)->setEnabled(fActionEnabledDetails);
 }
 
@@ -1364,7 +1359,7 @@ UIMediumItem* UIMediumManagerWidget::createHardDiskItem(const UIMedium &medium)
                 if (!pParentMediumItem)
                 {
                     /* Make sure corresponding parent medium is already cached! */
-                    UIMedium parentMedium = uiCommon().medium(medium.parentID());
+                    UIMedium parentMedium = gpMediumEnumerator->medium(medium.parentID());
                     if (parentMedium.isNull())
                         AssertMsgFailed(("Parent medium with ID={%s} was not found!\n", medium.parentID().toString().toUtf8().constData()));
                     /* Try to create parent medium-item: */
@@ -1425,9 +1420,9 @@ void UIMediumManagerWidget::updateMediumItem(const UIMedium &medium)
         refetchCurrentMediumItem(type);
 
     /* Update all the children recursively as well: */
-    foreach(const QUuid &uMediumId, uiCommon().mediumIDs())
+    foreach(const QUuid &uMediumId, gpMediumEnumerator->mediumIDs())
     {
-        UIMedium guiMedium = uiCommon().medium(uMediumId);
+        UIMedium guiMedium = gpMediumEnumerator->medium(uMediumId);
         if (   !guiMedium.isNull()
             && guiMedium.parentID() == medium.id())
             updateMediumItem(guiMedium);
@@ -1714,7 +1709,7 @@ void UIMediumManagerFactory::create(QIManagerDialog *&pDialog, QWidget *pCenterW
 *********************************************************************************************************************************/
 
 UIMediumManager::UIMediumManager(QWidget *pCenterWidget, UIActionPool *pActionPool)
-    : QIWithRetranslateUI<QIManagerDialog>(pCenterWidget)
+    : QIManagerDialog(pCenterWidget)
     , m_pActionPool(pActionPool)
     , m_pProgressBar(0)
 {
@@ -1734,7 +1729,7 @@ void UIMediumManager::sltHandleButtonBoxClick(QAbstractButton *pButton)
         emit sigDataChangeAccepted();
 }
 
-void UIMediumManager::retranslateUi()
+void UIMediumManager::sltRetranslateUI()
 {
     /* Translate window title: */
     setWindowTitle(tr("Virtual Media Manager"));
@@ -1751,7 +1746,7 @@ void UIMediumManager::retranslateUi()
     button(ButtonType_Reset)->setShortcut(QString("Ctrl+Backspace"));
     button(ButtonType_Apply)->setShortcut(QString("Ctrl+Return"));
     button(ButtonType_Close)->setShortcut(Qt::Key_Escape);
-    button(ButtonType_Help)->setShortcut(QKeySequence::HelpContents);
+    button(ButtonType_Help)->setShortcut(UIShortcutPool::standardSequence(QKeySequence::HelpContents));
     button(ButtonType_Reset)->setToolTip(tr("Reset Changes (%1)").arg(button(ButtonType_Reset)->shortcut().toString()));
     button(ButtonType_Apply)->setToolTip(tr("Apply Changes (%1)").arg(button(ButtonType_Apply)->shortcut().toString()));
     button(ButtonType_Close)->setToolTip(tr("Close Window (%1)").arg(button(ButtonType_Close)->shortcut().toString()));
@@ -1823,7 +1818,10 @@ void UIMediumManager::configureButtonBox()
 void UIMediumManager::finalize()
 {
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIMediumManager::sltRetranslateUI);
 }
 
 UIMediumManagerWidget *UIMediumManager::widget()

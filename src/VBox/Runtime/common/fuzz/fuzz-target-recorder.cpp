@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -345,7 +345,10 @@ static int rtFuzzTgtRecScanStateForNewEdges(PRTFUZZTGTRECINT pThis, PRTFUZZTGTST
             cEdgesLeft--;
         }
 
-        rc = RTSemRWReleaseRead(pThis->hSemRwEdges); AssertRC(rc);
+        int rc2 = RTSemRWReleaseRead(pThis->hSemRwEdges); AssertRC(rc2);
+        if (   RT_FAILURE(rc2)
+            && RT_SUCCESS(rc))
+            rc = rc2;
     }
 
     return rc;

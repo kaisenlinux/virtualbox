@@ -359,6 +359,17 @@
     </message>
 </context>
 <context>
+    <name>UIAcquireCloudMachineCloneNameDialog</name>
+    <message>
+        <source>Clone Virtual Machine</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enter machine name...</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>UIAcquirePublicKeyDialog</name>
     <message>
         <source>Choose a public key file</source>
@@ -962,14 +973,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&amp;Options</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Open pane with log viewer options</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>&amp;Refresh</source>
         <translation type="unfinished">&amp;Освежи</translation>
     </message>
@@ -1257,10 +1260,6 @@
     </message>
     <message>
         <source>Discard saved state of selected virtual machines</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Show log files of selected virtual machines</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1818,23 +1817,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Options</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Open panel with file manager options</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Open panel with file manager log</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Operations</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Open panel with file manager operations</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1887,10 +1870,6 @@
     </message>
     <message>
         <source>Open Bookmark Pane</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Open Options Pane</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2168,23 +2147,7 @@
     </message>
     <message>
         <source>Configuration</source>
-        <translation type="unfinished">Конфигурација</translation>
-    </message>
-    <message>
-        <source>Open panel for VISO Creator configuration</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Open Configuration Panel</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Open panel for VISO Creator options</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Open Options Panel</source>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">Конфигурација</translation>
     </message>
     <message>
         <source>&amp;Add</source>
@@ -2220,10 +2183,6 @@
     </message>
     <message>
         <source>R&amp;eset</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Reset the VISO content.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2544,14 +2503,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Remove Item(s) from VISO</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Rename Object</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Add Disk Image File</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2572,10 +2523,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Open the browser and go to the VirtualBox user manual</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Remove all inaccessible media</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2584,15 +2531,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&amp;Stop</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>&amp;Upgrade Guest Additions...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Upgrade Guest Additions</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2602,6 +2541,146 @@
     <message>
         <source>Use Host Screen %1</source>
         <translation type="unfinished">Користи хост екран %1</translation>
+    </message>
+    <message>
+        <source>Enable Clipboard File Transfers</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open the browser and go to the VirtualBox user guide</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Preferences</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open pane with log viewer preferences</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open Preferences Pane</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Go Forward</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Go forward</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Go Backward</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Restore</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Restore selected item(s)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Restore Selected Item(s)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rename Selected VISO File Object</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation type="unfinished">Отвори</translation>
+    </message>
+    <message>
+        <source>Save As</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open pane with activity monitor preferences</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open pane with file manager preferences</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open pane with file manager log</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open pane with file manager operations</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Go backward</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open pane with VISO Creator preferences</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove Selected Item(s) From VISO</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Reset the VISO content</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Reset the VISO Content</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open the VISO content</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open the VISO Content</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Save the VISO content</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Save the VISO Content</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Import ISO</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Import ISO into the VISO content</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Import Selected ISO Into the VISO Content</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove ISO</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove the imported ISO from the VISO content</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove the Imported ISO From the VISO Content</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Stop</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Upgrade guest additions</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -2637,6 +2716,129 @@
             <numerusform></numerusform>
             <numerusform></numerusform>
         </translation>
+    </message>
+</context>
+<context>
+    <name>UIAdvancedSettingsDialog</name>
+    <message>
+        <source>Basic</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Expert</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Search settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid settings detected</source>
+        <translation type="unfinished">Нађени погрешни параметри</translation>
+    </message>
+</context>
+<context>
+    <name>UIAdvancedSettingsDialogGlobal</name>
+    <message>
+        <source>Allows to navigate through Global Property categories</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>General</source>
+        <translation type="unfinished">Опште</translation>
+    </message>
+    <message>
+        <source>Input</source>
+        <translation type="unfinished">Унос</translation>
+    </message>
+    <message>
+        <source>Update</source>
+        <translation type="unfinished">Ажурирање</translation>
+    </message>
+    <message>
+        <source>Language</source>
+        <translation type="unfinished">Језик</translation>
+    </message>
+    <message>
+        <source>Display</source>
+        <translation type="unfinished">Дисплеј</translation>
+    </message>
+    <message>
+        <source>Proxy</source>
+        <translation type="unfinished">Прокси</translation>
+    </message>
+    <message>
+        <source>Interface</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>VirtualBox - %1</source>
+        <translation type="obsolete">VirtualBox - %1</translation>
+    </message>
+    <message>
+        <source>VirtualBox - Preferences</source>
+        <comment>global preferences dialog name</comment>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIAdvancedSettingsDialogMachine</name>
+    <message>
+        <source>Allows to navigate through VM Settings categories</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>General</source>
+        <translation type="unfinished">Опште</translation>
+    </message>
+    <message>
+        <source>System</source>
+        <translation type="unfinished">Систем</translation>
+    </message>
+    <message>
+        <source>Display</source>
+        <translation type="unfinished">Дисплеј</translation>
+    </message>
+    <message>
+        <source>Storage</source>
+        <translation type="unfinished">Стовариште</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation type="unfinished">Аудио</translation>
+    </message>
+    <message>
+        <source>Network</source>
+        <translation type="unfinished">Мрежа</translation>
+    </message>
+    <message>
+        <source>Serial Ports</source>
+        <translation type="unfinished">Серијски портови</translation>
+    </message>
+    <message>
+        <source>USB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Shared Folders</source>
+        <translation type="unfinished">Дељене фасцикле</translation>
+    </message>
+    <message>
+        <source>User Interface</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation type="obsolete">Параметри</translation>
+    </message>
+    <message>
+        <source>%1 - %2</source>
+        <translation type="obsolete">%1 - %2</translation>
+    </message>
+    <message>
+        <source>%1 - Settings</source>
+        <comment>machine settings dialog name, starts from machine name</comment>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -2803,6 +3005,10 @@
         <source>Storage Controller (VirtioSCSI)</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Storage Controller (NVMe)</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UIApplianceImportEditorWidget</name>
@@ -2820,12 +3026,7 @@
     <message>
         <source>%1</source>
         <comment>col.1 text</comment>
-        <translation type="unfinished">%1</translation>
-    </message>
-    <message>
-        <source>%1: %2</source>
-        <comment>col.1 text: col.2 text</comment>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">%1</translation>
     </message>
 </context>
 <context>
@@ -3038,7 +3239,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>The selected path is invalid.</source>
+        <source>The path is invalid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The path is valid</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -3049,15 +3254,15 @@
         <translation type="unfinished">Ред бута:</translation>
     </message>
     <message>
-        <source>Defines the boot device order. Use the checkboxes on the left to enable or disable individual boot devices.Move items up and down to change the device order.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Moves selected boot item up.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Moves selected boot item down.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Defines the boot device order. Use the checkboxes on the left to enable or disable individual boot devices. Move items up and down to change the device order. Note: only supported for BIOS firmware type, i.e. when below EFI option is off.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -3586,75 +3791,31 @@
     <message>
         <source>MB</source>
         <comment>size suffix MBytes=1024 KBytes</comment>
-        <translation type="unfinished">МБ</translation>
+        <translation type="obsolete">МБ</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;%1 MB&lt;/nobr&gt;</source>
         <comment>details report</comment>
-        <translation type="unfinished">&lt;nobr&gt;%1 МБ&lt;/nobr&gt;</translation>
-    </message>
-    <message>
-        <source>Enabled</source>
-        <comment>details report (3D Acceleration)</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Disabled</source>
-        <comment>details report (3D Acceleration)</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>not set</source>
-        <comment>details report (execution engine)</comment>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">&lt;nobr&gt;%1 МБ&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>Active</source>
         <comment>details report (Nested Paging)</comment>
-        <translation type="unfinished">Активно</translation>
-    </message>
-    <message>
-        <source>Inactive</source>
-        <comment>details report (Nested Paging)</comment>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">Активно</translation>
     </message>
     <message>
         <source>Active</source>
         <comment>details report (Unrestricted Execution)</comment>
-        <translation type="unfinished">Активно</translation>
-    </message>
-    <message>
-        <source>Inactive</source>
-        <comment>details report (Unrestricted Execution)</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Execution engine</source>
-        <comment>details report</comment>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">Активно</translation>
     </message>
     <message>
         <source>Nested Paging</source>
-        <translation type="unfinished">Подметнуто записивање</translation>
-    </message>
-    <message>
-        <source>Unrestricted Execution</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Execution Cap</source>
-        <comment>details report</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Paravirtualization Interface</source>
-        <comment>details report</comment>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">Подметнуто записивање</translation>
     </message>
     <message>
         <source>Processors</source>
         <comment>details report</comment>
-        <translation type="unfinished">Процесори</translation>
+        <translation type="obsolete">Процесори</translation>
     </message>
     <message>
         <source>Powered Off</source>
@@ -4369,27 +4530,27 @@
     <message>
         <source>B</source>
         <comment>size suffix Bytes</comment>
-        <translation type="unfinished">Б</translation>
+        <translation type="obsolete">Б</translation>
     </message>
     <message>
         <source>KB</source>
         <comment>size suffix KBytes=1024 Bytes</comment>
-        <translation type="unfinished">КБ</translation>
+        <translation type="obsolete">КБ</translation>
     </message>
     <message>
         <source>GB</source>
         <comment>size suffix GBytes=1024 MBytes</comment>
-        <translation type="unfinished">ГБ</translation>
+        <translation type="obsolete">ГБ</translation>
     </message>
     <message>
         <source>TB</source>
         <comment>size suffix TBytes=1024 GBytes</comment>
-        <translation type="unfinished">ТБ</translation>
+        <translation type="obsolete">ТБ</translation>
     </message>
     <message>
         <source>PB</source>
         <comment>size suffix PBytes=1024 TBytes</comment>
-        <translation type="unfinished">ПБ</translation>
+        <translation type="obsolete">ПБ</translation>
     </message>
     <message>
         <source>IDE Primary Device 0</source>
@@ -4448,157 +4609,73 @@
     </message>
     <message>
         <source>Name</source>
-        <translation type="unfinished">Име</translation>
-    </message>
-    <message>
-        <source>OS</source>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">Име</translation>
     </message>
     <message>
         <source>Location</source>
-        <translation type="unfinished">Смештај</translation>
-    </message>
-    <message>
-        <source>Groups</source>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">Смештај</translation>
     </message>
     <message>
         <source>RAM</source>
-        <translation type="unfinished">РАМ</translation>
-    </message>
-    <message>
-        <source>CPU Count</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>CPU Execution Cap</source>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">РАМ</translation>
     </message>
     <message>
         <source>Boot Order</source>
-        <translation type="unfinished">Ред бута</translation>
-    </message>
-    <message>
-        <source>Chipset Type</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Firmware</source>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">Ред бута</translation>
     </message>
     <message>
         <source>Acceleration</source>
-        <translation type="unfinished">Убрзање</translation>
-    </message>
-    <message>
-        <source>VRAM</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Screen Count</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Scale Factor</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Graphics Controller</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>VRDE</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Recording</source>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">Убрзање</translation>
     </message>
     <message>
         <source>Hard Disks</source>
-        <translation type="unfinished">Хард дискови</translation>
-    </message>
-    <message>
-        <source>Optical Devices</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Floppy Devices</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Driver</source>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">Хард дискови</translation>
     </message>
     <message>
         <source>Controller</source>
-        <translation type="unfinished">Контролер</translation>
-    </message>
-    <message>
-        <source>Input/Output</source>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">Контролер</translation>
     </message>
     <message>
         <source>Not Attached</source>
         <comment>network adapter</comment>
-        <translation type="unfinished">Није привезано</translation>
+        <translation type="obsolete">Није привезано</translation>
     </message>
     <message>
         <source>NAT</source>
-        <translation type="unfinished">NAT</translation>
+        <translation type="obsolete">NAT</translation>
     </message>
     <message>
         <source>Internal Network</source>
-        <translation type="unfinished">Интерна мрежа</translation>
-    </message>
-    <message>
-        <source>Host Only Adapter</source>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">Интерна мрежа</translation>
     </message>
     <message>
         <source>Generic Driver</source>
-        <translation type="unfinished">Општи драјвер</translation>
-    </message>
-    <message>
-        <source>NAT Network</source>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">Општи драјвер</translation>
     </message>
     <message>
         <source>Disconnected</source>
         <comment>serial port</comment>
-        <translation type="unfinished">Прекинута веза</translation>
+        <translation type="obsolete">Прекинута веза</translation>
     </message>
     <message>
         <source>Host Pipe</source>
-        <translation type="unfinished">Хост туба</translation>
+        <translation type="obsolete">Хост туба</translation>
     </message>
     <message>
         <source>Host Device</source>
-        <translation type="unfinished">Хост уређај</translation>
+        <translation type="obsolete">Хост уређај</translation>
     </message>
     <message>
         <source>Raw File</source>
-        <translation type="unfinished">Raw датотека</translation>
+        <translation type="obsolete">Raw датотека</translation>
     </message>
     <message>
         <source>TCP</source>
-        <translation type="unfinished">TCP</translation>
+        <translation type="obsolete">TCP</translation>
     </message>
     <message>
         <source>Device Filters</source>
-        <translation type="unfinished">Филтери уређаја</translation>
-    </message>
-    <message>
-        <source>Menu Bar</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Status Bar</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Mini Toolbar</source>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">Филтери уређаја</translation>
     </message>
     <message>
         <source>General</source>
@@ -4889,97 +4966,73 @@
         </translation>
     </message>
     <message>
-        <source>Please choose a virtual hard disk file</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>All virtual hard disk files (%1)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Please choose a virtual optical disk file</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>All virtual optical disk files (%1)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Please choose a virtual floppy disk file</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>All virtual floppy disk files (%1)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>All files (*)</source>
-        <translation type="unfinished">Све датотеке (*)</translation>
+        <translation type="obsolete">Све датотеке (*)</translation>
     </message>
     <message>
         <source>Unknown device</source>
         <comment>USB device details</comment>
-        <translation type="unfinished">Непознат уређај</translation>
+        <translation type="obsolete">Непознат уређај</translation>
     </message>
     <message>
         <source>Unknown device %1:%2</source>
         <comment>USB device details</comment>
-        <translation type="unfinished">Непознат уређај %1:%2</translation>
+        <translation type="obsolete">Непознат уређај %1:%2</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;Vendor ID: %1&lt;/nobr&gt;&lt;br&gt;&lt;nobr&gt;Product ID: %2&lt;/nobr&gt;&lt;br&gt;&lt;nobr&gt;Revision: %3&lt;/nobr&gt;</source>
         <comment>USB device tooltip</comment>
-        <translation type="unfinished">&lt;nobr&gt;Произвођач: %1&lt;/nobr&gt;&lt;br&gt;&lt;nobr&gt;Производ: %2&lt;/nobr&gt;&lt;br&gt;&lt;nobr&gt;Ревизија: %3&lt;/nobr&gt;</translation>
+        <translation type="obsolete">&lt;nobr&gt;Произвођач: %1&lt;/nobr&gt;&lt;br&gt;&lt;nobr&gt;Производ: %2&lt;/nobr&gt;&lt;br&gt;&lt;nobr&gt;Ревизија: %3&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;br&gt;&lt;nobr&gt;Serial No. %1&lt;/nobr&gt;</source>
         <comment>USB device tooltip</comment>
-        <translation type="unfinished">&lt;br&gt;&lt;nobr&gt;Сериал. %1&lt;/nobr&gt;</translation>
+        <translation type="obsolete">&lt;br&gt;&lt;nobr&gt;Сериал. %1&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;br&gt;&lt;nobr&gt;State: %1&lt;/nobr&gt;</source>
         <comment>USB device tooltip</comment>
-        <translation type="unfinished">&lt;br&gt;&lt;nobr&gt;Статус: %1&lt;/nobr&gt;</translation>
+        <translation type="obsolete">&lt;br&gt;&lt;nobr&gt;Статус: %1&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;Vendor ID: %1&lt;/nobr&gt;</source>
         <comment>USB filter tooltip</comment>
-        <translation type="unfinished">&lt;nobr&gt; Продавач: %1&lt;/nobr&gt;</translation>
+        <translation type="obsolete">&lt;nobr&gt; Продавач: %1&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;Product ID: %2&lt;/nobr&gt;</source>
         <comment>USB filter tooltip</comment>
-        <translation type="unfinished">&lt;nobr&gt;Производ: %2&lt;/nobr&gt;</translation>
+        <translation type="obsolete">&lt;nobr&gt;Производ: %2&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;Revision: %3&lt;/nobr&gt;</source>
         <comment>USB filter tooltip</comment>
-        <translation type="unfinished">&lt;nobr&gt;Ревизија: %3&lt;/nobr&gt;</translation>
+        <translation type="obsolete">&lt;nobr&gt;Ревизија: %3&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;Product: %4&lt;/nobr&gt;</source>
         <comment>USB filter tooltip</comment>
-        <translation type="unfinished">&lt;nobr&gt;Производ: %4&lt;/nobr&gt;</translation>
+        <translation type="obsolete">&lt;nobr&gt;Производ: %4&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;Manufacturer: %5&lt;/nobr&gt;</source>
         <comment>USB filter tooltip</comment>
-        <translation type="unfinished">&lt;nobr&gt;Произвођач: %5&lt;/nobr&gt;</translation>
+        <translation type="obsolete">&lt;nobr&gt;Произвођач: %5&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;Serial No.: %1&lt;/nobr&gt;</source>
         <comment>USB filter tooltip</comment>
-        <translation type="unfinished">&lt;nobr&gt;Серијал: %1&lt;/nobr&gt;</translation>
+        <translation type="obsolete">&lt;nobr&gt;Серијал: %1&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;Port: %1&lt;/nobr&gt;</source>
         <comment>USB filter tooltip</comment>
-        <translation type="unfinished">&lt;nobr&gt;Порт: %1&lt;/nobr&gt;</translation>
+        <translation type="obsolete">&lt;nobr&gt;Порт: %1&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;State: %1&lt;/nobr&gt;</source>
         <comment>USB filter tooltip</comment>
-        <translation type="unfinished">&lt;nobr&gt;Статус: %1&lt;/nobr&gt;</translation>
+        <translation type="obsolete">&lt;nobr&gt;Статус: %1&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>User-defined</source>
@@ -4989,103 +5042,85 @@
     <message>
         <source>Inaccessible</source>
         <comment>medium</comment>
-        <translation type="unfinished">Недоступно</translation>
+        <translation type="obsolete">Недоступно</translation>
     </message>
     <message>
         <source>Empty</source>
         <comment>medium</comment>
-        <translation type="unfinished">Празно</translation>
+        <translation type="obsolete">Празно</translation>
     </message>
     <message>
         <source>Host Drive &apos;%1&apos;</source>
         <comment>medium</comment>
-        <translation type="unfinished">Хост драјв &apos;%1&apos;</translation>
+        <translation type="obsolete">Хост драјв &apos;%1&apos;</translation>
     </message>
     <message>
         <source>Host Drive %1 (%2)</source>
         <comment>medium</comment>
-        <translation type="unfinished">Хост драјв %1 (%2)</translation>
+        <translation type="obsolete">Хост драјв %1 (%2)</translation>
     </message>
     <message>
         <source>&lt;p style=white-space:pre&gt;Type (Format):  %1 (%2)&lt;/p&gt;</source>
         <comment>medium</comment>
-        <translation type="unfinished">&lt;p style=white-space:pre&gt;Тип (Формат):  %1 (%2)&lt;/p&gt;</translation>
+        <translation type="obsolete">&lt;p style=white-space:pre&gt;Тип (Формат):  %1 (%2)&lt;/p&gt;</translation>
     </message>
     <message>
         <source>&lt;p&gt;Attached to:  %1&lt;/p&gt;</source>
         <comment>image</comment>
-        <translation type="unfinished">&lt;p&gt;Прикачено на:  %1&lt;/p&gt;</translation>
+        <translation type="obsolete">&lt;p&gt;Прикачено на:  %1&lt;/p&gt;</translation>
     </message>
     <message>
         <source>&lt;i&gt;Not Attached&lt;/i&gt;</source>
         <comment>image</comment>
-        <translation type="unfinished">&lt;i&gt;Није прикачено&lt;/i&gt;</translation>
+        <translation type="obsolete">&lt;i&gt;Није прикачено&lt;/i&gt;</translation>
     </message>
     <message>
         <source>&lt;i&gt;Checking accessibility...&lt;/i&gt;</source>
         <comment>medium</comment>
-        <translation type="unfinished">&lt;i&gt;Провера доступност...&lt;/i&gt;</translation>
+        <translation type="obsolete">&lt;i&gt;Провера доступност...&lt;/i&gt;</translation>
     </message>
     <message>
         <source>Failed to check accessibility of disk image files.</source>
         <comment>medium</comment>
-        <translation type="unfinished">Погрешна провера доступност медија.</translation>
+        <translation type="obsolete">Погрешна провера доступност медија.</translation>
     </message>
     <message>
         <source>&lt;b&gt;No disk image file selected&lt;/b&gt;</source>
         <comment>medium</comment>
-        <translation type="unfinished">&lt;b&gt;Медијум није одабран&lt;/b&gt;</translation>
+        <translation type="obsolete">&lt;b&gt;Медијум није одабран&lt;/b&gt;</translation>
     </message>
     <message>
         <source>You can also change this while the machine is running.</source>
-        <translation type="unfinished">Можете исто ово променити док машина ради.</translation>
+        <translation type="obsolete">Можете исто ово променити док машина ради.</translation>
     </message>
     <message>
         <source>&lt;b&gt;No disk image files available&lt;/b&gt;</source>
         <comment>medium</comment>
-        <translation type="unfinished">&lt;b&gt;Медиј није доступан&lt;/b&gt;</translation>
-    </message>
-    <message>
-        <source>You can create or add disk image files in the virtual machine settings.</source>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">&lt;b&gt;Медиј није доступан&lt;/b&gt;</translation>
     </message>
     <message>
         <source>Attaching this hard disk will be performed indirectly using a newly created differencing hard disk.</source>
         <comment>medium</comment>
-        <translation type="unfinished">Привезивање овог хард диска ће бити индиректан користечи новог креираног различитог хард диска.</translation>
-    </message>
-    <message>
-        <source>Encrypted</source>
-        <comment>medium</comment>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">Привезивање овог хард диска ће бити индиректан користечи новог креираног различитог хард диска.</translation>
     </message>
     <message>
         <source>Checking...</source>
         <comment>medium</comment>
-        <translation type="unfinished">Провера...</translation>
-    </message>
-    <message>
-        <source>Some of the files in this hard disk chain are inaccessible. Please use the Virtual Medium Manager to inspect these files.</source>
-        <comment>medium</comment>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">Провера...</translation>
     </message>
     <message>
         <source>This base hard disk is indirectly attached using the following differencing hard disk:</source>
         <comment>medium</comment>
-        <translation type="unfinished">Овај базни хард диск је индиректно прикачен са овим различитим диском:</translation>
+        <translation type="obsolete">Овај базни хард диск је индиректно прикачен са овим различитим диском:</translation>
     </message>
     <message>
         <source>Differencing</source>
         <comment>MediumType</comment>
-        <translation type="unfinished">Разликавање</translation>
+        <translation type="obsolete">Разликавање</translation>
     </message>
     <message>
         <source>Adapter %1</source>
         <translation type="unfinished">Адаптер %1</translation>
-    </message>
-    <message>
-        <source>Please choose a location for new virtual hard disk file</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>PCnet-ISA (Am79C960)</source>
@@ -5313,18 +5348,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Cloud Network</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Host Only Network</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Visual State</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Follow System Settings</source>
         <comment>color theme</comment>
         <translation type="unfinished"></translation>
@@ -5401,7 +5424,7 @@
     </message>
     <message>
         <source>Bridged Adapter</source>
-        <translation type="unfinished">Мост адаптер</translation>
+        <translation type="obsolete">Мост адаптер</translation>
     </message>
     <message>
         <source>None</source>
@@ -5429,11 +5452,35 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>TPM Type</source>
+        <source>QemuRamFB</source>
+        <comment>GraphicsControllerType</comment>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Secure Boot</source>
+        <source>Virtio-Sound</source>
+        <comment>AudioControllerType</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>ARMv8Virtual</source>
+        <comment>ChipsetType</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard Extension</source>
+        <comment>IndicatorType</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>TLS</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>RDP</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>NEGOTIATE</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -5441,35 +5488,15 @@
     <name>UICustomFileSystemModel</name>
     <message>
         <source>Name</source>
-        <translation type="unfinished">Име</translation>
+        <translation type="obsolete">Име</translation>
     </message>
     <message>
         <source>Size</source>
-        <translation type="unfinished">Величина</translation>
-    </message>
-    <message>
-        <source>Change Time</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Owner</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Permissions</source>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">Величина</translation>
     </message>
     <message>
         <source>Path</source>
-        <translation type="unfinished">Путања</translation>
-    </message>
-    <message>
-        <source>New Directory</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Local Path</source>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">Путања</translation>
     </message>
 </context>
 <context>
@@ -5578,11 +5605,6 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Disabled</source>
-        <comment>details (system/EFI)</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>VT-x/AMD-V</source>
         <comment>details (system)</comment>
         <translation type="unfinished">VT-x/AMD-V</translation>
@@ -5640,7 +5662,7 @@
     <message>
         <source>3D</source>
         <comment>details (display)</comment>
-        <translation type="unfinished">3D</translation>
+        <translation type="obsolete">3D</translation>
     </message>
     <message>
         <source>Acceleration</source>
@@ -5944,6 +5966,111 @@
         <source>Enabled</source>
         <comment>details (system/secure boot)</comment>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enabled</source>
+        <comment>details (display/3D Acceleration)</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>3D Acceleration</source>
+        <comment>details (display)</comment>
+        <translation type="unfinished">3Д убрзавање</translation>
+    </message>
+    <message>
+        <source>Cloud Network, &apos;%1&apos;</source>
+        <comment>details (network)</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Hard Disks</source>
+        <comment>details (storage)</comment>
+        <translation type="unfinished">Хард дискови</translation>
+    </message>
+    <message>
+        <source>Optical Devices</source>
+        <comment>details (storage)</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Floppy Devices</source>
+        <comment>details (storage)</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Input/Output</source>
+        <comment>details (audio)</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Not Attached</source>
+        <comment>details (network adapter)</comment>
+        <translation type="unfinished">Није привезано</translation>
+    </message>
+    <message>
+        <source>NAT</source>
+        <comment>details (network)</comment>
+        <translation type="unfinished">NAT</translation>
+    </message>
+    <message>
+        <source>Bridged Adapter</source>
+        <comment>details (network)</comment>
+        <translation type="unfinished">Мост адаптер</translation>
+    </message>
+    <message>
+        <source>Internal Network</source>
+        <comment>details (network)</comment>
+        <translation type="unfinished">Интерна мрежа</translation>
+    </message>
+    <message>
+        <source>Host-only Adapter</source>
+        <comment>details (network)</comment>
+        <translation type="unfinished">Само хост адаптер</translation>
+    </message>
+    <message>
+        <source>Generic Driver</source>
+        <comment>details (network)</comment>
+        <translation type="unfinished">Општи драјвер</translation>
+    </message>
+    <message>
+        <source>NAT Network</source>
+        <comment>details (network)</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cloud Network</source>
+        <comment>details (network)</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Host-only Network</source>
+        <comment>details (network)</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disconnected</source>
+        <comment>details (serial port)</comment>
+        <translation type="unfinished">Прекинута веза</translation>
+    </message>
+    <message>
+        <source>Host Pipe</source>
+        <comment>details (serial)</comment>
+        <translation type="unfinished">Хост туба</translation>
+    </message>
+    <message>
+        <source>Host Device</source>
+        <comment>details (serial)</comment>
+        <translation type="unfinished">Хост уређај</translation>
+    </message>
+    <message>
+        <source>Raw File</source>
+        <comment>details (serial)</comment>
+        <translation type="unfinished">Raw датотека</translation>
+    </message>
+    <message>
+        <source>TCP</source>
+        <comment>details (serial)</comment>
+        <translation type="unfinished">TCP</translation>
     </message>
     <message>
         <source>Nested VT-x/AMD-V</source>
@@ -6570,13 +6697,6 @@
     </message>
 </context>
 <context>
-    <name>UIDialogPanel</name>
-    <message>
-        <source>Close the pane</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
     <name>UIDiskEncryptionSettingsEditor</name>
     <message>
         <source>En&amp;able Disk Encryption</source>
@@ -6627,11 +6747,11 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&amp;Split into 2GB parts</source>
+        <source>When checked, the virtual hard disk file is split into 2GB parts.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>When checked, the virtual hard disk file is split into 2GB parts.</source>
+        <source>&amp;Split Into 2GB Parts</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -6756,10 +6876,14 @@
     <name>UIDownloaderUserManual</name>
     <message>
         <source>Select folder to save User Manual to</source>
-        <translation>Одабрати фасциклу где да се сачува приручник</translation>
+        <translation type="vanished">Одабрати фасциклу где да се сачува приручник</translation>
     </message>
     <message>
-        <source>VirtualBox User Manual</source>
+        <source>VirtualBox User Guide</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select folder to save User Guide to</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -6778,6 +6902,10 @@
     <name>UIEmptyFilePathSelector</name>
     <message>
         <source>Choose...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Contains selected file path.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -6830,6 +6958,11 @@
     </message>
     <message>
         <source>Callee&amp;nbsp;RC:</source>
+        <comment>error info</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Result&amp;nbsp;Detail:</source>
         <comment>error info</comment>
         <translation type="unfinished"></translation>
     </message>
@@ -7335,6 +7468,10 @@ p, li { white-space: pre-wrap; }
         <source>File already exists</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>File path is valid</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UIFileManager</name>
@@ -7700,6 +7837,22 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>File manager cannot work. The guest additions need to be updated.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Preferences</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Log</source>
+        <translation type="unfinished">Извештај</translation>
+    </message>
+    <message>
+        <source>Operations</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>NewDirectory</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -8506,6 +8659,10 @@ p, li { white-space: pre-wrap; }
         <source>Disable Host &amp;ScreenSaver</source>
         <translation type="obsolete">Угаси скрин сејвер хоста</translation>
     </message>
+    <message>
+        <source>Default machine folder is missing.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UIGlobalSettingsInput</name>
@@ -8534,11 +8691,11 @@ p, li { white-space: pre-wrap; }
         <translation type="obsolete">Ресетуј комбинацију за хост у прозору машине.</translation>
     </message>
     <message>
-        <source>Host Key Combination</source>
+        <source>Some items have the same shortcuts assigned.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Some items have the same shortcuts assigned.</source>
+        <source>Host Key Combo</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -9085,14 +9242,6 @@ p, li { white-space: pre-wrap; }
     </message>
 </context>
 <context>
-    <name>UIGraphicsTextPane</name>
-    <message>
-        <source>%1: %2</source>
-        <comment>&apos;key: value&apos;, like &apos;Name: MyVM&apos;</comment>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
     <name>UIGuestControlFileManager</name>
     <message>
         <source>Close</source>
@@ -9220,10 +9369,6 @@ p, li { white-space: pre-wrap; }
 <context>
     <name>UIHelpBrowserWidget</name>
     <message>
-        <source>Oracle VM VirtualBox User Manual</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Copy Selected Text</source>
         <translation type="unfinished"></translation>
     </message>
@@ -9348,10 +9493,6 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Click to open this link in an external browser</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Click to enlarge the image</source>
         <translation type="unfinished"></translation>
     </message>
@@ -9392,10 +9533,6 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&lt;div&gt;&lt;p&gt;&lt;h3&gt;404. Not found.&lt;/h3&gt;The page &lt;b&gt;%1&lt;/b&gt; could not be found.&lt;/p&gt;&lt;/div&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Home</source>
         <translation type="unfinished"></translation>
     </message>
@@ -9417,6 +9554,27 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Bookmark added:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 User Guide</source>
+        <comment>[Product Name] User Guide</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;div&gt;&lt;p&gt;&lt;h3&gt;Not found.&lt;/h3&gt;The page &lt;b&gt;%1&lt;/b&gt; could not be found.&lt;/p&gt;&lt;/div&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Not Found</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Click to open the following URL with an external browser</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Click to navigate to internal URL</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -9712,6 +9870,14 @@ p, li { white-space: pre-wrap; }
         <source>Holds the domain name.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Hostname is valid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Domain name is valid</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UIHotKeyEditor</name>
@@ -9945,6 +10111,313 @@ p, li { white-space: pre-wrap; }
     </message>
 </context>
 <context>
+    <name>UIIndicatorAudio</name>
+    <message>
+        <source>Output enabled</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Output disabled</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Input enabled</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Input disabled</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIIndicatorDisplay</name>
+    <message>
+        <source>%1 MB</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 monitors connected</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>3D acceleration enabled</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIIndicatorFeatures</name>
+    <message>
+        <source>not set</source>
+        <comment>Execution engine</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Active</source>
+        <comment>Nested paging</comment>
+        <translation type="unfinished">Активно</translation>
+    </message>
+    <message>
+        <source>Inactive</source>
+        <comment>Nested paging</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Active</source>
+        <comment>Unrestricted execution</comment>
+        <translation type="unfinished">Активно</translation>
+    </message>
+    <message>
+        <source>Inactive</source>
+        <comment>Unrestricted execution</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Execution Engine</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Unrestricted Execution</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Paravirtualization Interface</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Processors</source>
+        <comment>details report</comment>
+        <translation type="obsolete">Процесори</translation>
+    </message>
+</context>
+<context>
+    <name>UIIndicatorFloppyDisks</name>
+    <message>
+        <source>%1 drives attached</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 images mounted</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIIndicatorHardDrive</name>
+    <message>
+        <source>%1 disks attached</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIIndicatorKeyboard</name>
+    <message>
+        <source>Indicates whether the host keyboard is captured by the guest OS:%1</source>
+        <comment>Keyboard tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard is not captured</source>
+        <comment>Keyboard tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard is captured</source>
+        <comment>Keyboard tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard is not captured, host-combo being pressed</source>
+        <comment>Keyboard tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard is captured, host-combo being pressed</source>
+        <comment>Keyboard tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard is not captured, host-combo to be inserted</source>
+        <comment>Keyboard tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard is captured, host-combo to be inserted</source>
+        <comment>Keyboard tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard is not captured, host-combo being pressed and to be inserted</source>
+        <comment>Keyboard tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard is captured, host-combo being pressed and to be inserted</source>
+        <comment>Keyboard tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIIndicatorKeyboardExtension</name>
+    <message>
+        <source>Shows the currently assigned Host key.&lt;br&gt;This key, when pressed alone, toggles the keyboard and mouse capture state. It can also be used in combination with other keys to quickly perform actions from the main menu.</source>
+        <translation type="obsolete">Показује актуелну пречицу.&lt;br&gt;Када је типак сам стиснут. пребацује статус тастатуре и миша. Моће се исто користити са другим типкама за брзе акције са менија.</translation>
+    </message>
+    <message>
+        <source>Shows the currently assigned Host Key Combo.&lt;br&gt;This key combo, when pressed alone, toggles the keyboard and mouse capture state. It can also be used in combination with other keys to quickly perform actions from the main menu.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Host Key Combo: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIIndicatorMouse</name>
+    <message>
+        <source>Indicates whether the host mouse pointer is captured by the guest OS:%1</source>
+        <comment>Mouse tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Pointer is not captured</source>
+        <comment>Mouse tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Pointer is captured</source>
+        <comment>Mouse tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Mouse integration is Off, pointer is not captured</source>
+        <comment>Mouse tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Mouse integration is Off, pointer is captured</source>
+        <comment>Mouse tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Mouse integration is On</source>
+        <comment>Mouse tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Note that the mouse integration feature requires Guest Additions to be installed in the guest OS.</source>
+        <comment>Mouse tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIIndicatorNetwork</name>
+    <message>
+        <source>Adapters present</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No network adapters</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>All cables disconnected</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Adapter %1 (%2)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>IP</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cable</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Connected</source>
+        <comment>cable</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disconnected</source>
+        <comment>cable</comment>
+        <translation type="unfinished">Прекинута веза</translation>
+    </message>
+</context>
+<context>
+    <name>UIIndicatorOpticalDisks</name>
+    <message>
+        <source>%1 drives attached</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 images mounted</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIIndicatorRecording</name>
+    <message>
+        <source>Recording stopped</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Recording started</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Recording paused</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Video/audio recording file</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Audio recording file</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Video recording file</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Recording disabled</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIIndicatorSharedFolders</name>
+    <message>
+        <source>%1 shared folders</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No shared folders</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIIndicatorUSB</name>
+    <message>
+        <source>USB enabled</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>USB disabled</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 USB devices attached</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No USB devices attached</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>UIIndicatorsPool</name>
     <message>
         <source>&lt;p style=&apos;white-space:pre&apos;&gt;&lt;nobr&gt;Indicates the activity of the virtual hard disks:&lt;/nobr&gt;%1&lt;/p&gt;</source>
@@ -10048,122 +10521,12 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>Disconnected</source>
         <comment>cable (Network tooltip)</comment>
-        <translation type="unfinished">Прекинута веза</translation>
+        <translation type="obsolete">Прекинута веза</translation>
     </message>
     <message>
         <source>Screens</source>
         <comment>Display tooltip</comment>
-        <translation type="unfinished">Екрани</translation>
-    </message>
-    <message>
-        <source>Adapter %1 (%2)</source>
-        <comment>Network tooltip</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>IP</source>
-        <comment>Network tooltip</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Cable</source>
-        <comment>Network tooltip</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Connected</source>
-        <comment>cable (Network tooltip)</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>No USB devices attached</source>
-        <comment>USB tooltip</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>No shared folders</source>
-        <comment>Shared folders tooltip</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Video memory</source>
-        <comment>Display tooltip</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>3D acceleration</source>
-        <comment>Display tooltip</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Recording disabled</source>
-        <comment>Recording tooltip</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Video/audio recording file</source>
-        <comment>Recording tooltip</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Audio recording file</source>
-        <comment>Recording tooltip</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Video recording file</source>
-        <comment>Recording tooltip</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Indicates whether the host mouse pointer is captured by the guest OS:%1</source>
-        <comment>Mouse tooltip</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>pointer is not captured</source>
-        <comment>Mouse tooltip</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>pointer is captured</source>
-        <comment>Mouse tooltip</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>mouse integration (MI) is On</source>
-        <comment>Mouse tooltip</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>MI is Off, pointer is captured</source>
-        <comment>Mouse tooltip</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>MI is Off, pointer is not captured</source>
-        <comment>Mouse tooltip</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Note that the mouse integration feature requires Guest Additions to be installed in the guest OS.</source>
-        <comment>Mouse tooltip</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Indicates whether the host keyboard is captured by the guest OS:%1</source>
-        <comment>Keyboard tooltip</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>keyboard is not captured</source>
-        <comment>Keyboard tooltip</comment>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>keyboard is captured</source>
-        <comment>Keyboard tooltip</comment>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">Екрани</translation>
     </message>
 </context>
 <context>
@@ -10583,10 +10946,6 @@ p, li { white-space: pre-wrap; }
 </context>
 <context>
     <name>UILanguageSettingsEditor</name>
-    <message>
-        <source>&amp;Interface Languages</source>
-        <translation type="unfinished"></translation>
-    </message>
     <message>
         <source>Lists all available user interface languages. The effective language is written in bold. Select Default to reset to the system default language.</source>
         <translation type="unfinished"></translation>
@@ -11739,15 +12098,15 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>When checked, enables the given serial port of the virtual machine.</source>
-        <translation>Када одабрано, упали серијски порт машине.</translation>
+        <translation type="vanished">Када одабрано, упали серијски порт машине.</translation>
     </message>
     <message>
         <source>&amp;Enable Serial Port</source>
-        <translation>Омогу&amp;ћи серијски порт</translation>
+        <translation type="vanished">Омогу&amp;ћи серијски порт</translation>
     </message>
     <message>
         <source>Port &amp;Number:</source>
-        <translation>Порт број:</translation>
+        <translation type="vanished">Порт број:</translation>
     </message>
     <message>
         <source>Selects the serial port number. You can choose one of the standard serial ports or select &lt;b&gt;User-defined&lt;/b&gt; and specify port parameters manually.</source>
@@ -11755,7 +12114,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>&amp;IRQ:</source>
-        <translation>IRQ:</translation>
+        <translation type="vanished">IRQ:</translation>
     </message>
     <message>
         <source>Holds the IRQ number of this serial port. Valid values are integer numbers in range from &lt;tt&gt;0&lt;/tt&gt; to &lt;tt&gt;255&lt;/tt&gt;. Values greater than &lt;tt&gt;15&lt;/tt&gt; may only be used if the &lt;b&gt;I/O APIC&lt;/b&gt; is enabled for this virtual machine.</source>
@@ -11763,7 +12122,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>I/O Po&amp;rt:</source>
-        <translation>I/O Порт:</translation>
+        <translation type="vanished">I/O Порт:</translation>
     </message>
     <message>
         <source>Holds the base I/O port address of this serial port. This should be a whole number between &lt;tt&gt;0&lt;/tt&gt; and &lt;tt&gt;0xFFFF&lt;/tt&gt;.</source>
@@ -11771,7 +12130,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Port &amp;Mode:</source>
-        <translation>Мод порта:</translation>
+        <translation type="vanished">Мод порта:</translation>
     </message>
     <message>
         <source>Controls the working mode of this serial port. If you select &lt;b&gt;Disconnected&lt;/b&gt;, the guest OS will detect the serial port but will not be able to operate it.</source>
@@ -11803,15 +12162,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Holds the base I/O port address of this serial port. Valid values are integer numbers in range from &lt;tt&gt;0&lt;/tt&gt; to &lt;tt&gt;0xFFFF&lt;/tt&gt;.</source>
-        <translation>Показује базну I/O адресу серијалног порта. Вредности су бројеви између &lt;tt&gt;0&lt;/tt&gt; и &lt;tt&gt;0xFFFF&lt;/tt&gt;.</translation>
-    </message>
-    <message>
-        <source>&amp;Connect to existing pipe/socket</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&amp;Path/Address:</source>
-        <translation type="unfinished"></translation>
+        <translation type="vanished">Показује базну I/O адресу серијалног порта. Вредности су бројеви између &lt;tt&gt;0&lt;/tt&gt; и &lt;tt&gt;0xFFFF&lt;/tt&gt;.</translation>
     </message>
     <message>
         <source>No IRQ is currently specified.</source>
@@ -11831,26 +12182,6 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>There are currently duplicate port paths specified.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Selects the serial port number. You can choose one of the standard serial ports or select User-defined and specify port parameters manually.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Holds the IRQ number of this serial port. This should be a whole number between &lt;tt&gt;0&lt;/tt&gt; and &lt;tt&gt;255&lt;/tt&gt;. Values greater than &lt;tt&gt;15&lt;/tt&gt; may only be used if the I/O APIC setting is enabled for this virtual machine.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Selects the working mode of this serial port. If you select Disconnected, the guest OS will detect the serial port but will not be able to operate it.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>When checked, the virtual machine will assume that the pipe or socket specified in the Path/Address field exists and try to use it. Otherwise, the pipe or socket will be created by the virtual machine when it starts.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>In Host Pipe mode: Holds the path to the serial port&apos;s pipe on the host. Examples: &quot;\\.\pipe\myvbox&quot; or &quot;/tmp/myvbox&quot;, for Windows and UNIX-like systems respectively. In Host Device mode: Holds the host serial device name. Examples: &quot;COM1&quot; or &quot;/dev/ttyS0&quot;. In Raw File mode: Holds the file-path on the host system, where the serial output will be dumped. In TCP mode: Holds the TCP &quot;port&quot; when in server mode, or &quot;hostname:port&quot; when in client mode.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -12225,7 +12556,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Remove disk from virtual drive</source>
-        <translation>Уклони диск са виртуелног драјва</translation>
+        <translation type="vanished">Уклони диск са виртуелног драјва</translation>
     </message>
     <message>
         <source>Choose a virtual floppy disk file...</source>
@@ -12286,10 +12617,6 @@ p, li { white-space: pre-wrap; }
         <translation type="vanished">Одабере број порта од SATA контролера који је одабран у дрво стоваришта. Вредност мора да буде макар један више него број порта који Вам треба.</translation>
     </message>
     <message>
-        <source>Controller: %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Image</source>
         <comment>storage image</comment>
         <translation type="obsolete">Слика</translation>
@@ -12313,14 +12640,6 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>Hard Disk</source>
         <translation type="obsolete">Тврди диск</translation>
-    </message>
-    <message>
-        <source>Choose a disk file...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Choose/Create a disk image...</source>
-        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -12822,6 +13141,13 @@ p, li { white-space: pre-wrap; }
     </message>
 </context>
 <context>
+    <name>UIMachineView</name>
+    <message>
+        <source>Holds the graphical canvas containing guest screen contents.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>UIMachineWindow</name>
     <message>
         <source> EXPERIMENTAL build %1r%2 - %3</source>
@@ -12832,7 +13158,7 @@ p, li { white-space: pre-wrap; }
     <name>UIMachineWindowNormal</name>
     <message>
         <source>Shows the currently assigned Host key.&lt;br&gt;This key, when pressed alone, toggles the keyboard and mouse capture state. It can also be used in combination with other keys to quickly perform actions from the main menu.</source>
-        <translation>Показује актуелну пречицу.&lt;br&gt;Када је типак сам стиснут. пребацује статус тастатуре и миша. Моће се исто користити са другим типкама за брзе акције са менија.</translation>
+        <translation type="vanished">Показује актуелну пречицу.&lt;br&gt;Када је типак сам стиснут. пребацује статус тастатуре и миша. Моће се исто користити са другим типкама за брзе акције са менија.</translation>
     </message>
 </context>
 <context>
@@ -12860,6 +13186,94 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>Selects maximum guest screen size policy.</source>
         <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIMedium</name>
+    <message>
+        <source>Inaccessible</source>
+        <comment>medium</comment>
+        <translation type="unfinished">Недоступно</translation>
+    </message>
+    <message>
+        <source>Empty</source>
+        <comment>medium</comment>
+        <translation type="unfinished">Празно</translation>
+    </message>
+    <message>
+        <source>Host Drive &apos;%1&apos;</source>
+        <translation type="unfinished">Хост драјв &apos;%1&apos;</translation>
+    </message>
+    <message>
+        <source>Host Drive %1 (%2)</source>
+        <translation type="unfinished">Хост драјв %1 (%2)</translation>
+    </message>
+    <message>
+        <source>&lt;p style=white-space:pre&gt;Type (Format):  %1 (%2)&lt;/p&gt;</source>
+        <comment>medium</comment>
+        <translation type="unfinished">&lt;p style=white-space:pre&gt;Тип (Формат):  %1 (%2)&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Attached to:  %1&lt;/p&gt;</source>
+        <comment>to machines</comment>
+        <translation type="unfinished">&lt;p&gt;Прикачено на:  %1&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;i&gt;Not Attached&lt;/i&gt;</source>
+        <comment>to machines</comment>
+        <translation type="unfinished">&lt;i&gt;Није прикачено&lt;/i&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;i&gt;Checking accessibility...&lt;/i&gt;</source>
+        <comment>medium</comment>
+        <translation type="unfinished">&lt;i&gt;Провера доступност...&lt;/i&gt;</translation>
+    </message>
+    <message>
+        <source>Failed to check accessibility of disk image files.</source>
+        <translation type="unfinished">Погрешна провера доступност медија.</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;No disk image file selected&lt;/b&gt;</source>
+        <translation type="unfinished">&lt;b&gt;Медијум није одабран&lt;/b&gt;</translation>
+    </message>
+    <message>
+        <source>You can also change this while the machine is running.</source>
+        <translation type="unfinished">Можете исто ово променити док машина ради.</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;No disk image files available&lt;/b&gt;</source>
+        <translation type="unfinished">&lt;b&gt;Медиј није доступан&lt;/b&gt;</translation>
+    </message>
+    <message>
+        <source>You can create or add disk image files in the virtual machine settings.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Attaching this hard disk will be performed indirectly using a newly created differencing hard disk.</source>
+        <translation type="unfinished">Привезивање овог хард диска ће бити индиректан користечи новог креираног различитог хард диска.</translation>
+    </message>
+    <message>
+        <source>Encrypted</source>
+        <comment>medium</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Checking...</source>
+        <comment>medium</comment>
+        <translation type="unfinished">Провера...</translation>
+    </message>
+    <message>
+        <source>Some of the files in this hard disk chain are inaccessible. Please use the Virtual Medium Manager to inspect these files.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>This base hard disk is indirectly attached using the following differencing hard disk:</source>
+        <translation type="unfinished">Овај базни хард диск је индиректно прикачен са овим различитим диском:</translation>
+    </message>
+    <message>
+        <source>Differencing</source>
+        <comment>medium</comment>
+        <translation type="unfinished">Разликавање</translation>
     </message>
 </context>
 <context>
@@ -12905,10 +13319,6 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished">Прикачено на:</translation>
     </message>
     <message>
-        <source>Encrypted with key:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>UUID:</source>
         <translation type="unfinished"></translation>
     </message>
@@ -12924,6 +13334,10 @@ p, li { white-space: pre-wrap; }
         <source>--</source>
         <comment>no info</comment>
         <translation type="unfinished">--</translation>
+    </message>
+    <message>
+        <source>Encryption key:</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -13181,15 +13595,23 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Show the previous item matching the search term</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Show the next item matching the search term</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Enter the search term and press Enter/Return</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Navigates to the previous item matching the search term</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Previous Match</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Navigates to the next item matching the search term</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Next Match</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -13271,6 +13693,10 @@ p, li { white-space: pre-wrap; }
         <source>Attach the selected medium to the drive</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Shows a list of all registered media</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UIMediumSizeAndPathGroupBox</name>
@@ -13302,12 +13728,24 @@ p, li { white-space: pre-wrap; }
         <source>Select the size of the virtual hard disk in megabytes. This size is the limit on the amount of file data that a virtual machine will be able to store on the hard disk.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Disk file path does not exists</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disk file path is valid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disk file name is valid</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UIMediumSizeEditor</name>
     <message>
         <source>&lt;nobr&gt;%1 (%2 B)&lt;/nobr&gt;</source>
-        <translation type="unfinished">&lt;nobr&gt;%1 (%2 Б)&lt;/nobr&gt;</translation>
+        <translation type="obsolete">&lt;nobr&gt;%1 (%2 Б)&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>Holds the size of this medium.</source>
@@ -13319,6 +13757,53 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Maximum size for this medium.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 (%2 B)</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIMediumTools</name>
+    <message>
+        <source>Please choose a virtual hard disk file</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>All virtual hard disk files (%1)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Please choose a virtual optical disk file</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>All virtual optical disk files (%1)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Please choose a virtual floppy disk file</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>All virtual floppy disk files (%1)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>All files (*)</source>
+        <translation type="unfinished">Све датотеке (*)</translation>
+    </message>
+    <message>
+        <source>Choose/Create a Disk Image...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Choose a Disk File...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove Disk From Virtual Drive</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -13731,12 +14216,12 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>Insert</source>
         <comment>additions</comment>
-        <translation type="unfinished">Монтирај</translation>
+        <translation type="obsolete">Монтирај</translation>
     </message>
     <message>
         <source>&lt;p&gt;The host key is currently defined as &lt;b&gt;%1&lt;/b&gt;.&lt;/p&gt;</source>
         <comment>additional message box paragraph</comment>
-        <translation>&lt;p&gt;Хост кључ је актуелно &lt;b&gt;%1&lt;/b&gt;.&lt;/p&gt;</translation>
+        <translation type="vanished">&lt;p&gt;Хост кључ је актуелно &lt;b&gt;%1&lt;/b&gt;.&lt;/p&gt;</translation>
     </message>
     <message>
         <source>Capture</source>
@@ -13775,12 +14260,12 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>Continue</source>
         <comment>no hard disk attached</comment>
-        <translation>Настави</translation>
+        <translation type="vanished">Настави</translation>
     </message>
     <message>
         <source>Go Back</source>
         <comment>no hard disk attached</comment>
-        <translation>Иди назад</translation>
+        <translation type="vanished">Иди назад</translation>
     </message>
     <message>
         <source>Failed to copy file &lt;b&gt;&lt;nobr&gt;%1&lt;/nobr&gt;&lt;/b&gt; to &lt;b&gt;&lt;nobr&gt;%2&lt;/nobr&gt;&lt;/b&gt; (%3).</source>
@@ -13810,7 +14295,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>&lt;p&gt;You have &lt;b&gt;clicked the mouse&lt;/b&gt; inside the Virtual Machine display or pressed the &lt;b&gt;host key&lt;/b&gt;. This will cause the Virtual Machine to &lt;b&gt;capture&lt;/b&gt; the host mouse pointer (only if the mouse pointer integration is not currently supported by the guest OS) and the keyboard, which will make them unavailable to other applications running on your host machine.&lt;/p&gt;&lt;p&gt;You can press the &lt;b&gt;host key&lt;/b&gt; at any time to &lt;b&gt;uncapture&lt;/b&gt; the keyboard and mouse (if it is captured) and return them to normal operation. The currently assigned host key is shown on the status bar at the bottom of the Virtual Machine window, next to the&amp;nbsp;&lt;img src=:/hostkey_16px.png/&gt;&amp;nbsp;icon. This icon, together with the mouse icon placed nearby, indicate the current keyboard and mouse capture state.&lt;/p&gt;</source>
-        <translation>&lt;p&gt;Или сте &lt;b&gt;кликнули миш&lt;/b&gt; у дисплеју машине или сте стиснули &lt;b&gt;хост тастер&lt;/b&gt;. То знаћи да машина &lt;b&gt;каптира&lt;/b&gt; курсор (само ако интеграција курсор нија подржана са госта) и тастатуру, што знаћи да нису више доступни за програме са хост машине.&lt;/p&gt;&lt;p&gt;Можете да стиснете &lt;b&gt;хост тастер&lt;/b&gt; да би &lt;b&gt;декаптирали&lt;/b&gt; тастатуру и миш (ако је каптирано). Актуелни хост тастер је показан на статусну траку на дно прозора виртуелне машине, поред иконе&amp;nbsp;&lt;img src=:/hostkey_16px.png/&gt;&amp;nbsp;. Та икона, као и споредна икона миша, показује статус каптирања тастатуре и миша.&lt;/p&gt;</translation>
+        <translation type="vanished">&lt;p&gt;Или сте &lt;b&gt;кликнули миш&lt;/b&gt; у дисплеју машине или сте стиснули &lt;b&gt;хост тастер&lt;/b&gt;. То знаћи да машина &lt;b&gt;каптира&lt;/b&gt; курсор (само ако интеграција курсор нија подржана са госта) и тастатуру, што знаћи да нису више доступни за програме са хост машине.&lt;/p&gt;&lt;p&gt;Можете да стиснете &lt;b&gt;хост тастер&lt;/b&gt; да би &lt;b&gt;декаптирали&lt;/b&gt; тастатуру и миш (ако је каптирано). Актуелни хост тастер је показан на статусну траку на дно прозора виртуелне машине, поред иконе&amp;nbsp;&lt;img src=:/hostkey_16px.png/&gt;&amp;nbsp;. Та икона, као и споредна икона миша, показује статус каптирања тастатуре и миша.&lt;/p&gt;</translation>
     </message>
     <message>
         <source>&lt;p&gt;You have the &lt;b&gt;Auto capture keyboard&lt;/b&gt; option turned on. This will cause the Virtual Machine to automatically &lt;b&gt;capture&lt;/b&gt; the keyboard every time the VM window is activated and make it unavailable to other applications running on your host machine: when the keyboard is captured, all keystrokes (including system ones like Alt-Tab) will be directed to the VM.&lt;/p&gt;&lt;p&gt;You can press the &lt;b&gt;host key&lt;/b&gt; at any time to &lt;b&gt;uncapture&lt;/b&gt; the keyboard and mouse (if it is captured) and return them to normal operation. The currently assigned host key is shown on the status bar at the bottom of the Virtual Machine window, next to the&amp;nbsp;&lt;img src=:/hostkey_16px.png/&gt;&amp;nbsp;icon. This icon, together with the mouse icon placed nearby, indicate the current keyboard and mouse capture state.&lt;/p&gt;</source>
@@ -14060,7 +14545,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Continue</source>
-        <translation>Настави</translation>
+        <translation type="vanished">Настави</translation>
     </message>
     <message>
         <source>&lt;p&gt;Are you sure you wish to delete the selected snapshot and saved state?&lt;/p&gt;</source>
@@ -14068,7 +14553,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Discard</source>
-        <translation type="obsolete">Одбаци</translation>
+        <translation type="unfinished">Одбаци</translation>
     </message>
     <message>
         <source>Cancel</source>
@@ -14297,7 +14782,7 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>&amp;Remove</source>
         <comment>medium</comment>
-        <translation>Уклони</translation>
+        <translation type="vanished">Уклони</translation>
     </message>
     <message>
         <source>&lt;p&gt;VT-x/AMD-V hardware acceleration is not available on your system. Your 64-bit guest will fail to detect a 64-bit CPU and will not be able to boot.</source>
@@ -14445,7 +14930,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>&amp;Remove</source>
-        <translation>Уклони</translation>
+        <translation type="vanished">Уклони</translation>
     </message>
     <message>
         <source>The current port forwarding rules are not valid. None of the host or guest port values may be set to zero.</source>
@@ -14598,11 +15083,11 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>VirtualBox is not currently allowed to access USB devices.  You can change this by adding your user to the &apos;vboxusers&apos; group.  Please see the user manual for a more detailed explanation</source>
-        <translation>VirtualBox нема приступа USB уређајима. Можете то да промените тако што додате корисник у групи &apos;vboxusers&apos;.  Видети приручник за више детаље</translation>
+        <translation type="vanished">VirtualBox нема приступа USB уређајима. Можете то да промените тако што додате корисник у групи &apos;vboxusers&apos;.  Видети приручник за више детаље</translation>
     </message>
     <message>
         <source>VirtualBox is not currently allowed to access USB devices.  You can change this by allowing your user to access the &apos;usbfs&apos; folder and files.  Please see the user manual for a more detailed explanation</source>
-        <translation>VirtualBox нема приступа USB уређајима. Можете то да промените тако што дозволите корисник да приступи фасцикли &apos;usbfs&apos;.  Видети приручник за више детаље</translation>
+        <translation type="vanished">VirtualBox нема приступа USB уређајима. Можете то да промените тако што дозволите корисник да приступи фасцикли &apos;usbfs&apos;.  Видети приручник за више детаље</translation>
     </message>
     <message>
         <source>The USB Proxy Service has not yet been ported to this host</source>
@@ -14702,11 +15187,11 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>&lt;p&gt;The VirtualBox User Manual has been successfully downloaded from &lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;&lt;/nobr&gt; but can&apos;t be saved locally as &lt;nobr&gt;&lt;b&gt;%2&lt;/b&gt;.&lt;/nobr&gt;&lt;/p&gt;&lt;p&gt;Please choose another location for that file.&lt;/p&gt;</source>
-        <translation type="unfinished">&lt;p&gt;Приручник је успешно преузет са &lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%2&lt;/a&gt;&lt;/nobr&gt; али не може да се локално сачува као &lt;nobr&gt;&lt;b&gt;%3&lt;/b&gt;.&lt;/nobr&gt;&lt;/p&gt;&lt;p&gt;Одаберите други смештај за датотеку.&lt;/p&gt; {1&quot;?} {1&lt;?} {2&lt;?}</translation>
+        <translation type="obsolete">&lt;p&gt;Приручник је успешно преузет са &lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%2&lt;/a&gt;&lt;/nobr&gt; али не може да се локално сачува као &lt;nobr&gt;&lt;b&gt;%3&lt;/b&gt;.&lt;/nobr&gt;&lt;/p&gt;&lt;p&gt;Одаберите други смештај за датотеку.&lt;/p&gt; {1&quot;?} {1&lt;?} {2&lt;?}</translation>
     </message>
     <message>
         <source>&lt;p&gt;The VirtualBox User Manual has been successfully downloaded from &lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;&lt;/nobr&gt; and saved locally as &lt;nobr&gt;&lt;b&gt;%2&lt;/b&gt;.&lt;/nobr&gt;&lt;/p&gt;</source>
-        <translation type="unfinished">&lt;p&gt;Приручник је успешно преузет са &lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%2&lt;/a&gt;&lt;/nobr&gt; и локално сачувано као &lt;nobr&gt;&lt;b&gt;%3&lt;/b&gt;.&lt;/nobr&gt;&lt;/p&gt; {1&quot;?} {1&lt;?} {2&lt;?}</translation>
+        <translation type="obsolete">&lt;p&gt;Приручник је успешно преузет са &lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%2&lt;/a&gt;&lt;/nobr&gt; и локално сачувано као &lt;nobr&gt;&lt;b&gt;%3&lt;/b&gt;.&lt;/nobr&gt;&lt;/p&gt; {1&quot;?} {1&lt;?} {2&lt;?}</translation>
     </message>
     <message>
         <source>Close</source>
@@ -15031,10 +15516,6 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Failed to assign cloud profile parameter.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Failed to create cloud client.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -15099,19 +15580,7 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&lt;p&gt;The &lt;b&gt;VirtualBox Guest Additions&lt;/b&gt; disk image file has been successfully downloaded from &lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;&lt;/nobr&gt; and saved locally as &lt;nobr&gt;&lt;b&gt;%2&lt;/b&gt;.&lt;/nobr&gt;&lt;/p&gt;&lt;p&gt;Do you wish to register this disk image file and insert it into the virtual optical drive?&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>&lt;p&gt;The &lt;b&gt;VirtualBox Guest Additions&lt;/b&gt; disk image file has been successfully downloaded from &lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;&lt;/nobr&gt; and saved locally as &lt;nobr&gt;&lt;b&gt;%2&lt;/b&gt;, &lt;/nobr&gt;but the SHA-256 checksum verification failed.&lt;/p&gt;&lt;p&gt;Please do the download, installation and verification manually.&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&lt;p&gt;Could not find the &lt;b&gt;VirtualBox User Manual&lt;/b&gt; &lt;nobr&gt;&lt;b&gt;%1&lt;/b&gt;.&lt;/nobr&gt;&lt;/p&gt;&lt;p&gt;Do you wish to download this file from the Internet?&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&lt;p&gt;Are you sure you want to download the &lt;b&gt;VirtualBox User Manual&lt;/b&gt; from &lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;&lt;/nobr&gt; (size %2 bytes)?&lt;/p&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -15322,10 +15791,6 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>User manual downloaded ...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Can&apos;t create machine folder ...</source>
         <translation type="unfinished"></translation>
     </message>
@@ -15530,10 +15995,6 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&lt;p&gt;You have the &lt;b&gt;Auto capture keyboard&lt;/b&gt; option turned on. This will cause the Virtual Machine to automatically &lt;b&gt;capture&lt;/b&gt; the keyboard every time the VM window is activated and make it unavailable to other applications running on your host machine: when the keyboard is captured, all keystrokes (including system ones like Alt-Tab) will be directed to the VM.&lt;/p&gt;&lt;p&gt;You can press the &lt;b&gt;host key&lt;/b&gt; at any time to &lt;b&gt;uncapture&lt;/b&gt; the keyboard and mouse (if it is captured) and return them to normal operation. The currently assigned host key is shown on the status bar at the bottom of the Virtual Machine window. This icon, together with the mouse icon placed nearby, indicate the current keyboard and mouse capture state.&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Mouse integration ...</source>
         <translation type="unfinished"></translation>
     </message>
@@ -15707,10 +16168,6 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Failed to change NAT network parameter.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Failed to assign update agent parameter.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -16040,10 +16497,6 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Failed to assign VSD parameter.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Can&apos;t get Extension Pack Manager ...</source>
         <translation type="unfinished"></translation>
     </message>
@@ -16084,7 +16537,257 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&lt;p&gt;Are you going to restore default secure boot keys.&lt;/p&gt;&lt;p&gt;If you proceed your current keys will be rewritten. You may not be able to boot affected VM anymore.&lt;/p&gt;</source>
+        <source>&lt;p&gt;You are going to restore default secure boot keys.&lt;/p&gt;&lt;p&gt;If you proceed your current keys will be rewritten. You may not be able to boot affected VM anymore.&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;To open a VISO file you will have to discard the current content.&lt;/p&gt;&lt;p&gt;Are you sure you want to proceed?&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;The &lt;b&gt;VirtualBox Guest Additions&lt;/b&gt; disk image file has been successfully downloaded from &lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;&lt;/nobr&gt; and saved locally as &lt;nobr&gt;&lt;b&gt;%2&lt;/b&gt;.&lt;/nobr&gt;&lt;/p&gt;&lt;p&gt;Do you wish to continue with Guest Additions installation?&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Continue</source>
+        <comment>additions</comment>
+        <translation type="obsolete">Настави</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Could not find the &lt;b&gt;VirtualBox User Guide&lt;/b&gt; &lt;nobr&gt;&lt;b&gt;%1&lt;/b&gt;.&lt;/nobr&gt;&lt;/p&gt;&lt;p&gt;Do you wish to download this file from the Internet?&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Are you sure you want to download the &lt;b&gt;VirtualBox User Guide&lt;/b&gt; from &lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;&lt;/nobr&gt; (size %2 bytes)?&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;The VirtualBox User Guide has been successfully downloaded from &lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;&lt;/nobr&gt; but can&apos;t be saved locally as &lt;nobr&gt;&lt;b&gt;%2&lt;/b&gt;.&lt;/nobr&gt;&lt;/p&gt;&lt;p&gt;Please choose another location for that file.&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>VirtualBox is not currently allowed to access USB devices.  You can change this by adding your user to the &apos;vboxusers&apos; group.  Please see the user guide for a more detailed explanation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>VirtualBox is not currently allowed to access USB devices.  You can change this by allowing your user to access the &apos;usbfs&apos; folder and files.  Please see the user guide for a more detailed explanation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>User guide downloaded ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;The VirtualBox User Guide has been successfully downloaded from &lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;&lt;/nobr&gt; and saved locally as &lt;nobr&gt;&lt;b&gt;%2&lt;/b&gt;.&lt;/nobr&gt;&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Platform failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire platform parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Platform properties failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire platform properties parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>System properties failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire system properties parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Storage controller failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire storage controller parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Medium attachment failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire medium attachment parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Debugger failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire machine debugger parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire graphics adapter parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Audio settings failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire audio settings parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire audio adapter parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire network adapter parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Console failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire console parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Guest failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire guest parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Guest OS type failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire guest OS type parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Mouse failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire mouse parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Emulated USB failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire emulated USB parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Recording settings failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire recording settings parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>VRDE server failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire VRDE server parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>VRDE server info failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire VRDE server info parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to change display parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Can&apos;t reset machine ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to reset the virtual machine &lt;b&gt;%1&lt;/b&gt;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Continue</source>
+        <comment>agree with additions installation</comment>
+        <translation type="unfinished">Настави</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;You have &lt;b&gt;clicked the mouse&lt;/b&gt; inside the Virtual Machine display or pressed the &lt;b&gt;host key combo&lt;/b&gt;. This will cause the Virtual Machine to &lt;b&gt;capture&lt;/b&gt; the host mouse pointer (only if the mouse pointer integration is not currently supported by the guest OS) and the keyboard, which will make them unavailable to other applications running on your host machine.&lt;/p&gt;&lt;p&gt;You can press the &lt;b&gt;host key combo&lt;/b&gt; at any time to &lt;b&gt;uncapture&lt;/b&gt; the keyboard and mouse (if it is captured) and return them to normal operation. The currently assigned host key combo is shown on the status bar at the bottom of the Virtual Machine window, next to the&amp;nbsp;&lt;img src=:/hostkey_16px.png/&gt;&amp;nbsp;icon. This icon, together with the mouse icon placed nearby, indicate the current keyboard and mouse capture state.&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;The host key combo is currently defined as &lt;b&gt;%1&lt;/b&gt;.&lt;/p&gt;</source>
+        <comment>additional message box paragraph</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Continue</source>
+        <comment>agree to create VM with no hard disk attached</comment>
+        <translation type="unfinished">Настави</translation>
+    </message>
+    <message>
+        <source>Go Back</source>
+        <comment>reject to create VM with no hard disk attached</comment>
+        <translation type="unfinished">Иди назад</translation>
+    </message>
+    <message>
+        <source>Continue</source>
+        <comment>agree to export VMs without saved-state</comment>
+        <translation type="unfinished">Настави</translation>
+    </message>
+    <message>
+        <source>Shared clipboard error ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;You have the &lt;b&gt;Auto capture keyboard&lt;/b&gt; option turned on. This will cause the Virtual Machine to automatically &lt;b&gt;capture&lt;/b&gt; the keyboard every time the VM window is activated and make it unavailable to other applications running on your host machine: when the keyboard is captured, all keystrokes (including system ones like Alt-Tab) will be directed to the VM.&lt;/p&gt;&lt;p&gt;You can press the &lt;b&gt;host key combo&lt;/b&gt; at any time to &lt;b&gt;uncapture&lt;/b&gt; the keyboard and mouse (if it is captured) and return them to normal operation. The currently assigned host key combo is shown on the status bar at the bottom of the Virtual Machine window. This icon, together with the mouse icon placed nearby, indicate the current keyboard and mouse capture state.&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to change machine debugger parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to change cloud profile parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to change update agent parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to change keyboard parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to change mouse parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to change VSD parameter.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -16283,7 +16986,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Selects the operating system family that you plan to install into this virtual machine.</source>
-        <translation type="unfinished">Показује оперативни систем који планирате да инсталирате у овој виртуелној машини.</translation>
+        <translation type="obsolete">Показује оперативни систем који планирате да инсталирате у овој виртуелној машини.</translation>
     </message>
     <message>
         <source>&amp;Version:</source>
@@ -16291,11 +16994,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Selects the operating system type that you plan to install into this virtual machine (called a guest operating system).</source>
-        <translation type="unfinished">Показује тип система који планирате да инсталирате на машину (позвано гост систем).</translation>
-    </message>
-    <message>
-        <source>Invalid name</source>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">Показује тип система који планирате да инсталирате на машину (позвано гост систем).</translation>
     </message>
     <message>
         <source>&amp;Folder:</source>
@@ -16321,6 +17020,34 @@ p, li { white-space: pre-wrap; }
         <source>Selects an ISO image to be attached to the virtual machine or used in unattended install.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Invalid guest machine name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Guest machine name is valid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Subtype:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selects the operating system edition when possible.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selects the operating system type that you plan to install into this virtual machine.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selects the operating system subtype that you plan to install into this virtual machine.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selects the operating system version that you plan to install into this virtual machine (called a guest operating system).</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UINativeWizard</name>
@@ -16330,22 +17057,6 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Open corresponding Help topic.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&amp;Expert Mode</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Switch to the Expert Mode, a one-page dialog for experienced users.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&amp;Guided Mode</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Switch to the Guided Mode, a step-by-step dialog with detailed explanations.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -16445,11 +17156,7 @@ p, li { white-space: pre-wrap; }
     <name>UINetworkFeaturesEditor</name>
     <message>
         <source>A&amp;dvanced</source>
-        <translation type="unfinished">Напредно</translation>
-    </message>
-    <message>
-        <source>Shows additional network adapter options.</source>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">Напредно</translation>
     </message>
     <message>
         <source>Adapter &amp;Type:</source>
@@ -16956,14 +17663,13 @@ p, li { white-space: pre-wrap; }
         <source>Registered host-only networks</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Select Network ID</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UINetworkReplyPrivate</name>
-    <message>
-        <source>%1: %2</source>
-        <comment>Context description: Error description</comment>
-        <translation type="unfinished"></translation>
-    </message>
     <message>
         <source>Unable to initialize HTTP library</source>
         <translation type="unfinished"></translation>
@@ -17740,7 +18446,7 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Downloading User Manual ...</source>
+        <source>Downloading User Guide ...</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -17979,14 +18685,6 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Creating Host-only Network Interface ...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Removing Host-only Network Interface ...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Set VSD form value ...</source>
         <translation type="unfinished"></translation>
     </message>
@@ -18000,6 +18698,37 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Checking for new version ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cloning cloud VM ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Resetting cloud VM ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Creating host-only network interface ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Removing host-only network interface ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIPaneContainer</name>
+    <message>
+        <source>Detach</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open the tool in separate window</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open in Separate Window</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -18465,6 +19194,65 @@ p, li { white-space: pre-wrap; }
     </message>
 </context>
 <context>
+    <name>UISerialSettingsEditor</name>
+    <message>
+        <source>&amp;Enable Serial Port</source>
+        <translation type="unfinished">Омогу&amp;ћи серијски порт</translation>
+    </message>
+    <message>
+        <source>When checked, enables the given serial port of the virtual machine.</source>
+        <translation type="unfinished">Када одабрано, упали серијски порт машине.</translation>
+    </message>
+    <message>
+        <source>Port &amp;Number:</source>
+        <translation type="unfinished">Порт број:</translation>
+    </message>
+    <message>
+        <source>Selects the serial port number. You can choose one of the standard serial ports or select User-defined and specify port parameters manually.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;IRQ:</source>
+        <translation type="unfinished">IRQ:</translation>
+    </message>
+    <message>
+        <source>Holds the IRQ number of this serial port. This should be a whole number between &apos;0&apos; and &apos;255&apos;. Values greater than &apos;15&apos; may only be used if the I/O APIC setting is enabled for this virtual machine.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>I/O Po&amp;rt:</source>
+        <translation type="unfinished">I/O Порт:</translation>
+    </message>
+    <message>
+        <source>Holds the base I/O port address of this serial port. Valid values are integer numbers in range from &apos;0&apos; to &apos;0xFFFF&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Port &amp;Mode:</source>
+        <translation type="unfinished">Мод порта:</translation>
+    </message>
+    <message>
+        <source>Selects the working mode of this serial port. If you select Disconnected, the guest OS will detect the serial port but will not be able to operate it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Connect to existing pipe/socket</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>When checked, the virtual machine will assume that the pipe or socket specified in the Path/Address field exists and try to use it. Otherwise, the pipe or socket will be created by the virtual machine when it starts.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Path/Address:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>In Host Pipe mode: Holds the path to the serial port&apos;s pipe on the host. Examples: &quot;\\.\pipe\myvbox&quot; or &quot;/tmp/myvbox&quot;, for Windows and UNIX-like systems respectively. In Host Device mode: Holds the host serial device name. Examples: &quot;COM1&quot; or &quot;/dev/ttyS0&quot;. In Raw File mode: Holds the file-path on the host system, where the serial output will be dumped. In TCP mode: Holds the TCP &quot;port&quot; when in server mode, or &quot;hostname:port&quot; when in client mode.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>UISession</name>
     <message>
         <source>Install</source>
@@ -18480,10 +19268,18 @@ p, li { white-space: pre-wrap; }
     </message>
 </context>
 <context>
+    <name>UISessionTextStatusBarIndicator</name>
+    <message>
+        <source>%1 status-bar indicator</source>
+        <comment>like &apos;hard-disk status-bar indicator&apos;</comment>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>UISettingsDialog</name>
     <message>
         <source>&lt;i&gt;Select a settings category from the list on the left-hand side and move the mouse over a settings item to get more information.&lt;/i&gt;</source>
-        <translation>&lt;i&gt;Одабрати категорију са леве стране, и померати миш преко поставке да би добили више информације.&lt;/i&gt;</translation>
+        <translation type="vanished">&lt;i&gt;Одабрати категорију са леве стране, и померати миш преко поставке да би добили више информације.&lt;/i&gt;</translation>
     </message>
     <message>
         <source>On the &lt;b&gt;%1&lt;/b&gt; page, %2</source>
@@ -18491,7 +19287,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Invalid settings detected</source>
-        <translation>Нађени погрешни параметри</translation>
+        <translation type="vanished">Нађени погрешни параметри</translation>
     </message>
     <message>
         <source>Non-optimal settings detected</source>
@@ -18501,32 +19297,24 @@ p, li { white-space: pre-wrap; }
         <source>Settings</source>
         <translation type="obsolete">Параметри</translation>
     </message>
-    <message>
-        <source>&lt;b&gt;%1&lt;/b&gt; page:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&lt;b&gt;%1: %2&lt;/b&gt; page:</source>
-        <translation type="unfinished"></translation>
-    </message>
 </context>
 <context>
     <name>UISettingsDialogGlobal</name>
     <message>
         <source>General</source>
-        <translation>Опште</translation>
+        <translation type="vanished">Опште</translation>
     </message>
     <message>
         <source>Input</source>
-        <translation>Унос</translation>
+        <translation type="vanished">Унос</translation>
     </message>
     <message>
         <source>Update</source>
-        <translation>Ажурирање</translation>
+        <translation type="vanished">Ажурирање</translation>
     </message>
     <message>
         <source>Language</source>
-        <translation>Језик</translation>
+        <translation type="vanished">Језик</translation>
     </message>
     <message>
         <source>USB</source>
@@ -18542,62 +19330,50 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>VirtualBox - %1</source>
-        <translation>VirtualBox - %1</translation>
+        <translation type="vanished">VirtualBox - %1</translation>
     </message>
     <message>
         <source>Proxy</source>
-        <translation>Прокси</translation>
+        <translation type="vanished">Прокси</translation>
     </message>
     <message>
         <source>Display</source>
-        <translation type="unfinished">Дисплеј</translation>
-    </message>
-    <message>
-        <source>Allows to navigate through Global Property categories</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Preferences</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Interface</source>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">Дисплеј</translation>
     </message>
 </context>
 <context>
     <name>UISettingsDialogMachine</name>
     <message>
         <source>General</source>
-        <translation>Опште</translation>
+        <translation type="vanished">Опште</translation>
     </message>
     <message>
         <source>System</source>
-        <translation>Систем</translation>
+        <translation type="vanished">Систем</translation>
     </message>
     <message>
         <source>Display</source>
-        <translation>Дисплеј</translation>
+        <translation type="vanished">Дисплеј</translation>
     </message>
     <message>
         <source>Storage</source>
-        <translation>Стовариште</translation>
+        <translation type="vanished">Стовариште</translation>
     </message>
     <message>
         <source>Audio</source>
-        <translation>Аудио</translation>
+        <translation type="vanished">Аудио</translation>
     </message>
     <message>
         <source>Network</source>
-        <translation>Мрежа</translation>
+        <translation type="vanished">Мрежа</translation>
     </message>
     <message>
         <source>Ports</source>
-        <translation>Портови</translation>
+        <translation type="vanished">Портови</translation>
     </message>
     <message>
         <source>Serial Ports</source>
-        <translation>Серијски портови</translation>
+        <translation type="vanished">Серијски портови</translation>
     </message>
     <message>
         <source>Parallel Ports</source>
@@ -18605,15 +19381,15 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>USB</source>
-        <translation>USB</translation>
+        <translation type="vanished">USB</translation>
     </message>
     <message>
         <source>Shared Folders</source>
-        <translation>Дељене фасцикле</translation>
+        <translation type="vanished">Дељене фасцикле</translation>
     </message>
     <message>
         <source>%1 - %2</source>
-        <translation>%1 - %2</translation>
+        <translation type="vanished">%1 - %2</translation>
     </message>
     <message>
         <source>you have selected a 64-bit guest OS type for this VM. As such guests require hardware virtualization (VT-x/AMD-V), this feature will be enabled automatically.</source>
@@ -18625,14 +19401,17 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Settings</source>
-        <translation type="unfinished">Параметри</translation>
+        <translation type="obsolete">Параметри</translation>
     </message>
+</context>
+<context>
+    <name>UISettingsPageValidator</name>
     <message>
-        <source>Allows to navigate through VM Settings categories</source>
+        <source>&lt;b&gt;%1&lt;/b&gt; page:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>User Interface</source>
+        <source>&lt;b&gt;%1: %2&lt;/b&gt; page:</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -18727,10 +19506,6 @@ p, li { white-space: pre-wrap; }
 </context>
 <context>
     <name>UISharedFoldersEditor</name>
-    <message>
-        <source>Shared &amp;Folders</source>
-        <translation type="unfinished"></translation>
-    </message>
     <message>
         <source>Lists all shared folders accessible to this machine. Use &apos;net use x: \\vboxsvr\share&apos; to access a shared folder named &apos;share&apos; from a DOS-like OS, or &apos;mount -t vboxsf share mount_point&apos; to access it from a Linux OS. This feature requires Guest Additions.</source>
         <translation type="unfinished"></translation>
@@ -19311,6 +20086,10 @@ p, li { white-space: pre-wrap; }
         <source>Deleting the file %1 has failed</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Close</source>
+        <translation type="unfinished">Затвори</translation>
+    </message>
 </context>
 <context>
     <name>UIStatusBarEditorWidget</name>
@@ -19364,10 +20143,6 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>&lt;nobr&gt;Adds&amp;nbsp;floppy&amp;nbsp;drive.&lt;/nobr&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&amp;Storage Devices</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -19460,11 +20235,11 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Virtual Size:</source>
-        <translation type="unfinished">Виртуелне величина:</translation>
+        <translation type="obsolete">Виртуелне величина:</translation>
     </message>
     <message>
         <source>Actual Size:</source>
-        <translation type="unfinished">Актуална величина:</translation>
+        <translation type="obsolete">Актуална величина:</translation>
     </message>
     <message>
         <source>Size:</source>
@@ -19472,7 +20247,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Details:</source>
-        <translation type="unfinished">Детаљи:</translation>
+        <translation type="obsolete">Детаљи:</translation>
     </message>
     <message>
         <source>Location:</source>
@@ -19481,10 +20256,6 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>Attached to:</source>
         <translation type="unfinished">Прикачено на:</translation>
-    </message>
-    <message>
-        <source>Encrypted with key:</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Lists all storage controllers for this machine and the virtual images and host drives attached to them.</source>
@@ -19607,19 +20378,43 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Choose a disk file...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Choose/Create a Virtual Optical Disk...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Remove Disk from Virtual Drive</source>
+        <source>Choose/Create a Virtual Floppy Disk...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Choose/Create a Virtual Floppy Disk...</source>
+        <source>Remove disk from virtual drive</source>
+        <translation type="obsolete">Уклони диск са виртуелног драјва</translation>
+    </message>
+    <message>
+        <source>&amp;Devices</source>
+        <translation type="unfinished">&amp;Уређаји</translation>
+    </message>
+    <message>
+        <source>Encryption key:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Virtual size:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Actual size:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Storage details:</source>
+        <translation type="unfinished">Детаљи стоваришта:</translation>
+    </message>
+    <message>
+        <source>Choose a Disk File...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove Disk From Virtual Drive</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -19977,56 +20772,28 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished">Продавац:</translation>
     </message>
     <message>
-        <source>Holds the vendor ID filter. The &lt;i&gt;exact match&lt;/i&gt; string format is &lt;tt&gt;XXXX&lt;/tt&gt; where &lt;tt&gt;X&lt;/tt&gt; is a hexadecimal digit. An empty string will match any value.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>&amp;Product ID:</source>
         <translation type="unfinished">Производ:</translation>
-    </message>
-    <message>
-        <source>Holds the product ID filter. The &lt;i&gt;exact match&lt;/i&gt; string format is &lt;tt&gt;XXXX&lt;/tt&gt; where &lt;tt&gt;X&lt;/tt&gt; is a hexadecimal digit. An empty string will match any value.</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>&amp;Revision:</source>
         <translation type="unfinished">Ревизија:</translation>
     </message>
     <message>
-        <source>Holds the revision number filter. The &lt;i&gt;exact match&lt;/i&gt; string format is &lt;tt&gt;IIFF&lt;/tt&gt; where &lt;tt&gt;I&lt;/tt&gt; is a decimal digit of the integer part and &lt;tt&gt;F&lt;/tt&gt; is a decimal digit of the fractional part. An empty string will match any value.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>&amp;Manufacturer:</source>
         <translation type="unfinished">Произвођач:</translation>
-    </message>
-    <message>
-        <source>Holds the manufacturer filter as an &lt;i&gt;exact match&lt;/i&gt; string. An empty string will match any value.</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Pro&amp;duct:</source>
         <translation type="unfinished">Производ:</translation>
     </message>
     <message>
-        <source>Holds the product name filter as an &lt;i&gt;exact match&lt;/i&gt; string. An empty string will match any value.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>&amp;Serial No.:</source>
         <translation type="unfinished">Серијски бр.:</translation>
     </message>
     <message>
-        <source>Holds the serial number filter as an &lt;i&gt;exact match&lt;/i&gt; string. An empty string will match any value.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Por&amp;t:</source>
         <translation type="unfinished">Порт:</translation>
-    </message>
-    <message>
-        <source>Holds the host USB port filter as an &lt;i&gt;exact match&lt;/i&gt; string. An empty string will match any value.</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>R&amp;emote:</source>
@@ -20034,6 +20801,34 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Holds whether this filter applies to USB devices attached locally to the host computer (No), to a VRDP client&apos;s computer (Yes), or both (Any).</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Holds the vendor ID filter. The exact match string format is &apos;XXXX&apos; where &apos;X&apos; is a hexadecimal digit. An empty string will match any value.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Holds the product ID filter. The exact match string format is &apos;XXXX&apos; where &apos;X&apos; is a hexadecimal digit. An empty string will match any value.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Holds the revision number filter. The exact match string format is &apos;IIFF&apos; where &apos;I&apos; is a decimal digit of the integer part and &apos;F&apos; is a decimal digit of the fractional part. An empty string will match any value.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Holds the manufacturer filter as an exact match string. An empty string will match any value.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Holds the product name filter as an exact match string. An empty string will match any value.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Holds the serial number filter as an exact match string. An empty string will match any value.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Holds the host USB port filter as an exact match string. An empty string will match any value.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -20176,6 +20971,74 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>When checked, enables the virtual USB controller of this machine.</source>
         <translation type="unfinished">Ако одабрано. омогући виртуелни USB контролер ове машине.</translation>
+    </message>
+</context>
+<context>
+    <name>UIUSBTools</name>
+    <message>
+        <source>Unknown device</source>
+        <comment>USB device details</comment>
+        <translation type="unfinished">Непознат уређај</translation>
+    </message>
+    <message>
+        <source>Unknown device %1:%2</source>
+        <comment>USB device details</comment>
+        <translation type="unfinished">Непознат уређај %1:%2</translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;Vendor ID: %1&lt;/nobr&gt;&lt;br&gt;&lt;nobr&gt;Product ID: %2&lt;/nobr&gt;&lt;br&gt;&lt;nobr&gt;Revision: %3&lt;/nobr&gt;</source>
+        <comment>USB device tooltip</comment>
+        <translation type="unfinished">&lt;nobr&gt;Произвођач: %1&lt;/nobr&gt;&lt;br&gt;&lt;nobr&gt;Производ: %2&lt;/nobr&gt;&lt;br&gt;&lt;nobr&gt;Ревизија: %3&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;br&gt;&lt;nobr&gt;Serial No. %1&lt;/nobr&gt;</source>
+        <comment>USB device tooltip</comment>
+        <translation type="unfinished">&lt;br&gt;&lt;nobr&gt;Сериал. %1&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;br&gt;&lt;nobr&gt;State: %1&lt;/nobr&gt;</source>
+        <comment>USB device tooltip</comment>
+        <translation type="unfinished">&lt;br&gt;&lt;nobr&gt;Статус: %1&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;Vendor ID: %1&lt;/nobr&gt;</source>
+        <comment>USB filter tooltip</comment>
+        <translation type="unfinished">&lt;nobr&gt; Продавач: %1&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;Product ID: %2&lt;/nobr&gt;</source>
+        <comment>USB filter tooltip</comment>
+        <translation type="unfinished">&lt;nobr&gt;Производ: %2&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;Revision: %3&lt;/nobr&gt;</source>
+        <comment>USB filter tooltip</comment>
+        <translation type="unfinished">&lt;nobr&gt;Ревизија: %3&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;Product: %4&lt;/nobr&gt;</source>
+        <comment>USB filter tooltip</comment>
+        <translation type="unfinished">&lt;nobr&gt;Производ: %4&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;Manufacturer: %5&lt;/nobr&gt;</source>
+        <comment>USB filter tooltip</comment>
+        <translation type="unfinished">&lt;nobr&gt;Произвођач: %5&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;Serial No.: %1&lt;/nobr&gt;</source>
+        <comment>USB filter tooltip</comment>
+        <translation type="unfinished">&lt;nobr&gt;Серијал: %1&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;Port: %1&lt;/nobr&gt;</source>
+        <comment>USB filter tooltip</comment>
+        <translation type="unfinished">&lt;nobr&gt;Порт: %1&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;State: %1&lt;/nobr&gt;</source>
+        <comment>USB filter tooltip</comment>
+        <translation type="unfinished">&lt;nobr&gt;Статус: %1&lt;/nobr&gt;</translation>
     </message>
 </context>
 <context>
@@ -20327,10 +21190,6 @@ p, li { white-space: pre-wrap; }
 <context>
     <name>UIUserNamePasswordEditor</name>
     <message>
-        <source>Invalid username</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Pass&amp;word</source>
         <translation type="unfinished"></translation>
     </message>
@@ -20356,6 +21215,33 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Invalid password pair</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Username is valid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Username cannot be an empty string</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIVMActivityMonitorPaneContainer</name>
+    <message>
+        <source>Preferences</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Data Series 1 Color</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Data Series 2 Color</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Reset to Defaults</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -20454,7 +21340,15 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>List all virtual machines</source>
+        <source>Lists all currently active virtual machines.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>List All Virtual Machines</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show Cloud Virtual Machines</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -20713,10 +21607,6 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Disk IO Rate</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Write Rate</source>
         <translation type="unfinished"></translation>
     </message>
@@ -20890,11 +21780,37 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished">Извоз</translation>
     </message>
     <message>
-        <source>Sec.</source>
+        <source>Export activity data of the machine &quot;%1&quot;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Export activity data of the machine &quot;%1&quot;</source>
+        <source>Displays the configuration details of the guest system</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Displays the runtime information of the guest system</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Change 1st Dataseries&apos; Color</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Change 2nd Dataseries&apos; Color</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disk IO</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Sec.</source>
+        <comment>short from seconds</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Min.</source>
+        <comment>short from minutes</comment>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -21131,10 +22047,6 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Close this machine&apos;s logs</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Select machines to show their log</source>
         <translation type="unfinished"></translation>
     </message>
@@ -21144,6 +22056,34 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>%1 - Log Viewer</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Embed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Embed to manager window</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Embed to Manager Window</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Find</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Filter</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Bookmarks</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Preferences</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -21233,6 +22173,14 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>When checked, multiple simultaneous connections to the VM are permitted.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Security Method:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selects the VRDP security method.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -21429,14 +22377,6 @@ p, li { white-space: pre-wrap; }
 <context>
     <name>UIVisoCreatorWidget</name>
     <message>
-        <source>Click to show/hide the tree view.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Shows the current location.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Name</source>
         <translation type="unfinished">Име</translation>
     </message>
@@ -21461,19 +22401,7 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>ISO Path</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Host File System</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>VISO Content</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>C&amp;reate</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -21493,15 +22421,7 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Remove current option.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Holds the name of the VISO medium.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Holds options for VISO creation.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -21514,6 +22434,54 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>VISO Creator</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Yes</source>
+        <translation type="obsolete">Да</translation>
+    </message>
+    <message>
+        <source>No</source>
+        <translation type="obsolete">Не</translation>
+    </message>
+    <message>
+        <source>Has Removed Child</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>VISO Browser</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Child/children removed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Host Browser</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The list of custom options delimited with &apos;;&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Dialog Settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select a VISO file to load</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select a file to save VISO content to</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Save and Close</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>VISO Options</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -21534,6 +22502,18 @@ p, li { white-space: pre-wrap; }
         <source>&lt;h3&gt;Welcome to VirtualBox!&lt;/h3&gt;&lt;p&gt;The left part of application window contains global tools and lists all virtual machines and virtual machine groups on your computer. You can import, add and create new VMs using corresponding toolbar buttons. You can popup a tools of currently selected element using corresponding element button.&lt;/p&gt;&lt;p&gt;You can press the &lt;b&gt;%1&lt;/b&gt; key to get instant help, or visit &lt;a href=https://www.virtualbox.org&gt;www.virtualbox.org&lt;/a&gt; for more information and latest news.&lt;/p&gt;</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>&lt;h3&gt;Please choose Experience Mode!&lt;/h3&gt;By default, the VirtualBox GUI is hiding some options, tools and wizards. &lt;p&gt;The &lt;b&gt;Basic Mode&lt;/b&gt; is intended for those users who are not interested in advanced functionality and prefer a simpler, cleaner interface.&lt;/p&gt;&lt;p&gt;The &lt;b&gt;Expert Mode&lt;/b&gt; is intended for experienced users who wish to utilize all VirtualBox functionality.&lt;/p&gt;&lt;p&gt;You can choose whether you are a beginner or experienced user by selecting required option at the right. This choice can always be changed in Global Preferences or Machine Settings windows.&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Basic Mode</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Expert Mode</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UIWizardAddCloudVM</name>
@@ -21543,19 +22523,11 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Location</source>
-        <translation type="unfinished">Смештај</translation>
+        <translation type="obsolete">Смештај</translation>
     </message>
     <message>
         <source>Source</source>
-        <translation type="unfinished">Извор</translation>
-    </message>
-    <message>
-        <source>Open Cloud Profile Manager...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Add VM from cloud service provider.</source>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">Извор</translation>
     </message>
     <message>
         <source>Source to add from</source>
@@ -21566,19 +22538,39 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&amp;Source:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&amp;Profile:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>&amp;Instances:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Please choose one of cloud service profiles you have registered to add virtual machine from.  Existing instance list will be updated.  To continue, select at least one instance to add virtual machine on the basis of it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Provider:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selects cloud service provider.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>P&amp;rofile:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selects cloud profile.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cloud Profile Manager</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Opens cloud profile manager...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Lists all the cloud VM instances.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -21606,53 +22598,13 @@ p, li { white-space: pre-wrap; }
         <translation type="obsolete">%1_копија</translation>
     </message>
     <message>
-        <source>Storage on physical hard disk</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Please choose whether the new virtual disk image file should grow as it is used (dynamically allocated) or if it should be created at its maximum size (fixed size).</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&lt;p&gt;A &lt;b&gt;dynamically allocated&lt;/b&gt; disk image file will only use space on your physical hard disk as it fills up (up to a maximum &lt;b&gt;fixed size&lt;/b&gt;), although it will not shrink again automatically when space on it is freed.&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&lt;p&gt;A &lt;b&gt;fixed size&lt;/b&gt; disk image file may take longer to create on some systems but is often faster to use.&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&lt;p&gt;You can also choose to &lt;b&gt;split&lt;/b&gt; the disk image file into several files of up to two gigabytes each. This is mainly useful if you wish to store the virtual machine on removable USB devices or old systems, some of which cannot handle very large files.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>%1_copy</source>
         <comment>copied virtual disk image name</comment>
         <translation type="obsolete">%1_копија</translation>
     </message>
     <message>
         <source>Copy Virtual Disk</source>
-        <translation type="unfinished">Копирај диск</translation>
-    </message>
-    <message>
-        <source>Virtual Hard disk file type</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Please choose the type of file that you would like to use for the destination virtual disk image. If you do not need to use it with other virtualization software you can leave this setting unchanged.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Location and size of the disk image</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Hard Disk File &amp;Type and Variant</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>copy</source>
-        <translation type="unfinished"></translation>
+        <translation type="obsolete">Копирај диск</translation>
     </message>
 </context>
 <context>
@@ -21686,10 +22638,6 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&lt;p&gt;If you create a &lt;b&gt;Linked clone&lt;/b&gt; then a new snapshot will be created in the original virtual machine as part of the cloning process.&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Snapshots</source>
         <translation type="unfinished"></translation>
     </message>
@@ -21698,19 +22646,7 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&lt;p&gt;If you choose &lt;b&gt;Current machine state&lt;/b&gt;, the new machine will reflect the current state of the original machine and will have no snapshots.&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&lt;p&gt;If you choose &lt;b&gt;Current snapshot tree branch&lt;/b&gt;, the new machine will reflect the current state of the original machine and will have matching snapshots for all snapshots in the tree branch starting at the current state in the original machine.&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>&lt;p&gt;If you choose &lt;b&gt;Everything&lt;/b&gt;, the new machine will reflect the current state of the original machine and will have matching snapshots for all snapshots in the original machine.&lt;/p&gt;</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&lt;p&gt;Please choose the type of clone you wish to create.&lt;/p&gt;&lt;p&gt;If you choose &lt;b&gt;Full clone&lt;/b&gt;, an exact copy (including all virtual hard disk files) of the original virtual machine will be created.&lt;/p&gt;&lt;p&gt;If you choose &lt;b&gt;Linked clone&lt;/b&gt;, a new machine will be created, but the virtual hard disk files will be tied to the virtual hard disk files of original machine and you will not be able to move the new virtual machine to a different computer without moving the original as well.&lt;/p&gt;</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -21718,15 +22654,7 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>New machine &amp;name and path</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>New machine name and path</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Additional options</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -21735,10 +22663,6 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Path is invalid</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>The clone name is not unique</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -21802,15 +22726,7 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&amp;Full clone</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>When chosen, all the virtual disks of the source vm are also cloned.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&amp;Linked clone</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -21818,15 +22734,7 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Current &amp;machine state</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>When chosen, only the current state of the source vm is cloned.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Current &amp;snapshot tree branch</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -21844,6 +22752,62 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>When checked, hardware UUIDs will be preserved during cloning.</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Clone name is valid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Path is valid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Clone name is not unique</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Full Clone</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Linked Clone</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Current &amp;Machine State</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Current &amp;Snapshot Tree Branch</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Please choose the type of clone you wish to create.&lt;/p&gt;&lt;p&gt;If you choose &lt;b&gt;Full Clone&lt;/b&gt;, an exact copy (including all virtual hard disk files) of the original virtual machine will be created.&lt;/p&gt;&lt;p&gt;If you choose &lt;b&gt;Linked Clone&lt;/b&gt;, a new machine will be created, but the virtual hard disk files will be tied to the virtual hard disk files of original machine and you will not be able to move the new virtual machine to a different computer without moving the original as well.&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;If you create a &lt;b&gt;Linked Clone&lt;/b&gt; then a new snapshot will be created in the original virtual machine as part of the cloning process.&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;If you choose &lt;b&gt;Current Machine State&lt;/b&gt;, the new machine will reflect the current state of the original machine and will have no snapshots.&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;If you choose &lt;b&gt;Current Snapshot Tree Branch&lt;/b&gt;, the new machine will reflect the current state of the original machine and will have matching snapshots for all snapshots in the tree branch starting at the current state in the original machine.&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New Machine Name and Path</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Clone Type</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Additional Options</source>
+        <translation type="unfinished">Додатне опције</translation>
     </message>
 </context>
 <context>
@@ -22057,10 +23021,6 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Open Cloud Profile Manager...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Do not ask me about it, leave custom &amp;image for future usage</source>
         <translation type="unfinished"></translation>
     </message>
@@ -22082,6 +23042,22 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Please choose a filename to export the virtual appliance to. Besides that you can specify a certain amount of options which affects the size and content of resulting archive.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Contains a list of Virtual Machines</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selects cloud profile.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cloud Profile Manager</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Opens cloud profile manager...</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -22207,10 +23183,6 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Open Cloud Profile Manager...</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Holds the path of the file selected for import.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -22270,6 +23242,22 @@ p, li { white-space: pre-wrap; }
         <source>Please choose a file to import the virtual appliance from.  VirtualBox currently supports importing appliances saved in the Open Virtualization Format (OVF).  To continue, select the file to import below.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Selects cloud profile.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cloud Profile Manager</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Opens cloud profile manager...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Holds the path to the base virtual machine folder. This folder is used when creating new virtual machine.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UIWizardNewCloudVM</name>
@@ -22282,10 +23270,6 @@ p, li { white-space: pre-wrap; }
         <translation type="obsolete">Креирај</translation>
     </message>
     <message>
-        <source>Create VM for cloud service provider.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Cloud Virtual Machine settings</source>
         <translation type="unfinished"></translation>
     </message>
@@ -22295,15 +23279,15 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Settings</source>
-        <translation type="unfinished">Параметри</translation>
+        <translation type="obsolete">Параметри</translation>
     </message>
     <message>
         <source>Location</source>
-        <translation type="unfinished">Смештај</translation>
+        <translation type="obsolete">Смештај</translation>
     </message>
     <message>
         <source>Source</source>
-        <translation type="unfinished">Извор</translation>
+        <translation type="obsolete">Извор</translation>
     </message>
     <message>
         <source>&amp;Images</source>
@@ -22311,10 +23295,6 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>&amp;Boot Volumes</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Open Cloud Profile Manager...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -22326,19 +23306,47 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>&amp;Location:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>&amp;Profile:</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>&amp;Source:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>Please choose one of cloud service profiles you have registered to create virtual machine for.  Existing images list will be updated.  To continue, select one of images to create virtual machine on the basis of it.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Provider:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selects cloud service provider.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>P&amp;rofile:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selects cloud profile.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cloud Profile Manager</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Opens cloud profile manager...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Lists all the source images or boot volumes.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Options:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Lists all the cloud VM properties.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -22393,15 +23401,27 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>File location and size</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <source>Virtual Hard disk file type</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Hard Disk File &amp;Type and Variant</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>copy</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copy Virtual Disk</source>
+        <translation type="obsolete">Копирај диск</translation>
+    </message>
+    <message>
+        <source>Virtual hard disk file type</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Location and size of the disk image</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Copy Virtual Hard Disk</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -22696,10 +23716,6 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <source>Invalid Guest Additions installation media</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <source>Holds the product key.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -22734,6 +23750,34 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>Guest &amp;Additions ISO:</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid guest additions installation media</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Guest additions installation media is valid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>File path is valid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Choose a Virtual Hard Fisk File</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Lists chosen configuration of the guest system.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIWizardNewVMSummaryItem</name>
+    <message>
+        <source>%1</source>
+        <comment>col.1 text</comment>
+        <translation type="obsolete">%1</translation>
     </message>
 </context>
 <context>

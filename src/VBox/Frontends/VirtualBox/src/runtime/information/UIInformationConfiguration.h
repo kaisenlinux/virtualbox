@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -34,40 +34,26 @@
 /* Qt includes: */
 #include <QWidget>
 
-/* COM includes: */
-#include "COMEnums.h"
-#include "CGuest.h"
-#include "CMachine.h"
-#include "CConsole.h"
-
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
 #include "UITextTable.h"
 
-
 /* Forward declarations: */
-class QTableWidget;
-class QTableWidgetItem;
+class QITableWidget;
 class QTextDocument;
 class QVBoxLayout;
 
-class UIInformationConfiguration : public QIWithRetranslateUI<QWidget>
+class UIInformationConfiguration : public QWidget
 {
     Q_OBJECT;
 
 public:
 
-    /** Constructs information-tab passing @a pParent to the QWidget base-class constructor.
-      * @param machine is machine reference.
-      * @param console is machine console reference. */
-    UIInformationConfiguration(QWidget *pParent, const CMachine &machine, const CConsole &console);
-
-protected:
-
-    void retranslateUi() RT_OVERRIDE;
+    /** Constructs information-tab passing @a pParent to the base-class. */
+    UIInformationConfiguration(QWidget *pParent);
 
 private slots:
 
+    void sltRetranslateUI();
     void sltMachineDataChanged();
     void sltHandleTableContextMenuRequest(const QPoint &position);
     void sltCopyTableToClipboard();
@@ -84,10 +70,8 @@ private:
     QString removeHtmlFromString(const QString &strOriginal);
     QString tableData() const;
 
-    CMachine m_machine;
-    CConsole m_console;
     QVBoxLayout *m_pMainLayout;
-    QTableWidget *m_pTableWidget;
+    QITableWidget *m_pTableWidget;
     QAction *m_pCopyWholeTableAction;
 
     const int m_iColumCount;

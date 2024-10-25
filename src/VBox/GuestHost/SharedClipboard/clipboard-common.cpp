@@ -6,7 +6,7 @@
 /*
  * Includes contributions from François Revol
  *
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -48,6 +48,7 @@
 *   Prototypes                                                                                                                   *
 *********************************************************************************************************************************/
 static void shClEventSourceResetInternal(PSHCLEVENTSOURCE pSource);
+static int shClEventSourceUnregisterEvent(PSHCLEVENTSOURCE pSource, PSHCLEVENT pEvent);
 
 static void shClEventDestroy(PSHCLEVENT pEvent);
 DECLINLINE(PSHCLEVENT) shclEventGet(PSHCLEVENTSOURCE pSource, SHCLEVENTID idEvent);
@@ -62,8 +63,38 @@ DECLINLINE(PSHCLEVENT) shclEventGet(PSHCLEVENTSOURCE pSource, SHCLEVENTID idEven
  *
  * @returns VBox status code.
  * @param   uID                 Payload ID to set for this payload. Useful for consequtive payloads.
- * @param   pvData              Data block to associate to this payload.
- * @param   cbData              Size (in bytes) of data block to associate.
+ * @param   pvData              Data to associate to this payload.
+ *                              The payload owns the data then.
+ * @param   cbData              Size (in bytes) of data to associate.
+ * @param   ppPayload           Where to store the allocated event payload on success.
+ */
+int ShClPayloadInit(uint32_t uID, void *pvData, uint32_t cbData,
+                    PSHCLEVENTPAYLOAD *ppPayload)
+{
+    AssertPtrReturn(pvData, VERR_INVALID_POINTER);
+    AssertReturn(cbData > 0, VERR_INVALID_PARAMETER);
+
+    PSHCLEVENTPAYLOAD pPayload = (PSHCLEVENTPAYLOAD)RTMemAlloc(sizeof(SHCLEVENTPAYLOAD));
+    if (pPayload)
+    {
+        pPayload->pvData = pvData;
+        pPayload->cbData = cbData;
+        pPayload->uID    = uID;
+
+        *ppPayload = pPayload;
+        return VINF_SUCCESS;
+    }
+
+    return VERR_NO_MEMORY;
+}
+
+/**
+ * Allocates a new event payload.
+ *
+ * @returns VBox status code.
+ * @param   uID                 Payload ID to set for this payload. Useful for consequtive payloads.
+ * @param   pvData              Data block to allocate (duplicate) to this payload.
+ * @param   cbData              Size (in bytes) of data block to allocate.
  * @param   ppPayload           Where to store the allocated event payload on success.
  */
 int ShClPayloadAlloc(uint32_t uID, const void *pvData, uint32_t cbData,
@@ -72,21 +103,10 @@ int ShClPayloadAlloc(uint32_t uID, const void *pvData, uint32_t cbData,
     AssertPtrReturn(pvData, VERR_INVALID_POINTER);
     AssertReturn(cbData > 0, VERR_INVALID_PARAMETER);
 
-    PSHCLEVENTPAYLOAD pPayload = (PSHCLEVENTPAYLOAD)RTMemAlloc(sizeof(SHCLEVENTPAYLOAD));
-    if (pPayload)
-    {
-        pPayload->pvData = RTMemDup(pvData, cbData);
-        if (pPayload->pvData)
-        {
-            pPayload->cbData = cbData;
-            pPayload->uID    = uID;
+    void *pvDataDup = RTMemDup(pvData, cbData);
+    if (pvDataDup)
+        return ShClPayloadInit(uID, pvDataDup, cbData, ppPayload);
 
-            *ppPayload = pPayload;
-            return VINF_SUCCESS;
-        }
-
-        RTMemFree(pPayload);
-    }
     return VERR_NO_MEMORY;
 }
 
@@ -149,6 +169,9 @@ int ShClEventSourceDestroy(PSHCLEVENTSOURCE pSource)
     if (!pSource)
         return VINF_SUCCESS;
 
+    if (!RTCritSectIsInitialized(&pSource->CritSect)) /* Already destroyed? Bail out. */
+        return VINF_SUCCESS;
+
     LogFlowFunc(("ID=%RU32\n", pSource->uID));
 
     int rc = RTCritSectEnter(&pSource->CritSect);
@@ -181,12 +204,20 @@ static void shClEventSourceResetInternal(PSHCLEVENTSOURCE pSource)
     PSHCLEVENT pEvItNext;
     RTListForEachSafe(&pSource->lstEvents, pEvIt, pEvItNext, SHCLEVENT, Node)
     {
-        RTListNodeRemove(&pEvIt->Node);
+        bool const fDealloc = ASMAtomicReadU32(&pEvIt->cRefs) == 0; /* Still any references left? Skip de-allocation. */
+        if (!fDealloc)
+            Log3Func(("Event %RU32 has %RU32 references left, skipping de-allocation\n", pEvIt->idEvent, pEvIt->cRefs));
 
         shClEventDestroy(pEvIt);
 
-        RTMemFree(pEvIt);
-        pEvIt = NULL;
+        int rc2 = shClEventSourceUnregisterEvent(pSource, pEvIt);
+        AssertRC(rc2);
+
+        if (fDealloc)
+        {
+            RTMemFree(pEvIt);
+            pEvIt = NULL;
+        }
     }
 }
 
@@ -281,9 +312,6 @@ static void shClEventDestroy(PSHCLEVENT pEvent)
     if (!pEvent)
         return;
 
-    AssertMsgReturnVoid(pEvent->cRefs == 0, ("Event %RU32 still has %RU32 references\n",
-                                             pEvent->idEvent, pEvent->cRefs));
-
     LogFlowFunc(("Event %RU32\n", pEvent->idEvent));
 
     if (pEvent->hEvtMulSem != NIL_RTSEMEVENT)
@@ -293,6 +321,7 @@ static void shClEventDestroy(PSHCLEVENT pEvent)
     }
 
     ShClPayloadFree(pEvent->pPayload);
+    pEvent->pPayload = NULL;
 
     pEvent->idEvent = NIL_SHCLEVENTID;
 }
@@ -302,30 +331,18 @@ static void shClEventDestroy(PSHCLEVENT pEvent)
  *
  * @returns VBox status code.
  * @param   pSource             Event source to unregister event for.
- * @param   pEvent              Event to unregister. On success the pointer will be invalid.
+ * @param   pEvent              Event to unregister.
  */
-static int shClEventSourceUnregisterEventInternal(PSHCLEVENTSOURCE pSource, PSHCLEVENT pEvent)
+static int shClEventSourceUnregisterEvent(PSHCLEVENTSOURCE pSource, PSHCLEVENT pEvent)
 {
+    RT_NOREF(pSource);
+
     LogFlowFunc(("idEvent=%RU32, cRefs=%RU32\n", pEvent->idEvent, pEvent->cRefs));
 
-    AssertReturn(pEvent->cRefs == 0, VERR_WRONG_ORDER);
+    RTListNodeRemove(&pEvent->Node);
+    pEvent->pParent = NULL;
 
-    int rc = RTCritSectEnter(&pSource->CritSect);
-    if (RT_SUCCESS(rc))
-    {
-        RTListNodeRemove(&pEvent->Node);
-
-        shClEventDestroy(pEvent);
-
-        rc = RTCritSectLeave(&pSource->CritSect);
-        if (RT_SUCCESS(rc))
-        {
-            RTMemFree(pEvent);
-            pEvent = NULL;
-        }
-    }
-
-    return rc;
+    return VINF_SUCCESS;
 }
 
 /**
@@ -413,7 +430,7 @@ uint32_t ShClEventGetRefs(PSHCLEVENT pEvent)
 /**
  * Detaches a payload from an event, internal version.
  *
- * @returns Pointer to the detached payload. Can be NULL if the payload has no payload.
+ * @returns Pointer to the detached payload. Can be NULL if the event has no payload.
  * @param   pEvent              Event to detach payload for.
  */
 static PSHCLEVENTPAYLOAD shclEventPayloadDetachInternal(PSHCLEVENT pEvent)
@@ -433,12 +450,14 @@ static PSHCLEVENTPAYLOAD shclEventPayloadDetachInternal(PSHCLEVENT pEvent)
  * Waits for an event to get signalled.
  *
  * @returns VBox status code.
+ * @retval  VERR_SHCLPB_EVENT_FAILED if the event has a set error code.
  * @param   pEvent              Event to wait for.
  * @param   uTimeoutMs          Timeout (in ms) to wait.
+ * @param   pRc                 Where to return the event rc. Optional and can be NULL.
  * @param   ppPayload           Where to store the (allocated) event payload on success. Needs to be free'd with
  *                              SharedClipboardPayloadFree(). Optional.
  */
-int ShClEventWait(PSHCLEVENT pEvent, RTMSINTERVAL uTimeoutMs, PSHCLEVENTPAYLOAD *ppPayload)
+int ShClEventWaitEx(PSHCLEVENT pEvent, RTMSINTERVAL uTimeoutMs, int *pRc, PSHCLEVENTPAYLOAD *ppPayload)
 {
     AssertPtrReturn(pEvent, VERR_INVALID_POINTER);
     AssertPtrNullReturn(ppPayload, VERR_INVALID_POINTER);
@@ -447,6 +466,12 @@ int ShClEventWait(PSHCLEVENT pEvent, RTMSINTERVAL uTimeoutMs, PSHCLEVENTPAYLOAD 
     int rc = RTSemEventMultiWait(pEvent->hEvtMulSem, uTimeoutMs);
     if (RT_SUCCESS(rc))
     {
+        if (RT_FAILURE(pEvent->rc))
+            rc = VERR_SHCLPB_EVENT_FAILED;
+
+        if (pRc)
+            *pRc = pEvent->rc;
+
         if (ppPayload)
         {
             /* Make sure to detach payload here, as the caller now owns the data. */
@@ -459,6 +484,21 @@ int ShClEventWait(PSHCLEVENT pEvent, RTMSINTERVAL uTimeoutMs, PSHCLEVENTPAYLOAD 
 
     LogFlowFuncLeaveRC(rc);
     return rc;
+}
+
+/**
+ * Waits for an event to get signalled.
+ *
+ * @returns VBox status code.
+ * @retval  VERR_SHCLPB_EVENT_FAILED if the event has a set error code.
+ * @param   pEvent              Event to wait for.
+ * @param   uTimeoutMs          Timeout (in ms) to wait.
+ * @param   ppPayload           Where to store the (allocated) event payload on success. Needs to be free'd with
+ *                              SharedClipboardPayloadFree(). Optional.
+ */
+int ShClEventWait(PSHCLEVENT pEvent, RTMSINTERVAL uTimeoutMs, PSHCLEVENTPAYLOAD *ppPayload)
+{
+    return ShClEventWaitEx(pEvent, uTimeoutMs, NULL /* pRc */, ppPayload);
 }
 
 /**
@@ -475,7 +515,7 @@ uint32_t ShClEventRetain(PSHCLEVENT pEvent)
 }
 
 /**
- * Releases an event by decreasing its reference count.
+ * Releases event by decreasing its reference count. Will be destroyed once the reference count reaches 0.
  *
  * @returns New reference count, or UINT32_MAX if failed.
  * @param   pEvent              Event to release.
@@ -492,14 +532,62 @@ uint32_t ShClEventRelease(PSHCLEVENT pEvent)
     uint32_t const cRefs = ASMAtomicDecU32(&pEvent->cRefs);
     if (cRefs == 0)
     {
-        AssertPtr(pEvent->pParent);
-        int rc2 = shClEventSourceUnregisterEventInternal(pEvent->pParent, pEvent);
-        AssertRC(rc2);
+        int rc;
+        PSHCLEVENTSOURCE pParent = pEvent->pParent;
+        if (   pParent
+            && RTCritSectIsInitialized(&pParent->CritSect))
+        {
+            rc = RTCritSectEnter(&pParent->CritSect);
+            if (RT_SUCCESS(rc))
+            {
+                rc = shClEventSourceUnregisterEvent(pParent, pEvent);
 
-        return RT_SUCCESS(rc2) ? 0 : UINT32_MAX;
+                int rc2 = RTCritSectLeave(&pParent->CritSect);
+                if (RT_SUCCESS(rc))
+                    rc = rc2;
+            }
+        }
+        else
+            rc = VINF_SUCCESS;
+
+        if (RT_SUCCESS(rc))
+        {
+            shClEventDestroy(pEvent);
+
+            RTMemFree(pEvent);
+            pEvent = NULL;
+        }
+
+        return RT_SUCCESS(rc) ? 0 : UINT32_MAX;
     }
 
     return cRefs;
+}
+
+/**
+ * Signals an event, extended version.
+ *
+ * @returns VBox status code.
+ * @param   pEvent              Event to signal.
+ * @param   rc                  Result code to set.
+ * @param   pPayload            Event payload to associate. Takes ownership on
+ *                              success. Optional.
+ */
+int ShClEventSignalEx(PSHCLEVENT pEvent, int rc, PSHCLEVENTPAYLOAD pPayload)
+{
+    AssertPtrReturn(pEvent, VERR_INVALID_POINTER);
+
+    Assert(pEvent->pPayload == NULL);
+
+    pEvent->rc       = rc;
+    pEvent->pPayload = pPayload;
+
+    int rc2 = RTSemEventMultiSignal(pEvent->hEvtMulSem);
+    if (RT_FAILURE(rc2))
+        pEvent->pPayload = NULL; /* (no race condition if consumer also enters the critical section) */
+
+    LogFlowFuncLeaveRC(rc2);
+    return rc2;
 }
 
 /**
@@ -512,18 +600,7 @@ uint32_t ShClEventRelease(PSHCLEVENT pEvent)
  */
 int ShClEventSignal(PSHCLEVENT pEvent, PSHCLEVENTPAYLOAD pPayload)
 {
-    AssertPtrReturn(pEvent, VERR_INVALID_POINTER);
-
-    Assert(pEvent->pPayload == NULL);
-
-    pEvent->pPayload = pPayload;
-
-    int rc = RTSemEventMultiSignal(pEvent->hEvtMulSem);
-    if (RT_FAILURE(rc))
-        pEvent->pPayload = NULL; /* (no race condition if consumer also enters the critical section) */
-
-    LogFlowFuncLeaveRC(rc);
-    return rc;
+    return ShClEventSignalEx(pEvent, VINF_SUCCESS, pPayload);
 }
 
 int ShClUtf16LenUtf8(PCRTUTF16 pcwszSrc, size_t cwcSrc, size_t *pchLen)
@@ -590,7 +667,7 @@ int ShClConvUtf16LFToCRLFA(PCRTUTF16 pcwszSrc, size_t cwcSrc,
     PRTUTF16 pwszDst = NULL;
     size_t   cchDst;
 
-    int rc = ShClUtf16LFLenUtf8(pcwszSrc, cwcSrc, &cchDst);
+    int rc = ShClUtf16CalcNormalizedEolToCRLFLength(pcwszSrc, cwcSrc, &cchDst);
     if (RT_SUCCESS(rc))
     {
         pwszDst = (PRTUTF16)RTMemAlloc((cchDst + 1 /* Leave space for terminator */) * sizeof(RTUTF16));
@@ -760,7 +837,7 @@ int ShClConvUtf16ToUtf8HTML(PCRTUTF16 pcwszSrc, size_t cwcSrc, char **ppszDst, s
     return rc;
 }
 
-int ShClUtf16LFLenUtf8(PCRTUTF16 pcwszSrc, size_t cwSrc, size_t *pchLen)
+int ShClUtf16CalcNormalizedEolToCRLFLength(PCRTUTF16 pcwszSrc, size_t cwSrc, size_t *pchLen)
 {
     AssertPtrReturn(pcwszSrc, VERR_INVALID_POINTER);
     AssertPtrReturn(pchLen, VERR_INVALID_POINTER);
@@ -778,12 +855,18 @@ int ShClUtf16LFLenUtf8(PCRTUTF16 pcwszSrc, size_t cwSrc, size_t *pchLen)
     for (; i < cwSrc; ++i, ++cLen)
     {
         /* Check for a single line feed */
-        if (pcwszSrc[i] == VBOX_SHCL_LINEFEED)
+        if (   pcwszSrc[i] == VBOX_SHCL_LINEFEED
+            && (i == 0 || pcwszSrc[i - 1] != VBOX_SHCL_CARRIAGERETURN))
+        {
             ++cLen;
+        }
 #ifdef RT_OS_DARWIN
         /* Check for a single carriage return (MacOS) */
-        if (pcwszSrc[i] == VBOX_SHCL_CARRIAGERETURN)
+        if (   pcwszSrc[i] == VBOX_SHCL_CARRIAGERETURN
+            && (i + 1 >= cwSrc || pcwszSrc[i + 1] != VBOX_SHCL_LINEFEED))
+        {
             ++cLen;
+        }
 #endif
         if (pcwszSrc[i] == 0)
         {
@@ -832,79 +915,63 @@ int ShClUtf16CRLFLenUtf8(PCRTUTF16 pcwszSrc, size_t cwSrc, size_t *pchLen)
     return VINF_SUCCESS;
 }
 
-int ShClConvUtf16LFToCRLF(PCRTUTF16 pcwszSrc, size_t cwcSrc, PRTUTF16 pu16Dst, size_t cwDst)
+int ShClConvUtf16LFToCRLF(PCRTUTF16 pcwszSrc, size_t cwcSrc, PRTUTF16 pu16Dst, size_t cwcDst)
 {
     AssertPtrReturn(pcwszSrc, VERR_INVALID_POINTER);
     AssertPtrReturn(pu16Dst, VERR_INVALID_POINTER);
-    AssertReturn(cwDst, VERR_INVALID_PARAMETER);
+    AssertReturn(cwcDst, VERR_INVALID_PARAMETER);
 
     AssertMsgReturn(pcwszSrc[0] != VBOX_SHCL_UTF16BEMARKER,
                     ("Big endian UTF-16 not supported yet\n"), VERR_NOT_SUPPORTED);
 
-    int rc = VINF_SUCCESS;
-
     /* Don't copy the endian marker. */
-    size_t i = pcwszSrc[0] == VBOX_SHCL_UTF16LEMARKER ? 1 : 0;
-    size_t j = 0;
-
-    for (; i < cwcSrc; ++i, ++j)
+    size_t      offDst = 0;
+    for (size_t offSrc = pcwszSrc[0] == VBOX_SHCL_UTF16LEMARKER ? 1 : 0; offSrc < cwcSrc; ++offSrc, ++offDst)
     {
+        /* Ensure more output space: */
+        if (offDst < cwcDst) { /* likely */ }
+        else return VERR_BUFFER_OVERFLOW;
+
         /* Don't copy the null byte, as we add it below. */
-        if (pcwszSrc[i] == 0)
+        if (pcwszSrc[offSrc] == 0)
             break;
 
-        /* Not enough space in destination? */
-        if (j == cwDst)
+        /* Check for newlines not preceeded by carriage return: "\n" -> "\r\n";  but not "\r\n" to "\r\r\n"! */
+        if (   pcwszSrc[offSrc] == VBOX_SHCL_LINEFEED
+            && (offSrc == 0 || pcwszSrc[offSrc - 1] != VBOX_SHCL_CARRIAGERETURN))
         {
-            rc = VERR_BUFFER_OVERFLOW;
-            break;
-        }
+            pu16Dst[offDst++] = VBOX_SHCL_CARRIAGERETURN;
 
-        if (pcwszSrc[i] == VBOX_SHCL_LINEFEED)
-        {
-            pu16Dst[j] = VBOX_SHCL_CARRIAGERETURN;
-            ++j;
-
-            /* Not enough space in destination? */
-            if (j == cwDst)
-            {
-                rc = VERR_BUFFER_OVERFLOW;
-                break;
-            }
+            /* Ensure sufficient output space: */
+            if (offDst < cwcDst) { /* likely */ }
+            else return VERR_BUFFER_OVERFLOW;
         }
 #ifdef RT_OS_DARWIN
-        /* Check for a single carriage return (MacOS) */
-        else if (pcwszSrc[i] == VBOX_SHCL_CARRIAGERETURN)
+        /* Check for a carriage return not followed by newline (MacOS): "\r" -> "\n\r";  but not "\r\n" to "\r\n\n"! */
+        else if (   pcwszSrc[offSrc] == VBOX_SHCL_CARRIAGERETURN
+                 && (offSrc + 1 >= cwcSrc || pcwszSrc[offSrc + 1] != VBOX_SHCL_LINEFEED))
         {
-            /* Set CR.r */
-            pu16Dst[j] = VBOX_SHCL_CARRIAGERETURN;
-            ++j;
+            pu16Dst[offDst++] = VBOX_SHCL_CARRIAGERETURN;
 
-            /* Not enough space in destination? */
-            if (j == cwDst)
-            {
-                rc = VERR_BUFFER_OVERFLOW;
-                break;
-            }
+            /* Ensure more output space: */
+            if (offDst < cwcDst) { /* likely */ }
+            else return VERR_BUFFER_OVERFLOW;
 
             /* Add line feed. */
-            pu16Dst[j] = VBOX_SHCL_LINEFEED;
+            pu16Dst[offDst] = VBOX_SHCL_LINEFEED;
             continue;
         }
 #endif
-        pu16Dst[j] = pcwszSrc[i];
+        pu16Dst[offDst] = pcwszSrc[offSrc];
     }
 
-    if (j == cwDst)
-        rc = VERR_BUFFER_OVERFLOW;
-
-    if (RT_SUCCESS(rc))
+    /* Add terminator. */
+    if (offDst < cwcDst)
     {
-        /* Add terminator. */
-        pu16Dst[j] = 0;
+        pu16Dst[offDst] = 0;
+        return VINF_SUCCESS;
     }
-
-    return rc;
+    return VERR_BUFFER_OVERFLOW;
 }
 
 int ShClConvUtf16CRLFToLF(PCRTUTF16 pcwszSrc, size_t cwcSrc, PRTUTF16 pu16Dst, size_t cwDst)
@@ -1222,5 +1289,261 @@ char *ShClFormatsToStrA(SHCLFORMATS fFormats)
 #undef APPEND_FMT_TO_STR
 
     return pszFmts;
+}
+
+
+/*********************************************************************************************************************************
+*   Shared Clipboard Cache                                                                                                       *
+*********************************************************************************************************************************/
+
+/**
+ * Returns (mutable) data of a cache entry.
+ *
+ * @param   pCacheEntry         Cache entry to return data for.
+ * @param   pvData              Where to return the (mutable) data pointer.
+ * @param   pcbData             Where to return the data size.
+ */
+void ShClCacheEntryGet(PSHCLCACHEENTRY pCacheEntry, void **pvData, size_t *pcbData)
+{
+    AssertPtrReturnVoid(pCacheEntry);
+    AssertPtrReturnVoid(pvData);
+    AssertReturnVoid(pcbData);
+
+    *pvData  = pCacheEntry->pvData;
+    *pcbData = pCacheEntry->cbData;
+}
+
+/**
+ * Initializes a cache entry.
+ *
+ * @returns VBox status code.
+ * @param   pCacheEntry         Cache entry to init.
+ * @param   pvData              Data to copy to entry. Can be NULL to initialize an emptry entry.
+ * @param   cbData              Size (in bytes) of \a pvData to copy to entry. Must be 0 if \a pvData is NULL.
+ */
+static int shClCacheEntryInit(PSHCLCACHEENTRY pCacheEntry, const void *pvData, size_t cbData)
+{
+    AssertReturn(RT_VALID_PTR(pvData) || cbData == 0, VERR_INVALID_PARAMETER);
+
+    RT_BZERO(pCacheEntry, sizeof(SHCLCACHEENTRY));
+
+    if (pvData)
+    {
+        pCacheEntry->pvData = RTMemDup(pvData, cbData);
+        AssertPtrReturn(pCacheEntry->pvData, VERR_NO_MEMORY);
+        pCacheEntry->cbData = cbData;
+    }
+
+    return VINF_SUCCESS;
+}
+
+/**
+ * Returns whether a cache entry is valid (cache hit) or not.
+ *
+ * @returns \c true if valid, or \c false if not.
+ * @param   pCacheEntry         Cache entry to check for.
+ */
+DECLINLINE(bool) shClCacheEntryIsValid(PSHCLCACHEENTRY pCacheEntry)
+{
+    return pCacheEntry->pvData != NULL;
+}
+
+/**
+ * Destroys a cache entry.
+ *
+ * @param   pCacheEntry         Cache entry to destroy.
+ */
+DECLINLINE(void) shClCacheEntryDestroy(PSHCLCACHEENTRY pCacheEntry)
+{
+    if (pCacheEntry->pvData)
+    {
+        Assert(pCacheEntry->cbData);
+        RTMemFree(pCacheEntry->pvData);
+        pCacheEntry->pvData = NULL;
+        pCacheEntry->cbData = 0;
+    }
+}
+
+/**
+ * Initializes a cache.
+ *
+ * @param   pCache              Cache to init.
+ */
+void ShClCacheInit(PSHCLCACHE pCache)
+{
+    AssertPtrReturnVoid(pCache);
+
+    RT_BZERO(pCache, sizeof(SHCLCACHE));
+
+    for (size_t i = 0; i < RT_ELEMENTS(pCache->aEntries); i++)
+        shClCacheEntryInit(&pCache->aEntries[i], NULL, 0);
+}
+
+/**
+ * Destroys all entries of a cache.
+ *
+ * @param   pCache              Cache to destroy entries for.
+ */
+DECLINLINE(void) shClCacheDestroyEntries(PSHCLCACHE pCache)
+{
+    for (size_t i = 0; i < RT_ELEMENTS(pCache->aEntries); i++)
+        shClCacheEntryDestroy(&pCache->aEntries[i]);
+}
+
+/**
+ * Destroys a cache.
+ *
+ * @param   pCache              Cache to destroy.
+ */
+void ShClCacheDestroy(PSHCLCACHE pCache)
+{
+    AssertPtrReturnVoid(pCache);
+
+    shClCacheDestroyEntries(pCache);
+
+    RT_BZERO(pCache, sizeof(SHCLCACHE));
+}
+
+/**
+ * Invalidates a cache.
+ *
+ * @param   pCache              Cache to invalidate.
+ */
+void ShClCacheInvalidate(PSHCLCACHE pCache)
+{
+    AssertPtrReturnVoid(pCache);
+
+    shClCacheDestroyEntries(pCache);
+}
+
+/**
+ * Invalidates a specific cache entry.
+ *
+ * @param   pCache              Cache to invalidate.
+ * @param   uFmt                Format to invalidate entry for.
+ */
+void ShClCacheInvalidateEntry(PSHCLCACHE pCache, SHCLFORMAT uFmt)
+{
+    AssertPtrReturnVoid(pCache);
+    AssertReturnVoid(uFmt < VBOX_SHCL_FMT_MAX);
+    shClCacheEntryDestroy(&pCache->aEntries[uFmt]);
+}
+
+/**
+ * Gets an entry for a Shared Clipboard format.
+ *
+ * @returns Pointer to entry if cached, or NULL if not in cache (cache miss).
+ * @param   pCache              Cache to get entry for.
+ * @param   uFmt                Format to get entry for.
+ */
+PSHCLCACHEENTRY ShClCacheGet(PSHCLCACHE pCache, SHCLFORMAT uFmt)
+{
+    AssertReturn(uFmt < VBOX_SHCL_FMT_MAX, NULL);
+    return shClCacheEntryIsValid(&pCache->aEntries[uFmt]) ? &pCache->aEntries[uFmt] : NULL;
+}
+
+/**
+ * Sets data to cache for a specific clipboard format, internal version.
+ *
+ * @returns VBox status code.
+ * @param   pCache              Cache to set data for.
+ * @param   uFmt                Clipboard format to set data for.
+ * @param   pvData              Data to set.
+ * @param   cbData              Size (in bytes) of data to set.
+ */
+DECLINLINE(int) shClCacheSet(PSHCLCACHE pCache, SHCLFORMAT uFmt, const void *pvData, size_t cbData)
+{
+    AssertReturn(uFmt < VBOX_SHCL_FMT_MAX, VERR_INVALID_PARAMETER);
+    AssertReturn(shClCacheEntryIsValid(&pCache->aEntries[uFmt]) == false, VERR_ALREADY_EXISTS);
+
+    return shClCacheEntryInit(&pCache->aEntries[uFmt], pvData, cbData);
+}
+
+/**
+ * Sets data to cache for a specific clipboard format.
+ *
+ * @returns VBox status code.
+ * @param   pCache              Cache to set data for.
+ * @param   uFmt                Clipboard format to set data for.
+ * @param   pvData              Data to set.
+ * @param   cbData              Size (in bytes) of data to set.
+ */
+int ShClCacheSet(PSHCLCACHE pCache, SHCLFORMAT uFmt, const void *pvData, size_t cbData)
+{
+    AssertPtrReturn(pCache, VERR_INVALID_POINTER);
+
+    if (!pvData) /* Nothing to cache? */
+        return VINF_SUCCESS;
+
+    AssertReturn(cbData, VERR_INVALID_PARAMETER);
+
+    return shClCacheSet(pCache, uFmt, pvData, cbData);
+}
+
+/**
+ * Sets data to cache for multiple clipboard formats.
+ *
+ * Will bail out if a given format cannot be handled with the data given.
+ *
+ * @returns VBox status code.
+ * @param   pCache              Cache to set data for.
+ * @param   uFmt                Clipboard format to set data for.
+ * @param   pvData              Data to set.
+ * @param   cbData              Size (in bytes) of data to set.
+ */
+int ShClCacheSetMultiple(PSHCLCACHE pCache, SHCLFORMATS uFmts, const void *pvData, size_t cbData)
+{
+    AssertPtrReturn(pCache, VERR_INVALID_POINTER);
+
+    if (!pvData) /* Nothing to cache? */
+        return VINF_SUCCESS;
+
+    AssertReturn(cbData, VERR_INVALID_PARAMETER);
+
+    int rc = VINF_SUCCESS;
+
+    SHCLFORMATS uFmtsLeft = uFmts;
+    while (uFmtsLeft)
+    {
+        SHCLFORMAT  uFmt        = VBOX_SHCL_FMT_NONE;
+         void *pvConv = NULL;
+        size_t cbConv = 0;
+        if (uFmtsLeft & VBOX_SHCL_FMT_UNICODETEXT)
+        {
+            uFmt = VBOX_SHCL_FMT_UNICODETEXT;
+
+            rc = RTStrValidateEncoding((const char *)pvData);
+            if (RT_SUCCESS(rc))
+            {
+                rc = RTStrToUtf16((const char *)pvData, (PRTUTF16 *)&pvConv);
+                if (RT_SUCCESS(rc))
+                    cbConv = (RTUtf16Len((const PRTUTF16)pvConv) + 1) * sizeof(RTUTF16);
+            }
+            else if (!RTUtf16ValidateEncoding((const PRTUTF16)pvData))
+            {
+                AssertFailedBreakStmt(rc = VERR_INVALID_PARAMETER);
+            }
+        }
+        else if (uFmtsLeft & VBOX_SHCL_FMT_BITMAP)
+            uFmt = VBOX_SHCL_FMT_BITMAP;
+        else if (uFmtsLeft & VBOX_SHCL_FMT_HTML)
+            uFmt = VBOX_SHCL_FMT_HTML;
+        else if (uFmtsLeft & VBOX_SHCL_FMT_URI_LIST)
+            uFmt = VBOX_SHCL_FMT_URI_LIST;
+        else
+            AssertFailedBreakStmt(rc = VERR_NOT_SUPPORTED);
+
+        uFmtsLeft &= ~uFmt; /* Remove from list. */
+        Assert(RT_VALID_PTR(pvConv) || cbConv == 0); /* Sanity. */
+
+        if (RT_SUCCESS(rc))
+            rc = shClCacheSet(pCache, uFmt,
+                              pvConv ? pvConv : pvData,
+                              cbConv ? cbConv : cbData);
+        RTMemFree(pvConv);
+        AssertRCBreak(rc);
+    }
+
+    return rc;
 }
 

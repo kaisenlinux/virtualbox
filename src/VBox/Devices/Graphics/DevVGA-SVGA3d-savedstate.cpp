@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -684,7 +684,8 @@ int vmsvga3dLoadExec(PPDMDEVINS pDevIns, PVGASTATE pThis, PVGASTATECC pThisCC, P
                 }
 
                 rc = vmsvga3dSurfaceDefine(pThisCC, sid, surface.f.surfaceFlags, surface.format, surface.multiSampleCount,
-                                           surface.autogenFilter, surface.cLevels, &pMipmapLevelSize[0], /* arraySize = */ 0, /* fAllocMipLevels = */ true);
+                                           SVGA3D_MS_PATTERN_NONE, SVGA3D_MS_QUALITY_NONE,
+                                           surface.autogenFilter, surface.cLevels, &pMipmapLevelSize[0], /* arraySize = */ 0, /* bufferByteStride = */ 0, /* fAllocMipLevels = */ true);
                 AssertRCReturn(rc, rc);
 
                 RTMemFree(pMipmapLevelSize);

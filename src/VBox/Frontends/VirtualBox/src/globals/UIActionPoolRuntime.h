@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -93,7 +93,7 @@ enum UIActionIndexRT
     UIActionIndexRT_M_Input_M_Keyboard_S_Settings,
     UIActionIndexRT_M_Input_M_Keyboard_S_SoftKeyboard,
     UIActionIndexRT_M_Input_M_Keyboard_S_TypeCAD,
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     UIActionIndexRT_M_Input_M_Keyboard_S_TypeCABS,
 #endif
     UIActionIndexRT_M_Input_M_Keyboard_S_TypeCtrlBreak,

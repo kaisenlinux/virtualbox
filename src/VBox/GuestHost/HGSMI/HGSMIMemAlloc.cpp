@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2014-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2014-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -584,7 +584,7 @@ void HGSMIMAUninit(HGSMIMADATA *pMA)
     RT_ZERO(*pMA);
 }
 
-HGSMIOFFSET HGSMIMAPointerToOffset(const HGSMIMADATA *pMA, const void RT_UNTRUSTED_VOLATILE_GUEST *pv)
+static HGSMIOFFSET HGSMIMAPointerToOffset(const HGSMIMADATA *pMA, const void RT_UNTRUSTED_VOLATILE_GUEST *pv)
 {
     uintptr_t off = (uintptr_t)pv - (uintptr_t)pMA->area.pu8Base;
     if (off < pMA->area.cbArea)

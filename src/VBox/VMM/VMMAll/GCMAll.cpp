@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2022-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2022-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -28,41 +28,48 @@
 /*********************************************************************************************************************************
 *   Header Files                                                                                                                 *
 *********************************************************************************************************************************/
-#define LOG_GROUP LOG_GROUP_GIM
+#define LOG_GROUP LOG_GROUP_GCM
 #include <VBox/vmm/gcm.h>
-#include <VBox/vmm/em.h>    /* For EMInterpretDisasCurrent */
 #include "GCMInternal.h"
 #include <VBox/vmm/vmcc.h>
 
-#include <VBox/dis.h>       /* For DISCPUSTATE */
-#include <iprt/errcore.h>
+#include <VBox/dis.h>       /* For DISSTATE */
+#include <VBox/err.h>
 #include <iprt/string.h>
 
 
-/**
- * Checks whether GCM is enabled for this VM.
- *
- * @retval  true if GCM is on.
- * @retval  false if no GCM fixer is enabled.
- *
- * @param   pVM       The cross context VM structure.
- */
-VMMDECL(bool) GCMIsEnabled(PVM pVM)
-{
-    return pVM->gcm.s.enmFixerIds != GCMFIXER_NONE;
-}
+/*********************************************************************************************************************************
+*   Defined Constants And Macros                                                                                                 *
+*********************************************************************************************************************************/
+#define VMWARE_HYPERVISOR_PORT                  UINT16_C(0x5658)
+#define VMWARE_HYPERVISOR_PORT_HB               UINT16_C(0x5659)
+#define VMWARE_HYPERVISOR_MAGIC                 UINT32_C(0x564d5868)    /**< eax value */
 
+#define VMWARE_HYPERVISOR_CMD_MSG               0x001e
+#define VMWARE_HYPERVISOR_CMD_HB_MSG            0x0000
+#define VMWARE_HYPERVISOR_CMD_OPEN_CHANNEL      RT_MAKE_U32(VMWARE_HYPERVISOR_CMD_MSG, 0) /**< ecx */
+#define VMWARE_OC_RPCI_PROTOCOL_NUM                 UINT32_C(0x49435052) /**< VMWARE_HYPERVISOR_CMD_OPEN_CHANNEL: ebx[30:0] */
+#define VMWARE_OC_GUESTMSG_FLAG_COOKIE              UINT32_C(0x80000000) /**< VMWARE_HYPERVISOR_CMD_OPEN_CHANNEL: ebx bit 31 */
+#define VMWARE_HYPERVISOR_CMD_SEND_SIZE         RT_MAKE_U32(VMWARE_HYPERVISOR_CMD_MSG, 1) /**< ecx */
+#define VMWARE_HYPERVISOR_CMD_SEND_PAYLOAD      RT_MAKE_U32(VMWARE_HYPERVISOR_CMD_MSG, 2) /**< ecx */
+#define VMWARE_HYPERVISOR_CMD_RECV_SIZE         RT_MAKE_U32(VMWARE_HYPERVISOR_CMD_MSG, 3) /**< ecx */
+#define VMWARE_HYPERVISOR_CMD_RECV_PAYLOAD      RT_MAKE_U32(VMWARE_HYPERVISOR_CMD_MSG, 4) /**< ecx */
+#define VMWARE_HYPERVISOR_CMD_RECV_STATUS       RT_MAKE_U32(VMWARE_HYPERVISOR_CMD_MSG, 5) /**< ecx */
+#define VMWARE_HYPERVISOR_CMD_CLOSE_CHANNEL     RT_MAKE_U32(VMWARE_HYPERVISOR_CMD_MSG, 6) /**< ecx */
 
-/**
- * Gets the GCM fixers configured for this VM.
- *
- * @returns The GCM provider Id.
- * @param   pVM     The cross context VM structure.
- */
-VMMDECL(int32_t) GCMGetFixers(PVM pVM)
-{
-    return pVM->gcm.s.enmFixerIds;
-}
+#define VMWARE_HYPERVISOR_CMD_MKS_GUEST_STATS   0x0055
+#define VMWARE_HYPERVISOR_CMD_MKSGS_RESET       RT_MAKE_U32(VMWARE_HYPERVISOR_CMD_MKS_GUEST_STATS, 0) /**< ecx */
+#define VMWARE_HYPERVISOR_CMD_MKSGS_ADD_PPN     RT_MAKE_U32(VMWARE_HYPERVISOR_CMD_MKS_GUEST_STATS, 1) /**< ecx */
+#define VMWARE_HYPERVISOR_CMD_MKSGS_REMOVE_PPN  RT_MAKE_U32(VMWARE_HYPERVISOR_CMD_MKS_GUEST_STATS, 2) /**< ecx */
+
+/** @name Message status return flags (ecx).
+ * @{ */
+#define VMWARE_MSG_STATUS_F_SUCCESS             UINT32_C(0x00010000)
+#define VMWARE_MSG_STATUS_F_DO_RECV             UINT32_C(0x00020000)
+#define VMWARE_MSG_STATUS_F_CPT                 UINT32_C(0x00100000)
+#define VMWARE_MSG_STATUS_F_HB                  UINT32_C(0x00800000)
+/** @} */
+
 
 
 /**
@@ -72,58 +79,37 @@ VMMDECL(int32_t) GCMGetFixers(PVM pVM)
  * @returns true if needed, false otherwise.
  * @param   pVCpu       The cross context virtual CPU structure.
  */
-VMM_INT_DECL(bool) GCMShouldTrapXcptDE(PVMCPUCC pVCpu)
+VMM_INT_DECL(bool) GCMIsInterceptingXcptDE(PVMCPUCC pVCpu)
 {
-    LogFlowFunc(("entered\n"));
-    PVM pVM = pVCpu->CTX_SUFF(pVM);
-    if (!GCMIsEnabled(pVM))
-        return false;
-
-    LogFunc(("GCM checking if #DE needs trapping\n"));
-
     /* See if the enabled fixers need to intercept #DE. */
-    if (  pVM->gcm.s.enmFixerIds
-        & (GCMFIXER_DBZ_DOS |  GCMFIXER_DBZ_OS2 | GCMFIXER_DBZ_WIN9X))
-    {
-        LogRel(("GCM: #DE should be trapped\n"));
-        return true;
-    }
-
-    return false;
+    PVM const  pVM  = pVCpu->CTX_SUFF(pVM);
+    bool const fRet = (pVM->gcm.s.fFixerSet & (GCMFIXER_DBZ_DOS | GCMFIXER_DBZ_OS2 | GCMFIXER_DBZ_WIN9X)) != 0;
+    LogFlow(("GCMIsInterceptingXcptDE: returns %d\n", fRet));
+    return fRet;
 }
 
 
 /**
  * Exception handler for \#DE when registered by GCM.
  *
- * @returns Strict VBox status code.
+ * @returns VBox status code.
  * @retval  VINF_SUCCESS retry division and continue.
  * @retval  VERR_NOT_FOUND deliver exception to guest.
  *
  * @param   pVCpu       The cross context virtual CPU structure.
  * @param   pCtx        Pointer to the guest-CPU context.
- * @param   pDis        Pointer to the disassembled instruction state at RIP.
- *                      If NULL is passed, it implies the disassembly of the
- *                      the instruction at RIP is the
- *                      responsibility of GCM.
- * @param   pcbInstr    Where to store the instruction length of
- *                      the divide instruction. Optional, can be
- *                      NULL.
  *
  * @thread  EMT(pVCpu).
  */
-VMM_INT_DECL(VBOXSTRICTRC) GCMXcptDE(PVMCPUCC pVCpu, PCPUMCTX pCtx, PDISCPUSTATE pDis, uint8_t *pcbInstr)
+VMM_INT_DECL(int) GCMXcptDE(PVMCPUCC pVCpu, PCPUMCTX pCtx)
 {
     PVMCC pVM = pVCpu->CTX_SUFF(pVM);
-    Assert(GCMIsEnabled(pVM));
-    Assert(pDis || pcbInstr);
-    RT_NOREF(pDis);
-    RT_NOREF(pcbInstr);
+    Assert(pVM->gcm.s.fFixerSet & (GCMFIXER_DBZ_DOS | GCMFIXER_DBZ_OS2 | GCMFIXER_DBZ_WIN9X));
 
     LogRel(("GCM: Intercepted #DE at CS:RIP=%04x:%RX64 (%RX64 linear) RDX:RAX=%RX64:%RX64 RCX=%RX64 RBX=%RX64\n",
             pCtx->cs.Sel, pCtx->rip, pCtx->cs.u64Base + pCtx->rip, pCtx->rdx, pCtx->rax, pCtx->rcx, pCtx->rbx));
 
-    if (pVM->gcm.s.enmFixerIds & GCMFIXER_DBZ_OS2)
+    if (pVM->gcm.s.fFixerSet & GCMFIXER_DBZ_OS2)
     {
         if (pCtx->rcx == 0 && pCtx->rdx == 1 && pCtx->rax == 0x86a0)
         {
@@ -151,7 +137,7 @@ VMM_INT_DECL(VBOXSTRICTRC) GCMXcptDE(PVMCPUCC pVCpu, PCPUMCTX pCtx, PDISCPUSTATE
         }
     }
 
-    if (pVM->gcm.s.enmFixerIds & GCMFIXER_DBZ_DOS)
+    if (pVM->gcm.s.fFixerSet & GCMFIXER_DBZ_DOS)
     {
         /* NB: For 16-bit DOS software, we must generally only compare 16-bit registers.
          * The contents of the high words may be unpredictable depending on the environment.
@@ -212,7 +198,7 @@ VMM_INT_DECL(VBOXSTRICTRC) GCMXcptDE(PVMCPUCC pVCpu, PCPUMCTX pCtx, PDISCPUSTATE
         }
     }
 
-    if (pVM->gcm.s.enmFixerIds & GCMFIXER_DBZ_WIN9X)
+    if (pVM->gcm.s.fFixerSet & GCMFIXER_DBZ_WIN9X)
     {
         if (pCtx->rcx == 0 && pCtx->rdx == 0 && pCtx->rax == 0x100000)
         {
@@ -243,3 +229,180 @@ VMM_INT_DECL(VBOXSTRICTRC) GCMXcptDE(PVMCPUCC pVCpu, PCPUMCTX pCtx, PDISCPUSTATE
     /* If we got this far, deliver exception to guest. */
     return VERR_NOT_FOUND;
 }
+
+
+#if 0
+/**
+ * Whether \#GP exceptions in the guest should be intercepted by GCM and
+ * possibly fixed up.
+ *
+ * @returns true if needed, false otherwise.
+ * @param   pVCpu       The cross context virtual CPU structure.
+ */
+VMM_INT_DECL(bool) GCMIsInterceptingXcptGP(PVMCPUCC pVCpu)
+{
+    /* See if the enabled fixers require #GP interception. */
+    PVM const  pVM  = pVCpu->CTX_SUFF(pVM);
+    bool const fRet = (pVM->gcm.s.fFixerSet & GCMFIXER_MESA_VMSVGA_DRV) != 0;
+    LogFlow(("GCMIsInterceptingXcptDE: returns %d\n", fRet));
+    return fRet;
+}
+
+
+/**
+ * Exception handler for \#GP when registered by GCM.
+ *
+ * @returns VBox status code.
+ * @retval  VINF_SUCCESS retry the instruction and continue.
+ * @retval  VERR_NOT_FOUND deliver exception to guest.
+ *
+ * @param   pVCpu       The cross context virtual CPU structure.
+ * @param   pCtx        Pointer to the guest-CPU context.
+ *
+ * @thread  EMT(pVCpu).
+ */
+VMM_INT_DECL(int) GCMXcptGP(PVMCPUCC pVCpu, PCPUMCTX pCtx)
+{
+
+}
+#endif
+
+
+/**
+ * Checks if I/O port reads for the given port need GCM attention.
+ *
+ * @returns true if needed, false otherwise.
+ * @param   pVCpu       The cross context virtual CPU structure.
+ * @param   u16Port     The port being accessed. UINT16_MAX and cbReg ==
+ *                      UINT8_MAX for any port.
+ * @param   cbReg       The access size. UINT8_MAX and u16Port == UINT16_MAX for
+ *                      any size.
+ */
+VMM_INT_DECL(bool) GCMIsInterceptingIOPortReadSlow(PVMCPUCC pVCpu, uint16_t u16Port, uint8_t cbReg)
+{
+    PVM const  pVM  = pVCpu->CTX_SUFF(pVM);
+    bool const fRet = (pVM->gcm.s.fFixerSet & GCMFIXER_MESA_VMSVGA_DRV) != 0
+                   && (   (u16Port == VMWARE_HYPERVISOR_PORT && cbReg == 4)
+                       || (u16Port == UINT16_MAX && cbReg == UINT8_MAX) );
+    LogFlow(("GCMIsInterceptingIOPortReadSlow(,%#x,%#x): returns %d\n", u16Port, cbReg, fRet));
+    return fRet;
+}
+
+
+/**
+ * Processes an intercepted IO port read instruction.
+ *
+ * @returns Strict VBox status code. Only two informational status codes
+ *          are returned VINF_GCM_HANDLED and VINF_GCM_HANDLED_ADVANCE_RIP.
+ * @retval  VINF_GCM_HANDLED
+ * @retval  VINF_GCM_HANDLED_ADVANCE_RIP
+ * @retval  VERR_GCM_NOT_HANDLED
+ * @param   pVCpu       The cross context virtual CPU structure.
+ * @param   pCtx        The CPU context.
+ * @param   u16Port     The port being accessed.
+ * @param   cbReg       The size of the access.
+ */
+VMM_INT_DECL(VBOXSTRICTRC) GCMInterceptedIOPortRead(PVMCPUCC pVCpu, PCPUMCTX pCtx, uint16_t u16Port, uint8_t cbReg)
+{
+    Assert((pVCpu->CTX_SUFF(pVM)->gcm.s.fFixerSet & GCMFIXER_MESA_VMSVGA_DRV) != 0);
+    if (u16Port == VMWARE_HYPERVISOR_PORT && cbReg == 4)
+    {
+        CPUM_IMPORT_EXTRN_WITH_CTX_RET(pVCpu, pCtx,
+                                         CPUMCTX_EXTRN_RAX | CPUMCTX_EXTRN_RCX | CPUMCTX_EXTRN_RDX
+                                       | CPUMCTX_EXTRN_RBX | CPUMCTX_EXTRN_RSI | CPUMCTX_EXTRN_RDI);
+        if (pCtx->rax == VMWARE_HYPERVISOR_MAGIC)
+        {
+            switch (pCtx->rcx)
+            {
+                case VMWARE_HYPERVISOR_CMD_OPEN_CHANNEL:
+                    Log(("GCMInterceptedIOPortRead: vmware open channel: protocol=%#RX64\n", pCtx->rbx));
+                    break;
+                case VMWARE_HYPERVISOR_CMD_SEND_SIZE:
+                    Log(("GCMInterceptedIOPortRead: vmware send size\n"));
+                    break;
+                case VMWARE_HYPERVISOR_CMD_SEND_PAYLOAD:
+                    Log(("GCMInterceptedIOPortRead: vmware send payload\n"));
+                    break;
+                case VMWARE_HYPERVISOR_CMD_RECV_SIZE:
+                    Log(("GCMInterceptedIOPortRead: vmware recv size\n"));
+                    break;
+                case VMWARE_HYPERVISOR_CMD_RECV_PAYLOAD:
+                    Log(("GCMInterceptedIOPortRead: vmware recv payload\n"));
+                    break;
+                case VMWARE_HYPERVISOR_CMD_RECV_STATUS:
+                    Log(("GCMInterceptedIOPortRead: vmware recv status\n"));
+                    break;
+                case VMWARE_HYPERVISOR_CMD_CLOSE_CHANNEL:
+                    Log(("GCMInterceptedIOPortRead: vmware close channel\n"));
+                    break;
+
+                case VMWARE_HYPERVISOR_CMD_MKSGS_RESET:
+                    Log(("GCMInterceptedIOPortRead: vmware mks guest stats reset\n"));
+                    break;
+                case VMWARE_HYPERVISOR_CMD_MKSGS_ADD_PPN:
+                    Log(("GCMInterceptedIOPortRead: vmware mks guest stats add ppn\n"));
+                    break;
+                case VMWARE_HYPERVISOR_CMD_MKSGS_REMOVE_PPN:
+                    Log(("GCMInterceptedIOPortRead: vmware mks guest stats remove ppn\n"));
+                    break;
+
+                default:
+                    LogRelMax(64, ("GCMInterceptedIOPortRead: Unknown vmware hypervisor call: rcx=%#RX64 (cmd), rbx=%#RX64 (len/whatever), rsi=%#RX64 (input), rdi=%#RX64 (input), rdx=%#RX64 (flags + chid) at %04x:%08RX64\n",
+                                   pCtx->rcx, pCtx->rbx, pCtx->rsi, pCtx->rdi, pCtx->rdx, pCtx->cs.Sel, pCtx->rip));
+                    return VERR_GCM_NOT_HANDLED;
+            }
+
+            /* Just fail the command. */
+            pCtx->ecx &= ~VMWARE_MSG_STATUS_F_SUCCESS;
+            return VINF_GCM_HANDLED_ADVANCE_RIP;
+        }
+    }
+    return VERR_GCM_NOT_HANDLED;
+}
+
+
+#if 0 /* If we need to deal with high speed vmware hypervisor calls */
+
+/**
+ * Checks if I/O port string reads for the given port need GCM attention.
+ *
+ * @returns true if needed, false otherwise.
+ * @param   pVCpu       The cross context virtual CPU structure.
+ * @param   u16Port     The port being accessed. UINT16_MAX and cbReg ==
+ *                      UINT8_MAX for any port.
+ * @param   cbReg       The access size. UINT8_MAX and u16Port == UINT16_MAX for
+ *                      any size.
+ */
+VMM_INT_DECL(bool) GCMIsInterceptingIOPortReadStringSlow(PVMCPUCC pVCpu, uint16_t u16Port, uint8_t cbReg)
+{
+    PVM const  pVM  = pVCpu->CTX_SUFF(pVM);
+    bool const fRet = (pVM->gcm.s.fFixerSet & GCMFIXER_MESA_VMSVGA_DRV) != 0
+                   && (   (u16Port == VMWARE_HYPERVISOR_PORT_HB && cbReg == 1)
+                       || (u16Port == UINT16_MAX && cbReg == UINT8_MAX) );
+    LogFlow(("GCMIsInterceptingIOPortReadStringSlow(,%#x,%#x): returns %d\n", u16Port, cbReg, fRet));
+    return fRet;
+}
+
+
+/**
+ * Checks if I/O port string writes for the given port need GCM attention.
+ *
+ * @returns true if needed, false otherwise.
+ * @param   pVCpu       The cross context virtual CPU structure.
+ * @param   u16Port     The port being accessed. UINT16_MAX and cbReg ==
+ *                      UINT8_MAX for any port.
+ * @param   cbReg       The access size. UINT8_MAX and u16Port == UINT16_MAX for
+ *                      any size.
+ */
+VMM_INT_DECL(bool) GCMIsInterceptingIOPortWriteStringSlow(PVMCPUCC pVCpu, uint16_t u16Port, uint8_t cbReg)
+{
+    PVM const  pVM  = pVCpu->CTX_SUFF(pVM);
+    bool const fRet = (pVM->gcm.s.fFixerSet & GCMFIXER_MESA_VMSVGA_DRV) != 0
+                   && (   (u16Port == VMWARE_HYPERVISOR_PORT_HB && cbReg == 1)
+                       || (u16Port == UINT16_MAX && cbReg == UINT8_MAX) );
+    LogFlow(("GCMIsInterceptingIOPortWriteStringSlow(,%#x,%#x): returns %d\n", u16Port, cbReg, fRet));
+    return fRet;
+}
+
+#endif
+

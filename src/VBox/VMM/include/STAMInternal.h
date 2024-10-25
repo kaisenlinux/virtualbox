@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -81,6 +81,39 @@ typedef struct STAMLOOKUP
 
 
 /**
+ * The "sample data" of a STAMTYPE_INTERNAL_SUM sample.
+ */
+typedef struct STAMSUMSAMPLE
+{
+    /** The sum value. */
+    union
+    {
+        /** Any counter or unsigned number type. */
+        STAMCOUNTER     Counter;
+        /** Profile or advance profile.   */
+        STAMPROFILE     Profile;
+    } u;
+    /** The actual type of the SUM. */
+    STAMTYPE            enmType;
+    /** The type of the first sample. */
+    uint8_t             enmTypeFirst;
+    /** Used to decide the unit when gathering summands during registration. */
+    uint8_t             enmUnit : 7;
+    /** Used by pct-of-sum to decide whether to include the value in the sum. */
+    uint8_t             fAddValueToSum : 1;
+    /** Max number of items paSummands can hold. */
+    uint8_t             cSummandsAlloc;
+    /** The number of summands in paSummands. */
+    uint8_t             cSummands;
+    /** Pointer to the description of each of the samples to be summed up. */
+    RT_FLEXIBLE_ARRAY_EXTENSION
+    PSTAMDESC           apSummands[RT_FLEXIBLE_ARRAY];
+} STAMSUMSAMPLE;
+/** Pointer to the data for a sum sample. */
+typedef STAMSUMSAMPLE *PSTAMSUMSAMPLE;
+
+
+/**
  * Sample descriptor.
  */
 typedef struct STAMDESC
@@ -128,6 +161,8 @@ typedef struct STAMDESC
             /** Pointer to the print callback. */
             PFNSTAMR3CALLBACKPRINT  pfnPrint;
         }               Callback;
+        /** Sum.  This is allocated separately. */
+        PSTAMSUMSAMPLE  pSum;
     }                   u;
     /** Unit. */
     STAMUNIT            enmUnit;

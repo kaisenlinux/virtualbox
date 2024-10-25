@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -50,7 +50,7 @@
 
 /* static */
 const QRegularExpression QILabel::s_regExpCopy = QRegularExpression("<[^>]*>");
-QRegExp QILabel::s_regExpElide = QRegExp("(<compact\\s+elipsis=\"(start|middle|end)\"?>([^<]*)</compact>)");
+const QRegularExpression QILabel::s_regExpElide = QRegularExpression("(<compact\\s+elipsis=\"(start|middle|end)\"?>([^<]*)</compact>)");
 
 QILabel::QILabel(QWidget *pParent /* = 0 */, Qt::WindowFlags enmFlags /* = Qt::WindowFlags() */)
     : QLabel(pParent, enmFlags)
@@ -168,7 +168,7 @@ void QILabel::resizeEvent(QResizeEvent *pEvent)
 void QILabel::mousePressEvent(QMouseEvent *pEvent)
 {
     /* Start dragging: */
-    if (pEvent->button() == Qt::LeftButton && geometry().contains(pEvent->pos()) && m_fFullSizeSelection)
+    if (pEvent->button() == Qt::LeftButton && geometry().contains(pEvent->position().toPoint()) && m_fFullSizeSelection)
         m_fStartDragging = true;
     /* Call to base-class: */
     else
@@ -322,22 +322,19 @@ QString QILabel::compressText(const QString &strText) const
     foreach (QString strLine, strText.split(QRegularExpression("<br */?>")))
     {
         /* Search for the compact tag: */
-        if (s_regExpElide.indexIn(strLine) > -1)
+        const QRegularExpressionMatch mt = s_regExpElide.match(strLine);
+        if (mt.hasMatch())
         {
             /* USe the untouchable text to work on: */
             const QString strWork = strLine;
             /* Grep out the necessary info of the regexp: */
-            const QString strCompact   = s_regExpElide.cap(1);
-            const QString strElideMode = s_regExpElide.cap(2);
-            const QString strElide     = s_regExpElide.cap(3);
+            const QString strCompact   = mt.captured(1);
+            const QString strElideMode = mt.captured(2);
+            const QString strElide     = mt.captured(3);
             /* Remove the whole compact tag (also the text): */
             const QString strFlat = removeHtmlTags(QString(strWork).remove(strCompact));
             /* What size will the text have without the compact text: */
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
             const int iFlatWidth = fm.horizontalAdvance(strFlat);
-#else
-            const int iFlatWidth = fm.width(strFlat);
-#endif
             /* Create the shortened text: */
             const QString strNew = fm.elidedText(strElide, toTextElideMode(strElideMode), width() - (2 * HOR_PADDING) - iFlatWidth);
             /* Replace the compact part with the shortened text in the initial string: */

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -43,6 +43,7 @@
 #include "the-linux-kernel.h"
 #include <iprt/list.h>
 #include <iprt/asm.h>
+#include <iprt/asm-mem.h>
 #include <VBox/log.h>
 
 #if RTLNX_VER_MIN(2,6,0)

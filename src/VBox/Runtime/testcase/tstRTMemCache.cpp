@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -41,6 +41,7 @@
 #include <iprt/memcache.h>
 
 #include <iprt/asm.h>
+#include <iprt/asm-mem.h>
 #include <iprt/err.h>
 #include <iprt/initterm.h>
 #include <iprt/mem.h>
@@ -88,7 +89,7 @@ static void tst1(void)
     /* Create one without constructor or destructor. */
     uint32_t const cObjects = PAGE_SIZE * 2 / 256;
     RTMEMCACHE hMemCache;
-    RTTESTI_CHECK_RC_RETV(RTMemCacheCreate(&hMemCache, 256, cObjects, 32, NULL, NULL, NULL, 0 /*fFlags*/), VINF_SUCCESS);
+    RTTESTI_CHECK_RC_RETV(RTMemCacheCreate(&hMemCache, 256, 32 /*cbAlignment*/, cObjects, NULL, NULL, NULL, 0 /*fFlags*/), VINF_SUCCESS);
     RTTESTI_CHECK_RETV(hMemCache != NIL_RTMEMCACHE);
 
     /* Allocate a bit and free it again. */
@@ -171,7 +172,7 @@ static void tst2(void)
     /* Create one without constructor or destructor. */
     bool            fFail    = false;
     uint32_t const  cObjects = PAGE_SIZE * 2 / 256;
-    RTTESTI_CHECK_RC_RETV(RTMemCacheCreate(&g_hMemCache, 256, cObjects, 32, tst2Ctor, tst2Dtor, &fFail, 0 /*fFlags*/), VINF_SUCCESS);
+    RTTESTI_CHECK_RC_RETV(RTMemCacheCreate(&g_hMemCache, 256, 32 /*cbAlignemnt*/, cObjects, tst2Ctor, tst2Dtor, &fFail, 0 /*fFlags*/), VINF_SUCCESS);
 
     /* A failure run first. */
     fFail = true;

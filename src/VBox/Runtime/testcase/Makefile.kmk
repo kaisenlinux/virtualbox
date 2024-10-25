@@ -4,7 +4,7 @@
 #
 
 #
-# Copyright (C) 2006-2023 Oracle and/or its affiliates.
+# Copyright (C) 2006-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -66,6 +66,7 @@ ifdef VBOX_WITH_TESTCASES # The whole file
  #
  ifndef VBOX_ONLY_VALIDATIONKIT
   PROGRAMS += \
+  	tstRTArmv8 \
   	tstRTAssertCompile \
   	tstRTAvl \
   	tstRTBase64 \
@@ -75,6 +76,7 @@ ifdef VBOX_WITH_TESTCASES # The whole file
   	tstRTCritSect \
   	tstRTCritSectRw \
   	tstRTCrPkix-1 \
+  	tstRTCrShaCrypt \
   	tstRTCrX509-1 \
   	tstRTCType \
   	tstRTDigest \
@@ -126,6 +128,7 @@ ifdef VBOX_WITH_TESTCASES # The whole file
   	tstRTPath \
   	tstRTPathGlob \
   	tstRTPathQueryInfo \
+  	tstRTPathUnlink \
   	tstRTPipe \
   	tstRTPoll \
   	tstRTPrfIO \
@@ -141,6 +144,7 @@ ifdef VBOX_WITH_TESTCASES # The whole file
   	tstSemPingPong \
   	tstRTSemRW \
   	tstRTSemXRoads \
+  	tstRTSg \
   	tstRTSort \
   	tstRTStrAlloc \
   	tstRTStrCache \
@@ -214,7 +218,7 @@ ifdef VBOX_WITH_TESTCASES # The whole file
     PROGRAMS += tstRTNoCrt-2
    endif
    if1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), win.x86 win.amd64)
-    PROGRAMS += tstRTNoCrt-3 tstRTNoCrt-3r tstRTNoCrt-4
+    PROGRAMS += tstRTNoCrt-3 tstRTNoCrt-3r tstRTNoCrt-4 tstRTNoCrt-5
    endif
   endif
 
@@ -275,6 +279,8 @@ ifdef VBOX_WITH_TESTCASES # The whole file
  #
  # Target configs in almost alphabetical order.
  #
+ tstRTArmv8_TEMPLATE = VBoxR3TstExe
+ tstRTArmv8_SOURCES = tstRTArmv8.cpp
 
  tstRTAssertCompile_TEMPLATE = VBoxR3TstExe
  tstRTAssertCompile_INSTTYPE = none
@@ -738,6 +744,26 @@ ifdef VBOX_WITH_TESTCASES # The whole file
  tstRTNoCrt-4_TEMPLATE := VBoxR3TstExe
  tstRTNoCrt-4_SOURCES := tstRTNoCrt-4.cpp
 
+ tstRTNoCrt-5_TEMPLATE := VBoxR3TstExeStatic
+ if   "$(KBUILD_TARGET_ARCH)" == "amd64" \
+   && !defined(VBOX_ONLY_ADDITIONS) && !defined(VBOX_ONLY_VALIDATIONKIT) && !defined(VBOX_ONLY_DOCS) \
+   && !defined(VBOX_WITH_PARFAIT) # mirrors RuntimeR3-x86 cond
+  tstRTNoCrt-5_BLD_TRG_ARCH := x86
+ endif
+ tstRTNoCrt-5_SOURCES := tstRTNoCrt-5.cpp
+ tstRTNoCrt-5_SOURCES.win.x86 := \
+ 	../common/compiler/vcc/x86-allshl.asm \
+ 	../common/compiler/vcc/x86-allshr.asm \
+ 	../common/compiler/vcc/x86-aullshr.asm \
+ 	../common/compiler/vcc/x86-allmul.asm \
+ 	../common/compiler/vcc/x86-aulldiv.asm \
+ 	../common/compiler/vcc/x86-aullrem.asm \
+ 	../common/compiler/vcc/x86-aulldvrm.asm \
+ 	../common/compiler/vcc/x86-alldiv.asm \
+ 	../common/compiler/vcc/x86-allrem.asm \
+ 	../common/compiler/vcc/x86-alldvrm.asm \
+ 	../common/compiler/vcc/RTVccUInt64Div.cpp
+
  tstRTNtPath-1_TEMPLATE = VBoxR3TstExe
  tstRTNtPath-1_SOURCES = tstRTNtPath-1.cpp
 
@@ -755,6 +781,9 @@ ifdef VBOX_WITH_TESTCASES # The whole file
 
  tstRTPathQueryInfo_TEMPLATE = VBoxR3TstExe
  tstRTPathQueryInfo_SOURCES = tstRTPathQueryInfo.cpp
+
+ tstRTPathUnlink_TEMPLATE = VBoxR3TstExe
+ tstRTPathUnlink_SOURCES = tstRTPathUnlink.cpp
 
  tstRTPipe_TEMPLATE = VBoxR3TstExe
  tstRTPipe_SOURCES = tstRTPipe.cpp
@@ -808,6 +837,12 @@ ifdef VBOX_WITH_TESTCASES # The whole file
 
  tstRTSemXRoads_TEMPLATE = VBoxR3TstExe
  tstRTSemXRoads_SOURCES = tstRTSemXRoads.cpp
+
+ tstRTSg_TEMPLATE = VBoxR3TstExe
+ tstRTSg_SOURCES = tstRTSg.cpp
+
+ tstRTCrShaCrypt_TEMPLATE = VBoxR3TstExe
+ tstRTCrShaCrypt_SOURCES = tstRTCrShaCrypt.cpp
 
  tstRTSort_TEMPLATE = VBoxR3TstExe
  tstRTSort_SOURCES = tstRTSort.cpp

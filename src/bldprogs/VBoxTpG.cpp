@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1087,7 +1087,6 @@ static RTEXITCODE generateHeader(PSCMSTREAM pStrm)
                             "); \\\n"
                             "        } \\\n"
                             "        { \\\n" );
-            uint32_t iArg = 0;
             RTListForEach(&pProbe->ArgHead, pArg, VTGARG, ListEntry)
             {
                 if ((pArg->fType & (VTG_TYPE_FIXED_SIZED | VTG_TYPE_AUTO_CONV_PTR)) == VTG_TYPE_FIXED_SIZED)
@@ -1102,7 +1101,6 @@ static RTEXITCODE generateHeader(PSCMSTREAM pStrm)
                                     "        AssertCompile(sizeof(%s) <= sizeof(uintptr_t)); \\\n",
                                     pArg->pszName,
                                     pArg->pszTracerType);
-                iArg++;
             }
             ScmStreamPrintf(pStrm,
                             "        } \\\n"
@@ -2514,7 +2512,7 @@ static RTEXITCODE parseArguments(int argc,  char **argv)
             case 'V':
             {
                 /* The following is assuming that svn does it's job here. */
-                static const char s_szRev[] = "$Revision: 155244 $";
+                static const char s_szRev[] = "$Revision: 164827 $";
                 const char *psz = RTStrStripL(strchr(s_szRev, ' '));
                 RTPrintf("r%.*s\n", strchr(psz, ' ') - psz, psz);
                 return RTEXITCODE_SUCCESS;

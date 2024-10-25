@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,16 +32,15 @@
 #endif
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
+#include "UIEditor.h"
 
 /* Forward declartions: */
 class QTreeWidgetItem;
-class QILabelSeparator;
 class QIRichTextLabel;
 class QITreeWidget;
 
-/** QWidget subclass used as a language settings editor. */
-class SHARED_LIBRARY_STUFF UILanguageSettingsEditor : public QIWithRetranslateUI<QWidget>
+/** UIEditor sub-class used as a language settings editor. */
+class SHARED_LIBRARY_STUFF UILanguageSettingsEditor : public UIEditor
 {
     Q_OBJECT;
 
@@ -57,15 +56,15 @@ public:
 
 protected:
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
     /** Handles show @a pEvent. */
     virtual void showEvent(QShowEvent *pEvent) RT_OVERRIDE;
     /** Handles polish @a pEvent. */
     virtual void polishEvent(QShowEvent *pEvent);
 
 private slots:
+
+    /** Handles translation event. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
     /** Handles @a pItem painting with passed @a pPainter. */
     void sltHandleItemPainting(QTreeWidgetItem *pItem, QPainter *pPainter);
@@ -77,8 +76,6 @@ private:
 
     /** Prepares all. */
     void prepare();
-    /** Cleanups all. */
-    void cleanup();
 
     /** Reloads language list, choosing item with @a strLanguageId as current. */
     void reloadLanguageTree(const QString &strLanguageId);
@@ -91,8 +88,6 @@ private:
 
     /** @name Widgets
      * @{ */
-        /** Holds the separator label instance. */
-        QILabelSeparator *m_pLabelSeparator;
         /** Holds the tree-widget instance. */
         QITreeWidget     *m_pTreeWidget;
         /** Holds the info label instance. */

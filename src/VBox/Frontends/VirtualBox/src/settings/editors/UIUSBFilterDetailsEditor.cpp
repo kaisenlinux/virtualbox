@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -36,11 +36,15 @@
 #include "QIDialogButtonBox.h"
 #include "QILineEdit.h"
 #include "UIConverter.h"
+#include "UITranslationEventListener.h"
 #include "UIUSBFilterDetailsEditor.h"
+
+/* Other VBox includes: */
+#include "iprt/assert.h"
 
 
 UIUSBFilterDetailsEditor::UIUSBFilterDetailsEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI2<QIDialog>(pParent, Qt::Sheet)
+    : QIDialog(pParent, Qt::Sheet)
     , m_pLabelName(0)
     , m_pEditorName(0)
     , m_pLabelVendorID(0)
@@ -168,7 +172,7 @@ UIRemoteMode UIUSBFilterDetailsEditor::remoteMode() const
     return m_pComboRemote ? m_pComboRemote->currentData().value<UIRemoteMode>() : UIRemoteMode_Any;
 }
 
-void UIUSBFilterDetailsEditor::retranslateUi()
+void UIUSBFilterDetailsEditor::sltRetranslateUI()
 {
     setWindowTitle(tr("USB Filter Details"));
 
@@ -180,44 +184,44 @@ void UIUSBFilterDetailsEditor::retranslateUi()
     if (m_pLabelVendorID)
         m_pLabelVendorID->setText(tr("&Vendor ID:"));
     if (m_pEditorVendorID)
-        m_pEditorVendorID->setToolTip(tr("Holds the vendor ID filter. The <i>exact match</i> string format is <tt>XXXX</tt> "
-                                         "where <tt>X</tt> is a hexadecimal digit. An empty string will match any value."));
+        m_pEditorVendorID->setToolTip(tr("Holds the vendor ID filter. The exact match string format is 'XXXX' "
+                                         "where 'X' is a hexadecimal digit. An empty string will match any value."));
 
     if (m_pLabelProductID)
         m_pLabelProductID->setText(tr("&Product ID:"));
     if (m_pEditorProductID)
-        m_pEditorProductID->setToolTip(tr("Holds the product ID filter. The <i>exact match</i> string format is <tt>XXXX</tt> "
-                                          "where <tt>X</tt> is a hexadecimal digit. An empty string will match any value."));
+        m_pEditorProductID->setToolTip(tr("Holds the product ID filter. The exact match string format is 'XXXX' "
+                                          "where 'X' is a hexadecimal digit. An empty string will match any value."));
 
     if (m_pLabelRevision)
         m_pLabelRevision->setText(tr("&Revision:"));
     if (m_pEditorRevision)
-        m_pEditorRevision->setToolTip(tr("Holds the revision number filter. The <i>exact match</i> string format is "
-                                         "<tt>IIFF</tt> where <tt>I</tt> is a decimal digit of the integer part and <tt>F</tt> "
+        m_pEditorRevision->setToolTip(tr("Holds the revision number filter. The exact match string format is "
+                                         "'IIFF' where 'I' is a decimal digit of the integer part and 'F' "
                                          "is a decimal digit of the fractional part. An empty string will match any value."));
 
     if (m_pLabelManufacturer)
         m_pLabelManufacturer->setText(tr("&Manufacturer:"));
     if (m_pEditorManufacturer)
-        m_pEditorManufacturer->setToolTip(tr("Holds the manufacturer filter as an <i>exact match</i> string. An empty string "
+        m_pEditorManufacturer->setToolTip(tr("Holds the manufacturer filter as an exact match string. An empty string "
                                              "will match any value."));
 
     if (m_pLabelProduct)
         m_pLabelProduct->setText(tr("Pro&duct:"));
     if (m_pEditorProduct)
-        m_pEditorProduct->setToolTip(tr("Holds the product name filter as an <i>exact match</i> string. An empty string will "
+        m_pEditorProduct->setToolTip(tr("Holds the product name filter as an exact match string. An empty string will "
                                         "match any value."));
 
     if (m_pLabelSerialNo)
         m_pLabelSerialNo->setText(tr("&Serial No.:"));
     if (m_pEditorSerialNo)
-        m_pEditorSerialNo->setToolTip(tr("Holds the serial number filter as an <i>exact match</i> string. An empty string will "
+        m_pEditorSerialNo->setToolTip(tr("Holds the serial number filter as an exact match string. An empty string will "
                                          "match any value."));
 
     if (m_pLabelPort)
         m_pLabelPort->setText(tr("Por&t:"));
     if (m_pEditorPort)
-        m_pEditorPort->setToolTip(tr("Holds the host USB port filter as an <i>exact match</i> string. An empty string will match "
+        m_pEditorPort->setToolTip(tr("Holds the host USB port filter as an exact match string. An empty string will match "
                                      "any value."));
 
     if (m_pLabelRemote)
@@ -251,7 +255,9 @@ void UIUSBFilterDetailsEditor::prepare()
     prepareConnections();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIUSBFilterDetailsEditor::sltRetranslateUI);
 
     /* Adjust dialog size: */
     adjustSize();
@@ -259,6 +265,14 @@ void UIUSBFilterDetailsEditor::prepare()
 
 void UIUSBFilterDetailsEditor::prepareWidgets()
 {
+    /* Name field validation: */
+    const QRegularExpression re1(".+");
+    /* Integer field validation, supports hex ranges: */
+    const QString strHexValue("((0[xX])?[0-9a-fA-F]{1,4})");
+    const QString strRange = QString("(%1|-%1|%1-|%1-%1)").arg(strHexValue);
+    const QString strRanges = QString("(%1(,%1)*)?").arg(strRange);
+    const QRegularExpression re2(strRanges);
+
     /* Prepare main layout: */
     QGridLayout *pLayout = new QGridLayout(this);
     if (pLayout)
@@ -279,7 +293,7 @@ void UIUSBFilterDetailsEditor::prepareWidgets()
             if (m_pLabelName)
                 m_pLabelName->setBuddy(m_pEditorName);
             m_pEditorName->setMinimumWidthByText(QString().fill('0', 32));
-            m_pEditorName->setValidator(new QRegularExpressionValidator(QRegularExpression(".+"), this));
+            m_pEditorName->setValidator(new QRegularExpressionValidator(re1, this));
             connect(m_pEditorName, &QLineEdit::textChanged,
                     this, &UIUSBFilterDetailsEditor::sltRevalidate);
             pLayout->addWidget(m_pEditorName, 0, 1);
@@ -299,7 +313,7 @@ void UIUSBFilterDetailsEditor::prepareWidgets()
             if (m_pLabelVendorID)
                 m_pLabelVendorID->setBuddy(m_pEditorVendorID);
             m_pEditorVendorID->setMinimumWidthByText(QString().fill('0', 8));
-            m_pEditorVendorID->setValidator(new QRegularExpressionValidator(QRegularExpression("[0-9a-fA-F]{0,4}"), this));
+            m_pEditorVendorID->setValidator(new QRegularExpressionValidator(re2, this));
             connect(m_pEditorVendorID, &QLineEdit::textChanged,
                     this, &UIUSBFilterDetailsEditor::sltRevalidate);
             pLayout->addWidget(m_pEditorVendorID, 1, 1);
@@ -319,7 +333,7 @@ void UIUSBFilterDetailsEditor::prepareWidgets()
             if (m_pLabelProductID)
                 m_pLabelProductID->setBuddy(m_pEditorProductID);
             m_pEditorProductID->setMinimumWidthByText(QString().fill('0', 8));
-            m_pEditorProductID->setValidator(new QRegularExpressionValidator(QRegularExpression("[0-9a-fA-F]{0,4}"), this));
+            m_pEditorProductID->setValidator(new QRegularExpressionValidator(re2, this));
             connect(m_pEditorProductID, &QLineEdit::textChanged,
                     this, &UIUSBFilterDetailsEditor::sltRevalidate);
             pLayout->addWidget(m_pEditorProductID, 2, 1);
@@ -339,7 +353,7 @@ void UIUSBFilterDetailsEditor::prepareWidgets()
             if (m_pLabelRevision)
                 m_pLabelRevision->setBuddy(m_pEditorRevision);
             m_pEditorRevision->setMinimumWidthByText(QString().fill('0', 8));
-            m_pEditorRevision->setValidator(new QRegularExpressionValidator(QRegularExpression("[0-9a-fA-F]{0,4}"), this));
+            m_pEditorRevision->setValidator(new QRegularExpressionValidator(re2, this));
             connect(m_pEditorRevision, &QLineEdit::textChanged,
                     this, &UIUSBFilterDetailsEditor::sltRevalidate);
             pLayout->addWidget(m_pEditorRevision, 3, 1);
@@ -410,7 +424,7 @@ void UIUSBFilterDetailsEditor::prepareWidgets()
             if (m_pLabelPort)
                 m_pLabelPort->setBuddy(m_pEditorPort);
             m_pEditorPort->setMinimumWidthByText(QString().fill('0', 8));
-            m_pEditorPort->setValidator(new QRegularExpressionValidator(QRegularExpression("(0[xX])?[0-9a-fA-F]{0,4}"), this));
+            m_pEditorPort->setValidator(new QRegularExpressionValidator(re2, this));
             connect(m_pEditorPort, &QLineEdit::textChanged,
                     this, &UIUSBFilterDetailsEditor::sltRevalidate);
             pLayout->addWidget(m_pEditorPort, 7, 1);

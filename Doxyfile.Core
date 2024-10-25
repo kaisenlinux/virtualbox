@@ -248,6 +248,8 @@ ALIASES += udf260{2}="<a href=\"http://www.osta.org/specs/pdf/udf260.pdf#page=\2
 ALIASES += ecma{3}="<a href=\"https://www.ecma-international.org/publications/files/ECMA-ST/Ecma-\1.pdf#page=\3\">ECMA-\1:\2</a>"
 # ECMA-167 spec reference - 1=part 2=section, 3=page
 ALIASES += ecma167{3}="\ecma{167,Part\1/\2,\3}"
+# ACPI spec reference - 1=chapter, 2=section
+ALIASES += acpi65{2}="<a href=\"https://uefi.org/specs/ACPI/6.5/\1.html#\2\">ACPI-6.5:\2</a>"
 
 # Internal: 1=doc number; 2=file base name; 3=revision (077); 4=page; 5=doc name; 6=section/table/figure; 7=title
 ALIASES += sdm{7}="<a href=\"https://www.intel.com/content/dam/develop/public/us/en/documents/\1-\2.pdf#page=\4\">\5:\6 \"\7\"</a>"
@@ -265,37 +267,38 @@ ALIASES += sdmv4{3}="\sdm{335592,sdm-vol-4,\1,\2,SDMv4,\3}"
 ALIASES += sdmv4{4}="\sdm{335592,sdm-vol-4,\1,\2,SDMv4,\3,\4}"
 
 # For IEM opcode specs.
-ALIASES += opbrief=""
-ALIASES += opdesc=""
-ALIASES += opmnemonic="Mnemonic: "
-ALIASES += op1="Operand \#1: "
-ALIASES += op2="Operand \#2: "
-ALIASES += op3="Operand \#3: "
-ALIASES += op4="Operand \#4: "
-ALIASES += oppfx="Req.Prefix: "
-ALIASES += opmaps="Opcode Maps: "
-ALIASES += opcode="Opcode Byte: "
-ALIASES += opcodesub="Opcode Sub-Byte: "
-ALIASES += openc="Encoding: "
-ALIASES += opfltest="EFLAGS Tested: "
-ALIASES += opflmodify="EFLAGS Modified: "
-ALIASES += opflundef="EFLAGS Undefined: "
-ALIASES += opflset="EFLAGS Set: "
-ALIASES += opflclear="EFLAGS Cleared: "
-ALIASES += ophints="Hints, Flags, ++: "
-ALIASES += opdisenum="Disassembler Enum: "
-ALIASES += opmincpu="Minimum CPU: "
-ALIASES += opcpuid="CPUID: "
-ALIASES += opxcpttype="Exception Type: "
-ALIASES += opgroup="@ingroup "
-ALIASES += opunused="Unused Encoding: "
-ALIASES += opinvalid="Invalid Encoding: "
+ALIASES +=     opbrief=""
+ALIASES +=      opdesc=""
+ALIASES +=  opmnemonic="Mnemonic: "
+ALIASES +=         op1="Operand \#1: "
+ALIASES +=         op2="Operand \#2: "
+ALIASES +=         op3="Operand \#3: "
+ALIASES +=         op4="Operand \#4: "
+ALIASES +=       oppfx="Req.Prefix: "
+ALIASES +=      opmaps="Opcode Maps: "
+ALIASES +=      opcode="Opcode Byte: "
+ALIASES +=   opcodesub="Opcode Sub-Byte: "
+ALIASES +=       openc="Encoding: "
+ALIASES +=    opfltest="EFLAGS Tested: "
+ALIASES +=  opflmodify="EFLAGS Modified: "
+ALIASES +=   opflundef="EFLAGS Undefined: "
+ALIASES +=     opflset="EFLAGS Set: "
+ALIASES +=   opflclear="EFLAGS Cleared: "
+ALIASES +=   opflclass="EFLAGS Behaviour Class: "
+ALIASES +=     ophints="Hints, Flags, ++: "
+ALIASES +=   opdisenum="Disassembler Enum: "
+ALIASES +=    opmincpu="Minimum CPU: "
+ALIASES +=     opcpuid="CPUID: "
+ALIASES +=  opxcpttype="Exception Type: "
+ALIASES +=     opgroup="@ingroup "
+ALIASES +=    opunused="Unused Encoding: "
+ALIASES +=   opinvalid="Invalid Encoding: "
 ALIASES += opinvlstyle="Invalid/Unused Encoding Style: "
-ALIASES += optest="Testcase: "
+ALIASES +=      optest="Testcase: "
 ALIASES += opcopytests="Testcase: Same as "
-ALIASES += opstats="IEM Stats:"
-ALIASES += opfunction="IEM Function"
-ALIASES += opdone="-------------------------"
+ALIASES +=     opstats="IEM Stats:"
+ALIASES +=  opfunction="IEM Function"
+ALIASES +=      opdone="-------------------------"
 
 
 # bugref - xTracker bug reference, takes one to four bug numbers.
@@ -608,6 +611,7 @@ PREDEFINED             =  \
     \
     "RT_IPRT_FORMAT_ATTR(a,b)=" \
     "RT_IPRT_FORMAT_ATTR_MAYBE_NULL(a,b)=" \
+    "RT_IPRT_CALLREQ_ATTR(a,b,c)=" \
     RT_NOTHROW_PROTO= \
     RT_NOTHROW_DEF= \
     RT_NO_THROW_PROTO= \
@@ -621,8 +625,9 @@ PREDEFINED             =  \
 PREDEFINED += \
     DECL_NOTHROW(a_RetType)=a_RetType \
     "DECLINLINE(type)=inline type" \
-    DECL_INLINE_THROW(type)=DECLINLINE(type) \
-    DECL_FORCE_INLINE(type)=DECLINLINE(type) \
+    "DECL_INLINE_THROW(type)=inline type" \
+    "DECL_FORCE_INLINE(type)=inline type" \
+    "DECL_FORCE_INLINE_THROW(type)=inline type" \
     DECL_NO_INLINE(type)=type \
     DECL_NO_RETURN(type)=type \
     DECLCALLBACK(type)=type \

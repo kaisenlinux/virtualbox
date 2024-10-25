@@ -4,7 +4,7 @@
 #
 
 #
-# Copyright (C) 2006-2023 Oracle and/or its affiliates.
+# Copyright (C) 2006-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -28,12 +28,11 @@
 %define %SPEC% 1
 %define %OSE% 1
 %define %PYTHON% 1
-%define %QHELP% 1
 %define VBOXDOCDIR %{_defaultdocdir}/%NAME%
 %global __requires_exclude_from ^/usr/lib/virtualbox/VBoxPython.*$|^/usr/lib/python.*$|^.*\\.py$
 %{!?python_sitelib: %define python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
 
-Summary:   Oracle VM VirtualBox
+Summary:   Oracle VirtualBox
 Name:      %NAME%
 Version:   %BUILDVER%_%BUILDREL%
 Release:   1
@@ -107,7 +106,7 @@ install -m 755 -d $RPM_BUILD_ROOT/usr/share/virtualbox
 install -m 755 -d $RPM_BUILD_ROOT/usr/share/mime/packages
 %if %{?with_python:1}%{!?with_python:0}
 (export VBOX_INSTALL_PATH=/usr/lib/virtualbox && \
-  cd ./sdk/installer && \
+  cd ./sdk/installer/python && \
   %{vbox_python} ./vboxapisetup.py install --prefix %{_prefix} --root $RPM_BUILD_ROOT)
 %endif
 rm -rf sdk/installer
@@ -188,12 +187,12 @@ ln -s VBox $RPM_BUILD_ROOT/usr/bin/VBoxDTrace
 ln -s VBox $RPM_BUILD_ROOT/usr/bin/VBoxAudioTest
 ln -s VBox $RPM_BUILD_ROOT/usr/bin/vboxdtrace
 ln -s VBox $RPM_BUILD_ROOT/usr/bin/vboxaudiotest
-ln -s VBox $RPM_BUILD_ROOT/usr/bin/VBoxBugReport
-ln -s VBox $RPM_BUILD_ROOT/usr/bin/vboxbugreport
-ln -s VBox $RPM_BUILD_ROOT/usr/bin/VBoxBalloonCtrl
-ln -s VBox $RPM_BUILD_ROOT/usr/bin/vboxballoonctrl
-ln -s VBox $RPM_BUILD_ROOT/usr/bin/VBoxAutostart
-ln -s VBox $RPM_BUILD_ROOT/usr/bin/vboxautostart
+test -f VBoxBugReport   && ln -s VBox $RPM_BUILD_ROOT/usr/bin/VBoxBugReport
+test -f VBoxBugReport   && ln -s VBox $RPM_BUILD_ROOT/usr/bin/vboxbugreport
+test -f VBoxBalloonCtrl && ln -s VBox $RPM_BUILD_ROOT/usr/bin/VBoxBalloonCtrl
+test -f VBoxBalloonCtrl && ln -s VBox $RPM_BUILD_ROOT/usr/bin/vboxballoonctrl
+test -f VBoxAutostart   && ln -s VBox $RPM_BUILD_ROOT/usr/bin/VBoxAutostart
+test -f VBoxAutostart   && ln -s VBox $RPM_BUILD_ROOT/usr/bin/vboxautostart
 test -f vboxwebsrv && ln -s VBox $RPM_BUILD_ROOT/usr/bin/vboxwebsrv
 ln -s /usr/lib/virtualbox/vbox-img $RPM_BUILD_ROOT/usr/bin/vbox-img
 ln -s /usr/lib/virtualbox/vboximg-mount $RPM_BUILD_ROOT/usr/bin/vboximg-mount
@@ -201,8 +200,7 @@ ln -s /usr/share/virtualbox/src/vboxhost $RPM_BUILD_ROOT/usr/src/vboxhost-%VER%
 mv virtualbox.desktop $RPM_BUILD_ROOT/usr/share/applications/virtualbox.desktop
 mv VBox.png $RPM_BUILD_ROOT/usr/share/pixmaps/VBox.png
 %{!?is_ose: mv LICENSE $RPM_BUILD_ROOT%{VBOXDOCDIR}}
-mv UserManual*.pdf $RPM_BUILD_ROOT%{VBOXDOCDIR}
-%{?with_qhelp: mv UserManual*.qch UserManual*.qhc $RPM_BUILD_ROOT%{VBOXDOCDIR}}
+mv UserManual*.pdf UserManual*.qch UserManual*.qhc $RPM_BUILD_ROOT%{VBOXDOCDIR}
 install -m 755 -d $RPM_BUILD_ROOT/usr/lib/debug/usr/lib/virtualbox
 %if %{?rpm_suse:1}%{!?rpm_suse:0}
 rm *.debug
@@ -210,14 +208,13 @@ rm *.debug
 mv *.debug $RPM_BUILD_ROOT/usr/lib/debug/usr/lib/virtualbox
 %endif
 mv * $RPM_BUILD_ROOT/usr/lib/virtualbox
-if [ -f $RPM_BUILD_ROOT/usr/lib/virtualbox/libQt5CoreVBox.so.5 ]; then
+if [ -f $RPM_BUILD_ROOT/usr/lib/virtualbox/libQt6CoreVBox.so.6 ]; then
   $RPM_BUILD_ROOT/usr/lib/virtualbox/chrpath --keepgoing --replace /usr/lib/virtualbox \
-    $RPM_BUILD_ROOT/usr/lib/virtualbox/*.so.5 \
+    $RPM_BUILD_ROOT/usr/lib/virtualbox/*.so.6 \
     $RPM_BUILD_ROOT/usr/lib/virtualbox/plugins/platforms/*.so \
     $RPM_BUILD_ROOT/usr/lib/virtualbox/plugins/platformthemes/*.so \
     $RPM_BUILD_ROOT/usr/lib/virtualbox/plugins/sqldrivers/*.so \
-    $RPM_BUILD_ROOT/usr/lib/virtualbox/plugins/styles/*.so \
-    $RPM_BUILD_ROOT/usr/lib/virtualbox/plugins/xcbglintegrations/*.so || true
+    $RPM_BUILD_ROOT/usr/lib/virtualbox/plugins/styles/*.so || true
   echo "[Paths]" > $RPM_BUILD_ROOT/usr/lib/virtualbox/qt.conf
   echo "Plugins = /usr/lib/virtualbox/plugins" >> $RPM_BUILD_ROOT/usr/lib/virtualbox/qt.conf
 fi
@@ -346,6 +343,11 @@ rm -rf /usr/lib/virtualbox/ExtensionPacks
 
 %clean
 rm -rf $RPM_BUILD_ROOT
+
+
+%changelog
+* %DATE% Oracle Corporation <info@virtualbox.org>
+- rebuild RPM package, see https://www.virtualbox.org/wiki/Changelog
 
 
 %files

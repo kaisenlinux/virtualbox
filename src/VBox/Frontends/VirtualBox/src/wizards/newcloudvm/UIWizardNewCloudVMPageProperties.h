@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -63,22 +63,22 @@ protected:
     /** Returns wizard this page belongs to. */
     UIWizardNewCloudVM *wizard() const;
 
-    /** Handles translation event. */
-    virtual void retranslateUi() /* override final */;
-
     /** Performs page initialization. */
-    virtual void initializePage() /* override final */;
+    virtual void initializePage() RT_OVERRIDE RT_FINAL;
 
     /** Returns whether page is complete. */
-    virtual bool isComplete() const /* override final */;
+    virtual bool isComplete() const RT_OVERRIDE RT_FINAL;
 
     /** Performs page validation. */
-    virtual bool validatePage() /* override final */;
+    virtual bool validatePage() RT_OVERRIDE RT_FINAL;
 
 private slots:
 
     /** Initializes short wizard form. */
     void sltInitShortWizardForm();
+
+    /** Handles translation event. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 

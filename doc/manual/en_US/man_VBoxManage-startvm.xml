@@ -3,7 +3,7 @@
     manpage, user manual, usage: VBoxManage startvm
 -->
 <!--
-    Copyright (C) 2006-2023 Oracle and/or its affiliates.
+    Copyright (C) 2006-2024 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.
@@ -30,7 +30,7 @@
 ]>
 <refentry id="vboxmanage-startvm" lang="en">
   <refentryinfo>
-    <pubdate>$Date: 2023-01-17 15:15:46 +0100 (Tue, 17 Jan 2023) $</pubdate>
+    <pubdate>$Date: 2024-09-16 16:03:52 +0200 (Mon, 16 Sep 2024) $</pubdate>
     <title>VBoxManage startvm</title>
   </refentryinfo>
 
@@ -49,23 +49,23 @@
     <cmdsynopsis id="synopsis-vboxmanage-startvm">
 <!-- The 'id' is mandatory and must start with 'synopsis-'. -->
       <command>VBoxManage startvm</command>
-      <group choice="req" rep="repeat">
-        <arg choice="plain"><replaceable>uuid</replaceable></arg>
-        <arg choice="plain"><replaceable>vmname</replaceable></arg>
-      </group>
       <arg>--putenv=<replaceable>name</replaceable>[=<replaceable>value</replaceable>]</arg>
-      <arg>--type=<group>
+      <arg role="compact">--type=<group choice="req">
           <arg choice="plain">gui</arg>
           <arg choice="plain">headless</arg>
           <arg choice="plain">sdl</arg>
           <arg choice="plain">separate</arg>
         </group></arg>
-      <arg choice="plain">--password <replaceable>file</replaceable></arg>
-      <arg choice="plain">--password-id <replaceable>password identifier</replaceable></arg>
+      <arg>--password=<replaceable>file</replaceable></arg>
+      <arg>--password-id=<replaceable>password-identifier</replaceable></arg>
+      <group choice="req" rep="repeat">
+        <arg choice="plain"><replaceable>uuid</replaceable></arg>
+        <arg choice="plain"><replaceable>vmname</replaceable></arg>
+      </group>
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-startvm-description">
     <title>Description</title>
     <para>
       The <command>VBoxManage startvm</command> command starts an
@@ -74,7 +74,7 @@
     </para>
     <variablelist>
       <varlistentry>
-        <term><replaceable>uuid</replaceable> | <replaceable>vmname</replaceable></term>
+        <term><option><replaceable>uuid</replaceable> | <replaceable>vmname</replaceable></option></term>
         <listitem><para>
             Specifies the name or Universally Unique Identifier (UUID)
             of the VM.
@@ -169,7 +169,7 @@
     </note>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-startvm-examples">
     <title>Examples</title>
     <remark role="help-scope" condition="GLOBAL" />
     <para>
@@ -183,7 +183,7 @@
 <screen>$ VBoxManage startvm ol7u6-mininstall --type headless</screen>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-startvm-see-also">
     <title>See Also</title>
     <para>
 <!--<xref linkend="vboxmanage-vboxheadless" />-->

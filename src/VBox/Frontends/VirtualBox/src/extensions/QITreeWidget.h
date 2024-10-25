@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -112,8 +112,9 @@ signals:
 
 public:
 
-    /** Constructs tree-widget passing @a pParent to the base-class. */
-    QITreeWidget(QWidget *pParent = 0);
+    /** Constructs tree-widget passing @a pParent to the base-class.
+      * @param  fDelegatePaintingToSubclass  Brings whether painting should be fully delegated to sub-class. */
+    QITreeWidget(QWidget *pParent = 0, bool fDelegatePaintingToSubclass = false);
 
     /** Defines @a sizeHint for tree-widget items. */
     void setSizeHintForItems(const QSize &sizeHint);
@@ -131,9 +132,9 @@ public:
 protected:
 
     /** Handles paint @a pEvent. */
-    void paintEvent(QPaintEvent *pEvent);
+    void paintEvent(QPaintEvent *pEvent) RT_OVERRIDE RT_FINAL;
     /** Handles resize @a pEvent. */
-    void resizeEvent(QResizeEvent *pEvent);
+    void resizeEvent(QResizeEvent *pEvent) RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -141,6 +142,9 @@ private:
       * list of tree-items filtered by @a filter to @a filteredItemList. */
     void filterItemsInternal(const QITreeWidgetItemFilter &filter, QTreeWidgetItem *pParent,
                              QList<QTreeWidgetItem*> &filteredItemList);
+
+    /** Holds whether painting should be fully delegated to sub-class. */
+    bool  m_fDelegatePaintingToSubclass;
 };
 
 

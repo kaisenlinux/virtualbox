@@ -8,7 +8,7 @@
  */
 
 /*
- * Copyright (C) 2020-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2020-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -3759,7 +3759,7 @@ static VBOXSTRICTRC nemR3DarwinPreRunGuest(PVM pVM, PVMCPU pVCpu, PVMXTRANSIENT 
         vmxHCTrpmTrapToPendingEvent(pVCpu);
 
     uint32_t fIntrState;
-    rcStrict = vmxHCEvaluatePendingEvent(pVCpu, &pVCpu->nem.s.VmcsInfo, false /*fIsNestedGuest*/, &fIntrState);
+    rcStrict = vmxHCEvaluatePendingEvent(pVCpu, &pVCpu->nem.s.VmcsInfo, &fIntrState);
 
     /*
      * Event injection may take locks (currently the PGM lock for real-on-v86 case) and thus

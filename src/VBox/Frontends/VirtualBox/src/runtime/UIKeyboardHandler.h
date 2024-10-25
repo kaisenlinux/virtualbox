@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -50,15 +50,14 @@
 /* Forward declarations: */
 class QWidget;
 class UIActionPool;
-class UISession;
+class UIMachine;
 class UIMachineLogic;
-class UIMachineWindow;
 class UIMachineView;
-class CKeyboard;
+class UIMachineWindow;
 #ifdef VBOX_WS_WIN
 class WinAltGrMonitor;
 #endif
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
 #  include <xcb/xcb.h>
 #endif
 
@@ -96,7 +95,7 @@ public:
     int state() const;
 
     /* Some getters required by side-code: */
-    bool isHostKeyPressed() const { return m_bIsHostComboPressed; }
+    bool isHostKeyPressed() const { return m_fHostComboPressed; }
 #ifdef VBOX_WS_MAC
     bool isHostKeyAlone() const { return m_bIsHostComboAlone; }
     bool isKeyboardGrabbed() const { return m_iKeyboardHookViewIndex != -1; }
@@ -144,15 +143,12 @@ protected:
     virtual void cleanupCommon();
 
     /* Common getters: */
-    UIMachineLogic* machineLogic() const;
-    UIActionPool* actionPool() const;
-    UISession* uisession() const;
-
-    /** Returns the console's keyboard reference. */
-    CKeyboard& keyboard() const;
+    UIMachineLogic *machineLogic() const { return m_pMachineLogic; }
+    UIActionPool *actionPool() const;
+    UIMachine *uimachine() const;
 
     /* Event handler for registered machine-view(s): */
-    bool eventFilter(QObject *pWatchedObject, QEvent *pEvent);
+    bool eventFilter(QObject *pWatchedObject, QEvent *pEvent) RT_OVERRIDE;
 
 #if defined(VBOX_WS_MAC)
     /** Mac: Performs initial pre-processing of all the native keyboard events. */
@@ -170,7 +166,6 @@ protected:
     bool keyEventHandleNormal(int iKey, uint8_t uScan, int fFlags, LONG *pCodes, uint *puCodesCount);
     bool keyEventHostComboHandled(int iKey, wchar_t *pUniKey, bool isHostComboStateChanged, bool *pfResult);
     void keyEventHandleHostComboRelease(ulong uScreenId);
-    void keyEventReleaseHostComboKeys(const CKeyboard &keyboard);
     /* Separate function to handle most of existing keyboard-events: */
     bool keyEvent(int iKey, uint8_t uScan, int fFlags, ulong uScreenId, wchar_t *pUniKey = 0);
     bool processHotKey(int iHotKey, wchar_t *pUniKey);
@@ -205,8 +200,8 @@ protected:
 
     QMap<int, uint8_t> m_pressedHostComboKeys;
 
-    bool m_fIsKeyboardCaptured : 1;
-    bool m_bIsHostComboPressed : 1;
+    bool m_fKeyboardCaptured : 1;
+    bool m_fHostComboPressed : 1;
     bool m_bIsHostComboAlone : 1;
     bool m_bIsHostComboProcessed : 1;
     bool m_fPassCADtoGuest : 1;
@@ -232,10 +227,10 @@ protected:
     WinAltGrMonitor *m_pAltGrMonitor;
     /** Win: Holds the keyboard handler reference to be accessible from the keyboard hook. */
     static UIKeyboardHandler *m_spKeyboardHandler;
-#elif defined(VBOX_WS_X11)
+#elif defined(VBOX_WS_NIX)
     /** The root window at the time we grab the mouse buttons. */
     xcb_window_t m_hButtonGrabWindow;
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
 };
 
 #endif /* !FEQT_INCLUDED_SRC_runtime_UIKeyboardHandler_h */

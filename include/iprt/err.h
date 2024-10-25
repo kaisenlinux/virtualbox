@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -90,9 +90,9 @@
 #define VERR_INVALID_MAGIC                  (-3)
 /** Invalid magic or cookie. */
 #define VWRN_INVALID_MAGIC                  3
-/** Invalid loader handle. */
+/** Invalid handle. */
 #define VERR_INVALID_HANDLE                 (-4)
-/** Invalid loader handle. */
+/** Invalid handle. */
 #define VWRN_INVALID_HANDLE                 4
 /** Failed to lock the address range. */
 #define VERR_LOCK_FAILED                    (-5)
@@ -1203,6 +1203,8 @@
 #define VERR_HTTP_HOST_NOT_FOUND                (-896)
 /** Unexpected cURL error configure the proxy. */
 #define VERR_HTTP_CURL_PROXY_CONFIG             (-897)
+/** The server does not support the requested function. */
+#define VERR_HTTP_NOT_SUPPORTED                 (-898)
 /** Generic CURL error. */
 #define VERR_HTTP_CURL_ERROR                    (-899)
 /** @} */
@@ -2830,6 +2832,49 @@
 #define VERR_HARDAVL_BAD_HEIGHT                                 (-26819)
 /** Unbalanced tree. */
 #define VERR_HARDAVL_UNBALANCED                                 (-26820)
+/** @} */
+
+
+/** @name RTFdt status codes.
+ * @{ */
+/** The DTB being parsed is malformed. */
+#define VERR_FDT_DTB_MALFORMED                                  (-27000)
+/** The DTB being parsed has an invalid header magic. */
+#define VERR_FDT_DTB_HDR_MAGIC_INVALID                          (-27001)
+/** The DTB being parsed has a version set which is not supported. */
+#define VERR_FDT_DTB_HDR_VERSION_NOT_SUPPORTED                  (-27002)
+/** The DTB being parsed has an invalid last compatible version set. */
+#define VERR_FDT_DTB_HDR_LAST_COMPAT_VERSION_INVALID            (-27003)
+/** The DTB being parsed has an invalid size set in the header compared to the actual size. */
+#define VERR_FDT_DTB_HDR_SIZE_INVALID                           (-27004)
+/** The DTB being parsed has an invalid memory reservation block offset. */
+#define VERR_FDT_DTB_HDR_MEM_RSV_BLOCK_OFF_INVALID              (-27005)
+/** The DTB being parsed has an invalid struct block offset. */
+#define VERR_FDT_DTB_HDR_STRUCT_BLOCK_OFF_INVALID               (-27006)
+/** The DTB being parsed has an invalid strings block offset. */
+#define VERR_FDT_DTB_HDR_STRINGS_BLOCK_OFF_INVALID              (-27007)
+/** The DTB being parsed has no terminating memory reservation block entry before the start of the structs block. */
+#define VERR_FDT_DTB_MEM_RSV_BLOCK_TERMINATOR_MISSING           (-27008)
+/** The DTB being parsed has an invalid strings block offset. */
+#define VERR_FDT_DTB_STRINGS_BLOCK_NOT_TERMINATED               (-27009)
+/** The DTB structs block starts with an invalid token. */
+#define VERR_FDT_DTB_STRUCTS_BLOCK_TOKEN_INVALID                (-27010)
+/** The DTB structs block contains an invalid node name. */
+#define VERR_FDT_DTB_STRUCTS_BLOCK_NODE_NAME_INVALID            (-27011)
+/** The DTB structs block contains an unterminated string. */
+#define VERR_FDT_DTB_STRUCTS_BLOCK_STRING_NOT_TERMINATED        (-27012)
+/** The DTB structs block contains a malformed padding at the end. */
+#define VERR_FDT_DTB_STRUCTS_BLOCK_MALFORMED_PADDING            (-27013)
+/** The DTB structs block ended prematurely. */
+#define VERR_FDT_DTB_STRUCTS_BLOCK_PREMATURE_END                (-27014)
+/** The DTB property name offset points past the string block. */
+#define VERR_FDT_DTB_PROP_NAME_OFF_TOO_LARGE                    (-27015)
+/** The DTB property payload size does not match the expectations. */
+#define VERR_FDT_DTB_PROP_SIZE_MALFORMED                        (-27016)
+/** The DTB property payload string is not terminated. */
+#define VERR_FDT_DTB_PROP_STRING_NOT_TERMINATED                 (-27017)
+/** Can't finalize the node as the FDT cursor is at the root level already. */
+#define VERR_FDT_AT_ROOT_LEVEL                                  (-27018)
 /** @} */
 
 /* SED-END */

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,6 +31,9 @@
 # pragma once
 #endif
 
+/* Qt includes: */
+#include <QSet>
+
 /* GUI includes: */
 #include "UINativeWizardPage.h"
 
@@ -43,28 +46,25 @@ class SHARED_LIBRARY_STUFF UIWizardNewVDSizeLocationPage : public UINativeWizard
 
 public:
 
-    UIWizardNewVDSizeLocationPage(const QString &strDefaultName, const QString &strDefaultPath, qulonglong uDefaultSize);
+    UIWizardNewVDSizeLocationPage(qulonglong uDiskMinimumSize);
 
 private slots:
 
     void sltSelectLocationButtonClicked();
     void sltMediumSizeChanged(qulonglong uSize);
     void sltMediumPathChanged(const QString &strPath);
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 
-    void retranslateUi();
-    void initializePage();
-    bool isComplete() const;
-    bool validatePage();
+    virtual void initializePage() RT_OVERRIDE RT_FINAL;
+    virtual bool isComplete() const RT_OVERRIDE RT_FINAL;
+    virtual bool validatePage() RT_OVERRIDE RT_FINAL;
     void prepare();
 
     UIMediumSizeAndPathGroupBox *m_pMediumSizePathGroup;
     qulonglong m_uMediumSizeMin;
     qulonglong m_uMediumSizeMax;
-    QString m_strDefaultName;
-    QString m_strDefaultPath;
-    qulonglong m_uDefaultSize;
     QSet<QString> m_userModifiedParameters;
 };
 

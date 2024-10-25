@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -27,6 +27,7 @@
 
 /* Qt includes: */
 #include <QActionGroup>
+#include <QApplication>
 #include <QClipboard>
 #include <QFile>
 #include <QFontDatabase>
@@ -38,45 +39,57 @@
 #include <QStatusBar>
 #include <QStyle>
 #include <QTextEdit>
-#ifndef VBOX_WS_WIN
-# include <QRegExp>
-#endif
 #include <QVBoxLayout>
+#include <QWindow>
+#ifndef VBOX_WS_WIN
+# include <QRegularExpression>
+#endif
 
 /* GUI includes: */
 #include "QIDialogButtonBox.h"
 #include "QIFileDialog.h"
+#include "QILineEdit.h"
 #include "QIRichTextLabel.h"
 #include "UIActionPoolManager.h"
+#include "UIAdvancedSettingsDialogSpecific.h"
 #include "UICloudConsoleManager.h"
+#include "UICloudMachineManager.h"
 #include "UICloudNetworkingStuff.h"
 #include "UICloudProfileManager.h"
+#include "UICommon.h"
 #include "UIDesktopServices.h"
 #include "UIDesktopWidgetWatchdog.h"
 #include "UIErrorString.h"
 #include "UIExtension.h"
 #include "UIExtensionPackManager.h"
 #include "UIExtraDataManager.h"
+#include "UIGlobalSession.h"
+#include "UIHelpBrowserDialog.h"
 #include "UIIconPool.h"
+#include "UILocalMachineStuff.h"
+#include "UILoggingDefs.h"
 #include "UIMedium.h"
+#include "UIMediumEnumerator.h"
+#include "UIMediumTools.h"
 #include "UIMediumManager.h"
 #include "UIMessageCenter.h"
 #include "UIModalWindowManager.h"
 #include "UINetworkManager.h"
 #include "UINotificationCenter.h"
 #include "UIQObjectStuff.h"
-#include "UISettingsDialogSpecific.h"
+#include "UITranslationEventListener.h"
 #include "UIVirtualBoxManager.h"
 #include "UIVirtualBoxManagerWidget.h"
 #include "UIVirtualMachineItemCloud.h"
 #include "UIVirtualMachineItemLocal.h"
-#include "UIVMLogViewerDialog.h"
 #include "UIVirtualBoxEventHandler.h"
+#include "UIVMLogViewerDialog.h"
 #include "UIWizardAddCloudVM.h"
 #include "UIWizardCloneVM.h"
 #include "UIWizardExportApp.h"
 #include "UIWizardImportApp.h"
 #include "UIWizardNewCloudVM.h"
+#include "UIWizardNewVD.h"
 #include "UIWizardNewVM.h"
 #ifdef VBOX_GUI_WITH_NETWORK_MANAGER
 # include "UIUpdateManager.h"
@@ -84,16 +97,18 @@
 #ifdef VBOX_WS_MAC
 # include "UIImageTools.h"
 # include "UIWindowMenuManager.h"
+# include "UIVersion.h"
 # include "VBoxUtils.h"
 #else
 # include "UIMenuBar.h"
 #endif
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
 # include "UIDesktopWidgetWatchdog.h"
 #endif
 
 /* COM includes: */
 #include "CHostUSBDevice.h"
+#include "CGuestOSType.h"
 #include "CSystemProperties.h"
 #include "CUnattended.h"
 #include "CVirtualBoxErrorInfo.h"
@@ -106,7 +121,7 @@
 #include <VBox/version.h>
 
 /** QDialog extension used to ask for a public key for console connection needs. */
-class UIAcquirePublicKeyDialog : public QIWithRetranslateUI<QDialog>
+class UIAcquirePublicKeyDialog : public QDialog
 {
     Q_OBJECT;
 
@@ -131,10 +146,8 @@ private slots:
     /** Performs revalidation. */
     void sltRevalidate();
 
-protected:
-
     /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
+    void sltRetranslateUI();
 
 private:
 
@@ -162,13 +175,51 @@ private:
     QIDialogButtonBox *m_pButtonBox;
 };
 
+/** QDialog extension used to ask for a cloud machine clone name. */
+class UIAcquireCloudMachineCloneNameDialog : public QDialog
+{
+    Q_OBJECT;
+
+public:
+
+    /** Constructs dialog passing @a pParent to the base-class.
+      * @param  strName  Brings the clone name by default. */
+    UIAcquireCloudMachineCloneNameDialog(QWidget *pParent, const QString &strName);
+
+    /** Returns value. */
+    QString value() const;
+
+private slots:
+
+    /** Handles translation event. */
+    void sltRetranslateUI();
+
+    /** Performs revalidation. */
+    void sltRevalidate();
+
+private:
+
+    /** Prepares all. */
+    void prepare();
+    /** Prepares widgets. */
+    void prepareWidgets();
+
+    /** Holds the clone name by default. */
+    QString  m_strName;
+
+    /** Holds the text-editor instance. */
+    QILineEdit        *m_pEditor;
+    /** Holds the button-box instance. */
+    QIDialogButtonBox *m_pButtonBox;
+};
+
 
 /*********************************************************************************************************************************
 *   Class UIAcquirePublicKeyDialog implementation.                                                                               *
 *********************************************************************************************************************************/
 
 UIAcquirePublicKeyDialog::UIAcquirePublicKeyDialog(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QDialog>(pParent)
+    : QDialog(pParent)
     , m_pHelpViewer(0)
     , m_pTextEditor(0)
     , m_pButtonBox(0)
@@ -205,7 +256,7 @@ void UIAcquirePublicKeyDialog::sltHandleButtonClicked(QAbstractButton *pButton)
 
 void UIAcquirePublicKeyDialog::sltHandleOpenButtonClick()
 {
-    CVirtualBox comVBox = uiCommon().virtualBox();
+    CVirtualBox comVBox = gpGlobalSession->virtualBox();
     const QString strFileName = QIFileDialog::getOpenFileName(comVBox.GetHomeFolder(), QString(),
                                                               this, tr("Choose a public key file"));
     if (!strFileName.isEmpty())
@@ -220,7 +271,7 @@ void UIAcquirePublicKeyDialog::sltRevalidate()
     m_pButtonBox->button(QDialogButtonBox::Ok)->setEnabled(!m_pTextEditor->toPlainText().isEmpty());
 }
 
-void UIAcquirePublicKeyDialog::retranslateUi()
+void UIAcquirePublicKeyDialog::sltRetranslateUI()
 {
     setWindowTitle(tr("Public key"));
 
@@ -267,7 +318,9 @@ void UIAcquirePublicKeyDialog::prepare()
     /* Prepare editor contents: */
     prepareEditorContents();
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIAcquirePublicKeyDialog::sltRetranslateUI);
 
     /* Resize to suitable size: */
     const int iMinimumHeightHint = minimumSizeHint().height();
@@ -291,7 +344,8 @@ void UIAcquirePublicKeyDialog::prepareWidgets()
             /* Configure help-viewer: */
             m_pHelpViewer->setHidden(true);
             m_pHelpViewer->setMinimumTextWidth(gpDesktop->screenGeometry(window()).width() / 5);
-            m_pHelpViewer->registerPixmap(icon.pixmap(window()->windowHandle(), QSize(iMetric, iMetric)), "manager://copy");
+            const qreal fDevicePixelRatio = windowHandle() ? windowHandle()->devicePixelRatio() : 1;
+            m_pHelpViewer->registerPixmap(icon.pixmap(QSize(iMetric, iMetric), fDevicePixelRatio), "manager://copy");
             connect(m_pHelpViewer, &QIRichTextLabel::sigLinkClicked, this, &UIAcquirePublicKeyDialog::sltHandleHelpViewerLinkClick);
             pLayout->addWidget(m_pHelpViewer, 2);
         }
@@ -425,6 +479,82 @@ bool UIAcquirePublicKeyDialog::loadFileContents(const QString &strPath, bool fIg
 
 
 /*********************************************************************************************************************************
+*   Class UIAcquireCloudMachineCloneNameDialog implementation.                                                                   *
+*********************************************************************************************************************************/
+
+UIAcquireCloudMachineCloneNameDialog::UIAcquireCloudMachineCloneNameDialog(QWidget *pParent, const QString &strName)
+    : QDialog(pParent)
+    , m_strName(strName)
+    , m_pEditor(0)
+    , m_pButtonBox(0)
+{
+    prepare();
+    sltRevalidate();
+}
+
+QString UIAcquireCloudMachineCloneNameDialog::value() const
+{
+    return m_pEditor ? m_pEditor->text() : QString();
+}
+
+void UIAcquireCloudMachineCloneNameDialog::prepare()
+{
+    /* Prepare widgets: */
+    prepareWidgets();
+    /* Apply language settings: */
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIAcquireCloudMachineCloneNameDialog::sltRetranslateUI);
+
+    /* Resize to suitable size: */
+    const int iMinimumHeightHint = minimumSizeHint().height();
+    resize(iMinimumHeightHint * 1.618, iMinimumHeightHint);
+}
+
+void UIAcquireCloudMachineCloneNameDialog::prepareWidgets()
+{
+    /* Prepare layout: */
+    QVBoxLayout *pLayout = new QVBoxLayout(this);
+    if (pLayout)
+    {
+        /* Prepare editor: */
+        m_pEditor = new QILineEdit(this);
+        if (m_pEditor)
+        {
+            m_pEditor->setText(m_strName);
+            m_pEditor->setMinimumWidthByText(QString().fill('0', 20));
+            connect(m_pEditor, &QILineEdit::textChanged, this, &UIAcquireCloudMachineCloneNameDialog::sltRevalidate);
+            pLayout->addWidget(m_pEditor);
+        }
+
+        /* Intermediate stretch: */
+        pLayout->addStretch();
+
+        /* Prepare button-box: */
+        m_pButtonBox = new QIDialogButtonBox(this);
+        if (m_pButtonBox)
+        {
+            m_pButtonBox->setStandardButtons(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+            connect(m_pButtonBox, &QIDialogButtonBox::accepted, this, &UIAcquireCloudMachineCloneNameDialog::accept);
+            connect(m_pButtonBox, &QIDialogButtonBox::rejected, this, &UIAcquireCloudMachineCloneNameDialog::reject);
+            pLayout->addWidget(m_pButtonBox);
+        }
+    }
+}
+
+void UIAcquireCloudMachineCloneNameDialog::sltRetranslateUI()
+{
+    setWindowTitle(tr("Clone Virtual Machine"));
+    m_pEditor->setPlaceholderText(tr("Enter machine name..."));
+}
+
+void UIAcquireCloudMachineCloneNameDialog::sltRevalidate()
+{
+    m_pButtonBox->button(QDialogButtonBox::Ok)->setEnabled(!m_pEditor->text().isEmpty());
+}
+
+
+/*********************************************************************************************************************************
 *   Class UIVirtualBoxManager implementation.                                                                                    *
 *********************************************************************************************************************************/
 
@@ -451,7 +581,8 @@ void UIVirtualBoxManager::create()
 void UIVirtualBoxManager::destroy()
 {
     /* Make sure VirtualBox Manager is created: */
-    AssertPtrReturnVoid(s_pInstance);
+    if (!s_pInstance)
+        return;
 
     /* Unregister in the modal window manager: */
     windowManager().setMainWindowShown(0);
@@ -465,9 +596,11 @@ UIVirtualBoxManager::UIVirtualBoxManager()
     : m_fPolished(false)
     , m_fFirstMediumEnumerationHandled(false)
     , m_pActionPool(0)
-    , m_pLogViewerDialog(0)
     , m_pWidget(0)
     , m_iGeometrySaveTimerId(-1)
+    , m_fSnapshotCloneByDefault(false)
+    , m_fImportFromOCI(false)
+    , m_fExportToOCI(false)
 {
     s_pInstance = this;
     setAcceptDrops(true);
@@ -488,12 +621,12 @@ bool UIVirtualBoxManager::eventFilter(QObject *pObject, QEvent *pEvent)
 {
     /* Ignore for non-active window except for FileOpen event which should be always processed: */
     if (!isActiveWindow() && pEvent->type() != QEvent::FileOpen)
-        return QMainWindowWithRestorableGeometryAndRetranslateUi::eventFilter(pObject, pEvent);
+        return QMainWindowWithRestorableGeometry::eventFilter(pObject, pEvent);
 
     /* Ignore for other objects: */
     if (qobject_cast<QWidget*>(pObject) &&
         qobject_cast<QWidget*>(pObject)->window() != this)
-        return QMainWindowWithRestorableGeometryAndRetranslateUi::eventFilter(pObject, pEvent);
+        return QMainWindowWithRestorableGeometry::eventFilter(pObject, pEvent);
 
     /* Which event do we have? */
     switch (pEvent->type())
@@ -510,11 +643,11 @@ bool UIVirtualBoxManager::eventFilter(QObject *pObject, QEvent *pEvent)
     }
 
     /* Call to base-class: */
-    return QMainWindowWithRestorableGeometryAndRetranslateUi::eventFilter(pObject, pEvent);
+    return QMainWindowWithRestorableGeometry::eventFilter(pObject, pEvent);
 }
 #endif /* VBOX_WS_MAC */
 
-void UIVirtualBoxManager::retranslateUi()
+void UIVirtualBoxManager::sltRetranslateUI()
 {
     /* Set window title: */
     QString strTitle(VBOX_PRODUCT);
@@ -568,13 +701,13 @@ bool UIVirtualBoxManager::event(QEvent *pEvent)
             break;
     }
     /* Call to base-class: */
-    return QMainWindowWithRestorableGeometryAndRetranslateUi::event(pEvent);
+    return QMainWindowWithRestorableGeometry::event(pEvent);
 }
 
 void UIVirtualBoxManager::showEvent(QShowEvent *pEvent)
 {
     /* Call to base-class: */
-    QMainWindowWithRestorableGeometryAndRetranslateUi::showEvent(pEvent);
+    QMainWindowWithRestorableGeometry::showEvent(pEvent);
 
     /* Is polishing required? */
     if (!m_fPolished)
@@ -595,7 +728,7 @@ void UIVirtualBoxManager::polishEvent(QShowEvent *)
 void UIVirtualBoxManager::closeEvent(QCloseEvent *pEvent)
 {
     /* Call to base-class: */
-    QMainWindowWithRestorableGeometryAndRetranslateUi::closeEvent(pEvent);
+    QMainWindowWithRestorableGeometry::closeEvent(pEvent);
 
     /* Quit application: */
     QApplication::quit();
@@ -615,7 +748,7 @@ void UIVirtualBoxManager::dropEvent(QDropEvent *pEvent)
     pEvent->acceptProposedAction();
 }
 
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
 void UIVirtualBoxManager::sltHandleHostScreenAvailableAreaChange()
 {
     /* Prevent handling if fake screen detected: */
@@ -627,7 +760,7 @@ void UIVirtualBoxManager::sltHandleHostScreenAvailableAreaChange()
     resize(geo.size());
     move(geo.topLeft());
 }
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
 
 void UIVirtualBoxManager::sltHandleCommitData()
 {
@@ -639,6 +772,11 @@ void UIVirtualBoxManager::sltHandleCommitData()
     sltCloseManagerWindow(UIToolType_CloudConsole);
     sltCloseSettingsDialog();
     sltClosePreferencesDialog();
+
+    // WORKAROUND:
+    // This will be fixed proper way during session management cleanup for Qt6.
+    // But for now we will just cleanup connections which is Ok anyway.
+    cleanupConnections();
 }
 
 void UIVirtualBoxManager::sltHandleMediumEnumerationFinish()
@@ -658,9 +796,9 @@ void UIVirtualBoxManager::sltHandleMediumEnumerationFinish()
 
     /* Look for at least one inaccessible medium: */
     bool fIsThereAnyInaccessibleMedium = false;
-    foreach (const QUuid &uMediumID, uiCommon().mediumIDs())
+    foreach (const QUuid &uMediumID, gpMediumEnumerator->mediumIDs())
     {
-        if (uiCommon().medium(uMediumID).state() == KMediumState_Inaccessible)
+        if (gpMediumEnumerator->medium(uMediumID).state() == KMediumState_Inaccessible)
         {
             fIsThereAnyInaccessibleMedium = true;
             break;
@@ -697,7 +835,7 @@ void UIVirtualBoxManager::sltHandleOpenUrlCall(QList<QUrl> list /* = QList<QUrl>
             if (UICommon::hasAllowedExtension(strFile, VBoxFileExts))
             {
                 /* Handle VBox config file: */
-                CVirtualBox comVBox = uiCommon().virtualBox();
+                CVirtualBox comVBox = gpGlobalSession->virtualBox();
                 CMachine comMachine = comVBox.FindMachine(strFile);
                 if (comVBox.isOk() && comMachine.isNotNull())
                     launchMachine(comMachine);
@@ -708,7 +846,7 @@ void UIVirtualBoxManager::sltHandleOpenUrlCall(QList<QUrl> list /* = QList<QUrl>
             else if (UICommon::hasAllowedExtension(strFile, OVFFileExts))
             {
                 /* Allow only one file at the time: */
-                sltOpenImportApplianceWizard(strFile);
+                openImportApplianceWizard(strFile);
                 break;
             }
             /* And has allowed VBox extension pack file extension: */
@@ -735,7 +873,7 @@ void UIVirtualBoxManager::sltHandleOpenUrlCall(QList<QUrl> list /* = QList<QUrl>
 
 void UIVirtualBoxManager::sltCheckUSBAccesibility()
 {
-    CHost comHost = uiCommon().host();
+    CHost comHost = gpGlobalSession->host();
     if (!comHost.isOk())
         return;
     if (comHost.GetUSBDevices().isEmpty() && comHost.isWarning())
@@ -755,11 +893,11 @@ void UIVirtualBoxManager::sltHandleChooserPaneIndexChange()
 
     /* Special handling for opened settings dialog: */
     if (   m_pWidget->isLocalMachineItemSelected()
-        && m_settings.contains(UISettingsDialog::DialogType_Machine))
+        && m_settings.contains(UIAdvancedSettingsDialog::Type_Machine))
     {
         /* Cast dialog to required type: */
-        UISettingsDialogMachine *pDialog =
-            qobject_cast<UISettingsDialogMachine*>(m_settings.value(UISettingsDialog::DialogType_Machine));
+        UIAdvancedSettingsDialogMachine *pDialog =
+            qobject_cast<UIAdvancedSettingsDialogMachine*>(m_settings.value(UIAdvancedSettingsDialog::Type_Machine));
         AssertPtrReturnVoid(pDialog);
 
         /* Get current item: */
@@ -793,35 +931,59 @@ void UIVirtualBoxManager::sltHandleCloudUpdateProgressChange()
     updateActionsAppearance();
 }
 
-void UIVirtualBoxManager::sltHandleToolTypeChange()
+void UIVirtualBoxManager::sltHandleGlobalToolTypeChange()
 {
     /* Update actions stuff: */
     updateActionsVisibility();
     updateActionsAppearance();
 
     /* Make sure separate dialog closed when corresponding tool opened: */
-    switch (m_pWidget->toolsType())
-    {
-        case UIToolType_Extensions:
-        case UIToolType_Media:
-        case UIToolType_Network:
-        case UIToolType_Cloud:
-        case UIToolType_CloudConsole:
-            sltCloseManagerWindow(m_pWidget->toolsType());
-            break;
-        case UIToolType_Logs:
-            sltCloseLogViewerWindow();
-            break;
-        case UIToolType_VMActivity:
-        case UIToolType_FileManager:
-        default:
-            break;
-    }
+    sltCloseManagerWindow(m_pWidget->toolsTypeGlobal());
+}
+
+void UIVirtualBoxManager::sltHandleMachineToolTypeChange()
+{
+    /* Update actions stuff: */
+    updateActionsVisibility();
+    updateActionsAppearance();
+
+    /* Make sure separate dialog closed when corresponding tool opened: */
+    sltCloseManagerWindow(m_pWidget->toolsTypeMachine());
+}
+
+void UIVirtualBoxManager::sltCreateMedium()
+{
+    /* Open Create VD Wizard: */
+    sltOpenWizard(WizardType_NewVD);
+}
+
+void UIVirtualBoxManager::sltCopyMedium(const QUuid &uMediumId)
+{
+    /* Configure wizard variables: */
+    m_uMediumId = uMediumId;
+
+    /* Open Clone VD Wizard: */
+    sltOpenWizard(WizardType_CloneVD);
 }
 
 void UIVirtualBoxManager::sltCurrentSnapshotItemChange()
 {
     updateActionsAppearance();
+}
+
+void UIVirtualBoxManager::sltDetachToolPane(UIToolType enmToolType)
+{
+    AssertReturnVoid(enmToolType != UIToolType_Invalid);
+    /* Add tool to detached: */
+    QList<UIToolType> tools = gEDataManager->detachedTools();
+    if (!tools.contains(enmToolType))
+    {
+        tools << enmToolType;
+        gEDataManager->setDetachedTools(tools);
+    }
+
+    /* Detach Log Viewer: */
+    sltOpenManagerWindow(enmToolType);
 }
 
 void UIVirtualBoxManager::sltHandleCloudMachineStateChange(const QUuid & /* uId */)
@@ -843,7 +1005,7 @@ void UIVirtualBoxManager::sltHandleMenuPrepare(int iIndex, QMenu *pMenu)
 
 void UIVirtualBoxManager::sltOpenManagerWindow(UIToolType enmType /* = UIToolType_Invalid */)
 {
-    /* Determine actual tool type if possible: */
+    /* Determine actual tool type on the basis of sender action if possible: */
     if (enmType == UIToolType_Invalid)
     {
         if (   sender()
@@ -854,15 +1016,19 @@ void UIVirtualBoxManager::sltOpenManagerWindow(UIToolType enmType /* = UIToolTyp
             enmType = pAction->property("UIToolType").value<UIToolType>();
         }
     }
-
     /* Make sure type is valid: */
     AssertReturnVoid(enmType != UIToolType_Invalid);
 
     /* First check if instance of widget opened the embedded way: */
     if (m_pWidget->isGlobalToolOpened(enmType))
     {
-        m_pWidget->setToolsType(UIToolType_Welcome);
+        m_pWidget->setToolsTypeGlobal(UIToolType_Welcome);
         m_pWidget->closeGlobalTool(enmType);
+    }
+    if (m_pWidget->isMachineToolOpened(enmType))
+    {
+        m_pWidget->setToolsTypeMachine(UIToolType_Details);
+        m_pWidget->closeMachineTool(enmType);
     }
 
     /* Create instance if not yet created: */
@@ -875,17 +1041,67 @@ void UIVirtualBoxManager::sltOpenManagerWindow(UIToolType enmType /* = UIToolTyp
             case UIToolType_Network: UINetworkManagerFactory(m_pActionPool).prepare(m_managers[enmType], this); break;
             case UIToolType_Cloud: UICloudProfileManagerFactory(m_pActionPool).prepare(m_managers[enmType], this); break;
             case UIToolType_CloudConsole: UICloudConsoleManagerFactory(m_pActionPool).prepare(m_managers[enmType], this); break;
+            case UIToolType_Logs:
+            {
+                /* Compose a list of selected machine IDs: */
+                QList<QUuid> machineIDs;
+                /* For each selected item: */
+                foreach (UIVirtualMachineItem *pItem, currentItems())
+                {
+                    /* Make sure current item is local one: */
+                    UIVirtualMachineItemLocal *pItemLocal = pItem->toLocal();
+                    if (!pItemLocal)
+                        continue;
+                    /* Append machine ID: */
+                    machineIDs << pItemLocal->id();
+                }
+                UIVMLogViewerDialogFactory(m_pActionPool, machineIDs).prepare(m_managers[enmType], this);
+                break;
+            }
             default: break;
         }
 
+        connect(m_managers[enmType], &QIManagerDialog::sigEmbed,
+                this, &UIVirtualBoxManager::sltEmbedManagerWindowDefault);
         connect(m_managers[enmType], &QIManagerDialog::sigClose,
                 this, &UIVirtualBoxManager::sltCloseManagerWindowDefault);
     }
 
-    /* Show instance: */
-    m_managers.value(enmType)->show();
-    m_managers.value(enmType)->setWindowState(m_managers.value(enmType)->windowState() & ~Qt::WindowMinimized);
-    m_managers.value(enmType)->activateWindow();
+    /* Expose instance: */
+    UIDesktopWidgetWatchdog::restoreWidget(m_managers.value(enmType));
+}
+
+void UIVirtualBoxManager::sltEmbedManagerWindow(UIToolType enmType /* = UIToolType_Invalid */)
+{
+    /* Determine actual tool type if possible: */
+    if (enmType == UIToolType_Invalid)
+    {
+        if (   sender()
+            && sender()->inherits("QIManagerDialog"))
+        {
+            QIManagerDialog *pManager = qobject_cast<QIManagerDialog*>(sender());
+            AssertPtrReturnVoid(pManager);
+            enmType = m_managers.key(pManager);
+        }
+    }
+
+    /* Make sure type is valid: */
+    AssertReturnVoid(enmType != UIToolType_Invalid);
+
+    /* Remove tool from detached: */
+    QList<UIToolType> tools = gEDataManager->detachedTools();
+    if (tools.contains(UIToolType_Logs))
+    {
+        tools.removeAll(UIToolType_Logs);
+        gEDataManager->setDetachedTools(tools);
+    }
+
+    /* Open known tool finally: */
+    switch (enmType)
+    {
+        case UIToolType_Logs: m_pWidget->setToolsTypeMachine(enmType); break;
+        default: break;
+    }
 }
 
 void UIVirtualBoxManager::sltCloseManagerWindow(UIToolType enmType /* = UIToolType_Invalid */)
@@ -915,6 +1131,7 @@ void UIVirtualBoxManager::sltCloseManagerWindow(UIToolType enmType /* = UIToolTy
             case UIToolType_Network: UINetworkManagerFactory().cleanup(m_managers[enmType]); break;
             case UIToolType_Cloud: UICloudProfileManagerFactory().cleanup(m_managers[enmType]); break;
             case UIToolType_CloudConsole: UICloudConsoleManagerFactory().cleanup(m_managers[enmType]); break;
+            case UIToolType_Logs: UIVMLogViewerDialogFactory().cleanup(m_managers[enmType]); break;
             default: break;
         }
 
@@ -922,72 +1139,21 @@ void UIVirtualBoxManager::sltCloseManagerWindow(UIToolType enmType /* = UIToolTy
     }
 }
 
-void UIVirtualBoxManager::sltOpenImportApplianceWizard(const QString &strFileName /* = QString() */)
-{
-    /* Initialize variables: */
-#ifdef VBOX_WS_MAC
-    QString strTmpFile = ::darwinResolveAlias(strFileName);
-#else
-    QString strTmpFile = strFileName;
-#endif
-
-    /* If there is no file-name passed,
-     * check if cloud stuff focused currently: */
-    bool fOCIByDefault = false;
-    if (   strTmpFile.isEmpty()
-        && (   m_pWidget->isSingleCloudProviderGroupSelected()
-            || m_pWidget->isSingleCloudProfileGroupSelected()
-            || m_pWidget->isCloudMachineItemSelected()))
-    {
-        /* We can generate cloud hints as well: */
-        fOCIByDefault = true;
-        strTmpFile = m_pWidget->fullGroupName();
-    }
-
-    /* Lock the action preventing cascade calls: */
-    UIQObjectPropertySetter guardBlock(actionPool()->action(UIActionIndexMN_M_File_S_ImportAppliance), "opened", true);
-    connect(&guardBlock, &UIQObjectPropertySetter::sigAboutToBeDestroyed,
-            this, &UIVirtualBoxManager::sltHandleUpdateActionAppearanceRequest);
-    updateActionsAppearance();
-
-    /* Use the "safe way" to open stack of Mac OS X Sheets: */
-    QWidget *pWizardParent = windowManager().realParentWindow(this);
-    UINativeWizardPointer pWizard = new UIWizardImportApp(pWizardParent, fOCIByDefault, strTmpFile);
-    windowManager().registerNewParent(pWizard, pWizardParent);
-    pWizard->exec();
-    delete pWizard;
-}
-
 void UIVirtualBoxManager::sltOpenExportApplianceWizard()
 {
-    /* Get selected items: */
-    QList<UIVirtualMachineItem*> items = currentItems();
-
-    /* Populate the list of VM names: */
-    QStringList names;
-    for (int i = 0; i < items.size(); ++i)
-        names << items.at(i)->name();
-
-    /* Lock the actions preventing cascade calls: */
-    UIQObjectPropertySetter guardBlock(QList<QObject*>() << actionPool()->action(UIActionIndexMN_M_File_S_ExportAppliance)
-                                                         << actionPool()->action(UIActionIndexMN_M_Machine_S_ExportToOCI),
-                                       "opened", true);
-    connect(&guardBlock, &UIQObjectPropertySetter::sigAboutToBeDestroyed,
-            this, &UIVirtualBoxManager::sltHandleUpdateActionAppearanceRequest);
-    updateActionsAppearance();
-
     /* Check what was the action invoked us: */
     UIAction *pAction = qobject_cast<UIAction*>(sender());
 
-    /* Use the "safe way" to open stack of Mac OS X Sheets: */
-    QWidget *pWizardParent = windowManager().realParentWindow(this);
-    UINativeWizardPointer pWizard = new UIWizardExportApp(pWizardParent,
-                                                          names,
-                                                          pAction &&
-                                                          pAction == actionPool()->action(UIActionIndexMN_M_Machine_S_ExportToOCI));
-    windowManager().registerNewParent(pWizard, pWizardParent);
-    pWizard->exec();
-    delete pWizard;
+    /* Export to OCI action invokes wizard directly in OCI mode: */
+    m_fExportToOCI =    pAction
+                     && pAction == actionPool()->action(UIActionIndexMN_M_Machine_S_ExportToOCI);
+    /* Populate the list of VM names: */
+    m_names.clear();
+    foreach (UIVirtualMachineItem *pItem, currentItems())
+        m_names << pItem->name();
+
+    /* Open Export Appliance Wizard: */
+    sltOpenWizard(WizardType_ExportAppliance);
 }
 
 #ifdef VBOX_GUI_WITH_EXTRADATA_MANAGER_UI
@@ -1004,22 +1170,44 @@ void UIVirtualBoxManager::sltOpenPreferencesDialog()
     m_fFirstMediumEnumerationHandled = true;
 
     /* Create instance if not yet created: */
-    if (!m_settings.contains(UISettingsDialog::DialogType_Global))
+    if (!m_settings.contains(UIAdvancedSettingsDialog::Type_Global))
     {
-        m_settings[UISettingsDialog::DialogType_Global] = new UISettingsDialogGlobal(this);
-        connect(m_settings[UISettingsDialog::DialogType_Global], &UISettingsDialogGlobal::sigClose,
+        m_settings[UIAdvancedSettingsDialog::Type_Global] = new UIAdvancedSettingsDialogGlobal(this);
+        connect(m_settings[UIAdvancedSettingsDialog::Type_Global], &UIAdvancedSettingsDialogGlobal::sigClose,
                 this, &UIVirtualBoxManager::sltClosePreferencesDialog);
-        m_settings.value(UISettingsDialog::DialogType_Global)->load();
+        const bool fSuccess = m_settings.value(UIAdvancedSettingsDialog::Type_Global)->load();
+        if (!fSuccess)
+        {
+            delete m_settings.take(UIAdvancedSettingsDialog::Type_Global);
+            return;
+        }
     }
 
     /* Expose instance: */
-    UIDesktopWidgetWatchdog::restoreWidget(m_settings.value(UISettingsDialog::DialogType_Global));
+    UIDesktopWidgetWatchdog::restoreWidget(m_settings.value(UIAdvancedSettingsDialog::Type_Global));
 }
 
 void UIVirtualBoxManager::sltClosePreferencesDialog()
 {
     /* Remove instance if exist: */
-    delete m_settings.take(UISettingsDialog::DialogType_Global);
+    delete m_settings.take(UIAdvancedSettingsDialog::Type_Global);
+}
+
+void UIVirtualBoxManager::sltPerformSwitchToGlobalTool(QAction *pAction)
+{
+    /* Sanity checks: */
+    AssertPtrReturnVoid(pAction);
+    AssertPtrReturnVoid(m_pWidget);
+
+    /* Acquire tool type: */
+    const UIToolType enmType = pAction->property("UIToolType").value<UIToolType>();
+    AssertReturnVoid(enmType != UIToolType_Invalid);
+
+    /* Make sure global item is selected: */
+    m_pWidget->switchToGlobalItem();
+
+    /* Open the tool finally: */
+    m_pWidget->setToolsTypeGlobal(enmType);
 }
 
 void UIVirtualBoxManager::sltPerformExit()
@@ -1027,44 +1215,135 @@ void UIVirtualBoxManager::sltPerformExit()
     close();
 }
 
-void UIVirtualBoxManager::sltOpenNewMachineWizard()
+void UIVirtualBoxManager::sltOpenWizard(WizardType enmType)
 {
-    openNewMachineWizard();
+    /* Create instance if not yet created: */
+    if (!m_wizards.contains(enmType))
+    {
+        switch (enmType)
+        {
+            case WizardType_NewVM:
+                m_wizards[enmType] = new UIWizardNewVM(this, actionPool(), m_pWidget->fullGroupName(), m_strISOFilePath);
+                break;
+            case WizardType_CloneVM:
+            {
+                UIVirtualMachineItem *pItem = currentItem();
+                UIVirtualMachineItemLocal *pItemLocal = pItem ? pItem->toLocal() : 0;
+                CMachine comMachine = pItemLocal ? pItemLocal->machine() : CMachine();
+                CSnapshot comSnapshot;
+                if (m_fSnapshotCloneByDefault)
+                {
+                    const QUuid uId = m_pWidget->currentSnapshotId();
+                    if (!uId.isNull() && comMachine.isNotNull())
+                    {
+                        comSnapshot = comMachine.FindSnapshot(uId.toString());
+                        if (comSnapshot.isNotNull())
+                        {
+                            const CMachine comSnapshotMachine = comSnapshot.GetMachine();
+                            if (comSnapshotMachine.isNotNull())
+                                comMachine = comSnapshotMachine;
+                        }
+                    }
+                }
+                m_wizards[enmType] = new UIWizardCloneVM(this,
+                                                         comMachine,
+                                                         pItemLocal->groups().value(0),
+                                                         comSnapshot);
+                break;
+            }
+            case WizardType_ExportAppliance:
+                m_wizards[enmType] = new UIWizardExportApp(this, m_names, m_fExportToOCI);
+                break;
+            case WizardType_ImportAppliance:
+                m_wizards[enmType] = new UIWizardImportApp(this, m_fImportFromOCI, m_strFileName);
+                break;
+            case WizardType_NewCloudVM:
+                m_wizards[enmType] = new UIWizardNewCloudVM(this, m_pWidget->fullGroupName());
+                break;
+            case WizardType_AddCloudVM:
+                m_wizards[enmType] = new UIWizardAddCloudVM(this, m_pWidget->fullGroupName());
+                break;
+            case WizardType_NewVD:
+            {
+                const QString strFolder = UIMediumTools::defaultFolderPathForType(UIMediumDeviceType_HardDisk);
+                const QString strDiskName = uiCommon().findUniqueFileName(strFolder, "NewVirtualDisk");
+                const CGuestOSType comGuestOSType = gpGlobalSession->virtualBox().GetGuestOSType("Other");
+                const qulonglong uDiskSize = comGuestOSType.GetRecommendedHDD();
+                m_wizards[enmType] = new UIWizardNewVD(this,
+                                                       strDiskName,
+                                                       strFolder,
+                                                       uDiskSize);
+                break;
+            }
+            case WizardType_CloneVD:
+                m_wizards[enmType] = new UIWizardNewVD(this, m_uMediumId);
+                break;
+            default:
+                break;
+        }
+
+        connect(m_wizards.value(enmType), &UINativeWizard::sigClose,
+                this, &UIVirtualBoxManager::sltCloseWizard);
+    }
+
+    /* Expose instance: */
+    m_wizards.value(enmType)->show();
+    m_wizards.value(enmType)->setWindowState(m_wizards.value(enmType)->windowState() & ~Qt::WindowMinimized);
+    m_wizards.value(enmType)->activateWindow();
+    m_wizards.value(enmType)->raise();
 }
 
-void UIVirtualBoxManager::sltOpenAddMachineDialog()
+void UIVirtualBoxManager::sltCloseWizard(WizardType enmType)
 {
-    /* Lock the actions preventing cascade calls: */
-    UIQObjectPropertySetter guardBlock(QList<QObject*>() << actionPool()->action(UIActionIndexMN_M_Welcome_S_Add)
-                                                         << actionPool()->action(UIActionIndexMN_M_Machine_S_Add)
-                                                         << actionPool()->action(UIActionIndexMN_M_Group_S_Add),
-                                       "opened", true);
-    connect(&guardBlock, &UIQObjectPropertySetter::sigAboutToBeDestroyed,
-            this, &UIVirtualBoxManager::sltHandleUpdateActionAppearanceRequest);
-    updateActionsAppearance();
+    /* Postprocess wizard if still exists: */
+    if (m_wizards.contains(enmType))
+    {
+        switch (enmType)
+        {
+            case WizardType_NewVM:
+            {
+                UIWizardNewVM *pWizard = qobject_cast<UIWizardNewVM*>(m_wizards.value(enmType));
+                if (pWizard->isUnattendedEnabled())
+                    startUnattendedInstall(pWizard->installer(),
+                                           pWizard->startHeadless(),
+                                           pWizard->createdMachineId().toString());
+                break;
+            }
+            default:
+                break;
+        }
+    }
 
+    /* Cleanup instance: */
+    delete m_wizards.take(enmType);
+}
+
+void UIVirtualBoxManager::sltOpenNewMachineWizard()
+{
     /* Get first selected item: */
     UIVirtualMachineItem *pItem = currentItem();
 
     /* For global item or local machine: */
     if (   !pItem
         || pItem->itemType() == UIVirtualMachineItemType_Local)
-    {
-        /* Open add machine dialog: */
-        openAddMachineDialog();
-    }
+        openNewMachineWizard();
     /* For cloud machine: */
     else
-    {
-        /* Use the "safe way" to open stack of Mac OS X Sheets: */
-        QWidget *pWizardParent = windowManager().realParentWindow(this);
-        UISafePointerWizardAddCloudVM pWizard = new UIWizardAddCloudVM(pWizardParent, m_pWidget->fullGroupName());
-        windowManager().registerNewParent(pWizard, pWizardParent);
+        sltOpenWizard(WizardType_NewCloudVM);
+}
 
-        /* Execute wizard: */
-        pWizard->exec();
-        delete pWizard;
-    }
+void UIVirtualBoxManager::sltOpenAddMachineDialog()
+{
+    /* Get first selected item: */
+    UIVirtualMachineItem *pItem = currentItem();
+
+    /* For global item or local machine: */
+    if (   !pItem
+        || pItem->itemType() == UIVirtualMachineItemType_Local)
+        openAddMachineDialog();
+    /* For cloud machine: */
+    else
+        sltOpenWizard(WizardType_AddCloudVM);
 }
 
 void UIVirtualBoxManager::sltOpenGroupNameEditor()
@@ -1111,20 +1390,25 @@ void UIVirtualBoxManager::sltOpenSettingsDialog(QString strCategory /* = QString
             m_fFirstMediumEnumerationHandled = true;
 
             /* Create instance if not yet created: */
-            if (!m_settings.contains(UISettingsDialog::DialogType_Machine))
+            if (!m_settings.contains(UIAdvancedSettingsDialog::Type_Machine))
             {
-                m_settings[UISettingsDialog::DialogType_Machine] = new UISettingsDialogMachine(this,
-                                                                                               uID.isNull() ? pItem->id() : uID,
-                                                                                               actionPool(),
-                                                                                               strCategory,
-                                                                                               strControl);
-                connect(m_settings[UISettingsDialog::DialogType_Machine], &UISettingsDialogMachine::sigClose,
+                m_settings[UIAdvancedSettingsDialog::Type_Machine] = new UIAdvancedSettingsDialogMachine(this,
+                                                                                                         uID.isNull() ? pItem->id() : uID,
+                                                                                                         actionPool(),
+                                                                                                         strCategory,
+                                                                                                         strControl);
+                connect(m_settings[UIAdvancedSettingsDialog::Type_Machine], &UIAdvancedSettingsDialogMachine::sigClose,
                         this, &UIVirtualBoxManager::sltCloseSettingsDialog);
-                m_settings.value(UISettingsDialog::DialogType_Machine)->load();
+                const bool fSuccess = m_settings.value(UIAdvancedSettingsDialog::Type_Machine)->load();
+                if (!fSuccess)
+                {
+                    delete m_settings.take(UIAdvancedSettingsDialog::Type_Machine);
+                    return;
+                }
             }
 
             /* Expose instance: */
-            UIDesktopWidgetWatchdog::restoreWidget(m_settings.value(UISettingsDialog::DialogType_Machine));
+            UIDesktopWidgetWatchdog::restoreWidget(m_settings.value(UIAdvancedSettingsDialog::Type_Machine));
         }
     }
     /* For cloud machine: */
@@ -1148,7 +1432,7 @@ void UIVirtualBoxManager::sltCloseSettingsDialog()
 {
     /* What type of dialog should we delete? */
     enum DelType { None, Local, Cloud, All } enmType = None;
-    if (qobject_cast<UISettingsDialog*>(sender()))
+    if (qobject_cast<UIAdvancedSettingsDialog*>(sender()))
         enmType = (DelType)(enmType | Local);
     else if (qobject_cast<UICloudMachineSettingsDialog*>(sender()))
         enmType = (DelType)(enmType | Cloud);
@@ -1159,28 +1443,55 @@ void UIVirtualBoxManager::sltCloseSettingsDialog()
 
     /* Remove requested instances: */
     if (enmType & Local)
-        delete m_settings.take(UISettingsDialog::DialogType_Machine);
+        delete m_settings.take(UIAdvancedSettingsDialog::Type_Machine);
     if (enmType & Cloud)
         delete m_pCloudSettings;
 }
 
 void UIVirtualBoxManager::sltOpenCloneMachineWizard()
 {
-    /* Get current item: */
-    UIVirtualMachineItem *pItem = currentItem();
-    AssertMsgReturnVoid(pItem, ("Current item should be selected!\n"));
-    /* Make sure current item is local one: */
-    UIVirtualMachineItemLocal *pItemLocal = pItem->toLocal();
-    AssertMsgReturnVoid(pItemLocal, ("Current item should be local one!\n"));
+    /* Get current items: */
+    QList<UIVirtualMachineItem*> items = currentItems();
 
-    /* Use the "safe way" to open stack of Mac OS X Sheets: */
-    QWidget *pWizardParent = windowManager().realParentWindow(this);
-    const QStringList &machineGroupNames = pItemLocal->groups();
-    const QString strGroup = !machineGroupNames.isEmpty() ? machineGroupNames.at(0) : QString();
-    QPointer<UINativeWizard> pWizard = new UIWizardCloneVM(pWizardParent, pItemLocal->machine(), strGroup, CSnapshot());
-    windowManager().registerNewParent(pWizard, pWizardParent);
-    pWizard->exec();
-    delete pWizard;
+    /* We are opening Clone VM wizard for local VMs only: */
+    if (isItemsLocal(items))
+    {
+        /* Configure wizard variables: */
+        m_fSnapshotCloneByDefault = false;
+        QAction *pAction = qobject_cast<QAction*>(sender());
+        if (   pAction
+            && pAction == actionPool()->action(UIActionIndexMN_M_Snapshot_S_Clone))
+            m_fSnapshotCloneByDefault = true;
+
+        /* Open Clone VM Wizard: */
+        sltOpenWizard(WizardType_CloneVM);
+    }
+    /* For cloud VMs we have no such wizard for now: */
+    else if (isItemsCloud(items))
+    {
+        /* Acquire item, propose clone name: */
+        UIVirtualMachineItem *pItem = items.first();
+        const QString strName = QString("%1_clone").arg(pItem->name());
+
+        /* Create Acquire Clone VM name dialog: */
+        QPointer<UIAcquireCloudMachineCloneNameDialog> pDialog = new UIAcquireCloudMachineCloneNameDialog(this, strName);
+        if (pDialog->exec() == QDialog::Accepted)
+        {
+            /* Parse current full group name: */
+            const QString strFullGroupName = m_pWidget->fullGroupName();
+            const QString strProviderShortName = strFullGroupName.section('/', 1, 1);
+            const QString strProfileName = strFullGroupName.section('/', 2, 2);
+
+            /* Acquire cloud machine: */
+            const CCloudMachine comMachine = pItem->toCloud()->machine();
+
+            /* Clone VM: */
+            createCloudMachineClone(strProviderShortName, strProfileName,
+                                    comMachine, pDialog->value(),
+                                    gpNotificationCenter);
+       }
+       delete pDialog;
+    }
 }
 
 void UIVirtualBoxManager::sltPerformMachineMove()
@@ -1190,7 +1501,7 @@ void UIVirtualBoxManager::sltPerformMachineMove()
     AssertMsgReturnVoid(pItem, ("Current item should be selected!\n"));
 
     /* Open a file dialog for the user to select a destination folder. Start with the default machine folder: */
-    const QString strBaseFolder = uiCommon().virtualBox().GetSystemProperties().GetDefaultMachineFolder();
+    const QString strBaseFolder = gpGlobalSession->virtualBox().GetSystemProperties().GetDefaultMachineFolder();
     const QString strTitle = tr("Select a destination folder to move the selected virtual machine");
     const QString strDestinationFolder = QIFileDialog::getExistingDirectory(strBaseFolder, this, strTitle);
     if (!strDestinationFolder.isEmpty())
@@ -1447,7 +1758,7 @@ void UIVirtualBoxManager::sltExecuteExternalApplication()
     else
     {
         /* Otherwise upload command to external file which can be opened with Open command: */
-        QDir uiHomeFolder(uiCommon().virtualBox().GetHomeFolder());
+        QDir uiHomeFolder(gpGlobalSession->virtualBox().GetHomeFolder());
         const QString strAbsoluteCommandName = uiHomeFolder.absoluteFilePath("last.command");
         QFile file(strAbsoluteCommandName);
         file.setPermissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
@@ -1468,7 +1779,7 @@ void UIVirtualBoxManager::sltExecuteExternalApplication()
 
     /* Execute console application finally: */
     QProcess::startDetached(QString("%1 %2").arg(strPath, arguments.join(' ')));
-#elif defined(VBOX_WS_X11)
+#elif defined(VBOX_WS_NIX)
     /* Gather arguments: */
     QStringList arguments;
     arguments << parseShellArguments(strArguments);
@@ -1476,7 +1787,7 @@ void UIVirtualBoxManager::sltExecuteExternalApplication()
 
     /* Execute console application finally: */
     QProcess::startDetached(strPath, arguments);
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
 }
 
 void UIVirtualBoxManager::sltPerformCopyCommandSerialUnix()
@@ -1621,7 +1932,7 @@ void UIVirtualBoxManager::sltPerformDiscardMachineState()
     {
         /* Open a session to modify VM: */
         AssertPtrReturnVoid(pItem);
-        CSession comSession = uiCommon().openSession(pItem->id());
+        CSession comSession = openSession(pItem->id());
         if (comSession.isNull())
             return;
 
@@ -1673,7 +1984,7 @@ void UIVirtualBoxManager::sltPerformPauseOrResumeMachine(bool fPause)
             continue;
 
         /* Open a session to modify VM state: */
-        CSession comSession = uiCommon().openExistingSession(pItem->id());
+        CSession comSession = openExistingSession(pItem->id());
         if (comSession.isNull())
             return;
 
@@ -1723,18 +2034,35 @@ void UIVirtualBoxManager::sltPerformResetMachine()
     /* For each selected item: */
     foreach (UIVirtualMachineItem *pItem, itemsToReset)
     {
-        /* Open a session to modify VM state: */
-        CSession comSession = uiCommon().openExistingSession(pItem->id());
-        if (comSession.isNull())
-            return;
+        switch (pItem->itemType())
+        {
+            case UIVirtualMachineItemType_Local:
+            {
+                /* Open a session to modify VM state: */
+                CSession comSession = openExistingSession(pItem->id());
+                if (comSession.isNull())
+                    return;
 
-        /* Get session console: */
-        CConsole comConsole = comSession.GetConsole();
-        /* Reset VM: */
-        comConsole.Reset();
+                /* Get session console: */
+                CConsole comConsole = comSession.GetConsole();
+                /* Reset VM: */
+                comConsole.Reset();
 
-        /* Unlock machine finally: */
-        comSession.UnlockMachine();
+                /* Unlock machine finally: */
+                comSession.UnlockMachine();
+                break;
+            }
+            case UIVirtualMachineItemType_CloudReal:
+            {
+                /* Reset VM: */
+                UINotificationProgressCloudMachineReset *pNotification =
+                    new UINotificationProgressCloudMachineReset(pItem->toCloud()->machine());
+                gpNotificationCenter->append(pNotification);
+                break;
+            }
+            default:
+                break;
+        }
     }
 }
 
@@ -1849,7 +2177,7 @@ void UIVirtualBoxManager::sltPerformShutdownMachine()
         if (pItem->itemType() == UIVirtualMachineItemType_Local)
         {
             /* Open a session to modify VM state: */
-            CSession comSession = uiCommon().openExistingSession(pItem->id());
+            CSession comSession = openExistingSession(pItem->id());
             if (comSession.isNull())
                 return;
 
@@ -1944,78 +2272,22 @@ void UIVirtualBoxManager::sltHandlePoweredOffMachine(bool fSuccess, bool fInclud
     }
 }
 
-void UIVirtualBoxManager::sltPerformShowGlobalTool(QAction *pAction)
+void UIVirtualBoxManager::sltPerformSwitchToMachineTool(QAction *pAction)
 {
+    /* Sanity checks: */
     AssertPtrReturnVoid(pAction);
     AssertPtrReturnVoid(m_pWidget);
-    m_pWidget->switchToGlobalItem();
-    m_pWidget->setToolsType(pAction->property("UIToolType").value<UIToolType>());
-}
 
-void UIVirtualBoxManager::sltPerformShowMachineTool(QAction *pAction)
-{
-    AssertPtrReturnVoid(pAction);
-    AssertPtrReturnVoid(m_pWidget);
-    m_pWidget->setToolsType(pAction->property("UIToolType").value<UIToolType>());
-}
+    /* Acquire tool type: */
+    const UIToolType enmType = pAction->property("UIToolType").value<UIToolType>();
+    AssertReturnVoid(enmType != UIToolType_Invalid);
 
-void UIVirtualBoxManager::sltOpenLogViewerWindow()
-{
-    /* Get selected items: */
-    QList<UIVirtualMachineItem*> items = currentItems();
-    AssertMsgReturnVoid(!items.isEmpty(), ("At least one item should be selected!\n"));
+    /* Check if this tool should be opened detached way: */
+    if (gEDataManager->detachedTools().contains(enmType))
+        return sltOpenManagerWindow(enmType);
 
-    /* First check if instance of widget opened the embedded way: */
-    if (m_pWidget->isMachineToolOpened(UIToolType_Logs))
-    {
-        m_pWidget->setToolsType(UIToolType_Details);
-        m_pWidget->closeMachineTool(UIToolType_Logs);
-    }
-
-    QList<UIVirtualMachineItem*> itemsToShowLogs;
-
-    /* For each selected item: */
-    foreach (UIVirtualMachineItem *pItem, items)
-    {
-        /* Make sure current item is local one: */
-        UIVirtualMachineItemLocal *pItemLocal = pItem->toLocal();
-        if (!pItemLocal)
-            continue;
-
-        /* Check if log could be show for the current item: */
-        if (!isActionEnabled(UIActionIndexMN_M_Group_S_ShowLogDialog, QList<UIVirtualMachineItem*>() << pItem))
-            continue;
-        itemsToShowLogs << pItem;
-    }
-
-    if (itemsToShowLogs.isEmpty())
-        return;
-    if (!m_pLogViewerDialog)
-    {
-        UIVMLogViewerDialogFactory dialogFactory(actionPool(), QUuid());
-        dialogFactory.prepare(m_pLogViewerDialog, this);
-        if (m_pLogViewerDialog)
-            connect(m_pLogViewerDialog, &QIManagerDialog::sigClose,
-                    this, &UIVirtualBoxManager::sltCloseLogViewerWindow);
-    }
-    AssertPtrReturnVoid(m_pLogViewerDialog);
-    UIVMLogViewerDialog *pDialog = qobject_cast<UIVMLogViewerDialog*>(m_pLogViewerDialog);
-    if (pDialog)
-        pDialog->addSelectedVMListItems(itemsToShowLogs);
-    m_pLogViewerDialog->show();
-    m_pLogViewerDialog->setWindowState(m_pLogViewerDialog->windowState() & ~Qt::WindowMinimized);
-    m_pLogViewerDialog->activateWindow();
-}
-
-void UIVirtualBoxManager::sltCloseLogViewerWindow()
-{
-    if (!m_pLogViewerDialog)
-        return;
-
-    QIManagerDialog* pDialog = m_pLogViewerDialog;
-    m_pLogViewerDialog = 0;
-    pDialog->close();
-    UIVMLogViewerDialogFactory().cleanup(pDialog);
+    /* Open the tool finally: */
+    m_pWidget->setToolsTypeMachine(enmType);
 }
 
 void UIVirtualBoxManager::sltPerformRefreshMachine()
@@ -2084,14 +2356,23 @@ void UIVirtualBoxManager::sltPerformMachineSearchWidgetVisibilityToggling(bool f
 
 void UIVirtualBoxManager::sltPerformShowHelpBrowser()
 {
-    m_pWidget->showHelpBrowser();
+    QString strHelpKeyword;
+    if (m_pWidget)
+        strHelpKeyword = m_pWidget->currentHelpKeyword();
+    if (!strHelpKeyword.isEmpty())
+        UIHelpBrowserDialog::findManualFileAndShow(strHelpKeyword);
+}
+
+void UIVirtualBoxManager::sltExtensionPackInstalledUninstalled(const QString &strName)
+{
+    Q_UNUSED(strName);
+    updateActionsAppearance();
 }
 
 void UIVirtualBoxManager::prepare()
 {
-#ifdef VBOX_WS_X11
-    /* Assign same name to both WM_CLASS name & class for now: */
-    NativeWindowSubsystem::X11SetWMClass(this, "VirtualBox Manager", "VirtualBox Manager");
+#ifdef VBOX_WS_NIX
+    NativeWindowSubsystem::setWMClass(uiCommon().X11ServerAvailable(), this, "VirtualBox Manager", "VirtualBox Manager");
 #endif
 
 #ifdef VBOX_WS_MAC
@@ -2104,9 +2385,10 @@ void UIVirtualBoxManager::prepare()
 
     /* Cache media data early if necessary: */
     if (uiCommon().agressiveCaching())
-        uiCommon().enumerateMedia();
+        gpMediumEnumerator->enumerateMedia();
 
     /* Prepare: */
+    prepareCloudMachineManager();
     prepareIcon();
     prepareMenuBar();
     prepareStatusBar();
@@ -2120,11 +2402,13 @@ void UIVirtualBoxManager::prepare()
     loadSettings();
 
     /* Translate UI: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIVirtualBoxManager::sltRetranslateUI);
 
 #ifdef VBOX_WS_MAC
     /* Beta label? */
-    if (uiCommon().showBetaLabel())
+    if (UIVersionInfo::showBetaLabel())
     {
         QPixmap betaLabel = ::betaLabel(QSize(74, darwinWindowTitleHeight(this) - 1));
         ::darwinLabelWindow(this, &betaLabel);
@@ -2135,6 +2419,11 @@ void UIVirtualBoxManager::prepare()
     if (uiCommon().argumentUrlsPresent())
         QMetaObject::invokeMethod(this, "sltHandleOpenUrlCall", Qt::QueuedConnection);
     QMetaObject::invokeMethod(this, "sltCheckUSBAccesibility", Qt::QueuedConnection);
+}
+
+void UIVirtualBoxManager::prepareCloudMachineManager()
+{
+    UICloudMachineManager::create();
 }
 
 void UIVirtualBoxManager::prepareIcon()
@@ -2170,7 +2459,7 @@ void UIVirtualBoxManager::prepareMenuBar()
 #endif
 
     /* Create action-pool: */
-    m_pActionPool = UIActionPool::create(UIActionPoolType_Manager);
+    m_pActionPool = UIActionPool::create(UIType_ManagerUI);
 
     /* Prepare menu update-handlers: */
     m_menuUpdateHandlers[UIActionIndexMN_M_Group] = &UIVirtualBoxManager::updateMenuGroup;
@@ -2218,7 +2507,7 @@ void UIVirtualBoxManager::prepareWidgets()
 
 void UIVirtualBoxManager::prepareConnections()
 {
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     /* Desktop event handlers: */
     connect(gpDesktop, &UIDesktopWidgetWatchdog::sigHostScreenWorkAreaResized,
             this, &UIVirtualBoxManager::sltHandleHostScreenAvailableAreaChange);
@@ -2227,7 +2516,7 @@ void UIVirtualBoxManager::prepareConnections()
     /* UICommon connections: */
     connect(&uiCommon(), &UICommon::sigAskToCommitData,
             this, &UIVirtualBoxManager::sltHandleCommitData);
-    connect(&uiCommon(), &UICommon::sigMediumEnumerationFinished,
+    connect(gpMediumEnumerator, &UIMediumEnumerator::sigMediumEnumerationFinished,
             this, &UIVirtualBoxManager::sltHandleMediumEnumerationFinish);
 
     /* Widget connections: */
@@ -2241,16 +2530,29 @@ void UIVirtualBoxManager::prepareConnections()
             this, &UIVirtualBoxManager::sltPerformStartOrShowMachine);
     connect(m_pWidget, &UIVirtualBoxManagerWidget::sigCloudMachineStateChange,
             this, &UIVirtualBoxManager::sltHandleCloudMachineStateChange);
-    connect(m_pWidget, &UIVirtualBoxManagerWidget::sigToolTypeChange,
-            this, &UIVirtualBoxManager::sltHandleToolTypeChange);
+    connect(m_pWidget, &UIVirtualBoxManagerWidget::sigToolTypeChangeGlobal,
+            this, &UIVirtualBoxManager::sltHandleGlobalToolTypeChange);
+    connect(m_pWidget, &UIVirtualBoxManagerWidget::sigToolTypeChangeMachine,
+            this, &UIVirtualBoxManager::sltHandleMachineToolTypeChange);
+    connect(m_pWidget, &UIVirtualBoxManagerWidget::sigCreateMedium,
+            this, &UIVirtualBoxManager::sltCreateMedium);
+    connect(m_pWidget, &UIVirtualBoxManagerWidget::sigCopyMedium,
+            this, &UIVirtualBoxManager::sltCopyMedium);
     connect(m_pWidget, &UIVirtualBoxManagerWidget::sigMachineSettingsLinkClicked,
             this, &UIVirtualBoxManager::sltOpenSettingsDialog);
     connect(m_pWidget, &UIVirtualBoxManagerWidget::sigCurrentSnapshotItemChange,
             this, &UIVirtualBoxManager::sltCurrentSnapshotItemChange);
+    connect(m_pWidget, &UIVirtualBoxManagerWidget::sigDetachToolPane,
+            this, &UIVirtualBoxManager::sltDetachToolPane);
+
     connect(menuBar(), &QMenuBar::customContextMenuRequested,
             m_pWidget, &UIVirtualBoxManagerWidget::sltHandleToolBarContextMenuRequest);
 
     /* Global VBox event handlers: */
+    connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigExtensionPackInstalled,
+            this, &UIVirtualBoxManager::sltExtensionPackInstalledUninstalled);
+    connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigExtensionPackUninstalled,
+            this, &UIVirtualBoxManager::sltExtensionPackInstalledUninstalled);
     connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigMachineStateChange,
             this, &UIVirtualBoxManager::sltHandleStateChange);
     connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigSessionStateChange,
@@ -2261,7 +2563,7 @@ void UIVirtualBoxManager::prepareConnections()
 
     /* 'File' menu connections: */
     connect(actionPool()->action(UIActionIndexMN_M_File_S_ImportAppliance), &UIAction::triggered,
-            this, &UIVirtualBoxManager::sltOpenImportApplianceWizardDefault);
+            this, &UIVirtualBoxManager::sltOpenImportApplianceWizard);
     connect(actionPool()->action(UIActionIndexMN_M_File_S_ExportAppliance), &UIAction::triggered,
             this, &UIVirtualBoxManager::sltOpenExportApplianceWizard);
 #ifdef VBOX_GUI_WITH_EXTRADATA_MANAGER_UI
@@ -2272,8 +2574,10 @@ void UIVirtualBoxManager::prepareConnections()
             this, &UIVirtualBoxManager::sltOpenPreferencesDialog);
     connect(actionPool()->action(UIActionIndexMN_M_File_S_Close), &UIAction::triggered,
             this, &UIVirtualBoxManager::sltPerformExit);
+
+    /* 'File/Tools' menu connections: */
     connect(actionPool()->actionGroup(UIActionIndexMN_M_File_M_Tools), &QActionGroup::triggered,
-            this, &UIVirtualBoxManager::sltPerformShowGlobalTool);
+            this, &UIVirtualBoxManager::sltPerformSwitchToGlobalTool);
 
     /* 'Welcome' menu connections: */
     connect(actionPool()->action(UIActionIndexMN_M_Welcome_S_New), &UIAction::triggered,
@@ -2300,8 +2604,6 @@ void UIVirtualBoxManager::prepareConnections()
             this, &UIVirtualBoxManager::sltPerformDetachMachineUI);
     connect(actionPool()->action(UIActionIndexMN_M_Group_S_Discard), &UIAction::triggered,
             this, &UIVirtualBoxManager::sltPerformDiscardMachineState);
-    connect(actionPool()->action(UIActionIndexMN_M_Group_S_ShowLogDialog), &UIAction::triggered,
-            this, &UIVirtualBoxManager::sltOpenLogViewerWindow);
     connect(actionPool()->action(UIActionIndexMN_M_Group_S_Refresh), &UIAction::triggered,
             this, &UIVirtualBoxManager::sltPerformRefreshMachine);
     connect(actionPool()->action(UIActionIndexMN_M_Group_S_ShowInFileManager), &UIAction::triggered,
@@ -2324,6 +2626,8 @@ void UIVirtualBoxManager::prepareConnections()
             this, &UIVirtualBoxManager::sltOpenSettingsDialogDefault);
     connect(actionPool()->action(UIActionIndexMN_M_Machine_S_Clone), &UIAction::triggered,
             this, &UIVirtualBoxManager::sltOpenCloneMachineWizard);
+    connect(actionPool()->action(UIActionIndexMN_M_Snapshot_S_Clone), &UIAction::triggered,
+            this, &UIVirtualBoxManager::sltOpenCloneMachineWizard);
     connect(actionPool()->action(UIActionIndexMN_M_Machine_S_Move), &UIAction::triggered,
             this, &UIVirtualBoxManager::sltPerformMachineMove);
     connect(actionPool()->action(UIActionIndexMN_M_Machine_S_ExportToOCI), &UIAction::triggered,
@@ -2342,8 +2646,6 @@ void UIVirtualBoxManager::prepareConnections()
             this, &UIVirtualBoxManager::sltPerformDetachMachineUI);
     connect(actionPool()->action(UIActionIndexMN_M_Machine_S_Discard), &UIAction::triggered,
             this, &UIVirtualBoxManager::sltPerformDiscardMachineState);
-    connect(actionPool()->action(UIActionIndexMN_M_Machine_S_ShowLogDialog), &UIAction::triggered,
-            this, &UIVirtualBoxManager::sltOpenLogViewerWindow);
     connect(actionPool()->action(UIActionIndexMN_M_Machine_S_Refresh), &UIAction::triggered,
             this, &UIVirtualBoxManager::sltPerformRefreshMachine);
     connect(actionPool()->action(UIActionIndexMN_M_Machine_S_ShowInFileManager), &UIAction::triggered,
@@ -2421,11 +2723,11 @@ void UIVirtualBoxManager::prepareConnections()
 
     /* 'Group/Tools' menu connections: */
     connect(actionPool()->actionGroup(UIActionIndexMN_M_Group_M_Tools), &QActionGroup::triggered,
-            this, &UIVirtualBoxManager::sltPerformShowMachineTool);
+            this, &UIVirtualBoxManager::sltPerformSwitchToMachineTool);
 
     /* 'Machine/Tools' menu connections: */
     connect(actionPool()->actionGroup(UIActionIndexMN_M_Machine_M_Tools), &QActionGroup::triggered,
-            this, &UIVirtualBoxManager::sltPerformShowMachineTool);
+            this, &UIVirtualBoxManager::sltPerformSwitchToMachineTool);
 
     /* 'Help' menu contents action connection. It is done here since we need different behaviour in
      * the manager and runtime UIs: */
@@ -2472,15 +2774,20 @@ void UIVirtualBoxManager::cleanupMenuBar()
     m_pActionPool = 0;
 }
 
+void UIVirtualBoxManager::cleanupCloudMachineManager()
+{
+    UICloudMachineManager::destroy();
+}
+
 void UIVirtualBoxManager::cleanup()
 {
     /* Ask sub-dialogs to commit data: */
     sltHandleCommitData();
 
     /* Cleanup: */
-    cleanupConnections();
     cleanupWidgets();
     cleanupMenuBar();
+    cleanupCloudMachineManager();
 }
 
 UIVirtualMachineItem *UIVirtualBoxManager::currentItem() const
@@ -2540,13 +2847,22 @@ bool UIVirtualBoxManager::checkUnattendedInstallError(const CUnattended &comUnat
 
 void UIVirtualBoxManager::openAddMachineDialog(const QString &strFileName /* = QString() */)
 {
+    /* Lock the actions preventing cascade calls: */
+    UIQObjectPropertySetter guardBlock(QList<QObject*>() << actionPool()->action(UIActionIndexMN_M_Welcome_S_Add)
+                                                         << actionPool()->action(UIActionIndexMN_M_Machine_S_Add)
+                                                         << actionPool()->action(UIActionIndexMN_M_Group_S_Add),
+                                       "opened", true);
+    connect(&guardBlock, &UIQObjectPropertySetter::sigAboutToBeDestroyed,
+            this, &UIVirtualBoxManager::sltHandleUpdateActionAppearanceRequest);
+    updateActionsAppearance();
+
     /* Initialize variables: */
 #ifdef VBOX_WS_MAC
     QString strTmpFile = ::darwinResolveAlias(strFileName);
 #else
     QString strTmpFile = strFileName;
 #endif
-    CVirtualBox comVBox = uiCommon().virtualBox();
+    CVirtualBox comVBox = gpGlobalSession->virtualBox();
 
     /* No file specified: */
     if (strTmpFile.isEmpty())
@@ -2597,55 +2913,37 @@ void UIVirtualBoxManager::openAddMachineDialog(const QString &strFileName /* = Q
 
 void UIVirtualBoxManager::openNewMachineWizard(const QString &strISOFilePath /* = QString() */)
 {
-    /* Lock the actions preventing cascade calls: */
-    UIQObjectPropertySetter guardBlock(QList<QObject*>() << actionPool()->action(UIActionIndexMN_M_Welcome_S_New)
-                                                         << actionPool()->action(UIActionIndexMN_M_Machine_S_New)
-                                                         << actionPool()->action(UIActionIndexMN_M_Group_S_New),
-                                       "opened", true);
-    connect(&guardBlock, &UIQObjectPropertySetter::sigAboutToBeDestroyed,
-            this, &UIVirtualBoxManager::sltHandleUpdateActionAppearanceRequest);
-    updateActionsAppearance();
+    /* Configure wizard variables: */
+    m_strISOFilePath = strISOFilePath;
 
-    /* Get first selected item: */
-    UIVirtualMachineItem *pItem = currentItem();
+    /* Open New VM Wizard: */
+    sltOpenWizard(WizardType_NewVM);
+}
 
-    /* For global item or local machine: */
-    if (   !pItem
-        || pItem->itemType() == UIVirtualMachineItemType_Local)
+void UIVirtualBoxManager::openImportApplianceWizard(const QString &strFileName /* = QString() */)
+{
+    /* Configure wizard variables: */
+    m_fImportFromOCI = false;
+#ifdef VBOX_WS_MAC
+    m_strFileName = ::darwinResolveAlias(strFileName);
+#else
+    m_strFileName = strFileName;
+#endif
+
+    /* If there is no file-name passed,
+     * check if cloud stuff focused currently: */
+    if (   m_strFileName.isEmpty()
+        && (   m_pWidget->isSingleCloudProviderGroupSelected()
+            || m_pWidget->isSingleCloudProfileGroupSelected()
+            || m_pWidget->isCloudMachineItemSelected()))
     {
-        CUnattended comUnattendedInstaller = uiCommon().virtualBox().CreateUnattendedInstaller();
-        AssertMsg(!comUnattendedInstaller.isNull(), ("Could not create unattended installer!\n"));
-
-        /* Use the "safe way" to open stack of Mac OS X Sheets: */
-        QWidget *pWizardParent = windowManager().realParentWindow(this);
-        UISafePointerWizardNewVM pWizard = new UIWizardNewVM(pWizardParent, actionPool(),
-                                                             m_pWidget->fullGroupName(),
-                                                             comUnattendedInstaller, strISOFilePath);
-        windowManager().registerNewParent(pWizard, pWizardParent);
-
-        /* Execute wizard: */
-        pWizard->exec();
-
-        bool fStartHeadless = pWizard->startHeadless();
-        bool fUnattendedEnabled = pWizard->isUnattendedEnabled();
-        QString strMachineId = pWizard->createdMachineId().toString();
-        delete pWizard;
-        /* Handle unattended install stuff: */
-        if (fUnattendedEnabled)
-            startUnattendedInstall(comUnattendedInstaller, fStartHeadless, strMachineId);
+        m_fImportFromOCI = true;
+        /* We can generate cloud hints as well: */
+        m_strFileName = m_pWidget->fullGroupName();
     }
-    /* For cloud machine: */
-    else
-    {
-        /* Use the "safe way" to open stack of Mac OS X Sheets: */
-        QWidget *pWizardParent = windowManager().realParentWindow(this);
-        UISafePointerWizardNewCloudVM pWizard = new UIWizardNewCloudVM(pWizardParent, m_pWidget->fullGroupName());
-        windowManager().registerNewParent(pWizard, pWizardParent);
 
-        /* Execute wizard: */
-        pWizard->exec();
-        delete pWizard;
-    }
+    /* Open Import Appliance Wizard: */
+    sltOpenWizard(WizardType_ImportAppliance);
 }
 
 /* static */
@@ -2656,7 +2954,7 @@ void UIVirtualBoxManager::launchMachine(CMachine &comMachine,
     if (   comMachine.GetSessionState() == KSessionState_Locked // precondition for CanShowConsoleWindow()
         && comMachine.CanShowConsoleWindow())
     {
-        UICommon::switchToMachine(comMachine);
+        switchToMachine(comMachine);
         return;
     }
 
@@ -2688,20 +2986,21 @@ void UIVirtualBoxManager::launchMachine(CCloudMachine &comMachine)
     gpNotificationCenter->append(pNotification);
 }
 
-void UIVirtualBoxManager::startUnattendedInstall(CUnattended &comUnattendedInstaller,
+void UIVirtualBoxManager::startUnattendedInstall(const CUnattended &comUnattendedRef,
                                                  bool fStartHeadless, const QString &strMachineId)
 {
-    CVirtualBox comVBox = uiCommon().virtualBox();
+    CVirtualBox comVBox = gpGlobalSession->virtualBox();
     CMachine comMachine = comVBox.FindMachine(strMachineId);
     if (comMachine.isNull())
         return;
 
-    comUnattendedInstaller.Prepare();
-    AssertReturnVoid(checkUnattendedInstallError(comUnattendedInstaller));
-    comUnattendedInstaller.ConstructMedia();
-    AssertReturnVoid(checkUnattendedInstallError(comUnattendedInstaller));
-    comUnattendedInstaller.ReconfigureVM();
-    AssertReturnVoid(checkUnattendedInstallError(comUnattendedInstaller));
+    CUnattended comUnattended = comUnattendedRef;
+    comUnattended.Prepare();
+    AssertReturnVoid(checkUnattendedInstallError(comUnattended));
+    comUnattended.ConstructMedia();
+    AssertReturnVoid(checkUnattendedInstallError(comUnattended));
+    comUnattended.ReconfigureVM();
+    AssertReturnVoid(checkUnattendedInstallError(comUnattended));
 
     launchMachine(comMachine, fStartHeadless ? UILaunchMode_Headless : UILaunchMode_Default);
 }
@@ -2773,19 +3072,20 @@ QStringList UIVirtualBoxManager::parseShellArguments(const QString &strArguments
 
     /* Parse argument string: */
     QStringList arguments;
-    QRegExp re("(\"[^\"]+\")|('[^']+')|([^\\s\"']+)");
+    const QRegularExpression re("(\"[^\"]+\")|('[^']+')|([^\\s\"']+)");
     int iPosition = 0;
-    int iIndex = re.indexIn(strArguments, iPosition);
+    QRegularExpressionMatch mt = re.match(strArguments, iPosition);
+    int iIndex = mt.capturedStart();
     while (iIndex != -1)
     {
         /* Get what's the sequence we have: */
-        const QString strCap0 = re.cap(0);
+        const QString strCap0 = mt.captured(0);
         /* Get what's the double-quoted sequence we have: */
-        const QString strCap1 = re.cap(1);
+        const QString strCap1 = mt.captured(1);
         /* Get what's the single-quoted sequence we have: */
-        const QString strCap2 = re.cap(2);
+        const QString strCap2 = mt.captured(2);
         /* Get what's the unquoted sequence we have: */
-        const QString strCap3 = re.cap(3);
+        const QString strCap3 = mt.captured(3);
 
         /* If new sequence starts where previous ended
          * we are appending new value to previous one, otherwise
@@ -2827,7 +3127,8 @@ QStringList UIVirtualBoxManager::parseShellArguments(const QString &strArguments
         /* Advance position: */
         iPosition = iIndex + strCap0.size();
         /* Search for a next sequence: */
-        iIndex = re.indexIn(strArguments, iPosition);
+        mt = re.match(strArguments, iPosition);
+        iIndex = mt.capturedStart();
     }
 
     //printf("arguments processed:\n");
@@ -2850,6 +3151,7 @@ void UIVirtualBoxManager::updateMenuGroup(QMenu *pMenu)
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Add));
         pMenu->addSeparator();
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_M_StartOrShow));
+        pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Reset));
         pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Group_M_Console)->menu());
         pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Group_M_Stop)->menu());
         pMenu->addSeparator();
@@ -2878,7 +3180,6 @@ void UIVirtualBoxManager::updateMenuGroup(QMenu *pMenu)
         pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Group_M_Tools)->menu());
         pMenu->addSeparator();
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Discard));
-        pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_ShowLogDialog));
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Refresh));
         pMenu->addSeparator();
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_ShowInFileManager));
@@ -2904,9 +3205,12 @@ void UIVirtualBoxManager::updateMenuMachine(QMenu *pMenu)
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Add));
         pMenu->addSeparator();
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Settings));
+        if (gEDataManager->isSettingsInExpertMode())
+            pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Clone));
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Remove));
         pMenu->addSeparator();
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow));
+        pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Reset));
         pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Machine_M_Console)->menu());
         pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Machine_M_Stop)->menu());
         pMenu->addSeparator();
@@ -2923,8 +3227,11 @@ void UIVirtualBoxManager::updateMenuMachine(QMenu *pMenu)
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Add));
         pMenu->addSeparator();
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Settings));
-        pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Clone));
-        pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Move));
+        if (gEDataManager->isSettingsInExpertMode())
+        {
+            pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Clone));
+            pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Move));
+        }
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_ExportToOCI));
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Remove));
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_MoveToGroup));
@@ -2938,7 +3245,6 @@ void UIVirtualBoxManager::updateMenuMachine(QMenu *pMenu)
         pMenu->addMenu(actionPool()->action(UIActionIndexMN_M_Machine_M_Tools)->menu());
         pMenu->addSeparator();
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Discard));
-        pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_ShowLogDialog));
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Refresh));
         pMenu->addSeparator();
         pMenu->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_ShowInFileManager));
@@ -3064,7 +3370,7 @@ void UIVirtualBoxManager::updateMenuMachineConsole(QMenu *pMenu)
         pDefaultAction->setProperty("path", "open");
 #elif defined(VBOX_WS_WIN)
         pDefaultAction->setProperty("path", "powershell");
-#elif defined(VBOX_WS_X11)
+#elif defined(VBOX_WS_NIX)
         const QPair<QString, QString> terminalData = defaultTerminalData();
         pDefaultAction->setProperty("path", terminalData.first);
         pDefaultAction->setProperty("arguments", QString("%1 sh -c").arg(terminalData.second));
@@ -3231,7 +3537,6 @@ void UIVirtualBoxManager::updateActionsAppearance()
     actionPool()->action(UIActionIndexMN_M_Group_S_Reset)->setEnabled(isActionEnabled(UIActionIndexMN_M_Group_S_Reset, items));
     actionPool()->action(UIActionIndexMN_M_Group_S_Detach)->setEnabled(isActionEnabled(UIActionIndexMN_M_Group_S_Detach, items));
     actionPool()->action(UIActionIndexMN_M_Group_S_Discard)->setEnabled(isActionEnabled(UIActionIndexMN_M_Group_S_Discard, items));
-    actionPool()->action(UIActionIndexMN_M_Group_S_ShowLogDialog)->setEnabled(isActionEnabled(UIActionIndexMN_M_Group_S_ShowLogDialog, items));
     actionPool()->action(UIActionIndexMN_M_Group_S_Refresh)->setEnabled(isActionEnabled(UIActionIndexMN_M_Group_S_Refresh, items));
     actionPool()->action(UIActionIndexMN_M_Group_S_ShowInFileManager)->setEnabled(isActionEnabled(UIActionIndexMN_M_Group_S_ShowInFileManager, items));
     actionPool()->action(UIActionIndexMN_M_Group_S_CreateShortcut)->setEnabled(isActionEnabled(UIActionIndexMN_M_Group_S_CreateShortcut, items));
@@ -3251,7 +3556,6 @@ void UIVirtualBoxManager::updateActionsAppearance()
     actionPool()->action(UIActionIndexMN_M_Machine_S_Reset)->setEnabled(isActionEnabled(UIActionIndexMN_M_Machine_S_Reset, items));
     actionPool()->action(UIActionIndexMN_M_Machine_S_Detach)->setEnabled(isActionEnabled(UIActionIndexMN_M_Machine_S_Detach, items));
     actionPool()->action(UIActionIndexMN_M_Machine_S_Discard)->setEnabled(isActionEnabled(UIActionIndexMN_M_Machine_S_Discard, items));
-    actionPool()->action(UIActionIndexMN_M_Machine_S_ShowLogDialog)->setEnabled(isActionEnabled(UIActionIndexMN_M_Machine_S_ShowLogDialog, items));
     actionPool()->action(UIActionIndexMN_M_Machine_S_Refresh)->setEnabled(isActionEnabled(UIActionIndexMN_M_Machine_S_Refresh, items));
     actionPool()->action(UIActionIndexMN_M_Machine_S_ShowInFileManager)->setEnabled(isActionEnabled(UIActionIndexMN_M_Machine_S_ShowInFileManager, items));
     actionPool()->action(UIActionIndexMN_M_Machine_S_CreateShortcut)->setEnabled(isActionEnabled(UIActionIndexMN_M_Machine_S_CreateShortcut, items));
@@ -3449,12 +3753,12 @@ bool UIVirtualBoxManager::isActionEnabled(int iActionIndex, const QList<UIVirtua
         {
             return !isGroupSavingInProgress() &&
                    items.size() == 1 &&
-                   pItem->toLocal() &&
                    pItem->isItemEditable();
         }
         case UIActionIndexMN_M_Machine_S_ExportToOCI:
         {
             return items.size() == 1 &&
+                   UIExtension::isExtentionPackInstalled() &&
                    pItem->toLocal();
         }
         case UIActionIndexMN_M_Machine_S_Remove:
@@ -3501,12 +3805,6 @@ bool UIVirtualBoxManager::isActionEnabled(int iActionIndex, const QList<UIVirtua
                     (m_pWidget->currentMachineTool() != UIToolType_Snapshots ||
                      m_pWidget->isCurrentStateItemSelected());
         }
-        case UIActionIndexMN_M_Group_S_ShowLogDialog:
-        case UIActionIndexMN_M_Machine_S_ShowLogDialog:
-        {
-            return isItemsLocal(items) &&
-                   isAtLeastOneItemAccessible(items);
-        }
         case UIActionIndexMN_M_Group_T_Pause:
         case UIActionIndexMN_M_Machine_T_Pause:
         {
@@ -3516,8 +3814,7 @@ bool UIVirtualBoxManager::isActionEnabled(int iActionIndex, const QList<UIVirtua
         case UIActionIndexMN_M_Group_S_Reset:
         case UIActionIndexMN_M_Machine_S_Reset:
         {
-            return isItemsLocal(items) &&
-                   isAtLeastOneItemRunning(items);
+            return isAtLeastOneItemRunning(items);
         }
         case UIActionIndexMN_M_Group_S_Detach:
         case UIActionIndexMN_M_Machine_S_Detach:
@@ -3642,7 +3939,7 @@ bool UIVirtualBoxManager::isAtLeastOneItemAbleToShutdown(const QList<UIVirtualMa
         if (pItem->itemType() == UIVirtualMachineItemType_Local)
         {
             /* Skip session failures: */
-            CSession session = uiCommon().openExistingSession(pItem->id());
+            CSession session = openExistingSession(pItem->id());
             if (session.isNull())
                 continue;
             /* Skip console failures: */
@@ -3790,7 +4087,7 @@ bool UIVirtualBoxManager::isAtLeastOneItemDetachable(const QList<UIVirtualMachin
     return false;
 }
 
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
 /* static */
 QPair<QString, QString> UIVirtualBoxManager::defaultTerminalData()
 {

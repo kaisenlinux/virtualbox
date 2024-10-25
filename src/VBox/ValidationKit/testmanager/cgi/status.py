@@ -8,7 +8,7 @@ CGI - Administrator Web-UI.
 
 __copyright__ = \
 """
-Copyright (C) 2012-2023 Oracle and/or its affiliates.
+Copyright (C) 2012-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -37,7 +37,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 
 # Standard python imports.
@@ -63,51 +63,47 @@ def timeDeltaToHours(oTimeDelta):
 
 
 def testbox_data_processing(oDb):
-    testboxes_dict = {}
+    dTestBoxes = {}
     while True:
-        line = oDb.fetchOne();
-        if line is None:
+        # Fetch the next row and unpack it.
+        aoRow = oDb.fetchOne();
+        if aoRow is None:
             break;
-        testbox_name = line[0]
-        test_result = line[1]
-        oTimeDeltaSinceStarted = line[2]
-        test_box_os = line[3]
-        test_sched_group = line[4]
+        sTextBoxName           = aoRow[0];
+        enmStatus              = aoRow[1];
+        oTimeDeltaSinceStarted = aoRow[2];
+        sTestBoxOs             = aoRow[3]
+        sSchedGroupNames       = aoRow[4];
 
-        # idle testboxes might have an assigned testsets, skipping them
-        if test_result not in g_kdTestStatuses:
-            continue
+        # Idle testboxes will not have an assigned test set, so enmStatus
+        # will be None.  Skip these.
+        if enmStatus:
+            dict_update(dTestBoxes, sTextBoxName, enmStatus)
 
-        testboxes_dict = dict_update(testboxes_dict, testbox_name, test_result)
+            if "testbox_os" not in dTestBoxes[sTextBoxName]:
+                dTestBoxes[sTextBoxName].update({"testbox_os": sTestBoxOs})
 
-        if "testbox_os" not in testboxes_dict[testbox_name]:
-            testboxes_dict[testbox_name].update({"testbox_os": test_box_os})
+            if "sched_group" not in dTestBoxes[sTextBoxName]:
+                dTestBoxes[sTextBoxName].update({"sched_group": sSchedGroupNames})
+            elif sSchedGroupNames not in dTestBoxes[sTextBoxName]["sched_group"]:
+                dTestBoxes[sTextBoxName]["sched_group"] += "," + sSchedGroupNames
 
-        if "sched_group" not in testboxes_dict[testbox_name]:
-            testboxes_dict[testbox_name].update({"sched_group": test_sched_group})
-        elif test_sched_group not in testboxes_dict[testbox_name]["sched_group"]:
-            testboxes_dict[testbox_name]["sched_group"] += "," + test_sched_group
+            if enmStatus == "running":
+                dTestBoxes[sTextBoxName].update({"hours_running": timeDeltaToHours(oTimeDeltaSinceStarted)})
 
-        if test_result == "running":
-            testboxes_dict[testbox_name].update({"hours_running": timeDeltaToHours(oTimeDeltaSinceStarted)})
-
-    return testboxes_dict;
-
-
-def os_results_separating(vb_dict, test_name, testbox_os, test_result):
-    if testbox_os == "linux":
-        dict_update(vb_dict, test_name + " / linux", test_result)
-    elif testbox_os == "win":
-        dict_update(vb_dict, test_name + " / windows", test_result)
-    elif testbox_os == "darwin":
-        dict_update(vb_dict, test_name + " / darwin", test_result)
-    elif testbox_os == "solaris":
-        dict_update(vb_dict, test_name + " / solaris", test_result)
-    else:
-        dict_update(vb_dict, test_name + " / other", test_result)
+    return dTestBoxes;
 
 
-# const/immutable.
+def os_results_separating(dResult, sTestName, sTestBoxOs, sTestBoxCpuArch, enmStatus):
+    if sTestBoxOs == 'win':
+        sTestBoxOs = 'windows'
+    elif sTestBoxOs not in ('linux', 'darwin', 'solaris'):
+        sTestBoxOs = 'other'
+    dict_update(dResult, '%s / %s.%s' % (sTestName, sTestBoxOs, sTestBoxCpuArch), enmStatus)
+
+
+## Template dictionary for new dTarget[] entries in dict_update.
+# This _MUST_ include all values of the TestStatus_T SQL enum type.
 g_kdTestStatuses = {
     'running': 0,
     'success': 0,
@@ -119,12 +115,10 @@ g_kdTestStatuses = {
     'rebooted': 0,
 }
 
-def dict_update(target_dict, key_name, test_result):
-    if key_name not in target_dict:
-        target_dict.update({key_name: g_kdTestStatuses.copy()})
-    if test_result in g_kdTestStatuses:
-        target_dict[key_name][test_result] += 1
-    return target_dict
+def dict_update(dTarget, sKeyName, enmStatus):
+    if sKeyName not in dTarget:
+        dTarget.update({sKeyName: g_kdTestStatuses.copy()})
+    dTarget[sKeyName][enmStatus] += 1
 
 
 def formatDataEntry(sKey, dEntry):
@@ -283,9 +277,21 @@ class StatusDispatcher(object): # pylint: disable=too-few-public-methods
         #
         # Get the data.
         #
-        # Note! We're not joining on TestBoxesWithStrings.idTestBox =
-        #       TestSets.idGenTestBox here because of indexes.  This is
-        #       also more consistent with the rest of the query.
+        # - The first part of the select is about fetching all finished tests
+        #   for last cHoursBack hours
+        #
+        # - The second part is fetching all tests which isn't done. (Both old
+        #   (running more than cHoursBack) and fresh (less than cHoursBack) ones
+        #   because we want to know if there's a hanging tests together with
+        #   currently running).
+        #
+        # - There are also testsets without status at all, likely because disabled
+        #   testboxes still have an assigned testsets.
+        #
+        # Note! We're not joining on TestBoxesWithStrings.idTestBox = TestSets.idGenTestBox
+        #       here because of indexes.  This is also more consistent with the
+        #       rest of the query.
+        #
         # Note! The original SQL is slow because of the 'OR TestSets.tsDone'
         #       part, using AND and UNION is significatly faster because
         #       it matches the TestSetsGraphBoxIdx (index).
@@ -294,15 +300,6 @@ class StatusDispatcher(object): # pylint: disable=too-few-public-methods
         if oDb is None:
             return False;
 
-        #
-        # some comments regarding select below:
-        # first part is about fetching all finished tests for last cHoursBack hours
-        # second part is fetching all tests which isn't done
-        # both old (running more than cHoursBack) and fresh (less than cHoursBack) ones
-        # 'cause we want to know if there's a hanging tests together with currently running
-        #
-        # there's also testsets without status at all, likely because disabled testboxes still have an assigned testsets
-        #
         oDb.execute('''
 (   SELECT  TestBoxesWithStrings.sName,
             TestSets.enmStatus,
@@ -349,7 +346,7 @@ class StatusDispatcher(object): # pylint: disable=too-few-public-methods
     WHERE   TestBoxesWithStrings.tsExpire = 'infinity'::TIMESTAMP
       AND   SchedGroupNames.idTestBox = TestBoxesWithStrings.idTestBox
 )
-''', (cHoursBack, cHoursBack,));
+''', (cHoursBack, ));
 
 
         #
@@ -391,7 +388,8 @@ class StatusDispatcher(object): # pylint: disable=too-few-public-methods
             oDb.execute('''
 SELECT  TestSets.enmStatus,
         TestCases.sName,
-        TestBoxesWithStrings.sOS
+        TestBoxesWithStrings.sOS,
+        TestBoxesWithStrings.sCpuArch
 FROM    TestSets
 INNER JOIN TestCases
         ON TestCases.idGenTestCase         = TestSets.idGenTestCase
@@ -404,7 +402,8 @@ WHERE   TestSets.tsCreated                >= (CURRENT_TIMESTAMP - '%s hours'::in
             oDb.execute('''
 SELECT  TestSets.enmStatus,
         TestCases.sName,
-        TestBoxesWithStrings.sOS
+        TestBoxesWithStrings.sOS,
+        TestBoxesWithStrings.sCpuArch
 FROM    TestSets
 INNER JOIN BuildCategories
         ON BuildCategories.idBuildCategory = TestSets.idBuildCategory
@@ -423,7 +422,7 @@ WHERE   TestSets.tsCreated                >= (CURRENT_TIMESTAMP - '%s hours'::in
             aoRow = oDb.fetchOne();
             if aoRow is None:
                 break;
-            os_results_separating(dResult, aoRow[1], aoRow[2], aoRow[0])  # save all test results
+            os_results_separating(dResult, aoRow[1], aoRow[2], aoRow[3], aoRow[0])  # save all test results
 
         # Format and output it.
         self._oSrvGlue.setContentType('text/plain');

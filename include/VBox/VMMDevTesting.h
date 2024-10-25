@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -127,7 +127,7 @@
 #define VMMDEV_TESTING_CMD_TERM         UINT32_C(0xcab1e001)
 /** Start a new sub-test, sending name (zero terminated string). (RTTestSub) */
 #define VMMDEV_TESTING_CMD_SUB_NEW      UINT32_C(0xcab1e002)
-/** Sub-test is done, sending 32-bit error count for it. (RTTestDone) */
+/** Sub-test is done, sending 32-bit error count for it. (RTTestSubDone) */
 #define VMMDEV_TESTING_CMD_SUB_DONE     UINT32_C(0xcab1e003)
 /** Report a failure, sending reason (zero terminated string). (RTTestFailed) */
 #define VMMDEV_TESTING_CMD_FAILED       UINT32_C(0xcab1e004)
@@ -144,6 +144,10 @@
 /** Query a config value, sending a 16-bit word (VMMDEV_TESTING_CFG_XXX) to the
  * DATA port and reading back the result. */
 #define VMMDEV_TESTING_CMD_QUERY_CFG    UINT32_C(0xcab1e009)
+/** Start a new sub-sub-test, sending name (zero terminated string). (RTTestSubSub) */
+#define VMMDEV_TESTING_CMD_SUBSUB_NEW   UINT32_C(0xcab1e00a)
+/** Sub-sub-test is done, sending 32-bit error count for it. (RTTestSubSubDone) */
+#define VMMDEV_TESTING_CMD_SUBSUB_DONE  UINT32_C(0xcab1e00b)
 
 /** The magic part of the command. */
 #define VMMDEV_TESTING_CMD_MAGIC        UINT32_C(0xcab1e000)
@@ -206,6 +210,12 @@
 /** What the NOP accesses returns. */
 #define VMMDEV_TESTING_NOP_RET                  UINT32_C(0x64726962) /* bird */
 
+/** What follows the data provided by a VMMDEV_TESTING_CMD_QUERY_CFG.
+ * This can be used to verify that a config query was successful.  The value
+ * will not be split up if the read is 16-bit or 8-bit, subsequent reads (of
+ * any size) will return zero. */
+#define VMMDEV_TESTING_QUERY_CFG_OKAY_TAIL      UINT32_C(0x79616b4f) /* Okay */
+
 /** @name Low and High Locking Control Dwords
  * @{ */
 /** Low Locking Control: Thread lock hold interval in microseconds. */
@@ -264,6 +274,10 @@
 #define VMMDEV_TESTING_CFG_IS_NEM_WINDOWS    UINT16_C(0x0101)
 /** Boolean (8-bit): Running in NEM on Darwin? */
 #define VMMDEV_TESTING_CFG_IS_NEM_DARWIN     UINT16_C(0x0102)
+/** Unsigned (16-bit): The override value for g_cBs3ThresholdNativeRecompiler.
+ * A value of zero means it is not configured and the default should be used. */
+#define VMMDEV_TESTING_CFG_THRESHOLD_NATIVE_RECOMPILER  UINT16_C(0x0103)
+
 /** @} */
 
 /** @} */

@@ -3,7 +3,7 @@
     manpage, user manual, usage: VBoxManage showvminfo
 -->
 <!--
-    Copyright (C) 2006-2023 Oracle and/or its affiliates.
+    Copyright (C) 2006-2024 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.
@@ -30,7 +30,7 @@
 ]>
 <refentry id="vboxmanage-showvminfo" lang="en">
   <refentryinfo>
-    <pubdate>$Date: 2023-01-18 00:40:56 +0100 (Wed, 18 Jan 2023) $</pubdate>
+    <pubdate>$Date: 2024-09-16 23:42:41 +0200 (Mon, 16 Sep 2024) $</pubdate>
     <title>VBoxManage showvminfo</title>
   </refentryinfo>
 
@@ -67,7 +67,7 @@
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-showvminfo-description">
     <title>Описание</title>
     <para>
       Команда <command>VBoxManage showvminfo</command> выводит
@@ -128,7 +128,7 @@
     </refsect2>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-showvminfo-examples">
     <title>Примеры</title>
     <remark role="help-scope" condition="GLOBAL"/>
     <para>
@@ -136,7 +136,7 @@
     </para>
 <screen>$ VBoxManage showvminfo "Windows 10"
 VirtualBox Command Line Management Interface Version <replaceable>номер-версии</replaceable>
-Copyright (C) 2005-2023 Oracle and/or its affiliates
+Copyright (C) 2005-2024 Oracle and/or its affiliates
 
 Имя:            Windows 10
 Группы:          /
@@ -177,7 +177,7 @@ UUID="1bf3464d-57c6-4d49-92a9-a5cc3816b7e7"
 ...</screen>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-showvminfo-see-also">
     <title>Смотрите также</title>
     <para>
       <xref linkend="vboxmanage-list" />

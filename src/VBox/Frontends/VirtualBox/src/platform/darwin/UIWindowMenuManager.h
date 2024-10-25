@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -36,7 +36,7 @@
 #include <QObject>
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
+#include "UILibraryDefs.h"
 
 /* Forward declarations: */
 class QMenu;
@@ -44,7 +44,7 @@ class UIMenuHelper;
 
 /** Singleton QObject extension
   * used as Mac OS X 'Window' menu Manager. */
-class SHARED_LIBRARY_STUFF UIWindowMenuManager : public QIWithRetranslateUI3<QObject>
+class SHARED_LIBRARY_STUFF UIWindowMenuManager : public QObject
 {
     Q_OBJECT;
 
@@ -52,7 +52,7 @@ public:
 
     /** Creates instance. */
     static void create();
-    /** Destroyes instance. */
+    /** Destroys instance. */
     static void destroy();
     /** Returns current instance. */
     static UIWindowMenuManager *instance() { return s_pInstance; }
@@ -67,9 +67,6 @@ public:
     /** Removes @a pWindow from all 'Window' menus. */
     void removeWindow(QWidget *pWindow);
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
 protected:
 
     /** Constructs 'Window' menu Manager. */
@@ -79,6 +76,11 @@ protected:
 
     /** Preprocesses any Qt @a pEvent for passed @a pObject. */
     virtual bool eventFilter(QObject *pObject, QEvent *pEvent) RT_OVERRIDE;
+
+private slots:
+
+    /** Handles translation event. */
+    virtual void sltRetranslateUI();
 
 private:
 

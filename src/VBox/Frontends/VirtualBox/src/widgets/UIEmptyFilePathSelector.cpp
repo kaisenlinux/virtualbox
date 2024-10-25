@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -25,17 +25,7 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
-/* Local includes */
-#include "QIFileDialog.h"
-#include "QIToolButton.h"
-#include "QILabel.h"
-#include "QILineEdit.h"
-#include "UIIconPool.h"
-#include "UIEmptyFilePathSelector.h"
-#include "UICommon.h"
-
-/* Global includes */
-#include <iprt/assert.h>
+/* Qt includes: */
 #include <QAction>
 #include <QApplication>
 #include <QClipboard>
@@ -45,13 +35,22 @@
 #include <QLineEdit>
 #include <QTimer>
 
+/* GUI includes: */
+#include "QIFileDialog.h"
+#include "QIToolButton.h"
+#include "QILabel.h"
+#include "QILineEdit.h"
+#include "UIEmptyFilePathSelector.h"
+#include "UIIconPool.h"
+#include "UITranslationEventListener.h"
 
 UIEmptyFilePathSelector::UIEmptyFilePathSelector (QWidget *aParent /* = NULL */)
-    : QIWithRetranslateUI<QWidget> (aParent)
+    : QWidget(aParent)
     , mPathWgt (NULL)
     , mLabel (NULL)
     , mMode (UIEmptyFilePathSelector::Mode_File_Open)
     , mLineEdit (NULL)
+    , m_fLineEditoToolTipSet(false)
     , m_fButtonToolTipSet(false)
     , mHomeDir (QDir::current().absolutePath())
     , mIsModified (false)
@@ -76,7 +75,9 @@ UIEmptyFilePathSelector::UIEmptyFilePathSelector (QWidget *aParent /* = NULL */)
 
     setEditable (false);
 
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIEmptyFilePathSelector::sltRetranslateUI);
 }
 
 void UIEmptyFilePathSelector::setMode (UIEmptyFilePathSelector::Mode aMode)
@@ -175,10 +176,25 @@ QString UIEmptyFilePathSelector::defaultSaveExt() const
     return mDefaultSaveExt;
 }
 
+void UIEmptyFilePathSelector::setLineEditToolTip(const QString &strToolTip)
+{
+    if (mLineEdit)
+    {
+        m_fLineEditoToolTipSet = !strToolTip.isEmpty();
+        mLineEdit->setToolTip(strToolTip);
+    }
+}
+
+QString UIEmptyFilePathSelector::lineEditToolTip() const
+{
+    return mLineEdit ? mLineEdit->toolTip() : QString();
+}
+
 void UIEmptyFilePathSelector::setChooseButtonToolTip(const QString &strToolTip)
 {
     m_fButtonToolTipSet = !strToolTip.isEmpty();
     mSelectButton->setToolTip(strToolTip);
+    mSelectButton->setText(strToolTip);
 }
 
 QString UIEmptyFilePathSelector::chooseButtonToolTip() const
@@ -216,10 +232,15 @@ QString UIEmptyFilePathSelector::homeDir() const
     return mHomeDir;
 }
 
-void UIEmptyFilePathSelector::retranslateUi()
+void UIEmptyFilePathSelector::sltRetranslateUI()
 {
+    if (mLineEdit && !m_fLineEditoToolTipSet)
+        mLineEdit->setToolTip(tr("Contains selected file path."));
     if (!m_fButtonToolTipSet)
+    {
         mSelectButton->setToolTip(tr("Choose..."));
+        mSelectButton->setText(tr("Choose..."));
+    }
 }
 
 void UIEmptyFilePathSelector::choose()

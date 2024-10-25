@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -45,8 +45,7 @@
 #include <iprt/buildconfig.h>
 #include <iprt/system.h>
 
-#include <libxml/catalog.h>
-#include <libxml/globals.h>
+#include <libxml/tree.h>
 #ifdef RT_OS_WINDOWS
 # include <iprt/win/windows.h>
 #endif
@@ -76,7 +75,7 @@ struct CLANG11NONSENSE { PFNRT pfn; } g_VBoxRTDeps[] =
     { (PFNRT)SUPTracerFireProbe }, /** @todo port me @bugref{9898} ? */
     { (PFNRT)SUPGetTscDeltaSlow },
 #endif
-    { (PFNRT)xmlLoadCatalogs },
+    { (PFNRT)xmlNewDocComment },
     { (PFNRT)RTLocalIpcServerCreate },
     { (PFNRT)MD5_Init },
     { (PFNRT)RC4 },

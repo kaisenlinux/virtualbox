@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1876,7 +1876,7 @@ lsilogicDiagnosticWrite(PPDMDEVINS pDevIns, void *pvUser, RTGCPHYS off, void con
 {
     RT_NOREF(pDevIns, pvUser, off, pv, cb);
     LogFlowFunc(("pThis=%#p GCPhysAddr=%RGp pv=%#p{%.*Rhxs} cb=%u\n", PDMDEVINS_2_DATA(pDevIns, PLSILOGICSCSI), off, pv, cb, pv, cb));
-    return VINF_SUCCESS;
+    return VINF_IOM_MMIO_UNUSED_FF;
 }
 
 /**
@@ -3438,7 +3438,7 @@ DECLINLINE(uint16_t) lsilogicGetHandle(PLSILOGICSCSI pThis)
  *
  * @todo Generate better SAS addresses. (Request a block from SUN probably)
  */
-void lsilogicSASAddressGenerate(PSASADDRESS pSASAddress, unsigned iId)
+DECLINLINE(void) lsilogicSASAddressGenerate(PSASADDRESS pSASAddress, unsigned iId)
 {
     pSASAddress->u8Address[0] = (0x5 << 5);
     pSASAddress->u8Address[1] = 0x01;
@@ -5202,7 +5202,7 @@ static DECLCALLBACK(int) lsilogicR3Construct(PPDMDEVINS pDevIns, int iInstance, 
     /* Region #2: MMIO - Diag. */
     rc = PDMDevHlpPCIIORegionCreateMmio(pDevIns, 2 /*iPciRegion*/, LSILOGIC_PCI_SPACE_MEM_SIZE, PCI_ADDRESS_SPACE_MEM,
                                         lsilogicDiagnosticWrite, lsilogicDiagnosticRead, NULL /*pvUser*/,
-                                        IOMMMIO_FLAGS_READ_PASSTHRU | IOMMMIO_FLAGS_WRITE_PASSTHRU,
+                                        IOMMMIO_FLAGS_READ_DWORD | IOMMMIO_FLAGS_WRITE_DWORD_ZEROED,
                                         pThis->enmCtrlType == LSILOGICCTRLTYPE_SCSI_SPI ? "LsiLogicDiag" : "LsiLogicSasDiag",
                                         &pThis->hMmioDiag);
     AssertRCReturn(rc, rc);

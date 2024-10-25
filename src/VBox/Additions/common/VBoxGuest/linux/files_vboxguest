@@ -5,7 +5,7 @@
 #
 
 #
-# Copyright (C) 2007-2023 Oracle and/or its affiliates.
+# Copyright (C) 2007-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -41,7 +41,9 @@ FILES_VBOXGUEST_NOBIN=" \
     ${PATH_ROOT}/include/iprt/alloc.h=>include/iprt/alloc.h \
     ${PATH_ROOT}/include/iprt/asm.h=>include/iprt/asm.h \
     ${PATH_ROOT}/include/iprt/asm-amd64-x86.h=>include/iprt/asm-amd64-x86.h \
+    ${PATH_ROOT}/include/iprt/asm-arm.h=>include/iprt/asm-arm.h \
     ${PATH_ROOT}/include/iprt/asm-math.h=>include/iprt/asm-math.h \
+    ${PATH_ROOT}/include/iprt/asm-mem.h=>include/iprt/asm-mem.h \
     ${PATH_ROOT}/include/iprt/assert.h=>include/iprt/assert.h \
     ${PATH_ROOT}/include/iprt/assertcompile.h=>include/iprt/assertcompile.h \
     ${PATH_ROOT}/include/iprt/avl.h=>include/iprt/avl.h \
@@ -72,6 +74,7 @@ FILES_VBOXGUEST_NOBIN=" \
     ${PATH_ROOT}/include/iprt/stdarg.h=>include/iprt/stdarg.h \
     ${PATH_ROOT}/include/iprt/stdint.h=>include/iprt/stdint.h \
     ${PATH_ROOT}/include/iprt/string.h=>include/iprt/string.h \
+    ${PATH_ROOT}/include/iprt/system.h=>include/iprt/system.h \
     ${PATH_ROOT}/include/iprt/thread.h=>include/iprt/thread.h \
     ${PATH_ROOT}/include/iprt/time.h=>include/iprt/time.h \
     ${PATH_ROOT}/include/iprt/timer.h=>include/iprt/timer.h \
@@ -126,6 +129,7 @@ FILES_VBOXGUEST_NOBIN=" \
     ${PATH_ROOT}/src/VBox/Runtime/include/internal/process.h=>include/internal/process.h \
     ${PATH_ROOT}/src/VBox/Runtime/common/alloc/alloc.cpp=>common/alloc/alloc.c \
     ${PATH_ROOT}/src/VBox/Runtime/common/alloc/heapsimple.cpp=>common/alloc/heapsimple.c \
+    ${PATH_ROOT}/src/VBox/Runtime/common/asm/ASMMultU64ByU32DivByU32-generic.cpp=>common/asm/ASMMultU64ByU32DivByU32-generic.c \
     ${PATH_ROOT}/src/VBox/Runtime/common/checksum/crc32.cpp=>common/checksum/crc32.c \
     ${PATH_ROOT}/src/VBox/Runtime/common/err/RTErrConvertFromErrno.cpp=>common/err/RTErrConvertFromErrno.c \
     ${PATH_ROOT}/src/VBox/Runtime/common/err/RTErrConvertToErrno.cpp=>common/err/RTErrConvertToErrno.c \
@@ -187,6 +191,7 @@ FILES_VBOXGUEST_NOBIN=" \
     ${PATH_ROOT}/src/VBox/Runtime/generic/RTAssertShouldPanic-generic.cpp=>generic/RTAssertShouldPanic-generic.c \
     ${PATH_ROOT}/src/VBox/Runtime/generic/RTLogWriteStdErr-stub-generic.cpp=>generic/RTLogWriteStdErr-stub-generic.c \
     ${PATH_ROOT}/src/VBox/Runtime/generic/RTLogWriteStdOut-stub-generic.cpp=>generic/RTLogWriteStdOut-stub-generic.c \
+    ${PATH_ROOT}/src/VBox/Runtime/generic/RTLogWriteVmm-stub-generic.cpp=>generic/RTLogWriteVmm-stub-generic.c \
     ${PATH_ROOT}/src/VBox/Runtime/generic/RTMpGetCoreCount-generic.cpp=>generic/RTMpGetCoreCount-generic.c \
     ${PATH_ROOT}/src/VBox/Runtime/generic/RTSemEventWait-2-ex-generic.cpp=>generic/RTSemEventWait-2-ex-generic.c \
     ${PATH_ROOT}/src/VBox/Runtime/generic/RTSemEventWaitNoResume-2-ex-generic.cpp=>generic/RTSemEventWaitNoResume-2-ex-generic.c \
@@ -195,6 +200,7 @@ FILES_VBOXGUEST_NOBIN=" \
     ${PATH_ROOT}/src/VBox/Runtime/generic/rtStrFormatKernelAddress-generic.cpp=>generic/rtStrFormatKernelAddress-generic.c \
     ${PATH_ROOT}/src/VBox/Runtime/generic/errvars-generic.cpp=>generic/errvars-generic.c \
     ${PATH_ROOT}/src/VBox/Runtime/generic/mppresent-generic.cpp=>generic/mppresent-generic.c \
+    ${PATH_ROOT}/src/VBox/Runtime/generic/system-page-size-generic.cpp=>generic/system-page-size-generic.c \
     ${PATH_ROOT}/src/VBox/Runtime/r0drv/alloc-r0drv.cpp=>r0drv/alloc-r0drv.c \
     ${PATH_ROOT}/src/VBox/Runtime/r0drv/alloc-r0drv.h=>r0drv/alloc-r0drv.h \
     ${PATH_ROOT}/src/VBox/Runtime/r0drv/initterm-r0drv.cpp=>r0drv/initterm-r0drv.c \

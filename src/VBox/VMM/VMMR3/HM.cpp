@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -753,8 +753,8 @@ static int hmR3InitFinalizeR3(PVM pVM)
     {
         PVMCPU pVCpu = pVM->apCpusR3[idCpu];
         pVCpu->hm.s.fActive = false;
-        pVCpu->hm.s.fGIMTrapXcptUD = GIMShouldTrapXcptUD(pVCpu);    /* Is safe to call now since GIMR3Init() has completed. */
-        pVCpu->hm.s.fGCMTrapXcptDE = GCMShouldTrapXcptDE(pVCpu);    /* Is safe to call now since GCMR3Init() has completed. */
+        pVCpu->hm.s.fGIMTrapXcptUD = GIMShouldTrapXcptUD(pVCpu);     /* Is safe to call now since GIMR3Init() has completed. */
+        pVCpu->hm.s.fGCMTrapXcptDE = GCMIsInterceptingXcptDE(pVCpu); /* Is safe to call now since GCMR3Init() has completed. */
     }
 
 #if defined(RT_ARCH_AMD64) ||defined(RT_ARCH_X86)
@@ -845,7 +845,7 @@ static int hmR3InitFinalizeR3(PVM pVM)
 #ifdef VBOX_WITH_STATISTICS
         HM_REG_COUNTER(&pHmCpu->StatExitAll,                "/HM/CPU%u/Exit/All", "Total exits (excludes nested-guest and debug loops exits).");
         HM_REG_COUNTER(&pHmCpu->StatDebugExitAll,           "/HM/CPU%u/Exit/DebugAll", "Total debug-loop exits.");
-        HM_REG_COUNTER(&pHmCpu->StatNestedExitAll,          "/HM/CPU%u/Exit/NestedGuest/All", "Total nested-guest exits.");
+        HM_REG_COUNTER(&pHmCpu->StatNestedExitAll,          "/HM/CPU%u/ExitNestedGuest/All", "Total nested-guest exits.");
         HM_REG_COUNTER(&pHmCpu->StatExitShadowNM,           "/HM/CPU%u/Exit/Trap/Shw/#NM", "Shadow #NM (device not available, no math co-processor) exception.");
         HM_REG_COUNTER(&pHmCpu->StatExitGuestNM,            "/HM/CPU%u/Exit/Trap/Gst/#NM", "Guest #NM (device not available, no math co-processor) exception.");
         HM_REG_COUNTER(&pHmCpu->StatExitShadowPF,           "/HM/CPU%u/Exit/Trap/Shw/#PF", "Shadow #PF (page fault) exception.");
@@ -975,6 +975,10 @@ static int hmR3InitFinalizeR3(PVM pVM)
         HM_REG_COUNTER(&pHmCpu->StatVmxCheckBadSel,         "/HM/CPU%u/VMXCheck/Selector", "Could not use VMX due to unsuitable selector.");
         HM_REG_COUNTER(&pHmCpu->StatVmxCheckBadRpl,         "/HM/CPU%u/VMXCheck/RPL", "Could not use VMX due to unsuitable RPL.");
         HM_REG_COUNTER(&pHmCpu->StatVmxCheckPmOk,           "/HM/CPU%u/VMXCheck/VMX_PM", "VMX execution in protected mode OK.");
+        HM_REG_COUNTER(&pHmCpu->StatVmxCheck1,              "/HM/CPU%u/VMXCheck/1", "Could not use VMX due to unsuitable state and no VMMDev heap");
+        HM_REG_COUNTER(&pHmCpu->StatVmxCheck2,              "/HM/CPU%u/VMXCheck/2", "CR0/CR4 fixed stuff.");
+        HM_REG_COUNTER(&pHmCpu->StatVmxCheckDisabled,       "/HM/CPU%u/VMXCheck/Disabled", "VMX is not enabled.");
+        HM_REG_COUNTER(&pHmCpu->StatVmxCheckOk,             "/HM/CPU%u/VMXCheck/Ok", "We could do VMX!");
 #endif
         if (fCpuSupportsVmx)
         {
@@ -1028,10 +1032,11 @@ static int hmR3InitFinalizeR3(PVM pVM)
                 if (pszExitName)
                 {
                     rc = STAMR3RegisterF(pVM, &pHmCpu->aStatNestedExitReason[j], STAMTYPE_COUNTER, STAMVISIBILITY_USED,
-                                         STAMUNIT_OCCURENCES, pszExitName, "/HM/CPU%u/Exit/NestedGuest/Reason/%02x", idCpu, j);
+                                         STAMUNIT_OCCURENCES, pszExitName, "/HM/CPU%u/ExitNestedGuest/Reason/%02x", idCpu, j);
                     AssertRC(rc);
                 }
             }
+            HM_REG_COUNTER(&pHmCpu->StatNestedExitACSplitLock, "/HM/CPU%u/ExitNestedGuest/Trap/#AC-split-lock", "Nested-guest triggered #AC due to split-lock being enabled on the host.");
         }
         else
         {
@@ -1041,12 +1046,12 @@ static int hmR3InitFinalizeR3(PVM pVM)
                 if (pszExitName)
                 {
                     rc = STAMR3RegisterF(pVM, &pHmCpu->aStatNestedExitReason[j], STAMTYPE_COUNTER, STAMVISIBILITY_USED,
-                                         STAMUNIT_OCCURENCES, pszExitName, "/HM/CPU%u/Exit/NestedGuest/Reason/%02x", idCpu, j);
+                                         STAMUNIT_OCCURENCES, pszExitName, "/HM/CPU%u/ExitNestedGuest/Reason/%02x", idCpu, j);
                     AssertRC(rc);
                 }
             }
         }
-        HM_REG_COUNTER(&pHmCpu->StatNestedExitReasonNpf, "/HM/CPU%u/Exit/NestedGuest/Reason/#NPF", "Nested page faults");
+        HM_REG_COUNTER(&pHmCpu->StatNestedExitReasonNpf, "/HM/CPU%u/ExitNestedGuest/Reason/#NPF", "Nested page faults");
 #endif
 
         /*
@@ -1432,12 +1437,16 @@ static void hmR3VmxReportProcBasedCtls2Msr(PCVMXCTLSMSR pVmxMsr)
     HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "EPT_XCPT_VE",         VMX_PROC_CTLS2_EPT_XCPT_VE);
     HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "CONCEAL_VMX_FROM_PT", VMX_PROC_CTLS2_CONCEAL_VMX_FROM_PT);
     HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "XSAVES_XRSTORS",      VMX_PROC_CTLS2_XSAVES_XRSTORS);
+    HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "PASID_TRANSLATE",     VMX_PROC_CTLS2_PASID_TRANSLATE);
     HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "MODE_BASED_EPT_PERM", VMX_PROC_CTLS2_MODE_BASED_EPT_PERM);
     HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "SPP_EPT",             VMX_PROC_CTLS2_SPP_EPT);
     HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "PT_EPT",              VMX_PROC_CTLS2_PT_EPT);
     HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "TSC_SCALING",         VMX_PROC_CTLS2_TSC_SCALING);
     HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "USER_WAIT_PAUSE",     VMX_PROC_CTLS2_USER_WAIT_PAUSE);
+    HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "PCONFIG",             VMX_PROC_CTLS2_PCONFIG);
     HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "ENCLV_EXIT",          VMX_PROC_CTLS2_ENCLV_EXIT);
+    HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "BUS_LOCK_DETECT",     VMX_PROC_CTLS2_BUS_LOCK_DETECT);
+    HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "INSTR_TIMEOUT",       VMX_PROC_CTLS2_INSTR_TIMEOUT);
 }
 
 
@@ -1450,6 +1459,11 @@ static void hmR3VmxReportProcBasedCtls3Msr(uint64_t uProcCtls3)
 {
     LogRel(("HM: MSR_IA32_VMX_PROCBASED_CTLS3      = %#RX64\n", uProcCtls3));
     LogRel(("HM:   LOADIWKEY_EXIT                    = %RTbool\n", RT_BOOL(uProcCtls3 & VMX_PROC_CTLS3_LOADIWKEY_EXIT)));
+    LogRel(("HM:   HLAT                              = %RTbool\n", RT_BOOL(uProcCtls3 & VMX_PROC_CTLS3_HLAT)));
+    LogRel(("HM:   EPT_PAGING_WRITE                  = %RTbool\n", RT_BOOL(uProcCtls3 & VMX_PROC_CTLS3_EPT_PAGING_WRITE)));
+    LogRel(("HM:   GST_PAGING_VERIFY                 = %RTbool\n", RT_BOOL(uProcCtls3 & VMX_PROC_CTLS3_GST_PAGING_VERIFY)));
+    LogRel(("HM:   IPI_VIRT                          = %RTbool\n", RT_BOOL(uProcCtls3 & VMX_PROC_CTLS3_IPI_VIRT)));
+    LogRel(("HM:   VIRT_SPEC_CTRL                    = %RTbool\n", RT_BOOL(uProcCtls3 & VMX_PROC_CTLS3_VIRT_SPEC_CTRL)));
 }
 
 
@@ -1473,7 +1487,9 @@ static void hmR3VmxReportEntryCtlsMsr(PCVMXCTLSMSR pVmxMsr)
     HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "LOAD_BNDCFGS_MSR",    VMX_ENTRY_CTLS_LOAD_BNDCFGS_MSR);
     HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "CONCEAL_VMX_FROM_PT", VMX_ENTRY_CTLS_CONCEAL_VMX_FROM_PT);
     HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "LOAD_RTIT_CTL_MSR",   VMX_ENTRY_CTLS_LOAD_RTIT_CTL_MSR);
+    HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "LOAD_UINV",           VMX_ENTRY_CTLS_LOAD_UINV);
     HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "LOAD_CET_STATE",      VMX_ENTRY_CTLS_LOAD_CET_STATE);
+    HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "LOAD_LBR_CTL_MSR",    VMX_ENTRY_CTLS_LOAD_LBR_CTL_MSR);
     HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "LOAD_PKRS_MSR",       VMX_ENTRY_CTLS_LOAD_PKRS_MSR);
 }
 
@@ -1500,8 +1516,11 @@ static void hmR3VmxReportExitCtlsMsr(PCVMXCTLSMSR pVmxMsr)
     HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "CLEAR_BNDCFGS_MSR",    VMX_EXIT_CTLS_CLEAR_BNDCFGS_MSR);
     HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "CONCEAL_VMX_FROM_PT",  VMX_EXIT_CTLS_CONCEAL_VMX_FROM_PT);
     HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "CLEAR_RTIT_CTL_MSR",   VMX_EXIT_CTLS_CLEAR_RTIT_CTL_MSR);
+    HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "CLEAR_LBR_CTL_MSR",    VMX_EXIT_CTLS_CLEAR_LBR_CTL_MSR);
+    HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "CLEAR_UINV",           VMX_EXIT_CTLS_CLEAR_UINV);
     HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "LOAD_CET_STATE",       VMX_EXIT_CTLS_LOAD_CET_STATE);
     HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "LOAD_PKRS_MSR",        VMX_EXIT_CTLS_LOAD_PKRS_MSR);
+    HMVMX_REPORT_FEAT(fAllowed1, fAllowed0, "SAVE_PERF_MSR",        VMX_EXIT_CTLS_SAVE_PERF_MSR);
 }
 
 
@@ -1619,9 +1638,13 @@ static int hmR3InitFinalizeR0Intel(PVM pVM)
 
     LogRel(("HM: Using VT-x implementation 3.0\n"));
     LogRel(("HM: Max resume loops                  = %u\n",     pVM->hm.s.cMaxResumeLoopsCfg));
+    LogRel(("HM: Host CR0                          = %#RX64\n", pVM->hm.s.ForR3.vmx.u64HostCr0));
     LogRel(("HM: Host CR4                          = %#RX64\n", pVM->hm.s.ForR3.vmx.u64HostCr4));
     LogRel(("HM: Host EFER                         = %#RX64\n", pVM->hm.s.ForR3.vmx.u64HostMsrEfer));
-    LogRel(("HM: MSR_IA32_SMM_MONITOR_CTL          = %#RX64\n", pVM->hm.s.ForR3.vmx.u64HostSmmMonitorCtl));
+    LogRel(("HM: Host SMM_MONITOR_CTL              = %#RX64\n", pVM->hm.s.ForR3.vmx.u64HostSmmMonitorCtl));
+    LogRel(("HM: Host CORE_CAPABILITIES            = %#RX64\n", pVM->hm.s.ForR3.vmx.u64HostCoreCap));
+    LogRel(("HM: Host MEMORY_CTRL                  = %#RX64%s\n", pVM->hm.s.ForR3.vmx.u64HostMemoryCtrl,
+            pVM->hm.s.ForR3.vmx.u64HostMemoryCtrl & MSR_MEMORY_CTRL_SPLIT_LOCK_DISABLE ? " - split-lock disable!" : ""));
     LogRel(("HM: Host DR6 zero'ed                  = %#RX64%s\n", pVM->hm.s.ForR3.vmx.u64HostDr6Zeroed,
             pVM->hm.s.ForR3.vmx.fAlwaysInterceptMovDRx ? " - always intercept MOV DRx" : ""));
 
@@ -1709,7 +1732,7 @@ static int hmR3InitFinalizeR0Intel(PVM pVM)
             /* The IO bitmap starts right after the virtual interrupt redirection bitmap.
                Refer Intel spec. 20.3.3 "Software Interrupt Handling in Virtual-8086 mode"
                esp. Figure 20-5.*/
-            ASMMemZero32(pVM->hm.s.vmx.pRealModeTSS, sizeof(*pVM->hm.s.vmx.pRealModeTSS));
+            RT_BZERO(pVM->hm.s.vmx.pRealModeTSS, sizeof(*pVM->hm.s.vmx.pRealModeTSS));
             pVM->hm.s.vmx.pRealModeTSS->offIoBitmap = sizeof(*pVM->hm.s.vmx.pRealModeTSS);
 
             /* Bit set to 0 means software interrupts are redirected to the
@@ -1882,24 +1905,31 @@ static int hmR3InitFinalizeR0Amd(PVM pVM)
     static const struct { uint32_t fFlag; const char *pszName; } s_aSvmFeatures[] =
     {
 #define HMSVM_REPORT_FEATURE(a_StrDesc, a_Define) { a_Define, a_StrDesc }
-        HMSVM_REPORT_FEATURE("NESTED_PAGING",          X86_CPUID_SVM_FEATURE_EDX_NESTED_PAGING),
-        HMSVM_REPORT_FEATURE("LBR_VIRT",               X86_CPUID_SVM_FEATURE_EDX_LBR_VIRT),
-        HMSVM_REPORT_FEATURE("SVM_LOCK",               X86_CPUID_SVM_FEATURE_EDX_SVM_LOCK),
-        HMSVM_REPORT_FEATURE("NRIP_SAVE",              X86_CPUID_SVM_FEATURE_EDX_NRIP_SAVE),
-        HMSVM_REPORT_FEATURE("TSC_RATE_MSR",           X86_CPUID_SVM_FEATURE_EDX_TSC_RATE_MSR),
-        HMSVM_REPORT_FEATURE("VMCB_CLEAN",             X86_CPUID_SVM_FEATURE_EDX_VMCB_CLEAN),
-        HMSVM_REPORT_FEATURE("FLUSH_BY_ASID",          X86_CPUID_SVM_FEATURE_EDX_FLUSH_BY_ASID),
-        HMSVM_REPORT_FEATURE("DECODE_ASSISTS",         X86_CPUID_SVM_FEATURE_EDX_DECODE_ASSISTS),
-        HMSVM_REPORT_FEATURE("PAUSE_FILTER",           X86_CPUID_SVM_FEATURE_EDX_PAUSE_FILTER),
-        HMSVM_REPORT_FEATURE("PAUSE_FILTER_THRESHOLD", X86_CPUID_SVM_FEATURE_EDX_PAUSE_FILTER_THRESHOLD),
-        HMSVM_REPORT_FEATURE("AVIC",                   X86_CPUID_SVM_FEATURE_EDX_AVIC),
-        HMSVM_REPORT_FEATURE("VIRT_VMSAVE_VMLOAD",     X86_CPUID_SVM_FEATURE_EDX_VIRT_VMSAVE_VMLOAD),
-        HMSVM_REPORT_FEATURE("VGIF",                   X86_CPUID_SVM_FEATURE_EDX_VGIF),
-        HMSVM_REPORT_FEATURE("GMET",                   X86_CPUID_SVM_FEATURE_EDX_GMET),
-        HMSVM_REPORT_FEATURE("SSSCHECK",               X86_CPUID_SVM_FEATURE_EDX_SSSCHECK),
-        HMSVM_REPORT_FEATURE("SPEC_CTRL",              X86_CPUID_SVM_FEATURE_EDX_SPEC_CTRL),
-        HMSVM_REPORT_FEATURE("HOST_MCE_OVERRIDE",      X86_CPUID_SVM_FEATURE_EDX_HOST_MCE_OVERRIDE),
-        HMSVM_REPORT_FEATURE("TLBICTL",                X86_CPUID_SVM_FEATURE_EDX_TLBICTL),
+        HMSVM_REPORT_FEATURE("NESTED_PAGING",           X86_CPUID_SVM_FEATURE_EDX_NESTED_PAGING),
+        HMSVM_REPORT_FEATURE("LBR_VIRT",                X86_CPUID_SVM_FEATURE_EDX_LBR_VIRT),
+        HMSVM_REPORT_FEATURE("SVM_LOCK",                X86_CPUID_SVM_FEATURE_EDX_SVM_LOCK),
+        HMSVM_REPORT_FEATURE("NRIP_SAVE",               X86_CPUID_SVM_FEATURE_EDX_NRIP_SAVE),
+        HMSVM_REPORT_FEATURE("TSC_RATE_MSR",            X86_CPUID_SVM_FEATURE_EDX_TSC_RATE_MSR),
+        HMSVM_REPORT_FEATURE("VMCB_CLEAN",              X86_CPUID_SVM_FEATURE_EDX_VMCB_CLEAN),
+        HMSVM_REPORT_FEATURE("FLUSH_BY_ASID",           X86_CPUID_SVM_FEATURE_EDX_FLUSH_BY_ASID),
+        HMSVM_REPORT_FEATURE("DECODE_ASSISTS",          X86_CPUID_SVM_FEATURE_EDX_DECODE_ASSISTS),
+        HMSVM_REPORT_FEATURE("PAUSE_FILTER",            X86_CPUID_SVM_FEATURE_EDX_PAUSE_FILTER),
+        HMSVM_REPORT_FEATURE("PAUSE_FILTER_THRESHOLD",  X86_CPUID_SVM_FEATURE_EDX_PAUSE_FILTER_THRESHOLD),
+        HMSVM_REPORT_FEATURE("AVIC",                    X86_CPUID_SVM_FEATURE_EDX_AVIC),
+        HMSVM_REPORT_FEATURE("VIRT_VMSAVE_VMLOAD",      X86_CPUID_SVM_FEATURE_EDX_VIRT_VMSAVE_VMLOAD),
+        HMSVM_REPORT_FEATURE("VGIF",                    X86_CPUID_SVM_FEATURE_EDX_VGIF),
+        HMSVM_REPORT_FEATURE("GMET",                    X86_CPUID_SVM_FEATURE_EDX_GMET),
+        HMSVM_REPORT_FEATURE("X2AVIC",                  X86_CPUID_SVM_FEATURE_EDX_X2AVIC),
+        HMSVM_REPORT_FEATURE("SSSCHECK",                X86_CPUID_SVM_FEATURE_EDX_SSSCHECK),
+        HMSVM_REPORT_FEATURE("SPEC_CTRL",               X86_CPUID_SVM_FEATURE_EDX_SPEC_CTRL),
+        HMSVM_REPORT_FEATURE("ROGPT",                   X86_CPUID_SVM_FEATURE_EDX_ROGPT),
+        HMSVM_REPORT_FEATURE("HOST_MCE_OVERRIDE",       X86_CPUID_SVM_FEATURE_EDX_HOST_MCE_OVERRIDE),
+        HMSVM_REPORT_FEATURE("TLBICTL",                 X86_CPUID_SVM_FEATURE_EDX_TLBICTL),
+        HMSVM_REPORT_FEATURE("VNMI",                    X86_CPUID_SVM_FEATURE_EDX_VNMI),
+        HMSVM_REPORT_FEATURE("IBS_VIRT",                X86_CPUID_SVM_FEATURE_EDX_IBS_VIRT),
+        HMSVM_REPORT_FEATURE("EXT_LVT_AVIC_ACCESS_CHG", X86_CPUID_SVM_FEATURE_EDX_EXT_LVT_AVIC_ACCESS_CHG),
+        HMSVM_REPORT_FEATURE("NST_VIRT_VMCB_ADDR_CHK",  X86_CPUID_SVM_FEATURE_EDX_NST_VIRT_VMCB_ADDR_CHK),
+        HMSVM_REPORT_FEATURE("BUS_LOCK_THRESHOLD",      X86_CPUID_SVM_FEATURE_EDX_BUS_LOCK_THRESHOLD),
 #undef HMSVM_REPORT_FEATURE
     };
 
@@ -1942,10 +1972,12 @@ static int hmR3InitFinalizeR0Amd(PVM pVM)
             case CPUMCPUVENDOR_INTEL:
             case CPUMCPUVENDOR_VIA: /*?*/
             case CPUMCPUVENDOR_SHANGHAI: /*?*/
+            {
                 switch (CPUMGetHostCpuVendor(pVM))
                 {
                     case CPUMCPUVENDOR_AMD:
                     case CPUMCPUVENDOR_HYGON:
+                    {
                         if (pVM->hm.s.fAllow64BitGuestsCfg)
                         {
                             LogRel(("HM: Intercepting #UD for emulating SYSENTER/SYSEXIT in long mode.\n"));
@@ -1953,9 +1985,14 @@ static int hmR3InitFinalizeR0Amd(PVM pVM)
                                 pVM->apCpusR3[idCpu]->hm.s.svm.fEmulateLongModeSysEnterExit = true;
                         }
                         break;
-                    default: break;
+                    }
+                    default:
+                        break;
                 }
-            default: break;
+                break;
+            }
+            default:
+                break;
         }
 
     /*
@@ -2107,7 +2144,7 @@ VMMR3_INT_DECL(void) HMR3Reset(PVM pVM)
     pVM->hm.s.cPatches           = 0;
     pVM->hm.s.PatchTree          = 0;
     pVM->hm.s.fTprPatchingActive = false;
-    ASMMemZero32(pVM->hm.s.aPatches, sizeof(pVM->hm.s.aPatches));
+    RT_BZERO(pVM->hm.s.aPatches, sizeof(pVM->hm.s.aPatches));
 }
 
 
@@ -2294,7 +2331,7 @@ static DECLCALLBACK(VBOXSTRICTRC) hmR3ReplaceTprInstr(PVM pVM, PVMCPU pVCpu, voi
      * Disassembler the instruction and get cracking.
      */
     DBGFR3_DISAS_INSTR_CUR_LOG(pVCpu, "hmR3ReplaceTprInstr");
-    DISCPUSTATE     Dis;
+    DISSTATE        Dis;
     uint32_t        cbOp;
     int rc = EMInterpretDisasCurrent(pVCpu, &Dis, &cbOp);
     AssertRC(rc);
@@ -2309,21 +2346,21 @@ static DECLCALLBACK(VBOXSTRICTRC) hmR3ReplaceTprInstr(PVM pVM, PVMCPU pVCpu, voi
 
         pPatch->cbOp = cbOp;
 
-        if (Dis.Param1.fUse == DISUSE_DISPLACEMENT32)
+        if (Dis.aParams[0].fUse == DISUSE_DISPLACEMENT32)
         {
             /* write. */
-            if (Dis.Param2.fUse == DISUSE_REG_GEN32)
+            if (Dis.aParams[1].fUse == DISUSE_REG_GEN32)
             {
                 pPatch->enmType     = HMTPRINSTR_WRITE_REG;
-                pPatch->uSrcOperand = Dis.Param2.Base.idxGenReg;
-                Log(("hmR3ReplaceTprInstr: HMTPRINSTR_WRITE_REG %u\n", Dis.Param2.Base.idxGenReg));
+                pPatch->uSrcOperand = Dis.aParams[1].x86.Base.idxGenReg;
+                Log(("hmR3ReplaceTprInstr: HMTPRINSTR_WRITE_REG %u\n", Dis.aParams[1].x86.Base.idxGenReg));
             }
             else
             {
-                Assert(Dis.Param2.fUse == DISUSE_IMMEDIATE32);
+                Assert(Dis.aParams[1].fUse == DISUSE_IMMEDIATE32);
                 pPatch->enmType     = HMTPRINSTR_WRITE_IMM;
-                pPatch->uSrcOperand = Dis.Param2.uValue;
-                Log(("hmR3ReplaceTprInstr: HMTPRINSTR_WRITE_IMM %#llx\n", Dis.Param2.uValue));
+                pPatch->uSrcOperand = Dis.aParams[1].uValue;
+                Log(("hmR3ReplaceTprInstr: HMTPRINSTR_WRITE_IMM %#llx\n", Dis.aParams[1].uValue));
             }
             rc = PGMPhysSimpleWriteGCPtr(pVCpu, pCtx->rip, s_abVMMCall, sizeof(s_abVMMCall));
             AssertRC(rc);
@@ -2342,9 +2379,9 @@ static DECLCALLBACK(VBOXSTRICTRC) hmR3ReplaceTprInstr(PVM pVM, PVMCPU pVCpu, voi
              * Check if next instruction is:
              *   shr eax, 4
              */
-            Assert(Dis.Param1.fUse == DISUSE_REG_GEN32);
+            Assert(Dis.aParams[0].fUse == DISUSE_REG_GEN32);
 
-            uint8_t  const idxMmioReg = Dis.Param1.Base.idxGenReg;
+            uint8_t  const idxMmioReg = Dis.aParams[0].x86.Base.idxGenReg;
             uint8_t  const cbOpMmio   = cbOp;
             uint64_t const uSavedRip  = pCtx->rip;
 
@@ -2355,10 +2392,10 @@ static DECLCALLBACK(VBOXSTRICTRC) hmR3ReplaceTprInstr(PVM pVM, PVMCPU pVCpu, voi
 
             if (    rc == VINF_SUCCESS
                 &&  Dis.pCurInstr->uOpcode == OP_SHR
-                &&  Dis.Param1.fUse == DISUSE_REG_GEN32
-                &&  Dis.Param1.Base.idxGenReg == idxMmioReg
-                &&  Dis.Param2.fUse == DISUSE_IMMEDIATE8
-                &&  Dis.Param2.uValue == 4
+                &&  Dis.aParams[0].fUse == DISUSE_REG_GEN32
+                &&  Dis.aParams[0].x86.Base.idxGenReg == idxMmioReg
+                &&  Dis.aParams[1].fUse == DISUSE_IMMEDIATE8
+                &&  Dis.aParams[1].uValue == 4
                 &&  cbOpMmio + cbOp < sizeof(pVM->hm.s.aPatches[idx].aOpcode))
             {
                 uint8_t abInstr[15];
@@ -2374,7 +2411,7 @@ static DECLCALLBACK(VBOXSTRICTRC) hmR3ReplaceTprInstr(PVM pVM, PVMCPU pVCpu, voi
                 abInstr[0] = 0xf0;
                 abInstr[1] = 0x0f;
                 abInstr[2] = 0x20;
-                abInstr[3] = 0xc0 | Dis.Param1.Base.idxGenReg;
+                abInstr[3] = 0xc0 | Dis.aParams[0].x86.Base.idxGenReg;
                 for (unsigned i = 4; i < pPatch->cbOp; i++)
                     abInstr[i] = 0x90;  /* nop */
 
@@ -2470,7 +2507,7 @@ static DECLCALLBACK(VBOXSTRICTRC) hmR3PatchTprInstr(PVM pVM, PVMCPU pVCpu, void 
     /*
      * Disassemble the instruction and get cracking.
      */
-    DISCPUSTATE     Dis;
+    DISSTATE        Dis;
     uint32_t        cbOp;
     int rc = EMInterpretDisasCurrent(pVCpu, &Dis, &cbOp);
     AssertRC(rc);
@@ -2487,7 +2524,7 @@ static DECLCALLBACK(VBOXSTRICTRC) hmR3PatchTprInstr(PVM pVM, PVMCPU pVCpu, void 
         pPatch->cbOp    = cbOp;
         pPatch->enmType = HMTPRINSTR_JUMP_REPLACEMENT;
 
-        if (Dis.Param1.fUse == DISUSE_DISPLACEMENT32)
+        if (Dis.aParams[0].fUse == DISUSE_DISPLACEMENT32)
         {
             /*
              * TPR write:
@@ -2506,7 +2543,7 @@ static DECLCALLBACK(VBOXSTRICTRC) hmR3PatchTprInstr(PVM pVM, PVMCPU pVCpu, void 
              * pop ECX                       [59]
              * jmp return_address            [E9 return_address]
              */
-            bool fUsesEax = (Dis.Param2.fUse == DISUSE_REG_GEN32 && Dis.Param2.Base.idxGenReg == DISGREG_EAX);
+            bool fUsesEax = (Dis.aParams[1].fUse == DISUSE_REG_GEN32 && Dis.aParams[1].x86.Base.idxGenReg == DISGREG_EAX);
 
             aPatch[off++] = 0x51;    /* push ecx */
             aPatch[off++] = 0x52;    /* push edx */
@@ -2514,19 +2551,19 @@ static DECLCALLBACK(VBOXSTRICTRC) hmR3PatchTprInstr(PVM pVM, PVMCPU pVCpu, void 
                 aPatch[off++] = 0x50;    /* push eax */
             aPatch[off++] = 0x31;    /* xor edx, edx */
             aPatch[off++] = 0xd2;
-            if (Dis.Param2.fUse == DISUSE_REG_GEN32)
+            if (Dis.aParams[1].fUse == DISUSE_REG_GEN32)
             {
                 if (!fUsesEax)
                 {
                     aPatch[off++] = 0x89;    /* mov eax, src_reg */
-                    aPatch[off++] = MAKE_MODRM(3, Dis.Param2.Base.idxGenReg, DISGREG_EAX);
+                    aPatch[off++] = MAKE_MODRM(3, Dis.aParams[1].x86.Base.idxGenReg, DISGREG_EAX);
                 }
             }
             else
             {
-                Assert(Dis.Param2.fUse == DISUSE_IMMEDIATE32);
+                Assert(Dis.aParams[1].fUse == DISUSE_IMMEDIATE32);
                 aPatch[off++] = 0xb8;    /* mov eax, immediate */
-                *(uint32_t *)&aPatch[off] = Dis.Param2.uValue;
+                *(uint32_t *)&aPatch[off] = Dis.aParams[1].uValue;
                 off += sizeof(uint32_t);
             }
             aPatch[off++] = 0xb9;    /* mov ecx, 0xc0000082 */
@@ -2556,13 +2593,13 @@ static DECLCALLBACK(VBOXSTRICTRC) hmR3PatchTprInstr(PVM pVM, PVMCPU pVCpu, void 
              * pop ECX                       [59]
              * jmp return_address            [E9 return_address]
              */
-            Assert(Dis.Param1.fUse == DISUSE_REG_GEN32);
+            Assert(Dis.aParams[0].fUse == DISUSE_REG_GEN32);
 
-            if (Dis.Param1.Base.idxGenReg != DISGREG_ECX)
+            if (Dis.aParams[0].x86.Base.idxGenReg != DISGREG_ECX)
                 aPatch[off++] = 0x51;    /* push ecx */
-            if (Dis.Param1.Base.idxGenReg != DISGREG_EDX )
+            if (Dis.aParams[0].x86.Base.idxGenReg != DISGREG_EDX )
                 aPatch[off++] = 0x52;    /* push edx */
-            if (Dis.Param1.Base.idxGenReg != DISGREG_EAX)
+            if (Dis.aParams[0].x86.Base.idxGenReg != DISGREG_EAX)
                 aPatch[off++] = 0x50;    /* push eax */
 
             aPatch[off++] = 0x31;    /* xor edx, edx */
@@ -2575,17 +2612,17 @@ static DECLCALLBACK(VBOXSTRICTRC) hmR3PatchTprInstr(PVM pVM, PVMCPU pVCpu, void 
             aPatch[off++] = 0x0f;    /* rdmsr */
             aPatch[off++] = 0x32;
 
-            if (Dis.Param1.Base.idxGenReg != DISGREG_EAX)
+            if (Dis.aParams[0].x86.Base.idxGenReg != DISGREG_EAX)
             {
                 aPatch[off++] = 0x89;    /* mov dst_reg, eax */
-                aPatch[off++] = MAKE_MODRM(3, DISGREG_EAX, Dis.Param1.Base.idxGenReg);
+                aPatch[off++] = MAKE_MODRM(3, DISGREG_EAX, Dis.aParams[0].x86.Base.idxGenReg);
             }
 
-            if (Dis.Param1.Base.idxGenReg != DISGREG_EAX)
+            if (Dis.aParams[0].x86.Base.idxGenReg != DISGREG_EAX)
                 aPatch[off++] = 0x58;    /* pop eax */
-            if (Dis.Param1.Base.idxGenReg != DISGREG_EDX )
+            if (Dis.aParams[0].x86.Base.idxGenReg != DISGREG_EDX )
                 aPatch[off++] = 0x5a;    /* pop edx */
-            if (Dis.Param1.Base.idxGenReg != DISGREG_ECX)
+            if (Dis.aParams[0].x86.Base.idxGenReg != DISGREG_ECX)
                 aPatch[off++] = 0x59;    /* pop ecx */
         }
         aPatch[off++] = 0xe9;    /* jmp return_address */
@@ -2756,6 +2793,7 @@ VMMR3_INT_DECL(void) HMR3NotifyDebugEventChangedPerCpu(PVM pVM, PVMCPU pVCpu)
 }
 
 
+#if 0 /* evil */
 /**
  * Checks if we are currently using hardware acceleration.
  *
@@ -2766,6 +2804,7 @@ VMMR3_INT_DECL(bool) HMR3IsActive(PCVMCPU pVCpu)
 {
     return pVCpu->hm.s.fActive;
 }
+#endif
 
 
 /**
@@ -2988,12 +3027,16 @@ static void hmR3CheckErrorLogVmcsCtls(VMCPUID idCpu, PCVMXVMCSINFO pVmcsInfo)
         HMVMX_LOGREL_FEAT(u32Val, VMX_PROC_CTLS2_EPT_XCPT_VE        );
         HMVMX_LOGREL_FEAT(u32Val, VMX_PROC_CTLS2_CONCEAL_VMX_FROM_PT);
         HMVMX_LOGREL_FEAT(u32Val, VMX_PROC_CTLS2_XSAVES_XRSTORS     );
+        HMVMX_LOGREL_FEAT(u32Val, VMX_PROC_CTLS2_PASID_TRANSLATE    );
         HMVMX_LOGREL_FEAT(u32Val, VMX_PROC_CTLS2_MODE_BASED_EPT_PERM);
         HMVMX_LOGREL_FEAT(u32Val, VMX_PROC_CTLS2_SPP_EPT            );
         HMVMX_LOGREL_FEAT(u32Val, VMX_PROC_CTLS2_PT_EPT             );
         HMVMX_LOGREL_FEAT(u32Val, VMX_PROC_CTLS2_TSC_SCALING        );
         HMVMX_LOGREL_FEAT(u32Val, VMX_PROC_CTLS2_USER_WAIT_PAUSE    );
+        HMVMX_LOGREL_FEAT(u32Val, VMX_PROC_CTLS2_PCONFIG            );
         HMVMX_LOGREL_FEAT(u32Val, VMX_PROC_CTLS2_ENCLV_EXIT         );
+        HMVMX_LOGREL_FEAT(u32Val, VMX_PROC_CTLS2_BUS_LOCK_DETECT    );
+        HMVMX_LOGREL_FEAT(u32Val, VMX_PROC_CTLS2_INSTR_TIMEOUT      );
     }
     LogRel(("HM: CPU[%u] EntryCtls            %#RX32\n", idCpu, pVmcsInfo->u32EntryCtls));
     {
@@ -3008,7 +3051,9 @@ static void hmR3CheckErrorLogVmcsCtls(VMCPUID idCpu, PCVMXVMCSINFO pVmcsInfo)
         HMVMX_LOGREL_FEAT(u32Val, VMX_ENTRY_CTLS_LOAD_BNDCFGS_MSR   );
         HMVMX_LOGREL_FEAT(u32Val, VMX_ENTRY_CTLS_CONCEAL_VMX_FROM_PT);
         HMVMX_LOGREL_FEAT(u32Val, VMX_ENTRY_CTLS_LOAD_RTIT_CTL_MSR  );
+        HMVMX_LOGREL_FEAT(u32Val, VMX_ENTRY_CTLS_LOAD_UINV          );
         HMVMX_LOGREL_FEAT(u32Val, VMX_ENTRY_CTLS_LOAD_CET_STATE     );
+        HMVMX_LOGREL_FEAT(u32Val, VMX_ENTRY_CTLS_LOAD_LBR_CTL_MSR   );
         HMVMX_LOGREL_FEAT(u32Val, VMX_ENTRY_CTLS_LOAD_PKRS_MSR      );
     }
     LogRel(("HM: CPU[%u] ExitCtls             %#RX32\n", idCpu, pVmcsInfo->u32ExitCtls));
@@ -3026,8 +3071,11 @@ static void hmR3CheckErrorLogVmcsCtls(VMCPUID idCpu, PCVMXVMCSINFO pVmcsInfo)
         HMVMX_LOGREL_FEAT(u32Val, VMX_EXIT_CTLS_CLEAR_BNDCFGS_MSR     );
         HMVMX_LOGREL_FEAT(u32Val, VMX_EXIT_CTLS_CONCEAL_VMX_FROM_PT   );
         HMVMX_LOGREL_FEAT(u32Val, VMX_EXIT_CTLS_CLEAR_RTIT_CTL_MSR    );
+        HMVMX_LOGREL_FEAT(u32Val, VMX_EXIT_CTLS_CLEAR_LBR_CTL_MSR     );
+        HMVMX_LOGREL_FEAT(u32Val, VMX_EXIT_CTLS_CLEAR_UINV            );
         HMVMX_LOGREL_FEAT(u32Val, VMX_EXIT_CTLS_LOAD_CET_STATE        );
         HMVMX_LOGREL_FEAT(u32Val, VMX_EXIT_CTLS_LOAD_PKRS_MSR         );
+        HMVMX_LOGREL_FEAT(u32Val, VMX_EXIT_CTLS_SAVE_PERF_MSR         );
     }
 }
 #endif
@@ -3102,7 +3150,7 @@ VMMR3_INT_DECL(void) HMR3CheckError(PVM pVM, int iStatusCode)
             case VERR_VMX_INVALID_GUEST_STATE:
             {
                 LogRel(("HM: VERR_VMX_INVALID_GUEST_STATE:\n"));
-                LogRel(("HM: CPU[%u] HM error = %#RX32\n", idCpu, pVCpu->hm.s.u32HMError));
+                LogRel(("HM: CPU[%u] HM error = %#RX32 (%RU32)\n", idCpu, pVCpu->hm.s.u32HMError, pVCpu->hm.s.u32HMError));
                 LogRel(("HM: CPU[%u] Guest-intr. state = %#RX32\n", idCpu, pVCpu->hm.s.vmx.LastError.u32GuestIntrState));
 #ifdef TODO_9217_VMCSINFO
                 hmR3CheckErrorLogVmcsCtls(idCpu, pVmcsInfo);

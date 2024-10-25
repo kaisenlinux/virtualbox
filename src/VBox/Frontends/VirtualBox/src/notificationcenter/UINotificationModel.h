@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2021-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2021-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -60,7 +60,7 @@ public:
     /** Constructs notification-center model passing @a pParent to the base-class. */
     UINotificationModel(QObject *pParent);
     /** Destructs notification-center model. */
-    virtual ~UINotificationModel() /* override final */;
+    virtual ~UINotificationModel() RT_OVERRIDE RT_FINAL;
 
     /** Appens a notification @a pObject to internal storage. */
     QUuid appendObject(UINotificationObject *pObject);

@@ -26,7 +26,7 @@ AddUnitTestFailure (
   //
   // Make sure that you're cooking with gas.
   //
-  if (UnitTest == NULL || FailureMessage == NULL) {
+  if ((UnitTest == NULL) || (FailureMessage == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
 
@@ -57,6 +57,10 @@ UnitTestLogFailure (
   // Get active Framework handle
   //
   FrameworkHandle = GetActiveFrameworkHandle ();
+  if (FrameworkHandle == NULL) {
+    DEBUG ((DEBUG_ERROR, "%a - FrameworkHandle not initialized\n", __func__));
+    return;
+  }
 
   //
   // Convert the message to an ASCII String
@@ -120,6 +124,7 @@ UnitTestAssertTrue (
       Description
       );
   }
+
   return Expression;
 }
 
@@ -166,6 +171,7 @@ UnitTestAssertFalse (
       Description
       );
   }
+
   return !Expression;
 }
 
@@ -214,7 +220,8 @@ UnitTestAssertNotEfiError (
       Status
       );
   }
-  return !EFI_ERROR( Status );
+
+  return !EFI_ERROR (Status);
 }
 
 /**
@@ -271,6 +278,7 @@ UnitTestAssertEqual (
       ValueB
       );
   }
+
   return (ValueA == ValueB);
 }
 
@@ -312,7 +320,7 @@ UnitTestAssertMemEqual (
   IN CONST CHAR8  *DescriptionB
   )
 {
-  if (CompareMem(BufferA, BufferB, Length) != 0) {
+  if (CompareMem (BufferA, BufferB, Length) != 0) {
     UT_LOG_ERROR (
       "[ASSERT FAIL] %a:%d: Value %a != %a for length %d bytes!\n",
       FileName,
@@ -332,6 +340,7 @@ UnitTestAssertMemEqual (
       );
     return FALSE;
   }
+
   return TRUE;
 }
 
@@ -389,6 +398,7 @@ UnitTestAssertNotEqual (
       ValueB
       );
   }
+
   return (ValueA != ValueB);
 }
 
@@ -442,6 +452,7 @@ UnitTestAssertStatusEqual (
       Expected
       );
   }
+
   return (Status == Expected);
 }
 
@@ -490,6 +501,7 @@ UnitTestAssertNotNull (
       PointerName
       );
   }
+
   return (Pointer != NULL);
 }
 
@@ -536,6 +548,7 @@ UnitTestExpectAssertFailure (
   if (ResultStatus != NULL) {
     *ResultStatus = UnitTestStatus;
   }
+
   if (UnitTestStatus == UNIT_TEST_PASSED) {
     UT_LOG_INFO (
       "[ASSERT PASS] %a:%d: UT_EXPECT_ASSERT_FAILURE(%a) detected expected assert\n",
@@ -544,6 +557,7 @@ UnitTestExpectAssertFailure (
       FunctionCall
       );
   }
+
   if (UnitTestStatus == UNIT_TEST_SKIPPED) {
     UT_LOG_WARNING (
       "[ASSERT WARN] %a:%d: UT_EXPECT_ASSERT_FAILURE(%a) disabled\n",
@@ -552,6 +566,7 @@ UnitTestExpectAssertFailure (
       FunctionCall
       );
   }
+
   if (UnitTestStatus == UNIT_TEST_ERROR_TEST_FAILED) {
     UT_LOG_ERROR (
       "[ASSERT FAIL] %a:%d: Function call (%a) did not ASSERT()!\n",
@@ -567,5 +582,6 @@ UnitTestExpectAssertFailure (
       FunctionCall
       );
   }
+
   return (UnitTestStatus != UNIT_TEST_ERROR_TEST_FAILED);
 }

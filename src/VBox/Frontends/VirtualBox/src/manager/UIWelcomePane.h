@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -33,16 +33,19 @@
 
 /* Qt includes: */
 #include <QIcon>
+#include <QMap>
 #include <QWidget>
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
+#include "UILibraryDefs.h"
 
 /* Forward declarations: */
+class QAbstractButton;
 class QLabel;
+class QIRichTextLabel;
 
 /** QWidget subclass holding Welcome information about VirtualBox. */
-class UIWelcomePane : public QIWithRetranslateUI<QWidget>
+class UIWelcomePane : public QWidget
 {
     Q_OBJECT;
 
@@ -56,29 +59,38 @@ protected:
     /** Handles any Qt @a pEvent. */
     virtual bool event(QEvent *pEvent) RT_OVERRIDE;
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
 private slots:
 
-    /** Handles activated @a strLink. */
-    void sltHandleLinkActivated(const QString &strLink);
+    /** Handles activated @a urlLink. */
+    void sltHandleLinkActivated(const QUrl &urlLink);
+
+    /** Handles @a pButton click. */
+    void sltHandleButtonClicked(QAbstractButton *pButton);
+
+    /** Handles translation event. */
+    void sltRetranslateUI();
 
 private:
 
     /** Prepares all. */
     void prepare();
 
+    /** Updates text labels. */
+    void updateTextLabels();
     /** Updates pixmap. */
     void updatePixmap();
 
     /** Holds the icon instance. */
     QIcon  m_icon;
 
-    /** Holds the text label instance. */
-    QLabel *m_pLabelText;
+    /** Holds the greetings label instance. */
+    QIRichTextLabel              *m_pLabelGreetings;
+    /** Holds the mode label instance. */
+    QIRichTextLabel              *m_pLabelMode;
+    /** Holds a list of experience mode button instances. */
+    QMap<bool, QAbstractButton*>  m_buttons;
     /** Holds the icon label instance. */
-    QLabel *m_pLabelIcon;
+    QLabel                       *m_pLabelIcon;
 };
 
 #endif /* !FEQT_INCLUDED_SRC_manager_UIWelcomePane_h */

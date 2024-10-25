@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -73,8 +73,13 @@ protected:
       * @note  This task WILL be performed in other than the GUI thread, no widget interactions! */
     virtual void saveFromCacheTo(QVariant &data) RT_OVERRIDE;
 
+    /** Handles filter change. */
+    virtual void handleFilterChange() RT_OVERRIDE;
+
+private slots:
+
     /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -88,19 +93,22 @@ private:
     /** Saves existing data from cache. */
     bool saveData();
 
+    /** Updates minimum layout hint. */
+    void updateMinimumLayoutHint();
+
     /** Holds the page data cache instance. */
     UISettingsCacheGlobalDisplay *m_pCache;
 
     /** @name Widgets
      * @{ */
-        /** Holds the maximum guest screen size editor instance. */
+        /** Holds the 'maximum guest screen size' editor instance. */
         UIMaximumGuestScreenSizeEditor *m_pEditorMaximumGuestScreenSize;
-        /** Holds the scale-factor editor instance. */
+        /** Holds the 'scale-factor' editor instance. */
         UIScaleFactorEditor            *m_pEditorScaleFactor;
-        /** Holds the global display features editor instance. */
-        UIDisplayFeaturesEditor        *m_pEditorGlobalDisplayFeatures;
-        /** Holds the font scale editor instance. */
+        /** Holds the 'font scale' editor instance. */
         UIFontScaleEditor              *m_pFontScaleEditor;
+        /** Holds the 'display features' editor instance. */
+        UIDisplayFeaturesEditor        *m_pEditorDisplayFeatures;
     /** @} */
 };
 

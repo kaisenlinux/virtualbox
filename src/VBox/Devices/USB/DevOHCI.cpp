@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -71,10 +71,34 @@
  *      -# If the transfer was device-to-host, we copy the data in to
  *         the host memory.
  *
+ * The guest can set the SKIP bit in an endpoint to pause USB traffic on
+ * that endpoint. If we see the bit set, we need to cancel any URBs that might
+ * be queued on that particular endpoint.
+ *
+ * In some situations, we might miss seeing the SKIP bit. Additionally, the
+ * guest is not forced to set the SKIP bit and might rearrange the transfer
+ * descriptors at any time, or remove EDs from the list entirely. We must
+ * therefore keep track of which endpoints have URBs already in flight, and
+ * cancel any and all such URBs if we detect that the guest is no longer
+ * attempting to perform any transfers on them.
+ *
+ * When we submit a URB, we note the corresponding endpoint and transfer
+ * descriptor information. URB completion checks if the descriptors in
+ * guest memory are still the same; if not, the URB is effectively thrown
+ * away (and nothing is placed on the corresponding done queue).
+ *
+ * For control and interrupt endpoints, we convert each TD into a URB. No
+ * attempt is made to pipeline the traffic and submit multiple URBs for an
+ * endpoint.
+ *
+ * For bulk endpoints, we use heuristics to decide when multiple TDs should
+ * be coalesced into a single URB. This logic helps among others with MSDs
+ * which tend to transfer data in larger chunks, such as 32 or 64 KB.
+ *
  * As for error handling OHCI allows for 3 retries before failing a transfer,
  * an error count is stored in each transfer descriptor. A halt flag is also
  * stored in the transfer descriptor. That allows for ED's to be disabled
- * without stopping the bus and de-queuing them.
+ * by the HC without stopping the bus and de-queuing them.
  *
  * When the bus is started and stopped we call VUSBIDevPowerOn/Off() on our
  * roothub to indicate it's powering up and powering down. Whenever we power
@@ -145,7 +169,7 @@
 
 /* Macro to query the number of currently configured ports. */
 #define OHCI_NDP_CFG(pohci) ((pohci)->RootHub.desc_a & OHCI_RHA_NDP)
-/** Macro to convert a EHCI port index (zero based) to a VUSB roothub port ID (one based). */
+/** Macro to convert an OHCI port index (zero based) to a VUSB roothub port ID (one based). */
 #define OHCI_PORT_2_VUSB_PORT(a_uPort) ((a_uPort) + 1)
 
 /** Pointer to OHCI device data. */
@@ -164,7 +188,7 @@ typedef struct VUSBURBHCITDINT
     /** The address of the */
     RTGCPHYS32      TdAddr;
     /** A copy of the TD. */
-    uint32_t        TdCopy[16];
+    uint32_t        TdCopy[8];
 } VUSBURBHCITDINT;
 
 /**
@@ -668,7 +692,7 @@ typedef struct OHCIOPREG
 #define OHCI_INTR_START_OF_FRAME            RT_BIT(2)
 /** RD  - Resume detect. */
 #define OHCI_INTR_RESUME_DETECT             RT_BIT(3)
-/** UE  - ",erable error. */
+/** UE  - Unrecoverable error. */
 #define OHCI_INTR_UNRECOVERABLE_ERROR       RT_BIT(4)
 /** FNO - Frame number overflow. */
 #define OHCI_INTR_FRAMENUMBER_OVERFLOW      RT_BIT(5)
@@ -3509,7 +3533,7 @@ static bool ohciR3ServiceIsochronousTd(PPDMDEVINS pDevIns, POHCI pThis, POHCICC 
     if (((uint32_t)pITd->aPSW[R] >> ITD_PSW_CC_SHIFT) < (OHCI_CC_NOT_ACCESSED_0 >> TD_HWINFO_CC_SHIFT))
     {
         Log(("ITdAddr=%RX32 PSW%d.CC=%#x < 'Not Accessed'!\n", ITdAddr, R, pITd->aPSW[R] >> ITD_PSW_CC_SHIFT)); /* => Unrecoverable Error*/
-        pThis->intr_status |= OHCI_INTR_UNRECOVERABLE_ERROR;
+        ohciR3RaiseUnrecoverableError(pDevIns, pThis, 9);
         return false;
     }
     uint16_t offPrev = aPkts[0].off = (pITd->aPSW[R] & ITD_PSW_OFFSET);
@@ -3635,7 +3659,7 @@ static void ohciR3ServiceIsochronousEndpoint(PPDMDEVINS pDevIns, POHCI pThis, PO
      * We currently process this as if the guest follows the interrupt end point chaining
      * hierarchy described in the documenation. This means that for an isochronous endpoint
      * with a 1 ms interval we expect to find in-flight TDs at the head of the list. We will
-     * skip over all in-flight TDs which timeframe has been exceed. Those which aren't in
+     * skip over all in-flight TDs whose timeframe has been exceeded. Those which aren't in
      * flight but which are too late will be retired (possibly out of order, but, we don't
      * care right now).
      *
@@ -3816,7 +3840,6 @@ static void ohciR3ServiceBulkList(PPDMDEVINS pDevIns, POHCI pThis, POHCICC pThis
 
 # if 1
             /*
-
              * After we figured out that all the TDs submitted for dealing with MSD
              * read/write data really makes up on single URB, and that we must
              * reassemble these TDs into an URB before submitting it, there is no
@@ -3864,7 +3887,11 @@ static void ohciR3ServiceBulkList(PPDMDEVINS pDevIns, POHCI pThis, POHCICC pThis
                 VUSBDIRECTION enmDir = ohciR3GetDirection(pDevIns, pThis, pThisCC, &Ed);
                 if (enmDir != VUSBDIRECTION_INVALID)
                 {
+                    /* Must leave the lock here, see ohciR3ServicePeriodicList for details. */
+                    ohciR3Unlock(pThisCC);
                     pThisCC->RootHub.pIRhConn->pfnAbortEpByAddr(pThisCC->RootHub.pIRhConn, uAddr, uEndPt, enmDir);
+                    ohciR3Lock(pThisCC);
+                    /** @todo should we re-read Ed here? */
                 }
             }
         }
@@ -3924,7 +3951,11 @@ static void ohciR3UndoBulkList(PPDMDEVINS pDevIns, POHCI pThis, POHCICC pThisCC)
                VUSBDIRECTION enmDir = ohciR3GetDirection(pDevIns, pThis, pThisCC, &Ed);
                if (enmDir != VUSBDIRECTION_INVALID)
                {
+                   /* Must leave the lock here, see ohciR3ServicePeriodicList for details. */
+                   ohciR3Unlock(pThisCC);
                    pThisCC->RootHub.pIRhConn->pfnAbortEpByAddr(pThisCC->RootHub.pIRhConn, uAddr, uEndPt, enmDir);
+                   ohciR3Lock(pThisCC);
+                   /** @todo should we re-read Ed here? */
                }
             }
         }
@@ -4088,13 +4119,23 @@ static void ohciR3ServicePeriodicList(PPDMDEVINS pDevIns, POHCI pThis, POHCICC p
                 /* If the ED is in 'skip' state, no transactions on it are allowed and we must
                  * cancel outstanding URBs, if any.
                  * First we need to determine the transfer direction, which may fail(!).
+                 *
+                 * Note! We *must* leave the critsect before calling the abort function as
+                 *       it typically wants to send synchronous requests to the URB IO thread
+                 *       which will enter the critsect when responding.  ohciR3StartFrame
+                 *       entered the critsect and I (bird) can't immediately spot any cached
+                 *       state info that could get obsoleted while we're doing this (except
+                 *       some logging stuff).
                  */
                 uint8_t uAddr  = Ed.hwinfo & ED_HWINFO_FUNCTION;
                 uint8_t uEndPt = (Ed.hwinfo & ED_HWINFO_ENDPOINT) >> ED_HWINFO_ENDPOINT_SHIFT;
                 VUSBDIRECTION enmDir = ohciR3GetDirection(pDevIns, pThis, pThisCC, &Ed);
                 if (enmDir != VUSBDIRECTION_INVALID)
                 {
+                    ohciR3Unlock(pThisCC);
                     pThisCC->RootHub.pIRhConn->pfnAbortEpByAddr(pThisCC->RootHub.pIRhConn, uAddr, uEndPt, enmDir);
+                    ohciR3Lock(pThisCC);
+                    /** @todo should we re-read Ed here? */
                 }
             }
         }
@@ -4249,7 +4290,7 @@ static void ohciR3CancelOrphanedURBs(PPDMDEVINS pDevIns, POHCI pThis, POHCICC pT
                     if (j > -1)
                         pThisCC->aInFlight[j].fInactive = false;
                     TdAddr = Td.NextTD & ED_PTR_MASK;
-                    /* See #8125.
+                    /* See @bugref{8125}.
                      * Sometimes the ED is changed by the guest between ohciR3ReadEd above and here.
                      * Then the code reads TD pointed by the new TailP, which is not allowed.
                      * Luckily Windows guests have Td.NextTD = 0 in the tail TD.
@@ -5279,16 +5320,16 @@ static VBOXSTRICTRC HcRhStatus_w(PPDMDEVINS pDevIns, POHCI pThis, uint32_t iReg,
 #ifdef IN_RING3
     POHCICC pThisCC = PDMDEVINS_2_DATA_CC(pDevIns, POHCICC);
 
+#ifdef LOG_ENABLED
     /* log */
     uint32_t old = pThis->RootHub.status;
-    uint32_t chg;
     if (val & ~0x80038003)
         Log2(("HcRhStatus_w: Unknown bits %#x are set!!!\n", val & ~0x80038003));
     if ( (val & OHCI_RHS_LPSC) && (val & OHCI_RHS_LPS) )
         Log2(("HcRhStatus_w: Warning both CGP and SGP are set! (Clear/Set Global Power)\n"));
     if ( (val & OHCI_RHS_DRWE) && (val & OHCI_RHS_CRWE) )
         Log2(("HcRhStatus_w: Warning both CRWE and SRWE are set! (Clear/Set Remote Wakeup Enable)\n"));
-
+#endif
 
     /* write 1 to clear OCIC */
     if ( val & OHCI_RHS_OCIC )
@@ -5318,7 +5359,8 @@ static VBOXSTRICTRC HcRhStatus_w(PPDMDEVINS pDevIns, POHCI pThis, uint32_t iReg,
     if ( val & OHCI_RHS_CRWE )
         pThis->RootHub.status &= ~OHCI_RHS_DRWE;
 
-    chg = pThis->RootHub.status ^ old;
+#ifdef LOG_ENABLED
+    uint32_t chg = pThis->RootHub.status ^ old;
     Log2(("HcRhStatus_w(%#010x) => %sCGP=%d %sOCI=%d %sSRWE=%d %sSGP=%d %sOCIC=%d %sCRWE=%d\n",
           val,
            chg        & 1 ? "*" : "", val        & 1,
@@ -5327,6 +5369,7 @@ static VBOXSTRICTRC HcRhStatus_w(PPDMDEVINS pDevIns, POHCI pThis, uint32_t iReg,
           (chg >> 16) & 1 ? "*" : "", (val >> 16) & 1,
           (chg >> 17) & 1 ? "*" : "", (val >> 17) & 1,
           (chg >> 31) & 1 ? "*" : "", (val >> 31) & 1));
+#endif
     RT_NOREF(pDevIns, iReg);
     return VINF_SUCCESS;
 #else  /* !IN_RING3 */

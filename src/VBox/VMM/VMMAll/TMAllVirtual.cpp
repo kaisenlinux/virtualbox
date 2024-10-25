@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -34,6 +34,9 @@
 #include <VBox/vmm/dbgftrace.h>
 #ifdef IN_RING3
 # include <iprt/thread.h>
+#endif
+#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+# include <iprt/x86.h>
 #endif
 #include "TMInternal.h"
 #include <VBox/vmm/vmcc.h>

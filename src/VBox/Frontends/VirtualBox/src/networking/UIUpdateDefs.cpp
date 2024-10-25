@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,9 +31,9 @@
 #include <QStringList>
 
 /* GUI includes: */
-#include "UICommon.h"
 #include "UINotificationCenter.h"
 #include "UIUpdateDefs.h"
+#include "UIVersion.h"
 
 /* COM includes: */
 #include "CUpdateAgent.h"
@@ -78,7 +78,7 @@ QStringList VBoxUpdateData::list()
     return result;
 }
 
-VBoxUpdateData::VBoxUpdateData(const QString &strData)
+VBoxUpdateData::VBoxUpdateData(const QString &strData /* = QString("never") */)
     : m_strData(strData)
     , m_fCheckEnabled(false)
     , m_fCheckRequired(false)
@@ -92,11 +92,8 @@ VBoxUpdateData::VBoxUpdateData(const QString &strData)
     /* Check is enabled in all cases besides 'never': */
     m_fCheckEnabled = true;
 
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+    /* Parse the data we have: */
     const QStringList parser = m_strData.split(", ", Qt::SkipEmptyParts);
-#else
-    const QStringList parser = m_strData.split(", ", QString::SkipEmptyParts);
-#endif
 
     /* Parse 'period' value: */
     if (parser.size() > 0)
@@ -130,7 +127,7 @@ VBoxUpdateData::VBoxUpdateData(const QString &strData)
     /* Decide whether we need to check: */
     m_fCheckRequired =    (QDate::currentDate() >= date())
                        && (   !version().isValid()
-                           || version() != UIVersion(uiCommon().vboxVersionStringNormalized()));
+                           || version() != UIVersion(UIVersionInfo::vboxVersionStringNormalized()));
 }
 
 VBoxUpdateData::VBoxUpdateData(bool fCheckEnabled, UpdatePeriodType enmUpdatePeriod, KUpdateChannel enmUpdateChannel)
@@ -164,7 +161,7 @@ VBoxUpdateData::VBoxUpdateData(bool fCheckEnabled, UpdatePeriodType enmUpdatePer
     const QString strUpdateChannel = updateChannelName();
 
     /* Encode 'version' value: */
-    m_version = UIVersion(uiCommon().vboxVersionStringNormalized());
+    m_version = UIVersion(UIVersionInfo::vboxVersionStringNormalized());
     const QString strVersionValue = m_version.toString();
 
     /* Compose m_strData: */
@@ -173,7 +170,7 @@ VBoxUpdateData::VBoxUpdateData(bool fCheckEnabled, UpdatePeriodType enmUpdatePer
     /* Decide whether we need to check: */
     m_fCheckRequired =    (QDate::currentDate() >= date())
                        && (   !version().isValid()
-                           || version() != UIVersion(uiCommon().vboxVersionStringNormalized()));
+                           || version() != UIVersion(UIVersionInfo::vboxVersionStringNormalized()));
 }
 
 bool VBoxUpdateData::load(const CHost &comHost)

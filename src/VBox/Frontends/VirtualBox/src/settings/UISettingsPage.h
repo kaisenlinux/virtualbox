@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,28 +31,23 @@
 # pragma once
 #endif
 
-/* Qt includes: */
-#include <QVariant>
-#include <QWidget>
-
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
+#include "UIEditor.h"
 #include "UIExtraDataDefs.h"
 #include "UISettingsDefs.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CConsole.h"
 #include "CHost.h"
 #include "CMachine.h"
 #include "CSystemProperties.h"
 
 /* Forward declarations: */
-class QShowEvent;
-class QString;
+class QLabel;
+class QLayout;
 class QVariant;
 class QWidget;
-class UIPageValidator;
+class UISettingsPageValidator;
 
 /* Using declarations: */
 using namespace UISettingsDefs;
@@ -94,8 +89,8 @@ Q_DECLARE_METATYPE(UISettingsDataMachine);
 typedef QPair<QString, QStringList> UIValidationMessage;
 
 
-/** QWidget subclass used as settings page interface. */
-class SHARED_LIBRARY_STUFF UISettingsPage : public QIWithRetranslateUI<QWidget>
+/** UIEditor sub-class used as settings page interface. */
+class UISettingsPage : public UIEditor
 {
     Q_OBJECT;
 
@@ -134,7 +129,7 @@ public:
     void notifyOperationProgressError(const QString &strErrorInfo);
 
     /** Defines @a pValidator. */
-    void setValidator(UIPageValidator *pValidator);
+    void setValidator(UISettingsPageValidator *pValidator);
     /** Defines whether @a fIsValidatorBlocked which means not used at all. */
     void setValidatorBlocked(bool fIsValidatorBlocked) { m_fIsValidatorBlocked = fIsValidatorBlocked; }
     /** Performs page validation composing a list of @a messages. */
@@ -206,9 +201,9 @@ private:
     int  m_cId;
 
     /** Holds the first TAB-orer widget reference. */
-    QWidget         *m_pFirstWidget;
+    QWidget                 *m_pFirstWidget;
     /** Holds the page validator. */
-    UIPageValidator *m_pValidator;
+    UISettingsPageValidator *m_pValidator;
 
     /** Holds whether page validation is blocked. */
     bool  m_fIsValidatorBlocked : 1;
@@ -220,7 +215,7 @@ private:
 
 
 /** UISettingsPage extension used as Global Preferences page interface. */
-class SHARED_LIBRARY_STUFF UISettingsPageGlobal : public UISettingsPage
+class UISettingsPageGlobal : public UISettingsPage
 {
     Q_OBJECT;
 
@@ -254,7 +249,7 @@ protected:
 
 
 /** UISettingsPage extension used as Machine Settings page interface. */
-class SHARED_LIBRARY_STUFF UISettingsPageMachine : public UISettingsPage
+class UISettingsPageMachine : public UISettingsPage
 {
     Q_OBJECT;
 
@@ -281,6 +276,50 @@ protected:
     CMachine  m_machine;
     /** Holds the source of console settings. */
     CConsole  m_console;
+};
+
+
+/** UIEditor sub-class, used as settings page frame. */
+class UISettingsPageFrame : public UIEditor
+{
+    Q_OBJECT;
+
+public:
+
+    /** Constructs details element passing @a pParent to the base-class.
+      * @param  pPage  Brings the page to wrap with frame. */
+    UISettingsPageFrame(UISettingsPage *pPage, QWidget *pParent = 0);
+
+    /** Defines @a strName. */
+    void setName(const QString &strName);
+
+protected:
+
+    /** Handles paint @a pEvent. */
+    virtual void paintEvent(QPaintEvent *pEvent) RT_OVERRIDE;
+
+private slots:
+
+    /** Handles translation event. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
+
+private:
+
+    /** Prepares all. */
+    void prepare();
+
+    /** Holds the page reference. */
+    UISettingsPage *m_pPage;
+
+    /** Holds the element name.*/
+    QString  m_strName;
+
+    /** Holds the name label instance. */
+    QLabel  *m_pLabelName;
+    /** Holds the contents widget instance. */
+    QWidget *m_pWidget;
+    /** Holds the contents layout instance. */
+    QLayout *m_pLayout;
 };
 
 

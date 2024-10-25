@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,7 +31,6 @@
 #include <QPalette>
 
 /* GUI includes: */
-#include "UICommon.h"
 #include "UIErrorString.h"
 #include "UITranslator.h"
 
@@ -55,9 +54,7 @@ QString UIErrorString::formatRC(HRESULT rc)
             && RTErrWinQueryDefine(rc | 0x80000000, szDefine, sizeof(szDefine), true /*fFailIfUnknown*/) == VERR_NOT_FOUND))
         RTErrWinQueryDefine(rc, szDefine, sizeof(szDefine), false /*fFailIfUnknown*/);
 
-    QString str;
-    str.sprintf("%s", szDefine);
-    return str;
+    return QString::asprintf("%s", szDefine);
 #else
     const char *pszDefine = RTErrCOMGet(SUCCEEDED_WARNING(rc) ? rc | 0x80000000 : rc)->pszDefine;
     Assert(pszDefine);
@@ -71,7 +68,7 @@ QString UIErrorString::formatRCFull(HRESULT rc)
 {
     /** @todo r=bird: See UIErrorString::formatRC for 31th bit discussion. */
     char szHex[32];
-    RTStrPrintf(szHex, sizeof(szHex), "%#010X", rc);
+    RTStrPrintf(szHex, sizeof(szHex), "%#010x", rc);
 
 #ifdef RT_OS_WINDOWS
     char szDefine[80];
@@ -194,6 +191,12 @@ QString UIErrorString::errorInfoToString(const COMErrorInfo &comInfo, HRESULT wr
                 .arg(QApplication::translate("UIErrorString", "Result&nbsp;Code:", "error info"))
                 .arg(formatRCFull(comInfo.resultCode()));
         }
+
+        if (comInfo.resultDetail() != 0)
+            strFormatted += QString("<tr><td>%1</td><td><tt>%2 (0x%3)</tt></td></tr>")
+                .arg(QApplication::translate("UIErrorString", "Result&nbsp;Detail:", "error info"))
+                .arg(QString::number(int(comInfo.resultDetail()))) /* arg(int()) ends up as unsigned, thus the ::number crap. */
+                .arg(comInfo.resultDetail(), 0, 16);
 
         if (fHaveComponent)
             strFormatted += QString("<tr><td>%1</td><td>%2</td></tr>")

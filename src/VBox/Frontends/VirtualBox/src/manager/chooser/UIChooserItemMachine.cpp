@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,6 +26,7 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QGraphicsSceneDragDropEvent>
 #include <QGraphicsView>
 #include <QPainter>
@@ -39,6 +40,8 @@
 #include "UIChooserNodeGroup.h"
 #include "UIChooserNodeMachine.h"
 #include "UIIconPool.h"
+#include "UIImageTools.h"
+#include "UITranslationEventListener.h"
 #include "UIVirtualBoxManager.h"
 #include "UIVirtualMachineItemCloud.h"
 #include "UIVirtualMachineItemLocal.h"
@@ -176,7 +179,7 @@ void UIChooserItemMachine::enumerateMachineItems(const QList<UIChooserItem*> &il
     }
 }
 
-void UIChooserItemMachine::retranslateUi()
+void UIChooserItemMachine::sltRetranslateUI()
 {
 }
 
@@ -239,10 +242,10 @@ void UIChooserItemMachine::setSelected(bool fSelected)
     {
         UIVirtualMachineItemCloud *pCloudMachineItem = cache()->toCloud();
         AssertPtrReturnVoid(pCloudMachineItem);
-        if (fSelected && pCloudMachineItem->accessible())
-            pCloudMachineItem->updateInfoAsync(false /* delayed? */, true /* subscribe */);
-        else
-            pCloudMachineItem->stopAsyncUpdates();
+        const bool fUpdateRequired = fSelected && pCloudMachineItem->accessible();
+        pCloudMachineItem->setUpdateRequiredByLocalReason(fUpdateRequired);
+        if (fUpdateRequired)
+            pCloudMachineItem->updateInfoAsync(false /* delayed? */);
     }
 }
 
@@ -609,7 +612,9 @@ void UIChooserItemMachine::prepare()
     updateItem();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIChooserItemMachine::sltRetranslateUI);
 }
 
 void UIChooserItemMachine::cleanup()
@@ -697,7 +702,8 @@ void UIChooserItemMachine::updateStatePixmap()
     const QIcon stateIcon = cache()->machineStateIcon();
     AssertReturnVoid(!stateIcon.isNull());
     const QSize statePixmapSize = QSize(iIconMetric, iIconMetric);
-    const QPixmap statePixmap = stateIcon.pixmap(gpManager->windowHandle(), statePixmapSize);
+    const qreal fDevicePixelRatio = gpManager->windowHandle() ? gpManager->windowHandle()->devicePixelRatio() : 1;
+    const QPixmap statePixmap = stateIcon.pixmap(statePixmapSize, fDevicePixelRatio);
     /* Update linked values: */
     if (m_statePixmapSize != statePixmapSize)
     {
@@ -719,7 +725,8 @@ void UIChooserItemMachine::updateToolPixmap()
     const QIcon toolIcon = UIIconPool::iconSet(":/tools_menu_24px.png");
     AssertReturnVoid(!toolIcon.isNull());
     const QSize toolPixmapSize = QSize(iIconMetric, iIconMetric);
-    const QPixmap toolPixmap = toolIcon.pixmap(gpManager->windowHandle(), toolPixmapSize);
+    const qreal fDevicePixelRatio = gpManager->windowHandle() ? gpManager->windowHandle()->devicePixelRatio() : 1;
+    const QPixmap toolPixmap = toolIcon.pixmap(toolPixmapSize, fDevicePixelRatio);
     /* Update linked values: */
     if (m_toolPixmapSize != toolPixmapSize)
     {
@@ -768,13 +775,9 @@ void UIChooserItemMachine::updateMinimumNameWidth()
 {
     /* Calculate new minimum name width: */
     QPaintDevice *pPaintDevice = model()->paintDevice();
-    QFontMetrics fm(m_nameFont, pPaintDevice);
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
-    int iMinimumNameWidth = fm.horizontalAdvance(compressText(m_nameFont, pPaintDevice, name(),
-                                                              textWidth(m_nameFont, pPaintDevice, 15)));
-#else
-    int iMinimumNameWidth = fm.width(compressText(m_nameFont, pPaintDevice, name(), textWidth(m_nameFont, pPaintDevice, 15)));
-#endif
+    const QFontMetrics fm(m_nameFont, pPaintDevice);
+    const int iMinimumNameWidth = fm.horizontalAdvance(compressText(m_nameFont, pPaintDevice, name(),
+                                                                    textWidth(m_nameFont, pPaintDevice, 15)));
 
     /* Is there something changed? */
     if (m_iMinimumNameWidth == iMinimumNameWidth)
@@ -793,16 +796,10 @@ void UIChooserItemMachine::updateMinimumSnapshotNameWidth()
     if (   cacheType() == UIVirtualMachineItemType_Local
         && !cache()->toLocal()->snapshotName().isEmpty())
     {
-        QFontMetrics fm(m_snapshotNameFont, model()->paintDevice());
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
-        int iBracketWidth = fm.horizontalAdvance("()"); /* bracket width */
-        int iActualTextWidth = fm.horizontalAdvance(cache()->toLocal()->snapshotName()); /* snapshot-name width */
-        int iMinimumTextWidth = fm.horizontalAdvance("..."); /* ellipsis width */
-#else
-        int iBracketWidth = fm.width("()"); /* bracket width */
-        int iActualTextWidth = fm.width(cache()->toLocal()->snapshotName()); /* snapshot-name width */
-        int iMinimumTextWidth = fm.width("..."); /* ellipsis width */
-#endif
+        const QFontMetrics fm(m_snapshotNameFont, model()->paintDevice());
+        const int iBracketWidth = fm.horizontalAdvance("()"); /* bracket width */
+        const int iActualTextWidth = fm.horizontalAdvance(cache()->toLocal()->snapshotName()); /* snapshot-name width */
+        const int iMinimumTextWidth = fm.horizontalAdvance("..."); /* ellipsis width */
         iMinimumSnapshotNameWidth = iBracketWidth + qMin(iActualTextWidth, iMinimumTextWidth);
     }
 
@@ -889,15 +886,11 @@ void UIChooserItemMachine::updateVisibleSnapshotName()
     QPaintDevice *pPaintDevice = model()->paintDevice();
 
     /* Calculate new visible snapshot-name: */
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
-    int iBracketWidth = QFontMetrics(m_snapshotNameFont, pPaintDevice).horizontalAdvance("()");
-#else
-    int iBracketWidth = QFontMetrics(m_snapshotNameFont, pPaintDevice).width("()");
-#endif
+    const int iBracketWidth = QFontMetrics(m_snapshotNameFont, pPaintDevice).horizontalAdvance("()");
     QString strVisibleSnapshotName = compressText(m_snapshotNameFont, pPaintDevice, cache()->toLocal()->snapshotName(),
                                                   m_iMaximumSnapshotNameWidth - iBracketWidth);
     strVisibleSnapshotName = QString("(%1)").arg(strVisibleSnapshotName);
-    QSize visibleSnapshotNameSize = textSize(m_snapshotNameFont, pPaintDevice, strVisibleSnapshotName);
+    const QSize visibleSnapshotNameSize = textSize(m_snapshotNameFont, pPaintDevice, strVisibleSnapshotName);
 
     /* Update linked values: */
     if (m_visibleSnapshotNameSize != visibleSnapshotNameSize)
@@ -1124,23 +1117,9 @@ void UIChooserItemMachine::paintMachineInfo(QPainter *pPainter, const QRect &rec
                                 ? highlight.lighter(m_iHighlightLightnessStart)
                                 : highlight.lighter(m_iHoverLightnessStart);
 
-        /* Get foreground color: */
-        const QColor simpleText = pal.color(QPalette::Active, QPalette::Text);
-        const QColor highlightText = pal.color(QPalette::Active, QPalette::HighlightedText);
-        QColor lightText = simpleText.black() < highlightText.black() ? simpleText : highlightText;
-        QColor darkText = simpleText.black() > highlightText.black() ? simpleText : highlightText;
-        if (lightText.black() > 128)
-            lightText = QColor(Qt::white);
-        if (darkText.black() < 128)
-            darkText = QColor(Qt::black);
-
         /* Gather foreground color for background one: */
-        double dLuminance = (0.299 * background.red() + 0.587 * background.green() + 0.114 * background.blue()) / 255;
-        //printf("luminance = %f\n", dLuminance);
-        if (dLuminance > 0.5)
-            pPainter->setPen(darkText);
-        else
-            pPainter->setPen(lightText);
+        const QColor foreground = suitableForegroundColor(pal, background);
+        pPainter->setPen(foreground);
     }
 
     /* Calculate indents: */

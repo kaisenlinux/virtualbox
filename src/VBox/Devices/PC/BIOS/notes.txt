@@ -72,6 +72,18 @@
 - NetWare 2.15 has a similar restriction, the FDPT must explicitly point above
   segment address C800 or the NetWare AT disk driver abends.
 
+- NetWare 286 2.0a SFT II uses INT 41h/46h vector to obtain the FDPT, but
+  at least in protected mode, assumes that those vectors must point into
+  the F000h segment.
+
+- NetWare 2.0a INSTALL and VREPAIR utilities run in real mode but have their
+  own ATA disk driver. Like NetWare itself, the utilities obtain drive
+  geometry from the FDPT, but unlike NetWare, they assume that the drive
+  already had the correct geometry set during POST and that INT 13h/00h
+  will keep it in place by executing INITIALIZE DRIVE PARAMETERS.
+  NB: The BIOS itself always uses LBA and thus does not depend on the
+  drive's current CHS geometry at all.
+
 - Windows NT (including XP) uses INT 13h/08h to obtain the DPT for each floppy
   drive. NT assumes a 13-byte DPT which includes the number of tracks. NT will
   refuse to read more tracks than the DPT specifies and formats as many tracks
@@ -91,7 +103,10 @@
 
 - Windows 3.1 Standard mode violates the APM specifications and calls into
   APM with CPL=3, causing the HLT instruction to fault if used. 386 Enhanced
-  mode Windows 3.1 calls into APM with CPL=3.
+  mode Windows 3.1 calls into APM with CPL=0.
+
+- DR-DOS 5.0/6.0 EMM386.SYS does handle HLT instructions executed by real-mode
+  code, but does not halt the CPU and just continues execution.
 
 - QNX4 calls 16-bit protected-mode PCI BIOS in an environment where ESP is
   16-bit but SS is a 32-bit stack segment. In such environments, using the
@@ -103,6 +118,7 @@
   thinks it counts as real mode. Same ENTER/LEAVE problem as above.
 
 - AIX 1.3 is a rare user of INT 15h/89h (switch to protected mode) service.
+  NetWare 286 2.0a is another.
 
 - IBM OS/2 1.0/1.1 (but not other versions!) attempt to execute a 286 LOADALL
   instruction. LOADALL must be emulated for OS/2 to work properly. HIMEM.SYS

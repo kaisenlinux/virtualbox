@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2020-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2020-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -36,18 +36,16 @@
 #include <QWidget>
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
 #include "UIFormEditorWidget.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CForm.h"
 
 /* Forward declarations: */
 class UICloudMachineSettingsDialog;
 
 /** Cloud machine settings dialog page. */
-class UICloudMachineSettingsDialogPage : public QIWithRetranslateUI<QWidget>
+class UICloudMachineSettingsDialogPage : public QWidget
 {
     Q_OBJECT;
 
@@ -77,10 +75,10 @@ public slots:
     /** Makes sure page data committed. */
     void makeSureDataCommitted();
 
-protected:
+private slots:
 
     /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
+    void sltRetranslateUI();
 
 private:
 

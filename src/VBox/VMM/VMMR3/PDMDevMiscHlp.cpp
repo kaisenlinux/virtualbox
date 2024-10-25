@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -34,7 +34,9 @@
 #include <VBox/vmm/pdm.h>
 #include <VBox/vmm/pgm.h>
 #include <VBox/vmm/hm.h>
-#include <VBox/vmm/apic.h>
+#ifndef VBOX_VMM_TARGET_ARMV8
+# include <VBox/vmm/apic.h>
+#endif
 #include <VBox/vmm/vm.h>
 #include <VBox/vmm/vmm.h>
 
@@ -60,12 +62,17 @@ static DECLCALLBACK(void) pdmR3PicHlp_SetInterruptFF(PPDMDEVINS pDevIns)
 {
     PDMDEV_ASSERT_DEVINS(pDevIns);
     PVM    pVM = pDevIns->Internal.s.pVMR3;
-    PVMCPU pVCpu = pVM->apCpusR3[0];  /* for PIC we always deliver to CPU 0, SMP uses APIC */
 
     /* IRQ state should be loaded as-is by "LoadExec". Changes can be made from LoadDone. */
     Assert(pVM->enmVMState != VMSTATE_LOADING || pVM->pdm.s.fStateLoaded);
 
+#if defined(VBOX_VMM_TARGET_ARMV8)
+    AssertReleaseFailed();
+    RT_NOREF(pVM);
+#else
+    PVMCPU pVCpu = pVM->apCpusR3[0];  /* for PIC we always deliver to CPU 0, SMP uses APIC */
     APICLocalInterrupt(pVCpu, 0 /* u8Pin */, 1 /* u8Level */, VINF_SUCCESS /* rcRZ */);
+#endif
 }
 
 
@@ -74,12 +81,17 @@ static DECLCALLBACK(void) pdmR3PicHlp_ClearInterruptFF(PPDMDEVINS pDevIns)
 {
     PDMDEV_ASSERT_DEVINS(pDevIns);
     PVM pVM = pDevIns->Internal.s.pVMR3;
-    PVMCPU pVCpu = pVM->apCpusR3[0];  /* for PIC we always deliver to CPU 0, SMP uses APIC */
 
     /* IRQ state should be loaded as-is by "LoadExec". Changes can be made from LoadDone. */
     Assert(pVM->enmVMState != VMSTATE_LOADING || pVM->pdm.s.fStateLoaded);
 
+#if defined(VBOX_VMM_TARGET_ARMV8)
+    AssertReleaseFailed();
+    RT_NOREF(pVM);
+#else
+    PVMCPU pVCpu = pVM->apCpusR3[0];  /* for PIC we always deliver to CPU 0, SMP uses APIC */
     APICLocalInterrupt(pVCpu, 0 /* u8Pin */,  0 /* u8Level */, VINF_SUCCESS /* rcRZ */);
+#endif
 }
 
 
@@ -125,10 +137,16 @@ static DECLCALLBACK(int) pdmR3IoApicHlp_ApicBusDeliver(PPDMDEVINS pDevIns, uint8
                                                        uint8_t u8TriggerMode, uint32_t uTagSrc)
 {
     PDMDEV_ASSERT_DEVINS(pDevIns);
-    PVM pVM = pDevIns->Internal.s.pVMR3;
     LogFlow(("pdmR3IoApicHlp_ApicBusDeliver: caller='%s'/%d: u8Dest=%RX8 u8DestMode=%RX8 u8DeliveryMode=%RX8 uVector=%RX8 u8Polarity=%RX8 u8TriggerMode=%RX8 uTagSrc=%#x\n",
              pDevIns->pReg->szName, pDevIns->iInstance, u8Dest, u8DestMode, u8DeliveryMode, uVector, u8Polarity, u8TriggerMode, uTagSrc));
+#if defined(VBOX_VMM_TARGET_ARMV8)
+    AssertReleaseFailed();
+    RT_NOREF(pDevIns, u8Dest, u8DestMode, u8DeliveryMode, uVector, u8Polarity, u8TriggerMode, uTagSrc);
+    return VERR_NOT_IMPLEMENTED;
+#else
+    PVM pVM = pDevIns->Internal.s.pVMR3;
     return APICBusDeliver(pVM, u8Dest, u8DestMode, u8DeliveryMode, uVector, u8Polarity, u8TriggerMode, uTagSrc);
+#endif
 }
 
 
@@ -170,7 +188,7 @@ static DECLCALLBACK(int) pdmR3IoApicHlp_IommuMsiRemap(PPDMDEVINS pDevIns, uint16
     if (pdmIommuIsPresent(pDevIns))
         return pdmIommuMsiRemap(pDevIns, idDevice, pMsiIn, pMsiOut);
 #else
-    RT_NOREF(pDevIns, idDevice);
+    RT_NOREF(pDevIns, idDevice, pMsiIn, pMsiOut);
 #endif
     return VERR_IOMMU_NOT_PRESENT;
 }

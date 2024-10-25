@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -36,7 +36,6 @@
 
 /* GUI includes: */
 #include "QIManagerDialog.h"
-#include "QIWithRetranslateUI.h"
 
 /* Forward declarations: */
 class QAbstractButton;
@@ -48,14 +47,18 @@ class QTreeWidgetItem;
 class QIDialogButtonBox;
 class UIActionPool;
 class QIToolBar;
-class UIActivityOverviewProxyModel;
-class UIActivityOverviewModel;
+class UIVMActivityOverviewProxyModel;
+class UIVMActivityOverviewModel;
+class UIVirtualMachineItemCloud;
 class UIVMActivityOverviewHostStats;
 class UIVMActivityOverviewHostStatsWidget;
 class UIVMActivityOverviewTableView;
+class UIVMActivityOverviewTableView;
+class UIVMActivityOverviewModel;
+class UIVMActivityOverviewProxyModel;
 
 /** QWidget extension to display a Linux top like utility that sort running vm wrt. resource allocations. */
-class UIVMActivityOverviewWidget : public QIWithRetranslateUI<QWidget>
+class UIVMActivityOverviewWidget : public QWidget
 {
     Q_OBJECT;
 
@@ -72,6 +75,7 @@ public:
 
     bool isCurrentTool() const;
     void setIsCurrentTool(bool fIsCurrentTool);
+    void setCloudMachineItems(const QList<UIVirtualMachineItemCloud*> &cloudItems);
 
 #ifdef VBOX_WS_MAC
     QIToolBar *toolbar() const { return m_pToolBar; }
@@ -81,7 +85,6 @@ protected:
 
     /** @name Event-handling stuff.
       * @{ */
-        virtual void retranslateUi() RT_OVERRIDE;
         virtual void showEvent(QShowEvent *pEvent) RT_OVERRIDE;
     /** @} */
 
@@ -95,8 +98,10 @@ private slots:
     void sltHandleShowVMActivityMonitor();
     void sltHandleTableSelectionChanged(const QItemSelection &selected, const QItemSelection &deselected);
     void sltNotRunningVMVisibility(bool fShow);
+    void sltCloudVMVisibility(bool fShow);
     void sltSaveSettings();
     void sltClearCOMData();
+    void sltRetranslateUI();
 
 private:
 
@@ -126,9 +131,9 @@ private:
     /** @name Misc members.
       * @{ */
         QIToolBar *m_pToolBar;
-        UIVMActivityOverviewTableView       *m_pTableView;
-        UIActivityOverviewProxyModel        *m_pProxyModel;
-        UIActivityOverviewModel             *m_pModel;
+        UIVMActivityOverviewTableView          *m_pTableView;
+        UIVMActivityOverviewProxyModel *m_pProxyModel;
+        UIVMActivityOverviewModel   *m_pModel;
         QMenu                              *m_pColumnVisibilityToggleMenu;
         /* The key is the column id (VMActivityOverviewColumn) and value is column title. */
         QMap<int, QString>                  m_columnTitles;
@@ -141,6 +146,7 @@ private:
     bool    m_fIsCurrentTool;
     int     m_iSortIndicatorWidth;
     bool    m_fShowNotRunningVMs;
+    bool    m_fShowCloudVMs;
 };
 
 #endif /* !FEQT_INCLUDED_SRC_activity_overview_UIVMActivityOverviewWidget_h */

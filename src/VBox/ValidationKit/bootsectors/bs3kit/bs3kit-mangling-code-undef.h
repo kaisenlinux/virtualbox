@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2007-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2007-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -160,6 +160,7 @@
 #undef Bs3SelFlatCodeToRealMode
 #undef Bs3SelFlatDataToProtFar16
 #undef Bs3SelFlatDataToRealMode
+#undef Bs3SelLnkCodePtrToCurPtr
 #undef Bs3SelLnkPtrToCurPtr
 #undef Bs3SelLnkPtrToFlat
 #undef Bs3SelProtFar16DataToFlat
@@ -167,17 +168,19 @@
 #undef Bs3SelProtFar32ToFlat32
 #undef Bs3SelProtModeCodeToRealMode
 #undef Bs3SelRealModeCodeToFlat
+#undef Bs3SelRealModeCodeToProtFar16
 #undef Bs3SelRealModeCodeToProtMode
 #undef Bs3SelRealModeDataToFlat
 #undef Bs3SelRealModeDataToProtFar16
 #undef Bs3SelSetup16BitCode
 #undef Bs3SelSetup16BitData
 #undef Bs3SelSetup32BitCode
-#undef Bs3SelSetupGate64
 #undef Bs3SelSetupGate
+#undef Bs3SelSetupGate64
 #undef Bs3Shutdown
 #undef Bs3SlabAlloc
 #undef Bs3SlabAllocEx
+#undef Bs3SlabAllocFixed
 #undef Bs3SlabFree
 #undef Bs3SlabInit
 #undef Bs3SlabListAdd
@@ -192,6 +195,8 @@
 #undef Bs3StrPrintf
 #undef Bs3StrPrintfV
 #undef Bs3SwitchFromV86To16BitAndCallC
+#undef Bs3Syscall64Generic
+#undef Bs3Syscall64GenericCompatibility
 #undef Bs3TestCheckExtCtx
 #undef Bs3TestCheckRegCtxEx
 #undef Bs3TestFailed
@@ -204,6 +209,7 @@
 #undef Bs3TestPrintf
 #undef Bs3TestPrintfV
 #undef Bs3TestQueryCfgBool
+#undef Bs3TestQueryCfgU16
 #undef Bs3TestQueryCfgU32
 #undef Bs3TestQueryCfgU8
 #undef Bs3TestSkipped
@@ -213,6 +219,10 @@
 #undef Bs3TestSubDone
 #undef Bs3TestSubErrorCount
 #undef Bs3TestSubF
+#undef Bs3TestSubSub
+#undef Bs3TestSubSubDone
+#undef Bs3TestSubSubF
+#undef Bs3TestSubSubV
 #undef Bs3TestSubV
 #undef Bs3TestTerm
 #undef Bs3TestValue
@@ -233,12 +243,12 @@
 #undef Bs3TrapSetDpl
 #undef Bs3TrapSetHandler
 #undef Bs3TrapSetHandlerEx
+#undef Bs3TrapSetJmp
 #undef Bs3TrapSetJmpAndRestore
 #undef Bs3TrapSetJmpAndRestoreInRm
-#undef Bs3TrapSetJmpAndRestoreWithExtCtxAndRm
 #undef Bs3TrapSetJmpAndRestoreWithExtCtx
+#undef Bs3TrapSetJmpAndRestoreWithExtCtxAndRm
 #undef Bs3TrapSetJmpAndRestoreWithRm
-#undef Bs3TrapSetJmp
 #undef Bs3TrapUnsetJmp
 #undef Bs3UInt32Div
 #undef Bs3UInt64Div
@@ -248,6 +258,9 @@
 # undef Bs3BiosInt15h88
 # undef Bs3BiosInt15hE820
 # undef Bs3CpuDetect
+# undef Bs3DiskQueryGeometry
+# undef Bs3DiskRead
+# undef Bs3MemCopyFlat
 # undef Bs3SwitchTo32BitAndCallC
 # undef Bs3TestDoModes
 # undef Bs3TestDoModesByMax

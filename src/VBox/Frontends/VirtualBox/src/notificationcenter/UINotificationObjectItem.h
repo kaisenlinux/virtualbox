@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2021-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2021-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,7 +35,7 @@
 #include <QWidget>
 
 /* VBox includes: */
-#include <iprt/cdefs.h>
+#include <iprt/cdefs.h> // for RT_OVERRIDE stuff
 
 /* Forward declarations: */
 class QHBoxLayout;
@@ -91,6 +91,11 @@ protected:
     bool  m_fHovered;
     /** Holds whether item is toggled. */
     bool  m_fToggled;
+
+private slots:
+
+    /** Handles help request. */
+    void sltHandleHelpRequest();
 };
 
 /** UINotificationObjectItem extension for notification-progress. */

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -425,7 +425,7 @@ typedef struct VMSVGA3DMIPMAPLEVEL
     uint32_t                cBlocksY;
     /** Number of blocks: cBlocksX * cBlocksY * mipmapSize.depth. SSM: not saved, recalculated on load. */
     uint32_t                cBlocks;
-    /** The scanline/pitch size in bytes: at least cBlocksX * cbBlock. */
+    /** The scanline/pitch size in bytes: at least cBlocksX * cbPitchBlock. */
     uint32_t                cbSurfacePitch;
     /** The size (in bytes) of the mipmap plane: cbSurfacePitch * cBlocksY */
     uint32_t                cbSurfacePlane;
@@ -610,6 +610,7 @@ typedef struct VMSVGA3DSURFACE
 #endif
 
     uint32_t                cbBlock;        /* block/pixel size in bytes */
+    uint32_t                cbPitchBlock;   /* block/pixel size of one row in bytes */
     /* Dimensions of the surface block, usually 1x1 except for compressed formats. */
     uint32_t                cxBlock;        /* Block width in pixels. SSM: not saved, recalculated on load. */
     uint32_t                cyBlock;        /* Block height in pixels. SSM: not saved, recalculated on load. */
@@ -998,7 +999,7 @@ typedef struct VMSVGA3DDXCONTEXT
     /** Copy of the guest memory for this context. The guest will be updated on unbind. */
     SVGADXContextMobFormat    svgaDXContext;
     /* Context-Object Tables bound to this context. */
-    PVMSVGAMOB aCOTMobs[SVGA_COTABLE_MAX];
+    PVMSVGAMOB aCOTMobs[VBSVGA_NUM_COTABLES];
     struct
     {
         SVGACOTableDXRTViewEntry          *paRTView;
@@ -1025,6 +1026,17 @@ typedef struct VMSVGA3DDXCONTEXT
         uint32_t                           cQuery;
         uint32_t                           cShader;
         uint32_t                           cUAView;
+
+        VBSVGACOTableDXVideoProcessorEntry *paVideoProcessor;
+        VBSVGACOTableDXVideoDecoderOutputViewEntry  *paVideoDecoderOutputView;
+        VBSVGACOTableDXVideoDecoderEntry  *paVideoDecoder;
+        VBSVGACOTableDXVideoProcessorInputViewEntry  *paVideoProcessorInputView;
+        VBSVGACOTableDXVideoProcessorOutputViewEntry  *paVideoProcessorOutputView;
+        uint32_t                           cVideoProcessor;
+        uint32_t                           cVideoDecoderOutputView;
+        uint32_t                           cVideoDecoder;
+        uint32_t                           cVideoProcessorInputView;
+        uint32_t                           cVideoProcessorOutputView;
     } cot;
 } VMSVGA3DDXCONTEXT;
 /** Pointer to a VMSVGA3D DX context. */
@@ -1355,6 +1367,8 @@ DECLINLINE(int) vmsvga3dDXContextFromCid(PVMSVGA3DSTATE pState, uint32_t cid, PV
     LogRelMax(64, ("VMSVGA: unknown DX cid=%u (%s cid=%u)\n", cid, pDXContext ? "expected" : "null", pDXContext ? pDXContext->cid : -1));
     return VERR_INVALID_PARAMETER;
 }
+
+void vmsvga3dDXInitContextMobData(SVGADXContextMobFormat *p);
 #endif
 
 DECLINLINE(int) vmsvga3dSurfaceFromSid(PVMSVGA3DSTATE pState, uint32_t sid, PVMSVGA3DSURFACE *ppSurface)
@@ -1390,7 +1404,6 @@ void vmsvga3dInfoSurfaceToBitmap(PCDBGFINFOHLP pHlp, PVMSVGA3DSURFACE pSurface,
 void vmsvga3dSurfaceMapInit(VMSVGA3D_MAPPED_SURFACE *pMap, VMSVGA3D_SURFACE_MAP enmMapType, SVGA3dBox const *pBox,
                             PVMSVGA3DSURFACE pSurface, void *pvData, uint32_t cbRowPitch, uint32_t cbDepthPitch);
 
-#if defined(RT_OS_WINDOWS)
 #define D3D_RELEASE(ptr) do { \
     if (ptr) \
     { \
@@ -1398,7 +1411,6 @@ void vmsvga3dSurfaceMapInit(VMSVGA3D_MAPPED_SURFACE *pMap, VMSVGA3D_SURFACE_MAP 
         (ptr) = 0; \
     } \
 } while (0)
-#endif
 
 #if defined(VMSVGA3D_DIRECT3D)
 HRESULT D3D9UpdateTexture(PVMSVGA3DCONTEXT pContext,

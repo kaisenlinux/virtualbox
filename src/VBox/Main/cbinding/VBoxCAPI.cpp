@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -422,7 +422,7 @@ VBoxComInitialize(const char *pszVirtualBoxIID, IVirtualBox **ppVirtualBox,
 #endif /* VBOX_WITH_XPCOM */
 
 #ifdef VBOX_WITH_XPCOM
-    nsIComponentManager *pManager;
+    nsIComponentManager *pManager = NULL;
     hrc = NS_GetComponentManager(&pManager);
     if (FAILED(hrc))
     {
@@ -694,7 +694,7 @@ VBoxClientInitialize(const char *pszVirtualBoxClientIID, IVirtualBoxClient **ppV
 #endif /* VBOX_WITH_XPCOM */
 
 #ifdef VBOX_WITH_XPCOM
-    nsIComponentManager *pManager;
+    nsIComponentManager *pManager = NULL;
     hrc = NS_GetComponentManager(&pManager);
     if (FAILED(hrc))
     {
@@ -775,7 +775,7 @@ VBoxGetCAPIFunctions(unsigned uVersion)
     /* This is the first piece of code which knows that IPRT exists, so
      * initialize it properly. The limited initialization in VBoxC is not
      * sufficient, and causes trouble with com::Initialize() misbehaving. */
-    RTR3InitDll(0);
+    RTR3InitDll(RTR3INIT_FLAGS_UNOBTRUSIVE);
 
     /*
      * The current interface version.

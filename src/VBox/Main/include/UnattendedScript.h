@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -126,6 +126,8 @@ protected:
      * @retval  VERR_NOT_FOUND if variable does not exist.
      *
      * @param   pchName             The variable name.  Not zero terminated.
+     *                              Will return hashed values if the variable name ends with
+     *                              "_MD5", _SHA1", "_SHA256" or "_SHA512".
      * @param   cchName             The length of the name.
      * @param   rstrTmp             String object that can be used for keeping the
      *                              value returned via @a *ppszValue.
@@ -154,6 +156,17 @@ protected:
      *                              in case someone want to sanity check anything.
      */
     virtual HRESULT getConditional(const char *pachPlaceholder, size_t cchPlaceholder, bool *pfOutputting);
+
+    /**
+     * Static function to generate a salt for the RTShaCryptXXX functions.
+     *
+     * @returns VBox status code.
+     * @param   pszSalt             Where to store the salt on success.
+     * @param   cchSalt             Size (in characters) of \a pszSalt. Not including terminator.
+     *                              This also specifies how long the generated salt will be.
+     *                              Must be >= RT_SHACRYPT_MIN_SALT_LEN and <= RT_SHACRYPT_MAX_SALT_LEN.
+     */
+    static int shaCryptGenerateSalt(char *pszSalt, size_t cchSalt);
 };
 
 #if 0 /* convert when we fix SUSE */

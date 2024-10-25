@@ -19,7 +19,7 @@
         by this XSLT (see below).
 -->
 <!--
-    Copyright (C) 2006-2023 Oracle and/or its affiliates.
+    Copyright (C) 2006-2024 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.
@@ -96,6 +96,7 @@
 
   <!-- command synopsis -->
   <xsl:variable name="arg.rep.repeat.str.tex">\ldots{}</xsl:variable>
+  <xsl:variable name="arg.or.sep.compact.tex">|</xsl:variable>
   <xsl:variable name="arg.or.sep.tex"> |~</xsl:variable>
 
   <xsl:output method="text"/>
@@ -388,19 +389,9 @@
           <xsl:with-param name="texcmd">\section</xsl:with-param>
         </xsl:call-template>
       </xsl:when>
-      <xsl:when test="parent::sect2[@role='not-in-toc'] or parent::refsect1 or (parent::section and count(ancestor::section) = 2)">
-        <xsl:call-template name="title-wrapper">
-          <xsl:with-param name="texcmd">\subsection*</xsl:with-param>
-        </xsl:call-template>
-      </xsl:when>
       <xsl:when test="name(..)='sect2'">
         <xsl:call-template name="title-wrapper">
           <xsl:with-param name="texcmd">\subsection</xsl:with-param>
-        </xsl:call-template>
-      </xsl:when>
-      <xsl:when test="parent::sect3[@role='not-in-toc'] or parent::refsect2 or (parent::section and count(ancestor::section) = 3)">
-        <xsl:call-template name="title-wrapper">
-          <xsl:with-param name="texcmd">\subsubsection*</xsl:with-param>
         </xsl:call-template>
       </xsl:when>
       <xsl:when test="name(..)='sect3'">
@@ -408,19 +399,9 @@
           <xsl:with-param name="texcmd">\subsubsection</xsl:with-param>
         </xsl:call-template>
       </xsl:when>
-      <xsl:when test="parent::sect4[@role='not-in-toc'] or parent::refsect3 or (parent::section and count(ancestor::section) = 4)">
-        <xsl:call-template name="title-wrapper">
-          <xsl:with-param name="texcmd">\paragraph*</xsl:with-param>
-        </xsl:call-template>
-      </xsl:when>
       <xsl:when test="name(..)='sect4'">
         <xsl:call-template name="title-wrapper">
           <xsl:with-param name="texcmd">\paragraph</xsl:with-param>
-        </xsl:call-template>
-      </xsl:when>
-      <xsl:when test="parent::sect5[@role='not-in-toc'] or parent::refsect4 or (parent::section and count(ancestor::section) = 5)">
-        <xsl:call-template name="title-wrapper">
-          <xsl:with-param name="texcmd">\subparagraph*</xsl:with-param>
         </xsl:call-template>
       </xsl:when>
       <xsl:when test="name(..)='sect5'">
@@ -967,8 +948,10 @@
     <!-- separator char if we're not the first child -->
     <xsl:if test="position() > 1">
       <xsl:choose>
+        <xsl:when test="parent::group and ancestor::*[@role='compact']"><xsl:text>\textrm{</xsl:text><xsl:value-of select="$arg.or.sep.compact.tex"/><xsl:text>}</xsl:text></xsl:when>
         <xsl:when test="parent::group"><xsl:text>\textrm{</xsl:text><xsl:value-of select="$arg.or.sep.tex"/><xsl:text>}</xsl:text></xsl:when>
-        <xsl:when test="ancestor-or-self::*/@sepchar"><xsl:value-of select="ancestor-or-self::*/@sepchar"/></xsl:when>
+        <xsl:when test="ancestor::*[@role='compact']"></xsl:when>
+        <xsl:when test="ancestor::*/@sepchar"><xsl:value-of select="ancestor::*/@sepchar"/></xsl:when>
         <xsl:otherwise><xsl:text> </xsl:text></xsl:otherwise>
       </xsl:choose>
     </xsl:if>
@@ -1005,9 +988,10 @@
     </xsl:choose>
 
     <!-- add space padding if we're the last element in a nested arg -->
-    <xsl:if test="parent::arg and not(following-sibling)">
+    <!-- 2023-03-22 bird: This is incorrectly written. Fix as needed...
+    <xsl:if test="(parent::arg or parent::group) and not(following-sibling) and not(ancestor::*[@role='compact'])">
       <xsl:text> </xsl:text>
-    </xsl:if>
+    </xsl:if> -->
   </xsl:template>
 
   <xsl:template match="replaceable">

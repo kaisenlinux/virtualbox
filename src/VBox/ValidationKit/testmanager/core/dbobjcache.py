@@ -7,7 +7,7 @@ Test Manager - Database object cache.
 
 __copyright__ = \
 """
-Copyright (C) 2012-2023 Oracle and/or its affiliates.
+Copyright (C) 2012-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -36,7 +36,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 
 # Validation Kit imports.
@@ -119,7 +119,7 @@ class DatabaseObjCache(ModelLogicBase):
             oRet = TestBoxData();
             try:    oRet.initFromDbWithId(self._oDb, idTestBox, self.tsNow, self.sPeriodBack);
             except: self._handleDbException(); raise;
-            else:   self._adCache[self.ksObjType_TestBox_idGenTestBox][oRet.idGenTestBox] = oRet;
+            self._adCache[self.ksObjType_TestBox_idGenTestBox][oRet.idGenTestBox] = oRet;
             self._adCache[self.ksObjType_TestBox_idTestBox][idTestBox] = oRet;
         return oRet;
 
@@ -132,7 +132,7 @@ class DatabaseObjCache(ModelLogicBase):
             oRet = TestCaseData();
             try:    oRet.initFromDbWithId(self._oDb, idTestCase, self.tsNow, self.sPeriodBack);
             except: self._handleDbException(); raise;
-            else:   self._adCache[self.ksObjType_TestCase_idGenTestCase][oRet.idGenTestCase] = oRet;
+            self._adCache[self.ksObjType_TestCase_idGenTestCase][oRet.idGenTestCase] = oRet;
             self._adCache[self.ksObjType_TestCase_idTestCase][idTestCase] = oRet;
         return oRet;
 
@@ -145,7 +145,7 @@ class DatabaseObjCache(ModelLogicBase):
             oRet = TestCaseArgsData();
             try:    oRet.initFromDbWithId(self._oDb, idTestCaseArgs, self.tsNow, self.sPeriodBack);
             except: self._handleDbException(); raise;
-            else:   self._adCache[self.ksObjType_TestCaseArgs_idGenTestCaseArgs][oRet.idGenTestCaseArgs] = oRet;
+            self._adCache[self.ksObjType_TestCaseArgs_idGenTestCaseArgs][oRet.idGenTestCaseArgs] = oRet;
             self._adCache[self.ksObjType_TestCaseArgs_idTestCaseArgs][idTestCaseArgs] = oRet;
         return oRet;
 

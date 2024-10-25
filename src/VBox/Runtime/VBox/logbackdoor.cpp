@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -101,6 +101,9 @@ RTDECL(void) RTLogWriteUser(const char *pch, size_t cb)
         ASMOutStrU8(RTLOG_DEBUG_PORT, pau8, cb);
     else if (cb)
         ASMOutU8(RTLOG_DEBUG_PORT, *pau8);
+# elif defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
+    /** @todo Later maybe */
+    RT_NOREF(pch, cb);
 # else
     /** @todo port me */
     RT_NOREF(pch, cb);

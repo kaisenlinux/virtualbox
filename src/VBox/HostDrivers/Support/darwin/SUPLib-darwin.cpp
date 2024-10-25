@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -62,6 +62,8 @@
 
 #include <sys/fcntl.h>
 #include <sys/ioctl.h>
+#include <sys/types.h>
+#include <sys/sysctl.h>
 #include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -142,7 +144,9 @@ static int suplibDarwinOpenService(PSUPLIBDATA pThis)
      * Open the IOKit client first - The first step is finding the service.
      */
     mach_port_t MasterPort;
-    kern_return_t kr = IOMasterPort(MACH_PORT_NULL, &MasterPort);
+    RT_GCC_NO_WARN_DEPRECATED_BEGIN
+    kern_return_t kr = IOMasterPort(MACH_PORT_NULL, &MasterPort); /* Deprecated since 12.0. */
+    RT_GCC_NO_WARN_DEPRECATED_END
     if (kr != kIOReturnSuccess)
     {
         LogRel(("IOMasterPort -> %d\n", kr));
@@ -327,6 +331,23 @@ DECLHIDDEN(int) suplibOsPageFree(PSUPLIBDATA pThis, void *pvPages, size_t /* cPa
     NOREF(pThis);
     free(pvPages);
     return VINF_SUCCESS;
+}
+
+
+DECLHIDDEN(bool) suplibOsIsNemSupportedWhenNoVtxOrAmdV(void)
+{
+# if ARCH_BITS == 64
+    int fHvSupported = 0;
+    size_t cb = sizeof(fHvSupported);
+    int rc = sysctlbyname("kern.hv.supported", &fHvSupported, &cb, NULL, 0);
+    if (   !rc
+        && cb == sizeof(uint32_t))
+        return fHvSupported == 1;
+
+    return false;
+# else
+    return false;
+#endif
 }
 
 #endif /* !IN_SUP_HARDENED_R3 */

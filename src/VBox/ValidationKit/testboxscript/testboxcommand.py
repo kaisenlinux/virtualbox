@@ -7,7 +7,7 @@ TestBox Script - Command Processor.
 
 __copyright__ = \
 """
-Copyright (C) 2012-2023 Oracle and/or its affiliates.
+Copyright (C) 2012-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -36,7 +36,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 # Standard python imports.
 import os;
@@ -53,7 +53,7 @@ from testboxupgrade     import upgradeFromZip;
 from testboxtasks       import TestBoxExecTask, TestBoxCleanupTask, TestBoxTestDriverTask;
 
 # Figure where we are.
-try:    __file__
+try:    __file__                            # pylint: disable=used-before-assignment
 except: __file__ = sys.argv[0];
 g_ksTestScriptDir = os.path.dirname(os.path.abspath(__file__));
 
@@ -191,8 +191,8 @@ class TestBoxCommand(object):
             if asCmd2 is not None:
                 try:
                     utils.sudoProcessOutputChecked(asCmd2);
-                except Exception as oXcpt:
-                    testboxcommons.log('Error executing reboot command "%s" as well as "%s": %s' % (asCmd, asCmd2, oXcpt));
+                except Exception as oXcpt2:
+                    testboxcommons.log('Error executing reboot command "%s" as well as "%s": %s' % (asCmd, asCmd2, oXcpt2));
                     return False;
             testboxcommons.log('Error executing reboot command "%s": %s' % (asCmd, oXcpt));
             return False;
@@ -250,7 +250,7 @@ class TestBoxCommand(object):
         if fReboot:
             self.doReboot();
         sys.exit(TBS_EXITCODE_NEED_UPGRADE);
-        return False;                   # shuts up pylint (it will probably complain later when it learns DECL_NO_RETURN).
+        return False;  # shuts up older pylint. 2.16.2+:  pylint: disable=unreachable
 
     def _cmdUpgrade(self, oResponse, oConnection):
         """

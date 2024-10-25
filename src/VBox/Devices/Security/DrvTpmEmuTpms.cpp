@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2021-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2021-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -78,6 +78,8 @@ typedef struct DRVTPMEMU
     PPDMDRVINS          pDrvIns;
     /** The VFS interface of the driver below for NVRAM/TPM state loading and storing. */
     PPDMIVFSCONNECTOR   pDrvVfs;
+    /** Pointer to the TPM port interface above. */
+    PPDMITPMPORT        pTpmPort;
 
     /** The TPM version we are emulating. */
     TPMVERSION          enmVersion;
@@ -318,6 +320,82 @@ static DECLCALLBACK(TPM_RESULT) drvTpmEmuTpmsCbkIoGetPhysicalPresence(TPM_BOOL *
 }
 
 
+/* -=-=-=-=-=-=-=-=- Saved State -=-=-=-=-=-=-=-=- */
+
+/**
+ * @callback_method_impl{FNSSMDRVSAVEPREP}
+ */
+static DECLCALLBACK(int) drvTpmEmuTpmsSavePrep(PPDMDRVINS pDrvIns, PSSMHANDLE pSSM)
+{
+    PDMDRV_CHECK_VERSIONS_RETURN(pDrvIns);
+
+    PDRVTPMEMU pThis = PDMINS_2_DATA(pDrvIns, PDRVTPMEMU);
+    RT_NOREF(pSSM);
+
+    /*
+     * libtpms never saves the volatile state on its own, we can only get at it through
+     * TPMLIB_GetState().
+     */
+    int rc = VINF_SUCCESS;
+    uint8_t *pbTpmState = NULL;
+    uint32_t cbTpmState = 0;
+    TPM_RESULT rcTpm = TPMLIB_GetState(TPMLIB_STATE_VOLATILE, &pbTpmState, &cbTpmState);
+    if (rcTpm == TPM_SUCCESS)
+    {
+        /* Save the volatile state in the VFS so it can get loaded on resume. */
+        rc = pThis->pDrvVfs->pfnWriteAll(pThis->pDrvVfs, pThis->pDrvIns->pReg->szName, TPM_VOLATILESTATE_NAME,
+                                         pbTpmState, cbTpmState);
+        free(pbTpmState);
+        if (RT_SUCCESS(rc))
+        {
+            rcTpm = TPMLIB_GetState(TPMLIB_STATE_PERMANENT, &pbTpmState, &cbTpmState);
+            if (rcTpm == TPM_SUCCESS)
+            {
+                rc = pThis->pDrvVfs->pfnWriteAll(pThis->pDrvVfs, pThis->pDrvIns->pReg->szName, TPM_PERMANENT_ALL_NAME,
+                                                 pbTpmState, cbTpmState);
+                free(pbTpmState);
+            }
+            else
+                rc = VERR_NO_MEMORY;
+        }
+    }
+    else
+        rc = VERR_NO_MEMORY;
+
+    return rc;
+}
+
+
+/**
+ * @callback_method_impl{FNSSMDRVLOADDONE}
+ */
+static DECLCALLBACK(int) drvTpmEmuTpmsLoadDone(PPDMDRVINS pDrvIns, PSSMHANDLE pSSM)
+{
+    PDMDRV_CHECK_VERSIONS_RETURN(pDrvIns);
+
+    PDRVTPMEMU pThis = PDMINS_2_DATA(pDrvIns, PDRVTPMEMU);
+    RT_NOREF(pSSM);
+
+    /* Need to construct the TPM here which will load the volatile state saved during the save state operation. */
+    TPM_RESULT rcTpm = TPMLIB_MainInit();
+    if (RT_UNLIKELY(rcTpm != TPM_SUCCESS))
+    {
+        LogRel(("DrvTpmEmuTpms#%u: Failed to initialize TPM emulation with %#x\n",
+                pDrvIns->iInstance, rcTpm));
+        PDMDrvHlpVMSetError(pDrvIns, VERR_INVALID_PARAMETER, RT_SRC_POS, "Failed to startup the TPM with %u", rcTpm);
+    }
+
+    /*
+     * Need to delete the volatile state after loading was done or it will still be present
+     * next time the VM is powered on without a saved state.
+     */
+    int rc = pThis->pDrvVfs->pfnDelete(pThis->pDrvVfs, pThis->pDrvIns->pReg->szName, TPM_VOLATILESTATE_NAME);
+    Assert(RT_SUCCESS(rc) || rc == VERR_NOT_FOUND); RT_NOREF(rc);
+
+    return VINF_SUCCESS;
+}
+
+
 /* -=-=-=-=- PDMDRVREG -=-=-=-=- */
 
 /**
@@ -403,6 +481,17 @@ static DECLCALLBACK(int) drvTpmEmuTpmsConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pC
 #endif
 
     /*
+     * Query the TPM port interface of the device above.
+     */
+    pThis->pTpmPort = PDMIBASE_QUERY_INTERFACE(pDrvIns->pUpBase, PDMITPMPORT);
+    if (!pThis->pTpmPort)
+    {
+        AssertMsgFailed(("Configuration error: the above device/driver didn't export the TPM port interface!\n"));
+        return PDMDRV_SET_ERROR(pDrvIns, VERR_PDM_MISSING_INTERFACE_ABOVE,
+                                N_("No TPM port interface above"));
+    }
+
+    /*
      * Try attach the VFS driver below and query it's VFS interface.
      */
     PPDMIBASE pBase = NULL;
@@ -453,6 +542,9 @@ static DECLCALLBACK(int) drvTpmEmuTpmsConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pC
         return PDMDrvHlpVMSetError(pDrvIns, rc, RT_SRC_POS,
                                    N_("Configuration error: querying \"BufferSize\" resulted in %Rrc"), rc);
 
+    /* Limit to the buffer size of the device above. */
+    pThis->cbBuffer = RT_MIN(pThis->cbBuffer, pThis->pTpmPort->pfnGetMaxBufferSize(pThis->pTpmPort));
+
     uint32_t cbBufferMin = 0;
     uint32_t cbBuffer = TPMLIB_SetBufferSize(pThis->cbBuffer, &cbBufferMin, NULL /*max_size*/);
     if (pThis->cbBuffer != cbBuffer)
@@ -474,6 +566,14 @@ static DECLCALLBACK(int) drvTpmEmuTpmsConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pC
         return PDMDrvHlpVMSetError(pDrvIns, VERR_INVALID_PARAMETER, RT_SRC_POS,
                                    N_("Failed to register callbacks with the TPM emulation: %u"),
                                    rcTpm);
+
+    rc = PDMDrvHlpSSMRegisterEx(pDrvIns, 0 /*uVersion*/, 0 /*cbGuess*/,
+                                NULL                  /*pfnLivePrep*/, NULL /*pfnLiveExec*/, NULL                  /*pfnLiveVote*/,
+                                drvTpmEmuTpmsSavePrep /*pfnSavePrep*/, NULL /*pfnSaveExec*/, NULL                  /*pfnSaveDone*/,
+                                NULL                  /*pfnLoadPrep*/, NULL /*pfnLoadExec*/, drvTpmEmuTpmsLoadDone /*pfnLoadDone*/);
+    if (RT_FAILURE(rc))
+        return PDMDrvHlpVMSetError(pDrvIns, rc, RT_SRC_POS,
+                                   N_("Failed to register saved state handlers"));
 
     /* We can only have one instance of the TPM emulation and require the global variable for the callbacks unfortunately. */
     g_pDrvTpmEmuTpms = pThis;

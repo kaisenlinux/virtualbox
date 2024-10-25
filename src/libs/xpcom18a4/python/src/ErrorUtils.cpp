@@ -47,13 +47,12 @@
 
 #include "PyXPCOM_std.h"
 #include "nsReadableUtils.h"
-#include <nsIConsoleService.h>
 #ifdef VBOX
 # include <nsIExceptionService.h>
 # include <iprt/err.h>
 # include <iprt/string.h>
+# include <iprt/stream.h>
 #endif
-#include "nspr.h" // PR_fprintf
 
 static char *PyTraceback_AsString(PyObject *exc_tb);
 
@@ -63,10 +62,7 @@ static char *PyTraceback_AsString(PyObject *exc_tb);
 // Only used in really bad situations!
 static void _PanicErrorWrite(const char *msg)
 {
-	nsCOMPtr<nsIConsoleService> consoleService = do_GetService(NS_CONSOLESERVICE_CONTRACTID);
-	if (consoleService)
-		consoleService->LogStringMessage(NS_ConvertASCIItoUCS2(msg).get());
-	PR_fprintf(PR_STDERR,"%s\n", msg);
+    RTStrmPrintf(g_pStdErr,"%s\n", msg);
 }
 
 // Called when our "normal" error logger fails.
@@ -83,10 +79,12 @@ static void HandleLogError(const char *pszMessageText)
 
 static const char *LOGGER_WARNING = "warning";
 static const char *LOGGER_ERROR = "error";
+#ifdef DEBUG
 static const char *LOGGER_DEBUG = "debug";
+#endif
 
 // Our "normal" error logger - calls back to the logging module.
-void DoLogMessage(const char *methodName, const char *pszMessageText)
+static void DoLogMessage(const char *methodName, const char *pszMessageText)
 {
 	// We use the logging module now.  Originally this code called
 	// the logging module directly by way of the C API's
@@ -134,7 +132,7 @@ void DoLogMessage(const char *methodName, const char *pszMessageText)
 	PyErr_Restore(exc_typ, exc_val, exc_tb);
 }
 
-void LogMessage(const char *methodName, const char *pszMessageText)
+static void LogMessage(const char *methodName, const char *pszMessageText)
 {
 	// Be careful to save and restore the Python exception state
 	// before calling back to Python, or we lose the original error.
@@ -145,7 +143,7 @@ void LogMessage(const char *methodName, const char *pszMessageText)
 }
 
 
-void LogMessage(const char *methodName, nsACString &text)
+static void LogMessage(const char *methodName, nsACString &text)
 {
 	char *c = ToNewCString(text);
 	LogMessage(methodName, c);
@@ -155,20 +153,15 @@ void LogMessage(const char *methodName, nsACString &text)
 // A helper for the various logging routines.
 static void VLogF(const char *methodName, const char *fmt, va_list argptr)
 {
-	char buff[512];
-#ifdef VBOX /* Enable the use of VBox formatting types. */
-	RTStrPrintfV(buff, sizeof(buff), fmt, argptr);
-#else
-	// Use safer NS_ functions.
-	PR_vsnprintf(buff, sizeof(buff), fmt, argptr);
-#endif
+    char buff[512];
+    RTStrPrintfV(buff, sizeof(buff), fmt, argptr);
 
-	LogMessage(methodName, buff);
+    LogMessage(methodName, buff);
 }
 
-PRBool PyXPCOM_FormatCurrentException(nsCString &streamout)
+bool PyXPCOM_FormatCurrentException(nsCString &streamout)
 {
-	PRBool ok = PR_FALSE;
+	bool ok = false;
 	PyObject *exc_typ = NULL, *exc_val = NULL, *exc_tb = NULL;
 	PyErr_Fetch( &exc_typ, &exc_val, &exc_tb);
 	PyErr_NormalizeException( &exc_typ, &exc_val, &exc_tb);
@@ -180,12 +173,12 @@ PRBool PyXPCOM_FormatCurrentException(nsCString &streamout)
 	return ok;
 }
 
-PRBool PyXPCOM_FormatGivenException(nsCString &streamout,
+bool PyXPCOM_FormatGivenException(nsCString &streamout,
 				    PyObject *exc_typ, PyObject *exc_val,
 				    PyObject *exc_tb)
 {
 	if (!exc_typ)
-		return PR_FALSE;
+		return false;
 	streamout += "\n";
 
 	if (exc_tb) {
@@ -221,7 +214,7 @@ PRBool PyXPCOM_FormatGivenException(nsCString &streamout,
 		} else
 			streamout += "Can't convert exception value to a string!";
 	}
-	return PR_TRUE;
+	return true;
 }
 
 void PyXPCOM_LogError(const char *fmt, ...)
@@ -235,7 +228,7 @@ void PyXPCOM_LogError(const char *fmt, ...)
 	// Don't use VLogF here, instead arrange for exception info and
 	// traceback to be in the same buffer.
 	char buff[512];
-	PR_vsnprintf(buff, sizeof(buff), fmt, marker);
+	RTStrPrintf2V(buff, sizeof(buff), fmt, marker);
 	// If we have a Python exception, also log that:
 	nsCAutoString streamout(buff);
 	if (PyXPCOM_FormatCurrentException(streamout)) {
@@ -290,8 +283,8 @@ PyObject *PyXPCOM_BuildErrorMessage(nsresult r)
                 {
                     nsXPIDLCString emsg;
                     ex->GetMessage(getter_Copies(emsg));
-                    PR_snprintf(msg, sizeof(msg), "%s",
-                                emsg.get());
+                    RTStrPrintf2(msg, sizeof(msg), "%s",
+                                 emsg.get());
                     gotMsg = true;
                 }
             }
@@ -303,16 +296,16 @@ PyObject *PyXPCOM_BuildErrorMessage(nsresult r)
         const RTCOMERRMSG* pMsg = RTErrCOMGet(r);
         if (strncmp(pMsg->pszMsgFull, "Unknown", 7) != 0)
         {
-            PR_snprintf(msg, sizeof(msg), "%s (%s)",
-                        pMsg->pszMsgFull, pMsg->pszDefine);
+            RTStrPrintf2(msg, sizeof(msg), "%s (%s)",
+                         pMsg->pszMsgFull, pMsg->pszDefine);
             gotMsg = true;
         }
     }
 
     if (!gotMsg)
     {
-        PR_snprintf(msg, sizeof(msg), "Error 0x%x in module 0x%x",
-                    NS_ERROR_GET_CODE(r), NS_ERROR_GET_MODULE(r));
+        RTStrPrintf2(msg, sizeof(msg), "Error 0x%x in module 0x%x",
+                     NS_ERROR_GET_CODE(r), NS_ERROR_GET_MODULE(r));
     }
     PyObject *evalue = Py_BuildValue("is", r, msg);
     return evalue;

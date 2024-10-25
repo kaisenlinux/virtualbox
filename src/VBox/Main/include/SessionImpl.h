@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -119,7 +119,8 @@ private:
                         BOOL aAdd);
     HRESULT onCPUExecutionCapChange(ULONG aExecutionCap);
     HRESULT onVRDEServerChange(BOOL aRestart);
-    HRESULT onRecordingChange(BOOL aEnable);
+    HRESULT onRecordingStateChange(BOOL aEnable, ComPtr<IProgress> &aProgress);
+    HRESULT onRecordingScreenStateChange(BOOL aEnable, ULONG aScreen);
     HRESULT onUSBControllerChange();
     HRESULT onSharedFolderChange(BOOL aGlobal);
     HRESULT onGuestDebugControlChange(const ComPtr<IGuestDebugControl> &aGuestDebugControl);

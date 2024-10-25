@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,6 +35,7 @@
 #include <QStateMachine>
 #include <QStyle>
 #include <QStyleOptionGraphicsItem>
+#include <QWindow>
 
 /* GUI includes: */
 #include "UIImageTools.h"
@@ -618,7 +619,8 @@ void UIToolsItem::updatePixmap()
 
     /* Prepare new pixmap size: */
     const QSize pixmapSize = QSize(iIconMetric, iIconMetric);
-    const QPixmap pixmap = m_icon.pixmap(gpManager->windowHandle(), pixmapSize, isEnabled() ? QIcon::Normal : QIcon::Disabled);
+    const qreal fDevicePixelRatio = gpManager->windowHandle() ? gpManager->windowHandle()->devicePixelRatio() : 1;
+    const QPixmap pixmap = m_icon.pixmap(pixmapSize, fDevicePixelRatio, isEnabled() ? QIcon::Normal : QIcon::Disabled);
     /* Update linked values: */
     if (m_pixmapSize != pixmapSize)
     {
@@ -642,11 +644,7 @@ void UIToolsItem::updateMinimumNameSize()
     const QFontMetrics fm(m_nameFont, pPaintDevice);
     const int iWidthOf15Letters = textWidthMonospace(m_nameFont, pPaintDevice, 15);
     const QString strNameCompressedTo15Letters = compressText(m_nameFont, pPaintDevice, m_strName, iWidthOf15Letters);
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
     const QSize minimumNameSize = QSize(fm.horizontalAdvance(strNameCompressedTo15Letters), fm.height());
-#else
-    const QSize minimumNameSize = QSize(fm.width(strNameCompressedTo15Letters), fm.height());
-#endif
 
     /* Update linked values: */
     if (m_minimumNameSize != minimumNameSize)
@@ -697,14 +695,10 @@ void UIToolsItem::updateVisibleName()
 int UIToolsItem::textWidthMonospace(const QFont &font, QPaintDevice *pPaintDevice, int iCount)
 {
     /* Return text width, based on font-metrics: */
-    QFontMetrics fm(font, pPaintDevice);
+    const QFontMetrics fm(font, pPaintDevice);
     QString strString;
     strString.fill('_', iCount);
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
     return fm.horizontalAdvance(strString);
-#else
-    return fm.width(strString);
-#endif
 }
 
 /* static */
@@ -715,25 +709,15 @@ QString UIToolsItem::compressText(const QFont &font, QPaintDevice *pPaintDevice,
         return strText;
 
     /* Check if passed text already fits maximum width: */
-    QFontMetrics fm(font, pPaintDevice);
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
+    const QFontMetrics fm(font, pPaintDevice);
     if (fm.horizontalAdvance(strText) <= iWidth)
-#else
-    if (fm.width(strText) <= iWidth)
-#endif
         return strText;
 
     /* Truncate otherwise: */
-    QString strEllipsis = QString("...");
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
-    int iEllipsisWidth = fm.horizontalAdvance(strEllipsis + " ");
+    const QString strEllipsis = QString("...");
+    const int iEllipsisWidth = fm.horizontalAdvance(strEllipsis + " ");
     while (!strText.isEmpty() && fm.horizontalAdvance(strText) + iEllipsisWidth > iWidth)
         strText.truncate(strText.size() - 1);
-#else
-    int iEllipsisWidth = fm.width(strEllipsis + " ");
-    while (!strText.isEmpty() && fm.width(strText) + iEllipsisWidth > iWidth)
-        strText.truncate(strText.size() - 1);
-#endif
     return strText + strEllipsis;
 }
 
@@ -899,23 +883,9 @@ void UIToolsItem::paintToolInfo(QPainter *pPainter, const QRect &rectangle) cons
                                 ? highlight.lighter(m_iHighlightLightnessStart)
                                 : highlight.lighter(m_iHoverLightnessStart);
 
-        /* Get foreground color: */
-        const QColor simpleText = pal.color(QPalette::Active, QPalette::Text);
-        const QColor highlightText = pal.color(QPalette::Active, QPalette::HighlightedText);
-        QColor lightText = simpleText.black() < highlightText.black() ? simpleText : highlightText;
-        QColor darkText = simpleText.black() > highlightText.black() ? simpleText : highlightText;
-        if (lightText.black() > 128)
-            lightText = QColor(Qt::white);
-        if (darkText.black() < 128)
-            darkText = QColor(Qt::black);
-
         /* Gather foreground color for background one: */
-        double dLuminance = (0.299 * background.red() + 0.587 * background.green() + 0.114 * background.blue()) / 255;
-        //printf("luminance = %f\n", dLuminance);
-        if (dLuminance > 0.5)
-            pPainter->setPen(darkText);
-        else
-            pPainter->setPen(lightText);
+        const QColor foreground = suitableForegroundColor(pal, background);
+        pPainter->setPen(foreground);
     }
     /* Default item foreground: */
     else

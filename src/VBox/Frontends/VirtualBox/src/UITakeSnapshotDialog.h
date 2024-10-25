@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -36,7 +36,6 @@
 
 /* GUI includes: */
 #include "QIDialog.h"
-#include "QIWithRetranslateUI.h"
 #include "UILibraryDefs.h"
 
 /* Forward declarations: */
@@ -45,18 +44,17 @@ class QLineEdit;
 class QTextEdit;
 class QIDialogButtonBox;
 class QILabel;
-class CMachine;
 
 /** QIDialog subclass for taking snapshot name/description. */
-class SHARED_LIBRARY_STUFF UITakeSnapshotDialog : public QIWithRetranslateUI<QIDialog>
+class SHARED_LIBRARY_STUFF UITakeSnapshotDialog : public QIDialog
 {
     Q_OBJECT;
 
 public:
 
     /** Constructs take snapshot dialog passing @ pParent to the base-class.
-      * @param  comMachine  Brings the machine to take snapshot for. */
-    UITakeSnapshotDialog(QWidget *pParent, const CMachine &comMachine);
+      * @param  cImmutableMedia  Brings the amount of immutable mediums. */
+    UITakeSnapshotDialog(QWidget *pParent, ulong cImmutableMedia);
 
     /** Defines snapshot @a icon. */
     void setIcon(const QIcon &icon);
@@ -74,13 +72,13 @@ protected:
     /** Handles any Qt @a pEvent. */
     virtual bool event(QEvent *pEvent) RT_OVERRIDE;
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
 private slots:
 
     /** Handles @a strName change signal. */
     void sltHandleNameChanged(const QString &strName);
+
+    /** Handles translation event. */
+    void sltRetranslateUI();
 
 private:
 
@@ -92,14 +90,11 @@ private:
     /** Updates pixmap. */
     void updatePixmap();
 
-    /** Holds the wrapper of machine to take snapshot for. */
-    const CMachine &m_comMachine;
+    /** Holds the amount of immutable mediums. */
+    const ulong  m_cImmutableMedia;
 
     /** Holds the snapshot icon. */
     QIcon m_icon;
-
-    /** Holds the amount of immutable attachments. */
-    int  m_cImmutableMedia;
 
     /** Holds the icon label instance. */
     QLabel *m_pLabelIcon;

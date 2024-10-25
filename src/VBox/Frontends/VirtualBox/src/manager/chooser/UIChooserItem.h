@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -40,11 +40,7 @@
 
 /* GUI includes: */
 #include "QIGraphicsWidget.h"
-#include "QIWithRetranslateUI.h"
 #include "UIChooserDefs.h"
-
-/* Other VBox includes: */
-#include <iprt/cdefs.h>
 
 /* Forward declaration: */
 class QGraphicsSceneHoverEvent;
@@ -75,7 +71,7 @@ public:
 protected:
 
     /** Draws effect with passed @a pPainter. */
-    virtual void draw(QPainter *pPainter);
+    virtual void draw(QPainter *pPainter) RT_OVERRIDE RT_FINAL;;
 
 private:
 
@@ -86,7 +82,7 @@ private:
 
 /** QIGraphicsWidget extension used as interface
   * for graphics chooser model/view architecture. */
-class UIChooserItem : public QIWithRetranslateUI4<QIGraphicsWidget>
+class UIChooserItem : public QIGraphicsWidget
 {
     Q_OBJECT;
     Q_PROPERTY(int animatedValue READ animatedValue WRITE setAnimatedValue);

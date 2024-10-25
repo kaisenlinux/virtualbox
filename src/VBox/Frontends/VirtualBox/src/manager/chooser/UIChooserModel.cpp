@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,7 +35,6 @@
 
 /* GUI includes: */
 #include "QIMessageBox.h"
-#include "UICommon.h"
 #include "UIActionPoolManager.h"
 #include "UIChooser.h"
 #include "UIChooserHandlerMouse.h"
@@ -125,17 +124,8 @@ QGraphicsItem *UIChooserModel::itemAt(const QPointF &position, const QTransform 
 
 void UIChooserModel::handleToolButtonClick(UIChooserItem *pItem)
 {
-    switch (pItem->type())
-    {
-        case UIChooserNodeType_Global:
-            emit sigToolMenuRequested(UIToolClass_Global, pItem->mapToScene(QPointF(pItem->size().width(), 0)).toPoint());
-            break;
-        case UIChooserNodeType_Machine:
-            emit sigToolMenuRequested(UIToolClass_Machine, pItem->mapToScene(QPointF(pItem->size().width(), 0)).toPoint());
-            break;
-        default:
-            break;
-    }
+    emit sigToolMenuRequested(pItem->mapToScene(QPointF(pItem->size().width(), 0)).toPoint(),
+                              pItem->type() == UIChooserNodeType_Machine ? pItem->toMachineItem()->cache() : 0);
 }
 
 void UIChooserModel::handlePinButtonClick(UIChooserItem *pItem)
@@ -438,17 +428,10 @@ void UIChooserModel::makeSureNoItemWithCertainIdSelected(const QUuid &uId)
             matchedItems << pNode->item();
 
     /* If we have at least one of those items currently selected: */
-#ifdef VBOX_IS_QT6_OR_LATER /* we have to use range constructors since 6.0 */
-    {
-        QList<UIChooserItem *> selectedItemsList = selectedItems();
-        QSet<UIChooserItem *> selectedItemsSet(selectedItemsList.begin(), selectedItemsList.end());
-        if (selectedItemsSet.intersects(matchedItems))
-            setSelectedItem(findClosestUnselectedItem());
-    }
-#else
-    if (selectedItems().toSet().intersects(matchedItems))
+    const QList<UIChooserItem*> selectedItemsList = selectedItems();
+    const QSet<UIChooserItem*> selectedItemsSet(selectedItemsList.begin(), selectedItemsList.end());
+    if (selectedItemsSet.intersects(matchedItems))
         setSelectedItem(findClosestUnselectedItem());
-#endif
 
     /* If global item is currently chosen, selection should be invalidated: */
     if (firstSelectedItem() && firstSelectedItem()->type() == UIChooserNodeType_Global)
@@ -1286,8 +1269,9 @@ void UIChooserModel::sltHandleReadCloudMachineListTaskComplete()
     /* Call to base-class: */
     UIChooserAbstractModel::sltHandleReadCloudMachineListTaskComplete();
 
-    /* Restart cloud profile update timer: */
-    m_pTimerCloudProfileUpdate->start(10000);
+    /* Postpone update since we have just updated: */
+    if (m_pTimerCloudProfileUpdate)
+        m_pTimerCloudProfileUpdate->start(10000);
 }
 
 void UIChooserModel::sltHandleCloudProfileManagerCumulativeChange()
@@ -1367,9 +1351,36 @@ void UIChooserModel::sltHandleCloudMachineRemoved(const QString &strProviderShor
 
 void UIChooserModel::sltUpdateSelectedCloudProfiles()
 {
+    /* Postpone update since we are already working on it: */
+    if (m_pTimerCloudProfileUpdate)
+        m_pTimerCloudProfileUpdate->start(10000);
+
+    /* Compose a list of items to update: */
+    QList<UIChooserItem*> itemsToUpdate;
+
+    /* For the case if requested - just update everything: */
+    if (isKeepCloudNodesUpdated())
+    {
+        /* Search for a list of provider nodes having items: */
+        QList<UIChooserNode*> providerNodes;
+        invisibleRoot()->searchForNodes(QString(),
+                                        UIChooserItemSearchFlag_CloudProvider,
+                                        providerNodes);
+        foreach (UIChooserNode *pNode, providerNodes)
+            if (UIChooserItem *pItem = pNode->item())
+                itemsToUpdate << pItem;
+
+        /* Have at least something as a fallback: */
+        if (itemsToUpdate.isEmpty())
+            itemsToUpdate << selectedItems();
+    }
+    /* Otherwise update selected items only: */
+    else
+        itemsToUpdate << selectedItems();
+
     /* For every selected item: */
     QSet<UICloudEntityKey> selectedCloudProfileKeys;
-    foreach (UIChooserItem *pSelectedItem, selectedItems())
+    foreach (UIChooserItem *pSelectedItem, itemsToUpdate)
     {
         /* Enumerate cloud profile keys to update: */
         switch (pSelectedItem->type())
@@ -1502,7 +1513,6 @@ void UIChooserModel::prepareContextMenu()
         pMenuGroup->addMenu(actionPool()->action(UIActionIndexMN_M_Group_M_Stop)->menu());
         pMenuGroup->addSeparator();
         pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Discard));
-        pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_ShowLogDialog));
         pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Refresh));
         pMenuGroup->addSeparator();
         pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_ShowInFileManager));
@@ -1530,7 +1540,6 @@ void UIChooserModel::prepareContextMenu()
         pMenuMachine->addMenu(actionPool()->action(UIActionIndexMN_M_Machine_M_Stop)->menu());
         pMenuMachine->addSeparator();
         pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Discard));
-        pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_ShowLogDialog));
         pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Refresh));
         pMenuMachine->addSeparator();
         pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_ShowInFileManager));
@@ -1548,6 +1557,7 @@ void UIChooserModel::prepareContextMenu()
         pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Add));
         pMenuGroup->addSeparator();
         pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_M_StartOrShow));
+        pMenuGroup->addAction(actionPool()->action(UIActionIndexMN_M_Group_S_Reset));
         pMenuGroup->addMenu(actionPool()->action(UIActionIndexMN_M_Group_M_Console)->menu());
         pMenuGroup->addMenu(actionPool()->action(UIActionIndexMN_M_Group_M_Stop)->menu());
         pMenuGroup->addSeparator();
@@ -1562,9 +1572,11 @@ void UIChooserModel::prepareContextMenu()
     if (QMenu *pMenuMachine = m_cloudMenus.value(UIChooserNodeType_Machine))
     {
         pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Settings));
+        pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Clone));
         pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Remove));
         pMenuMachine->addSeparator();
         pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_M_StartOrShow));
+        pMenuMachine->addAction(actionPool()->action(UIActionIndexMN_M_Machine_S_Reset));
         pMenuMachine->addMenu(actionPool()->action(UIActionIndexMN_M_Machine_M_Console)->menu());
         pMenuMachine->addMenu(actionPool()->action(UIActionIndexMN_M_Machine_M_Stop)->menu());
         pMenuMachine->addSeparator();
@@ -1585,7 +1597,7 @@ void UIChooserModel::prepareCloudUpdateTimer()
 {
     m_pTimerCloudProfileUpdate = new QTimer;
     if (m_pTimerCloudProfileUpdate)
-        m_pTimerCloudProfileUpdate->setSingleShot(true);
+        m_pTimerCloudProfileUpdate->start(10000);
 }
 
 void UIChooserModel::prepareConnections()
@@ -1908,7 +1920,7 @@ void UIChooserModel::unregisterLocalMachines(const QList<CMachine> &machines)
         if (iResultCode == AlertButton_Choice1)
         {
             /* Unregister machine first: */
-            CMediumVector media = comMachine.Unregister(KCleanupMode_DetachAllReturnHardDisksOnly);
+            CMediumVector media = comMachine.Unregister(KCleanupMode_DetachAllReturnHardDisksAndVMRemovable);
             if (!comMachine.isOk())
             {
                 UINotificationMessage::cannotRemoveMachine(comMachine);
@@ -1921,7 +1933,7 @@ void UIChooserModel::unregisterLocalMachines(const QList<CMachine> &machines)
         else if (iResultCode == AlertButton_Choice2 || iResultCode == AlertButton_Ok)
         {
             /* Unregister machine first: */
-            CMediumVector media = comMachine.Unregister(KCleanupMode_DetachAllReturnHardDisksOnly);
+            CMediumVector media = comMachine.Unregister(KCleanupMode_DetachAllReturnHardDisksAndVMRemovable);
             if (!comMachine.isOk())
             {
                 UINotificationMessage::cannotRemoveMachine(comMachine);
@@ -1945,14 +1957,16 @@ void UIChooserModel::unregisterCloudMachineItems(const QList<UIChooserItemMachin
         machines << pMachineItem->cache()->toCloud()->machine();
 
     /* Stop cloud profile update prematurely: */
-    m_pTimerCloudProfileUpdate->stop();
+    if (m_pTimerCloudProfileUpdate)
+        m_pTimerCloudProfileUpdate->stop();
 
     /* Confirm machine removal: */
     const int iResultCode = msgCenter().confirmCloudMachineRemoval(machines);
     if (iResultCode == AlertButton_Cancel)
     {
         /* Resume cloud profile update if cancelled: */
-        m_pTimerCloudProfileUpdate->start(10000);
+        if (m_pTimerCloudProfileUpdate)
+            m_pTimerCloudProfileUpdate->start(10000);
         return;
     }
 
@@ -1982,6 +1996,10 @@ void UIChooserModel::unregisterCloudMachineItems(const QList<UIChooserItemMachin
                 this, &UIChooserModel::sltHandleCloudMachineRemoved);
         gpNotificationCenter->append(pNotification);
     }
+
+    /* Resume cloud profile update after all: */
+    if (m_pTimerCloudProfileUpdate)
+        m_pTimerCloudProfileUpdate->start(10000);
 }
 
 bool UIChooserModel::processDragMoveEvent(QGraphicsSceneDragDropEvent *pEvent)

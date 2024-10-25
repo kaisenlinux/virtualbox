@@ -57,14 +57,6 @@
 #include <dirent.h>
 #include <ctype.h>
 #include <locale.h>
-#ifdef XP_BEOS
-    #include <Path.h>
-    #include <Entry.h>
-    #include <Roster.h>
-#endif
-#if defined(VMS)
-    #include <fabdef.h>
-#endif
 
 #include "nsDirectoryServiceDefs.h"
 #include "nsCRT.h"
@@ -76,21 +68,18 @@
 #include "nsLocalFile.h"
 #include "nsIComponentManager.h"
 #include "nsXPIDLString.h"
-#include "prproces.h"
 #include "nsISimpleEnumerator.h"
-#include "nsITimelineService.h"
 
 #include "nsNativeCharsetUtils.h"
 
-// On some platforms file/directory name comparisons need to
-// be case-blind.
-#if defined(VMS)
-    #define FILE_STRCMP strcasecmp
-    #define FILE_STRNCMP strncasecmp
-#else
-    #define FILE_STRCMP strcmp
-    #define FILE_STRNCMP strncmp
-#endif
+#include <iprt/err.h>
+#include <iprt/dir.h>
+#include <iprt/file.h>
+#include <iprt/path.h>
+#include <iprt/time.h>
+
+#define FILE_STRCMP strcmp
+#define FILE_STRNCMP strncmp
 
 #define VALIDATE_STAT_CACHE()                   \
     PR_BEGIN_MACRO                              \
@@ -106,6 +95,31 @@
         if (mPath.IsEmpty())                    \
             return NS_ERROR_NOT_INITIALIZED;    \
     PR_END_MACRO
+
+NS_COM nsresult
+NS_ErrorAccordingToIPRT(int vrc)
+{
+    switch (vrc) {
+      case VERR_NO_MEMORY:                      return NS_ERROR_OUT_OF_MEMORY;
+      case VERR_FILE_NOT_FOUND:                 return NS_ERROR_FILE_NOT_FOUND;
+      case VERR_PATH_NOT_FOUND:                 return NS_ERROR_FILE_NOT_FOUND;
+      case VERR_NOT_A_DIRECTORY:                return NS_ERROR_FILE_NOT_DIRECTORY;
+      case VERR_IS_A_DIRECTORY:                 return NS_ERROR_FILE_IS_DIRECTORY;
+      case VERR_ALREADY_EXISTS:                 return NS_ERROR_FILE_ALREADY_EXISTS;
+      case VERR_FILE_LOCK_VIOLATION:            return NS_ERROR_FILE_IS_LOCKED;
+      case VERR_FILE_TOO_BIG:                   return NS_ERROR_FILE_TOO_BIG;
+      case VERR_FILENAME_TOO_LONG:              return NS_ERROR_FILE_NAME_TOO_LONG;
+      case VERR_DIR_NOT_EMPTY:                  return NS_ERROR_FILE_DIR_NOT_EMPTY;
+      case VERR_ACCESS_DENIED:                  return NS_ERROR_FILE_ACCESS_DENIED;
+      case VERR_WRITE_PROTECT:                  return NS_ERROR_FILE_READ_ONLY;
+      case VERR_DISK_FULL:                      return NS_ERROR_FILE_NO_DEVICE_SPACE;
+
+      /** @todo: No IPRT equivalent right now (but shouldn't be important). */
+      //case PR_WOULD_BLOCK_ERROR:                return NS_BASE_STREAM_WOULD_BLOCK;
+      default:                                  return NS_ERROR_FAILURE;
+    }
+}
+
 
 /* directory enumerator */
 class NS_COM
@@ -357,7 +371,7 @@ nsLocalFile::CreateAllAncestors(PRUint32 permissions)
          * either here on back in Create, and error out appropriately.
          */
         if (mkdir_result == -1 && mkdir_errno != EEXIST)
-            return nsresultForErrno(mkdir_errno);
+            return nsresultForIprt(RTErrConvertFromErrno(mkdir_errno));
     }
 
 #ifdef DEBUG_NSIFILE
@@ -367,53 +381,31 @@ nsLocalFile::CreateAllAncestors(PRUint32 permissions)
     return NS_OK;
 }
 
-NS_IMETHODIMP
-nsLocalFile::OpenNSPRFileDesc(PRInt32 flags, PRInt32 mode, PRFileDesc **_retval)
+static int
+do_create(const char *path, uint32_t flags, mode_t mode, RTFILE *_retval)
 {
-    *_retval = PR_Open(mPath.get(), flags, mode);
-    if (! *_retval)
-        return NS_ErrorAccordingToNSPR();
-
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsLocalFile::OpenANSIFileDesc(const char *mode, FILE **_retval)
-{
-    *_retval = fopen(mPath.get(), mode);
-    if (! *_retval)
-        return NS_ERROR_FAILURE;
-
-    return NS_OK;
+    return RTFileOpen(_retval, path, flags | (mode << RTFILE_O_CREATE_MODE_SHIFT));
 }
 
 static int
-do_create(const char *path, PRIntn flags, mode_t mode, PRFileDesc **_retval)
+do_mkdir(const char *path, uint32_t flags, mode_t mode, RTFILE *_retval)
 {
-    *_retval = PR_Open(path, flags, mode);
-    return *_retval ? 0 : -1;
-}
-
-static int
-do_mkdir(const char *path, PRIntn flags, mode_t mode, PRFileDesc **_retval)
-{
-    *_retval = nsnull;
-    return mkdir(path, mode);
+    *_retval = NULL;
+    return RTDirCreate(path, mode, 0 /* fCreate*/);
 }
 
 nsresult
-nsLocalFile::CreateAndKeepOpen(PRUint32 type, PRIntn flags,
-                               PRUint32 permissions, PRFileDesc **_retval)
+nsLocalFile::CreateAndKeepOpen(PRUint32 type, uint32_t flags,
+                               PRUint32 permissions, RTFILE *_retval)
 {
     if (type != NORMAL_FILE_TYPE && type != DIRECTORY_TYPE)
         return NS_ERROR_FILE_UNKNOWN_TYPE;
 
-    int result;
-    int (*createFunc)(const char *, PRIntn, mode_t, PRFileDesc **) =
+    int (*createFunc)(const char *, uint32_t, mode_t, RTFILE *) =
         (type == NORMAL_FILE_TYPE) ? do_create : do_mkdir;
 
-    result = createFunc(mPath.get(), flags, permissions, _retval);
-    if (result == -1 && errno == ENOENT) {
+    int vrc = createFunc(mPath.get(), flags, permissions, _retval);
+    if (vrc == VERR_PATH_NOT_FOUND || vrc == VERR_FILE_NOT_FOUND || vrc == VERR_NOT_FOUND) {
         /*
          * If we failed because of missing ancestor components, try to create
          * them and then retry the original creation.
@@ -442,23 +434,23 @@ nsLocalFile::CreateAndKeepOpen(PRUint32 type, PRIntn flags,
 #ifdef DEBUG_NSIFILE
         fprintf(stderr, "nsIFile: Create(\"%s\") again\n", mPath.get());
 #endif
-        result = createFunc(mPath.get(), flags, permissions, _retval);
+        vrc = createFunc(mPath.get(), flags, permissions, _retval);
     }
 
-    return NSRESULT_FOR_RETURN(result);
+    return NSRESULT_FOR_IPRT(vrc);
 }
 
 NS_IMETHODIMP
 nsLocalFile::Create(PRUint32 type, PRUint32 permissions)
 {
-    PRFileDesc *junk = nsnull;
+    RTFILE junk = NULL;
     nsresult rv = CreateAndKeepOpen(type,
-                                    PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE |
-                                    PR_EXCL,
+                                    RTFILE_O_WRITE | RTFILE_O_CREATE | RTFILE_O_TRUNCATE |
+                                    RTFILE_O_DENY_ALL,
                                     permissions,
                                     &junk);
     if (junk)
-        PR_Close(junk);
+        RTFileClose(junk);
     return rv;
 }
 
@@ -780,9 +772,9 @@ nsLocalFile::CopyToNative(nsIFile *newParent, const nsACString &newName)
         // But we can write to a read-only file on all Unix filesystems if we
         // open it successfully for writing.
 
-        PRFileDesc *newFD;
+        RTFILE newFD;
         rv = newFile->CreateAndKeepOpen(NORMAL_FILE_TYPE,
-                                        PR_WRONLY|PR_CREATE_FILE|PR_TRUNCATE,
+                                        RTFILE_O_WRITE | RTFILE_O_CREATE | RTFILE_O_TRUNCATE | RTFILE_O_DENY_NONE,
                                         myPerms,
                                         &newFD);
         if (NS_FAILED(rv))
@@ -791,7 +783,7 @@ nsLocalFile::CopyToNative(nsIFile *newParent, const nsACString &newName)
         // open the old file, too
         PRBool specialFile;
         if (NS_FAILED(rv = IsSpecial(&specialFile))) {
-            PR_Close(newFD);
+            RTFileClose(newFD);
             return rv;
         }
         if (specialFile) {
@@ -799,54 +791,28 @@ nsLocalFile::CopyToNative(nsIFile *newParent, const nsACString &newName)
             printf("Operation not supported: %s\n", mPath.get());
 #endif
             // make sure to clean up properly
-            PR_Close(newFD);
+            RTFileClose(newFD);
             return NS_OK;
         }
                
-        PRFileDesc *oldFD;
-        rv = OpenNSPRFileDesc(PR_RDONLY, myPerms, &oldFD);
+        RTFILE oldFD = NIL_RTFILE;
+        int vrc = RTFileOpen(&oldFD, mPath.get(), RTFILE_O_OPEN | RTFILE_O_READ | RTFILE_O_DENY_NONE);
+        if (RT_FAILURE(vrc))
+            rv = NS_ErrorAccordingToIPRT(vrc);
         if (NS_FAILED(rv)) {
             // make sure to clean up properly
-            PR_Close(newFD);
+            RTFileClose(newFD);
             return rv;
         }
 
-#ifdef DEBUG_blizzard
-        PRInt32 totalRead = 0;
-        PRInt32 totalWritten = 0;
-#endif
-        char buf[BUFSIZ];
-        PRInt32 bytesRead;
-        
-        while ((bytesRead = PR_Read(oldFD, buf, BUFSIZ)) > 0) {
-#ifdef DEBUG_blizzard
-            totalRead += bytesRead;
-#endif
-
-            // PR_Write promises never to do a short write
-            PRInt32 bytesWritten = PR_Write(newFD, buf, bytesRead);
-            if (bytesWritten < 0) {
-                bytesRead = -1;
-                break;
-            }
-            NS_ASSERTION(bytesWritten == bytesRead, "short PR_Write?");
-
-#ifdef DEBUG_blizzard
-            totalWritten += bytesWritten;
-#endif
-        }
-
-#ifdef DEBUG_blizzard
-        printf("read %d bytes, wrote %d bytes\n",
-                 totalRead, totalWritten);
-#endif
+        vrc = RTFileCopyByHandles(oldFD, newFD);
 
         // close the files
-        PR_Close(newFD);
-        PR_Close(oldFD);
+        RTFileClose(newFD);
+        RTFileClose(oldFD);
 
         // check for read (or write) error after cleaning up
-        if (bytesRead < 0) 
+        if (RT_FAILURE(vrc)) 
             return NS_ERROR_OUT_OF_MEMORY;
     }
     return rv;
@@ -902,7 +868,10 @@ nsLocalFile::Remove(PRBool recursive)
         return rv;
 
     if (!recursive && isSymLink)
-        return NSRESULT_FOR_RETURN(unlink(mPath.get()));
+    {
+        int vrc = RTErrConvertFromErrno(unlink(mPath.get()));
+        return NSRESULT_FOR_IPRT(vrc);
+    }
     
     isDir = S_ISDIR(mCachedStat.st_mode);
     InvalidateCache();
@@ -949,15 +918,13 @@ nsLocalFile::GetLastModifiedTime(PRInt64 *aLastModTime)
     CHECK_mPath();
     NS_ENSURE_ARG(aLastModTime);
 
-    PRFileInfo64 info;
-    if (PR_GetFileInfo64(mPath.get(), &info) != PR_SUCCESS)
-        return NSRESULT_FOR_ERRNO();
+    RTFSOBJINFO info;
+    int vrc = RTPathQueryInfo(mPath.get(), &info, RTFSOBJATTRADD_NOTHING);
+    if (RT_FAILURE(vrc))
+        return NSRESULT_FOR_IPRT(vrc);
 
-    // PRTime is a 64 bit value
     // microseconds -> milliseconds
-    PRInt64 usecPerMsec;
-    LL_I2L(usecPerMsec, PR_USEC_PER_MSEC);
-    LL_DIV(*aLastModTime, info.modifyTime, usecPerMsec);
+    *aLastModTime = RTTimeSpecGetMilli(&info.ModificationTime);
     return NS_OK;
 }
 
@@ -981,7 +948,8 @@ nsLocalFile::SetLastModifiedTime(PRInt64 aLastModTime)
         result = utime(mPath.get(), nsnull);
     }
     InvalidateCache();
-    return NSRESULT_FOR_RETURN(result);
+    int vrc = RTErrConvertFromErrno(result);
+    return NSRESULT_FOR_IPRT(vrc);
 }
 
 NS_IMETHODIMP
@@ -1188,11 +1156,10 @@ nsLocalFile::GetParent(nsIFile **aParent)
         return  NS_OK;
  
     // <brendan, after jband> I promise to play nice
-    char *buffer   = mPath.BeginWriting(),
-         *slashp   = buffer;
+    char *buffer   = mPath.BeginWriting();
 
     // find the last significant slash in buffer
-    slashp = strrchr(buffer, '/');
+    char *slashp = strrchr(buffer, '/');
     NS_ASSERTION(slashp, "non-canonical mPath?");
     if (!slashp)
         return NS_ERROR_FILE_INVALID_PATH;
@@ -1532,20 +1499,17 @@ nsLocalFile::GetDirectoryEntries(nsISimpleEnumerator **entries)
 }
 
 NS_IMETHODIMP
-nsLocalFile::Load(PRLibrary **_retval)
+nsLocalFile::Load(RTLDRMOD *phMod)
 {
     CHECK_mPath();
-    NS_ENSURE_ARG_POINTER(_retval);
+    NS_ENSURE_ARG_POINTER(phMod);
 
-    NS_TIMELINE_START_TIMER("PR_LoadLibrary");
-
-    *_retval = PR_LoadLibrary(mPath.get());
-
-    NS_TIMELINE_STOP_TIMER("PR_LoadLibrary");
-    NS_TIMELINE_MARK_TIMER1("PR_LoadLibrary", mPath.get());
-
-    if (!*_retval)
+    RTLDRMOD hMod = NIL_RTLDRMOD;
+    int vrc = RTLdrLoad(mPath.get(), &hMod);
+    if (RT_FAILURE(vrc))
         return NS_ERROR_FAILURE;
+
+    *phMod = hMod;
     return NS_OK;
 }
 

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,64 +32,51 @@
 #endif
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
 #include "UIExtraDataDefs.h"
-#include "UISettingsDialog.h"
+#include "UIAdvancedSettingsDialog.h"
 
 /* COM includes: */
-#include "COMEnums.h"
+#include "KGuestMonitorChangedEventType.h"
 
 /* Forward declarations: */
 class QAction;
 class QActionGroup;
 class QIManagerDialog;
-class UISession;
 class UIActionPool;
 class UIKeyboardHandler;
-class UIMouseHandler;
+class UIMachine;
 class UIMachineWindow;
 class UIMachineView;
+class UIMouseHandler;
 class UIDockIconPreview;
 class UISoftKeyboard;
 class UIVMInformationDialog;
-class CSession;
-class CMachine;
-class CConsole;
-class CDisplay;
-class CGuest;
-class CMouse;
-class CKeyboard;
-class CMachineDebugger;
-class CSnapshot;
 class CUSBDevice;
 class CVirtualBoxErrorInfo;
-#if defined(VBOX_WS_X11)
- struct X11ScreenSaverInhibitMethod;
+#if defined(VBOX_WS_NIX)
+ struct DBusScreenSaverInhibitMethod;
 #endif
 
-#ifdef VBOX_WITH_DEBUGGER_GUI
-typedef struct DBGGUIVT const *PCDBGGUIVT;
-typedef struct DBGGUI *PDBGGUI;
-#endif /* VBOX_WITH_DEBUGGER_GUI */
-
 /* Machine logic interface: */
-class UIMachineLogic : public QIWithRetranslateUI3<QObject>
+class UIMachineLogic : public QObject
 {
     Q_OBJECT;
 
     /** Pointer to menu update-handler for this class: */
     typedef void (UIMachineLogic::*MenuUpdateHandler)(QMenu *pMenu);
 
-signals:
-
-    /** Notifies about frame-buffer resize. */
-    void sigFrameBufferResize();
-
 public:
 
-    /* Factory functions to create/destroy required logic sub-child: */
-    static UIMachineLogic* create(QObject *pParent, UISession *pSession, UIVisualStateType visualStateType);
-    static void destroy(UIMachineLogic *pWhichLogic);
+    /** Factory function to create a logic of required type.
+      * @param  pMachine            Brings the machine this logic belongs to.
+      * @param  pSession            Brings the session this logic is created for.
+      * @param  enmVisualStateType  Brings the visual state type of logic to be created. */
+    static UIMachineLogic *create(UIMachine *pMachine, UIVisualStateType enmVisualStateType);
+    /** Factory function to destroy passed @a pLogic. */
+    static void destroy(UIMachineLogic *&pLogic);
+
+    /** Returns visual state type. */
+    virtual UIVisualStateType visualStateType() const = 0;
 
     /* Check if this logic is available: */
     virtual bool checkAvailability() = 0;
@@ -101,33 +88,13 @@ public:
     virtual void prepare();
     virtual void cleanup();
 
-    void initializePostPowerUp();
-
-    /* Main getters/setters: */
-    UISession* uisession() const { return m_pSession; }
-    UIActionPool* actionPool() const;
-
-    /** Returns the session reference. */
-    CSession& session() const;
-    /** Returns the session's machine reference. */
-    CMachine& machine() const;
-    /** Returns the session's console reference. */
-    CConsole& console() const;
-    /** Returns the console's display reference. */
-    CDisplay& display() const;
-    /** Returns the console's guest reference. */
-    CGuest& guest() const;
-    /** Returns the console's mouse reference. */
-    CMouse& mouse() const;
-    /** Returns the console's keyboard reference. */
-    CKeyboard& keyboard() const;
-    /** Returns the console's debugger reference. */
-    CMachineDebugger& debugger() const;
+    /** Returns machine UI reference.  */
+    UIMachine *uimachine() const { return m_pMachine; }
+    /** Returns action-pool reference.  */
+    UIActionPool *actionPool() const;
 
     /** Returns the machine name. */
-    const QString& machineName() const;
-
-    UIVisualStateType visualStateType() const { return m_visualStateType; }
+    QString machineName() const;
     const QList<UIMachineWindow*>& machineWindows() const { return m_machineWindowsList; }
     UIKeyboardHandler* keyboardHandler() const { return m_pKeyboardHandler; }
     UIMouseHandler* mouseHandler() const { return m_pMouseHandler; }
@@ -150,20 +117,16 @@ public:
     virtual void updateDock();
 #endif /* VBOX_WS_MAC */
 
-    /** Returns whether VM should perform HID LEDs synchronization. */
-    bool isHidLedsSyncEnabled() const { return m_fIsHidLedsSyncEnabled; }
     /** An public interface to sltTypeHostKeyComboPressRelease. */
     void typeHostKeyComboPressRelease(bool fToggleSequence);
-
-#ifdef VBOX_WITH_DEBUGGER_GUI
-    /** Adjusts relative position for debugger window. */
-    void dbgAdjustRelativePos();
-#endif /* VBOX_WITH_DEBUGGER_GUI */
 
 protected slots:
 
     /** Handles the VBoxSVC availability change. */
     void sltHandleVBoxSVCAvailabilityChange();
+
+    /** Handles Machine UI initialized event. */
+    void sltHandleMachineInitialized();
 
     /** Checks if some visual-state type was requested. */
     virtual void sltCheckForRequestedVisualStateType() {}
@@ -179,6 +142,7 @@ protected slots:
 
     /* Console callback handlers: */
     virtual void sltMachineStateChanged();
+    virtual void sltSessionStateChanged(const QUuid &uId, const KSessionState enmState);
     virtual void sltAdditionsStateChanged();
     virtual void sltMouseCapabilityChanged();
     virtual void sltKeyboardLedsChanged();
@@ -196,13 +160,16 @@ protected slots:
     virtual void sltHostScreenGeometryChange();
     /** Handles host-screen available-area change. */
     virtual void sltHostScreenAvailableAreaChange();
+    /* Handles Help Request. */
+    virtual void sltHandleHelpRequest();
 
 protected:
 
-    /* Constructor: */
-    UIMachineLogic(QObject *pParent, UISession *pSession, UIVisualStateType visualStateType);
-    /* Destructor: */
-    ~UIMachineLogic();
+    /** Constructs a logic passing @a pMachine to the base-class.
+      * @param  pMachine  Brings the machine this logic belongs to. */
+    UIMachineLogic(UIMachine *pMachine);
+    /* Destructs the logic. */
+    virtual ~UIMachineLogic() RT_OVERRIDE;
 
     /* Protected getters/setters: */
     bool isMachineWindowsCreated() const { return m_fIsWindowsCreated; }
@@ -212,7 +179,6 @@ protected:
     void setKeyboardHandler(UIKeyboardHandler *pKeyboardHandler);
     void setMouseHandler(UIMouseHandler *pMouseHandler);
     void addMachineWindow(UIMachineWindow *pMachineWindow);
-    void retranslateUi();
 #ifdef VBOX_WS_MAC
     bool isDockIconPreviewEnabled() const { return m_fIsDockIconEnabled; }
     void setDockIconPreviewEnabled(bool fIsDockIconPreviewEnabled) { m_fIsDockIconEnabled = fIsDockIconPreviewEnabled; }
@@ -253,7 +219,7 @@ protected:
     //virtual void cleanupRequiredFeatures() {}
 
     /* Handler: Event-filter stuff: */
-    bool eventFilter(QObject *pWatched, QEvent *pEvent);
+    bool eventFilter(QObject *pWatched, QEvent *pEvent) RT_OVERRIDE;
 
 private slots:
 
@@ -272,8 +238,7 @@ private slots:
     void sltCloseSettingsDialog();
     void sltTakeSnapshot();
     void sltShowInformationDialog();
-    void sltCloseInformationDialog(bool fAsync = false);
-    void sltCloseInformationDialogDefault() { sltCloseInformationDialog(true); }
+    void sltCloseInformationDialog();
     void sltShowFileManagerDialog();
     void sltCloseFileManagerDialog();
     void sltShowLogDialog();
@@ -297,12 +262,11 @@ private slots:
     /* "Input" menu functionality: */
     void sltShowKeyboardSettings();
     void sltShowSoftKeyboard();
-    void sltCloseSoftKeyboard(bool fAsync = false);
-    void sltCloseSoftKeyboardDefault() { sltCloseSoftKeyboard(true); }
+    void sltCloseSoftKeyboard();
     void sltTypeCAD();
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     void sltTypeCABS();
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
     void sltTypeCtrlBreak();
     void sltTypeInsert();
     void sltTypePrintScreen();
@@ -319,9 +283,10 @@ private slots:
     void sltOpenSettingsDialogUSBDevices();
     void sltOpenSettingsDialogSharedFolders();
     void sltAttachUSBDevice();
-    void sltAttachWebCamDevice();
+    void sltAttachWebcamDevice();
     void sltChangeSharedClipboardType(QAction *pAction);
-    void sltToggleNetworkAdapterConnection();
+    void sltFileTransferToggled(bool fChecked);
+    void sltToggleNetworkAdapterConnection(bool fChecked);
     void sltChangeDragAndDropType(QAction *pAction);
     void sltInstallGuestAdditions();
 
@@ -349,7 +314,6 @@ private slots:
 #endif /* RT_OS_DARWIN */
 
     /* Handlers: Keyboard LEDs sync logic: */
-    void sltHidLedsSyncStateChanged(bool fEnabled);
     void sltSwitchKeyboardLedsToGuestLeds();
     void sltSwitchKeyboardLedsToPreviousLeds();
 
@@ -362,6 +326,9 @@ private slots:
     /** Handles request to commit data. */
     void sltHandleCommitData();
 
+    /** Handles translation event. */
+    void sltRetranslateUI();
+
 private:
 
     /** Update 'Devices' : 'Optical/Floppy Devices' menu routine. */
@@ -371,7 +338,7 @@ private:
     /** Update 'Devices' : 'USB Devices' menu routine. */
     void updateMenuDevicesUSB(QMenu *pMenu);
     /** Update 'Devices' : 'Web Cams' menu routine. */
-    void updateMenuDevicesWebCams(QMenu *pMenu);
+    void updateMenuDevicesWebcams(QMenu *pMenu);
     /** Update 'Devices' : 'Shared Clipboard' menu routine. */
     void updateMenuDevicesSharedClipboard(QMenu *pMenu);
     /** Update 'Devices' : 'Drag and Drop' menu routine. */
@@ -389,7 +356,6 @@ private:
     void askUserForTheDiskEncryptionPasswords();
 
     /* Helpers: */
-    static int searchMaxSnapshotIndex(const CMachine &machine, const CSnapshot &snapshot, const QString &strNameTemplate);
     void takeScreenshot(const QString &strFile, const QString &strFormat /* = "png" */) const;
 
     /** Reactivates the screen saver. This is possbily called during vm window close and enables host screen
@@ -398,38 +364,26 @@ private:
     void activateScreenSaver();
     /* Shows the boot failure dialog through which user can mount a boot DVD and reset the vm. */
     void showBootFailureDialog();
-    /** Attempts to mount medium with @p uMediumId to the machine if it can find an appropriate controller and port. */
-    bool mountBootMedium(const QUuid &uMediumId);
     /** Resets the machine. If @p fShowConfirmation is true then a confirmation messag box is shown first. */
     void reset(bool fShowConfirmation);
 
     /* Private variables: */
-    UISession *m_pSession;
-    UIVisualStateType m_visualStateType;
+    UIMachine *m_pMachine;
     UIKeyboardHandler *m_pKeyboardHandler;
     UIMouseHandler *m_pMouseHandler;
     QList<UIMachineWindow*> m_machineWindowsList;
 
     QActionGroup *m_pRunningActions;
     QActionGroup *m_pRunningOrPausedActions;
-    QActionGroup *m_pRunningOrPausedOrStackedActions;
+    QActionGroup *m_pRunningOrPausedOrStuckActions;
     QActionGroup *m_pSharedClipboardActions;
+    QAction      *m_pFileTransferToggleAction;
     QActionGroup *m_pDragAndDropActions;
 
     /** Holds the map of menu update-handlers. */
     QMap<int, MenuUpdateHandler> m_menuUpdateHandlers;
 
     bool m_fIsWindowsCreated : 1;
-
-#ifdef VBOX_WITH_DEBUGGER_GUI
-    /* Debugger functionality: */
-    bool dbgCreated();
-    void dbgDestroy();
-    /* The handle to the debugger GUI: */
-    PDBGGUI m_pDbgGui;
-    /* The virtual method table for the debugger GUI: */
-    PCDBGGUIVT m_pDbgGuiVT;
-#endif /* VBOX_WITH_DEBUGGER_GUI */
 
 #ifdef VBOX_WS_MAC
     bool m_fIsDockIconEnabled;
@@ -444,11 +398,8 @@ private:
 
     void *m_pHostLedsState;
 
-    /** Holds whether VM should perform HID LEDs synchronization. */
-    bool m_fIsHidLedsSyncEnabled;
-
     /** Holds the map of settings dialogs. */
-    QMap<UISettingsDialog::DialogType, UISettingsDialog*>  m_settings;
+    QMap<UIAdvancedSettingsDialog::DialogType, UIAdvancedSettingsDialog*>  m_settings;
 
     /** Holds the log viewer dialog instance. */
     QIManagerDialog       *m_pLogViewerDialog;
@@ -459,8 +410,8 @@ private:
 
     /* Holds the cookies returnd by QDBus inhibition calls. Map keys are service name. These are required during uninhibition.*/
     QMap<QString, uint> m_screenSaverInhibitionCookies;
-#if defined(VBOX_WS_X11)
-    QVector<X11ScreenSaverInhibitMethod*> m_methods;
+#if defined(VBOX_WS_NIX)
+    QVector<DBusScreenSaverInhibitMethod*> m_methods;
 #endif
 };
 

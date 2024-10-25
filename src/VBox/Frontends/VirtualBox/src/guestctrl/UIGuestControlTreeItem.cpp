@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -28,9 +28,9 @@
 /* GUI includes: */
 #include "UIConverter.h"
 #include "UIExtraDataManager.h"
+#include "UIGlobalSession.h"
 #include "UIGuestControlTreeItem.h"
 #include "UIGuestProcessControlWidget.h"
-#include "UICommon.h"
 
 /* COM includes: */
 #include "CGuest.h"
@@ -90,7 +90,7 @@ void UIGuestControlTreeItem::cleanupListener(CEventSource comEventSource)
     m_pQtListener->getWrapped()->unregisterSources();
 
     /* Make sure VBoxSVC is available: */
-    if (!uiCommon().isVBoxSVCAvailable())
+    if (!gpGlobalSession->isVBoxSVCAvailable())
         return;
 
     /* Unregister event listener for CProgress event source: */
@@ -233,7 +233,7 @@ QString UIGuestSessionTreeItem::propertyString() const
 
 void UIGuestSessionTreeItem::sltGuestProcessUnregistered(CGuestProcess guestProcess)
 {
-    if (!UIGuestProcessControlWidget::m_fDeleteAfterUnregister)
+    if (!UIGuestProcessControlWidget::s_fDeleteAfterUnregister)
         return;
     for (int i = 0; i < childCount(); ++i)
     {
@@ -341,7 +341,7 @@ void UIGuestProcessTreeItem::sltGuestProcessUpdated(const CGuestProcessStateChan
         processStatus !=  KProcessStatus_Started &&
         processStatus !=  KProcessStatus_Paused)
     {
-        if (UIGuestProcessControlWidget::m_fDeleteAfterUnregister)
+        if (UIGuestProcessControlWidget::s_fDeleteAfterUnregister)
             this->deleteLater();
     }
 }

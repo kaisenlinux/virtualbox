@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,7 +35,6 @@
 #include <QDialog>
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
 #include "UILibraryDefs.h"
 
 /* Forward declarations: */
@@ -47,7 +46,7 @@ class QIDialogButtonBox;
 
 /** QDialog sub-class used as executable input container for passed widget.
   * Should be used as popup or modal dialog wrapping functionality of the passed widget. */
-class SHARED_LIBRARY_STUFF QIDialogContainer : public QIWithRetranslateUI2<QDialog>
+class SHARED_LIBRARY_STUFF QIDialogContainer : public QDialog
 {
     Q_OBJECT;
 
@@ -70,10 +69,10 @@ public slots:
     /** Sets Ok button to be @a fEnabled. */
     void setOkButtonEnabled(bool fEnabled);
 
-protected:
+private slots:
 
     /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
+    void sltRetranslateUI();
 
 private:
 

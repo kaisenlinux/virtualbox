@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,11 +26,11 @@
  */
 
 /* Defines: */
-#define LOG_GROUP LOG_GROUP_GUI
 #define VBOX_WITH_KBD_LEDS_SYNC
 //#define VBOX_WITHOUT_KBD_LEDS_SYNC_FILTERING
 
 /* GUI includes: */
+#include "UILoggingDefs.h"
 #include "DarwinKeyboard.h"
 #ifndef USE_HID_FOR_MODIFIERS
 # include "CocoaEventHelper.h"
@@ -41,7 +41,6 @@
 #include <iprt/asm.h>
 #include <iprt/mem.h>
 #include <iprt/time.h>
-#include <VBox/log.h>
 #ifdef DEBUG_PRINTF
 # include <iprt/stream.h>
 #endif
@@ -75,10 +74,12 @@ RT_C_DECLS_BEGIN
 typedef int CGSConnection;
 typedef enum
 {
+    kCGSGlobalHotKeyInvalid = -1 /* bird */,
     kCGSGlobalHotKeyEnable = 0,
-    kCGSGlobalHotKeyDisable,
-    kCGSGlobalHotKeyDisableExceptUniversalAccess,
-    kCGSGlobalHotKeyInvalid = -1 /* bird */
+    kCGSGlobalHotKeyDisable = 1,
+    kCGSGlobalHotKeyDisableExceptUniversalAccess = 2,
+    kCGSGlobalHotKeySleep = 4 /* dsen */,
+    kCGSGlobalHotKeyScreenSaver = 6 /* dsen */,
 } CGSGlobalHotKeyOperatingMode;
 extern CGSConnection _CGSDefaultConnection(void);
 extern CGError CGSGetGlobalHotKeyOperatingMode(CGSConnection Connection, CGSGlobalHotKeyOperatingMode *enmMode);
@@ -516,6 +517,7 @@ UInt32 DarwinKeyCodeToDarwinModifierMask(unsigned uKeyCode)
 
 void DarwinDisableGlobalHotKeys(bool fDisable)
 {
+    /* Prevent LogRel clogging: */
     static unsigned s_cComplaints = 0;
 
     /* Lazy connect to the core graphics service. */
@@ -532,7 +534,14 @@ void DarwinDisableGlobalHotKeys(bool fDisable)
         &&  enmMode != kCGSGlobalHotKeyDisable
         &&  enmMode != kCGSGlobalHotKeyDisableExceptUniversalAccess)
     {
-        AssertMsgFailed(("%d\n", enmMode));
+        /* We are silently ignoring case when
+         * host is in sleep or screensaver mode: */
+        if (   enmMode != kCGSGlobalHotKeySleep
+            && enmMode != kCGSGlobalHotKeyScreenSaver)
+        {
+            /* Otherwise we should warn about the unknown mode we met: */
+            AssertMsgFailed(("%d\n", enmMode));
+        }
         if (s_cComplaints++ < 32)
             LogRel(("DarwinDisableGlobalHotKeys: Unexpected enmMode=%d\n", enmMode));
         return;
@@ -558,8 +567,14 @@ void DarwinDisableGlobalHotKeys(bool fDisable)
     CGSGetGlobalHotKeyOperatingMode(g_CGSConnection, &enmNewMode);
     if (enmNewMode != enmMode)
     {
-        /* If the screensaver kicks in we should ignore failure here. */
-        AssertMsg(enmMode == kCGSGlobalHotKeyEnable, ("enmNewMode=%d enmMode=%d\n", enmNewMode, enmMode));
+        /* We are silently ignoring case when
+         * host is in sleep or screensaver mode: */
+        if (   enmNewMode != kCGSGlobalHotKeySleep
+            && enmNewMode != kCGSGlobalHotKeyScreenSaver)
+        {
+            /* Otherwise we should warn about the unknown mode we met while trying to enable hot keys: */
+            AssertMsg(enmMode == kCGSGlobalHotKeyEnable, ("enmNewMode=%d enmMode=%d\n", enmNewMode, enmMode));
+        }
         if (s_cComplaints++ < 32)
             LogRel(("DarwinDisableGlobalHotKeys: Failed to change mode; enmNewMode=%d enmMode=%d\n", enmNewMode, enmMode));
     }
@@ -1723,6 +1738,7 @@ static void darwinUsbHidDeviceMatchCb(void *pData, io_iterator_t iter)
             rc = (*ppUsbDeviceInterface)->GetLocationID    (ppUsbDeviceInterface,  &idLocation);       AssertMsg(rc == 0, ("Failed to get Location ID"));
             rc = (*ppUsbDeviceInterface)->GetDeviceClass   (ppUsbDeviceInterface,  &idDeviceClass);    AssertMsg(rc == 0, ("Failed to get Device Class"));
             rc = (*ppUsbDeviceInterface)->GetDeviceSubClass(ppUsbDeviceInterface,  &idDeviceSubClass); AssertMsg(rc == 0, ("Failed to get Device Subclass"));
+            RT_NOREF(rc);
 
             if (idDeviceClass == kUSBHIDInterfaceClass && idDeviceSubClass == kUSBHIDBootInterfaceSubClass)
             {
@@ -1757,7 +1773,9 @@ static int darwinUsbHidSubscribeInterestNotifications(VBoxHidsState_t *pHidState
 
     if (pDictionary)
     {
-        pHidState->pNotificationPrortRef = IONotificationPortCreate(kIOMasterPortDefault);
+        RT_GCC_NO_WARN_DEPRECATED_BEGIN
+        pHidState->pNotificationPrortRef = IONotificationPortCreate(kIOMasterPortDefault); /* kIOMasterPortDefault: Deprecated since 12.0. */
+        RT_GCC_NO_WARN_DEPRECATED_END
         if (pHidState->pNotificationPrortRef)
         {
             CFRunLoopAddSource(CFRunLoopGetCurrent(), IONotificationPortGetRunLoopSource(pHidState->pNotificationPrortRef), kCFRunLoopDefaultMode);

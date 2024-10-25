@@ -7,7 +7,7 @@ VirtualBox Validation Kit - VMDK raw disk tests.
 
 __copyright__ = \
 """
-Copyright (C) 2013-2023 Oracle and/or its affiliates.
+Copyright (C) 2013-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -44,7 +44,7 @@ import re;
 import sys;
 
 # Only the main script needs to modify the path.
-try:    __file__
+try:    __file__                            # pylint: disable=used-before-assignment
 except: __file__ = sys.argv[0];
 g_ksValidationKitDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))));
 sys.path.append(g_ksValidationKitDir);
@@ -861,10 +861,10 @@ class tdStorageRawDriveOs(vboxtestvms.BaseTestVm):
         fRc = True;
         oSession = oTestDrv.openSession(oVM);
         if oSession is not None:
-            fRc = fRc and oSession.enableVirtEx(True);
+            fRc = fRc and oSession.enableVirtExX86(True);
             # nested paging doesn't need for the test
-            #fRc = fRc and oSession.enableNestedPaging(True);
-            #fRc = fRc and oSession.enableNestedHwVirt(True);
+            #fRc = fRc and oSession.enableNestedPagingX86(True);
+            #fRc = fRc and oSession.enableNestedHwVirtX86(True);
             # disable 3D until the error is fixed.
             fRc = fRc and oSession.setAccelerate3DEnabled(False);
             fRc = fRc and oSession.setVRamSize(256);

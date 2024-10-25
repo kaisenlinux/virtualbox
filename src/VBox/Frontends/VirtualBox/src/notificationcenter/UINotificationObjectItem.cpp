@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2021-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2021-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -38,6 +38,7 @@
 /* GUI includes: */
 #include "QIRichTextLabel.h"
 #include "QIToolButton.h"
+#include "UIHelpBrowserDialog.h"
 #include "UIIconPool.h"
 #include "UIMessageCenter.h"
 #include "UINotificationObject.h"
@@ -89,7 +90,7 @@ UINotificationObjectItem::UINotificationObjectItem(QWidget *pParent, UINotificat
                 m_pButtonHelp->setIconSize(QSize(10, 10));
                 m_pButtonHelp->setProperty("helpkeyword", m_pObject->helpKeyword());
                 connect(m_pButtonHelp, &QIToolButton::clicked,
-                        &msgCenter(), &UIMessageCenter::sltHandleHelpRequest);
+                        this, &UINotificationObjectItem::sltHandleHelpRequest);
 
                 m_pLayoutUpper->addWidget(m_pButtonHelp);
             }
@@ -102,7 +103,8 @@ UINotificationObjectItem::UINotificationObjectItem(QWidget *pParent, UINotificat
                 m_pButtonForget->setIcon(UIIconPool::iconSet(":/close_popup_16px.png"));
                 m_pButtonForget->setIconSize(QSize(10, 10));
                 connect(m_pButtonForget, &QIToolButton::clicked,
-                        m_pObject, &UINotificationObject::dismiss);
+                        m_pObject, &UINotificationObject::dismiss,
+                        Qt::QueuedConnection);
 
                 m_pLayoutUpper->addWidget(m_pButtonForget);
             }
@@ -114,7 +116,8 @@ UINotificationObjectItem::UINotificationObjectItem(QWidget *pParent, UINotificat
                 m_pButtonClose->setIcon(UIIconPool::iconSet(":/close_16px.png"));
                 m_pButtonClose->setIconSize(QSize(10, 10));
                 connect(m_pButtonClose, &QIToolButton::clicked,
-                        m_pObject, &UINotificationObject::close);
+                        m_pObject, &UINotificationObject::close,
+                        Qt::QueuedConnection);
 
                 m_pLayoutUpper->addWidget(m_pButtonClose);
             }
@@ -441,4 +444,9 @@ UINotificationObjectItem *UINotificationItem::create(QWidget *pParent, UINotific
 #endif
     /* Handle defaults: */
     return new UINotificationObjectItem(pParent, pObject);
+}
+
+void UINotificationObjectItem::sltHandleHelpRequest()
+{
+    UIHelpBrowserDialog::findManualFileAndShow("helpkeyword");
 }

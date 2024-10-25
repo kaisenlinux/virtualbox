@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -53,9 +53,9 @@ struct UIDataSettingsGlobalDisplay
         return    true
                && (m_guiMaximumGuestScreenSizeValue == other.m_guiMaximumGuestScreenSizeValue)
                && (m_scaleFactors == other.m_scaleFactors)
+               && (m_iFontScalingFactor == other.m_iFontScalingFactor)
                && (m_fActivateHoveredMachineWindow == other.m_fActivateHoveredMachineWindow)
                && (m_fDisableHostScreenSaver == other.m_fDisableHostScreenSaver)
-               && (m_iFontScalingFactor == other.m_iFontScalingFactor)
                   ;
     }
 
@@ -68,12 +68,12 @@ struct UIDataSettingsGlobalDisplay
     UIMaximumGuestScreenSizeValue  m_guiMaximumGuestScreenSizeValue;
     /** Holds the guest screen scale-factor. */
     QList<double>                  m_scaleFactors;
+    /** Holds the font scaling factor. */
+    int                            m_iFontScalingFactor;
     /** Holds whether we should automatically activate machine window under the mouse cursor. */
     bool                           m_fActivateHoveredMachineWindow;
     /** Holds whether we should disable host sceen saver on a vm is running. */
     bool                           m_fDisableHostScreenSaver;
-    /** Holds font scaling factor. */
-    int                            m_iFontScalingFactor;
 };
 
 
@@ -85,8 +85,8 @@ UIGlobalSettingsDisplay::UIGlobalSettingsDisplay()
     : m_pCache(0)
     , m_pEditorMaximumGuestScreenSize(0)
     , m_pEditorScaleFactor(0)
-    , m_pEditorGlobalDisplayFeatures(0)
     , m_pFontScaleEditor(0)
+    , m_pEditorDisplayFeatures(0)
 {
     prepare();
 }
@@ -118,11 +118,11 @@ void UIGlobalSettingsDisplay::loadToCacheFrom(QVariant &data)
     oldData.m_guiMaximumGuestScreenSizeValue = UIMaximumGuestScreenSizeValue(gEDataManager->maxGuestResolutionPolicy(),
                                                                              gEDataManager->maxGuestResolutionForPolicyFixed());
     oldData.m_scaleFactors = gEDataManager->scaleFactors(UIExtraDataManager::GlobalID);
+    oldData.m_iFontScalingFactor = gEDataManager->fontScaleFactor();
     oldData.m_fActivateHoveredMachineWindow = gEDataManager->activateHoveredMachineWindow();
-#if defined(VBOX_WS_WIN) || defined(VBOX_WS_X11)
+#if defined(VBOX_WS_WIN) || defined(VBOX_WS_NIX)
     oldData.m_fDisableHostScreenSaver = gEDataManager->disableHostScreenSaver();
 #endif
-    oldData.m_iFontScalingFactor = gEDataManager->fontScaleFactor();
     m_pCache->cacheInitialData(oldData);
 
     /* Upload properties to data: */
@@ -144,13 +144,13 @@ void UIGlobalSettingsDisplay::getFromCache()
         m_pEditorScaleFactor->setScaleFactors(oldData.m_scaleFactors);
         m_pEditorScaleFactor->setMonitorCount(UIDesktopWidgetWatchdog::screenCount());
     }
-    if (m_pEditorGlobalDisplayFeatures)
-    {
-        m_pEditorGlobalDisplayFeatures->setActivateOnMouseHover(oldData.m_fActivateHoveredMachineWindow);
-        m_pEditorGlobalDisplayFeatures->setDisableHostScreenSaver(oldData.m_fDisableHostScreenSaver);
-    }
     if (m_pFontScaleEditor)
         m_pFontScaleEditor->setFontScaleFactor(oldData.m_iFontScalingFactor);
+    if (m_pEditorDisplayFeatures)
+    {
+        m_pEditorDisplayFeatures->setActivateOnMouseHover(oldData.m_fActivateHoveredMachineWindow);
+        m_pEditorDisplayFeatures->setDisableHostScreenSaver(oldData.m_fDisableHostScreenSaver);
+    }
 }
 
 void UIGlobalSettingsDisplay::putToCache()
@@ -167,13 +167,13 @@ void UIGlobalSettingsDisplay::putToCache()
         newData.m_guiMaximumGuestScreenSizeValue = m_pEditorMaximumGuestScreenSize->value();
     if (m_pEditorScaleFactor)
         newData.m_scaleFactors = m_pEditorScaleFactor->scaleFactors();
-    if (m_pEditorGlobalDisplayFeatures)
-    {
-        newData.m_fActivateHoveredMachineWindow = m_pEditorGlobalDisplayFeatures->activateOnMouseHover();
-        newData.m_fDisableHostScreenSaver = m_pEditorGlobalDisplayFeatures->disableHostScreenSaver();
-    }
     if (m_pFontScaleEditor)
         newData.m_iFontScalingFactor = m_pFontScaleEditor->fontScaleFactor();
+    if (m_pEditorDisplayFeatures)
+    {
+        newData.m_fActivateHoveredMachineWindow = m_pEditorDisplayFeatures->activateOnMouseHover();
+        newData.m_fDisableHostScreenSaver = m_pEditorDisplayFeatures->disableHostScreenSaver();
+    }
     m_pCache->cacheCurrentData(newData);
 }
 
@@ -189,18 +189,14 @@ void UIGlobalSettingsDisplay::saveFromCacheTo(QVariant &data)
     UISettingsPageGlobal::uploadData(data);
 }
 
-void UIGlobalSettingsDisplay::retranslateUi()
+void UIGlobalSettingsDisplay::sltRetranslateUI()
 {
-    /* These editors have own labels, but we want them to be properly layouted according to each other: */
-    int iMinimumLayoutHint = 0;
-    iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorMaximumGuestScreenSize->minimumLabelHorizontalHint());
-    iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorScaleFactor->minimumLabelHorizontalHint());
-    iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorGlobalDisplayFeatures->minimumLabelHorizontalHint());
-    iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pFontScaleEditor->minimumLabelHorizontalHint());
-    m_pEditorMaximumGuestScreenSize->setMinimumLayoutIndent(iMinimumLayoutHint);
-    m_pEditorScaleFactor->setMinimumLayoutIndent(iMinimumLayoutHint);
-    m_pEditorGlobalDisplayFeatures->setMinimumLayoutIndent(iMinimumLayoutHint);
-    m_pFontScaleEditor->setMinimumLayoutIndent(iMinimumLayoutHint);
+    updateMinimumLayoutHint();
+}
+
+void UIGlobalSettingsDisplay::handleFilterChange()
+{
+    updateMinimumLayoutHint();
 }
 
 void UIGlobalSettingsDisplay::prepare()
@@ -213,7 +209,7 @@ void UIGlobalSettingsDisplay::prepare()
     prepareWidgets();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIGlobalSettingsDisplay::prepareWidgets()
@@ -225,22 +221,34 @@ void UIGlobalSettingsDisplay::prepareWidgets()
         /* Prepare 'maximum guest screen size' editor: */
         m_pEditorMaximumGuestScreenSize = new UIMaximumGuestScreenSizeEditor(this);
         if (m_pEditorMaximumGuestScreenSize)
+        {
+            addEditor(m_pEditorMaximumGuestScreenSize);
             pLayout->addWidget(m_pEditorMaximumGuestScreenSize);
+        }
 
         /* Prepare 'scale-factor' editor: */
         m_pEditorScaleFactor = new UIScaleFactorEditor(this);
         if (m_pEditorScaleFactor)
+        {
+            addEditor(m_pEditorScaleFactor);
             pLayout->addWidget(m_pEditorScaleFactor);
-
-        /* Prepare 'global display features' editor: */
-        m_pEditorGlobalDisplayFeatures = new UIDisplayFeaturesEditor(this);
-        if (m_pEditorGlobalDisplayFeatures)
-            pLayout->addWidget(m_pEditorGlobalDisplayFeatures);
+        }
 
         /* Prepare 'font scale' editor: */
         m_pFontScaleEditor = new UIFontScaleEditor(this);
         if (m_pFontScaleEditor)
+        {
+            addEditor(m_pFontScaleEditor);
             pLayout->addWidget(m_pFontScaleEditor);
+        }
+
+        /* Prepare 'display features' editor: */
+        m_pEditorDisplayFeatures = new UIDisplayFeaturesEditor(this);
+        if (m_pEditorDisplayFeatures)
+        {
+            addEditor(m_pEditorDisplayFeatures);
+            pLayout->addWidget(m_pEditorDisplayFeatures);
+        }
 
         /* Add stretch to the end: */
         pLayout->addStretch();
@@ -280,21 +288,43 @@ bool UIGlobalSettingsDisplay::saveData()
         if (   fSuccess
             && newData.m_scaleFactors != oldData.m_scaleFactors)
             /* fSuccess = */ gEDataManager->setScaleFactors(newData.m_scaleFactors, UIExtraDataManager::GlobalID);
-        /* Save whether hovered machine-window should be activated automatically: */
-        if (   fSuccess
-            && newData.m_fActivateHoveredMachineWindow != oldData.m_fActivateHoveredMachineWindow)
-            /* fSuccess = */ gEDataManager->setActivateHoveredMachineWindow(newData.m_fActivateHoveredMachineWindow);
-#if defined(VBOX_WS_WIN) || defined(VBOX_WS_X11)
-        /* Save whether the host screen saver is to be disable when a vm is running: */
-        if (   fSuccess
-            && newData.m_fDisableHostScreenSaver != oldData.m_fDisableHostScreenSaver)
-            /* fSuccess = */ gEDataManager->setDisableHostScreenSaver(newData.m_fDisableHostScreenSaver);
-#endif /* VBOX_WS_WIN || VBOX_WS_X11 */
         /* Save font scale factor: */
         if (   fSuccess
             && newData.m_iFontScalingFactor != oldData.m_iFontScalingFactor)
             /* fSuccess = */ gEDataManager->setFontScaleFactor(newData.m_iFontScalingFactor);
+        /* Save whether hovered machine-window should be activated automatically: */
+        if (   fSuccess
+            && newData.m_fActivateHoveredMachineWindow != oldData.m_fActivateHoveredMachineWindow)
+            /* fSuccess = */ gEDataManager->setActivateHoveredMachineWindow(newData.m_fActivateHoveredMachineWindow);
+#if defined(VBOX_WS_WIN) || defined(VBOX_WS_NIX)
+        /* Save whether the host screen saver is to be disable when a vm is running: */
+        if (   fSuccess
+            && newData.m_fDisableHostScreenSaver != oldData.m_fDisableHostScreenSaver)
+            /* fSuccess = */ gEDataManager->setDisableHostScreenSaver(newData.m_fDisableHostScreenSaver);
+#endif /* VBOX_WS_WIN || VBOX_WS_NIX */
     }
     /* Return result: */
     return fSuccess;
+}
+
+void UIGlobalSettingsDisplay::updateMinimumLayoutHint()
+{
+    /* These editors have own labels, but we want them to be properly layouted according to each other: */
+    int iMinimumLayoutHint = 0;
+    if (m_pEditorMaximumGuestScreenSize && !m_pEditorMaximumGuestScreenSize->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorMaximumGuestScreenSize->minimumLabelHorizontalHint());
+    if (m_pEditorScaleFactor && !m_pEditorScaleFactor->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorScaleFactor->minimumLabelHorizontalHint());
+    if (m_pFontScaleEditor && !m_pFontScaleEditor->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pFontScaleEditor->minimumLabelHorizontalHint());
+    if (m_pEditorDisplayFeatures && !m_pEditorDisplayFeatures->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorDisplayFeatures->minimumLabelHorizontalHint());
+    if (m_pEditorMaximumGuestScreenSize)
+        m_pEditorMaximumGuestScreenSize->setMinimumLayoutIndent(iMinimumLayoutHint);
+    if (m_pEditorScaleFactor)
+        m_pEditorScaleFactor->setMinimumLayoutIndent(iMinimumLayoutHint);
+    if (m_pFontScaleEditor)
+        m_pFontScaleEditor->setMinimumLayoutIndent(iMinimumLayoutHint);
+    if (m_pEditorDisplayFeatures)
+        m_pEditorDisplayFeatures->setMinimumLayoutIndent(iMinimumLayoutHint);
 }

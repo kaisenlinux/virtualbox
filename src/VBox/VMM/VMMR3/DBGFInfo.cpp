@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -109,7 +109,7 @@ int dbgfR3InfoInit(PUVM pUVM)
     /*
      * Initialize the crit sect.
      */
-    int rc = RTCritSectRwInit(&pUVM->dbgf.s.CritSect);
+    int rc = RTCritSectRwInitNamed(&pUVM->dbgf.s.CritSect, "DBGF-CritSect-RW");
     AssertRCReturn(rc, rc);
 
     /*
@@ -1201,8 +1201,7 @@ VMMR3DECL(int) DBGFR3InfoEx(PUVM pUVM, VMCPUID idCpu, const char *pszName, const
      */
     if (idCpu == NIL_VMCPUID)
         return dbgfR3Info(pUVM, NIL_VMCPUID, pszName, pszArgs, pHlp);
-    return VMR3ReqPriorityCallWaitU(pUVM, idCpu,
-                                    (PFNRT)dbgfR3Info, 5, pUVM, idCpu, pszName, pszArgs, pHlp);
+    return VMR3ReqPriorityCallWaitU(pUVM, idCpu, (PFNRT)dbgfR3Info, 5, pUVM, idCpu, pszName, pszArgs, pHlp);
 }
 
 

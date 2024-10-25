@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -479,11 +479,11 @@ static int vdiValidateHeader(PVDIHEADER pHeader)
         fFailed = true;
     }
 
-    if (   getImageLCHSGeometry(pHeader)
-        && (getImageLCHSGeometry(pHeader))->cbSector != VDI_GEOMETRY_SECTOR_SIZE)
+    PVDIDISKGEOMETRY pLCHSGeom = getImageLCHSGeometry(pHeader);
+    if (   pLCHSGeom
+        && pLCHSGeom->cbSector != VDI_GEOMETRY_SECTOR_SIZE)
     {
-        LogRel(("VDI: wrong sector size (%d != %d)\n",
-               (getImageLCHSGeometry(pHeader))->cbSector, VDI_GEOMETRY_SECTOR_SIZE));
+        LogRel(("VDI: wrong sector size (%d != %d)\n", pLCHSGeom->cbSector, VDI_GEOMETRY_SECTOR_SIZE));
         fFailed = true;
     }
 
@@ -1512,8 +1512,7 @@ static DECLCALLBACK(int) vdiCreate(const char *pszFilename, uint64_t cbSize,
 
     /* Check size. Maximum 4PB-3M. No tricks with adjusting the 1M block size
      * so far, which would extend the size. */
-    if (   !cbSize
-        || cbSize >= _1P * 4 - _1M * 3
+    if (   cbSize >= _1P * 4 - _1M * 3
         || cbSize < VDI_IMAGE_DEFAULT_BLOCK_SIZE
         || (cbSize % 512))
         return VERR_VD_INVALID_SIZE;
@@ -1635,17 +1634,16 @@ static DECLCALLBACK(int) vdiRead(void *pBackendData, uint64_t uOffset, size_t cb
     offRead = (unsigned)uOffset & pImage->uBlockMask;
 
     /* Clip read range to at most the rest of the block. */
-    cbToRead = RT_MIN(cbToRead, getImageBlockSize(&pImage->Header) - offRead);
+    size_t cbBlockRem = getImageBlockSize(&pImage->Header) - offRead;
+    cbToRead = RT_MIN(cbToRead, cbBlockRem);
     Assert(!(cbToRead % 512));
 
     if (pImage->paBlocks[uBlock] == VDI_IMAGE_BLOCK_FREE)
         rc = VERR_VD_BLOCK_FREE;
     else if (pImage->paBlocks[uBlock] == VDI_IMAGE_BLOCK_ZERO)
     {
-        size_t cbSet;
-
-        cbSet = vdIfIoIntIoCtxSet(pImage->pIfIo, pIoCtx, 0, cbToRead);
-        Assert(cbSet == cbToRead);
+        size_t cbSet = vdIfIoIntIoCtxSet(pImage->pIfIo, pIoCtx, 0, cbToRead);
+        Assert(cbSet == cbToRead); RT_NOREF(cbSet);
     }
     else
     {
@@ -1700,7 +1698,8 @@ static DECLCALLBACK(int) vdiWrite(void *pBackendData, uint64_t uOffset, size_t c
         offWrite = (unsigned)uOffset & pImage->uBlockMask;
 
         /* Clip write range to at most the rest of the block. */
-        cbToWrite = RT_MIN(cbToWrite, getImageBlockSize(&pImage->Header) - offWrite);
+        size_t cbBlockRem = getImageBlockSize(&pImage->Header) - offWrite;
+        cbToWrite = RT_MIN(cbToWrite, cbBlockRem);
         Assert(!(cbToWrite % 512));
 
         do
@@ -1988,7 +1987,6 @@ static DECLCALLBACK(int) vdiSetOpenFlags(void *pBackendData, unsigned uOpenFlags
     LogFlowFunc(("pBackendData=%#p uOpenFlags=%#x\n", pBackendData, uOpenFlags));
     PVDIIMAGEDESC pImage = (PVDIIMAGEDESC)pBackendData;
     int rc;
-    const char *pszFilename;
 
     /* Image must be opened and the new flags must be valid. */
     if (!pImage || (uOpenFlags & ~(  VD_OPEN_FLAGS_READONLY | VD_OPEN_FLAGS_INFO
@@ -1999,7 +1997,6 @@ static DECLCALLBACK(int) vdiSetOpenFlags(void *pBackendData, unsigned uOpenFlags
     else
     {
         /* Implement this operation via reopening the image. */
-        pszFilename = pImage->pszFilename;
         rc = vdiFreeImage(pImage, false);
         if (RT_SUCCESS(rc))
             rc = vdiOpenImage(pImage, uOpenFlags);
@@ -2503,10 +2500,16 @@ static DECLCALLBACK(int) vdiCompact(void *pBackendData, unsigned uPercentStart,
                                    + (pImage->offStartData + pImage->offStartBlockData);
                 rc = vdIfIoIntFileReadSync(pImage->pIfIo, pImage->pStorage, u64Offset,
                                            pvTmp, cbBlock);
+                if (RT_FAILURE(rc))
+                    break;
+
                 u64Offset = (uint64_t)i * pImage->cbTotalBlockData
                           + (pImage->offStartData + pImage->offStartBlockData);
                 rc = vdIfIoIntFileWriteSync(pImage->pIfIo, pImage->pStorage, u64Offset,
                                             pvTmp, cbBlock);
+                if (RT_FAILURE(rc))
+                    break;
+
                 pImage->paBlocks[uBlockData] = i;
                 setImageBlocksAllocated(&pImage->Header, cBlocksAllocated - cBlocksMoved);
                 rc = vdiUpdateBlockInfo(pImage, uBlockData);
@@ -2562,8 +2565,7 @@ static DECLCALLBACK(int) vdiResize(void *pBackendData, uint64_t cbSize,
 
     /* Check size. Maximum 4PB-3M. No tricks with adjusting the 1M block size
      * so far, which would extend the size. */
-    if (   !cbSize
-        || cbSize >= _1P * 4 - _1M * 3
+    if (   cbSize >= _1P * 4 - _1M * 3
         || cbSize < VDI_IMAGE_DEFAULT_BLOCK_SIZE)
         return VERR_VD_INVALID_SIZE;
 
@@ -2582,7 +2584,7 @@ static DECLCALLBACK(int) vdiResize(void *pBackendData, uint64_t cbSize,
     else if (cbSize > getImageDiskSize(&pImage->Header))
     {
         unsigned cBlocksAllocated = getImageBlocksAllocated(&pImage->Header); /** < Blocks currently allocated, doesn't change during resize */
-        unsigned const cbBlock = RT_MAX(getImageBlockSize(&pImage->Header), 1);
+        unsigned const cbBlock = getImageBlockSize(&pImage->Header);
         uint32_t cBlocksNew = cbSize / cbBlock;                               /** < New number of blocks in the image after the resize */
         if (cbSize % cbBlock)
             cBlocksNew++;
@@ -2721,34 +2723,34 @@ static DECLCALLBACK(int) vdiResize(void *pBackendData, uint64_t cbSize,
                 /* Mark the new blocks as unallocated. */
                 for (unsigned idxBlock = cBlocksOld; idxBlock < cBlocksNew; idxBlock++)
                     pImage->paBlocks[idxBlock] = VDI_IMAGE_BLOCK_FREE;
+
+                /* Write the block array before updating the rest. */
+                vdiConvBlocksEndianess(VDIECONV_H2F, pImage->paBlocks, cBlocksNew);
+                rc = vdIfIoIntFileWriteSync(pImage->pIfIo, pImage->pStorage, pImage->offStartBlocks,
+                                            pImage->paBlocks, cbBlockspaceNew);
+                vdiConvBlocksEndianess(VDIECONV_F2H, pImage->paBlocks, cBlocksNew);
+
+                if (RT_SUCCESS(rc))
+                {
+                    /* Update size and new block count. */
+                    setImageDiskSize(&pImage->Header, cbSize);
+                    setImageBlocks(&pImage->Header, cBlocksNew);
+                    /* Update geometry. */
+                    pImage->PCHSGeometry = *pPCHSGeometry;
+                    pImage->cbImage = cbSize;
+
+                    PVDIDISKGEOMETRY pGeometry = getImageLCHSGeometry(&pImage->Header);
+                    if (pGeometry)
+                    {
+                        pGeometry->cCylinders = pLCHSGeometry->cCylinders;
+                        pGeometry->cHeads = pLCHSGeometry->cHeads;
+                        pGeometry->cSectors = pLCHSGeometry->cSectors;
+                        pGeometry->cbSector = VDI_GEOMETRY_SECTOR_SIZE;
+                    }
+                }
             }
             else
                 rc = VERR_NO_MEMORY;
-
-            /* Write the block array before updating the rest. */
-            vdiConvBlocksEndianess(VDIECONV_H2F, pImage->paBlocks, cBlocksNew);
-            rc = vdIfIoIntFileWriteSync(pImage->pIfIo, pImage->pStorage, pImage->offStartBlocks,
-                                        pImage->paBlocks, cbBlockspaceNew);
-            vdiConvBlocksEndianess(VDIECONV_F2H, pImage->paBlocks, cBlocksNew);
-
-            if (RT_SUCCESS(rc))
-            {
-                /* Update size and new block count. */
-                setImageDiskSize(&pImage->Header, cbSize);
-                setImageBlocks(&pImage->Header, cBlocksNew);
-                /* Update geometry. */
-                pImage->PCHSGeometry = *pPCHSGeometry;
-                pImage->cbImage = cbSize;
-
-                PVDIDISKGEOMETRY pGeometry = getImageLCHSGeometry(&pImage->Header);
-                if (pGeometry)
-                {
-                    pGeometry->cCylinders = pLCHSGeometry->cCylinders;
-                    pGeometry->cHeads = pLCHSGeometry->cHeads;
-                    pGeometry->cSectors = pLCHSGeometry->cSectors;
-                    pGeometry->cbSector = VDI_GEOMETRY_SECTOR_SIZE;
-                }
-            }
         }
 
         /* Update header information in base image file. */
@@ -2803,7 +2805,8 @@ static DECLCALLBACK(int) vdiDiscard(void *pBackendData, PVDIOCTX pIoCtx,
         offDiscard = (unsigned)uOffset & pImage->uBlockMask;
 
         /* Clip range to at most the rest of the block. */
-        cbDiscard = RT_MIN(cbDiscard, getImageBlockSize(&pImage->Header) - offDiscard);
+        size_t cbBlockRem = getImageBlockSize(&pImage->Header) - offDiscard;
+        cbDiscard = RT_MIN(cbDiscard, cbBlockRem);
         Assert(!(cbDiscard % 512));
 
         if (pcbPreAllocated)
@@ -2814,8 +2817,8 @@ static DECLCALLBACK(int) vdiDiscard(void *pBackendData, PVDIOCTX pIoCtx,
 
         if (IS_VDI_IMAGE_BLOCK_ALLOCATED(pImage->paBlocks[uBlock]))
         {
-            unsigned const cbBlock = RT_MAX(getImageBlockSize(&pImage->Header), 1);
-            size_t const cbPreAllocated = offDiscard % cbBlock;
+            unsigned const cbBlock = getImageBlockSize(&pImage->Header);
+            size_t const cbPreAllocated = offDiscard % RT_MAX(cbBlock, 1); /* MSVC thinks it is clever and says there is a potential mod by 0 here, hence the RT_MAX... */
             size_t const cbPostAllocated = getImageBlockSize(&pImage->Header) - cbDiscard - cbPreAllocated;
             uint8_t *pbBlockData;
 

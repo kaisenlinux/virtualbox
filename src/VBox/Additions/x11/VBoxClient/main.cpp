@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -63,6 +63,9 @@
 #define VBOXCLIENT_OPT_VMSVGA               VBOXCLIENT_OPT_SERVICES + 4
 #define VBOXCLIENT_OPT_VMSVGA_SESSION       VBOXCLIENT_OPT_SERVICES + 5
 #define VBOXCLIENT_OPT_DISPLAY              VBOXCLIENT_OPT_SERVICES + 6
+#define VBOXCLIENT_OPT_SESSION_DETECT       VBOXCLIENT_OPT_SERVICES + 7
+#define VBOXCLIENT_OPT_SESSION_TYPE         VBOXCLIENT_OPT_SERVICES + 8
+#define VBOXCLIENT_OPT_WAYLAND              VBOXCLIENT_OPT_SERVICES + 9
 
 
 /*********************************************************************************************************************************
@@ -94,24 +97,26 @@ typedef VBCLSERVICESTATE *PVBCLSERVICESTATE;
 *   Global Variables                                                                                                             *
 *********************************************************************************************************************************/
 /** The global service state. */
-VBCLSERVICESTATE     g_Service = { 0 };
+VBCLSERVICESTATE       g_Service = { 0 };
 
 /** Set by the signal handler when being called. */
-static volatile bool g_fSignalHandlerCalled = false;
+static volatile bool   g_fSignalHandlerCalled = false;
 /** Critical section for the signal handler. */
-static RTCRITSECT    g_csSignalHandler;
-/** Flag indicating Whether the service starts in daemonized  mode or not. */
-bool                 g_fDaemonized = false;
+static RTCRITSECT      g_csSignalHandler;
+/** Flag indicating Whether the service starts in daemonized mode or not. */
+bool                   g_fDaemonized = false;
 /** The name of our pidfile.  It is global for the benefit of the cleanup
  * routine. */
-static char          g_szPidFile[RTPATH_MAX] = "";
+static char            g_szPidFile[RTPATH_MAX] = "";
 /** The file handle of our pidfile.  It is global for the benefit of the
  * cleanup routine. */
-static RTFILE        g_hPidFile;
+static RTFILE          g_hPidFile;
 /** The name of pidfile for parent (control) process. */
-static char          g_szControlPidFile[RTPATH_MAX] = "";
+static char            g_szControlPidFile[RTPATH_MAX] = "";
 /** The file handle of parent process pidfile. */
-static RTFILE        g_hControlPidFile;
+static RTFILE          g_hControlPidFile;
+/** The display server type to use. */
+static VBGHDISPLAYSERVERTYPE g_enmDisplayServerType = VBGHDISPLAYSERVERTYPE_AUTO;
 
 /** Global critical section held during the clean-up routine (to prevent it
  * being called on multiple threads at once) or things which may not happen
@@ -127,26 +132,6 @@ static char          g_szLogFile[RTPATH_MAX + 128] = "";
 /** Set by the signal handler when SIGUSR1 received. */
 static volatile bool g_fProcessReloadRequested = false;
 
-/**
- * Tries to determine if the session parenting this process is of Xwayland.
- * NB: XDG_SESSION_TYPE is a systemd(1) environment variable and is unlikely
- * set in non-systemd environments or remote logins.
- * Therefore we check the Wayland specific display environment variable first.
- */
-bool VBClHasWayland(void)
-{
-    const char *const pDisplayType = RTEnvGet(VBCL_ENV_WAYLAND_DISPLAY);
-    const char *pSessionType;
-
-    if (pDisplayType != NULL)
-        return true;
-
-    pSessionType = RTEnvGet(VBCL_ENV_XDG_SESSION_TYPE);
-    if ((pSessionType != NULL) && (RTStrIStartsWith(pSessionType, "wayland")))
-        return true;
-
-    return false;
-}
 
 /**
  * Shut down if we get a signal or something.
@@ -181,6 +166,16 @@ void VBClShutdown(bool fExit /*=true*/)
 }
 
 /**
+ * Returns the current display server type.
+ *
+ * @returns The display server type.
+ */
+VBGHDISPLAYSERVERTYPE VBClGetDisplayServerType(void)
+{
+    return g_enmDisplayServerType;
+}
+
+/**
  * Xlib error handler for certain errors that we can't avoid.
  */
 static int vboxClientXLibErrorHandler(Display *pDisplay, XErrorEvent *pError)
@@ -188,7 +183,8 @@ static int vboxClientXLibErrorHandler(Display *pDisplay, XErrorEvent *pError)
     char errorText[1024];
 
     XGetErrorText(pDisplay, pError->error_code, errorText, sizeof(errorText));
-    VBClLogError("An X Window protocol error occurred: %s (error code %d).  Request code: %d, minor code: %d, serial number: %d\n", errorText, pError->error_code, pError->request_code, pError->minor_code, pError->serial);
+    VBClLogError("An X Window protocol error occurred: %s (error code %d).  Request code: %d, minor code: %d, serial number: %d\n",
+                 errorText, pError->error_code, pError->request_code, pError->minor_code, pError->serial);
     return 0;
 }
 
@@ -209,7 +205,14 @@ static int vboxClientXLibIOErrorHandler(Display *pDisplay)
  */
 static void vboxClientSignalHandler(int iSignal)
 {
-    int rc = RTCritSectEnter(&g_csSignalHandler);
+    int rc;
+
+    /* On Wayland, SIGPIPE might be issued if compositor no longer wants
+     * to communicate. This should not be a reason for process termination. */
+    if (iSignal == SIGPIPE)
+        return;
+
+    rc = RTCritSectEnter(&g_csSignalHandler);
     if (RT_SUCCESS(rc))
     {
         if (g_fSignalHandlerCalled)
@@ -330,6 +333,12 @@ static void vboxClientUsage(const char *pcszFileName)
     RTPrintf("  --vmsvga-session     an alias for --vmsvga\n");
 #endif
     RTPrintf("  --display            starts VMSVGA dynamic resizing for legacy guests\n");
+#endif
+    RTPrintf("  --session-type       specifies the session type to use (auto, x11, wayland)\n");
+    RTPrintf("  --session-detect     detects and prints the current session type\n"
+             "                       (exit code 0 if detection succeeded)\n");
+#ifdef VBOX_WITH_WAYLAND_ADDITIONS
+    RTPrintf("  --wayland            starts the shared clipboard and drag-and-drop services for Wayland\n");
 #endif
     RTPrintf("  -f, --foreground     run in the foreground (no daemonizing)\n");
     RTPrintf("  -d, --nodaemon       continues running as a system service\n");
@@ -505,11 +514,6 @@ int main(int argc, char *argv[])
     /* A flag which is returned to the parent process when Guest Additions update started. */
     bool fUpdateStarted = false;
 
-    /* This should never be called twice in one process - in fact one Display
-     * object should probably never be used from multiple threads anyway. */
-    if (!XInitThreads())
-        return RTMsgErrorExitFailure("Failed to initialize X11 threads\n");
-
     /* Get our file name for usage info and hints. */
     const char *pcszFileName = RTPathFilename(argv[0]);
     if (!pcszFileName)
@@ -518,30 +522,35 @@ int main(int argc, char *argv[])
     /* Parse our option(s). */
     static const RTGETOPTDEF s_aOptions[] =
     {
-        { "--nodaemon",                     'd',                                      RTGETOPT_REQ_NOTHING },
-        { "--foreground",                   'f',                                      RTGETOPT_REQ_NOTHING },
-        { "--help",                         'h',                                      RTGETOPT_REQ_NOTHING },
-        { "--logfile",                      'l',                                      RTGETOPT_REQ_STRING  },
-        { "--version",                      'V',                                      RTGETOPT_REQ_NOTHING },
-        { "--verbose",                      'v',                                      RTGETOPT_REQ_NOTHING },
+        { "--nodaemon",                     'd',                                RTGETOPT_REQ_NOTHING },
+        { "--foreground",                   'f',                                RTGETOPT_REQ_NOTHING },
+        { "--help",                         'h',                                RTGETOPT_REQ_NOTHING },
+        { "--logfile",                      'l',                                RTGETOPT_REQ_STRING  },
+        { "--version",                      'V',                                RTGETOPT_REQ_NOTHING },
+        { "--verbose",                      'v',                                RTGETOPT_REQ_NOTHING },
 
         /* Services */
 #ifdef VBOX_WITH_GUEST_PROPS
-        { "--checkhostversion",             VBOXCLIENT_OPT_CHECKHOSTVERSION,          RTGETOPT_REQ_NOTHING },
+        { "--checkhostversion",             VBOXCLIENT_OPT_CHECKHOSTVERSION,    RTGETOPT_REQ_NOTHING },
 #endif
 #ifdef VBOX_WITH_SHARED_CLIPBOARD
-        { "--clipboard",                    VBOXCLIENT_OPT_CLIPBOARD,                 RTGETOPT_REQ_NOTHING },
+        { "--clipboard",                    VBOXCLIENT_OPT_CLIPBOARD,           RTGETOPT_REQ_NOTHING },
 #endif
 #ifdef VBOX_WITH_DRAG_AND_DROP
-        { "--draganddrop",                  VBOXCLIENT_OPT_DRAGANDDROP,               RTGETOPT_REQ_NOTHING },
+        { "--draganddrop",                  VBOXCLIENT_OPT_DRAGANDDROP,         RTGETOPT_REQ_NOTHING },
 #endif
 #ifdef VBOX_WITH_SEAMLESS
-        { "--seamless",                     VBOXCLIENT_OPT_SEAMLESS,                  RTGETOPT_REQ_NOTHING },
+        { "--seamless",                     VBOXCLIENT_OPT_SEAMLESS,            RTGETOPT_REQ_NOTHING },
 #endif
 #ifdef VBOX_WITH_VMSVGA
-        { "--vmsvga",                       VBOXCLIENT_OPT_VMSVGA,                    RTGETOPT_REQ_NOTHING },
-        { "--vmsvga-session",               VBOXCLIENT_OPT_VMSVGA_SESSION,            RTGETOPT_REQ_NOTHING },
-        { "--display",                      VBOXCLIENT_OPT_DISPLAY,                    RTGETOPT_REQ_NOTHING },
+        { "--vmsvga",                       VBOXCLIENT_OPT_VMSVGA,              RTGETOPT_REQ_NOTHING },
+        { "--vmsvga-session",               VBOXCLIENT_OPT_VMSVGA_SESSION,      RTGETOPT_REQ_NOTHING },
+        { "--display",                      VBOXCLIENT_OPT_DISPLAY,             RTGETOPT_REQ_NOTHING },
+#endif
+        { "--session-detect",               VBOXCLIENT_OPT_SESSION_DETECT,      RTGETOPT_REQ_NOTHING },
+        { "--session-type",                 VBOXCLIENT_OPT_SESSION_TYPE,        RTGETOPT_REQ_STRING  },
+#ifdef VBOX_WITH_WAYLAND_ADDITIONS
+        { "--wayland",                      VBOXCLIENT_OPT_WAYLAND,             RTGETOPT_REQ_NOTHING }
 #endif
     };
 
@@ -673,6 +682,52 @@ int main(int argc, char *argv[])
                 break;
             }
 #endif
+            case VBOXCLIENT_OPT_SESSION_DETECT:
+            {
+                rc = VBClLogCreateEx("" /* No file logging */, false /* No header */);
+                if (RT_SUCCESS(rc))
+                {
+                    /* Make sure that we increase the verbosity (if needed), to gain some more insights
+                     * when detecting the display server. */
+                    rc = VBClLogModify("stdout", g_cVerbosity);
+                    if (RT_SUCCESS(rc))
+                    {
+                        VBGHDISPLAYSERVERTYPE const enmType = VBGHDisplayServerTypeDetect();
+                        VBClLogInfo("Detected session: %s\n", VBGHDisplayServerTypeToStr(enmType));
+                        return enmType != VBGHDISPLAYSERVERTYPE_NONE ? RTEXITCODE_SUCCESS : RTEXITCODE_FAILURE;
+                    }
+                }
+
+                return RTEXITCODE_FAILURE;
+            }
+
+            case VBOXCLIENT_OPT_SESSION_TYPE:
+            {
+                if (!RTStrICmp(ValueUnion.psz, "x11"))
+                    g_enmDisplayServerType = VBGHDISPLAYSERVERTYPE_X11;
+                else if (!RTStrICmp(ValueUnion.psz, "wayland"))
+                    g_enmDisplayServerType = VBGHDISPLAYSERVERTYPE_PURE_WAYLAND;
+                else if (!RTStrICmp(ValueUnion.psz, "none"))
+                    g_enmDisplayServerType = VBGHDISPLAYSERVERTYPE_NONE;
+                else if (!RTStrICmp(ValueUnion.psz, "auto"))
+                    g_enmDisplayServerType = VBGHDISPLAYSERVERTYPE_AUTO;
+                else
+                {
+                    RTMsgError("Session type \"%s\" is invalid; defaulting to \"auto\" instead.\n", ValueUnion.psz);
+                    g_enmDisplayServerType = VBGHDISPLAYSERVERTYPE_AUTO;
+                }
+                break;
+            }
+#ifdef VBOX_WITH_WAYLAND_ADDITIONS
+            case VBOXCLIENT_OPT_WAYLAND:
+            {
+                if (g_Service.pDesc)
+                    return vbclSyntaxOnlyOneService();
+                g_Service.pDesc = &g_SvcWayland;
+                break;
+            }
+#endif
+
             case VINF_GETOPT_NOT_OPTION:
                 break;
 
@@ -710,23 +765,26 @@ int main(int argc, char *argv[])
 
     rc = VBClLogCreate(g_szLogFile[0] ? g_szLogFile : "");
     if (RT_FAILURE(rc))
-        return RTMsgErrorExitFailure("Failed to create release log '%s', rc=%Rrc\n",
-                              g_szLogFile[0] ? g_szLogFile : "<None>", rc);
+        return RTEXITCODE_FAILURE; /* Error message already printed in VBClLogCreateEx(). */
 
-    if (!fDaemonise)
+    /* If the user is running in "no daemon" mode, send critical logging to stdout as well. */
+    rc = VBClLogModify(fDaemonise ? "" : "stdout", g_cVerbosity);
+    if (RT_FAILURE(rc))
+        return RTEXITCODE_FAILURE; /* Error message already printed in VBClLogModify(). */
+
+    VBClLogInfo("VBoxClient %s r%s started. Verbose level = %d\n",
+                RTBldCfgVersion(), RTBldCfgRevisionStr(), g_cVerbosity);
+
+    /* Try to detect the current session type early on, if needed. */
+    if (g_enmDisplayServerType == VBGHDISPLAYSERVERTYPE_AUTO)
     {
-        /* If the user is running in "no daemon" mode, send critical logging to stdout as well. */
-        PRTLOGGER pReleaseLog = RTLogRelGetDefaultInstance();
-        if (pReleaseLog)
-        {
-            rc = RTLogDestinations(pReleaseLog, "stdout");
-            if (RT_FAILURE(rc))
-                return RTMsgErrorExitFailure("Failed to redivert error output, rc=%Rrc", rc);
-        }
+        g_enmDisplayServerType = VBGHDisplayServerTypeDetect();
     }
+    else
+        VBClLogInfo("Session type was manually set to: %s\n", VBGHDisplayServerTypeToStr(g_enmDisplayServerType));
 
-    VBClLogInfo("VBoxClient %s r%s started. Verbose level = %d. Wayland environment detected: %s\n",
-                RTBldCfgVersion(), RTBldCfgRevisionStr(), g_cVerbosity, VBClHasWayland() ? "yes" : "no");
+    VBClLogInfo("Session type is: %s\n", VBGHDisplayServerTypeToStr(g_enmDisplayServerType));
+
     VBClLogInfo("Service: %s\n", g_Service.pDesc->pszDesc);
 
     rc = RTCritSectInit(&g_critSect);
@@ -747,15 +805,19 @@ int main(int argc, char *argv[])
 
     if (fDaemonise)
     {
+        VBClLogInfo("Daemonizing service ...\n");
         rc = VbglR3DaemonizeEx(false /* fNoChDir */, false /* fNoClose */, fRespawn, &g_cRespawn,
                                true /* fReturnOnUpdate */, &fUpdateStarted, g_szControlPidFile, &g_hControlPidFile);
-        /* This combination only works in context of parent process. */
-        if (RT_SUCCESS(rc) && fUpdateStarted)
-            vbclHandleUpdateStarted(argv);
-    }
+        if (RT_SUCCESS(rc))
+        {
+            g_fDaemonized = true;
 
-    if (RT_FAILURE(rc))
-        VBClLogFatalError("Daemonizing service failed: %Rrc\n", rc);
+            if (fUpdateStarted) /* This combination only works in context of parent process. */
+                vbclHandleUpdateStarted(argv);
+        }
+        else
+            return RTMsgErrorExitFailure("Daemonizing service failed: %Rrc\n", rc);
+    }
 
     if (g_szPidFile[0])
     {
@@ -773,14 +835,19 @@ int main(int argc, char *argv[])
         }
     }
 
-#ifndef VBOXCLIENT_WITHOUT_X11
-    /* Set an X11 error handler, so that we don't die when we get unavoidable
-     * errors. */
-    XSetErrorHandler(vboxClientXLibErrorHandler);
-    /* Set an X11 I/O error handler, so that we can shutdown properly on
-     * fatal errors. */
-    XSetIOErrorHandler(vboxClientXLibIOErrorHandler);
-#endif
+    if (g_enmDisplayServerType == VBGHDISPLAYSERVERTYPE_X11)
+    {
+        /* This should never be called twice in one process - in fact one Display
+         * object should probably never be used from multiple threads anyway. */
+        if (!XInitThreads())
+            return RTMsgErrorExitFailure("Failed to initialize X11 threads\n");
+        /* Set an X11 error handler, so that we don't die when we get unavoidable
+         * errors. */
+        XSetErrorHandler(vboxClientXLibErrorHandler);
+        /* Set an X11 I/O error handler, so that we can shutdown properly on
+         * fatal errors. */
+        XSetIOErrorHandler(vboxClientXLibIOErrorHandler);
+    }
 
     bool fSignalHandlerInstalled = false;
     if (RT_SUCCESS(rc))

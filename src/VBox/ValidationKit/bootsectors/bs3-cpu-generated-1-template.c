@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2007-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2007-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -5615,7 +5615,6 @@ static bool BS3_NEAR_CODE Bs3Cg1CheckResult(PBS3CG1STATE pThis, uint8_t bTestXcp
     if (pThis->fWorkExtCtx)
         Bs3TestPrintf("xcr0=%RX64\n", pThis->pResultExtCtx->fXcr0Saved);
     Bs3TestPrintf("\n");
-ASMHalt();
     return false;
 }
 
@@ -5648,6 +5647,8 @@ static void BS3_NEAR_CODE Bs3Cg1Destroy(PBS3CG1STATE pThis)
     pThis->pExtCtx        = NULL;
     pThis->pResultExtCtx  = NULL;
     pThis->pInitialExtCtx = NULL;
+
+    Bs3TestSubDone();
 }
 
 
@@ -5680,6 +5681,9 @@ bool BS3_NEAR_CODE BS3_CMN_NM(Bs3Cg1Init)(PBS3CG1STATE pThis, uint8_t bMode)
     pThis->pabOperands        = g_abBs3Cg1Operands;
     pThis->pabOpcodes         = g_abBs3Cg1Opcodes;
     pThis->fAdvanceMnemonic   = 1;
+
+    /* Start the mode sub-test before we start reporting errors against it. */
+    Bs3TestSub(pThis->pszModeShort);
 
     /* Allocate extended context structures. */
     cb = Bs3ExtCtxGetSize(&fFlags);
@@ -5916,7 +5920,7 @@ static uint8_t BS3_NEAR_CODE BS3_CMN_NM(Bs3Cg1WorkerInner)(PBS3CG1STATE pThis)
         pThis->enmXcptType              = (BS3CG1XCPTTYPE)pInstr->enmXcptType;
         pThis->cchMnemonic              = pInstr->cchMnemonic;
         if (pThis->fAdvanceMnemonic)
-            Bs3TestSubF("%s / %.*s", pThis->pszModeShort, pThis->cchMnemonic, pThis->pchMnemonic);
+            Bs3TestSubSubF("%.*s", pThis->cchMnemonic, pThis->pchMnemonic);
         pThis->fAdvanceMnemonic         = pInstr->fAdvanceMnemonic;
         pThis->uOpcodeMap               = pInstr->uOpcodeMap;
         pThis->cOperands                = pInstr->cOperands;
@@ -6133,10 +6137,7 @@ BS3_DECL_FAR(uint8_t) BS3_CMN_NM(Bs3Cg1Worker)(uint8_t bMode)
 #endif
 
     if (BS3_CMN_NM(Bs3Cg1Init)(&This, bMode))
-    {
         bRet = BS3_CMN_NM(Bs3Cg1WorkerInner)(&This);
-        Bs3TestSubDone();
-    }
     Bs3Cg1Destroy(&This);
 
 #if 0

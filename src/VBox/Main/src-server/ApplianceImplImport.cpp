@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -372,7 +372,7 @@ HRESULT Appliance::interpret()
                 /* IGuestOSType::recommendedRAM() returns the size in MB so convert to bytes */
                 ullMemSizeVBox = (uint64_t)memSizeVBox2 * _1M;
             }
-            /* It's always stored in bytes in VSD according to the old internal agreement within the team */
+            /* It's alway stored in bytes in VSD according to the old internal agreement within the team */
             pNewDesc->i_addEntry(VirtualSystemDescriptionType_Memory,
                                  "",
                                  Utf8StrFmt("%RU64", vsysThis.ullMemorySize),
@@ -414,7 +414,8 @@ HRESULT Appliance::interpret()
             /* If there is a <vbox:Machine>, we always prefer the setting from there. */
             if (vsysThis.pelmVBoxMachine)
             {
-                uint32_t maxNetworkAdapters = Global::getMaxNetworkAdapters(pNewDesc->m->pConfig->hardwareMachine.chipsetType);
+                uint32_t maxNetworkAdapters =
+                    PlatformProperties::s_getMaxNetworkAdapters(pNewDesc->m->pConfig->hardwareMachine.platformSettings.chipsetType);
 
                 const settings::NetworkAdaptersList &llNetworkAdapters = pNewDesc->m->pConfig->hardwareMachine.llNetworkAdapters;
                 /* Check for the constraints */
@@ -445,7 +446,7 @@ HRESULT Appliance::interpret()
             else if (vsysThis.llEthernetAdapters.size() >  0)
             {
                 size_t cEthernetAdapters = vsysThis.llEthernetAdapters.size();
-                uint32_t maxNetworkAdapters = Global::getMaxNetworkAdapters(ChipsetType_PIIX3);
+                uint32_t const maxNetworkAdapters = PlatformProperties::s_getMaxNetworkAdapters(ChipsetType_PIIX3); /** @todo BUGBUG x86 only for now. */
 
                 /* Check for the constraints */
                 if (cEthernetAdapters > maxNetworkAdapters)
@@ -1556,7 +1557,7 @@ HRESULT Appliance::i_importCloudImpl(TaskCloud *pTask)
                                         NULL);
 
                 // RAM
-                /* It's always stored in bytes in VSD according to the old internal agreement within the team */
+                /* It's alway stored in bytes in VSD according to the old internal agreement within the team */
                 GET_VSD_DESCRIPTION_BY_TYPE(VirtualSystemDescriptionType_Memory);
                 if (aVBoxValues.size() == 0)//1024MB by default, 1,073,741,824 in bytes
                     vsd->AddDescription(VirtualSystemDescriptionType_Memory,
@@ -1826,13 +1827,12 @@ HRESULT Appliance::i_importCloudImpl(TaskCloud *pTask)
                 pGuestOSType->COMGETTER(RecommendedRAM)(&memoryInMB);//returned in MB
                 uint64_t memoryInBytes = memoryInMB * _1M;//convert to bytes
                 {
-                    /* It's always stored in bytes in VSD according to the old internal agreement within the team */
+                    /* It's alway stored in bytes in VSD according to the old internal agreement within the team */
                     GET_VSD_DESCRIPTION_BY_TYPE(VirtualSystemDescriptionType_Memory); //aVBoxValues is set in this #define
                     if (aVBoxValues.size() != 0)
                     {
                         vsdData = aVBoxValues[0];
                         memoryInBytes = RT_MIN((uint64_t)(RT_MAX(vsdData.toUInt64(), (uint64_t)MM_RAM_MIN)), MM_RAM_MAX);
-
                     }
                     //and set in ovf::VirtualSystem in bytes
                     vsys.ullMemorySize = memoryInBytes;
@@ -2635,6 +2635,14 @@ HRESULT Appliance::i_readOVFFile(TaskOVF *pTask, RTVFSIOSTREAM hVfsIosOvf, const
     void  *pvBufferedOvf;
     size_t cbBufferedOvf;
     int vrc = RTVfsIoStrmReadAll(hVfsIosOvf, &pvBufferedOvf, &cbBufferedOvf);
+    /*
+     * Get rid of trailing zeros if xml is encoded in UTF-8 only. This is needed because
+     * starting with libxml2 2.12.6 the parser will complain about extra zeroes beyond
+     * the xml string content.
+     */
+    size_t cbValidXmlBufLen = cbBufferedOvf;
+    if (*(uint8_t*)pvBufferedOvf == 0x3C)
+        cbValidXmlBufLen = RTStrNLen((const char *)pvBufferedOvf, cbBufferedOvf);
     uint32_t cRefs = RTVfsIoStrmRelease(hVfsIosOvf);     /* consumes stream handle.  */
     NOREF(cRefs);
     Assert(cRefs == 0);
@@ -2644,7 +2652,7 @@ HRESULT Appliance::i_readOVFFile(TaskOVF *pTask, RTVFSIOSTREAM hVfsIosOvf, const
     HRESULT hrc;
     try
     {
-        m->pReader = new ovf::OVFReader(pvBufferedOvf, cbBufferedOvf, pTask->locInfo.strPath);
+        m->pReader = new ovf::OVFReader(pvBufferedOvf, cbValidXmlBufLen, pTask->locInfo.strPath);
         hrc = S_OK;
     }
     catch (RTCError &rXcpt)      // includes all XML exceptions
@@ -4438,17 +4446,15 @@ HRESULT Appliance::i_verifyStorageControllerPortValid(const StorageControllerTyp
                                                       const uint32_t uControllerPort,
                                                       ULONG *aMaxPortCount)
 {
-    SystemProperties *pSysProps;
-    pSysProps = mVirtualBox->i_getSystemProperties();
-    if (pSysProps == NULL)
-        return VBOX_E_OBJECT_NOT_FOUND;
+    ComPtr<IPlatformProperties> platformProperties;
+    mVirtualBox->GetPlatformProperties(PlatformArchitecture_x86, platformProperties.asOutParam()); /// @todo BUGBUG Only x86 for now!
 
     StorageBus_T enmStorageBus = StorageBus_Null;
-    HRESULT hrc = pSysProps->GetStorageBusForStorageControllerType(aStorageControllerType, &enmStorageBus);
+    HRESULT hrc = platformProperties->GetStorageBusForControllerType(aStorageControllerType, &enmStorageBus);
     if (FAILED(hrc))
         return hrc;
 
-    hrc = pSysProps->GetMaxPortCountForStorageBus(enmStorageBus, aMaxPortCount);
+    hrc = platformProperties->GetMaxPortCountForStorageBus(enmStorageBus, aMaxPortCount);
     if (FAILED(hrc))
         return hrc;
 
@@ -4494,6 +4500,7 @@ void Appliance::i_importMachineGeneric(const ovf::VirtualSystem &vsysThis,
     ComPtr<IMachine> pNewMachine;
     hrc = mVirtualBox->CreateMachine(Bstr(stack.strSettingsFilename).raw(),
                                      Bstr(stack.strNameVBox).raw(),
+                                     PlatformArchitecture_x86, /// @todo BUGBUG Only x86 for now!
                                      ComSafeArrayAsInParam(groups),
                                      Bstr(stack.strOsTypeVBox).raw(),
                                      NULL, /* aCreateFlags */
@@ -4503,6 +4510,14 @@ void Appliance::i_importMachineGeneric(const ovf::VirtualSystem &vsysThis,
                                      pNewMachine.asOutParam());
     if (FAILED(hrc)) throw hrc;
     pNewMachineRet = pNewMachine;
+
+    ComPtr<IPlatform> pPlatform;
+    hrc = pNewMachine->COMGETTER(Platform)(pPlatform.asOutParam());
+    if (FAILED(hrc)) throw hrc;
+
+    ComPtr<IPlatformX86> pPlatformX86; /// @todo BUGBUG Only x86 for now! */
+    hrc = pPlatform->COMGETTER(X86)(pPlatformX86.asOutParam());
+    if (FAILED(hrc)) throw hrc;
 
     // set the description
     if (!stack.strDescription.isEmpty())
@@ -4517,7 +4532,7 @@ void Appliance::i_importMachineGeneric(const ovf::VirtualSystem &vsysThis,
 
     if (stack.fForceHWVirt)
     {
-        hrc = pNewMachine->SetHWVirtExProperty(HWVirtExPropertyType_Enabled, TRUE);
+        hrc = pPlatformX86->SetHWVirtExProperty(HWVirtExPropertyType_Enabled, TRUE);
         if (FAILED(hrc)) throw hrc;
     }
 
@@ -4551,13 +4566,13 @@ void Appliance::i_importMachineGeneric(const ovf::VirtualSystem &vsysThis,
             stack.fForceIOAPIC = true;
     }
 
+    ComPtr<IFirmwareSettings> pFirmwareSettings;
+    hrc = pNewMachine->COMGETTER(FirmwareSettings)(pFirmwareSettings.asOutParam());
+    if (FAILED(hrc)) throw hrc;
+
     if (stack.fForceIOAPIC)
     {
-        ComPtr<IBIOSSettings> pBIOSSettings;
-        hrc = pNewMachine->COMGETTER(BIOSSettings)(pBIOSSettings.asOutParam());
-        if (FAILED(hrc)) throw hrc;
-
-        hrc = pBIOSSettings->COMSETTER(IOAPICEnabled)(TRUE);
+        hrc = pFirmwareSettings->COMSETTER(IOAPICEnabled)(TRUE);
         if (FAILED(hrc)) throw hrc;
     }
 
@@ -4573,7 +4588,7 @@ void Appliance::i_importMachineGeneric(const ovf::VirtualSystem &vsysThis,
             else
                 firmwareType = FirmwareType_EFI;
         }
-        hrc = pNewMachine->COMSETTER(FirmwareType)(firmwareType);
+        hrc = pFirmwareSettings->COMSETTER(FirmwareType)(firmwareType);
         if (FAILED(hrc)) throw hrc;
     }
 
@@ -4604,7 +4619,7 @@ void Appliance::i_importMachineGeneric(const ovf::VirtualSystem &vsysThis,
 #endif /* VBOX_WITH_USB */
 
     /* Change the network adapters */
-    uint32_t maxNetworkAdapters = Global::getMaxNetworkAdapters(ChipsetType_PIIX3);
+    uint32_t const maxNetworkAdapters = PlatformProperties::s_getMaxNetworkAdapters(ChipsetType_PIIX3); /** @todo BUGBUG Only x86 for now! */
 
     std::list<VirtualSystemDescriptionEntry*> vsdeNW = vsdescThis->i_findByType(VirtualSystemDescriptionType_NetworkAdapter);
     if (vsdeNW.empty())
@@ -5399,9 +5414,9 @@ void Appliance::i_importVBoxMachine(ComObjPtr<VirtualSystemDescription> &vsdescT
     /* CPU count & extented attributes */
     config.hardwareMachine.cCPUs = stack.cCPUs;
     if (stack.fForceIOAPIC)
-        config.hardwareMachine.fHardwareVirt = true;
+        config.hardwareMachine.platformSettings.x86.fHWVirtEx = true;
     if (stack.fForceIOAPIC)
-        config.hardwareMachine.biosSettings.fIOAPICEnabled = true;
+        config.hardwareMachine.firmwareSettings.fIOAPICEnabled = true;
     /* RAM size */
     config.hardwareMachine.ulMemorySizeMB = stack.ulMemorySizeMB;
 
@@ -6165,7 +6180,7 @@ void Appliance::i_importMachines(ImportStack &stack)
         std::list<VirtualSystemDescriptionEntry*> vsdeRAM = vsdescThis->i_findByType(VirtualSystemDescriptionType_Memory);
         if (vsdeRAM.size() != 1)
             throw setError(VBOX_E_FILE_ERROR, tr("RAM size missing"));
-        /* It's always stored in bytes in VSD according to the old internal agreement within the team */
+        /* It's alway stored in bytes in VSD according to the old internal agreement within the team */
         uint64_t ullMemorySizeMB = vsdeRAM.front()->strVBoxCurrent.toUInt64() / _1M;
         stack.ulMemorySizeMB = (uint32_t)ullMemorySizeMB;
 

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -45,7 +45,6 @@
 #include <VBox/param.h>
 #include <VBox/err.h>
 #include <VBox/dis.h>
-#include <VBox/disopcode.h>
 #include <VBox/log.h>
 #include <iprt/assert.h>
 #include <iprt/string.h>
@@ -109,6 +108,7 @@ VMMDECL(bool) EMAreHypercallInstructionsEnabled(PVMCPU pVCpu)
 }
 
 
+#if !defined(VBOX_VMM_TARGET_ARMV8)
 /**
  * Prepare an MWAIT - essentials of the MONITOR instruction.
  *
@@ -250,6 +250,7 @@ VMM_INT_DECL(bool) EMShouldContinueAfterHalt(PVMCPU pVCpu, PCPUMCTX pCtx)
     }
     return false;
 }
+#endif
 
 
 /**
@@ -851,7 +852,7 @@ VMM_INT_DECL(PCEMEXITREC) EMHistoryUpdateFlagsAndTypeAndPC(PVMCPUCC pVCpu, uint3
 /**
  * @callback_method_impl{FNDISREADBYTES}
  */
-static DECLCALLBACK(int) emReadBytes(PDISCPUSTATE pDis, uint8_t offInstr, uint8_t cbMinRead, uint8_t cbMaxRead)
+static DECLCALLBACK(int) emReadBytes(PDISSTATE pDis, uint8_t offInstr, uint8_t cbMinRead, uint8_t cbMaxRead)
 {
     PVMCPUCC    pVCpu    = (PVMCPUCC)pDis->pvUser;
     RTUINTPTR   uSrcAddr = pDis->uInstrAddr + offInstr;
@@ -865,16 +866,19 @@ static DECLCALLBACK(int) emReadBytes(PDISCPUSTATE pDis, uint8_t offInstr, uint8_
     else if (cbToRead < cbMinRead)
         cbToRead = cbMinRead;
 
-    int rc = PGMPhysSimpleReadGCPtr(pVCpu, &pDis->abInstr[offInstr], uSrcAddr, cbToRead);
+    int rc = PGMPhysSimpleReadGCPtr(pVCpu, &pDis->Instr.ab[offInstr], uSrcAddr, cbToRead);
     if (RT_FAILURE(rc))
     {
         if (cbToRead > cbMinRead)
         {
             cbToRead = cbMinRead;
-            rc = PGMPhysSimpleReadGCPtr(pVCpu, &pDis->abInstr[offInstr], uSrcAddr, cbToRead);
+            rc = PGMPhysSimpleReadGCPtr(pVCpu, &pDis->Instr.ab[offInstr], uSrcAddr, cbToRead);
         }
         if (RT_FAILURE(rc))
         {
+#if defined(VBOX_VMM_TARGET_ARMV8)
+            AssertReleaseFailed();
+#else
             /*
              * If we fail to find the page via the guest's page tables
              * we invalidate the page in the host TLB (pertaining to
@@ -886,6 +890,7 @@ static DECLCALLBACK(int) emReadBytes(PDISCPUSTATE pDis, uint8_t offInstr, uint8_
                 if (((uSrcAddr + cbToRead - 1) >> GUEST_PAGE_SHIFT) != (uSrcAddr >> GUEST_PAGE_SHIFT))
                     HMInvalidatePage(pVCpu, uSrcAddr + cbToRead - 1);
             }
+#endif
         }
     }
 
@@ -904,22 +909,27 @@ static DECLCALLBACK(int) emReadBytes(PDISCPUSTATE pDis, uint8_t offInstr, uint8_
  * @param   pDis            Where to return the parsed instruction info.
  * @param   pcbInstr        Where to return the instruction size. (optional)
  */
-VMM_INT_DECL(int) EMInterpretDisasCurrent(PVMCPUCC pVCpu, PDISCPUSTATE pDis, unsigned *pcbInstr)
+VMM_INT_DECL(int) EMInterpretDisasCurrent(PVMCPUCC pVCpu, PDISSTATE pDis, unsigned *pcbInstr)
 {
+#if defined(VBOX_VMM_TARGET_ARMV8)
+    return EMInterpretDisasOneEx(pVCpu, (RTGCUINTPTR)CPUMGetGuestFlatPC(pVCpu), pDis, pcbInstr);
+#else
     PCPUMCTX pCtx = CPUMQueryGuestCtxPtr(pVCpu);
     RTGCPTR  GCPtrInstr;
-#if 0
+
+# if 0
     int rc = SELMToFlatEx(pVCpu, DISSELREG_CS, pCtx, pCtx->rip, 0, &GCPtrInstr);
-#else
+# else
 /** @todo Get the CPU mode as well while we're at it! */
     int rc = SELMValidateAndConvertCSAddr(pVCpu, pCtx->eflags.u, pCtx->ss.Sel, pCtx->cs.Sel, &pCtx->cs, pCtx->rip, &GCPtrInstr);
-#endif
+# endif
     if (RT_SUCCESS(rc))
         return EMInterpretDisasOneEx(pVCpu, (RTGCUINTPTR)GCPtrInstr, pDis, pcbInstr);
 
     Log(("EMInterpretDisasOne: Failed to convert %RTsel:%RGv (cpl=%d) - rc=%Rrc !!\n",
          pCtx->cs.Sel, (RTGCPTR)pCtx->rip, pCtx->ss.Sel & X86_SEL_RPL, rc));
     return rc;
+#endif
 }
 
 
@@ -935,7 +945,7 @@ VMM_INT_DECL(int) EMInterpretDisasCurrent(PVMCPUCC pVCpu, PDISCPUSTATE pDis, uns
  * @param   pDis            Where to return the parsed instruction info.
  * @param   pcbInstr        Where to return the instruction size. (optional)
  */
-VMM_INT_DECL(int) EMInterpretDisasOneEx(PVMCPUCC pVCpu, RTGCUINTPTR GCPtrInstr, PDISCPUSTATE pDis, unsigned *pcbInstr)
+VMM_INT_DECL(int) EMInterpretDisasOneEx(PVMCPUCC pVCpu, RTGCUINTPTR GCPtrInstr, PDISSTATE pDis, unsigned *pcbInstr)
 {
     DISCPUMODE enmCpuMode = CPUMGetGuestDisMode(pVCpu);
     /** @todo Deal with too long instruction (=> \#GP), opcode read errors (=>
@@ -964,7 +974,11 @@ VMM_INT_DECL(int) EMInterpretDisasOneEx(PVMCPUCC pVCpu, RTGCUINTPTR GCPtrInstr, 
  */
 VMM_INT_DECL(VBOXSTRICTRC) EMInterpretInstruction(PVMCPUCC pVCpu)
 {
+#if defined(VBOX_VMM_TARGET_ARMV8)
+    LogFlow(("EMInterpretInstruction %RGv\n", (RTGCPTR)CPUMGetGuestFlatPC(pVCpu)));
+#else
     LogFlow(("EMInterpretInstruction %RGv\n", (RTGCPTR)CPUMGetGuestRIP(pVCpu)));
+#endif
 
     VBOXSTRICTRC rc = IEMExecOneBypassEx(pVCpu, NULL /*pcbWritten*/);
     if (RT_UNLIKELY(   rc == VERR_IEM_ASPECT_NOT_IMPLEMENTED
@@ -978,7 +992,7 @@ VMM_INT_DECL(VBOXSTRICTRC) EMInterpretInstruction(PVMCPUCC pVCpu)
 
 
 /**
- * Interprets the current instruction using the supplied DISCPUSTATE structure.
+ * Interprets the current instruction using the supplied DISSTATE structure.
  *
  * IP/EIP/RIP *IS* updated!
  *
@@ -1001,11 +1015,11 @@ VMM_INT_DECL(VBOXSTRICTRC) EMInterpretInstruction(PVMCPUCC pVCpu)
  * @todo    At this time we do NOT check if the instruction overwrites vital information.
  *          Make sure this can't happen!! (will add some assertions/checks later)
  */
-VMM_INT_DECL(VBOXSTRICTRC) EMInterpretInstructionDisasState(PVMCPUCC pVCpu, PDISCPUSTATE pDis, uint64_t rip)
+VMM_INT_DECL(VBOXSTRICTRC) EMInterpretInstructionDisasState(PVMCPUCC pVCpu, PDISSTATE pDis, uint64_t rip)
 {
     LogFlow(("EMInterpretInstructionDisasState %RGv\n", (RTGCPTR)rip));
 
-    VBOXSTRICTRC rc = IEMExecOneBypassWithPrefetchedByPC(pVCpu, rip, pDis->abInstr, pDis->cbCachedInstr);
+    VBOXSTRICTRC rc = IEMExecOneBypassWithPrefetchedByPC(pVCpu, rip, pDis->Instr.ab, pDis->cbCachedInstr);
     if (RT_UNLIKELY(   rc == VERR_IEM_ASPECT_NOT_IMPLEMENTED
                     || rc == VERR_IEM_INSTR_NOT_IMPLEMENTED))
         rc = VERR_EM_INTERPRETER;

@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -41,6 +41,7 @@
 
 #include <iprt/critsect.h>
 #include <iprt/types.h>
+#include <iprt/req.h>
 #include <iprt/win/windows.h>
 
 #include <VBox/GuestHost/SharedClipboard.h>
@@ -109,6 +110,11 @@ typedef struct _SHCLWINAPIOLD
     bool                   fCBChainPingInProcess;
 } SHCLWINAPIOLD, *PSHCLWINAPIOLD;
 
+#ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS
+/** Forward declaration for the Windows data object. */
+class ShClWinDataObject;
+#endif
+
 /**
  * Structure for maintaining a Shared Clipboard context on Windows platforms.
  */
@@ -130,65 +136,111 @@ typedef struct _SHCLWINCTX
     SHCLWINAPINEW      newAPI;
     /** Structure for maintaining the old clipboard API. */
     SHCLWINAPIOLD      oldAPI;
+#ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS
+    /** The "in-flight" data object for file transfers.
+     *  This is the current data object which has been created and sent to the Windows clipboard.
+     *  That way Windows knows that a potential file transfer is available, but the actual transfer
+     *  hasn't been started yet.
+     *  Can be NULL if currently not being used / no current "in-flight" transfer present. */
+    ShClWinDataObject *pDataObjInFlight;
+#endif
+    /** Request queue.
+     *  Needed for processing HGCM requests within the HGCM (main) thread from the Windows event thread. */
+    RTREQQUEUE         hReqQ;
 } SHCLWINCTX, *PSHCLWINCTX;
 
-int SharedClipboardWinOpen(HWND hWnd);
-int SharedClipboardWinClose(void);
-int SharedClipboardWinClear(void);
+int ShClWinOpen(HWND hWnd);
+int ShClWinClose(void);
+int ShClWinClear(void);
 
-int SharedClipboardWinCtxInit(PSHCLWINCTX pWinCtx);
-void SharedClipboardWinCtxDestroy(PSHCLWINCTX pWinCtx);
+int ShClWinCtxInit(PSHCLWINCTX pWinCtx);
+void ShClWinCtxDestroy(PSHCLWINCTX pWinCtx);
 
-int SharedClipboardWinCheckAndInitNewAPI(PSHCLWINAPINEW pAPI);
-bool SharedClipboardWinIsNewAPI(PSHCLWINAPINEW pAPI);
+int ShClWinCheckAndInitNewAPI(PSHCLWINAPINEW pAPI);
+bool ShClWinIsNewAPI(PSHCLWINAPINEW pAPI);
 
-int SharedClipboardWinDataWrite(UINT cfFormat, void *pvData, uint32_t cbData);
+int ShClWinDataWrite(UINT cfFormat, void *pvData, uint32_t cbData);
 
-int SharedClipboardWinChainAdd(PSHCLWINCTX pCtx);
-int SharedClipboardWinChainRemove(PSHCLWINCTX pCtx);
-VOID CALLBACK SharedClipboardWinChainPingProc(HWND hWnd, UINT uMsg, ULONG_PTR dwData, LRESULT lResult) RT_NOTHROW_DEF;
-LRESULT SharedClipboardWinChainPassToNext(PSHCLWINCTX pWinCtx, UINT msg, WPARAM wParam, LPARAM lParam);
+int ShClWinChainAdd(PSHCLWINCTX pCtx);
+int ShClWinChainRemove(PSHCLWINCTX pCtx);
+VOID CALLBACK ShClWinChainPingProc(HWND hWnd, UINT uMsg, ULONG_PTR dwData, LRESULT lResult) RT_NOTHROW_DEF;
+LRESULT ShClWinChainPassToNext(PSHCLWINCTX pWinCtx, UINT msg, WPARAM wParam, LPARAM lParam);
 
-SHCLFORMAT SharedClipboardWinClipboardFormatToVBox(UINT uFormat);
-int SharedClipboardWinGetFormats(PSHCLWINCTX pCtx, PSHCLFORMATS pfFormats);
+SHCLFORMAT ShClWinClipboardFormatToVBox(UINT uFormat);
+int ShClWinGetFormats(PSHCLWINCTX pCtx, PSHCLFORMATS pfFormats);
+
+int ShClWinGetCFHTMLHeaderValue(const char *pszSrc, const char *pszOption, uint32_t *puValue);
+bool ShClWinIsCFHTML(const char *pszSource);
+int ShClWinConvertCFHTMLToMIME(const char *pszSource, const uint32_t cch, char **ppszOutput, uint32_t *pcbOutput);
+int ShClWinConvertMIMEToCFHTML(const char *pszSource, size_t cb, char **ppszOutput, uint32_t *pcbOutput);
+
+LRESULT ShClWinHandleWMChangeCBChain(PSHCLWINCTX pWinCtx, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+int ShClWinHandleWMDestroy(PSHCLWINCTX pWinCtx);
+int ShClWinHandleWMRenderAllFormats(PSHCLWINCTX pWinCtx, HWND hWnd);
+int ShClWinHandleWMTimer(PSHCLWINCTX pWinCtx);
+
+int ShClWinClearAndAnnounceFormats(PSHCLWINCTX pWinCtx, SHCLFORMATS fFormats, HWND hWnd);
 
 #ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS
-int SharedClipboardWinGetRoots(PSHCLWINCTX pWinCtx, PSHCLTRANSFER pTransfer);
-int SharedClipboardWinDropFilesToStringList(DROPFILES *pDropFiles, char **papszList, uint32_t *pcbList);
-#endif
-
-int SharedClipboardWinGetCFHTMLHeaderValue(const char *pszSrc, const char *pszOption, uint32_t *puValue);
-bool SharedClipboardWinIsCFHTML(const char *pszSource);
-int SharedClipboardWinConvertCFHTMLToMIME(const char *pszSource, const uint32_t cch, char **ppszOutput, uint32_t *pcbOutput);
-int SharedClipboardWinConvertMIMEToCFHTML(const char *pszSource, size_t cb, char **ppszOutput, uint32_t *pcbOutput);
-
-LRESULT SharedClipboardWinHandleWMChangeCBChain(PSHCLWINCTX pWinCtx, HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-int SharedClipboardWinHandleWMDestroy(PSHCLWINCTX pWinCtx);
-int SharedClipboardWinHandleWMRenderAllFormats(PSHCLWINCTX pWinCtx, HWND hWnd);
-int SharedClipboardWinHandleWMTimer(PSHCLWINCTX pWinCtx);
-
-int SharedClipboardWinClearAndAnnounceFormats(PSHCLWINCTX pWinCtx, SHCLFORMATS fFormats, HWND hWnd);
-#ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS
-int SharedClipboardWinTransferCreate(PSHCLWINCTX pWinCtx, PSHCLTRANSFER pTransfer);
-void SharedClipboardWinTransferDestroy(PSHCLWINCTX pWinCtx, PSHCLTRANSFER pTransfer);
-#endif
-
-# ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS
 class SharedClipboardTransferList;
 #  ifndef FILEGROUPDESCRIPTOR
 class FILEGROUPDESCRIPTOR;
 #  endif
 
-class SharedClipboardWinDataObject : public IDataObject //, public IDataObjectAsyncCapability
+/**
+ * Shared CLipboard Windows class implementing IDataObject for Shared Clipboard data transfers.
+ */
+class ShClWinDataObject : public IDataObject //, public IDataObjectAsyncCapability
 {
 public:
+
+    /**
+     * Structure for keeping a data object callback context.
+     */
+    struct CALLBACKCTX
+    {
+        /** Pointer to the data object of this callback. */
+        ShClWinDataObject *pThis;
+        /** User-supplied pointer to more context data. */
+        void                         *pvUser;
+    };
+    /** Pointer to a Shared Clipboard Windows data object callback table. */
+    typedef CALLBACKCTX *PCALLBACKCTX;
+
+    /**
+     * @name Shared Clipboard Windows data object callback table.
+     */
+    struct CALLBACKS
+    {
+        /**
+         * Called by the data object if a transfer needs to be started.
+         *
+         * @returns VBox status code.
+         * @param   pCbCtx          Pointer to callback context.
+         */
+        DECLCALLBACKMEMBER(int, pfnTransferBegin, (PCALLBACKCTX pCbCtx));
+        /**
+         * Called by the data object if a transfer has been ended (succeeded or failed).
+         *
+         * @returns VBox status code.
+         * @param   pCbCtx          Pointer to callback context.
+         * @param   pTransfer       Pointer to transfer being completed.
+         * @param   rcTransfer      Result (IPRT-style) code.
+         */
+        DECLCALLBACKMEMBER(int, pfnTransferEnd, (PCALLBACKCTX pCbCtx, PSHCLTRANSFER pTransfer, int rcTransfer));
+    };
+    /** Pointer to a Shared Clipboard Windows data object callback table. */
+    typedef CALLBACKS *PCALLBACKS;
 
     enum Status
     {
         /** The object is uninitialized (not ready). */
         Uninitialized = 0,
-        /** The object is initialized and ready to use. */
+        /** The object is initialized and ready to use.
+         *  A transfer is *not* running yet! */
         Initialized,
+        /** Transfer is running. */
+        Running,
         /** The operation has been successfully completed. */
         Completed,
         /** The operation has been canceled. */
@@ -199,9 +251,14 @@ public:
 
 public:
 
-    SharedClipboardWinDataObject(PSHCLTRANSFER pTransfer,
-                                 LPFORMATETC pFormatEtc = NULL, LPSTGMEDIUM pStgMed = NULL, ULONG cFormats = 0);
-    virtual ~SharedClipboardWinDataObject(void);
+    ShClWinDataObject(void);
+    virtual ~ShClWinDataObject(void);
+
+public:
+
+    int Init(PSHCLCONTEXT pCtx, ShClWinDataObject::PCALLBACKS pCallbacks, LPFORMATETC pFormatEtc = NULL, LPSTGMEDIUM pStgMed = NULL, ULONG cFormats = 0);
+    void Uninit(void);
+    void Destroy(void);
 
 public: /* IUnknown methods. */
 
@@ -233,19 +290,23 @@ public: /* IDataObjectAsyncCapability methods. */
 
 public:
 
-    int Init(void);
-    void OnTransferComplete(int rc = VINF_SUCCESS);
-    void OnTransferCanceled();
+    int SetTransfer(PSHCLTRANSFER pTransfer);
+    int SetStatus(Status enmStatus, int rcSts = VINF_SUCCESS);
 
 public:
 
-    static DECLCALLBACK(int) readThread(RTTHREAD ThreadSelf, void *pvUser);
+    static DECLCALLBACK(int) readThread(PSHCLTRANSFER pTransfer, void *pvUser);
 
     static void logFormat(CLIPFORMAT fmt);
 
 protected:
 
+    void uninitInternal(void);
+
     static int Thread(RTTHREAD hThread, void *pvUser);
+
+    inline int lock(void);
+    inline int unlock(void);
 
     int readDir(PSHCLTRANSFER pTransfer, const Utf8Str &strPath);
 
@@ -256,6 +317,9 @@ protected:
     bool lookupFormatEtc(LPFORMATETC pFormatEtc, ULONG *puIndex);
     void registerFormat(LPFORMATETC pFormatEtc, CLIPFORMAT clipFormat, TYMED tyMed = TYMED_HGLOBAL,
                         LONG lindex = -1, DWORD dwAspect = DVASPECT_CONTENT, DVTARGETDEVICE *pTargetDevice = NULL);
+    int setTransferLocked(PSHCLTRANSFER pTransfer);
+    int setStatusLocked(Status enmStatus, int rc = VINF_SUCCESS);
+
 protected:
 
     /**
@@ -264,7 +328,7 @@ protected:
     struct FSOBJENTRY
     {
         /** Relative path of the object. */
-        Utf8Str       strPath;
+        char         *pszPath;
         /** Related (cached) object information. */
         SHCLFSOBJINFO objInfo;
     };
@@ -272,10 +336,18 @@ protected:
     /** Vector containing file system objects with its (cached) objection information. */
     typedef std::vector<FSOBJENTRY> FsObjEntryList;
 
+    /** Shared Clipboard context to use. */
+    PSHCLCONTEXT                m_pCtx;
     /** The object's current status. */
     Status                      m_enmStatus;
+    /** Last (IPRT-style) error set in conjunction with the status. */
+    int                         m_rcStatus;
+    /** Data object callback table to use. */
+    CALLBACKS                   m_Callbacks;
+    /** Data object callback table context to use. */
+    CALLBACKCTX                 m_CallbackCtx;
     /** The object's current reference count. */
-    LONG                        m_lRefCount;
+    ULONG                       m_lRefCount;
     /** How many formats have been registered. */
     ULONG                       m_cFormats;
     LPFORMATETC                 m_pFormatEtc;
@@ -289,12 +361,12 @@ protected:
     ULONG                       m_uObjIdx;
     /** List of (cached) file system objects. */
     FsObjEntryList              m_lstEntries;
-    /** Whether the transfer thread is running. */
-    bool                        m_fRunning;
+    /** Critical section to serialize access. */
+    RTCRITSECT                  m_CritSect;
     /** Event being triggered when reading the transfer list been completed. */
     RTSEMEVENT                  m_EventListComplete;
-    /** Event being triggered when the transfer has been completed. */
-    RTSEMEVENT                  m_EventTransferComplete;
+    /** Event being triggered when the object status has been changed. */
+    RTSEMEVENT                  m_EventStatusChanged;
     /** Registered format for CFSTR_FILEDESCRIPTORA. */
     UINT                        m_cfFileDescriptorA;
     /** Registered format for CFSTR_FILEDESCRIPTORW. */
@@ -305,12 +377,20 @@ protected:
     UINT                        m_cfPerformedDropEffect;
 };
 
-class SharedClipboardWinEnumFormatEtc : public IEnumFORMATETC
+/**
+ * Generic Windows class implementing IEnumFORMATETC for Shared Clipboard data transfers.
+ */
+class ShClWinEnumFormatEtc : public IEnumFORMATETC
 {
 public:
 
-    SharedClipboardWinEnumFormatEtc(LPFORMATETC pFormatEtc, ULONG cFormats);
-    virtual ~SharedClipboardWinEnumFormatEtc(void);
+    ShClWinEnumFormatEtc(void);
+    virtual ~ShClWinEnumFormatEtc(void);
+
+public:
+
+    int Init(LPFORMATETC pFormatEtc, ULONG cFormats);
+    void Destroy(void);
 
 public: /* IUnknown methods. */
 
@@ -339,16 +419,15 @@ private:
 };
 
 /**
- * Own IStream implementation to implement file-based clipboard operations
- * through HGCM. Needed on Windows hosts and guests.
+ * Generic Windows class implementing IStream for Shared Clipboard data transfers.
  */
-class SharedClipboardWinStreamImpl : public IStream
+class ShClWinStreamImpl : public IStream
 {
 public:
 
-    SharedClipboardWinStreamImpl(SharedClipboardWinDataObject *pParent, PSHCLTRANSFER pTransfer,
-                                 const Utf8Str &strPath, PSHCLFSOBJINFO pObjInfo);
-    virtual ~SharedClipboardWinStreamImpl(void);
+    ShClWinStreamImpl(ShClWinDataObject *pParent, PSHCLTRANSFER pTransfer,
+                      const Utf8Str &strPath, PSHCLFSOBJINFO pObjInfo);
+    virtual ~ShClWinStreamImpl(void);
 
 public: /* IUnknown methods. */
 
@@ -372,12 +451,12 @@ public: /* IStream methods. */
 
 public: /* Own methods. */
 
-    static HRESULT Create(SharedClipboardWinDataObject *pParent, PSHCLTRANSFER pTransfer, const Utf8Str &strPath,
+    static HRESULT Create(ShClWinDataObject *pParent, PSHCLTRANSFER pTransfer, const Utf8Str &strPath,
                           PSHCLFSOBJINFO pObjInfo, IStream **ppStream);
 private:
 
     /** Pointer to the parent data object. */
-    SharedClipboardWinDataObject  *m_pParent;
+    ShClWinDataObject             *m_pParent;
     /** The stream object's current reference count. */
     LONG                           m_lRefCount;
     /** Pointer to the associated Shared Clipboard transfer. */
@@ -396,24 +475,31 @@ private:
 
 /**
  * Class for Windows-specifics for maintaining a single Shared Clipboard transfer.
- * Set as pvUser / cbUser in SHCLTRANSFERCTX.
+ * Set as pvUser / cbUser for SHCLTRANSFER on Windows hosts / guests.
  */
-class SharedClipboardWinTransferCtx
+class ShClWinTransferCtx
 {
 public:
-    SharedClipboardWinTransferCtx()
+    ShClWinTransferCtx()
         : pDataObj(NULL) { }
 
-    virtual ~SharedClipboardWinTransferCtx()
-    {
-        if (pDataObj)
-            delete pDataObj;
-    }
+    virtual ~ShClWinTransferCtx() { }
 
-    /** Pointer to data object to use for this transfer.
+    /** Pointer to data object to use for this transfer. Not owned.
      *  Can be NULL if not being used. */
-    SharedClipboardWinDataObject *pDataObj;
+    ShClWinDataObject *pDataObj;
 };
+
+int ShClWinTransferGetRoots(PSHCLWINCTX pWinCtx, PSHCLTRANSFER pTransfer);
+int ShClWinTransferDropFilesToStringList(DROPFILES *pDropFiles, char **papszList, uint32_t *pcbList);
+int ShClWinTransferGetRootsFromClipboard(PSHCLWINCTX pWinCtx, PSHCLTRANSFER pTransfer);
+
+int ShClWinTransferCreate(PSHCLWINCTX pWinCtx, PSHCLTRANSFER pTransfer);
+void ShClWinTransferDestroy(PSHCLWINCTX pWinCtx, PSHCLTRANSFER pTransfer);
+
+int ShClWinTransferCreateAndSetDataObject(PSHCLWINCTX pWinCtx, PSHCLCONTEXT pCtx, ShClWinDataObject::PCALLBACKS pCallbacks);
+int ShClWinTransferInitialize(PSHCLWINCTX pWinCtx, PSHCLTRANSFER pTransfer);
+int ShClWinTransferStart(PSHCLWINCTX pWinCtx, PSHCLTRANSFER pTransfer);
 # endif /* VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS */
 #endif /* !VBOX_INCLUDED_GuestHost_SharedClipboard_win_h */
 

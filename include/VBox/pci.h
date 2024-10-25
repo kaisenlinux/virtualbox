@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -804,7 +804,7 @@ struct PCIBusAddress
     }
 
     /** Create string representation of this PCI address. */
-    bool format(char* szBuf, int32_t cBufSize)
+    bool format(char* szBuf, size_t cBufSize)
     {
         if (cBufSize < (/* bus */ 2 + /* : */ 1 + /* device */ 2 + /* . */ 1 + /* function*/ 1 + /* \0 */1))
             return false;

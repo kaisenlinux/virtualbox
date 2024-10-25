@@ -7,7 +7,7 @@ Test Manager Web-UI - Content Base Classes.
 
 __copyright__ = \
 """
-Copyright (C) 2012-2023 Oracle and/or its affiliates.
+Copyright (C) 2012-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -36,7 +36,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 
 # Standard python imports.
@@ -889,17 +889,17 @@ class WuiListContentBase(WuiContentBase):
         aoValues = self._formatListEntry(iEntry);
         assert len(aoValues) == len(self._asColumnHeaders), '%s vs %s' % (len(aoValues), len(self._asColumnHeaders));
 
-        for i, _ in enumerate(aoValues):
+        for i, oValue in enumerate(aoValues):
             if i < len(self._asColumnAttribs) and self._asColumnAttribs[i]:
                 sRow += u'    <td ' + self._asColumnAttribs[i] + '>';
             else:
                 sRow += u'    <td>';
 
-            if isinstance(aoValues[i], WuiHtmlBase):
-                sRow += aoValues[i].toHtml();
-            elif isinstance(aoValues[i], list):
-                if aoValues[i]:
-                    for oElement in aoValues[i]:
+            if isinstance(oValue, WuiHtmlBase):
+                sRow += oValue.toHtml();
+            elif isinstance(oValue, list):
+                if oValue:
+                    for oElement in oValue:
                         if isinstance(oElement, WuiHtmlBase):
                             sRow += oElement.toHtml();
                         elif db.isDbTimestamp(oElement):
@@ -907,12 +907,12 @@ class WuiListContentBase(WuiContentBase):
                         else:
                             sRow += webutils.escapeElem(unicode(oElement));
                         sRow += ' ';
-            elif db.isDbTimestamp(aoValues[i]):
-                sRow += webutils.escapeElem(self.formatTsShort(aoValues[i]));
-            elif db.isDbInterval(aoValues[i]):
-                sRow += webutils.escapeElem(self.formatIntervalShort(aoValues[i]));
-            elif aoValues[i] is not None:
-                sRow += webutils.escapeElem(unicode(aoValues[i]));
+            elif db.isDbTimestamp(oValue):
+                sRow += webutils.escapeElem(self.formatTsShort(oValue));
+            elif db.isDbInterval(oValue):
+                sRow += webutils.escapeElem(self.formatIntervalShort(oValue));
+            elif oValue is not None:
+                sRow += webutils.escapeElem(unicode(oValue));
 
             sRow += u'</td>\n';
 

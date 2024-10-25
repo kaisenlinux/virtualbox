@@ -3,7 +3,7 @@
     manpage, user manual, usage: VBoxManage showmediuminfo
 -->
 <!--
-    Copyright (C) 2006-2023 Oracle and/or its affiliates.
+    Copyright (C) 2006-2024 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.
@@ -30,7 +30,7 @@
 ]>
 <refentry id="vboxmanage-showmediuminfo" lang="en">
   <refentryinfo>
-    <pubdate>$Date: 2023-01-17 15:15:46 +0100 (Tue, 17 Jan 2023) $</pubdate>
+    <pubdate>$Date: 2024-09-16 16:03:52 +0200 (Mon, 16 Sep 2024) $</pubdate>
     <title>VBoxManage showmediuminfo</title>
   </refentryinfo>
 
@@ -61,7 +61,7 @@
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-showmediuminfo-description">
     <title>Описание</title>
     <para>
       Команда <command>VBoxManage showmediuminfo</command> показывает
@@ -118,7 +118,7 @@
     </variablelist>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-showmediuminfo-examples">
     <title>Примеры</title>
     <remark role="help-scope" condition="GLOBAL" />
     <para>
@@ -133,7 +133,7 @@
 <screen>$ VBoxManage showmediuminfo floppy floppy01.img</screen>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-showmediuminfo-see-also">
     <title>Смотрите также</title>
     <para>
       <xref linkend="vboxmanage-list" />

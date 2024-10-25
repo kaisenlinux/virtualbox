@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,11 +26,11 @@
  */
 
 /* Qt includes: */
-#include <QRegExp>
 #include <QRegularExpression>
 #include <QThread>
 
 /* GUI includes: */
+#include "UICloudMachineManager.h"
 #include "UICommon.h"
 #include "UIChooser.h"
 #include "UIChooserAbstractModel.h"
@@ -40,6 +40,9 @@
 #include "UIChooserNodeMachine.h"
 #include "UICloudNetworkingStuff.h"
 #include "UIExtraDataManager.h"
+#include "UIGlobalSession.h"
+#include "UILocalMachineStuff.h"
+#include "UILoggingDefs.h"
 #include "UIMessageCenter.h"
 #include "UINotificationCenter.h"
 #include "UIProgressTaskReadCloudMachineList.h"
@@ -220,19 +223,11 @@ void UIThreadGroupSettingsSave::run()
     foreach (const QString &strId, m_newLists.keys())
     {
         /* Get new group list/set: */
-        const QStringList &newGroupList = m_newLists.value(strId);
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+        const QStringList newGroupList = m_newLists.value(strId);
         const UIStringSet newGroupSet(newGroupList.begin(), newGroupList.end());
-#else
-        const UIStringSet &newGroupSet = UIStringSet::fromList(newGroupList);
-#endif
         /* Get old group list/set: */
-        const QStringList &oldGroupList = m_oldLists.value(strId);
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+        const QStringList oldGroupList = m_oldLists.value(strId);
         const UIStringSet oldGroupSet(oldGroupList.begin(), oldGroupList.end());
-#else
-        const UIStringSet &oldGroupSet = UIStringSet::fromList(oldGroupList);
-#endif
         /* Make sure group set changed: */
         if (newGroupSet == oldGroupSet)
             continue;
@@ -246,7 +241,7 @@ void UIThreadGroupSettingsSave::run()
         do
         {
             /* 1. Open session: */
-            comSession = uiCommon().openSession(QUuid(strId));
+            comSession = openSession(QUuid(strId));
             if (comSession.isNull())
                 break;
 
@@ -385,6 +380,7 @@ UIChooserAbstractModel::UIChooserAbstractModel(UIChooser *pParent)
     : QObject(pParent)
     , m_pParent(pParent)
     , m_pInvisibleRootNode(0)
+    , m_fKeepCloudNodesUpdated(false)
 {
     prepare();
 }
@@ -469,17 +465,19 @@ QString UIChooserAbstractModel::uniqueGroupName(UIChooserNode *pRoot)
     const QString strMinimumName = tr("New group");
     const QString strShortTemplate = strMinimumName;
     const QString strFullTemplate = strShortTemplate + QString(" (\\d+)");
-    const QRegExp shortRegExp(strShortTemplate);
-    const QRegExp fullRegExp(strFullTemplate);
+    const QRegularExpression shortRegExp(strShortTemplate);
+    const QRegularExpression fullRegExp(strFullTemplate);
 
     /* Search for the maximum index: */
     int iMinimumPossibleNumber = 0;
     foreach (const QString &strName, groupNames)
     {
-        if (shortRegExp.exactMatch(strName))
+        const QRegularExpressionMatch mtShort = shortRegExp.match(strName);
+        const QRegularExpressionMatch mtFull = fullRegExp.match(strName);
+        if (mtShort.hasMatch())
             iMinimumPossibleNumber = qMax(iMinimumPossibleNumber, 2);
-        else if (fullRegExp.exactMatch(strName))
-            iMinimumPossibleNumber = qMax(iMinimumPossibleNumber, fullRegExp.cap(1).toInt() + 1);
+        else if (mtFull.hasMatch())
+            iMinimumPossibleNumber = qMax(iMinimumPossibleNumber, mtFull.captured(1).toInt() + 1);
     }
 
     /* Prepare/return result: */
@@ -605,6 +603,31 @@ QString UIChooserAbstractModel::valueToString(UIChooserNodeDataValueType enmType
     return QString();
 }
 
+void UIChooserAbstractModel::setKeepCloudNodesUpdated(bool fUpdate)
+{
+    /* Make sure something changed: */
+    if (m_fKeepCloudNodesUpdated == fUpdate)
+        return;
+
+    /* Holds the value: */
+    m_fKeepCloudNodesUpdated = fUpdate;
+
+    /* Update all the real cloud machine items: */
+    foreach (UIChooserNode *pNode, enumerateCloudMachineNodes())
+    {
+        AssertReturnVoid(pNode && pNode->type() == UIChooserNodeType_Machine);
+        UIChooserNodeMachine *pMachineNode = pNode->toMachineNode();
+        AssertPtrReturnVoid(pMachineNode);
+        if (pMachineNode->cacheType() != UIVirtualMachineItemType_CloudReal)
+            continue;
+        UIVirtualMachineItemCloud *pCloudMachineItem = pMachineNode->cache()->toCloud();
+        AssertPtrReturnVoid(pCloudMachineItem);
+        pCloudMachineItem->setUpdateRequiredByGlobalReason(m_fKeepCloudNodesUpdated);
+        if (m_fKeepCloudNodesUpdated)
+            pCloudMachineItem->updateInfoAsync(false /* delayed? */);
+    }
+}
+
 void UIChooserAbstractModel::insertCloudEntityKey(const UICloudEntityKey &key)
 {
 //    printf("Cloud entity with key %s being updated..\n", key.toString().toUtf8().constData());
@@ -627,16 +650,33 @@ bool UIChooserAbstractModel::containsCloudEntityKey(const UICloudEntityKey &key)
 bool UIChooserAbstractModel::isCloudProfileUpdateInProgress() const
 {
     /* Compose RE for profile: */
-    QRegExp re("^/[^/]+/[^/]+$");
+    const QRegularExpression re("^/[^/]+/[^/]+$");
     /* Check whether keys match profile RE: */
     foreach (const UICloudEntityKey &key, m_cloudEntityKeysBeingUpdated)
     {
-        const int iIndex = re.indexIn(key.toString());
-        if (iIndex != -1)
+        const QRegularExpressionMatch mt = re.match(key.toString());
+        if (mt.hasMatch())
             return true;
     }
     /* False by default: */
     return false;
+}
+
+QList<UIVirtualMachineItemCloud*> UIChooserAbstractModel::cloudMachineItems() const
+{
+    QList<UIVirtualMachineItemCloud*> items;
+    foreach (UIChooserNode *pNode, enumerateCloudMachineNodes())
+    {
+        AssertReturn(pNode && pNode->type() == UIChooserNodeType_Machine, items);
+        UIChooserNodeMachine *pMachineNode = pNode->toMachineNode();
+        AssertPtrReturn(pMachineNode, items);
+        if (pMachineNode->cacheType() != UIVirtualMachineItemType_CloudReal)
+            continue;
+        UIVirtualMachineItemCloud *pCloudMachineItem = pMachineNode->cache()->toCloud();
+        AssertPtrReturn(pCloudMachineItem, items);
+        items << pCloudMachineItem;
+    }
+    return items;
 }
 
 void UIChooserAbstractModel::sltHandleCloudMachineRefreshStarted()
@@ -721,7 +761,7 @@ void UIChooserAbstractModel::sltLocalMachineRegistrationChanged(const QUuid &uMa
         if (gEDataManager->showMachineInVirtualBoxManagerChooser(uMachineId))
         {
             /* Add new machine-item: */
-            const CMachine comMachine = uiCommon().virtualBox().FindMachine(uMachineId.toString());
+            const CMachine comMachine = gpGlobalSession->virtualBox().FindMachine(uMachineId.toString());
             if (comMachine.isNotNull())
                 addLocalMachineIntoTheTree(comMachine, true /* make it visible */);
         }
@@ -741,7 +781,7 @@ void UIChooserAbstractModel::sltLocalMachineGroupsChanged(const QUuid &uMachineI
     //       oldGroupList.join(", ").toUtf8().constData());
 
     /* Search for existing registered machine: */
-    const CMachine comMachine = uiCommon().virtualBox().FindMachine(uMachineId.toString());
+    const CMachine comMachine = gpGlobalSession->virtualBox().FindMachine(uMachineId.toString());
     if (comMachine.isNull())
         return;
     /* Look for a new group list: */
@@ -751,13 +791,9 @@ void UIChooserAbstractModel::sltLocalMachineGroupsChanged(const QUuid &uMachineI
     //       newGroupList.join(", ").toUtf8().constData());
 
     /* Re-register VM if required: */
-#ifdef VBOX_IS_QT6_OR_LATER /* we have to use range constructors since 6.0 */
     QSet<QString> newGroupSet(newGroupList.begin(), newGroupList.end());
     QSet<QString> oldGroupSet(oldGroupList.begin(), oldGroupList.end());
     if (newGroupSet != oldGroupSet)
-#else
-    if (newGroupList.toSet() != oldGroupList.toSet())
-#endif
     {
         sltLocalMachineRegistrationChanged(uMachineId, false);
         sltLocalMachineRegistrationChanged(uMachineId, true);
@@ -796,7 +832,7 @@ void UIChooserAbstractModel::sltReloadMachine(const QUuid &uMachineId)
     if (gEDataManager->showMachineInVirtualBoxManagerChooser(uMachineId))
     {
         /* Add new machine-item: */
-        const CMachine comMachine = uiCommon().virtualBox().FindMachine(uMachineId.toString());
+        const CMachine comMachine = gpGlobalSession->virtualBox().FindMachine(uMachineId.toString());
         addLocalMachineIntoTheTree(comMachine, true /* make it visible */);
     }
 }
@@ -956,11 +992,7 @@ void UIChooserAbstractModel::sltHandleReadCloudMachineListTaskComplete()
             /* Remove unregistered cloud VM nodes: */
             if (!unregisteredIDs.isEmpty())
             {
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
-                QList<QUuid> listUnregisteredIDs(unregisteredIDs.begin(), unregisteredIDs.end());
-#else
-                QList<QUuid> listUnregisteredIDs = unregisteredIDs.toList();
-#endif
+                const QList<QUuid> listUnregisteredIDs(unregisteredIDs.begin(), unregisteredIDs.end());
                 sltCloudMachinesUnregistered(guiCloudProfileKey.m_strProviderShortName,
                                              guiCloudProfileKey.m_strProfileName,
                                              listUnregisteredIDs);
@@ -988,6 +1020,10 @@ void UIChooserAbstractModel::sltHandleReadCloudMachineListTaskComplete()
 
     /* Remove cloud entity key from the list of keys currently being updated: */
     removeCloudEntityKey(guiCloudProfileKey);
+
+    /* Notify listeners: */
+    emit sigCloudProfileStateChange(guiCloudProfileKey.m_strProviderShortName,
+                                    guiCloudProfileKey.m_strProfileName);
 }
 
 void UIChooserAbstractModel::sltHandleCloudProfileManagerCumulativeChange()
@@ -1039,9 +1075,11 @@ void UIChooserAbstractModel::prepareConnections()
             this, &UIChooserAbstractModel::sltCommitData);
     connect(&uiCommon(), &UICommon::sigAskToDetachCOM,
             this, &UIChooserAbstractModel::sltDetachCOM);
-    connect(&uiCommon(), &UICommon::sigCloudMachineUnregistered,
+
+    /* UICloudMachineManager connections: */
+    connect(gpCloudMachineManager, &UICloudMachineManager::sigCloudMachineUnregistered,
             this, &UIChooserAbstractModel::sltCloudMachineUnregistered);
-    connect(&uiCommon(), &UICommon::sigCloudMachineRegistered,
+    connect(gpCloudMachineManager, &UICloudMachineManager::sigCloudMachineRegistered,
             this, &UIChooserAbstractModel::sltCloudMachineRegistered);
 
     /* Global connections: */
@@ -1099,7 +1137,7 @@ void UIChooserAbstractModel::reloadLocalTree()
     LogRelFlow(("UIChooserAbstractModel: Loading local VMs...\n"));
 
     /* Acquire VBox: */
-    const CVirtualBox comVBox = uiCommon().virtualBox();
+    const CVirtualBox comVBox = gpGlobalSession->virtualBox();
 
     /* Acquire existing local machines: */
     const QVector<CMachine> machines = comVBox.GetMachines();
@@ -1419,15 +1457,16 @@ bool UIChooserAbstractModel::shouldGroupNodeBeOpened(UIChooserNode *pParentNode,
     const QString strNodePrefix = prefixToString(enmDataType);
     const QString strNodeOptionOpened = optionToString(UIChooserNodeDataOptionType_GroupOpened);
     const QString strDefinitionTemplate = QString("%1(\\S)*=%2").arg(strNodePrefix, strName);
-    const QRegExp definitionRegExp(strDefinitionTemplate);
+    const QRegularExpression re(strDefinitionTemplate);
     /* For each the group definition: */
     foreach (const QString &strDefinition, definitions)
     {
         /* Check if this is required definition: */
-        if (definitionRegExp.indexIn(strDefinition) == 0)
+        const QRegularExpressionMatch mt = re.match(strDefinition);
+        if (mt.capturedStart() == 0)
         {
             /* Get group descriptor: */
-            const QString strDescriptor(definitionRegExp.cap(1));
+            const QString strDescriptor = mt.captured(1);
             if (strDescriptor.contains(strNodeOptionOpened))
                 return true;
         }
@@ -1450,15 +1489,16 @@ bool UIChooserAbstractModel::shouldGlobalNodeBeFavorite(UIChooserNode *pParentNo
     const QString strNodeOptionFavorite = optionToString(UIChooserNodeDataOptionType_GlobalFavorite);
     const QString strNodeValueDefault = valueToString(UIChooserNodeDataValueType_GlobalDefault);
     const QString strDefinitionTemplate = QString("%1(\\S)*=%2").arg(strNodePrefix, strNodeValueDefault);
-    const QRegExp definitionRegExp(strDefinitionTemplate);
+    const QRegularExpression re(strDefinitionTemplate);
     /* For each the group definition: */
     foreach (const QString &strDefinition, definitions)
     {
         /* Check if this is required definition: */
-        if (definitionRegExp.indexIn(strDefinition) == 0)
+        const QRegularExpressionMatch mt = re.match(strDefinition);
+        if (mt.capturedStart() == 0)
         {
             /* Get group descriptor: */
-            const QString strDescriptor(definitionRegExp.cap(1));
+            const QString strDescriptor = mt.captured(1);
             if (strDescriptor.contains(strNodeOptionFavorite))
                 return true;
         }
@@ -1602,19 +1642,21 @@ int UIChooserAbstractModel::getDefinedNodePosition(UIChooserNode *pParentNode, U
         default:
             return -1;
     }
-    QRegExp definitionRegExpShort(strDefinitionTemplateShort);
-    QRegExp definitionRegExpFull(strDefinitionTemplateFull);
+    const QRegularExpression definitionRegExpShort(strDefinitionTemplateShort);
+    const QRegularExpression definitionRegExpFull(strDefinitionTemplateFull);
 
     /* For each the definition: */
     int iDefinitionIndex = -1;
     foreach (const QString &strDefinition, definitions)
     {
         /* Check if this definition is of required type: */
-        if (definitionRegExpShort.indexIn(strDefinition) == 0)
+        const QRegularExpressionMatch mtShort = definitionRegExpShort.match(strDefinition);
+        if (mtShort.capturedStart() == 0)
         {
             ++iDefinitionIndex;
             /* Check if this definition is exactly what we need: */
-            if (definitionRegExpFull.indexIn(strDefinition) == 0)
+            const QRegularExpressionMatch mtFull = definitionRegExpFull.match(strDefinition);
+            if (mtFull.capturedStart() == 0)
                 return iDefinitionIndex;
         }
     }
@@ -1647,10 +1689,13 @@ void UIChooserAbstractModel::createCloudMachineNode(UIChooserNode *pParentNode, 
                                                                                   toOldStyleUuid(comMachine.GetId())),
                                                            comMachine);
     /* Request for async node update if necessary: */
-    if (!comMachine.GetAccessible())
+    if (   m_fKeepCloudNodesUpdated
+        || !comMachine.GetAccessible())
     {
         AssertReturnVoid(pNode && pNode->cacheType() == UIVirtualMachineItemType_CloudReal);
-        pNode->cache()->toCloud()->updateInfoAsync(false /* delayed? */);
+        UIVirtualMachineItemCloud *pCloudMachineItem = pNode->cache()->toCloud();
+        pCloudMachineItem->setUpdateRequiredByGlobalReason(m_fKeepCloudNodesUpdated);
+        pCloudMachineItem->updateInfoAsync(false /* delayed? */);
     }
 }
 
@@ -1897,6 +1942,31 @@ UIChooserNode *UIChooserAbstractModel::searchFakeNode(const QString &strProvider
 {
     /* Wrap method above: */
     return searchMachineNode(strProviderShortName, strProfileName, QUuid());
+}
+
+QList<UIChooserNode*> UIChooserAbstractModel::enumerateCloudMachineNodes() const
+{
+    /* Search for a list of provider nodes: */
+    QList<UIChooserNode*> providerNodes;
+    invisibleRoot()->searchForNodes(QString(),
+                                    UIChooserItemSearchFlag_CloudProvider,
+                                    providerNodes);
+
+    /* Search for a list of profile nodes: */
+    QList<UIChooserNode*> profileNodes;
+    foreach (UIChooserNode *pProviderNode, providerNodes)
+        pProviderNode->searchForNodes(QString(),
+                                      UIChooserItemSearchFlag_CloudProfile,
+                                      profileNodes);
+
+    /* Search for a list of machine nodes: */
+    QList<UIChooserNode*> machineNodes;
+    foreach (UIChooserNode *pProfileNode, profileNodes)
+        pProfileNode->searchForNodes(QString(),
+                                     UIChooserItemSearchFlag_Machine,
+                                     machineNodes);
+
+    return machineNodes;
 }
 
 void UIChooserAbstractModel::stopCloudUpdates(bool fForced /* = false */)

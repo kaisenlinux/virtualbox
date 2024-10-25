@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2017-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2017-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -223,7 +223,7 @@ static RTEXITCODE rtCmdCpDoIt(PCRTCMDCPOPTS pOpts)
  * @param   papszArgs           The argument vector.  (Note that this may be
  *                              reordered, so the memory must be writable.)
  */
-RTEXITCODE RTCmdCp(unsigned cArgs, char **papszArgs)
+static RTEXITCODE RTCmdCp(unsigned cArgs, char **papszArgs)
 {
 
     /*

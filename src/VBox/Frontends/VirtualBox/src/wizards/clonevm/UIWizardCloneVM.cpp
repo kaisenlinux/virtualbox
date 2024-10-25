@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -25,8 +25,12 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
+/* Qt includes: */
+#include <QVariant>
+
 /* GUI includes: */
 #include "UICommon.h"
+#include "UIGlobalSession.h"
 #include "UINotificationCenter.h"
 #include "UIWizardCloneVM.h"
 #include "UIWizardCloneVMNamePathPage.h"
@@ -40,7 +44,7 @@
 
 UIWizardCloneVM::UIWizardCloneVM(QWidget *pParent, const CMachine &machine,
                                  const QString &strGroup, CSnapshot snapshot /* = CSnapshot() */)
-    : UINativeWizard(pParent, WizardType_CloneVM, WizardMode_Auto, "clone" /* help keyword */)
+    : UINativeWizard(pParent, WizardType_CloneVM, "clone" /* help keyword */)
     , m_machine(machine)
     , m_snapshot(snapshot)
     , m_strGroup(strGroup)
@@ -187,9 +191,10 @@ bool UIWizardCloneVM::cloneVM()
     }
 
     /* Get VBox object: */
-    CVirtualBox comVBox = uiCommon().virtualBox();
+    CVirtualBox comVBox = gpGlobalSession->virtualBox();
     /* Create a new machine object: */
-    CMachine cloneMachine = comVBox.CreateMachine(m_strCloneFilePath, m_strCloneName, QVector<QString>(), QString(), QString(),
+    CMachine cloneMachine = comVBox.CreateMachine(m_strCloneFilePath, m_strCloneName, KPlatformArchitecture_x86,
+                                                  QVector<QString>(), QString(), QString(),
                                                   QString(), QString(), QString());
     if (!comVBox.isOk())
     {
@@ -224,17 +229,15 @@ bool UIWizardCloneVM::cloneVM()
                                                                                              cloneMachine,
                                                                                              m_enmCloneMode,
                                                                                              options);
-    connect(pNotification, &UINotificationProgressMachineCopy::sigMachineCopied,
-            &uiCommon(), &UICommon::sltHandleMachineCreated);
     gpNotificationCenter->append(pNotification);
 
     return true;
 }
 
-void UIWizardCloneVM::retranslateUi()
+void UIWizardCloneVM::sltRetranslateUI()
 {
     /* Call to base-class: */
-    UINativeWizard::retranslateUi();
+    UINativeWizard::sltRetranslateUI();
 
     /* Translate wizard: */
     setWindowTitle(tr("Clone Virtual Machine"));
@@ -242,7 +245,7 @@ void UIWizardCloneVM::retranslateUi()
 
 void UIWizardCloneVM::populatePages()
 {
-    QString strDefaultMachineFolder = uiCommon().virtualBox().GetSystemProperties().GetDefaultMachineFolder();
+    QString strDefaultMachineFolder = gpGlobalSession->virtualBox().GetSystemProperties().GetDefaultMachineFolder();
     /* Create corresponding pages: */
     switch (mode())
     {

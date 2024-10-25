@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2007-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2007-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -137,30 +137,32 @@ typedef struct GVMCPU
 #if defined(VMM_INCLUDED_SRC_include_PGMInternal_h) && defined(IN_RING0)
         struct PGMR0PERVCPU s;
 #endif
-        uint8_t             padding[64];
+        uint8_t             padding[576];
     } pgmr0;
 
     /** Padding the structure size to page boundrary. */
 #ifdef VBOX_WITH_NEM_R0
-    uint8_t                 abPadding3[16384 - 64*2 - 256 - 1024 - 64 - 896 - 64];
+    uint8_t                 abPadding3[16384 - 64*2 - 256 - 1024 - 64 - 896 - 576];
 #else
-    uint8_t                 abPadding3[16384 - 64*2 - 256 - 1024 - 896 - 64];
+    uint8_t                 abPadding3[16384 - 64*2 - 256 - 1024      - 896 - 576];
 #endif
 } GVMCPU;
-#if RT_GNUC_PREREQ(4, 6) && defined(__cplusplus)
-# pragma GCC diagnostic push
-#endif
-#if RT_GNUC_PREREQ(4, 3) && defined(__cplusplus)
-# pragma GCC diagnostic ignored "-Winvalid-offsetof"
-#endif
+#ifndef IN_TSTVMSTRUCT
+# if RT_GNUC_PREREQ(4, 6) && defined(__cplusplus)
+#  pragma GCC diagnostic push
+# endif
+# if RT_GNUC_PREREQ(4, 3) && defined(__cplusplus)
+#  pragma GCC diagnostic ignored "-Winvalid-offsetof"
+# endif
 AssertCompileMemberAlignment(GVMCPU, idCpu,  16384);
 AssertCompileMemberAlignment(GVMCPU, gvmm,   64);
-#ifdef VBOX_WITH_NEM_R0
+# ifdef VBOX_WITH_NEM_R0
 AssertCompileMemberAlignment(GVMCPU, nemr0,  64);
-#endif
+# endif
 AssertCompileSizeAlignment(GVMCPU,           16384);
-#if RT_GNUC_PREREQ(4, 6) && defined(__cplusplus)
-# pragma GCC diagnostic pop
+# if RT_GNUC_PREREQ(4, 6) && defined(__cplusplus)
+#  pragma GCC diagnostic pop
+# endif
 #endif
 
 /** @} */
@@ -264,7 +266,7 @@ typedef struct GVM
 #if defined(VMM_INCLUDED_SRC_include_PGMInternal_h) && defined(IN_RING0)
         struct PGMR0PERVM   s;
 #endif
-        uint8_t             padding[1920];
+        uint8_t             padding[90112];
     } pgmr0;
 
     union
@@ -309,9 +311,9 @@ typedef struct GVM
 
     /** Padding so aCpus starts on a page boundrary.  */
 #ifdef VBOX_WITH_NEM_R0
-    uint8_t         abPadding2[16384 - 64 - 4352 - 1024 - 256 - 256 - 64 - 3008 - 1920 - 512 - 64 - 1024 - 192 - 704 - sizeof(PGVMCPU) * VMM_MAX_CPU_COUNT];
+    uint8_t         abPadding2[16384*7 - 64 - 4352 - 1024 - 256 - 256 - 64 - 3008 - 90112 - 512 - 64 - 1024 - 192 - 704 - sizeof(PGVMCPU) * VMM_MAX_CPU_COUNT];
 #else
-    uint8_t         abPadding2[16384 - 64 - 4352 - 1024 - 256 -       64 - 3008 - 1920 - 512 - 64 - 1024 - 192 - 704 - sizeof(PGVMCPU) * VMM_MAX_CPU_COUNT];
+    uint8_t         abPadding2[16384*7 - 64 - 4352 - 1024 - 256 -       64 - 3008 - 90112 - 512 - 64 - 1024 - 192 - 704 - sizeof(PGVMCPU) * VMM_MAX_CPU_COUNT];
 #endif
 
     /** For simplifying CPU enumeration in VMMAll code. */

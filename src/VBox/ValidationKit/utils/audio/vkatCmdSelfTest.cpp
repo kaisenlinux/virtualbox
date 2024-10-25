@@ -17,7 +17,7 @@
  */
 
 /*
- * Copyright (C) 2021-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2021-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -135,12 +135,10 @@ static SELFTESTCTX g_Ctx;
  */
 int AudioTestDriverStackPerformSelftest(void)
 {
-    PCPDMDRVREG pDrvReg = AudioTestGetDefaultBackend();
-
     RTTestPrintf(g_hTest, RTTESTLVL_ALWAYS, "Testing driver stack started\n");
 
     AUDIOTESTDRVSTACK DrvStack;
-    int rc = audioTestDriverStackProbe(&DrvStack, pDrvReg,
+    int rc = audioTestDriverStackProbe(&DrvStack,
                                        true /* fEnabledIn */, true /* fEnabledOut */, false /* fWithDrvAudio */);
     RTTEST_CHECK_RC_OK_RET(g_hTest, rc, rc);
 
@@ -237,7 +235,7 @@ static DECLCALLBACK(int) audioTestSelftestGuestAtsThread(RTTHREAD hThread, void 
  * @returns RTEXITCODE
  * @param   pCtx                Self test context to use.
  */
-RTEXITCODE audioTestDoSelftest(PSELFTESTCTX pCtx)
+static RTEXITCODE audioTestDoSelftest(PSELFTESTCTX pCtx)
 {
     RTTestPrintf(g_hTest, RTTESTLVL_ALWAYS,  "Running self test ...\n");
 
@@ -366,7 +364,7 @@ static DECLCALLBACK(const char *) audioTestCmdSelftestHelp(PCRTGETOPTDEF pOpt)
  * @returns Program exit code.
  * @param   pGetState   RTGetOpt state.
  */
-DECLCALLBACK(RTEXITCODE) audioTestCmdSelftestHandler(PRTGETOPTSTATE pGetState)
+static DECLCALLBACK(RTEXITCODE) audioTestCmdSelftestHandler(PRTGETOPTSTATE pGetState)
 {
     RT_ZERO(g_Ctx);
 

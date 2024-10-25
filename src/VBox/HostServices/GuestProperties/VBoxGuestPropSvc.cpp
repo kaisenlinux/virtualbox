@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1381,8 +1381,7 @@ int Service::notifyHost(const char *pszName, const char *pszValue, uint64_t nsTi
         *pu8++ = 0;
 
         rc = RTReqQueueCallEx(mhReqQNotifyHost, NULL, 0, RTREQFLAGS_VOID | RTREQFLAGS_NO_WAIT,
-                              (PFNRT)notifyHostAsyncWorker, 3,
-                              mpfnHostCallback, mpvHostData, pHostCallbackData);
+                              (PFNRT)notifyHostAsyncWorker, 3, mpfnHostCallback, mpvHostData, pHostCallbackData);
         if (RT_FAILURE(rc))
         {
             RTMemFree(pHostCallbackData);

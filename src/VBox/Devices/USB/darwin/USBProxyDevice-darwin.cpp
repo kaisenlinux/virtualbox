@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -50,6 +50,7 @@
 
 #include <iprt/assert.h>
 #include <iprt/critsect.h>
+#include <iprt/ldr.h>
 #include <iprt/list.h>
 #include <iprt/mem.h>
 #include <iprt/once.h>
@@ -72,6 +73,17 @@
 *********************************************************************************************************************************/
 /** Forward declaration of the Darwin interface structure. */
 typedef struct USBPROXYIFOSX *PUSBPROXYIFOSX;
+
+
+/** @name IOKitLib declarations and definitions for IOServiceAuthorize() which is not available in all SDKs.
+ * @{  */
+/** IOServiceAuthorize in IOKit. */
+typedef kern_return_t (* PFNIOSERVICEAUTHORIZE)(io_service_t, uint32_t options);
+
+#ifndef kIOServiceInteractionAllowed
+# define kIOServiceInteractionAllowed 0x00000001
+#endif
+/** @} */
 
 
 /**
@@ -278,6 +290,8 @@ static CFStringRef g_pRunLoopMode = NULL;
 /** The IO Master Port.
  * Not worth cleaning up.  */
 static mach_port_t  g_MasterPort = MACH_PORT_NULL;
+/** Pointer to the IOServiceAuthorize() method. */
+static PFNIOSERVICEAUTHORIZE g_pfnIOServiceAuthorize = NULL;
 
 
 /**
@@ -291,8 +305,20 @@ static DECLCALLBACK(int32_t) usbProxyDarwinInitOnce(void *pvUser1)
 {
     RT_NOREF(pvUser1);
 
-    int rc;
-    kern_return_t krc = IOMasterPort(MACH_PORT_NULL, &g_MasterPort);
+    RTLDRMOD hMod = NIL_RTLDRMOD;
+    int rc = RTLdrLoadEx("/System/Library/Frameworks/IOKit.framework/Versions/Current/IOKit", &hMod, RTLDRLOAD_FLAGS_NO_SUFFIX | RTLDRLOAD_FLAGS_NO_UNLOAD,
+                         NULL);
+    if (RT_SUCCESS(rc))
+    {
+        rc = RTLdrGetSymbol(hMod, "IOServiceAuthorize", (void **)&g_pfnIOServiceAuthorize);
+        if (RT_FAILURE(rc))
+            LogRel(("USB: Failed to resolve IOServiceAuthorize(), capturing USB devices might not work (%Rrc)\n", rc));
+        RTLdrClose(hMod);
+    }
+
+    RT_GCC_NO_WARN_DEPRECATED_BEGIN
+    kern_return_t krc = IOMasterPort(MACH_PORT_NULL, &g_MasterPort);  /* Deprecated since 12.0. */
+    RT_GCC_NO_WARN_DEPRECATED_END
     if (krc == KERN_SUCCESS)
     {
        g_pRunLoopMode = CFStringCreateWithCString(kCFAllocatorDefault, "VBoxUsbProxyMode", kCFStringEncodingUTF8);
@@ -811,7 +837,7 @@ static int usbProxyDarwinGetPipeProperties(PUSBPROXYDEVOSX pDevOsX, PUSBPROXYIFO
     }
 
     /** @todo sort or hash these for speedy lookup... */
-    return VINF_SUCCESS;
+    return rc;
 }
 
 
@@ -1215,6 +1241,17 @@ static DECLCALLBACK(int) usbProxyDarwinOpen(PUSBPROXYDEV pProxyDev, const char *
     }
 
     /*
+     * Ask for authorization (which only works with the com.apple.vm.device-access entitlement).
+     */
+    if (g_pfnIOServiceAuthorize)
+    {
+        irc = g_pfnIOServiceAuthorize(USBDevice, kIOServiceInteractionAllowed);
+        if (irc != kIOReturnSuccess)
+            LogRel(("USB: Failed to get authorization for device '%s', capturing the device might not work: irc=%#x\n",
+                    pszAddress, irc));
+    }
+
+    /*
      * Create a plugin interface for the device and query its IOUSBDeviceInterface.
      */
     SInt32 Score = 0;
@@ -1313,7 +1350,8 @@ static DECLCALLBACK(int) usbProxyDarwinOpen(PUSBPROXYDEV pProxyDev, const char *
                                     vrc = VERR_NO_MEMORY;
                                 }
                             }
-                            vrc = VERR_VUSB_DEVICE_NOT_ATTACHED;
+                            else
+                                vrc = VERR_VUSB_DEVICE_NOT_ATTACHED;
                         }
                         else
                             vrc = RTErrConvertFromDarwin(irc);
@@ -1399,6 +1437,8 @@ static DECLCALLBACK(void) usbProxyDarwinClose(PUSBPROXYDEV pProxyDev)
     }
 
     IOReturn irc = (*pDevOsX->ppDevI)->ResetDevice(pDevOsX->ppDevI);
+    AssertLogRelMsg(irc == kIOReturnSuccess || irc == kIOReturnNoDevice,
+                    ("USB: ResetDevice -> %#x\n", irc));
 
     irc = (*pDevOsX->ppDevI)->USBDeviceClose(pDevOsX->ppDevI);
     if (irc != kIOReturnSuccess && irc != kIOReturnNoDevice)
@@ -1777,6 +1817,7 @@ static DECLCALLBACK(int) usbProxyDarwinUrbQueue(PUSBPROXYDEV pProxyDev, PVUSBURB
 
                 /* try again... */
                 irc = (*pIf->ppIfI)->GetBusFrameNumber(pIf->ppIfI, &FrameNo, &FrameTime);
+                AssertMsg(irc == kIOReturnSuccess, ("GetBusFrameNumber -> %#x\n", irc));
                 if (FrameNo <= pPipe->u64NextFrameNo)
                     FrameNo = pPipe->u64NextFrameNo;
                 FrameNo += j;

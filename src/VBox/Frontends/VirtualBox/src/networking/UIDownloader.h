@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -111,7 +111,7 @@ protected:
     QString pathSHA256SumsFile() const { return m_strPathSHA256SumsFile; }
 
     /** Returns description of the current network operation. */
-    virtual QString description() const;
+    virtual QString description() const RT_OVERRIDE;
 
     /** Handles network-reply progress for @a iReceived bytes of @a iTotal. */
     virtual void processNetworkReplyProgress(qint64 iReceived, qint64 iTotal) RT_OVERRIDE;

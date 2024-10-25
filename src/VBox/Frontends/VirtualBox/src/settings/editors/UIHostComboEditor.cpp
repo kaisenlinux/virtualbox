@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -42,31 +42,33 @@
 #include "UIExtraDataManager.h"
 #include "UIHostComboEditor.h"
 #include "UIIconPool.h"
+#include "UITranslationEventListener.h"
 #ifdef VBOX_WS_MAC
 # include "UICocoaApplication.h"
 # include "VBoxUtils-darwin.h"
 # include "DarwinKeyboard.h"
 #elif defined(VBOX_WS_WIN)
 # include "WinKeyboard.h"
-#elif defined(VBOX_WS_X11)
+#elif defined(VBOX_WS_NIX)
 # include "XKeyboard.h"
-# include "VBoxUtils-x11.h"
+# include "VBoxUtils-nix.h"
 #endif
 
 /* Other VBox includes: */
-#if defined(VBOX_WS_X11)
+#include "iprt/assert.h"
+#if defined(VBOX_WS_NIX)
 # include <VBox/VBoxKeyboard.h>
 #endif
 
 /* External includes: */
 #if defined(VBOX_WS_MAC)
 # include <Carbon/Carbon.h>
-#elif defined(VBOX_WS_X11)
+#elif defined(VBOX_WS_NIX)
 # include <X11/Xlib.h>
 # include <X11/Xutil.h>
 # include <X11/keysym.h>
 # include <xcb/xcb.h>
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
 
 /* Namespaces: */
 using namespace UIExtraDataDefs;
@@ -92,11 +94,7 @@ public:
     {}
 
     /** Handles all native events. */
-# ifdef VBOX_IS_QT6_OR_LATER /* long replaced with qintptr since 6.0 */
     virtual bool nativeEventFilter(const QByteArray &eventType, void *pMessage, qintptr *pResult) RT_OVERRIDE
-# else
-    virtual bool nativeEventFilter(const QByteArray &eventType, void *pMessage, long *pResult) RT_OVERRIDE
-# endif
     {
         /* Redirect event to parent: */
         return m_pParent->nativeEvent(eventType, pMessage, pResult);
@@ -114,12 +112,12 @@ private:
 *   Namespace UINativeHotKey implementation.                                                                                     *
 *********************************************************************************************************************************/
 
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
 namespace UINativeHotKey
 {
     QMap<QString, QString> m_keyNames;
 }
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
 
 QString UINativeHotKey::toString(int iKeyCode)
 {
@@ -187,19 +185,16 @@ QString UINativeHotKey::toString(int iKeyCode)
         case VK_NUMLOCK: iScan = (::MapVirtualKey(iKeyCode, 0) | 256) << 16; break;
         default: iScan = ::MapVirtualKey(iKeyCode, 0) << 16;
     }
-    TCHAR *pKeyName = new TCHAR[256];
-    if (::GetKeyNameText(iScan, pKeyName, 256))
-    {
-        strKeyName = QString::fromUtf16(pKeyName);
-    }
+    WCHAR wszKeyName[256];
+    if (::GetKeyNameTextW(iScan, wszKeyName, RT_ELEMENTS(wszKeyName)))
+        strKeyName = QString::fromUtf16((const char16_t *)wszKeyName);
     else
     {
         AssertMsgFailed(("That key have no name!\n"));
         strKeyName = UIHostComboEditor::tr("<key_%1>").arg(iKeyCode);
     }
-    delete[] pKeyName;
 
-#elif defined(VBOX_WS_X11)
+#elif defined(VBOX_WS_NIX)
 
     if (char *pNativeKeyName = ::XKeysymToString((KeySym)iKeyCode))
     {
@@ -254,7 +249,7 @@ bool UINativeHotKey::isValidKey(int iKeyCode)
         || iKeyCode == VK_APPS
         || iKeyCode == VK_PRINT;
 
-#elif defined(VBOX_WS_X11)
+#elif defined(VBOX_WS_NIX)
 
     return (IsModifierKey(iKeyCode) /* allow modifiers */ ||
             IsFunctionKey(iKeyCode) /* allow function keys */ ||
@@ -304,7 +299,7 @@ unsigned UINativeHotKey::modifierToSet1ScanCode(int iKeyCode)
         case VK_APPS:      return 0x15D;
         default:           return 0;
 
-#elif defined(VBOX_WS_X11)
+#elif defined(VBOX_WS_NIX)
 
         case XK_Control_L:         return 0x1D;
         case XK_Control_R:         return 0x11D;
@@ -371,7 +366,7 @@ int UINativeHotKey::distinguishModifierVKey(int wParam, int lParam)
     return iKeyCode;
 }
 
-#elif defined(VBOX_WS_X11)
+#elif defined(VBOX_WS_NIX)
 
 void UINativeHotKey::retranslateKeyNames()
 {
@@ -389,7 +384,7 @@ void UINativeHotKey::retranslateKeyNames()
     m_keyNames["Scroll_Lock"]      = UIHostComboEditor::tr("Scroll Lock");
 }
 
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
 
 
 /*********************************************************************************************************************************
@@ -464,13 +459,13 @@ bool UIHostCombo::isValidKeyCombo(const QString &strKeyCombo)
 *********************************************************************************************************************************/
 
 UIHostComboEditor::UIHostComboEditor(QWidget *pParent)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
 {
     /* Prepare: */
     prepare();
 }
 
-void UIHostComboEditor::retranslateUi()
+void UIHostComboEditor::sltRetranslateUI()
 {
     /* Translate 'clear' tool-button: */
     m_pButtonClear->setToolTip(QApplication::translate("UIHotKeyEditor", "Unset shortcut"));
@@ -518,7 +513,9 @@ void UIHostComboEditor::prepare()
         pLayout->addWidget(m_pButtonClear);
     }
     /* Translate finally: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+        this, &UIHostComboEditor::sltRetranslateUI);
 }
 
 void UIHostComboEditor::setCombo(const UIHostComboWrapper &strCombo)
@@ -570,10 +567,11 @@ UIHostComboEditorPrivate::UIHostComboEditorPrivate()
 #elif defined(VBOX_WS_WIN)
     /* Prepare AltGR monitor: */
     m_pAltGrMonitor = new WinAltGrMonitor;
-#elif defined(VBOX_WS_X11)
+#elif defined(VBOX_WS_NIX)
     /* Initialize the X keyboard subsystem: */
-    initMappedX11Keyboard(NativeWindowSubsystem::X11GetDisplay(), gEDataManager->remappedScanCodes());
-#endif /* VBOX_WS_X11 */
+    if (uiCommon().X11ServerAvailable())
+        initMappedX11Keyboard(NativeWindowSubsystem::X11GetDisplay(), gEDataManager->remappedScanCodes());
+#endif /* VBOX_WS_NIX */
 }
 
 UIHostComboEditorPrivate::~UIHostComboEditorPrivate()
@@ -633,11 +631,7 @@ void UIHostComboEditorPrivate::sltClear()
     emit sigDataChanged();
 }
 
-#ifdef VBOX_IS_QT6_OR_LATER /* long replaced with qintptr since 6.0 */
 bool UIHostComboEditorPrivate::nativeEvent(const QByteArray &eventType, void *pMessage, qintptr *pResult)
-#else
-bool UIHostComboEditorPrivate::nativeEvent(const QByteArray &eventType, void *pMessage, long *pResult)
-#endif
 {
 # if defined(VBOX_WS_MAC)
 
@@ -744,34 +738,36 @@ bool UIHostComboEditorPrivate::nativeEvent(const QByteArray &eventType, void *pM
             break;
     }
 
-# elif defined(VBOX_WS_X11)
-
-    /* Make sure it's generic XCB event: */
-    if (eventType != "xcb_generic_event_t")
-        return QLineEdit::nativeEvent(eventType, pMessage, pResult);
-    xcb_generic_event_t *pEvent = static_cast<xcb_generic_event_t*>(pMessage);
-
-    /* Check if some XCB event should be filtered out: */
-    // Returning @c true means filtering-out,
-    // Returning @c false means passing event to Qt.
-    switch (pEvent->response_type & ~0x80)
+# elif defined(VBOX_WS_NIX)
+    if (uiCommon().X11ServerAvailable())
     {
-        /* Watch for key-events: */
-        case XCB_KEY_PRESS:
-        case XCB_KEY_RELEASE:
-        {
-            /* Parse key-event: */
-            xcb_key_press_event_t *pKeyEvent = static_cast<xcb_key_press_event_t*>(pMessage);
-            RT_GCC_NO_WARN_DEPRECATED_BEGIN
-            const KeySym ks = ::XKeycodeToKeysym(NativeWindowSubsystem::X11GetDisplay(), pKeyEvent->detail, 0);
-            RT_GCC_NO_WARN_DEPRECATED_END
-            const int iKeySym = static_cast<int>(ks);
+        /* Make sure it's generic XCB event: */
+        if (eventType != "xcb_generic_event_t")
+            return QLineEdit::nativeEvent(eventType, pMessage, pResult);
+        xcb_generic_event_t *pEvent = static_cast<xcb_generic_event_t*>(pMessage);
 
-            /* Handle key-event: */
-            return processKeyEvent(iKeySym, (pEvent->response_type & ~0x80) == XCB_KEY_PRESS);
+        /* Check if some XCB event should be filtered out: */
+        // Returning @c true means filtering-out,
+        // Returning @c false means passing event to Qt.
+        switch (pEvent->response_type & ~0x80)
+        {
+            /* Watch for key-events: */
+            case XCB_KEY_PRESS:
+            case XCB_KEY_RELEASE:
+            {
+                /* Parse key-event: */
+                xcb_key_press_event_t *pKeyEvent = static_cast<xcb_key_press_event_t*>(pMessage);
+                RT_GCC_NO_WARN_DEPRECATED_BEGIN
+                const KeySym ks = ::XKeycodeToKeysym(NativeWindowSubsystem::X11GetDisplay(), pKeyEvent->detail, 0);
+                RT_GCC_NO_WARN_DEPRECATED_END
+                const int iKeySym = static_cast<int>(ks);
+
+                /* Handle key-event: */
+                return processKeyEvent(iKeySym, (pEvent->response_type & ~0x80) == XCB_KEY_PRESS);
+            }
+            default:
+                break;
         }
-        default:
-            break;
     }
 
 # else

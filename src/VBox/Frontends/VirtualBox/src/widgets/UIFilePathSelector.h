@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,9 +31,10 @@
 # pragma once
 #endif
 
+/* Qt includes: */
+#include <QComboBox>
+
 /* GUI includes: */
-#include "QIComboBox.h"
-#include "QIWithRetranslateUI.h"
 #include "UILibraryDefs.h"
 #include "UIMediumDefs.h"
 
@@ -49,9 +50,9 @@ class QILabel;
 class QILineEdit;
 class QIToolButton;
 
-/** QIComboBox subclass providing GUI with the
+/** QComboBox subclass providing GUI with the
   * possibility to choose/reflect file/folder path. */
-class SHARED_LIBRARY_STUFF UIFilePathSelector : public QIWithRetranslateUI<QIComboBox>
+class SHARED_LIBRARY_STUFF UIFilePathSelector : public QComboBox
 {
     Q_OBJECT;
 
@@ -78,7 +79,7 @@ public:
         ResetId
     };
 
-    /** Constructs file-path selector passing @a pParent to QIComboBox base-class. */
+    /** Constructs file-path selector passing @a pParent to QComboBox base-class. */
     UIFilePathSelector(QWidget *pParent = 0);
 
     /** Defines the @a enmMode to operate in. */
@@ -90,6 +91,10 @@ public:
     void setEditable(bool fEditable);
     /** Returns whether the path is editable. */
     bool isEditable() const { return m_fEditable; }
+    /** Calls QILineEdit member's setMarkable API. */
+    void setMarkable(bool fMarkable);
+    /** Marks the line edit of the combobox. Refer to QILineEdit::mark(..). */
+    void mark(bool fError, const QString &strErrorMessage, const QString &strNoErrorMessage);
 
     /** Defines whether the reseting to defauilt path is @a fEnabled. */
     void setResetEnabled(bool fEnabled);
@@ -147,18 +152,15 @@ public slots:
 protected:
 
     /** Preprocesses every @a pEvent sent to @a pObject. */
-    bool eventFilter(QObject *pObject, QEvent *pEvent);
+    bool eventFilter(QObject *pObject, QEvent *pEvent) RT_OVERRIDE RT_FINAL;
 
     /** Handles resize @a pEvent. */
-    void resizeEvent(QResizeEvent *pEvent);
+    void resizeEvent(QResizeEvent *pEvent) RT_OVERRIDE RT_FINAL;
 
     /** Handles focus-in @a pEvent. */
-    void focusInEvent(QFocusEvent *pEvent);
+    void focusInEvent(QFocusEvent *pEvent) RT_OVERRIDE RT_FINAL;
     /** Handles focus-out @a pEvent. */
-    void focusOutEvent(QFocusEvent *pEvent);
-
-    /** Handles translation event. */
-    void retranslateUi();
+    void focusOutEvent(QFocusEvent *pEvent) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -175,6 +177,9 @@ private slots:
     void refreshText();
 
     void sltRecentMediaListUpdated(UIMediumDeviceType enmMediumType);
+
+    /** Handles translation event. */
+    void sltRetranslateUI();
 
 private:
 

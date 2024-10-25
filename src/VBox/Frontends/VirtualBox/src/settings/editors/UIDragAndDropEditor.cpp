@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,16 +32,16 @@
 #include <QLabel>
 
 /* GUI includes: */
-#include "UICommon.h"
 #include "UIConverter.h"
 #include "UIDragAndDropEditor.h"
+#include "UIGlobalSession.h"
 
 /* COM includes: */
 #include "CSystemProperties.h"
 
 
 UIDragAndDropEditor::UIDragAndDropEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent, true /* show in basic mode? */)
     , m_enmValue(KDnDMode_Max)
     , m_pLabel(0)
     , m_pCombo(0)
@@ -76,7 +76,7 @@ void UIDragAndDropEditor::setMinimumLayoutIndent(int iIndent)
         m_pLayout->setColumnMinimumWidth(0, iIndent);
 }
 
-void UIDragAndDropEditor::retranslateUi()
+void UIDragAndDropEditor::sltRetranslateUI()
 {
     if (m_pLabel)
         m_pLabel->setText(tr("D&rag'n'Drop:"));
@@ -135,7 +135,7 @@ void UIDragAndDropEditor::prepare()
     populateCombo();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIDragAndDropEditor::populateCombo()
@@ -146,7 +146,7 @@ void UIDragAndDropEditor::populateCombo()
         m_pCombo->clear();
 
         /* Load currently supported audio driver types: */
-        CSystemProperties comProperties = uiCommon().virtualBox().GetSystemProperties();
+        CSystemProperties comProperties = gpGlobalSession->virtualBox().GetSystemProperties();
         m_supportedValues = comProperties.GetSupportedDnDModes();
 
         /* Make sure requested value if sane is present as well: */
@@ -164,6 +164,6 @@ void UIDragAndDropEditor::populateCombo()
             m_pCombo->setCurrentIndex(iIndex);
 
         /* Retranslate finally: */
-        retranslateUi();
+        sltRetranslateUI();
     }
 }

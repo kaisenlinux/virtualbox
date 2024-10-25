@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -47,7 +47,7 @@
  * type of a variable or attribute can be very helpful.
  *
  * Type prefixes:
- *      - 'b' for byte (octect).
+ *      - 'b' for byte (octet).
  *      - 'ch' for a single character.
  *      - 'f' for boolean and flags.
  *      - 'fn' for function or method references.
@@ -67,7 +67,7 @@
  *      - 't' for a tuple.
  *
  * Other qualifiers:
- *      - 'c' for a count. Implies integer or long integer type. Higest
+ *      - 'c' for a count. Implies integer or long integer type. Highest
  *        priority.
  *      - 'sec' for a second value. Implies long integer type.
  *      - 'ms' for a millisecond value. Implies long integer type.

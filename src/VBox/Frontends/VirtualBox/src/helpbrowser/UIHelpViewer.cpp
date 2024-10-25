@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,21 +26,21 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QClipboard>
 #include <QtGlobal>
-#ifdef VBOX_WITH_QHELP_VIEWER
- #include <QtHelp/QHelpEngine>
- #include <QtHelp/QHelpContentWidget>
- #include <QtHelp/QHelpIndexWidget>
- #include <QtHelp/QHelpSearchEngine>
- #include <QtHelp/QHelpSearchQueryWidget>
- #include <QtHelp/QHelpSearchResultWidget>
-#endif
+#include <QtHelp/QHelpEngine>
+#include <QtHelp/QHelpContentWidget>
+#include <QtHelp/QHelpIndexWidget>
+#include <QtHelp/QHelpSearchEngine>
+#include <QtHelp/QHelpSearchQueryWidget>
+#include <QtHelp/QHelpSearchResultWidget>
 #include <QLabel>
 #include <QMenu>
 #include <QHBoxLayout>
 #include <QGraphicsBlurEffect>
 #include <QLabel>
+#include <QMimeDatabase>
 #include <QPainter>
 #include <QScrollBar>
 #include <QTextBlock>
@@ -51,7 +51,6 @@
 
 /* GUI includes: */
 #include "QIToolButton.h"
-#include "UICursor.h"
 #include "UICommon.h"
 #include "UIHelpViewer.h"
 #include "UIHelpBrowserWidget.h"
@@ -59,10 +58,7 @@
 #include "UISearchLineEdit.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CSystemProperties.h"
-
-#ifdef VBOX_WITH_QHELP_VIEWER
 
 
 /*********************************************************************************************************************************
@@ -108,7 +104,7 @@ private:
 /*********************************************************************************************************************************
 *   UIFindInPageWidget definition.                                                                                        *
 *********************************************************************************************************************************/
-class UIFindInPageWidget : public QIWithRetranslateUI<QWidget>
+class UIFindInPageWidget : public QWidget
 {
 
     Q_OBJECT;
@@ -135,7 +131,6 @@ protected:
 private:
 
     void prepare();
-    void retranslateUi();
     UISearchLineEdit  *m_pSearchLineEdit;
     QIToolButton      *m_pNextButton;
     QIToolButton      *m_pPreviousButton;
@@ -259,7 +254,7 @@ void UIContextMenuNavigationAction::prepare()
 *   UIFindInPageWidget implementation.                                                                                           *
 *********************************************************************************************************************************/
 UIFindInPageWidget::UIFindInPageWidget(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_pSearchLineEdit(0)
     , m_pNextButton(0)
     , m_pPreviousButton(0)
@@ -291,30 +286,31 @@ bool UIFindInPageWidget::eventFilter(QObject *pObject, QEvent *pEvent)
     if (pObject == m_pDragMoveLabel)
     {
         if (pEvent->type() == QEvent::Enter)
-            UICursor::setCursor(m_pDragMoveLabel, Qt::CrossCursor);
+            m_pDragMoveLabel->setCursor(Qt::CrossCursor);
         else if (pEvent->type() == QEvent::Leave)
         {
             if (parentWidget())
-                UICursor::setCursor(m_pDragMoveLabel, parentWidget()->cursor());
+                m_pDragMoveLabel->setCursor(parentWidget()->cursor());
         }
         else if (pEvent->type() == QEvent::MouseMove)
         {
             QMouseEvent *pMouseEvent = static_cast<QMouseEvent*>(pEvent);
+            const QPoint gPos = pMouseEvent->globalPosition().toPoint();
             if (pMouseEvent->buttons() == Qt::LeftButton)
             {
                 if (m_previousMousePosition != QPoint(-1, -1))
-                    emit sigDragging(pMouseEvent->globalPos() - m_previousMousePosition);
-                m_previousMousePosition = pMouseEvent->globalPos();
-                UICursor::setCursor(m_pDragMoveLabel, Qt::ClosedHandCursor);
+                    emit sigDragging(gPos - m_previousMousePosition);
+                m_previousMousePosition = gPos;
+                m_pDragMoveLabel->setCursor(Qt::ClosedHandCursor);
             }
         }
         else if (pEvent->type() == QEvent::MouseButtonRelease)
         {
             m_previousMousePosition = QPoint(-1, -1);
-            UICursor::setCursor(m_pDragMoveLabel, Qt::CrossCursor);
+            m_pDragMoveLabel->setCursor(Qt::CrossCursor);
         }
     }
-    return QIWithRetranslateUI<QWidget>::eventFilter(pObject, pEvent);
+    return QWidget::eventFilter(pObject, pEvent);
 }
 
 void UIFindInPageWidget::keyPressEvent(QKeyEvent *pEvent)
@@ -334,7 +330,7 @@ void UIFindInPageWidget::keyPressEvent(QKeyEvent *pEvent)
             return;
             break;
         default:
-            QIWithRetranslateUI<QWidget>::keyPressEvent(pEvent);
+            QWidget::keyPressEvent(pEvent);
             break;
     }
 }
@@ -348,19 +344,11 @@ void UIFindInPageWidget::prepare()
     m_pSearchLineEdit = new UISearchLineEdit;
     AssertReturnVoid(pLayout && m_pSearchLineEdit);
     setFocusProxy(m_pSearchLineEdit);
-    QFontMetrics fontMetric(m_pSearchLineEdit->font());
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
+    const QFontMetrics fontMetric(m_pSearchLineEdit->font());
     setMinimumSize(40 * fontMetric.horizontalAdvance("x"),
                    fontMetric.height() +
                    qApp->style()->pixelMetric(QStyle::PM_LayoutBottomMargin) +
                    qApp->style()->pixelMetric(QStyle::PM_LayoutTopMargin));
-
-#else
-    setMinimumSize(40 * fontMetric.width("x"),
-                   fontMetric.height() +
-                   qApp->style()->pixelMetric(QStyle::PM_LayoutBottomMargin) +
-                   qApp->style()->pixelMetric(QStyle::PM_LayoutTopMargin));
-#endif
     connect(m_pSearchLineEdit, &UISearchLineEdit::textChanged,
             this, &UIFindInPageWidget::sigSearchTextChanged);
 
@@ -391,17 +379,12 @@ void UIFindInPageWidget::prepare()
     connect(m_pCloseButton, &QIToolButton::pressed, this, &UIFindInPageWidget::sigClose);
 }
 
-void UIFindInPageWidget::retranslateUi()
-{
-}
-
-
 /*********************************************************************************************************************************
 *   UIHelpViewer implementation.                                                                                          *
 *********************************************************************************************************************************/
 
 UIHelpViewer::UIHelpViewer(const QHelpEngine *pHelpEngine, QWidget *pParent /* = 0 */)
-    :QIWithRetranslateUI<QTextBrowser>(pParent)
+    : QTextBrowser(pParent)
     , m_pHelpEngine(pHelpEngine)
     , m_pFindInPageWidget(new UIFindInPageWidget(this))
     , m_fFindWidgetDragged(false)
@@ -409,7 +392,6 @@ UIHelpViewer::UIHelpViewer(const QHelpEngine *pHelpEngine, QWidget *pParent /* =
     , m_iSelectedMatchIndex(0)
     , m_iSearchTermLength(0)
     , m_fOverlayMode(false)
-    , m_fCursorChanged(false)
     , m_pOverlayLabel(0)
     , m_iZoomPercentage(100)
 {
@@ -426,9 +408,8 @@ UIHelpViewer::UIHelpViewer(const QHelpEngine *pHelpEngine, QWidget *pParent /* =
             this, &UIHelpViewer::sltSelectNextMatch);
     connect(m_pFindInPageWidget, &UIFindInPageWidget::sigClose,
             this, &UIHelpViewer::sltCloseFindInPageWidget);
-
-    m_defaultCursor = cursor();
-    m_handCursor = QCursor(Qt::PointingHandCursor);
+    connect(this, &UIHelpViewer::highlighted,
+            this, &UIHelpViewer::sltUpdateHighlightedURL);
 
     m_pFindInPageWidget->setVisible(false);
 
@@ -446,7 +427,6 @@ UIHelpViewer::UIHelpViewer(const QHelpEngine *pHelpEngine, QWidget *pParent /* =
         m_pOverlayBlurEffect->setEnabled(false);
         m_pOverlayBlurEffect->setBlurRadius(8);
     }
-    retranslateUi();
 }
 
 QVariant UIHelpViewer::loadResource(int type, const QUrl &name)
@@ -463,23 +443,18 @@ void UIHelpViewer::emitHistoryChangedSignal()
     emit backwardAvailable(true);
 }
 
-#ifdef VBOX_IS_QT6_OR_LATER /* it was setSource before 6.0 */
 void UIHelpViewer::doSetSource(const QUrl &url, QTextDocument::ResourceType type)
-#else
-void UIHelpViewer::setSource(const QUrl &url)
-#endif
 {
     clearOverlay();
     if (url.scheme() != "qthelp")
         return;
-#ifdef VBOX_IS_QT6_OR_LATER /* it was setSource before 6.0 */
     QTextBrowser::doSetSource(url, type);
-#else
-    QTextBrowser::setSource(url);
-#endif
     QTextDocument *pDocument = document();
     if (!pDocument || pDocument->isEmpty())
-        setText(UIHelpBrowserWidget::tr("<div><p><h3>404. Not found.</h3>The page <b>%1</b> could not be found.</p></div>").arg(url.toString()));
+    {
+        setText(UIHelpBrowserWidget::tr("<div><p><h3>Not found.</h3>The page <b>%1</b> could not be found.</p></div>").arg(url.toString()));
+        setDocumentTitle(UIHelpBrowserWidget::tr("Not Found"));
+    }
     if (m_pFindInPageWidget && m_pFindInPageWidget->isVisible())
     {
         document()->undo();
@@ -533,9 +508,14 @@ void UIHelpViewer::sltCloseFindInPageWidget()
     sltToggleFindInPageWidget(false);
 }
 
+void UIHelpViewer::sltUpdateHighlightedURL(const QUrl &url)
+{
+    m_highlightedUrl = url;
+}
+
 void UIHelpViewer::setFont(const QFont &font)
 {
-    QIWithRetranslateUI<QTextBrowser>::setFont(font);
+    QTextBrowser::setFont(font);
     /* Make sure the font size of the find in widget stays constant: */
     if (m_pFindInPageWidget)
     {
@@ -625,13 +605,17 @@ void UIHelpViewer::contextMenuEvent(QContextMenuEvent *event)
     menu.addAction(pCopyLink);
     menu.addAction(pFindInPage);
 
-    QString strAnchor = anchorAt(event->pos());
-    if (!strAnchor.isEmpty())
+    if (!m_highlightedUrl.isEmpty())
     {
-        QString strLink = source().resolved(anchorAt(event->pos())).toString();
+        QString strLink = m_highlightedUrl.toString();
         pOpenLinkAction->setData(strLink);
         pOpenInNewTabAction->setData(strLink);
         pCopyLink->setData(strLink);
+        if (m_highlightedUrl.scheme() == "https" ||
+            m_highlightedUrl.scheme() == "http")
+            pOpenInNewTabAction->setEnabled(false);
+        if (isImage(strLink))
+            pOpenInNewTabAction->setEnabled(false);
     }
     else
     {
@@ -653,7 +637,7 @@ void UIHelpViewer::resizeEvent(QResizeEvent *pEvent)
         if (!isRectInside(m_pFindInPageWidget->geometry(), m_iMarginForFindWidget))
             moveFindWidgetIn(m_iMarginForFindWidget);
     }
-    QIWithRetranslateUI<QTextBrowser>::resizeEvent(pEvent);
+    QTextBrowser::resizeEvent(pEvent);
 }
 
 void UIHelpViewer::wheelEvent(QWheelEvent *pEvent)
@@ -674,16 +658,21 @@ void UIHelpViewer::wheelEvent(QWheelEvent *pEvent)
 
 void UIHelpViewer::mouseReleaseEvent(QMouseEvent *pEvent)
 {
+    /* If overlay mode is active just clear it and return: */
     bool fOverlayMode = m_fOverlayMode;
     clearOverlay();
-
-    QString strAnchor = anchorAt(pEvent->pos());
+    if (fOverlayMode)
+        return;
+    QString strAnchor = anchorAt(pEvent->position().toPoint());
 
     if (!strAnchor.isEmpty())
     {
-
         QString strLink = source().resolved(strAnchor).toString();
-
+        if (isImage(strLink))
+        {
+            loadImage(source().resolved(strAnchor));
+            return;
+        }
         if (source().resolved(strAnchor).scheme() != "qthelp" && pEvent->button() == Qt::LeftButton)
         {
             uiCommon().openURL(strLink);
@@ -698,52 +687,30 @@ void UIHelpViewer::mouseReleaseEvent(QMouseEvent *pEvent)
             return;
         }
     }
-    QIWithRetranslateUI<QTextBrowser>::mousePressEvent(pEvent);
-
-    if (!fOverlayMode)
-        loadImageAtPosition(pEvent->globalPos());
+    QTextBrowser::mousePressEvent(pEvent);
 }
 
 void UIHelpViewer::mousePressEvent(QMouseEvent *pEvent)
 {
-    QIWithRetranslateUI<QTextBrowser>::mousePressEvent(pEvent);
-}
-
-void UIHelpViewer::setImageOverCursor(QPoint globalPosition)
-{
-    QPoint viewportCoordinates = viewport()->mapFromGlobal(globalPosition);
-    QTextCursor cursor = cursorForPosition(viewportCoordinates);
-    if (!m_fCursorChanged && cursor.charFormat().isImageFormat())
-    {
-        m_fCursorChanged = true;
-        UICursor::setCursor(viewport(), m_handCursor);
-        emit sigMouseOverImage(cursor.charFormat().toImageFormat().name());
-    }
-    if (m_fCursorChanged && !cursor.charFormat().isImageFormat())
-    {
-        UICursor::setCursor(viewport(), m_defaultCursor);
-        m_fCursorChanged = false;
-    }
-
+    QTextBrowser::mousePressEvent(pEvent);
 }
 
 void UIHelpViewer::mouseMoveEvent(QMouseEvent *pEvent)
 {
-    if (m_fOverlayMode)
-        return;
-    setImageOverCursor(pEvent->globalPos());
-    QIWithRetranslateUI<QTextBrowser>::mouseMoveEvent(pEvent);
+    /*if (m_fOverlayMode)
+        return;*/
+    QTextBrowser::mouseMoveEvent(pEvent);
 }
 
 void UIHelpViewer::mouseDoubleClickEvent(QMouseEvent *pEvent)
 {
     clearOverlay();
-    QIWithRetranslateUI<QTextBrowser>::mouseDoubleClickEvent(pEvent);
+    QTextBrowser::mouseDoubleClickEvent(pEvent);
 }
 
 void UIHelpViewer::paintEvent(QPaintEvent *pEvent)
 {
-    QIWithRetranslateUI<QTextBrowser>::paintEvent(pEvent);
+    QTextBrowser::paintEvent(pEvent);
     QPainter painter(viewport());
     foreach(const DocumentImage &image, m_imageMap)
     {
@@ -768,7 +735,7 @@ bool UIHelpViewer::eventFilter(QObject *pObject, QEvent *pEvent)
             pEvent->type() == QEvent::MouseButtonDblClick)
             clearOverlay();
     }
-    return QIWithRetranslateUI<QTextBrowser>::eventFilter(pObject, pEvent);
+    return QTextBrowser::eventFilter(pObject, pEvent);
 }
 
 void UIHelpViewer::keyPressEvent(QKeyEvent *pEvent)
@@ -792,11 +759,7 @@ void UIHelpViewer::keyPressEvent(QKeyEvent *pEvent)
                 break;
         }
     }
-    QIWithRetranslateUI<QTextBrowser>::keyPressEvent(pEvent);
-}
-
-void UIHelpViewer::retranslateUi()
-{
+    QTextBrowser::keyPressEvent(pEvent);
 }
 
 void UIHelpViewer::moveFindWidgetIn(int iMargin)
@@ -837,15 +800,11 @@ void UIHelpViewer::findAllMatches(const QString &searchString)
         return;
     QTextCursor cursor(pDocument);
     QTextDocument::FindFlags flags;
-    int iMatchCount = 0;
     while (!cursor.isNull() && !cursor.atEnd())
     {
         cursor = pDocument->find(searchString, cursor, flags);
         if (!cursor.isNull())
-        {
             m_matchedCursorPosition << cursor.position() - searchString.length();
-            ++iMatchCount;
-        }
     }
 }
 
@@ -895,6 +854,11 @@ void UIHelpViewer::sltOpenLink()
     if (!pSender)
         return;
     QUrl url = pSender->data().toUrl();
+    if (isImage(url.toString()))
+    {
+        loadImage(url);
+        return;
+    }
     if (url.isValid())
         setSource(url);
 }
@@ -1020,7 +984,6 @@ void UIHelpViewer::scaleImages()
 void UIHelpViewer::clearOverlay()
 {
     AssertReturnVoid(m_pOverlayLabel);
-    setImageOverCursor(cursor().pos());
 
     if (!m_fOverlayMode)
         return;
@@ -1037,8 +1000,6 @@ void UIHelpViewer::enableOverlay()
     m_fOverlayMode = true;
     if (m_pOverlayBlurEffect)
         m_pOverlayBlurEffect->setEnabled(true);
-    UICursor::setCursor(viewport(), m_defaultCursor);
-    m_fCursorChanged = false;
     toggleFindInPageWidget(false);
 
     /* Scale the image to 1:1 as long as it fits into avaible space (minus some margins and scrollbar sizes): */
@@ -1065,28 +1026,12 @@ void UIHelpViewer::enableOverlay()
     m_pOverlayLabel->move(x, y);
 }
 
-void UIHelpViewer::loadImageAtPosition(const QPoint &globalPosition)
+void UIHelpViewer::loadImage(const QUrl &imageFileUrl)
 {
     clearOverlay();
-    QPoint viewportCoordinates = viewport()->mapFromGlobal(globalPosition);
-    QTextCursor cursor = cursorForPosition(viewportCoordinates);
-    if (!cursor.charFormat().isImageFormat())
-        return;
     /* Dont zoom into image if mouse button released after a mouse drag: */
     if (textCursor().hasSelection())
         return;
-
-    QTextImageFormat imageFormat = cursor.charFormat().toImageFormat();
-    QUrl imageFileUrl;
-    foreach (const QUrl &fileUrl, m_helpFileList)
-    {
-        if (fileUrl.toString().contains(imageFormat.name(), Qt::CaseInsensitive))
-        {
-            imageFileUrl = fileUrl;
-            break;
-        }
-    }
-
     if (!imageFileUrl.isValid())
         return;
     QByteArray fileData = m_pHelpEngine->fileData(imageFileUrl);
@@ -1098,7 +1043,16 @@ void UIHelpViewer::loadImageAtPosition(const QPoint &globalPosition)
     }
 }
 
+bool UIHelpViewer::isImage(const QString &strLink)
+{
+    if (strLink.isEmpty())
+        return false;
+    QFileInfo fInfo(strLink);
+    QMimeDatabase base;
+    QMimeType type = base.mimeTypeForFile(fInfo);
+    if (type.isValid() && type.inherits("image/png"))
+        return true;
+    return false;
+}
 
 #include "UIHelpViewer.moc"
-
-#endif /* #ifdef VBOX_WITH_QHELP_VIEWER */

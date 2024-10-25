@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2007-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2007-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -186,12 +186,13 @@ DECLASM(int) vgdrvOS2Init(const char *pszArgs)
              */
             if (g_MemMapMMIO != NIL_RTR0MEMOBJ)
                 rc = VGDrvCommonInitDevExt(&g_DevExt, g_IOPortBase,
+                                           NULL /*pvMmioReq*/,
                                            RTR0MemObjAddress(g_MemMapMMIO),
                                            RTR0MemObjSize(g_MemMapMMIO),
                                            vgdrvOS2DetectVersion(),
                                            0);
             else
-                rc = VGDrvCommonInitDevExt(&g_DevExt, g_IOPortBase, NULL, 0, vgdrvOS2DetectVersion(), 0);
+                rc = VGDrvCommonInitDevExt(&g_DevExt, g_IOPortBase, NULL /*pvMmioReq*/, NULL, 0, vgdrvOS2DetectVersion(), 0);
             if (RT_SUCCESS(rc))
             {
                 /*

@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1008,6 +1008,18 @@ typedef FNRTLDRENUMSEGS *PFNRTLDRENUMSEGS;
  * @param   pvUser          The user argument.
  */
 RTDECL(int) RTLdrEnumSegments(RTLDRMOD hLdrMod, PFNRTLDRENUMSEGS pfnCallback, void *pvUser);
+
+/**
+ * LX specific API for setting the selectors of a segment before getting
+ * segment bits.
+ *
+ * @returns IPRT status code.
+ * @param   hLdrMod         The module handle.
+ * @param   iSegment        The segment to set the selectors for.
+ * @param   Sel16bit        The 16-bit selector.
+ * @param   SelFlat         The flat selector.
+ */
+RTDECL(int) RTLdrLxSetSegmentSelectors(RTLDRMOD hLdrMod, uint32_t iSegment, uint16_t Sel16bit, uint16_t SelFlat);
 
 /**
  * Converts a link address to a segment:offset address.

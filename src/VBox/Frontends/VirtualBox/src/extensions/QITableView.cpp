@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -27,6 +27,7 @@
 
 /* Qt includes: */
 #include <QAccessibleWidget>
+#include <QSortFilterProxyModel>
 
 /* GUI includes: */
 #include "QIStyledItemDelegate.h"
@@ -58,7 +59,7 @@ public:
     {}
 
     /** Returns the parent. */
-    virtual QAccessibleInterface *parent() const RT_OVERRIDE;
+    virtual QAccessibleInterface *parent() const RT_OVERRIDE RT_FINAL;
 
     /** Returns the number of children. */
     virtual int childCount() const RT_OVERRIDE { return 0; }
@@ -68,14 +69,14 @@ public:
     virtual int indexOfChild(const QAccessibleInterface * /* pChild */) const RT_OVERRIDE { return -1; }
 
     /** Returns the rect. */
-    virtual QRect rect() const RT_OVERRIDE;
+    virtual QRect rect() const RT_OVERRIDE RT_FINAL;
     /** Returns a text for the passed @a enmTextRole. */
-    virtual QString text(QAccessible::Text enmTextRole) const RT_OVERRIDE;
+    virtual QString text(QAccessible::Text enmTextRole) const RT_OVERRIDE RT_FINAL;
 
     /** Returns the role. */
-    virtual QAccessible::Role role() const RT_OVERRIDE;
+    virtual QAccessible::Role role() const RT_OVERRIDE RT_FINAL;
     /** Returns the state. */
-    virtual QAccessible::State state() const RT_OVERRIDE;
+    virtual QAccessible::State state() const RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -106,24 +107,24 @@ public:
     {}
 
     /** Returns the parent. */
-    virtual QAccessibleInterface *parent() const RT_OVERRIDE;
+    virtual QAccessibleInterface *parent() const RT_OVERRIDE RT_FINAL;
 
     /** Returns the number of children. */
-    virtual int childCount() const RT_OVERRIDE;
+    virtual int childCount() const RT_OVERRIDE RT_FINAL;
     /** Returns the child with the passed @a iIndex. */
-    virtual QAccessibleInterface *child(int iIndex) const RT_OVERRIDE;
+    virtual QAccessibleInterface *child(int iIndex) const RT_OVERRIDE RT_FINAL;
     /** Returns the index of the passed @a pChild. */
-    virtual int indexOfChild(const QAccessibleInterface *pChild) const RT_OVERRIDE;
+    virtual int indexOfChild(const QAccessibleInterface *pChild) const RT_OVERRIDE RT_FINAL;
 
     /** Returns the rect. */
-    virtual QRect rect() const RT_OVERRIDE;
+    virtual QRect rect() const RT_OVERRIDE RT_FINAL;
     /** Returns a text for the passed @a enmTextRole. */
-    virtual QString text(QAccessible::Text enmTextRole) const RT_OVERRIDE;
+    virtual QString text(QAccessible::Text enmTextRole) const RT_OVERRIDE RT_FINAL;
 
     /** Returns the role. */
-    virtual QAccessible::Role role() const RT_OVERRIDE;
+    virtual QAccessible::Role role() const RT_OVERRIDE RT_FINAL;
     /** Returns the state. */
-    virtual QAccessible::State state() const RT_OVERRIDE;
+    virtual QAccessible::State state() const RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -154,14 +155,14 @@ public:
     {}
 
     /** Returns the number of children. */
-    virtual int childCount() const RT_OVERRIDE;
+    virtual int childCount() const RT_OVERRIDE RT_FINAL;
     /** Returns the child with the passed @a iIndex. */
-    virtual QAccessibleInterface *child(int iIndex) const RT_OVERRIDE;
+    virtual QAccessibleInterface *child(int iIndex) const RT_OVERRIDE RT_FINAL;
     /** Returns the index of the passed @a pChild. */
-    virtual int indexOfChild(const QAccessibleInterface *pChild) const RT_OVERRIDE;
+    virtual int indexOfChild(const QAccessibleInterface *pChild) const RT_OVERRIDE RT_FINAL;
 
     /** Returns a text for the passed @a enmTextRole. */
-    virtual QString text(QAccessible::Text enmTextRole) const RT_OVERRIDE;
+    virtual QString text(QAccessible::Text enmTextRole) const RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -259,7 +260,7 @@ int QIAccessibilityInterfaceForQITableViewRow::childCount() const
     return row()->childCount();
 }
 
-QAccessibleInterface *QIAccessibilityInterfaceForQITableViewRow::child(int iIndex) const /* override */
+QAccessibleInterface *QIAccessibilityInterfaceForQITableViewRow::child(int iIndex) const
 {
     /* Make sure row still alive: */
     AssertPtrReturn(row(), 0);
@@ -270,7 +271,7 @@ QAccessibleInterface *QIAccessibilityInterfaceForQITableViewRow::child(int iInde
     return QAccessible::queryAccessibleInterface(row()->childItem(iIndex));
 }
 
-int QIAccessibilityInterfaceForQITableViewRow::indexOfChild(const QAccessibleInterface *pChild) const /* override */
+int QIAccessibilityInterfaceForQITableViewRow::indexOfChild(const QAccessibleInterface *pChild) const
 {
     /* Search for corresponding child: */
     for (int i = 0; i < childCount(); ++i)
@@ -344,44 +345,58 @@ int QIAccessibilityInterfaceForQITableView::childCount() const
 {
     /* Make sure table still alive: */
     AssertPtrReturn(table(), 0);
+    /* Make sure model still alive: */
+    AssertPtrReturn(table()->model(), 0);
 
     /* Return the number of children: */
-    return table()->childCount();
+    return table()->model()->rowCount();
 }
 
 QAccessibleInterface *QIAccessibilityInterfaceForQITableView::child(int iIndex) const
 {
     /* Make sure table still alive: */
-    AssertPtrReturn(table(), 0);
+    QITableView *pTable = table();
+    AssertPtrReturn(pTable, 0);
+    /* Make sure model still alive: */
+    QAbstractItemModel *pModel = pTable->model();
+    AssertPtrReturn(pModel, 0);
     /* Make sure index is valid: */
     AssertReturn(iIndex >= 0, 0);
-    if (iIndex >= childCount())
-    {
-        // WORKAROUND:
-        // Normally I would assert here, but Qt5 accessibility code has
-        // a hard-coded architecture for a table-views which we do not like
-        // but have to live with and this architecture enumerates cells
-        // including header column and row, so Qt5 can try to address
-        // our interface with index which surely out of bounds by our laws.
-        // So let's assume that's exactly such case and try to enumerate
-        // table cells including header column and row.
-        // printf("Invalid index: %d\n", iIndex);
 
+    /* Real index might be different: */
+    int iRealRowIndex = iIndex;
+
+    // WORKAROUND:
+    // For a table-views Qt accessibility code has a hard-coded architecture which we do not like
+    // but have to live with, this architecture enumerates cells including header column and row,
+    // so Qt can try to address our interface with index which surely out of bounds by our laws.
+    // Let's assume that's exactly the case and try to enumerate cells including header column and row.
+    if (iRealRowIndex >= childCount())
+    {
         // Split delimeter is overall column count, including vertical header:
-        const int iColumnCount = table()->model()->columnCount() + 1 /* v_header */;
+        const int iColumnCount = pModel->columnCount() + 1 /* v_header */;
         // Real index is zero-based, incoming is 1-based:
         const int iRealIndex = iIndex - 1;
         // Real row index, excluding horizontal header:
-        const int iRealRowIndex = iRealIndex / iColumnCount - 1 /* h_header */;
-        // printf("Actual row index: %d\n", iRealRowIndex);
-
-        // Return what we found:
-        return iRealRowIndex >= 0 && iRealRowIndex < childCount() ?
-               QAccessible::queryAccessibleInterface(table()->childItem(iRealRowIndex)) : 0;
+        iRealRowIndex = iRealIndex / iColumnCount - 1 /* h_header */;
+        // printf("Invalid index: %d, Actual index: %d\n", iIndex, iRealRowIndex);
     }
 
-    /* Return the child with the passed iIndex: */
-    return QAccessible::queryAccessibleInterface(table()->childItem(iIndex));
+    /* Make sure index fits the bounds finally: */
+    if (iRealRowIndex >= childCount())
+        return 0;
+
+    /* Acquire child-index: */
+    const QModelIndex childIndex = pModel->index(iRealRowIndex, 0);
+    /* Check whether we have proxy model set or source one otherwise: */
+    const QSortFilterProxyModel *pProxyModel = qobject_cast<const QSortFilterProxyModel*>(pModel);
+    /* Acquire source-model child-index (can be the same as original if there is no proxy model): */
+    const QModelIndex sourceChildIndex = pProxyModel ? pProxyModel->mapToSource(childIndex) : childIndex;
+
+    /* Acquire row item: */
+    QITableViewRow *pRow = static_cast<QITableViewRow*>(sourceChildIndex.internalPointer());
+    /* Return row's accessibility interface: */
+    return QAccessible::queryAccessibleInterface(pRow);
 }
 
 int QIAccessibilityInterfaceForQITableView::indexOfChild(const QAccessibleInterface *pChild) const

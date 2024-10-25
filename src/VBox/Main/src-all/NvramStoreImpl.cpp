@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2021-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2021-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -48,6 +48,7 @@
 #include <iprt/cpp/utils.h>
 #include <iprt/efi.h>
 #include <iprt/file.h>
+#include <iprt/path.h>
 #include <iprt/vfs.h>
 #include <iprt/zip.h>
 
@@ -93,8 +94,6 @@ struct BackupableNvramStoreData
     /** The key store containing the encrypting DEK */
     com::Utf8Str            strKeyStore;
 #endif
-    /** The NVRAM store. */
-    NvramStoreMap           mapNvram;
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -137,6 +136,9 @@ struct NvramStore::Data
 #endif
 
     Backupable<BackupableNvramStoreData> bd;
+
+    /** The NVRAM store. */
+    NvramStoreMap                        mapNvram;
 };
 
 // constructor / destructor
@@ -331,14 +333,14 @@ void NvramStore::uninit()
 #endif
 
     /* Delete the NVRAM content. */
-    NvramStoreIter it = m->bd->mapNvram.begin();
-    while (it != m->bd->mapNvram.end())
+    NvramStoreIter it = m->mapNvram.begin();
+    while (it != m->mapNvram.end())
     {
         RTVfsFileRelease(it->second);
         it++;
     }
 
-    m->bd->mapNvram.clear();
+    m->mapNvram.clear();
     m->bd.free();
 
 #ifdef VBOX_WITH_FULL_VM_ENCRYPTION
@@ -352,25 +354,11 @@ void NvramStore::uninit()
     LogFlowThisFuncLeave();
 }
 
-
 HRESULT NvramStore::getNonVolatileStorageFile(com::Utf8Str &aNonVolatileStorageFile)
 {
-#ifndef VBOX_COM_INPROC
-    Utf8Str strTmp;
-    {
-        AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
-        strTmp = m->bd->strNvramPath;
-    }
-
-    AutoReadLock mlock(m->pParent COMMA_LOCKVAL_SRC_POS);
-    if (strTmp.isEmpty())
-        strTmp = m->pParent->i_getDefaultNVRAMFilename();
-    if (strTmp.isNotEmpty())
-        m->pParent->i_calculateFullPath(strTmp, aNonVolatileStorageFile);
-#else
-    AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
-    aNonVolatileStorageFile = m->bd->strNvramPath;
-#endif
+    int vrc = i_getNonVolatileStorageFile(aNonVolatileStorageFile);
+    if (RT_FAILURE(vrc))
+        return setError(E_FAIL, tr("This machine does not have an NVRAM store file"));
 
     return S_OK;
 }
@@ -379,12 +367,10 @@ HRESULT NvramStore::getNonVolatileStorageFile(com::Utf8Str &aNonVolatileStorageF
 HRESULT NvramStore::getUefiVariableStore(ComPtr<IUefiVariableStore> &aUefiVarStore)
 {
 #ifndef VBOX_COM_INPROC
-    /* the machine needs to be mutable */
-    AutoMutableStateDependency adep(m->pParent);
-    if (FAILED(adep.hrc())) return adep.hrc();
-
     Utf8Str strPath;
-    NvramStore::getNonVolatileStorageFile(strPath);
+    int vrc = i_getNonVolatileStorageFile(strPath);
+    if (RT_FAILURE(vrc))
+        return setError(E_FAIL, tr("No NVRAM store file found"));
 
     /* We need a write lock because of the lazy initialization. */
     AutoWriteLock wlock(this COMMA_LOCKVAL_SRC_POS);
@@ -394,32 +380,30 @@ HRESULT NvramStore::getUefiVariableStore(ComPtr<IUefiVariableStore> &aUefiVarSto
     if (!m->pUefiVarStore)
     {
         /* Load the NVRAM file first if it isn't already. */
-        if (!m->bd->mapNvram.size())
+        if (!m->mapNvram.size())
         {
-            int vrc = i_loadStore(strPath.c_str());
+            vrc = i_loadStore(strPath.c_str());
             if (RT_FAILURE(vrc))
                 hrc = setError(E_FAIL, tr("Loading the NVRAM store failed (%Rrc)\n"), vrc);
         }
 
         if (SUCCEEDED(hrc))
         {
-            NvramStoreIter it = m->bd->mapNvram.find("efi/nvram");
-            if (it != m->bd->mapNvram.end())
+            NvramStoreIter it = m->mapNvram.find("efi/nvram");
+            if (it != m->mapNvram.end())
             {
                 unconst(m->pUefiVarStore).createObject();
                 m->pUefiVarStore->init(this, m->pParent);
             }
             else
-                hrc = setError(VBOX_E_OBJECT_NOT_FOUND, tr("The UEFI NVRAM file is not existing for this machine."));
+                hrc = setError(VBOX_E_OBJECT_NOT_FOUND, tr("The UEFI NVRAM file is not existing for this machine"));
         }
     }
 
     if (SUCCEEDED(hrc))
     {
         m->pUefiVarStore.queryInterfaceTo(aUefiVarStore.asOutParam());
-
-        /* Mark the NVRAM store as potentially modified. */
-        m->pParent->i_setModified(Machine::IsModified_NvramStore);
+        /* The "modified" state is handled by i_retainUefiVarStore. */
     }
 
     return hrc;
@@ -468,8 +452,7 @@ HRESULT NvramStore::initUefiVariableStore(ULONG aSize)
     AutoMutableStateDependency adep(m->pParent);
     if (FAILED(adep.hrc())) return adep.hrc();
 
-    Utf8Str strPath;
-    NvramStore::getNonVolatileStorageFile(strPath);
+    Utf8Str strPath = i_getNonVolatileStorageFile();
 
     /* We need a write lock because of the lazy initialization. */
     AutoReadLock mlock(m->pParent COMMA_LOCKVAL_SRC_POS);
@@ -480,7 +463,7 @@ HRESULT NvramStore::initUefiVariableStore(ULONG aSize)
 
     /* Load the NVRAM file first if it isn't already. */
     HRESULT hrc = S_OK;
-    if (!m->bd->mapNvram.size())
+    if (!m->mapNvram.size())
     {
         int vrc = i_loadStore(strPath.c_str());
         if (RT_FAILURE(vrc))
@@ -491,8 +474,8 @@ HRESULT NvramStore::initUefiVariableStore(ULONG aSize)
     {
         int vrc = VINF_SUCCESS;
         RTVFSFILE hVfsUefiVarStore = NIL_RTVFSFILE;
-        NvramStoreIter it = m->bd->mapNvram.find("efi/nvram");
-        if (it != m->bd->mapNvram.end())
+        NvramStoreIter it = m->mapNvram.find("efi/nvram");
+        if (it != m->mapNvram.end())
             hVfsUefiVarStore = it->second;
         else
         {
@@ -503,7 +486,7 @@ HRESULT NvramStore::initUefiVariableStore(ULONG aSize)
                 /** @todo The size is hardcoded to match what the firmware image uses right now which is a gross hack... */
                 vrc = RTVfsFileSetSize(hVfsUefiVarStore, 540672, RTVFSFILE_SIZE_F_NORMAL);
                 if (RT_SUCCESS(vrc))
-                    m->bd->mapNvram["efi/nvram"] = hVfsUefiVarStore;
+                    m->mapNvram["efi/nvram"] = hVfsUefiVarStore;
                 else
                     RTVfsFileRelease(hVfsUefiVarStore);
             }
@@ -530,13 +513,53 @@ HRESULT NvramStore::initUefiVariableStore(ULONG aSize)
 }
 
 
+/**
+ * Returns the path of the non-volatile storage file.
+ *
+ * @returns VBox status code.
+ * @retval  VERR_FILE_NOT_FOUND if the storage file was not found.
+ * @param   aNonVolatileStorageFile   Returns path to non-volatile stroage file on success.
+ */
+int NvramStore::i_getNonVolatileStorageFile(com::Utf8Str &aNonVolatileStorageFile)
+{
+#ifndef VBOX_COM_INPROC
+    Utf8Str strTmp;
+    {
+        AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
+        strTmp = m->bd->strNvramPath;
+    }
+
+    AutoReadLock mlock(m->pParent COMMA_LOCKVAL_SRC_POS);
+    if (strTmp.isEmpty())
+        strTmp = m->pParent->i_getDefaultNVRAMFilename();
+    if (strTmp.isNotEmpty())
+        m->pParent->i_calculateFullPath(strTmp, aNonVolatileStorageFile);
+#else
+    AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
+    aNonVolatileStorageFile = m->bd->strNvramPath;
+#endif
+
+    if (aNonVolatileStorageFile.isEmpty())
+        return VERR_FILE_NOT_FOUND;
+
+    return VINF_SUCCESS;
+}
+
+
+/**
+ * Returns the path of the non-volatile stroage file.
+ *
+ * @returns Path to non-volatile stroage file. Empty if not supported / found.
+ *
+ * @note    Convenience function for machine object or other callers.
+ */
 Utf8Str NvramStore::i_getNonVolatileStorageFile()
 {
     AutoCaller autoCaller(this);
     AssertReturn(autoCaller.isOk(), Utf8Str::Empty);
 
     Utf8Str strTmp;
-    NvramStore::getNonVolatileStorageFile(strTmp);
+    /* rc ignored */ i_getNonVolatileStorageFile(strTmp);
     return strTmp;
 }
 
@@ -587,7 +610,7 @@ int NvramStore::i_loadStoreFromTar(RTVFSFSSTREAM hVfsFssTar)
                         break;
                     RTVfsIoStrmRelease(hVfsIosEntry);
 
-                    m->bd->mapNvram[Utf8Str(pszName)] = hVfsFileEntry;
+                    m->mapNvram[Utf8Str(pszName)] = hVfsFileEntry;
                     break;
                 }
                 case RTFS_TYPE_DIRECTORY:
@@ -693,12 +716,107 @@ void NvramStore::i_releaseEncryptionOrDecryptionResources(RTVFSIOSTREAM hVfsIos,
 #endif /* VBOX_WITH_FULL_VM_ENCRYPTION */
 
 /**
+ * Loads the NVRAM store from the given VFS directory handle.
+ *
+ * @returns IPRT status code.
+ * @param   hVfsDir             Handle to the NVRAM root VFS directory.
+ * @param   pszNamespace        The namespace to load the content for.
+ */
+int NvramStore::i_loadStoreFromDir(RTVFSDIR hVfsDir, const char *pszNamespace)
+{
+    int vrc = VINF_SUCCESS;
+
+    RTVFSDIR hNamespaceDir = NIL_RTVFSDIR;
+    vrc = RTVfsDirOpenDir(hVfsDir, pszNamespace, 0 /*fFlags*/, &hNamespaceDir);
+    if (RT_SUCCESS(vrc))
+    {
+        for (;;)
+        {
+            RTDIRENTRYEX DirEntry; /* ASSUMES that no entry has a longer name than what RTDIRENTRYEX provides by default. */
+            size_t cbDir = sizeof(DirEntry);
+            vrc = RTVfsDirReadEx(hNamespaceDir, &DirEntry, &cbDir, RTFSOBJATTRADD_NOTHING);
+            if (RT_FAILURE(vrc))
+            {
+                if (vrc == VERR_NO_MORE_FILES)
+                    vrc = VINF_SUCCESS;
+                break;
+            }
+
+            if (RT_SUCCESS(vrc))
+            {
+                switch (DirEntry.Info.Attr.fMode & RTFS_TYPE_MASK)
+                {
+                    case RTFS_TYPE_FILE:
+                    {
+                        LogRel(("NvramStore: Loading '%s' from directory '%s'\n", DirEntry.szName, pszNamespace));
+
+                        RTVFSIOSTREAM hVfsIosEntry;
+                        vrc = RTVfsDirOpenFileAsIoStream(hNamespaceDir, DirEntry.szName, RTFILE_O_OPEN | RTFILE_O_READ | RTFILE_O_DENY_NONE, &hVfsIosEntry);
+                        if (RT_SUCCESS(vrc))
+                        {
+                            RTVFSIOSTREAM hVfsIosDecrypted = NIL_RTVFSIOSTREAM;
+
+#ifdef VBOX_WITH_FULL_VM_ENCRYPTION
+                            PCVBOXCRYPTOIF pCryptoIf = NULL;
+                            SecretKey *pKey = NULL;
+
+                            if (   m->bd->strKeyId.isNotEmpty()
+                                && m->bd->strKeyStore.isNotEmpty())
+                                vrc = i_setupEncryptionOrDecryption(hVfsIosEntry, false /*fEncrypt*/,
+                                                                    &pCryptoIf, &pKey, &hVfsIosDecrypted);
+#endif
+                            if (RT_SUCCESS(vrc))
+                            {
+                                RTVFSFILE hVfsFileEntry;
+                                vrc = RTVfsMemorizeIoStreamAsFile(hVfsIosDecrypted != NIL_RTVFSIOSTREAM
+                                                                  ? hVfsIosDecrypted
+                                                                  : hVfsIosEntry,
+                                                                  RTFILE_O_READ | RTFILE_O_WRITE, &hVfsFileEntry);
+                                if (RT_SUCCESS(vrc))
+                                    m->mapNvram[Utf8StrFmt("%s/%s", pszNamespace, DirEntry.szName)] = hVfsFileEntry;
+                            }
+
+#ifdef VBOX_WITH_FULL_VM_ENCRYPTION
+                            if (hVfsIosDecrypted != NIL_RTVFSIOSTREAM)
+                                i_releaseEncryptionOrDecryptionResources(hVfsIosDecrypted, pCryptoIf, pKey);
+#endif
+
+                            RTVfsIoStrmRelease(hVfsIosEntry);
+                        }
+                        else
+                            LogRel(("Failed to open '%s' in NVRAM store '%s', vrc=%Rrc\n", DirEntry.szName, pszNamespace, vrc));
+
+                        break;
+                    }
+                    case RTFS_TYPE_DIRECTORY:
+                        break;
+                    default:
+                        vrc = VERR_NOT_SUPPORTED;
+                        break;
+                }
+            }
+
+            if (RT_FAILURE(vrc))
+                break;
+        }
+
+        RTVfsDirRelease(hNamespaceDir);
+    }
+
+    return vrc;
+}
+
+
+/**
  * Loads the NVRAM store.
  *
  * @returns IPRT status code.
  */
 int NvramStore::i_loadStore(const char *pszPath)
 {
+    AssertPtrReturn(pszPath, VERR_INVALID_POINTER);
+    AssertReturn(*pszPath, VERR_PATH_ZERO_LENGTH); /* IPRT below doesn't like empty strings. */
+
     uint64_t cbStore = 0;
     int vrc = RTFileQuerySizeByPath(pszPath, &cbStore);
     if (RT_SUCCESS(vrc))
@@ -753,7 +871,7 @@ int NvramStore::i_loadStore(const char *pszPath)
                                 AssertRC(vrc);
 
                                 RTVfsFileRetain(hVfsFileNvram); /* Retain a new reference for the map. */
-                                m->bd->mapNvram[Utf8Str("efi/nvram")] = hVfsFileNvram;
+                                m->mapNvram[Utf8Str("efi/nvram")] = hVfsFileNvram;
 
                                 RTVfsRelease(hVfsEfiVarStore);
                             }
@@ -804,6 +922,57 @@ int NvramStore::i_loadStore(const char *pszPath)
             vrc = VERR_OUT_OF_RANGE;
         }
     }
+    else if (vrc == VERR_IS_A_DIRECTORY) /* Valid if the NVRAM was saved with VBoxInternal2/SaveNvramContentAsDirectory 1. */
+    {
+        RTVFSDIR hNvramDir = NIL_RTVFSDIR;
+        vrc = RTVfsDirOpenNormal(pszPath, 0 /*fFlags*/, &hNvramDir);
+        if (RT_SUCCESS(vrc))
+        {
+            for (;;)
+            {
+                RTDIRENTRYEX DirEntry; /* ASSUMES that no entry has a longer name than what RTDIRENTRYEX provides by default. */
+                size_t cbDir = sizeof(DirEntry);
+
+                vrc = RTVfsDirReadEx(hNvramDir, &DirEntry, &cbDir, RTFSOBJATTRADD_NOTHING);
+                if (RT_FAILURE(vrc))
+                {
+                    if (vrc == VERR_NO_MORE_FILES)
+                        vrc = VINF_SUCCESS;
+                    break;
+                }
+
+                /* This ASSUMES that the structure follows the <namespace>/<file> naming scheme. */
+                if (RT_SUCCESS(vrc))
+                {
+                    switch (DirEntry.Info.Attr.fMode & RTFS_TYPE_MASK)
+                    {
+                        case RTFS_TYPE_FILE:
+                            break;
+                        case RTFS_TYPE_DIRECTORY:
+                        {
+                            if (   (DirEntry.szName[0] == '.' && DirEntry.szName[1] == '\0')
+                                || (DirEntry.szName[0] == '.' && DirEntry.szName[1] == '.' && DirEntry.szName[2] == '\0'))
+                                break;
+
+                            vrc = i_loadStoreFromDir(hNvramDir, DirEntry.szName);
+                            break;
+                        }
+                        default:
+                            vrc = VERR_NOT_SUPPORTED;
+                            break;
+                    }
+                }
+
+                if (RT_FAILURE(vrc))
+                    break;
+            }
+
+            RTVfsDirRelease(hNvramDir);
+        }
+        else
+            LogRelMax(10, ("NVRAM store '%s' couldn't be opened as a directory, vrc=%Rrc\n", pszPath, vrc));
+
+    }
     else if (vrc == VERR_FILE_NOT_FOUND) /* Valid for the first run where no NVRAM file is there. */
         vrc = VINF_SUCCESS;
 
@@ -845,9 +1014,9 @@ int NvramStore::i_saveStoreAsTar(const char *pszPath)
                                              RTZIPTARFORMAT_GNU, 0 /*fFlags*/, &hVfsFss);
             if (RT_SUCCESS(vrc))
             {
-                NvramStoreIter it = m->bd->mapNvram.begin();
+                NvramStoreIter it = m->mapNvram.begin();
 
-                while (it != m->bd->mapNvram.end())
+                while (it != m->mapNvram.end())
                 {
                     RTVFSFILE hVfsFile = it->second;
 
@@ -874,6 +1043,111 @@ int NvramStore::i_saveStoreAsTar(const char *pszPath)
 
         RTVfsIoStrmRelease(hVfsIos);
     }
+
+    return vrc;
+}
+
+
+/**
+ * Saves the NVRAM store as a directory tree.
+ */
+int NvramStore::i_saveStoreAsDir(const char *pszPath)
+{
+    int vrc = VINF_SUCCESS;
+    if (RTDirExists(pszPath))
+        vrc = RTDirRemoveRecursive(pszPath, RTDIRRMREC_F_CONTENT_AND_DIR);
+    else if (RTPathExists(pszPath))
+        vrc = RTPathUnlink(pszPath, 0 /*fUnlink*/);
+    if (RT_FAILURE(vrc))
+    {
+        LogRel(("Failed to delete existing NVRAM store '%s': %Rrc\n", pszPath, vrc));
+        return vrc;
+    }
+
+    vrc = RTDirCreate(pszPath, 0700 /*fMode*/, RTDIRCREATE_FLAGS_NOT_CONTENT_INDEXED_NOT_CRITICAL);
+    if (RT_SUCCESS(vrc))
+    {
+        NvramStoreIter it = m->mapNvram.begin();
+
+        while (it != m->mapNvram.end())
+        {
+            /** @todo r=aeichner This is pretty in-efficient but not called often (not at all by default)
+             *                   and there aren't many entries anyway. */
+            char szPathOut[RTPATH_MAX];
+            char szPathFile[RTPATH_MAX];
+
+            /* Construct the path excluding the filename. */
+            vrc = RTStrCopy(szPathFile, sizeof(szPathFile), it->first.c_str());
+            if (RT_FAILURE(vrc))
+                break;
+            RTPathStripFilename(szPathFile);
+            vrc = RTPathJoin(szPathOut, sizeof(szPathOut), pszPath, szPathFile);
+            if (RT_FAILURE(vrc))
+                break;
+
+            /* Create the directory structure. */
+            vrc = RTDirCreateFullPathEx(szPathOut, 0700 /*fMode*/, RTDIRCREATE_FLAGS_NOT_CONTENT_INDEXED_NOT_CRITICAL);
+            if (RT_FAILURE(vrc))
+                break;
+
+            vrc = RTVfsFileSeek(it->second, 0 /*offSeek*/, RTFILE_SEEK_BEGIN, NULL /*poffActual*/);
+            AssertRC(vrc);
+
+            /* Construct path, including the filename now. */
+            vrc = RTPathJoin(szPathOut, sizeof(szPathOut), pszPath, it->first.c_str());
+            if (RT_FAILURE(vrc))
+                break;
+
+            /* Write the file, encrypting it if required. */
+            RTVFSFILE hVfsFile;
+            vrc = RTVfsFileOpenNormal(szPathOut, RTFILE_O_WRITE | RTFILE_O_DENY_WRITE | RTFILE_O_CREATE_REPLACE,
+                                      &hVfsFile);
+            if (RT_SUCCESS(vrc))
+            {
+                RTVFSIOSTREAM hVfsIos = RTVfsFileToIoStream(hVfsFile);
+                RTVFSIOSTREAM hVfsIosEncrypted = NIL_RTVFSIOSTREAM;
+
+#ifdef VBOX_WITH_FULL_VM_ENCRYPTION
+                PCVBOXCRYPTOIF pCryptoIf = NULL;
+                SecretKey *pKey = NULL;
+
+                if (   m->bd->strKeyId.isNotEmpty()
+                    && m->bd->strKeyStore.isNotEmpty())
+                    vrc = i_setupEncryptionOrDecryption(hVfsIos, true /*fEncrypt*/,
+                                                        &pCryptoIf, &pKey, &hVfsIosEncrypted);
+#endif
+
+                if (RT_SUCCESS(vrc))
+                {
+                    RTVFSIOSTREAM hVfsIosSrc = RTVfsFileToIoStream(it->second);
+                    vrc = RTVfsUtilPumpIoStreams(hVfsIosSrc,
+                                                   hVfsIosEncrypted != NIL_RTVFSIOSTREAM
+                                                 ? hVfsIosEncrypted
+                                                 : hVfsIos, 0 /*cbBufHint*/);
+                    RTVfsIoStrmRelease(hVfsIosSrc);
+#ifdef VBOX_WITH_FULL_VM_ENCRYPTION
+                    if (hVfsIosEncrypted != NIL_RTVFSIOSTREAM)
+                        i_releaseEncryptionOrDecryptionResources(hVfsIosEncrypted, pCryptoIf, pKey);
+#endif
+                }
+
+                RTVfsIoStrmRelease(hVfsIos);
+                RTVfsFileRelease(hVfsFile);
+            }
+
+            it++;
+        }
+
+        /* Cleanup in case of error. */
+        if (RT_FAILURE(vrc))
+        {
+            int vrc2 = RTDirRemoveRecursive(pszPath, RTDIRRMREC_F_CONTENT_AND_DIR);
+            if (RT_FAILURE(vrc2))
+                LogRel(("Cleaning up NVRAM store '%s' failed with %Rrc (after creation failed with %Rrc)\n", pszPath,   vrc2, vrc));
+        }
+    }
+    else
+        LogRel(("NVRAM store '%s' directory creation failed: %Rrc\n", pszPath, vrc));
 
     return vrc;
 }
@@ -916,15 +1190,14 @@ int NvramStore::i_saveStore(void)
 {
     int vrc = VINF_SUCCESS;
 
-    Utf8Str strTmp;
-    NvramStore::getNonVolatileStorageFile(strTmp);
+    Utf8Str strPath = i_getNonVolatileStorageFile();
 
     /*
      * Only store the NVRAM content if the path is not empty, if it is
-     * this means the VM was just created and the store was nnot saved yet,
+     * this means the VM was just created and the store was not saved yet,
      * see @bugref{10191}.
      */
-    if (strTmp.isNotEmpty())
+    if (strPath.isNotEmpty())
     {
         /*
          * Skip creating the tar archive if only the UEFI NVRAM content is available in order
@@ -932,16 +1205,16 @@ int NvramStore::i_saveStore(void)
          * it doesn't belong to the UEFI the tar archive will be created.
          */
         AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
-        if (   m->bd->mapNvram.size() == 1
-            && m->bd->mapNvram.find(Utf8Str("efi/nvram")) != m->bd->mapNvram.end())
+        if (   m->mapNvram.size() == 1
+            && m->mapNvram.begin()->first == "efi/nvram")
         {
-            RTVFSFILE hVfsFileNvram = m->bd->mapNvram[Utf8Str("efi/nvram")];
+            RTVFSFILE hVfsFileNvram = m->mapNvram.begin()->second;
 
             vrc = RTVfsFileSeek(hVfsFileNvram, 0 /*offSeek*/, RTFILE_SEEK_BEGIN, NULL /*poffActual*/);
-            AssertRC(vrc); RT_NOREF(vrc);
+            AssertLogRelRC(vrc);
 
             RTVFSIOSTREAM hVfsIosDst;
-            vrc = RTVfsIoStrmOpenNormal(strTmp.c_str(), RTFILE_O_CREATE_REPLACE | RTFILE_O_WRITE | RTFILE_O_DENY_NONE,
+            vrc = RTVfsIoStrmOpenNormal(strPath.c_str(), RTFILE_O_CREATE_REPLACE | RTFILE_O_WRITE | RTFILE_O_DENY_NONE,
                                         &hVfsIosDst);
             if (RT_SUCCESS(vrc))
             {
@@ -975,8 +1248,28 @@ int NvramStore::i_saveStore(void)
                 RTVfsIoStrmRelease(hVfsIosDst);
             }
         }
-        else if (m->bd->mapNvram.size())
-            vrc = i_saveStoreAsTar(strTmp.c_str());
+        else if (m->mapNvram.size())
+        {
+            /* Check whether the NVRAM content is supposed to be saved under a directory. */
+#ifndef VBOX_COM_INPROC
+            Machine * const         pMachine = m->pParent;
+#else
+            const ComPtr<IMachine> &pMachine = m->pParent->i_machine();
+#endif
+
+            Bstr bstrName("VBoxInternal2/SaveNvramContentAsDirectory");
+            Bstr bstrValue;
+            HRESULT hrc = pMachine->GetExtraData(bstrName.raw(), bstrValue.asOutParam());
+            if (FAILED(hrc))
+                throw hrc;
+
+            bool fSaveAsDir = bstrValue == "1";
+
+            if (fSaveAsDir)
+                vrc = i_saveStoreAsDir(strPath.c_str());
+            else
+                vrc = i_saveStoreAsTar(strPath.c_str());
+        }
         /* else: No NVRAM content to store so we are done here. */
     }
 
@@ -1062,17 +1355,18 @@ int NvramStore::i_removeAllPasswords()
 
 
 #ifndef VBOX_COM_INPROC
+
 HRESULT NvramStore::i_retainUefiVarStore(PRTVFS phVfs, bool fReadonly)
 {
-    /* the machine needs to be mutable */
-    AutoMutableStateDependency adep(m->pParent);
+    /* the machine needs to be mutable unless fReadonly is set */
+    AutoMutableStateDependency adep(fReadonly ? NULL : m->pParent);
     if (FAILED(adep.hrc())) return adep.hrc();
 
     AutoWriteLock wlock(this COMMA_LOCKVAL_SRC_POS);
 
     HRESULT hrc = S_OK;
-    NvramStoreIter it = m->bd->mapNvram.find("efi/nvram");
-    if (it != m->bd->mapNvram.end())
+    NvramStoreIter it = m->mapNvram.find("efi/nvram");
+    if (it != m->mapNvram.end())
     {
         RTVFSFILE hVfsFileNvram = it->second;
         RTVFS hVfsEfiVarStore;
@@ -1087,10 +1381,10 @@ HRESULT NvramStore::i_retainUefiVarStore(PRTVFS phVfs, bool fReadonly)
                 m->pParent->i_setModified(Machine::IsModified_NvramStore);
         }
         else
-            hrc = setError(E_FAIL, tr("Opening the UEFI variable store failed (%Rrc)."), vrc);
+            hrc = setError(E_FAIL, tr("Opening the UEFI variable store failed (%Rrc)"), vrc);
     }
     else
-        hrc = setError(VBOX_E_OBJECT_NOT_FOUND, tr("The UEFI NVRAM file is not existing for this machine."));
+        hrc = setError(VBOX_E_OBJECT_NOT_FOUND, tr("The UEFI NVRAM file is not existing for this machine"));
 
     return hrc;
 }
@@ -1113,6 +1407,8 @@ HRESULT NvramStore::i_releaseUefiVarStore(RTVFS hVfs)
  */
 HRESULT NvramStore::i_loadSettings(const settings::NvramSettings &data)
 {
+    LogFlowThisFuncEnter();
+
     AutoCaller autoCaller(this);
     AssertComRCReturnRC(autoCaller.hrc());
 
@@ -1132,6 +1428,7 @@ HRESULT NvramStore::i_loadSettings(const settings::NvramSettings &data)
         || m->bd->strNvramPath == m->pParent->i_getDefaultNVRAMFilename())
         m->bd->strNvramPath.setNull();
 
+    LogFlowThisFuncLeave();
     return S_OK;
 }
 
@@ -1264,7 +1561,8 @@ void NvramStore::i_updateNonVolatileStorageFile(const Utf8Str &aNonVolatileStora
     m->bd->strNvramPath = strTmp;
 }
 
-#else
+#else /* VBOX_COM_INPROC */
+
 //
 // private methods
 //
@@ -1274,9 +1572,13 @@ DECLCALLBACK(int) NvramStore::i_nvramStoreQuerySize(PPDMIVFSCONNECTOR pInterface
 {
     PDRVMAINNVRAMSTORE pThis = RT_FROM_MEMBER(pInterface, DRVMAINNVRAMSTORE, IVfs);
 
+    Utf8Str strKey;
+    int vrc = strKey.printfNoThrow("%s/%s", pszNamespace, pszPath);
+    AssertRCReturn(vrc, vrc);
+
     AutoReadLock rlock(pThis->pNvramStore COMMA_LOCKVAL_SRC_POS);
-    NvramStoreIter it = pThis->pNvramStore->m->bd->mapNvram.find(Utf8StrFmt("%s/%s", pszNamespace, pszPath));
-    if (it != pThis->pNvramStore->m->bd->mapNvram.end())
+    NvramStoreIter it = pThis->pNvramStore->m->mapNvram.find(strKey);
+    if (it != pThis->pNvramStore->m->mapNvram.end())
     {
         RTVFSFILE hVfsFile = it->second;
         return RTVfsFileQuerySize(hVfsFile, pcb);
@@ -1292,14 +1594,18 @@ DECLCALLBACK(int) NvramStore::i_nvramStoreReadAll(PPDMIVFSCONNECTOR pInterface, 
 {
     PDRVMAINNVRAMSTORE pThis = RT_FROM_MEMBER(pInterface, DRVMAINNVRAMSTORE, IVfs);
 
+    Utf8Str strKey;
+    int vrc = strKey.printfNoThrow("%s/%s", pszNamespace, pszPath);
+    AssertRCReturn(vrc, vrc);
+
     AutoReadLock rlock(pThis->pNvramStore COMMA_LOCKVAL_SRC_POS);
-    NvramStoreIter it = pThis->pNvramStore->m->bd->mapNvram.find(Utf8StrFmt("%s/%s", pszNamespace, pszPath));
-    if (it != pThis->pNvramStore->m->bd->mapNvram.end())
+    NvramStoreIter it = pThis->pNvramStore->m->mapNvram.find(strKey);
+    if (it != pThis->pNvramStore->m->mapNvram.end())
     {
         RTVFSFILE hVfsFile = it->second;
 
-        int vrc = RTVfsFileSeek(hVfsFile, 0 /*offSeek*/, RTFILE_SEEK_BEGIN, NULL /*poffActual*/);
-        AssertRC(vrc); RT_NOREF(vrc);
+        vrc = RTVfsFileSeek(hVfsFile, 0 /*offSeek*/, RTFILE_SEEK_BEGIN, NULL /*poffActual*/);
+        AssertLogRelRC(vrc);
 
         return RTVfsFileRead(hVfsFile, pvBuf, cbRead, NULL /*pcbRead*/);
     }
@@ -1314,16 +1620,19 @@ DECLCALLBACK(int) NvramStore::i_nvramStoreWriteAll(PPDMIVFSCONNECTOR pInterface,
 {
     PDRVMAINNVRAMSTORE pThis = RT_FROM_MEMBER(pInterface, DRVMAINNVRAMSTORE, IVfs);
 
+    Utf8Str strKey;
+    int vrc = strKey.printfNoThrow("%s/%s", pszNamespace, pszPath);
+    AssertRCReturn(vrc, vrc);
+
     AutoWriteLock wlock(pThis->pNvramStore COMMA_LOCKVAL_SRC_POS);
 
-    int vrc = VINF_SUCCESS;
-    NvramStoreIter it = pThis->pNvramStore->m->bd->mapNvram.find(Utf8StrFmt("%s/%s", pszNamespace, pszPath));
-    if (it != pThis->pNvramStore->m->bd->mapNvram.end())
+    NvramStoreIter it = pThis->pNvramStore->m->mapNvram.find(strKey);
+    if (it != pThis->pNvramStore->m->mapNvram.end())
     {
         RTVFSFILE hVfsFile = it->second;
 
         vrc = RTVfsFileSeek(hVfsFile, 0 /*offSeek*/, RTFILE_SEEK_BEGIN, NULL /*poffActual*/);
-        AssertRC(vrc);
+        AssertLogRelRC(vrc);
         vrc = RTVfsFileSetSize(hVfsFile, cbWrite, RTVFSFILE_SIZE_F_NORMAL);
         if (RT_SUCCESS(vrc))
             vrc = RTVfsFileWrite(hVfsFile, pvBuf, cbWrite, NULL /*pcbWritten*/);
@@ -1334,7 +1643,18 @@ DECLCALLBACK(int) NvramStore::i_nvramStoreWriteAll(PPDMIVFSCONNECTOR pInterface,
         RTVFSFILE hVfsFile = NIL_RTVFSFILE;
         vrc = RTVfsFileFromBuffer(RTFILE_O_READ | RTFILE_O_WRITE, pvBuf, cbWrite, &hVfsFile);
         if (RT_SUCCESS(vrc))
-            pThis->pNvramStore->m->bd->mapNvram[Utf8StrFmt("%s/%s", pszNamespace, pszPath)] = hVfsFile;
+        {
+            try
+            {
+                pThis->pNvramStore->m->mapNvram[strKey] = hVfsFile;
+            }
+            catch (...)
+            {
+                AssertLogRelFailed();
+                RTVfsFileRelease(hVfsFile);
+                vrc = VERR_UNEXPECTED_EXCEPTION;
+            }
+        }
     }
 
     return vrc;
@@ -1346,12 +1666,16 @@ DECLCALLBACK(int) NvramStore::i_nvramStoreDelete(PPDMIVFSCONNECTOR pInterface, c
 {
     PDRVMAINNVRAMSTORE pThis = RT_FROM_MEMBER(pInterface, DRVMAINNVRAMSTORE, IVfs);
 
+    Utf8Str strKey;
+    int vrc = strKey.printfNoThrow("%s/%s", pszNamespace, pszPath);
+    AssertRCReturn(vrc, vrc);
+
     AutoWriteLock wlock(pThis->pNvramStore COMMA_LOCKVAL_SRC_POS);
-    NvramStoreIter it = pThis->pNvramStore->m->bd->mapNvram.find(Utf8StrFmt("%s/%s", pszNamespace, pszPath));
-    if (it != pThis->pNvramStore->m->bd->mapNvram.end())
+    NvramStoreIter it = pThis->pNvramStore->m->mapNvram.find(strKey);
+    if (it != pThis->pNvramStore->m->mapNvram.end())
     {
         RTVFSFILE hVfsFile = it->second;
-        pThis->pNvramStore->m->bd->mapNvram.erase(it);
+        pThis->pNvramStore->m->mapNvram.erase(it);
         RTVfsFileRelease(hVfsFile);
         return VINF_SUCCESS;
     }
@@ -1369,44 +1693,51 @@ DECLCALLBACK(int) NvramStore::i_SsmSaveExec(PPDMDRVINS pDrvIns, PSSMHANDLE pSSM)
 
     AutoWriteLock wlock(pThis->pNvramStore COMMA_LOCKVAL_SRC_POS);
 
-    size_t cEntries = pThis->pNvramStore->m->bd->mapNvram.size();
+    size_t cEntries = pThis->pNvramStore->m->mapNvram.size();
     AssertReturn(cEntries < 32, VERR_OUT_OF_RANGE); /* Some sanity checking. */
     pHlp->pfnSSMPutU32(pSSM, (uint32_t)cEntries);
 
     void *pvData = NULL;
     size_t cbDataMax = 0;
-    NvramStoreIter it = pThis->pNvramStore->m->bd->mapNvram.begin();
+    int vrc = i_SsmSaveExecInner(pThis, pHlp, pSSM, &pvData, &cbDataMax);
+    if (pvData)
+        RTMemFree(pvData);
+    AssertRCReturn(vrc, vrc);
 
-    while (it != pThis->pNvramStore->m->bd->mapNvram.end())
+    pThis->pNvramStore->m->fSsmSaved = true;
+    return pHlp->pfnSSMPutU32(pSSM, UINT32_MAX); /* sanity/terminator */
+}
+
+
+/*static*/
+int NvramStore::i_SsmSaveExecInner(PDRVMAINNVRAMSTORE pThis, PCPDMDRVHLPR3 pHlp, PSSMHANDLE pSSM,
+                                   void **ppvData, size_t *pcbDataMax) RT_NOEXCEPT
+{
+    for (NvramStoreIter it = pThis->pNvramStore->m->mapNvram.begin(); it != pThis->pNvramStore->m->mapNvram.end(); ++it)
     {
         RTVFSFILE hVfsFile = it->second;
-        uint64_t cbFile;
 
+        uint64_t cbFile;
         int vrc = RTVfsFileQuerySize(hVfsFile, &cbFile);
         AssertRCReturn(vrc, vrc);
         AssertReturn(cbFile < _1M, VERR_OUT_OF_RANGE);
 
-        if (cbDataMax < cbFile)
+        if (*pcbDataMax < cbFile)
         {
-            pvData = RTMemRealloc(pvData, cbFile);
-            AssertPtrReturn(pvData, VERR_NO_MEMORY);
-            cbDataMax = cbFile;
+            void *pvNew = RTMemRealloc(*ppvData, cbFile);
+            AssertPtrReturn(pvNew, VERR_NO_MEMORY);
+            *ppvData    = pvNew;
+            *pcbDataMax = cbFile;
         }
 
-        vrc = RTVfsFileReadAt(hVfsFile, 0 /*off*/, pvData, cbFile, NULL /*pcbRead*/);
+        vrc = RTVfsFileReadAt(hVfsFile, 0 /*off*/, *ppvData, cbFile, NULL /*pcbRead*/);
         AssertRCReturn(vrc, vrc);
 
         pHlp->pfnSSMPutStrZ(pSSM, it->first.c_str());
         pHlp->pfnSSMPutU64(pSSM, cbFile);
-        pHlp->pfnSSMPutMem(pSSM, pvData, cbFile);
-        it++;
+        pHlp->pfnSSMPutMem(pSSM, *ppvData, cbFile);
     }
-
-    if (pvData)
-        RTMemFree(pvData);
-
-    pThis->pNvramStore->m->fSsmSaved = true;
-    return pHlp->pfnSSMPutU32(pSSM, UINT32_MAX); /* sanity/terminator */
+    return VINF_SUCCESS;
 }
 
 
@@ -1425,14 +1756,14 @@ DECLCALLBACK(int) NvramStore::i_SsmLoadExec(PPDMDRVINS pDrvIns, PSSMHANDLE pSSM,
         AutoWriteLock wlock(pThis->pNvramStore COMMA_LOCKVAL_SRC_POS);
 
         /* Clear any content first. */
-        NvramStoreIter it = pThis->pNvramStore->m->bd->mapNvram.begin();
-        while (it != pThis->pNvramStore->m->bd->mapNvram.end())
+        NvramStoreIter it = pThis->pNvramStore->m->mapNvram.begin();
+        while (it != pThis->pNvramStore->m->mapNvram.end())
         {
             RTVfsFileRelease(it->second);
             it++;
         }
 
-        pThis->pNvramStore->m->bd->mapNvram.clear();
+        pThis->pNvramStore->m->mapNvram.clear();
 
         uint32_t cEntries = 0;
         int vrc = pHlp->pfnSSMGetU32(pSSM, &cEntries);
@@ -1441,43 +1772,62 @@ DECLCALLBACK(int) NvramStore::i_SsmLoadExec(PPDMDRVINS pDrvIns, PSSMHANDLE pSSM,
 
         void *pvData = NULL;
         size_t cbDataMax = 0;
-        while (cEntries--)
-        {
-            char szId[_1K]; /* Lazy developer */
-            uint64_t cbFile = 0;
-
-            vrc = pHlp->pfnSSMGetStrZ(pSSM, &szId[0], sizeof(szId));
-            AssertRCReturn(vrc, vrc);
-
-            vrc = pHlp->pfnSSMGetU64(pSSM, &cbFile);
-            AssertRCReturn(vrc, vrc);
-            AssertReturn(cbFile < _1M, VERR_OUT_OF_RANGE);
-
-            if (cbDataMax < cbFile)
-            {
-                pvData = RTMemRealloc(pvData, cbFile);
-                AssertPtrReturn(pvData, VERR_NO_MEMORY);
-                cbDataMax = cbFile;
-            }
-
-            vrc = pHlp->pfnSSMGetMem(pSSM, pvData, cbFile);
-            AssertRCReturn(vrc, vrc);
-
-            RTVFSFILE hVfsFile;
-            vrc = RTVfsFileFromBuffer(RTFILE_O_READWRITE, pvData, cbFile, &hVfsFile);
-            AssertRCReturn(vrc, vrc);
-
-            pThis->pNvramStore->m->bd->mapNvram[Utf8Str(szId)] = hVfsFile;
-        }
-
+        vrc = i_SsmLoadExecInner(pThis, pHlp, pSSM, cEntries, &pvData, &cbDataMax);
         if (pvData)
             RTMemFree(pvData);
+        AssertRCReturn(vrc, vrc);
 
         /* The marker. */
         uint32_t u32;
         vrc = pHlp->pfnSSMGetU32(pSSM, &u32);
         AssertRCReturn(vrc, vrc);
         AssertMsgReturn(u32 == UINT32_MAX, ("%#x\n", u32), VERR_SSM_DATA_UNIT_FORMAT_CHANGED);
+    }
+
+    return VINF_SUCCESS;
+}
+
+
+/*static*/
+int NvramStore::i_SsmLoadExecInner(PDRVMAINNVRAMSTORE pThis, PCPDMDRVHLPR3 pHlp, PSSMHANDLE pSSM,
+                                   uint32_t cEntries, void **ppvData, size_t *pcbDataMax) RT_NOEXCEPT
+{
+    while (cEntries-- > 0)
+    {
+        char szId[_1K]; /* Lazy developer */
+        int vrc = pHlp->pfnSSMGetStrZ(pSSM, &szId[0], sizeof(szId));
+        AssertRCReturn(vrc, vrc);
+
+        uint64_t cbFile = 0;
+        vrc = pHlp->pfnSSMGetU64(pSSM, &cbFile);
+        AssertRCReturn(vrc, vrc);
+        AssertReturn(cbFile < _1M, VERR_OUT_OF_RANGE);
+
+        if (*pcbDataMax < cbFile)
+        {
+            void *pvNew = RTMemRealloc(*ppvData, cbFile);
+            AssertPtrReturn(pvNew, VERR_NO_MEMORY);
+            *ppvData    = pvNew;
+            *pcbDataMax = cbFile;
+        }
+
+        vrc = pHlp->pfnSSMGetMem(pSSM, *ppvData, cbFile);
+        AssertRCReturn(vrc, vrc);
+
+        RTVFSFILE hVfsFile;
+        vrc = RTVfsFileFromBuffer(RTFILE_O_READWRITE, *ppvData, cbFile, &hVfsFile);
+        AssertRCReturn(vrc, vrc);
+
+        try
+        {
+            pThis->pNvramStore->m->mapNvram[Utf8Str(szId)] = hVfsFile;
+        }
+        catch (...)
+        {
+            AssertLogRelFailed();
+            RTVfsFileRelease(hVfsFile);
+            return VERR_UNEXPECTED_EXCEPTION;
+        }
     }
 
     return VINF_SUCCESS;
@@ -1516,8 +1866,15 @@ DECLCALLBACK(void) NvramStore::i_drvDestruct(PPDMDRVINS pDrvIns)
         if (   !cRefs
             && !pThis->pNvramStore->m->fSsmSaved)
         {
-            int vrc = pThis->pNvramStore->i_saveStore();
-            AssertRC(vrc); /** @todo Disk full error? */
+            try
+            {
+                int vrc = pThis->pNvramStore->i_saveStore();
+                AssertLogRelRC(vrc); /** @todo Disk full error? */
+            }
+            catch (...)
+            {
+                AssertLogRelFailed();
+            }
         }
     }
 }
@@ -1580,7 +1937,15 @@ DECLCALLBACK(int) NvramStore::i_drvConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg,
     uint32_t cRefs = ASMAtomicIncU32(&pThis->pNvramStore->m->cRefs);
     if (cRefs == 1)
     {
-        int vrc = pThis->pNvramStore->i_loadStore(pThis->pNvramStore->m->bd->strNvramPath.c_str());
+        int vrc;
+        try
+        {
+            vrc = pThis->pNvramStore->i_loadStore(pThis->pNvramStore->m->bd->strNvramPath.c_str());
+        }
+        catch (...)
+        {
+            vrc = VERR_UNEXPECTED_EXCEPTION;
+        }
         if (RT_FAILURE(vrc))
         {
             ASMAtomicDecU32(&pThis->pNvramStore->m->cRefs);
@@ -1643,6 +2008,7 @@ const PDMDRVREG NvramStore::DrvReg =
     /* u32EndVersion */
     PDM_DRVREG_VERSION
 };
-#endif /* !VBOX_COM_INPROC */
+
+#endif /* VBOX_COM_INPROC */
 
 /* vi: set tabstop=4 shiftwidth=4 expandtab: */

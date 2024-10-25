@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -29,22 +29,22 @@
 #include <QTimer>
 
 /* GUI includes: */
+#include "QIMenu.h"
+#include "UIActionPoolRuntime.h"
 #include "UICommon.h"
 #include "UIDesktopWidgetWatchdog.h"
-#include "UIMessageCenter.h"
-#include "UISession.h"
-#include "UIActionPoolRuntime.h"
+#include "UILoggingDefs.h"
+#include "UIMachine.h"
 #include "UIMachineLogicFullscreen.h"
+#include "UIMachineView.h"
 #include "UIMachineWindowFullscreen.h"
+#include "UIMessageCenter.h"
 #include "UIMultiScreenLayout.h"
 #include "UIShortcutPool.h"
-#include "UIMachineView.h"
-#include "QIMenu.h"
 #ifdef VBOX_WS_MAC
 # include "UICocoaApplication.h"
 # include "UIExtraDataManager.h"
 # include "VBoxUtils.h"
-# include "UIFrameBuffer.h"
 # include <Carbon/Carbon.h>
 #endif /* VBOX_WS_MAC */
 
@@ -52,8 +52,8 @@
 #include "CGraphicsAdapter.h"
 
 
-UIMachineLogicFullscreen::UIMachineLogicFullscreen(QObject *pParent, UISession *pSession)
-    : UIMachineLogic(pParent, pSession, UIVisualStateType_Fullscreen)
+UIMachineLogicFullscreen::UIMachineLogicFullscreen(UIMachine *pMachine)
+    : UIMachineLogic(pMachine)
     , m_pPopupMenu(0)
 #ifdef VBOX_WS_MAC
     , m_fScreensHaveSeparateSpaces(darwinScreensHaveSeparateSpaces())
@@ -82,13 +82,15 @@ bool UIMachineLogicFullscreen::hasHostScreenForGuestScreen(int iScreenId) const
 bool UIMachineLogicFullscreen::checkAvailability()
 {
     /* Check if there is enough physical memory to enter fullscreen: */
-    if (uisession()->isGuestSupportsGraphics())
+    if (uimachine()->isGuestSupportsGraphics())
     {
-        quint64 availBits = machine().GetGraphicsAdapter().GetVRAMSize() /* VRAM */ * _1M /* MiB to bytes */ * 8 /* to bits */;
-        quint64 usedBits = m_pScreenLayout->memoryRequirements();
-        if (availBits < usedBits)
+        ulong uVRAMSize = 0;
+        uimachine()->acquireVRAMSize(uVRAMSize);
+        quint64 uAvailBits = uVRAMSize * _1M /* MiB to bytes */ * 8 /* to bits */;
+        quint64 uUsedBits = m_pScreenLayout->memoryRequirements();
+        if (uAvailBits < uUsedBits)
         {
-            if (!msgCenter().cannotEnterFullscreenMode(0, 0, 0, (((usedBits + 7) / 8 + _1M - 1) / _1M) * _1M))
+            if (!msgCenter().cannotEnterFullscreenMode(0, 0, 0, (((uUsedBits + 7) / 8 + _1M - 1) / _1M) * _1M))
                 return false;
         }
     }
@@ -224,11 +226,11 @@ void UIMachineLogicFullscreen::sltHandleNativeFullscreenDidExit()
                     (int)pMachineWindow->screenId()));
 
             /* Change visual-state to requested: */
-            UIVisualStateType type = uisession()->requestedVisualState();
+            UIVisualStateType type = uimachine()->requestedVisualState();
             if (type == UIVisualStateType_Invalid)
                 type = UIVisualStateType_Normal;
-            uisession()->setRequestedVisualState(UIVisualStateType_Invalid);
-            uisession()->changeVisualState(type);
+            uimachine()->setRequestedVisualState(UIVisualStateType_Invalid);
+            uimachine()->asyncChangeVisualState(type);
         }
     }
 }
@@ -261,10 +263,10 @@ void UIMachineLogicFullscreen::sltHandleNativeFullscreenFailToEnter()
                 (int)pMachineWindow->screenId()));
 
         /* Ask session to change 'fullscreen' mode to 'normal': */
-        uisession()->setRequestedVisualState(UIVisualStateType_Normal);
+        uimachine()->setRequestedVisualState(UIVisualStateType_Normal);
 
-        /* If session already initialized => push mode-change directly: */
-        if (uisession()->isInitialized())
+        /* If machine UI already initialized => push mode-change directly: */
+        if (uimachine()->isInitialized())
             sltCheckForRequestedVisualStateType();
     }
 }
@@ -272,7 +274,7 @@ void UIMachineLogicFullscreen::sltHandleNativeFullscreenFailToEnter()
 void UIMachineLogicFullscreen::sltChangeVisualStateToNormal()
 {
     /* Request 'normal' (window) visual-state: */
-    uisession()->setRequestedVisualState(UIVisualStateType_Normal);
+    uimachine()->setRequestedVisualState(UIVisualStateType_Normal);
     /* Ask window(s) to exit 'fullscreen' mode: */
     emit sigNotifyAboutNativeFullscreenShouldBeExited();
 }
@@ -280,7 +282,7 @@ void UIMachineLogicFullscreen::sltChangeVisualStateToNormal()
 void UIMachineLogicFullscreen::sltChangeVisualStateToSeamless()
 {
     /* Request 'seamless' visual-state: */
-    uisession()->setRequestedVisualState(UIVisualStateType_Seamless);
+    uimachine()->setRequestedVisualState(UIVisualStateType_Seamless);
     /* Ask window(s) to exit 'fullscreen' mode: */
     emit sigNotifyAboutNativeFullscreenShouldBeExited();
 }
@@ -288,7 +290,7 @@ void UIMachineLogicFullscreen::sltChangeVisualStateToSeamless()
 void UIMachineLogicFullscreen::sltChangeVisualStateToScale()
 {
     /* Request 'scale' visual-state: */
-    uisession()->setRequestedVisualState(UIVisualStateType_Scale);
+    uimachine()->setRequestedVisualState(UIVisualStateType_Scale);
     /* Ask window(s) to exit 'fullscreen' mode: */
     emit sigNotifyAboutNativeFullscreenShouldBeExited();
 }
@@ -296,26 +298,26 @@ void UIMachineLogicFullscreen::sltChangeVisualStateToScale()
 void UIMachineLogicFullscreen::sltCheckForRequestedVisualStateType()
 {
     LogRel(("GUI: UIMachineLogicFullscreen::sltCheckForRequestedVisualStateType: Requested-state=%d, Machine-state=%d\n",
-            uisession()->requestedVisualState(), uisession()->machineState()));
+            uimachine()->requestedVisualState(), uimachine()->machineState()));
 
     /* Do not try to change visual-state type if machine was not started yet: */
-    if (!uisession()->isRunning() && !uisession()->isPaused())
+    if (!uimachine()->isRunning() && !uimachine()->isPaused())
         return;
 
     /* Do not try to change visual-state type in 'manual override' mode: */
-    if (uisession()->isManualOverrideMode())
+    if (uimachine()->isManualOverrideMode())
         return;
 
     /* Check requested visual-state types: */
-    switch (uisession()->requestedVisualState())
+    switch (uimachine()->requestedVisualState())
     {
         /* If 'normal' visual-state type is requested: */
         case UIVisualStateType_Normal:
         {
             LogRel(("GUI: UIMachineLogicFullscreen::sltCheckForRequestedVisualStateType: "
                     "Going 'normal' as requested...\n"));
-            uisession()->setRequestedVisualState(UIVisualStateType_Invalid);
-            uisession()->changeVisualState(UIVisualStateType_Normal);
+            uimachine()->setRequestedVisualState(UIVisualStateType_Invalid);
+            uimachine()->asyncChangeVisualState(UIVisualStateType_Normal);
             break;
         }
         default:
@@ -330,14 +332,14 @@ void UIMachineLogicFullscreen::sltMachineStateChanged()
     UIMachineLogic::sltMachineStateChanged();
 
     /* If machine-state changed from 'paused' to 'running': */
-    if (uisession()->isRunning() && uisession()->wasPaused())
+    if (uimachine()->isRunning() && uimachine()->wasPaused())
     {
         LogRel(("GUI: UIMachineLogicFullscreen::sltMachineStateChanged:"
                 "Machine-state changed from 'paused' to 'running': "
                 "Adjust machine-window geometry...\n"));
 
         /* Make sure further code will be called just once: */
-        uisession()->forgetPreviousMachineState();
+        uimachine()->forgetPreviousMachineState();
         /* Adjust machine-window geometry if necessary: */
         adjustMachineWindowsGeometry();
     }
@@ -478,15 +480,13 @@ void UIMachineLogicFullscreen::prepareMachineWindows()
     /* Update the multi-screen layout: */
     m_pScreenLayout->update();
 
-    /* Create machine-window(s): */
-    for (uint cScreenId = 0; cScreenId < machine().GetGraphicsAdapter().GetMonitorCount(); ++cScreenId)
-        addMachineWindow(UIMachineWindow::create(this, cScreenId));
+    /* Acquire monitor count: */
+    ulong cMonitorCount = 0;
+    uimachine()->acquireMonitorCount(cMonitorCount);
 
-    /* Listen for frame-buffer resize: */
-    foreach (UIMachineWindow *pMachineWindow, machineWindows())
-        connect(pMachineWindow, &UIMachineWindow::sigFrameBufferResize,
-                this, &UIMachineLogicFullscreen::sigFrameBufferResize);
-    emit sigFrameBufferResize();
+    /* Create machine-window(s): */
+    for (uint cScreenId = 0; cScreenId < cMonitorCount; ++cScreenId)
+        addMachineWindow(UIMachineWindow::create(this, cScreenId));
 
     /* Connect multi-screen layout change handler: */
     connect(m_pScreenLayout, &UIMultiScreenLayout::sigScreenLayoutChange,
@@ -528,7 +528,7 @@ void UIMachineLogicFullscreen::prepareMachineWindows()
     /* Mark machine-window(s) created: */
     setMachineWindowsCreated(true);
 
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     switch (uiCommon().typeOfWindowManager())
     {
         case X11WMType_GNOMEShell:
@@ -544,7 +544,7 @@ void UIMachineLogicFullscreen::prepareMachineWindows()
         default:
             break;
     }
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
 }
 
 void UIMachineLogicFullscreen::prepareMenu()
@@ -678,7 +678,7 @@ void UIMachineLogicFullscreen::revalidateNativeFullScreen(UIMachineWindow *pMach
             /* If that window
              * 1. should really be shown and
              * 2. is mapped to some host-screen: */
-            if (   uisession()->isScreenVisible(uScreenID)
+            if (   uimachine()->isScreenVisible(uScreenID)
                 && hasHostScreenForGuestScreen(uScreenID))
             {
                 LogRel(("GUI: UIMachineLogicFullscreen::revalidateNativeFullScreen: "
@@ -707,14 +707,14 @@ void UIMachineLogicFullscreen::revalidateNativeFullScreen(UIMachineWindow *pMach
             /* Variables to compare: */
             const int iWantedHostScreenIndex = hostScreenForGuestScreen((int)uScreenID);
             const int iCurrentHostScreenIndex = UIDesktopWidgetWatchdog::screenNumber(pMachineWindow);
-            const QSize frameBufferSize((int)uisession()->frameBuffer(uScreenID)->width(), (int)uisession()->frameBuffer(uScreenID)->height());
-            const QSize screenSize = gpDesktop->screenGeometry(iWantedHostScreenIndex).size();
+            const QSize guestScreenSize = uimachine()->guestScreenSize(uScreenID);
+            const QSize hostScreenSize = gpDesktop->screenGeometry(iWantedHostScreenIndex).size();
 
             /* If that window
              * 1. shouldn't really be shown or
              * 2. isn't mapped to some host-screen or
              * 3. should be located on another host-screen than currently. */
-            if (   !uisession()->isScreenVisible(uScreenID)
+            if (   !uimachine()->isScreenVisible(uScreenID)
                 || !hasHostScreenForGuestScreen(uScreenID)
                 || iWantedHostScreenIndex != iCurrentHostScreenIndex)
             {
@@ -730,8 +730,8 @@ void UIMachineLogicFullscreen::revalidateNativeFullScreen(UIMachineWindow *pMach
             }
 
             /* If that window
-             * 1. have another frame-buffer size than actually should. */
-            else if (frameBufferSize != screenSize)
+             * 1. have another size than actually should. */
+            else if (guestScreenSize != hostScreenSize)
             {
                 LogRel(("GUI: UIMachineLogicFullscreen::revalidateNativeFullScreen: "
                         "Ask machine-window #%d to adjust guest geometry\n", (int)uScreenID));

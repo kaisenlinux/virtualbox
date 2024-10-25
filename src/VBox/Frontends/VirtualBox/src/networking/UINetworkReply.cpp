@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -33,11 +33,12 @@
 #include <QVariant>
 
 /* GUI includes: */
+#include "UILoggingDefs.h"
 #include "UINetworkReply.h"
 #include "UINetworkRequestManager.h"
 #include "UIExtraDataManager.h"
 #ifndef VBOX_GUI_IN_TST_SSL_CERT_DOWNLOADS
-# include "UICommon.h"
+# include "UIGlobalSession.h"
 # include "VBoxUtils.h"
 # include "CSystemProperties.h"
 #endif
@@ -52,7 +53,6 @@
 #include <iprt/sha.h>
 #include <iprt/string.h>
 #include <iprt/zip.h>
-#include <VBox/log.h>
 
 
 /** QThread extension
@@ -111,7 +111,7 @@ private:
         int performMainRequest();
 
         /** Performs whole thread functionality. */
-        void run();
+        void run() RT_OVERRIDE RT_FINAL;
 
         /** Handles download progress callback.
           * @param  cbDownloadTotal  Brings the total amount of bytes to be received.
@@ -241,9 +241,6 @@ private slots:
 
 private:
 
-    /** Holds full error template in "Context description: Error description" form. */
-    QString m_strErrorTemplate;
-
     /** Holds the last cached error of the reply. */
     UINetworkReply::NetworkError m_error;
 
@@ -263,26 +260,25 @@ const RTCRCERTWANTED UINetworkReplyPrivateThread::s_aCerts[] =
     /*[0] =*/
     {
         /*.pszSubject        =*/
-        "C=US, O=VeriSign, Inc., OU=VeriSign Trust Network, OU=(c) 2006 VeriSign, Inc. - For authorized use only, "
-        "CN=VeriSign Class 3 Public Primary Certification Authority - G5",
-        /*.cbEncoded         =*/    0x4d7,
+        "C=US, O=DigiCert Inc, OU=www.digicert.com, CN=DigiCert Global Root CA",
+         /*.cbEncoded         =*/    0x3b3,
         /*.Sha1Fingerprint   =*/    true,
         /*.Sha512Fingerprint =*/    true,
         /*.abSha1            =*/
         {
-            0x4e, 0xb6, 0xd5, 0x78, 0x49, 0x9b, 0x1c, 0xcf, 0x5f, 0x58,
-            0x1e, 0xad, 0x56, 0xbe, 0x3d, 0x9b, 0x67, 0x44, 0xa5, 0xe5
+            0xa8, 0x98, 0x5d, 0x3a, 0x65, 0xe5, 0xe5, 0xc4, 0xb2, 0xd7,
+            0xd6, 0x6d, 0x40, 0xc6, 0xdd, 0x2f, 0xb1, 0x9c, 0x54, 0x36
         },
         /*.abSha512          =*/
         {
-            0xd4, 0xf8, 0x10, 0x54, 0x72, 0x77, 0x0a, 0x2d,
-            0xe3, 0x17, 0xb3, 0xcf, 0xed, 0x61, 0xae, 0x5c,
-            0x5d, 0x3e, 0xde, 0xa1, 0x41, 0x35, 0xb2, 0xdf,
-            0x60, 0xe2, 0x61, 0xfe, 0x3a, 0xc1, 0x66, 0xa3,
-            0x3c, 0x88, 0x54, 0x04, 0x4f, 0x1d, 0x13, 0x46,
-            0xe3, 0x8c, 0x06, 0x92, 0x9d, 0x70, 0x54, 0xc3,
-            0x44, 0xeb, 0x2c, 0x74, 0x25, 0x9e, 0x5d, 0xfb,
-            0xd2, 0x6b, 0xa8, 0x9a, 0xf0, 0xb3, 0x6a, 0x01
+            0x53, 0xb4, 0x44, 0xe5, 0x65, 0x18, 0x32, 0x01,
+            0xa6, 0x1e, 0xeb, 0x46, 0x12, 0x09, 0xb2, 0xdc,
+            0x30, 0x89, 0x5e, 0xec, 0xa4, 0x87, 0x23, 0x8d,
+            0x15, 0xa0, 0x26, 0x73, 0x5f, 0x22, 0x9a, 0x81,
+            0x9e, 0x5b, 0x19, 0xcb, 0xd7, 0xe2, 0xfa, 0x27,
+            0x68, 0xab, 0x2a, 0x64, 0xf6, 0xeb, 0xcd, 0x9d,
+            0x1e, 0x72, 0x13, 0x41, 0xc9, 0xed, 0x5d, 0xd0,
+            0x9f, 0xc0, 0xd5, 0xe4, 0x3d, 0x68, 0xbc, 0xa7
         },
         /*.pvUser            =*/ NULL,
     },
@@ -340,7 +336,7 @@ int UINetworkReplyPrivateThread::applyProxyRules()
 #ifndef VBOX_GUI_IN_TST_SSL_CERT_DOWNLOADS
     /* If the specific proxy settings are enabled, we'll use them
      * unless user disabled that functionality manually. */
-    const CSystemProperties comProperties = uiCommon().virtualBox().GetSystemProperties();
+    const CSystemProperties comProperties = gpGlobalSession->virtualBox().GetSystemProperties();
     const KProxyMode enmProxyMode = comProperties.GetProxyMode();
     AssertReturn(comProperties.isOk(), VERR_INTERNAL_ERROR_3);
     switch (enmProxyMode)
@@ -491,18 +487,9 @@ int UINetworkReplyPrivateThread::performMainRequest()
 
             /* Parse header contents: */
             const QString strHeaders = QString(m_reply);
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
-            const QStringList headers = strHeaders.split("\n", Qt::SkipEmptyParts);
-#else
-            const QStringList headers = strHeaders.split("\n", QString::SkipEmptyParts);
-#endif
-            foreach (const QString &strHeader, headers)
+            foreach (const QString &strHeader, strHeaders.split("\n", Qt::SkipEmptyParts))
             {
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
                 const QStringList values = strHeader.split(": ", Qt::SkipEmptyParts);
-#else
-                const QStringList values = strHeader.split(": ", QString::SkipEmptyParts);
-#endif
                 if (values.size() > 1)
                     m_headers[values.at(0)] = values.at(1);
             }
@@ -611,7 +598,7 @@ void UINetworkReplyPrivateThread::handleProgressChange(uint64_t cbDownloadTotal,
 QString UINetworkReplyPrivateThread::fullCertificateFileName()
 {
 #ifndef VBOX_GUI_IN_TST_SSL_CERT_DOWNLOADS
-    const QDir homeDir(QDir::toNativeSeparators(uiCommon().homeFolder()));
+    const QDir homeDir(QDir::toNativeSeparators(gpGlobalSession->homeFolder()));
     return QDir::toNativeSeparators(homeDir.absoluteFilePath(s_strCertificateFileName));
 #else /* VBOX_GUI_IN_TST_SSL_CERT_DOWNLOADS */
     return QString("/not/such/agency/non-existing-file.cer");
@@ -769,9 +756,6 @@ UINetworkReplyPrivate::UINetworkReplyPrivate(UINetworkRequestType type, const QU
     : m_error(UINetworkReply::NoError)
     , m_pThread(0)
 {
-    /* Prepare full error template: */
-    m_strErrorTemplate = tr("%1: %2", "Context description: Error description");
-
     /* Create and run reply thread: */
     m_pThread = new UINetworkReplyPrivateThread(type, url, strTarget, requestHeaders);
     connect(m_pThread, &UINetworkReplyPrivateThread::sigDownloadProgress,
@@ -796,17 +780,17 @@ QString UINetworkReplyPrivate::errorString() const
     switch (m_error)
     {
         case UINetworkReply::NoError:                     break;
-        case UINetworkReply::RemoteHostClosedError:       return m_strErrorTemplate.arg(m_pThread->context(), tr("Unable to initialize HTTP library"));
-        case UINetworkReply::UrlNotFoundError:            return m_strErrorTemplate.arg(m_pThread->context(), tr("Url not found on the server"));
-        case UINetworkReply::HostNotFoundError:           return m_strErrorTemplate.arg(m_pThread->context(), tr("Host not found"));
-        case UINetworkReply::ContentAccessDenied:         return m_strErrorTemplate.arg(m_pThread->context(), tr("Content access denied"));
-        case UINetworkReply::ProtocolFailure:             return m_strErrorTemplate.arg(m_pThread->context(), tr("Protocol failure"));
-        case UINetworkReply::ConnectionRefusedError:      return m_strErrorTemplate.arg(m_pThread->context(), tr("Connection refused"));
-        case UINetworkReply::SslHandshakeFailedError:     return m_strErrorTemplate.arg(m_pThread->context(), tr("SSL authentication failed"));
-        case UINetworkReply::AuthenticationRequiredError: return m_strErrorTemplate.arg(m_pThread->context(), tr("Wrong SSL certificate format"));
-        case UINetworkReply::ContentReSendError:          return m_strErrorTemplate.arg(m_pThread->context(), tr("Content moved"));
-        case UINetworkReply::ProxyNotFoundError:          return m_strErrorTemplate.arg(m_pThread->context(), tr("Proxy not found"));
-        default:                                          return m_strErrorTemplate.arg(m_pThread->context(), tr("Unknown reason"));
+        case UINetworkReply::RemoteHostClosedError:       return QString("%1: %2").arg(m_pThread->context(), tr("Unable to initialize HTTP library"));
+        case UINetworkReply::UrlNotFoundError:            return QString("%1: %2").arg(m_pThread->context(), tr("Url not found on the server"));
+        case UINetworkReply::HostNotFoundError:           return QString("%1: %2").arg(m_pThread->context(), tr("Host not found"));
+        case UINetworkReply::ContentAccessDenied:         return QString("%1: %2").arg(m_pThread->context(), tr("Content access denied"));
+        case UINetworkReply::ProtocolFailure:             return QString("%1: %2").arg(m_pThread->context(), tr("Protocol failure"));
+        case UINetworkReply::ConnectionRefusedError:      return QString("%1: %2").arg(m_pThread->context(), tr("Connection refused"));
+        case UINetworkReply::SslHandshakeFailedError:     return QString("%1: %2").arg(m_pThread->context(), tr("SSL authentication failed"));
+        case UINetworkReply::AuthenticationRequiredError: return QString("%1: %2").arg(m_pThread->context(), tr("Wrong SSL certificate format"));
+        case UINetworkReply::ContentReSendError:          return QString("%1: %2").arg(m_pThread->context(), tr("Content moved"));
+        case UINetworkReply::ProxyNotFoundError:          return QString("%1: %2").arg(m_pThread->context(), tr("Proxy not found"));
+        default:                                          return QString("%1: %2").arg(m_pThread->context(), tr("Unknown reason"));
     }
     /* Return null-string by default: */
     return QString();
@@ -892,4 +876,3 @@ QVariant UINetworkReply::header(UINetworkReply::KnownHeader header) const
 #include "UINetworkReply.moc"
 
 #endif /* !VBOX_GUI_IN_TST_SSL_CERT_DOWNLOADS */
-

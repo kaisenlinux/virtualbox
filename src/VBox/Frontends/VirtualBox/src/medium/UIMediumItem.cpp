@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,9 +32,10 @@
 /* GUI includes: */
 #include "QIFileDialog.h"
 #include "QIMessageBox.h"
-#include "UICommon.h"
 #include "UIExtraDataManager.h"
+#include "UIGlobalSession.h"
 #include "UIIconPool.h"
+#include "UILocalMachineStuff.h"
 #include "UIMediumItem.h"
 #include "UIMessageCenter.h"
 #include "UINotificationCenter.h"
@@ -152,7 +153,7 @@ bool UIMediumItem::isMediumModifiable() const
         return false;
     foreach (const QUuid &uMachineId, medium().curStateMachineIds())
     {
-        CMachine comMachine = uiCommon().virtualBox().FindMachine(uMachineId.toString());
+        CMachine comMachine = gpGlobalSession->virtualBox().FindMachine(uMachineId.toString());
         if (comMachine.isNull())
             continue;
         if (comMachine.GetState() != KMachineState_PoweredOff &&
@@ -176,7 +177,7 @@ bool UIMediumItem::changeMediumType(KMediumType enmNewType)
     QList<AttachmentCache> attachmentCacheList;
     foreach (const QUuid &uMachineId, medium().curStateMachineIds())
     {
-        const CMachine &comMachine = uiCommon().virtualBox().FindMachine(uMachineId.toString());
+        const CMachine &comMachine = gpGlobalSession->virtualBox().FindMachine(uMachineId.toString());
         if (comMachine.isNull())
             continue;
         foreach (const CStorageController &comController, comMachine.GetStorageControllers())
@@ -278,7 +279,7 @@ void UIMediumItem::refresh()
             m_details.m_aLabels << tr("Format:");
             m_details.m_aLabels << tr("Storage details:");
             m_details.m_aLabels << tr("Attached to:");
-            m_details.m_aLabels << tr("Encrypted with key:");
+            m_details.m_aLabels << tr("Encryption key:");
             m_details.m_aLabels << tr("UUID:");
 
             m_details.m_aFields << hardDiskFormat();
@@ -313,7 +314,7 @@ void UIMediumItem::refresh()
 bool UIMediumItem::releaseFrom(const QUuid &uMachineId)
 {
     /* Open session: */
-    CSession session = uiCommon().openSession(uMachineId);
+    CSession session = openSession(uMachineId);
     if (session.isNull())
         return false;
 
@@ -344,7 +345,7 @@ bool UIMediumItem::releaseFrom(const QUuid &uMachineId)
 bool UIMediumItem::attachTo(const AttachmentCache &attachmentCache)
 {
     /* Open session: */
-    CSession comSession = uiCommon().openSession(attachmentCache.m_uMachineId);
+    CSession comSession = openSession(attachmentCache.m_uMachineId);
     if (comSession.isNull())
         return false;
 

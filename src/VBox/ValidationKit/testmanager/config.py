@@ -7,7 +7,7 @@ Test Manager Configuration.
 
 __copyright__ = \
 """
-Copyright (C) 2012-2023 Oracle and/or its affiliates.
+Copyright (C) 2012-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -36,14 +36,14 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 import os;
 
 ## Test Manager version string.
 g_ksVersion             = 'v0.1.0';
 ## Test Manager revision string.
-g_ksRevision            = ('$Revision: 155244 $')[11:-2];
+g_ksRevision            = ('$Revision: 164827 $')[11:-2];
 
 ## Enable VBox specific stuff.
 g_kfVBoxSpecific        = True;
@@ -127,7 +127,7 @@ g_kcSecMinSinceLastFailedTask           = 180; # (3 min)
 ## @{
 
 ## The max number of test results per test set.
-g_kcMaxTestResultsPerTS = 4096;
+g_kcMaxTestResultsPerTS = 12288;
 ## The max number of test results (children) per test result.
 g_kcMaxTestResultsPerTR = 512;
 ## The max number of test result values per test set.

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -67,11 +67,7 @@ struct UICloudEntityKey
     QUuid m_uMachineId;
 };
 
-#ifdef VBOX_IS_QT6_OR_LATER /* uint replaced with size_t since 6.0 */
 inline size_t qHash(const UICloudEntityKey &key, size_t uSeed)
-#else
-inline uint qHash(const UICloudEntityKey &key, uint uSeed)
-#endif
 {
     return qHash(key.toString(), uSeed);
 }

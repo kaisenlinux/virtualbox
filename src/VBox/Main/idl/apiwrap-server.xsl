@@ -6,7 +6,7 @@
         VirtualBox.xidl.
 -->
 <!--
-    Copyright (C) 2010-2023 Oracle and/or its affiliates.
+    Copyright (C) 2010-2024 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.
@@ -36,6 +36,9 @@
 <xsl:output method="text"/>
 
 <xsl:strip-space elements="*"/>
+
+<!-- Global parameters. -->
+<xsl:param name="g_uVBoxCopyrightYear">2024</xsl:param>
 
 <!-- - - - - - - - - - - - - - - - - - - - - - -
   global XSLT variables
@@ -91,7 +94,7 @@ templates for file headers/footers
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-</xsl:text><xsl:value-of select="$g_uVBoxCopyrightYear"/><xsl:text> Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1121,7 +1124,7 @@ Returns empty if not needed, non-empty ('yes') if needed. -->
     <xsl:call-template name="emitPublicParameter">
         <xsl:with-param name="dir">out</xsl:with-param>
     </xsl:call-template>
-    <xsl:text>);
+    <xsl:text>) RT_OVERRIDE;
 </xsl:text>
 
     <xsl:if test="not(@readonly) or @readonly!='yes'">
@@ -1129,7 +1132,7 @@ Returns empty if not needed, non-empty ('yes') if needed. -->
         <xsl:call-template name="emitPublicParameter">
             <xsl:with-param name="dir">in</xsl:with-param>
         </xsl:call-template>
-        <xsl:text>);
+        <xsl:text>) RT_OVERRIDE;
 </xsl:text>
     </xsl:if>
 
@@ -1597,7 +1600,7 @@ Returns empty if not needed, non-empty ('yes') if needed. -->
                 <xsl:for-each select="(//*)[position() &lt;= $reservedAttributes]">
                     <xsl:text>    STDMETHOD(COMGETTER(InternalAndReservedAttribute</xsl:text>
                     <xsl:value-of select="concat(position(), $name)"/>
-                    <xsl:text>))(ULONG *aReserved);&#x0A;</xsl:text>
+                    <xsl:text>))(ULONG *aReserved) RT_OVERRIDE;&#x0A;</xsl:text>
                 </xsl:for-each>
             </xsl:if>
         </xsl:when>
@@ -1710,7 +1713,7 @@ Returns empty if not needed, non-empty ('yes') if needed. -->
             <xsl:value-of select="$methodindent"/>
         </xsl:if>
     </xsl:for-each>
-    <xsl:text>);
+    <xsl:text>) RT_OVERRIDE;
 </xsl:text>
 
     <xsl:call-template name="emitTargetEnd">
@@ -2240,7 +2243,7 @@ Returns empty if not needed, non-empty ('yes') if needed. -->
                 <xsl:for-each select="(//*)[position() &lt;= $reservedMethods]">
                     <xsl:text>    STDMETHOD(InternalAndReservedMethod</xsl:text>
                     <xsl:value-of select="concat(position(), $name)"/>
-                    <xsl:text>)();&#x0A;</xsl:text>
+                    <xsl:text>)() RT_OVERRIDE;&#x0A;</xsl:text>
                 </xsl:for-each>
             </xsl:if>
         </xsl:when>

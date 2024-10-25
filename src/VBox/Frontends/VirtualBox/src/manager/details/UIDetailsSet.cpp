@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,16 +26,17 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QPainter>
 #include <QStyle>
 #include <QStyleOptionGraphicsItem>
 
 /* GUI includes: */
-#include "UICommon.h"
 #include "UIDetailsElements.h"
 #include "UIDetailsModel.h"
 #include "UIDetailsSet.h"
 #include "UIMedium.h"
+#include "UIMediumEnumerator.h"
 #include "UIVirtualBoxEventHandler.h"
 #include "UIVirtualMachineItemCloud.h"
 #include "UIVirtualMachineItemLocal.h"
@@ -661,7 +662,7 @@ void UIDetailsSet::sltMediumEnumerated(const QUuid &uId)
         return;
 
     /* Is this our medium changed? */
-    const UIMedium guiMedium = uiCommon().medium(uId);
+    const UIMedium guiMedium = gpMediumEnumerator->medium(uId);
     if (   guiMedium.isNull()
         || !guiMedium.machineIds().contains(m_comMachine.GetId()))
         return;
@@ -688,7 +689,7 @@ void UIDetailsSet::prepareConnections()
     connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigSnapshotRestore, this, &UIDetailsSet::sltMachineAttributesChange);
 
     /* Meidum-enumeration connections: */
-    connect(&uiCommon(), &UICommon::sigMediumEnumerated, this, &UIDetailsSet::sltMediumEnumerated);
+    connect(gpMediumEnumerator, &UIMediumEnumerator::sigMediumEnumerated, this, &UIDetailsSet::sltMediumEnumerated);
 }
 
 QVariant UIDetailsSet::data(int iKey) const

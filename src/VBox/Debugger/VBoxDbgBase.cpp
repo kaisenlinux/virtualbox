@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -185,7 +185,7 @@ unsigned VBoxDbgBaseWindow::m_cyBorder = 0;
 
 VBoxDbgBaseWindow::VBoxDbgBaseWindow(VBoxDbgGui *a_pDbgGui, QWidget *a_pParent, const char *a_pszTitle)
     : QWidget(a_pParent, Qt::Window), VBoxDbgBase(a_pDbgGui), m_pszTitle(a_pszTitle), m_fPolished(false)
-    , m_x(INT_MAX), m_y(INT_MAX), m_cx(0), m_cy(0)
+    , m_x(INT_MAX), m_y(INT_MAX), m_cx(0), m_cy(0), m_cxMinHint(0), m_enmAttraction(VBoxDbgBaseWindow::kAttractionVmNone)
 {
     /* Set the title, using the parent one as prefix when possible: */
     if (!parent())
@@ -227,21 +227,71 @@ VBoxDbgBaseWindow::vShow()
 void
 VBoxDbgBaseWindow::vReposition(int a_x, int a_y, unsigned a_cx, unsigned a_cy, bool a_fResize)
 {
-    if (a_fResize)
+    /* Don't modify if maximized.
+       We miss the desired size + position here, but never mind for now. */
+    if (!(windowState() & Qt::WindowMaximized))
     {
-        m_cx = a_cx;
-        m_cy = a_cy;
+        if (a_fResize)
+        {
+            m_cx = a_cx;
+            m_cy = a_cy;
 
-        QSize BorderSize = frameSize() - size();
-        if (BorderSize == QSize(0,0))
-            BorderSize = vGuessBorderSizes();
+            QSize const BorderSize = vGetBorderSize();
+            resize(a_cx - BorderSize.width(), a_cy - BorderSize.height());
+        }
 
-        resize(a_cx - BorderSize.width(), a_cy - BorderSize.height());
+        m_x = a_x;
+        m_y = a_y;
+        move(a_x, a_y);
     }
+}
 
-    m_x = a_x;
-    m_y = a_y;
-    move(a_x, a_y);
+
+QSize
+VBoxDbgBaseWindow::vGetBorderSize()
+{
+    QSize BorderSize = frameSize() - size();
+
+#ifdef Q_WS_X11 /* (from the qt gui) */
+    /*
+     * On X11, there is no way to determine frame geometry (including WM
+     * decorations) before the widget is shown for the first time.  Stupidly
+     * enumerate other top level widgets to find the thickest frame.
+     */
+    if (BorderSize == QSize(0, 0))
+    {
+        if (!m_cxBorder && !m_cyBorder) /* (only till we're successful) */
+        {
+            int cxExtra = 0;
+            int cyExtra = 0;
+
+            QWidgetList WidgetList = QApplication::topLevelWidgets();
+            for (QListIterator<QWidget *> it(WidgetList); it.hasNext(); )
+            {
+                QWidget *pCurWidget = it.next();
+                if (pCurWidget->isVisible())
+                {
+                    int const cxFrame = pCurWidget->frameGeometry().width()  - pCurWidget->width();
+                    cxExtra = qMax(cxExtra, cxFrame);
+                    int const cyFrame = pCurWidget->frameGeometry().height() - pCurWidget->height();
+                    cyExtra = qMax(cyExtra, cyFrame);
+                    if (cyExtra && cxExtra)
+                        break;
+                }
+            }
+
+            if (cxExtra || cyExtra)
+            {
+                m_cxBorder = cxExtra;
+                m_cyBorder = cyExtra;
+            }
+        }
+        BorderSize.setWidth(m_cxBorder);
+        BorderSize.setHeight(m_cyBorder);
+    }
+#endif /* X11 */
+
+    return BorderSize;
 }
 
 
@@ -277,50 +327,9 @@ VBoxDbgBaseWindow::vPolishSizeAndPos()
         || (m_x == INT_MAX && m_y == INT_MAX))
         return;
 
-    QSize BorderSize = frameSize() - size();
-    if (BorderSize != QSize(0,0))
+    if (VBoxDbgBaseWindow::vGetBorderSize() != QSize(0,0))
         m_fPolished = true;
 
     vReposition(m_x, m_y, m_cx, m_cy, m_cx || m_cy);
-}
-
-
-QSize
-VBoxDbgBaseWindow::vGuessBorderSizes()
-{
-#ifdef Q_WS_X11 /* (from the qt gui) */
-    /*
-     * On X11, there is no way to determine frame geometry (including WM
-     * decorations) before the widget is shown for the first time.  Stupidly
-     * enumerate other top level widgets to find the thickest frame.
-     */
-    if (!m_cxBorder && !m_cyBorder) /* (only till we're successful) */
-    {
-        int cxExtra = 0;
-        int cyExtra = 0;
-
-        QWidgetList WidgetList = QApplication::topLevelWidgets();
-        for (QListIterator<QWidget *> it(WidgetList); it.hasNext(); )
-        {
-            QWidget *pCurWidget = it.next();
-            if (pCurWidget->isVisible())
-            {
-                int const cxFrame = pCurWidget->frameGeometry().width()  - pCurWidget->width();
-                cxExtra = qMax(cxExtra, cxFrame);
-                int const cyFrame = pCurWidget->frameGeometry().height() - pCurWidget->height();
-                cyExtra = qMax(cyExtra, cyFrame);
-                if (cyExtra && cxExtra)
-                    break;
-            }
-        }
-
-        if (cxExtra || cyExtra)
-        {
-            m_cxBorder = cxExtra;
-            m_cyBorder = cyExtra;
-        }
-    }
-#endif /* X11 */
-    return QSize(m_cxBorder, m_cyBorder);
 }
 

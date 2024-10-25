@@ -11,7 +11,7 @@ other VBox test drivers.
 
 __copyright__ = \
 """
-Copyright (C) 2010-2023 Oracle and/or its affiliates.
+Copyright (C) 2010-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -40,7 +40,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 
 # Standard Python imports.
@@ -52,7 +52,7 @@ import tempfile
 import time
 
 # Only the main script needs to modify the path.
-try:    __file__
+try:    __file__                            # pylint: disable=used-before-assignment
 except: __file__ = sys.argv[0];
 g_ksValidationKitDir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)));
 sys.path.append(g_ksValidationKitDir);
@@ -360,20 +360,22 @@ class VBoxInstallerTestDriver(TestDriverBase):
 
             # Are any of the debugger processes hooked up to a VBox process?
             if sHostOs == 'windows':
-                # On demand debugging windows: windbg -p <decimal-pid> -e <decimal-event> -g
-                for oDebugger in aoDebuggers:
-                    for oProcess in aoTodo:
+                def isDebuggerDebuggingVBox(oDebugger, aoVBoxProcesses):
+                    for oProcess in aoVBoxProcesses:
                         # The whole command line is asArgs[0] here. Fix if that changes.
                         if oDebugger.asArgs and oDebugger.asArgs[0].find('-p %s ' % (oProcess.iPid,)) >= 0:
-                            aoTodo.append(oDebugger);
-                            break;
+                            return True;
+                    return False;
             else:
-                for oDebugger in aoDebuggers:
-                    for oProcess in aoTodo:
+                def isDebuggerDebuggingVBox(oDebugger, aoVBoxProcesses):
+                    for oProcess in aoVBoxProcesses:
                         # Simplistic approach: Just check for argument equaling our pid.
                         if oDebugger.asArgs and ('%s' % oProcess.iPid) in oDebugger.asArgs:
-                            aoTodo.append(oDebugger);
-                            break;
+                            return True;
+                    return False;
+            for oDebugger in aoDebuggers:
+                if isDebuggerDebuggingVBox(oDebugger, aoTodo):
+                    aoTodo.append(oDebugger);
 
             # Kill.
             for oProcess in aoTodo:
@@ -585,7 +587,7 @@ class VBoxInstallerTestDriver(TestDriverBase):
         if not fRc2 and fRc:
             fRc = fRc2;
 
-        reporter.testDone(fSkipped = (fRc is None));
+        reporter.testDone(fSkipped = fRc is None);
         return fRc;
 
     def _findFile(self, sRegExp, fMandatory = False):
@@ -661,7 +663,7 @@ class VBoxInstallerTestDriver(TestDriverBase):
             # In case it's busy for some reason or another, just retry after a little delay.
             for iTry in range(6):
                 time.sleep(5);
-                reporter.error('Retry #%s unmount DMT at %s' % (iTry + 1, sMountPath,));
+                reporter.log('Retry #%s unmount DMG at %s' % (iTry + 1, sMountPath,));
                 fRc = self._executeSync(['hdiutil', 'detach', sMountPath ]);
                 if fRc:
                     break;
@@ -1050,8 +1052,9 @@ class VBoxInstallerTestDriver(TestDriverBase):
                 reporter.logXcpt();
                 continue;
             #reporter.log('Info: %s=%s' % (sProdCode, sProdName));
-            if  sProdName.startswith('Oracle VM VirtualBox') \
-             or sProdName.startswith('Sun VirtualBox'):
+            if sProdName.startswith('Oracle VirtualBox') \
+            or sProdName.startswith('Oracle VM VirtualBox') \
+            or sProdName.startswith('Sun VirtualBox'):
                 asProdCodes.append([sProdCode, sProdName]);
 
         # Before we start uninstalling anything, just ruthlessly kill any cdb,
@@ -1199,6 +1202,18 @@ class VBoxInstallerTestDriver(TestDriverBase):
             reporter.log2('Failed to locate VirtualBox installation: %s' % (asLocs,));
         return None;
 
+    ksExtPackBasenames = [ 'Oracle_VirtualBox_Extension_Pack', 'Oracle_VM_VirtualBox_Extension_Pack', ];
+
+    def _findExtPack(self):
+        """ Locates the extension pack file. """
+        for sExtPackBasename in self.ksExtPackBasenames:
+            sExtPack = self._findFile('%s.vbox-extpack' % (sExtPackBasename,));
+            if sExtPack is None:
+                sExtPack = self._findFile('%s.*.vbox-extpack' % (sExtPackBasename,));
+            if sExtPack is not None:
+                return (sExtPack, sExtPackBasename);
+        return (None, None);
+
     def _installExtPack(self):
         """ Installs the extension pack. """
         sVBox = self._getVBoxInstallPath(fFailIfNotFound = True);
@@ -1209,13 +1224,11 @@ class VBoxInstallerTestDriver(TestDriverBase):
         if self._uninstallAllExtPacks() is not True:
             return False;
 
-        sExtPack = self._findFile('Oracle_VM_VirtualBox_Extension_Pack.vbox-extpack');
-        if sExtPack is None:
-            sExtPack = self._findFile('Oracle_VM_VirtualBox_Extension_Pack.*.vbox-extpack');
+        (sExtPack, sExtPackBasename) = self._findExtPack();
         if sExtPack is None:
             return True;
 
-        sDstDir = os.path.join(sExtPackDir, 'Oracle_VM_VirtualBox_Extension_Pack');
+        sDstDir = os.path.join(sExtPackDir, sExtPackBasename);
         reporter.log('Installing extension pack "%s" to "%s"...' % (sExtPack, sExtPackDir));
         fRc, _ = self._sudoExecuteSync([ self.getBinTool('vts_tar'),
                                          '--extract',

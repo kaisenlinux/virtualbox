@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,7 +35,10 @@
 #include "UIWizardAddCloudVMPageSource.h"
 
 /* Forward declarations: */
-class UIToolBox;
+class QComboBox;
+class QGridLayout;
+class QLabel;
+class QIListWidget;
 class UIWizardAddCloudVM;
 
 /** UINativeWizardPage extension for Expert page of the Add Cloud VM wizard,
@@ -54,17 +57,14 @@ protected:
     /** Returns wizard this page belongs to. */
     UIWizardAddCloudVM *wizard() const;
 
-    /** Handles translation event. */
-    virtual void retranslateUi() /* override final */;
-
     /** Performs page initialization. */
-    virtual void initializePage() /* override final */;
+    virtual void initializePage() RT_OVERRIDE RT_FINAL;
 
     /** Returns whether page is complete. */
-    virtual bool isComplete() const /* override final */;
+    virtual bool isComplete() const RT_OVERRIDE RT_FINAL;
 
     /** Performs page validation. */
-    virtual bool validatePage() /* override final */;
+    virtual bool validatePage() RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -79,27 +79,27 @@ private slots:
     /** Handles change in instance list. */
     void sltHandleSourceInstanceChange();
 
+    /** Handles translation event. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
+
 private:
 
-    /** Holds the tool-box instance. */
-    UIToolBox *m_pToolBox;
-
+    /** Holds the provider layout instance. */
+    QGridLayout  *m_pLayoutProvider;
     /** Holds the provider type label instance. */
-    QLabel      *m_pProviderLabel;
+    QLabel       *m_pProviderLabel;
     /** Holds the provider type combo-box instance. */
-    QIComboBox  *m_pProviderComboBox;
-
+    QComboBox    *m_pProviderComboBox;
     /** Holds the profile label instance. */
     QLabel       *m_pProfileLabel;
     /** Holds the profile combo-box instance. */
-    QIComboBox   *m_pProfileComboBox;
+    QComboBox    *m_pProfileComboBox;
     /** Holds the profile management tool-button instance. */
     QIToolButton *m_pProfileToolButton;
-
     /** Holds the source instance label instance. */
     QLabel       *m_pSourceInstanceLabel;
     /** Holds the source instance list instance. */
-    QListWidget  *m_pSourceInstanceList;
+    QIListWidget *m_pSourceInstanceList;
 };
 
 #endif /* !FEQT_INCLUDED_SRC_wizards_addcloudvm_UIWizardAddCloudVMPageExpert_h */

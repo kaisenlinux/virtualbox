@@ -4,7 +4,7 @@
 ;
 
 ;
-; Copyright (C) 2007-2023 Oracle and/or its affiliates.
+; Copyright (C) 2007-2024 Oracle and/or its affiliates.
 ;
 ; This file is part of VirtualBox base platform packages, as
 ; available from https://www.virtualbox.org.
@@ -54,65 +54,129 @@ TMPL_BEGIN_TEXT
 %ifdef BS3_INSTANTIATING_CMN
 
 
+%if TMPL_BITS != 64
+
 ;
 ; Inhibited int 80h.
 ;
-BS3_PROC_BEGIN_CMN bs3CpuWeird1_InhibitedInt80, BS3_PBC_NEAR
+BS3_PROC_BEGIN_CMN bs3CpuWeird1_InhibitedPopSsInt80, BS3_PBC_NEAR
         ; Load SS from stack.  This instruction causes fusing.
-%if TMPL_BITS != 64
         pop     ss
-%else
-        mov     ss, [rsp]
-%endif
         ; The ring transition instruction.
-BS3_GLOBAL_NAME_EX BS3_CMN_NM(bs3CpuWeird1_InhibitedInt80_int80), , 0
+BS3_GLOBAL_NAME_EX BS3_CMN_NM(bs3CpuWeird1_InhibitedPopSsInt80_int80), , 0
         int     80h
         ; We shouldn't get here!
 .ud2_again:
         ud2
         jmp     .ud2_again
-BS3_PROC_END_CMN   bs3CpuWeird1_InhibitedInt80
+BS3_PROC_END_CMN   bs3CpuWeird1_InhibitedPopSsInt80
 
 ;
 ; Inhibited int 3.
 ;
-BS3_PROC_BEGIN_CMN bs3CpuWeird1_InhibitedInt3, BS3_PBC_NEAR
+BS3_PROC_BEGIN_CMN bs3CpuWeird1_InhibitedPopSsInt3, BS3_PBC_NEAR
         ; Load SS from stack.  This instruction causes fusing.
-%if TMPL_BITS != 64
         pop     ss
-%else
-        mov     ss, [rsp]
-%endif
         ; The ring transition instruction.
-BS3_GLOBAL_NAME_EX BS3_CMN_NM(bs3CpuWeird1_InhibitedInt3_int3), , 0
+BS3_GLOBAL_NAME_EX BS3_CMN_NM(bs3CpuWeird1_InhibitedPopSsInt3_int3), , 0
         int     3
         ; We shouldn't get here!
 .ud2_again:
         ud2
         jmp     .ud2_again
-AssertCompile(.ud2_again - BS3_CMN_NM(bs3CpuWeird1_InhibitedInt3_int3) == 2)
-BS3_PROC_END_CMN   bs3CpuWeird1_InhibitedInt3
+AssertCompile(.ud2_again - BS3_CMN_NM(bs3CpuWeird1_InhibitedPopSsInt3_int3) == 2)
+BS3_PROC_END_CMN   bs3CpuWeird1_InhibitedPopSsInt3
 
 
 ;
 ; Inhibited int3.
 ;
-BS3_PROC_BEGIN_CMN bs3CpuWeird1_InhibitedBp, BS3_PBC_NEAR
+BS3_PROC_BEGIN_CMN bs3CpuWeird1_InhibitedPopSsBp, BS3_PBC_NEAR
         ; Load SS from stack.  This instruction causes fusing.
-%if TMPL_BITS != 64
         pop     ss
-%else
-        mov     ss, [rsp]
-%endif
         ; The ring transition instruction.
-BS3_GLOBAL_NAME_EX BS3_CMN_NM(bs3CpuWeird1_InhibitedBp_int3), , 0
+BS3_GLOBAL_NAME_EX BS3_CMN_NM(bs3CpuWeird1_InhibitedPopSsBp_int3), , 0
         int3
         ; We shouldn't get here!
 .ud2_again:
         ud2
         jmp     .ud2_again
-AssertCompile(.ud2_again - BS3_CMN_NM(bs3CpuWeird1_InhibitedBp_int3) == 1)
-BS3_PROC_END_CMN   bs3CpuWeird1_InhibitedBp
+AssertCompile(.ud2_again - BS3_CMN_NM(bs3CpuWeird1_InhibitedPopSsBp_int3) == 1)
+BS3_PROC_END_CMN   bs3CpuWeird1_InhibitedPopSsBp
+
+%endif ; TMPL_BITS != 64
+
+
+;
+; Inhibited int 80h.
+;
+BS3_PROC_BEGIN_CMN bs3CpuWeird1_InhibitedMovSsInt80, BS3_PBC_NEAR
+        ; Load SS from stack.  This instruction causes fusing.
+        mov     ss, [xBP]
+        ; The ring transition instruction.
+BS3_GLOBAL_NAME_EX BS3_CMN_NM(bs3CpuWeird1_InhibitedMovSsInt80_int80), , 0
+        int     80h
+        ; We shouldn't get here!
+.ud2_again:
+        ud2
+        jmp     .ud2_again
+BS3_PROC_END_CMN   bs3CpuWeird1_InhibitedMovSsInt80
+
+;
+; Inhibited int 3.
+;
+BS3_PROC_BEGIN_CMN bs3CpuWeird1_InhibitedMovSsInt3, BS3_PBC_NEAR
+        ; Load SS from stack.  This instruction causes fusing.
+        mov     ss, [xBP]
+        ; The ring transition instruction.
+BS3_GLOBAL_NAME_EX BS3_CMN_NM(bs3CpuWeird1_InhibitedMovSsInt3_int3), , 0
+        int     3
+        ; We shouldn't get here!
+.ud2_again:
+        ud2
+        jmp     .ud2_again
+AssertCompile(.ud2_again - BS3_CMN_NM(bs3CpuWeird1_InhibitedMovSsInt3_int3) == 2)
+BS3_PROC_END_CMN   bs3CpuWeird1_InhibitedMovSsInt3
+
+
+;
+; Inhibited int3.
+;
+BS3_PROC_BEGIN_CMN bs3CpuWeird1_InhibitedMovSsBp, BS3_PBC_NEAR
+        ; Load SS from stack.  This instruction causes fusing.
+        mov     ss, [xBP]
+        ; The ring transition instruction.
+BS3_GLOBAL_NAME_EX BS3_CMN_NM(bs3CpuWeird1_InhibitedMovSsBp_int3), , 0
+        int3
+        ; We shouldn't get here!
+.ud2_again:
+        ud2
+        jmp     .ud2_again
+AssertCompile(.ud2_again - BS3_CMN_NM(bs3CpuWeird1_InhibitedMovSsBp_int3) == 1)
+BS3_PROC_END_CMN   bs3CpuWeird1_InhibitedMovSsBp
+
+
+;
+; Inhibited syscall.
+;
+BS3_PROC_BEGIN_CMN bs3CpuWeird1_InhibitedMovSsSyscall, BS3_PBC_NEAR
+        ; Load SS from stack.  This instruction causes fusing.
+%if 1
+        mov     ss, [xBP]
+%else
+        pushf
+        or    word [xBP - xCB], X86_EFL_TF
+        popf
+%endif
+        ; The ring transition instruction.
+BS3_GLOBAL_NAME_EX BS3_CMN_NM(bs3CpuWeird1_InhibitedMovSsSyscall_syscall), , 0
+        syscall
+        ; We shouldn't get here!
+.ud2_again:
+        ud2
+        jmp     .ud2_again
+AssertCompile(.ud2_again - BS3_CMN_NM(bs3CpuWeird1_InhibitedMovSsSyscall_syscall) == 2)
+BS3_PROC_END_CMN   bs3CpuWeird1_InhibitedMovSsSyscall
 
 
 ;
@@ -159,6 +223,155 @@ BS3_PROC_END_CMN   bs3CpuWeird1_PcWrapRdDr0
 BS3_PROC_BEGIN_CMN bs3CpuWeird1_PcWrapWrDr0, BS3_PBC_NEAR
         mov     dr0, sAX
 BS3_PROC_END_CMN   bs3CpuWeird1_PcWrapWrDr0
+
+
+;
+; PUSH / POP.
+;
+
+BS3_PROC_BEGIN_CMN bs3CpuWeird1_Push_xSP_Ud2, BS3_PBC_NEAR
+        push    xSP
+.ud2_again:
+        ud2
+        jmp     .ud2_again
+AssertCompile(.ud2_again - BS3_CMN_NM(bs3CpuWeird1_Push_xSP_Ud2) == 1)
+BS3_PROC_END_CMN   bs3CpuWeird1_Push_xSP_Ud2
+
+BS3_PROC_BEGIN_CMN bs3CpuWeird1_Pop_xSP_Ud2, BS3_PBC_NEAR
+        pop     xSP
+.ud2_again:
+        ud2
+        jmp     .ud2_again
+AssertCompile(.ud2_again - BS3_CMN_NM(bs3CpuWeird1_Pop_xSP_Ud2) == 1)
+BS3_PROC_END_CMN   bs3CpuWeird1_Pop_xSP_Ud2
+
+
+BS3_PROC_BEGIN_CMN bs3CpuWeird1_Push_opsize_xSP_Ud2, BS3_PBC_NEAR
+        db      066h
+        push    xSP
+.ud2_again:
+        ud2
+        jmp     .ud2_again
+AssertCompile(.ud2_again - BS3_CMN_NM(bs3CpuWeird1_Push_opsize_xSP_Ud2) == 2)
+BS3_PROC_END_CMN   bs3CpuWeird1_Push_opsize_xSP_Ud2
+
+BS3_PROC_BEGIN_CMN bs3CpuWeird1_Pop_opsize_xSP_Ud2, BS3_PBC_NEAR
+        db      066h
+        pop     xSP
+.ud2_again:
+        ud2
+        jmp     .ud2_again
+AssertCompile(.ud2_again - BS3_CMN_NM(bs3CpuWeird1_Pop_opsize_xSP_Ud2) == 2)
+BS3_PROC_END_CMN   bs3CpuWeird1_Pop_opsize_xSP_Ud2
+
+
+BS3_PROC_BEGIN_CMN bs3CpuWeird1_Push_opsize_xBX_Ud2, BS3_PBC_NEAR
+        db      066h
+        push    xBX
+.ud2_again:
+        ud2
+        jmp     .ud2_again
+AssertCompile(.ud2_again - BS3_CMN_NM(bs3CpuWeird1_Push_opsize_xBX_Ud2) == 2)
+BS3_PROC_END_CMN   bs3CpuWeird1_Push_opsize_xBX_Ud2
+
+BS3_PROC_BEGIN_CMN bs3CpuWeird1_Pop_opsize_xBX_Ud2, BS3_PBC_NEAR
+        db      066h
+        pop     xBX
+.ud2_again:
+        ud2
+        jmp     .ud2_again
+AssertCompile(.ud2_again - BS3_CMN_NM(bs3CpuWeird1_Pop_opsize_xBX_Ud2) == 2)
+BS3_PROC_END_CMN   bs3CpuWeird1_Pop_opsize_xBX_Ud2
+
+
+;
+; PUSH / POP SREG.
+;
+
+ %ifndef DEFINED_DO_PUSH_POP_MACROS
+  %define DEFINED_DO_PUSH_POP_MACROS
+  %macro DoPushSeg 2
+
+BS3_PROC_BEGIN_CMN bs3CpuWeird1_Push_ %+ %1 %+ _Ud2, BS3_PBC_NEAR
+        push    %1
+.ud2_again:
+        ud2
+        jmp     .ud2_again
+AssertCompile(.ud2_again - BS3_CMN_NM(bs3CpuWeird1_Push_ %+ %1 %+ _Ud2) == %2)
+BS3_PROC_END_CMN   bs3CpuWeird1_Push_ %+ %1 %+ _Ud2
+
+BS3_PROC_BEGIN_CMN bs3CpuWeird1_Push_opsize_ %+ %1 %+ _Ud2, BS3_PBC_NEAR
+        db      066h
+        push    %1
+.ud2_again:
+        ud2
+        jmp     .ud2_again
+AssertCompile(.ud2_again - BS3_CMN_NM(bs3CpuWeird1_Push_opsize_ %+ %1 %+ _Ud2) == (%2 + 1))
+BS3_PROC_END_CMN   bs3CpuWeird1_Push_opsize_ %+ %1 %+ _Ud2
+
+  %endmacro ; DoPushSeg
+
+  %macro DoPopSeg 2
+
+BS3_PROC_BEGIN_CMN bs3CpuWeird1_Pop_ %+ %1 %+ _Ud2, BS3_PBC_NEAR
+        pop      %1
+.ud2_again:
+        ud2
+        jmp     .ud2_again
+AssertCompile(.ud2_again - BS3_CMN_NM(bs3CpuWeird1_Pop_ %+ %1 %+ _Ud2) == %2)
+BS3_PROC_END_CMN   bs3CpuWeird1_Pop_ %+ %1 %+ _Ud2
+
+BS3_PROC_BEGIN_CMN bs3CpuWeird1_Pop_opsize_ %+ %1 %+ _Ud2, BS3_PBC_NEAR
+        db      066h
+        pop     %1
+.ud2_again:
+        ud2
+        jmp     .ud2_again
+AssertCompile(.ud2_again - BS3_CMN_NM(bs3CpuWeird1_Pop_opsize_ %+ %1 %+ _Ud2) == (%2 + 1))
+BS3_PROC_END_CMN   bs3CpuWeird1_Pop_opsize_ %+ %1 %+ _Ud2
+
+  %endmacro ; DoPopSeg
+ %endif ; !DEFINED_DO_PUSH_POP_MACROS
+
+DoPushSeg fs, 2
+DoPopSeg  fs, 2
+DoPushSeg gs, 2
+DoPopSeg  gs, 2
+ %if TMPL_BITS == 32 || TMPL_BITS == 16
+DoPushSeg es, 1
+DoPopSeg  es, 1
+DoPushSeg ds, 1
+DoPopSeg  ds, 1
+DoPushSeg ss, 1
+DoPopSeg  ss, 1
+DoPushSeg cs, 1
+ %endif
+
+
+;
+; popf
+;
+BS3_PROC_BEGIN_CMN bs3CpuWeird1_Popf_Nop_Ud2, BS3_PBC_NEAR
+        popf
+        nop
+.ud2_again:
+        ud2
+        jmp     .ud2_again
+AssertCompile(.ud2_again - BS3_CMN_NM(bs3CpuWeird1_Popf_Nop_Ud2) == 2)
+BS3_PROC_END_CMN   bs3CpuWeird1_Popf_Nop_Ud2
+
+;
+; popf
+;
+BS3_PROC_BEGIN_CMN bs3CpuWeird1_Popf_opsize_Nop_Ud2, BS3_PBC_NEAR
+        db      066h
+        popf
+        nop
+.ud2_again:
+        ud2
+        jmp     .ud2_again
+AssertCompile(.ud2_again - BS3_CMN_NM(bs3CpuWeird1_Popf_opsize_Nop_Ud2) == 3)
+BS3_PROC_END_CMN   bs3CpuWeird1_Popf_opsize_Nop_Ud2
 
 
 %endif ; BS3_INSTANTIATING_CMN

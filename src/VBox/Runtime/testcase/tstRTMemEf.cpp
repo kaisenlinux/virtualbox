@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -40,7 +40,8 @@
 *********************************************************************************************************************************/
 #include <iprt/mem.h>
 
-#include <iprt/asm.h>
+#define RT_ASM_INCLUDE_PAGE_SIZE
+#include <iprt/asm-mem.h>
 #include <iprt/initterm.h>
 #include <iprt/stream.h>
 #include <iprt/string.h>

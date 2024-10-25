@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -713,10 +713,9 @@ static int pdmR3LoadR0U(PUVM pUVM, const char *pszFilename, const char *pszName,
     /*
      * Ask the support library to load it.
      */
-    void           *pvImageBase;
     RTERRINFOSTATIC ErrInfo;
-    RTErrInfoInitStatic(&ErrInfo);
-    int rc = SUPR3LoadModule(pszFilename, pszName, &pvImageBase, &ErrInfo.Core);
+    void           *pvImageBase = NULL;
+    int rc = SUPR3LoadModule(pszFilename, pszName, &pvImageBase, RTErrInfoInitStatic(&ErrInfo));
     if (RT_SUCCESS(rc))
     {
         pModule->hLdrMod = NIL_RTLDRMOD;
@@ -1100,12 +1099,13 @@ char *pdmR3FileR3(const char *pszFile, bool fShared)
  *                          not qualified with a path.  Can be NULL, in which
  *                          case the arch dependent install dir is searched.
  */
-char *pdmR3FileR0(const char *pszFile, const char *pszSearchPath)
+static char *pdmR3FileR0(const char *pszFile, const char *pszSearchPath)
 {
     return pdmR3File(pszFile, NULL, pszSearchPath, /*fShared=*/false);
 }
 
 
+#if 0 /* unused */
 /**
  * Constructs the full filename for a RC image file.
  *
@@ -1118,10 +1118,11 @@ char *pdmR3FileR0(const char *pszFile, const char *pszSearchPath)
  *                          not qualified with a path.  Can be NULL, in which
  *                          case the arch dependent install dir is searched.
  */
-char *pdmR3FileRC(const char *pszFile, const char *pszSearchPath)
+static char *pdmR3FileRC(const char *pszFile, const char *pszSearchPath)
 {
     return pdmR3File(pszFile, NULL, pszSearchPath, /*fShared=*/false);
 }
+#endif
 
 
 /**

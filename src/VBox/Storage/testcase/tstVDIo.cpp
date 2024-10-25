@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -29,6 +29,7 @@
 #include <VBox/vd.h>
 #include <VBox/err.h>
 #include <VBox/log.h>
+#include <iprt/asm-mem.h>
 #include <iprt/asm.h>
 #include <iprt/string.h>
 #include <iprt/stream.h>
@@ -1346,7 +1347,7 @@ static DECLCALLBACK(int) vdScriptHandlerCopy(PVDSCRIPTARG paScriptArgs, void *pv
         /** @todo Provide progress interface to test that cancelation
          * works as intended.
          */
-        rc = VDCopyEx(pDiskFrom->pVD, nImageFrom, pDiskTo->pVD, pcszBackend, pcszFilename,
+        rc = VDCopyEx(pDiskFrom->pVD, nImageFrom, pDiskTo->pVD, VD_LAST_IMAGE, pcszBackend, pcszFilename,
                       fMoveByRename, cbSize, nImageFromSame, nImageToSame,
                       VD_IMAGE_FLAGS_NONE, NULL, VD_OPEN_FLAGS_ASYNC_IO,
                       NULL, pGlob->pInterfacesImages, NULL);
@@ -1554,9 +1555,11 @@ static DECLCALLBACK(int) vdScriptHandlerIoLogReplay(PVDSCRIPTARG paScriptArgs, v
                                 rc = RTTraceLogRdrQueryLastEvt(hIoLogRdr, &hEvt);
                                 if (RT_SUCCESS(rc))
                                 {
+#ifdef RT_STRICT
                                     pEvtDesc = RTTraceLogRdrEvtGetDesc(hEvt);
                                     AssertMsg(!RTStrCmp(pEvtDesc->pszId, "Complete"),
                                               ("Expected a completion event but got: %s\n", pEvtDesc->pszId));
+#endif
                                 }
                             }
                         }
@@ -1615,7 +1618,7 @@ static DECLCALLBACK(int) vdScriptHandlerIoRngCreate(PVDSCRIPTARG paScriptArgs, v
         }
 
         if (RT_SUCCESS(rc))
-            rc = VDIoRndCreate(&pGlob->pIoRnd, cbPattern, uSeed);
+            rc = VDIoRndCreate(&pGlob->pIoRnd, cbPattern, uSeedToUse);
     }
 
     return rc;
@@ -1769,7 +1772,6 @@ static DECLCALLBACK(int) vdScriptHandlerDumpFile(PVDSCRIPTARG paScriptArgs, void
     {
         RTPrintf("Dumping memory file %s to %s, this might take some time\n", pcszFile, pcszPathToDump);
         rc = VDIoBackendDumpToFile(pIt->pIoStorage, pcszPathToDump);
-        rc = VERR_NOT_IMPLEMENTED;
     }
     else
         rc = VERR_FILE_NOT_FOUND;
@@ -2481,7 +2483,7 @@ static uint32_t tstVDIoTestReqInitSegments(PVDIOTEST pIoTest, PRTSGSEG paSegs, u
     while (   iSeg < cSegs - 1
            && cSectorsLeft)
     {
-        uint32_t cThisSectors = VDIoRndGetU32Ex(pIoTest->pIoRnd, 1, (uint32_t)cSectorsLeft / 2);
+        size_t cThisSectors = VDIoRndGetU32Ex(pIoTest->pIoRnd, 1, (uint32_t)cSectorsLeft / 2);
         size_t cbThisBuf = cThisSectors * 512;
 
         paSegs[iSeg].pvSeg = pbBuf;
@@ -2845,7 +2847,12 @@ static void tstVDIoScriptExec(const char *pszName, const char *pszScript)
                     RTPrintf("Loading the script failed rc=%Rrc\n", rc);
                 }
                 else
+                {
                     rc = VDScriptCtxCallFn(hScriptCtx, "main", NULL, 0);
+                    if (RT_FAILURE(rc))
+                        RTPrintf("Executing the script failed rc=%Rrc\n", rc);
+                }
+
                 VDScriptCtxDestroy(hScriptCtx);
             }
 

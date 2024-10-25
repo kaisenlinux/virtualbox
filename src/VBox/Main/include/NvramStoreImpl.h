@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2021-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2021-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -39,6 +39,7 @@
 
 #ifdef VBOX_COM_INPROC
 class Console;
+struct DRVMAINNVRAMSTORE;
 #else
 class GuestOSType;
 
@@ -83,6 +84,7 @@ public:
     HRESULT i_applyDefaults(GuestOSType *aOSType);
 #endif
 
+    int i_getNonVolatileStorageFile(com::Utf8Str &aNonVolatileStorageFile);
     com::Utf8Str i_getNonVolatileStorageFile();
     void i_updateNonVolatileStorageFile(const com::Utf8Str &aNonVolatileStorageFile);
 
@@ -119,7 +121,9 @@ private:
     HRESULT initUefiVariableStore(ULONG aSize);
 
     int i_loadStoreFromTar(RTVFSFSSTREAM hVfsFssTar);
+    int i_loadStoreFromDir(RTVFSDIR hVfsDir, const char *pszNamespace);
     int i_saveStoreAsTar(const char *pszPath);
+    int i_saveStoreAsDir(const char *pszPath);
 
     int i_retainCryptoIf(PCVBOXCRYPTOIF *ppCryptoIf);
     int i_releaseCryptoIf(PCVBOXCRYPTOIF pCryptoIf);
@@ -134,7 +138,11 @@ private:
 
 #ifdef VBOX_COM_INPROC
     static DECLCALLBACK(int)    i_SsmSaveExec(PPDMDRVINS pDrvIns, PSSMHANDLE pSSM);
+    static int                  i_SsmSaveExecInner(struct DRVMAINNVRAMSTORE *pThis, PCPDMDRVHLPR3 pHlp, PSSMHANDLE pSSM,
+                                                   void **ppvData, size_t *pcbDataMax) RT_NOEXCEPT;
     static DECLCALLBACK(int)    i_SsmLoadExec(PPDMDRVINS pDrvIns, PSSMHANDLE pSSM, uint32_t uVersion, uint32_t uPass);
+    static int                  i_SsmLoadExecInner(struct DRVMAINNVRAMSTORE *pThis, PCPDMDRVHLPR3 pHlp, PSSMHANDLE pSSM,
+                                                   uint32_t cEntries, void **ppvData, size_t *pcbDataMax) RT_NOEXCEPT;
 
     static DECLCALLBACK(int)    i_nvramStoreQuerySize(PPDMIVFSCONNECTOR pInterface, const char *pszNamespace, const char *pszPath,
                                                       uint64_t *pcb);

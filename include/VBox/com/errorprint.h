@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -117,7 +117,7 @@ void GlueHandleComErrorProgress(ComPtr<IProgress> progress, const char *pcszCont
  *  query the extended error information on the current thread (using
  *  com::ErrorInfo) if the interface reports that it supports error information.
  *
- *  Used by command line tools or for debugging and assumes the |HRESULT rc|
+ *  Used by command line tools or for debugging and assumes the |HRESULT hrc|
  *  variable is accessible for assigning in the current scope.
  * @sa CHECK_ERROR2, CHECK_ERROR2I
  */
@@ -301,9 +301,9 @@ void GlueHandleComErrorProgress(ComPtr<IProgress> progress, const char *pcszCont
         hrc = progress->COMGETTER(ResultCode)(&iRc); \
         if (FAILED(hrc) || FAILED(iRc)) \
         { \
-            if (SUCCEEDED(hrc)) hrc = iRc; else iRc = hrc; \
+            if (SUCCEEDED(hrc)) hrc = (HRESULT)iRc; else iRc = (LONG)hrc; \
             RTMsgError msg; \
-            com::GlueHandleComErrorProgress(progress, __PRETTY_FUNCTION__, iRc, __FILE__, __LINE__); \
+            com::GlueHandleComErrorProgress(progress, __PRETTY_FUNCTION__, (HRESULT)iRc, __FILE__, __LINE__); \
         } \
     } while (0)
 
@@ -320,9 +320,9 @@ void GlueHandleComErrorProgress(ComPtr<IProgress> progress, const char *pcszCont
         hrc = progress->COMGETTER(ResultCode)(&iRc); \
         if (FAILED(hrc) || FAILED(iRc)) \
         { \
-            if (SUCCEEDED(hrc)) hrc = iRc; else iRc = hrc; \
+            if (SUCCEEDED(hrc)) hrc = (HRESULT)iRc; else iRc = (LONG)hrc; \
             RTMsgError msg; \
-            com::GlueHandleComErrorProgress(progress, __PRETTY_FUNCTION__, iRc, __FILE__, __LINE__); \
+            com::GlueHandleComErrorProgress(progress, __PRETTY_FUNCTION__, (HRESULT)iRc, __FILE__, __LINE__); \
             break; \
         } \
     })
@@ -334,9 +334,9 @@ void GlueHandleComErrorProgress(ComPtr<IProgress> progress, const char *pcszCont
         hrc = progress->COMGETTER(ResultCode)(&iRc); \
         if (FAILED(hrc) || FAILED(iRc)) \
         { \
-            if (SUCCEEDED(hrc)) hrc = iRc; else iRc = hrc; \
+            if (SUCCEEDED(hrc)) hrc = (HRESULT)iRc; else iRc = (LONG)hrc; \
             RTMsgError msg; \
-            com::GlueHandleComErrorProgress(progress, __PRETTY_FUNCTION__, iRc, __FILE__, __LINE__); \
+            com::GlueHandleComErrorProgress(progress, __PRETTY_FUNCTION__, (HRESULT)iRc, __FILE__, __LINE__); \
             break; \
         } \
     } \
@@ -357,7 +357,7 @@ void GlueHandleComErrorProgress(ComPtr<IProgress> progress, const char *pcszCont
         { \
             RTMsgError msg; \
             com::GlueHandleComErrorProgress(progress, __PRETTY_FUNCTION__, \
-                                            SUCCEEDED(hrcCheck) ? iRc : hrcCheck, __FILE__, __LINE__); \
+                                            SUCCEEDED(hrcCheck) ? (HRESULT)iRc : hrcCheck, __FILE__, __LINE__); \
             return (ret); \
         } \
     } while (0)
@@ -389,7 +389,7 @@ void GlueHandleComErrorProgress(ComPtr<IProgress> progress, const char *pcszCont
  * expression to assert is false;
  * @remarks WARNING! @a expr is evalutated TWICE!
  */
-#define ASSERT_BREAK(expr, ret) \
+#define ASSERT_BREAK(expr) \
     if (1) { ASSERT(expr); if (!(expr)) break; } else do {} while (0)
 
 } /* namespace com */

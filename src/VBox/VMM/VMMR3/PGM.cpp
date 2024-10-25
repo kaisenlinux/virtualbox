@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -736,7 +736,11 @@ static const DBGCCMD    g_aCmds[] =
 VMMR3_INT_DECL(void) PGMR3EnableNemMode(PVM pVM)
 {
     AssertFatal(!PDMCritSectIsInitialized(&pVM->pgm.s.CritSectX));
-    pVM->pgm.s.fNemMode = true;
+    if (!pVM->pgm.s.fNemMode)
+    {
+        LogRel(("PGM: Enabling NEM mode\n"));
+        pVM->pgm.s.fNemMode = true;
+    }
 }
 
 
@@ -780,7 +784,10 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
     {
 #ifdef VBOX_WITH_PGM_NEM_MODE
         if (!pVM->pgm.s.fNemMode)
+        {
+            LogRel(("PGM: Enabling NEM mode (driverless)\n"));
             pVM->pgm.s.fNemMode = true;
+        }
 #else
         return VMR3SetError(pVM->pUVM, VERR_SUP_DRIVERLESS, RT_SRC_POS,
                             "Driverless requires that VBox is built with VBOX_WITH_PGM_NEM_MODE defined");
@@ -933,8 +940,7 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
     rc = PDMR3CritSectInit(pVM, &pVM->pgm.s.CritSectX, RT_SRC_POS, "PGM");
     AssertRCReturn(rc, rc);
 
-    PGMR3PhysChunkInvalidateTLB(pVM);
-    pgmPhysInvalidatePageMapTLB(pVM);
+    pgmR3PhysChunkInvalidateTLB(pVM, false /*fInRendezvous*/); /* includes pgmPhysInvalidatePageMapTLB call */
 
     /*
      * For the time being we sport a full set of handy pages in addition to the base
@@ -951,6 +957,7 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
         pVM->pgm.s.HCPhysZeroPg = _4G - GUEST_PAGE_SIZE * 2 /* fake to avoid PGM_PAGE_INIT_ZERO assertion */;
     AssertRelease(pVM->pgm.s.HCPhysZeroPg != NIL_RTHCPHYS);
     AssertRelease(pVM->pgm.s.HCPhysZeroPg != 0);
+    Log(("HCPhysZeroPg=%RHp abZeroPg=%p\n", pVM->pgm.s.HCPhysZeroPg, pVM->pgm.s.abZeroPg));
 
     /*
      * Setup the invalid MMIO page (HCPhysMmioPg is set by ring-0).
@@ -962,6 +969,7 @@ VMMR3DECL(int) PGMR3Init(PVM pVM)
     AssertRelease(pVM->pgm.s.HCPhysMmioPg != NIL_RTHCPHYS);
     AssertRelease(pVM->pgm.s.HCPhysMmioPg != 0);
     pVM->pgm.s.HCPhysInvMmioPg = pVM->pgm.s.HCPhysMmioPg;
+    Log(("HCPhysInvMmioPg=%RHp abMmioPg=%p\n", pVM->pgm.s.HCPhysMmioPg, pVM->pgm.s.abMmioPg));
 
     /*
      * Initialize physical access handlers.
@@ -1415,6 +1423,14 @@ static int pgmR3InitStats(PVM pVM)
         PGM_REG_COUNTER(&pPgmCpu->cGuestModeChanges, "/PGM/CPU%u/cGuestModeChanges",  "Number of guest mode changes.");
         PGM_REG_COUNTER(&pPgmCpu->cA20Changes, "/PGM/CPU%u/cA20Changes",  "Number of A20 gate changes.");
 
+        PGM_REG_COUNTER(&pPgmCpu->StatRZRamRangeTlbMisses,              "/PGM/CPU%u/RZ/RamRange/TlbMisses",         "TLB misses (lockless).");
+        PGM_REG_COUNTER(&pPgmCpu->StatRZRamRangeTlbLocking,             "/PGM/CPU%u/RZ/RamRange/TlbLocking",        "Lockless TLB failed, falling back on locked lookup.");
+        PGM_REG_COUNTER(&pPgmCpu->StatRZPageMapTlbMisses,               "/PGM/CPU%u/RZ/Page/MapTlbMisses",          "Lockless page map TLB failed, falling back on locked lookup.");
+
+        PGM_REG_COUNTER(&pPgmCpu->StatR3RamRangeTlbMisses,              "/PGM/CPU%u/R3/RamRange/TlbMisses",         "TLB misses (lockless).");
+        PGM_REG_COUNTER(&pPgmCpu->StatR3RamRangeTlbLocking,             "/PGM/CPU%u/R3/RamRange/TlbLocking",        "Lockless TLB failed, falling back on locked lookup.");
+        PGM_REG_COUNTER(&pPgmCpu->StatR3PageMapTlbMisses,               "/PGM/CPU%u/R3/Page/MapTlbMisses",          "Lockless page map TLB failed, falling back on locked lookup.");
+
 #ifdef VBOX_WITH_STATISTICS
         PGMCPUSTATS *pCpuStats = &pVM->apCpusR3[idCpu]->pgm.s.Stats;
 
@@ -1427,13 +1443,12 @@ static int pgmR3InitStats(PVM pVM)
                             "The number of SyncPage per PD n.", "/PGM/CPU%u/PDSyncPage/%04X", i, j);
 # endif
         /* R0 only: */
-        PGM_REG_PROFILE(&pCpuStats->StatR0NpMiscfg,                      "/PGM/CPU%u/R0/NpMiscfg",                     "PGMR0Trap0eHandlerNPMisconfig() profiling.");
-        PGM_REG_COUNTER(&pCpuStats->StatR0NpMiscfgSyncPage,              "/PGM/CPU%u/R0/NpMiscfgSyncPage",             "SyncPage calls from PGMR0Trap0eHandlerNPMisconfig().");
+        PGM_REG_PROFILE(&pCpuStats->StatR0NpMiscfg,                     "/PGM/CPU%u/R0/NpMiscfg",                     "PGMR0Trap0eHandlerNPMisconfig() profiling.");
+        PGM_REG_COUNTER(&pCpuStats->StatR0NpMiscfgSyncPage,             "/PGM/CPU%u/R0/NpMiscfgSyncPage",             "SyncPage calls from PGMR0Trap0eHandlerNPMisconfig().");
 
         /* RZ only: */
         PGM_REG_PROFILE(&pCpuStats->StatRZTrap0e,                      "/PGM/CPU%u/RZ/Trap0e",                     "Profiling of the PGMTrap0eHandler() body.");
         PGM_REG_PROFILE(&pCpuStats->StatRZTrap0eTime2Ballooned,        "/PGM/CPU%u/RZ/Trap0e/Time2/Ballooned",         "Profiling of the Trap0eHandler body when the cause is read access to a ballooned page.");
-        PGM_REG_PROFILE(&pCpuStats->StatRZTrap0eTime2CSAM,             "/PGM/CPU%u/RZ/Trap0e/Time2/CSAM",              "Profiling of the Trap0eHandler body when the cause is CSAM.");
         PGM_REG_PROFILE(&pCpuStats->StatRZTrap0eTime2DirtyAndAccessed, "/PGM/CPU%u/RZ/Trap0e/Time2/DirtyAndAccessedBits", "Profiling of the Trap0eHandler body when the cause is dirty and/or accessed bit emulation.");
         PGM_REG_PROFILE(&pCpuStats->StatRZTrap0eTime2GuestTrap,        "/PGM/CPU%u/RZ/Trap0e/Time2/GuestTrap",         "Profiling of the Trap0eHandler body when the cause is a guest trap.");
         PGM_REG_PROFILE(&pCpuStats->StatRZTrap0eTime2HndPhys,          "/PGM/CPU%u/RZ/Trap0e/Time2/HandlerPhysical",   "Profiling of the Trap0eHandler body when the cause is a physical handler.");
@@ -1444,6 +1459,7 @@ static int pgmR3InitStats(PVM pVM)
         PGM_REG_PROFILE(&pCpuStats->StatRZTrap0eTime2OutOfSync,        "/PGM/CPU%u/RZ/Trap0e/Time2/OutOfSync",         "Profiling of the Trap0eHandler body when the cause is an out-of-sync page.");
         PGM_REG_PROFILE(&pCpuStats->StatRZTrap0eTime2OutOfSyncHndPhys, "/PGM/CPU%u/RZ/Trap0e/Time2/OutOfSyncHndPhys",  "Profiling of the Trap0eHandler body when the cause is an out-of-sync physical handler page.");
         PGM_REG_PROFILE(&pCpuStats->StatRZTrap0eTime2OutOfSyncHndObs,  "/PGM/CPU%u/RZ/Trap0e/Time2/OutOfSyncObsHnd",   "Profiling of the Trap0eHandler body when the cause is an obsolete handler page.");
+        PGM_REG_PROFILE(&pCpuStats->StatRZTrap0eTime2PageZeroing,      "/PGM/CPU%u/RZ/Trap0e/Time2/PageZeroing",       "Profiling of the Trap0eHandler body when the cause is that a zero page is being zeroed.");
         PGM_REG_PROFILE(&pCpuStats->StatRZTrap0eTime2SyncPT,           "/PGM/CPU%u/RZ/Trap0e/Time2/SyncPT",            "Profiling of the Trap0eHandler body when the cause is lazy syncing of a PT.");
         PGM_REG_PROFILE(&pCpuStats->StatRZTrap0eTime2WPEmulation,      "/PGM/CPU%u/RZ/Trap0e/Time2/WPEmulation",       "Profiling of the Trap0eHandler body when the cause is CR0.WP emulation.");
         PGM_REG_PROFILE(&pCpuStats->StatRZTrap0eTime2Wp0RoUsHack,      "/PGM/CPU%u/RZ/Trap0e/Time2/WP0R0USHack",       "Profiling of the Trap0eHandler body when the cause is CR0.WP and netware hack to be enabled.");
@@ -1567,6 +1583,8 @@ static int pgmR3InitStats(PVM pVM)
         PGM_REG_COUNTER(&pCpuStats->StatRZFlushTLBSameCR3,             "/PGM/CPU%u/RZ/FlushTLB/SameCR3",           "The number of times PGMFlushTLB was called with the same CR3, non-global. (flush)");
         PGM_REG_COUNTER(&pCpuStats->StatRZFlushTLBSameCR3Global,       "/PGM/CPU%u/RZ/FlushTLB/SameCR3Global",     "The number of times PGMFlushTLB was called with the same CR3, global. (flush)");
         PGM_REG_PROFILE(&pCpuStats->StatRZGstModifyPage,               "/PGM/CPU%u/RZ/GstModifyPage",              "Profiling of the PGMGstModifyPage() body.");
+        PGM_REG_COUNTER(&pCpuStats->StatRZRamRangeTlbHits,             "/PGM/CPU%u/RZ/RamRange/TlbHits",           "TLB hits (lockless).");
+        PGM_REG_COUNTER(&pCpuStats->StatRZPageMapTlbHits,              "/PGM/CPU%u/RZ/Page/MapTlbHits",            "TLB hits (lockless).");
 
         PGM_REG_PROFILE(&pCpuStats->StatR3SyncCR3,                     "/PGM/CPU%u/R3/SyncCR3",                        "Profiling of the PGMSyncCR3() body.");
         PGM_REG_PROFILE(&pCpuStats->StatR3SyncCR3Handlers,             "/PGM/CPU%u/R3/SyncCR3/Handlers",               "Profiling of the PGMSyncCR3() update handler section.");
@@ -1612,11 +1630,12 @@ static int pgmR3InitStats(PVM pVM)
         PGM_REG_COUNTER(&pCpuStats->StatR3FlushTLBSameCR3,             "/PGM/CPU%u/R3/FlushTLB/SameCR3",           "The number of times PGMFlushTLB was called with the same CR3, non-global. (flush)");
         PGM_REG_COUNTER(&pCpuStats->StatR3FlushTLBSameCR3Global,       "/PGM/CPU%u/R3/FlushTLB/SameCR3Global",     "The number of times PGMFlushTLB was called with the same CR3, global. (flush)");
         PGM_REG_PROFILE(&pCpuStats->StatR3GstModifyPage,               "/PGM/CPU%u/R3/GstModifyPage",              "Profiling of the PGMGstModifyPage() body.");
+        PGM_REG_COUNTER(&pCpuStats->StatR3RamRangeTlbHits,             "/PGM/CPU%u/R3/RamRange/TlbHits",           "TLB hits (lockless).");
+        PGM_REG_COUNTER(&pCpuStats->StatR3PageMapTlbHits,              "/PGM/CPU%u/R3/Page/MapTlbHits",            "TLB hits (lockless).");
 #endif /* VBOX_WITH_STATISTICS */
 
 #undef PGM_REG_PROFILE
 #undef PGM_REG_COUNTER
-
     }
 
     return VINF_SUCCESS;
@@ -1726,10 +1745,10 @@ VMMR3DECL(int) PGMR3InitFinalize(PVM pVM)
                && !(fEptVpidCap & MSR_IA32_VMX_EPT_VPID_CAP_ACCESS_DIRTY));
         /* We currently do -not- shadow reserved bits in guest page tables but instead trap them using non-present permissions,
            see todo in (NestedSyncPT). */
-        pVCpu->pgm.s.fGstEptShadowedPteMask    = EPT_PRESENT_MASK | EPT_E_MEMTYPE_MASK | EPT_E_IGNORE_PAT;
+        pVCpu->pgm.s.fGstEptShadowedPteMask    = EPT_PRESENT_MASK;
         pVCpu->pgm.s.fGstEptShadowedPdeMask    = EPT_PRESENT_MASK;
-        pVCpu->pgm.s.fGstEptShadowedBigPdeMask = EPT_PRESENT_MASK | EPT_E_MEMTYPE_MASK | EPT_E_IGNORE_PAT | EPT_E_LEAF;
-        pVCpu->pgm.s.fGstEptShadowedPdpteMask  = EPT_PRESENT_MASK | EPT_E_MEMTYPE_MASK | EPT_E_IGNORE_PAT | EPT_E_LEAF;
+        pVCpu->pgm.s.fGstEptShadowedBigPdeMask = EPT_PRESENT_MASK | EPT_E_LEAF;
+        pVCpu->pgm.s.fGstEptShadowedPdpteMask  = EPT_PRESENT_MASK;
         pVCpu->pgm.s.fGstEptShadowedPml4eMask  = EPT_PRESENT_MASK | EPT_PML4E_MBZ_MASK;
         /* If mode-based execute control for EPT is enabled, we would need to include bit 10 in the present mask. */
         pVCpu->pgm.s.fGstEptPresentMask        = EPT_PRESENT_MASK;
@@ -1840,12 +1859,6 @@ VMMR3DECL(void) PGMR3Relocate(PVM pVM, RTGCINTPTR offDelta)
         else
             AssertFailed();
     }
-
-    /*
-     * Ram ranges.
-     */
-    if (pVM->pgm.s.pRamRangesXR3)
-        pgmR3PhysRelinkRamRanges(pVM);
 
     /*
      * The page pool.
@@ -1964,16 +1977,18 @@ VMMR3_INT_DECL(void) PGMR3Reset(PVM pVM)
         VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_PGM_SYNC_CR3);
         VMCPU_FF_CLEAR(pVCpu, VMCPU_FF_PGM_SYNC_CR3_NON_GLOBAL);
 
+#if !defined(VBOX_VMM_TARGET_ARMV8)
         if (!pVCpu->pgm.s.fA20Enabled)
         {
             pVCpu->pgm.s.fA20Enabled = true;
             pVCpu->pgm.s.GCPhysA20Mask = ~((RTGCPHYS)!pVCpu->pgm.s.fA20Enabled << 20);
-#ifdef PGM_WITH_A20
+# ifdef PGM_WITH_A20
             VMCPU_FF_SET(pVCpu, VMCPU_FF_PGM_SYNC_CR3);
             pgmR3RefreshShadowModeAfterA20Change(pVCpu);
             HMFlushTlb(pVCpu);
-#endif
+# endif
         }
+#endif
     }
 
     //pgmLogState(pVM);
@@ -2116,7 +2131,7 @@ static DECLCALLBACK(void) pgmR3InfoMode(PVM pVM, PCDBGFINFOHLP pHlp, const char 
 
 
 /**
- * Dump registered MMIO ranges to the log.
+ * Display the RAM range info.
  *
  * @param   pVM         The cross context VM structure.
  * @param   pHlp        The info helpers.
@@ -2131,15 +2146,26 @@ static DECLCALLBACK(void) pgmR3PhysInfo(PVM pVM, PCDBGFINFOHLP pHlp, const char 
                     "%.*s %.*s\n",
                     pVM,
                     sizeof(RTGCPHYS) * 4 + 1, "GC Phys Range                    ",
-                    sizeof(RTHCPTR) * 2,      "pvHC            ");
+                    sizeof(RTHCPTR) * 2,      "pbR3            ");
 
-    for (PPGMRAMRANGE pCur = pVM->pgm.s.pRamRangesXR3; pCur; pCur = pCur->pNextR3)
+    /*
+     * Traverse the lookup table so we only display mapped MMIO and get it in sorted order.
+     */
+    uint32_t const cRamRangeLookupEntries = RT_MIN(pVM->pgm.s.RamRangeUnion.cLookupEntries,
+                                                   RT_ELEMENTS(pVM->pgm.s.aRamRangeLookup));
+    for (uint32_t idxLookup = 0; idxLookup < cRamRangeLookupEntries; idxLookup++)
     {
+        uint32_t const idRamRange = PGMRAMRANGELOOKUPENTRY_GET_ID(pVM->pgm.s.aRamRangeLookup[idxLookup]);
+        AssertContinue(idRamRange < RT_ELEMENTS(pVM->pgm.s.apRamRanges));
+        PPGMRAMRANGE const pCur = pVM->pgm.s.apRamRanges[idRamRange];
+        if (pCur != NULL)   { /*likely*/ }
+        else                continue;
+
         pHlp->pfnPrintf(pHlp,
                         "%RGp-%RGp %RHv %s\n",
                         pCur->GCPhys,
                         pCur->GCPhysLast,
-                        pCur->pvR3,
+                        pCur->pbR3,
                         pCur->pszDesc);
         if (fVerbose)
         {
@@ -2177,12 +2203,19 @@ static DECLCALLBACK(void) pgmR3PhysInfo(PVM pVM, PCDBGFINFOHLP pHlp, const char 
                     {
                         pszType = enmType == PGMPAGETYPE_ROM_SHADOW ? "ROM-shadowed" : "ROM";
 
-                        RTGCPHYS const  GCPhysFirstPg = iFirstPage * X86_PAGE_SIZE;
-                        PPGMROMRANGE    pRom          = pVM->pgm.s.pRomRangesR3;
-                        while (pRom && GCPhysFirstPg > pRom->GCPhysLast)
-                            pRom = pRom->pNextR3;
-                        if (pRom && GCPhysFirstPg - pRom->GCPhys < pRom->cb)
-                            pszMore = pRom->pszDesc;
+                        RTGCPHYS const GCPhysFirstPg = iFirstPage << GUEST_PAGE_SHIFT;
+                        uint32_t const cRomRanges    = RT_MIN(pVM->pgm.s.cRomRanges, RT_ELEMENTS(pVM->pgm.s.apRomRanges));
+                        for (uint32_t idxRom = 0; idxRom < cRomRanges; idxRom++)
+                        {
+                            PPGMROMRANGE const pRomRange = pVM->pgm.s.apRomRanges[idxRom];
+                            if (   pRomRange
+                                && GCPhysFirstPg <  pRomRange->GCPhysLast
+                                && GCPhysFirstPg >= pRomRange->GCPhys)
+                            {
+                                pszMore = pRomRange->pszDesc;
+                                break;
+                            }
+                        }
                         break;
                     }
 
@@ -2535,10 +2568,19 @@ static DECLCALLBACK(int) pgmR3CmdPhysToFile(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHlp,
     RT_ZERO(abZeroPg);
 
     PGM_LOCK_VOID(pVM);
-    for (PPGMRAMRANGE pRam = pVM->pgm.s.pRamRangesXR3;
-         pRam && pRam->GCPhys < GCPhysEnd && RT_SUCCESS(rc);
-         pRam = pRam->pNextR3)
+
+    uint32_t const cRamRangeLookupEntries = RT_MIN(pVM->pgm.s.RamRangeUnion.cLookupEntries,
+                                                   RT_ELEMENTS(pVM->pgm.s.aRamRangeLookup));
+    for (uint32_t idxLookup = 0; idxLookup < cRamRangeLookupEntries && RT_SUCCESS(rc); idxLookup++)
     {
+        if (PGMRAMRANGELOOKUPENTRY_GET_FIRST(pVM->pgm.s.aRamRangeLookup[idxLookup]) >= GCPhysEnd)
+            break;
+        uint32_t const idRamRange = PGMRAMRANGELOOKUPENTRY_GET_ID(pVM->pgm.s.aRamRangeLookup[idxLookup]);
+        AssertContinue(idRamRange < RT_ELEMENTS(pVM->pgm.s.apRamRanges));
+        PPGMRAMRANGE const pRam = pVM->pgm.s.apRamRanges[idRamRange];
+        AssertContinue(pRam);
+        Assert(pRam->GCPhys == PGMRAMRANGELOOKUPENTRY_GET_FIRST(pVM->pgm.s.aRamRangeLookup[idxLookup]));
+
         /* fill the gap */
         if (pRam->GCPhys > GCPhys && fIncZeroPgs)
         {

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -42,6 +42,7 @@
 #include "UIIconPool.h"
 #include "UIMachinePreview.h"
 #include "UIThreadPool.h"
+#include "UITranslationEventListener.h"
 
 /* COM includes: */
 #include "CAudioAdapter.h"
@@ -115,10 +116,12 @@ UIDetailsElementInterface::UIDetailsElementInterface(UIDetailsSet *pParent, Deta
             this, &UIDetailsElementInterface::sltUpdateAppearanceFinished);
 
     /* Translate finally: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIDetailsElementInterface::sltRetranslateUI);
 }
 
-void UIDetailsElementInterface::retranslateUi()
+void UIDetailsElementInterface::sltRetranslateUI()
 {
     /* Assign corresponding name: */
     setName(gpConverter->toString(elementType()));
@@ -175,7 +178,9 @@ UIDetailsElementPreview::UIDetailsElementPreview(UIDetailsSet *pParent, bool fOp
     }
 
     /* Translate finally: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIDetailsElementPreview::sltRetranslateUI);
 }
 
 void UIDetailsElementPreview::updateLayout()
@@ -203,7 +208,7 @@ void UIDetailsElementPreview::sltPreviewSizeHintChanged()
     model()->updateLayout();
 }
 
-void UIDetailsElementPreview::retranslateUi()
+void UIDetailsElementPreview::sltRetranslateUI()
 {
     /* Assign corresponding name: */
     setName(gpConverter->toString(elementType()));

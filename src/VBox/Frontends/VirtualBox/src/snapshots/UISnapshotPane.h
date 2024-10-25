@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,9 +31,13 @@
 # pragma once
 #endif
 
+/* Qt includes: */
+#include <QMap>
+#include <QUuid>
+#include <QWidget>
+
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
-#include "UICommon.h"
+#include "UILibraryDefs.h"
 
 /* COM includes: */
 #include "CMachine.h"
@@ -51,6 +55,7 @@ class UISnapshotDetailsWidget;
 class UISnapshotItem;
 class UISnapshotTree;
 class UIVirtualMachineItem;
+class CSnapshot;
 
 
 /** Snapshot age format. */
@@ -65,7 +70,7 @@ enum SnapshotAgeFormat
 
 
 /** QWidget extension providing GUI with the pane to control snapshot related functionality. */
-class UISnapshotPane : public QIWithRetranslateUI<QWidget>
+class UISnapshotPane : public QWidget
 {
     Q_OBJECT;
 
@@ -90,13 +95,13 @@ public:
     /** Returns whether "current state" item selected. */
     bool isCurrentStateItemSelected() const;
 
+    /** Returns currently selected snapshot ID if any. */
+    QUuid currentSnapshotId();
+
 protected:
 
     /** @name Qt event handlers.
       * @{ */
-        /** Handles translation event. */
-        virtual void retranslateUi() RT_OVERRIDE;
-
         /** Handles resize @a pEvent. */
         virtual void resizeEvent(QResizeEvent *pEvent) RT_OVERRIDE;
 
@@ -144,8 +149,6 @@ private slots:
         void sltToggleSnapshotDetailsVisibility(bool fVisible);
         /** Handles command to apply snapshot details changes. */
         void sltApplySnapshotDetailsChanges();
-        /** Proposes to clone the snapshot. */
-        void sltCloneSnapshot() { cloneSnapshot(); }
     /** @} */
 
     /** @name Tree-widget handlers.
@@ -160,6 +163,12 @@ private slots:
         void sltHandleItemDoubleClick(QTreeWidgetItem *pItem);
         /** Handles tree-widget's scroll-bar visibility change. */
         void sltHandleScrollBarVisibilityChange();
+    /** @} */
+
+    /** @name Qt event handlers.
+      * @{ */
+        /** Handles translation event. */
+        void sltRetranslateUI();
     /** @} */
 
 private:
@@ -203,8 +212,6 @@ private:
         bool deleteSnapshot(bool fAutomatically = false);
         /** Proposes to restore the snapshot. */
         bool restoreSnapshot(bool fAutomatically = false);
-        /** Proposes to clone the snapshot. */
-        void cloneSnapshot();
     /** @} */
 
     /** @name Tree-widget helpers.
@@ -270,4 +277,3 @@ private:
 };
 
 #endif /* !FEQT_INCLUDED_SRC_snapshots_UISnapshotPane_h */
-

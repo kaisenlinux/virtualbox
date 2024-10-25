@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2018-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2018-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -102,6 +102,9 @@ VMMR3_INT_DECL(int) NEMR3InitConfig(PVM pVM)
                                   "|VmxPleWindow"
                                   "|VmxLbr"
 #endif
+#if defined(VBOX_VMM_TARGET_ARMV8)
+                                  "|VTimerInterrupt"
+#endif
                                   ,
                                   "" /* pszValidNodes */, "NEM" /* pszWho */, 0 /* uInstance */);
     if (RT_FAILURE(rc))
@@ -135,6 +138,13 @@ VMMR3_INT_DECL(int) NEMR3InitConfig(PVM pVM)
         PVMCPU pVCpu = pVM->apCpusR3[idCpu];
         pVCpu->nem.s.fTrapXcptGpForLovelyMesaDrv = f;
     }
+
+#if defined(VBOX_VMM_TARGET_ARMV8)
+    /** @cfgm{/NEM/VTimerInterrupt, uint32_t}
+     * Specifies the interrupt identifier for the VTimer. */
+    rc = CFGMR3QueryU32(pCfgNem, "VTimerInterrupt", &pVM->nem.s.u32GicPpiVTimer);
+    AssertLogRelRCReturn(rc, rc);
+#endif
 
     return VINF_SUCCESS;
 }

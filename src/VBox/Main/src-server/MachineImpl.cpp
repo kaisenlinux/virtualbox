@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2004-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2004-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -57,6 +57,7 @@
 #include "MachineImplCloneVM.h"
 #include "AutostartDb.h"
 #include "SystemPropertiesImpl.h"
+#include "StorageControllerImpl.h"
 #include "MachineImplMoveVM.h"
 #include "ExtPackManagerImpl.h"
 #include "MachineLaunchVMCommonWorker.h"
@@ -234,40 +235,13 @@ Machine::Data::~Data()
 
 Machine::HWData::HWData()
 {
-    /* default values for a newly created machine */
+    /* default values for a newly created machine for x86. */
     mHWVersion.printf("%d", SchemaDefs::DefaultHardwareVersion);
     mMemorySize = 128;
     mCPUCount = 1;
     mCPUHotPlugEnabled = false;
     mMemoryBalloonSize = 0;
     mPageFusionEnabled = false;
-    mHWVirtExEnabled = true;
-    mHWVirtExNestedPagingEnabled = true;
-    mHWVirtExLargePagesEnabled = HC_ARCH_BITS == 64;  /* Not supported on 32 bits hosts. */
-    mHWVirtExVPIDEnabled = true;
-    mHWVirtExUXEnabled = true;
-    mHWVirtExForceEnabled = false;
-    mHWVirtExUseNativeApi = false;
-    mHWVirtExVirtVmsaveVmload = true;
-#if HC_ARCH_BITS == 64 || defined(RT_OS_WINDOWS) || defined(RT_OS_DARWIN)
-    mPAEEnabled = true;
-#else
-    mPAEEnabled = false;
-#endif
-    mLongMode =  HC_ARCH_BITS == 64 ? settings::Hardware::LongMode_Enabled : settings::Hardware::LongMode_Disabled;
-    mTripleFaultReset = false;
-    mAPIC = true;
-    mX2APIC = false;
-    mIBPBOnVMExit = false;
-    mIBPBOnVMEntry = false;
-    mSpecCtrl = false;
-    mSpecCtrlByHost = false;
-    mL1DFlushOnSched = true;
-    mL1DFlushOnVMEntry = false;
-    mMDSClearOnSched = true;
-    mMDSClearOnVMEntry = false;
-    mNestedHWVirt = false;
-    mHPETEnabled = false;
     mCpuExecutionCap = 100; /* Maximum CPU execution cap by default. */
     mCpuIdPortabilityLevel = 0;
     mCpuProfile = "host";
@@ -284,11 +258,8 @@ Machine::HWData::HWData()
 
     mDnDMode = DnDMode_Disabled;
 
-    mFirmwareType = FirmwareType_BIOS;
     mKeyboardHIDType = KeyboardHIDType_PS2Keyboard;
     mPointingHIDType = PointingHIDType_PS2Mouse;
-    mChipsetType = ChipsetType_PIIX3;
-    mIommuType = IommuType_None;
     mParavirtProvider = ParavirtProvider_Default;
     mEmulatedUSBCardReaderEnabled = FALSE;
 
@@ -341,26 +312,28 @@ void Machine::FinalRelease()
  *  Initializes a new machine instance; this init() variant creates a new, empty machine.
  *  This gets called from VirtualBox::CreateMachine().
  *
- *  @param aParent      Associated parent object
- *  @param strConfigFile  Local file system path to the VM settings file (can
- *                      be relative to the VirtualBox config directory).
- *  @param strName      name for the machine
- *  @param llGroups     list of groups for the machine
- *  @param strOsType    OS Type string (stored as is if aOsType is NULL).
- *  @param aOsType      OS Type of this machine or NULL.
- *  @param aId          UUID for the new machine.
- *  @param fForceOverwrite Whether to overwrite an existing machine settings file.
- *  @param fDirectoryIncludesUUID Whether the use a special VM directory naming
- *                      scheme (includes the UUID).
- *  @param aCipher      The cipher to encrypt the VM with.
- *  @param aPasswordId  The password ID, empty if the VM should not be encrypted.
- *  @param aPassword    The password to encrypt the VM with.
+ *  @param aParent              Associated parent object.
+ *  @param strConfigFile        Local file system path to the VM settings (can be relative to the VirtualBox config directory).
+ *  @param strName              Name for the machine.
+ *  @param aArchitecture        Architecture to use for the machine.
+ *                              If a valid guest OS type is set via \a aOsType, the guest OS' type will be used instead then.
+ *  @param llGroups             list of groups for the machine.
+ *  @param strOsType            OS Type string (stored as is if aOsType is NULL).
+ *  @param aOsType              OS Type of this machine or NULL.
+ *  @param aId                  UUID for the new machine.
+ *  @param fForceOverwrite      Whether to overwrite an existing machine settings file.
+ *  @param fDirectoryIncludesUUID
+ *                              Whether the use a special VM directory naming scheme (includes the UUID).
+ *  @param aCipher              The cipher to encrypt the VM with.
+ *  @param aPasswordId          The password ID, empty if the VM should not be encrypted.
+ *  @param aPassword            The password to encrypt the VM with.
  *
- *  @return  Success indicator. if not S_OK, the machine object is invalid
+ *  @return Success indicator. if not S_OK, the machine object is invalid.
  */
 HRESULT Machine::init(VirtualBox *aParent,
                       const Utf8Str &strConfigFile,
                       const Utf8Str &strName,
+                      PlatformArchitecture_T aArchitecture,
                       const StringsList &llGroups,
                       const Utf8Str &strOsType,
                       GuestOSType *aOsType,
@@ -487,34 +460,33 @@ HRESULT Machine::init(VirtualBox *aParent,
         hrc = COMSETTER(SnapshotFolder)(NULL);
         AssertComRC(hrc);
 
+        /* Use the platform architecture which was handed-in by default. */
+        PlatformArchitecture_T enmPlatformArch = aArchitecture;
+
         if (aOsType)
         {
             /* Store OS type */
             mUserData->s.strOsType = aOsType->i_id();
 
-            /* Let the OS type select 64-bit ness. */
-            mHWData->mLongMode = aOsType->i_is64Bit()
-                               ? settings::Hardware::LongMode_Enabled : settings::Hardware::LongMode_Disabled;
-
-            /* Let the OS type enable the X2APIC */
-            mHWData->mX2APIC = aOsType->i_recommendedX2APIC();
-
-            hrc = aOsType->COMGETTER(RecommendedFirmware)(&mHWData->mFirmwareType);
-            AssertComRC(hrc);
+            /* Use the platform architecture of the found guest OS type. */
+            enmPlatformArch = aOsType->i_platformArchitecture();
         }
         else if (!strOsType.isEmpty())
         {
             /* Store OS type */
             mUserData->s.strOsType = strOsType;
-
-            /* No guest OS type object. Pick some plausible defaults which the
-             * host can handle. There's no way to know or validate anything. */
-            mHWData->mLongMode = HC_ARCH_BITS == 64 ? settings::Hardware::LongMode_Enabled : settings::Hardware::LongMode_Disabled;
-            mHWData->mX2APIC = false;
         }
 
-        /* Apply BIOS defaults. */
-        mBIOSSettings->i_applyDefaults(aOsType);
+        /* Set the platform architecture first before applying the defaults below. */
+        hrc = mPlatform->i_initArchitecture(enmPlatformArch);
+        if (FAILED(hrc)) return hrc;
+
+        /* Apply platform defaults. */
+        mPlatform->i_applyDefaults(aOsType);
+        i_platformPropertiesUpdate();
+
+        /* Apply firmware defaults. */
+        mFirmwareSettings->i_applyDefaults(aOsType);
 
         /* Apply TPM defaults. */
         mTrustedPlatformModule->i_applyDefaults(aOsType);
@@ -535,7 +507,7 @@ HRESULT Machine::init(VirtualBox *aParent,
             mParallelPorts[slot]->i_applyDefaults();
 
         /* Enable the VMMDev testing feature for bootsector VMs: */
-        if (aOsType && aOsType->i_id() == "VBoxBS_64")
+        if (aOsType && aOsType->i_id() == GUEST_OS_ID_STR_X64("VBoxBS"))
             mData->pMachineConfigFile->mapExtraDataItems["VBoxInternal/Devices/VMMDev/0/Config/TestingEnabled"] = "1";
 
 #ifdef VBOX_WITH_FULL_VM_ENCRYPTION
@@ -839,9 +811,10 @@ HRESULT Machine::init(VirtualBox *aParent,
 
 /**
  * Shared code between the various init() implementations.
+ *
+ * @returns HRESULT
  * @param   aParent         The VirtualBox object.
  * @param   strConfigFile   Settings file.
- * @return
  */
 HRESULT Machine::initImpl(VirtualBox *aParent,
                           const Utf8Str &strConfigFile)
@@ -1182,6 +1155,14 @@ HRESULT Machine::getParent(ComPtr<IVirtualBox> &aParent)
     return S_OK;
 }
 
+HRESULT Machine::getPlatform(ComPtr<IPlatform> &aPlatform)
+{
+    /* mPlatform is constant during life time, no need to lock */
+    ComObjPtr<Platform> pPlatform(mPlatform);
+    aPlatform = pPlatform;
+
+    return S_OK;
+}
 
 HRESULT Machine::getAccessible(BOOL *aAccessible)
 {
@@ -1391,33 +1372,6 @@ HRESULT Machine::setOSTypeId(const com::Utf8Str &aOSTypeId)
     return S_OK;
 }
 
-HRESULT Machine::getFirmwareType(FirmwareType_T *aFirmwareType)
-{
-    AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
-
-    *aFirmwareType = mHWData->mFirmwareType;
-
-    return S_OK;
-}
-
-HRESULT Machine::setFirmwareType(FirmwareType_T aFirmwareType)
-{
-    AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
-
-    HRESULT hrc = i_checkStateDependency(MutableStateDep);
-    if (FAILED(hrc)) return hrc;
-
-    i_setModified(IsModified_MachineData);
-    mHWData.backup();
-    mHWData->mFirmwareType = aFirmwareType;
-    Utf8Str strNVRAM = i_getDefaultNVRAMFilename();
-    alock.release();
-
-    mNvramStore->i_updateNonVolatileStorageFile(strNVRAM);
-
-    return S_OK;
-}
-
 HRESULT Machine::getKeyboardHIDType(KeyboardHIDType_T *aKeyboardHIDType)
 {
     AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
@@ -1460,81 +1414,6 @@ HRESULT Machine::setPointingHIDType(PointingHIDType_T aPointingHIDType)
     i_setModified(IsModified_MachineData);
     mHWData.backup();
     mHWData->mPointingHIDType = aPointingHIDType;
-
-    return S_OK;
-}
-
-HRESULT Machine::getChipsetType(ChipsetType_T *aChipsetType)
-{
-    AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
-
-    *aChipsetType = mHWData->mChipsetType;
-
-    return S_OK;
-}
-
-HRESULT Machine::setChipsetType(ChipsetType_T aChipsetType)
-{
-    AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
-
-    HRESULT hrc = i_checkStateDependency(MutableStateDep);
-    if (FAILED(hrc)) return hrc;
-
-    if (aChipsetType != mHWData->mChipsetType)
-    {
-        i_setModified(IsModified_MachineData);
-        mHWData.backup();
-        mHWData->mChipsetType = aChipsetType;
-
-        // Resize network adapter array, to be finalized on commit/rollback.
-        // We must not throw away entries yet, otherwise settings are lost
-        // without a way to roll back.
-        size_t newCount = Global::getMaxNetworkAdapters(aChipsetType);
-        size_t oldCount = mNetworkAdapters.size();
-        if (newCount > oldCount)
-        {
-            mNetworkAdapters.resize(newCount);
-            for (size_t slot = oldCount; slot < mNetworkAdapters.size(); slot++)
-            {
-                unconst(mNetworkAdapters[slot]).createObject();
-                mNetworkAdapters[slot]->init(this, (ULONG)slot);
-            }
-        }
-    }
-
-    return S_OK;
-}
-
-HRESULT Machine::getIommuType(IommuType_T *aIommuType)
-{
-    AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
-
-    *aIommuType = mHWData->mIommuType;
-
-    return S_OK;
-}
-
-HRESULT Machine::setIommuType(IommuType_T aIommuType)
-{
-    AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
-
-    HRESULT hrc = i_checkStateDependency(MutableStateDep);
-    if (FAILED(hrc)) return hrc;
-
-    if (aIommuType != mHWData->mIommuType)
-    {
-        if (aIommuType == IommuType_Intel)
-        {
-#ifndef VBOX_WITH_IOMMU_INTEL
-            LogRelFunc(("Setting Intel IOMMU when Intel IOMMU support not available!\n"));
-            return E_UNEXPECTED;
-#endif
-        }
-
-        i_setModified(IsModified_MachineData);
-        mHWData.backup();
-        mHWData->mIommuType = aIommuType;
-    }
 
     return S_OK;
 }
@@ -1632,36 +1511,33 @@ HRESULT Machine::getEffectiveParavirtProvider(ParavirtProvider_T *aParavirtProvi
 
                 case ParavirtProvider_Default:
                 {
+                    Assert(strlen(GUEST_OS_ID_STR_X64("")) > 0);
                     if (fOsXGuest)
                         *aParavirtProvider = ParavirtProvider_Minimal;
-                    else if (   mUserData->s.strOsType == "Windows11_64"
-                             || mUserData->s.strOsType == "Windows10"
-                             || mUserData->s.strOsType == "Windows10_64"
-                             || mUserData->s.strOsType == "Windows81"
-                             || mUserData->s.strOsType == "Windows81_64"
-                             || mUserData->s.strOsType == "Windows8"
-                             || mUserData->s.strOsType == "Windows8_64"
-                             || mUserData->s.strOsType == "Windows7"
-                             || mUserData->s.strOsType == "Windows7_64"
-                             || mUserData->s.strOsType == "WindowsVista"
-                             || mUserData->s.strOsType == "WindowsVista_64"
+                    else if (   mUserData->s.strOsType == GUEST_OS_ID_STR_X64("Windows11")
+                             || mUserData->s.strOsType == GUEST_OS_ID_STR_X86("Windows10")
+                             || mUserData->s.strOsType == GUEST_OS_ID_STR_X64("Windows10")
+                             || mUserData->s.strOsType == GUEST_OS_ID_STR_X86("Windows81")
+                             || mUserData->s.strOsType == GUEST_OS_ID_STR_X64("Windows81")
+                             || mUserData->s.strOsType == GUEST_OS_ID_STR_X86("Windows8")
+                             || mUserData->s.strOsType == GUEST_OS_ID_STR_X64("Windows8")
+                             || mUserData->s.strOsType == GUEST_OS_ID_STR_X86("Windows7")
+                             || mUserData->s.strOsType == GUEST_OS_ID_STR_X64("Windows7")
+                             || mUserData->s.strOsType == GUEST_OS_ID_STR_X86("WindowsVista")
+                             || mUserData->s.strOsType == GUEST_OS_ID_STR_X64("WindowsVista")
                              || (   (   mUserData->s.strOsType.startsWith("Windows202")
                                      || mUserData->s.strOsType.startsWith("Windows201"))
-                                 && mUserData->s.strOsType.endsWith("_64"))
-                             || mUserData->s.strOsType == "Windows2012"
-                             || mUserData->s.strOsType == "Windows2012_64"
-                             || mUserData->s.strOsType == "Windows2008"
-                             || mUserData->s.strOsType == "Windows2008_64")
-                    {
+                                 && mUserData->s.strOsType.endsWith(GUEST_OS_ID_STR_X64("")))
+                             || mUserData->s.strOsType == GUEST_OS_ID_STR_X86("Windows2012")
+                             || mUserData->s.strOsType == GUEST_OS_ID_STR_X64("Windows2012")
+                             || mUserData->s.strOsType == GUEST_OS_ID_STR_X86("Windows2008")
+                             || mUserData->s.strOsType == GUEST_OS_ID_STR_X64("Windows2008"))
                         *aParavirtProvider = ParavirtProvider_HyperV;
-                    }
-                    else if (guestTypeFamilyId == "Linux" &&
-                             mUserData->s.strOsType != "Linux22" &&      // Linux22 and Linux24{_64} excluded as they're too old
-                             mUserData->s.strOsType != "Linux24" &&      // to have any KVM paravirtualization support.
-                             mUserData->s.strOsType != "Linux24_64")
-                    {
+                    else if (   guestTypeFamilyId == "Linux"
+                             && mUserData->s.strOsType != GUEST_OS_ID_STR_X86("Linux22") // Linux22 and Linux24{_64} excluded as they're too old
+                             && mUserData->s.strOsType != GUEST_OS_ID_STR_X86("Linux24") // to have any KVM paravirtualization support.
+                             && mUserData->s.strOsType != GUEST_OS_ID_STR_X64("Linux24"))
                         *aParavirtProvider = ParavirtProvider_KVM;
-                    }
                     else
                         *aParavirtProvider = ParavirtProvider_None;
                     break;
@@ -1999,30 +1875,6 @@ HRESULT Machine::setEmulatedUSBCardReaderEnabled(BOOL aEmulatedUSBCardReaderEnab
 #endif
 }
 
-HRESULT Machine::getHPETEnabled(BOOL *aHPETEnabled)
-{
-    AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
-
-    *aHPETEnabled = mHWData->mHPETEnabled;
-
-    return S_OK;
-}
-
-HRESULT Machine::setHPETEnabled(BOOL aHPETEnabled)
-{
-    AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
-
-    HRESULT hrc = i_checkStateDependency(MutableStateDep);
-    if (FAILED(hrc)) return hrc;
-
-    i_setModified(IsModified_MachineData);
-    mHWData.backup();
-
-    mHWData->mHPETEnabled = aHPETEnabled;
-
-    return hrc;
-}
-
 /** @todo this method should not be public */
 HRESULT Machine::getMemoryBalloonSize(ULONG *aMemoryBalloonSize)
 {
@@ -2092,10 +1944,10 @@ HRESULT Machine::setPageFusionEnabled(BOOL aPageFusionEnabled)
 #endif
 }
 
-HRESULT Machine::getBIOSSettings(ComPtr<IBIOSSettings> &aBIOSSettings)
+HRESULT Machine::getFirmwareSettings(ComPtr<IFirmwareSettings> &aFirmwareSettings)
 {
-    /* mBIOSSettings is constant during life time, no need to lock */
-    aBIOSSettings = mBIOSSettings;
+    /* mFirmwareSettings is constant during life time, no need to lock */
+    aFirmwareSettings = mFirmwareSettings;
 
     return S_OK;
 }
@@ -2130,472 +1982,6 @@ HRESULT Machine::getGraphicsAdapter(ComPtr<IGraphicsAdapter> &aGraphicsAdapter)
     AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
 
     aGraphicsAdapter = mGraphicsAdapter;
-
-    return S_OK;
-}
-
-HRESULT Machine::getCPUProperty(CPUPropertyType_T aProperty, BOOL *aValue)
-{
-    AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
-
-    switch (aProperty)
-    {
-        case CPUPropertyType_PAE:
-            *aValue = mHWData->mPAEEnabled;
-            break;
-
-        case CPUPropertyType_LongMode:
-            if (mHWData->mLongMode == settings::Hardware::LongMode_Enabled)
-                *aValue = TRUE;
-            else if (mHWData->mLongMode == settings::Hardware::LongMode_Disabled)
-                *aValue = FALSE;
-#if HC_ARCH_BITS == 64
-            else
-                *aValue = TRUE;
-#else
-            else
-            {
-                *aValue = FALSE;
-
-                ComObjPtr<GuestOSType> pGuestOSType;
-                HRESULT hrc2 = mParent->i_findGuestOSType(mUserData->s.strOsType,
-                                                          pGuestOSType);
-                if (SUCCEEDED(hrc2) && !pGuestOSType.isNull())
-                {
-                    if (pGuestOSType->i_is64Bit())
-                    {
-                        ComObjPtr<Host> pHost = mParent->i_host();
-                        alock.release();
-
-                        hrc2 = pHost->GetProcessorFeature(ProcessorFeature_LongMode, aValue); AssertComRC(hrc2);
-                        if (FAILED(hrc2))
-                            *aValue = FALSE;
-                    }
-                }
-            }
-#endif
-            break;
-
-        case CPUPropertyType_TripleFaultReset:
-            *aValue = mHWData->mTripleFaultReset;
-            break;
-
-        case CPUPropertyType_APIC:
-            *aValue = mHWData->mAPIC;
-            break;
-
-        case CPUPropertyType_X2APIC:
-            *aValue = mHWData->mX2APIC;
-            break;
-
-        case CPUPropertyType_IBPBOnVMExit:
-            *aValue = mHWData->mIBPBOnVMExit;
-            break;
-
-        case CPUPropertyType_IBPBOnVMEntry:
-            *aValue = mHWData->mIBPBOnVMEntry;
-            break;
-
-        case CPUPropertyType_SpecCtrl:
-            *aValue = mHWData->mSpecCtrl;
-            break;
-
-        case CPUPropertyType_SpecCtrlByHost:
-            *aValue = mHWData->mSpecCtrlByHost;
-            break;
-
-        case CPUPropertyType_HWVirt:
-            *aValue = mHWData->mNestedHWVirt;
-            break;
-
-        case CPUPropertyType_L1DFlushOnEMTScheduling:
-            *aValue = mHWData->mL1DFlushOnSched;
-            break;
-
-        case CPUPropertyType_L1DFlushOnVMEntry:
-            *aValue = mHWData->mL1DFlushOnVMEntry;
-            break;
-
-        case CPUPropertyType_MDSClearOnEMTScheduling:
-            *aValue = mHWData->mMDSClearOnSched;
-            break;
-
-        case CPUPropertyType_MDSClearOnVMEntry:
-            *aValue = mHWData->mMDSClearOnVMEntry;
-            break;
-
-        default:
-            return E_INVALIDARG;
-    }
-    return S_OK;
-}
-
-HRESULT Machine::setCPUProperty(CPUPropertyType_T aProperty, BOOL aValue)
-{
-    AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
-
-    HRESULT hrc = i_checkStateDependency(MutableStateDep);
-    if (FAILED(hrc)) return hrc;
-
-    switch (aProperty)
-    {
-        case CPUPropertyType_PAE:
-            i_setModified(IsModified_MachineData);
-            mHWData.backup();
-            mHWData->mPAEEnabled = !!aValue;
-            break;
-
-        case CPUPropertyType_LongMode:
-            i_setModified(IsModified_MachineData);
-            mHWData.backup();
-            mHWData->mLongMode = !aValue ? settings::Hardware::LongMode_Disabled : settings::Hardware::LongMode_Enabled;
-            break;
-
-        case CPUPropertyType_TripleFaultReset:
-            i_setModified(IsModified_MachineData);
-            mHWData.backup();
-            mHWData->mTripleFaultReset = !!aValue;
-            break;
-
-        case CPUPropertyType_APIC:
-            if (mHWData->mX2APIC)
-                aValue = TRUE;
-            i_setModified(IsModified_MachineData);
-            mHWData.backup();
-            mHWData->mAPIC = !!aValue;
-            break;
-
-        case CPUPropertyType_X2APIC:
-            i_setModified(IsModified_MachineData);
-            mHWData.backup();
-            mHWData->mX2APIC = !!aValue;
-            if (aValue)
-                mHWData->mAPIC = !!aValue;
-            break;
-
-        case CPUPropertyType_IBPBOnVMExit:
-            i_setModified(IsModified_MachineData);
-            mHWData.backup();
-            mHWData->mIBPBOnVMExit = !!aValue;
-            break;
-
-        case CPUPropertyType_IBPBOnVMEntry:
-            i_setModified(IsModified_MachineData);
-            mHWData.backup();
-            mHWData->mIBPBOnVMEntry = !!aValue;
-            break;
-
-        case CPUPropertyType_SpecCtrl:
-            i_setModified(IsModified_MachineData);
-            mHWData.backup();
-            mHWData->mSpecCtrl = !!aValue;
-            break;
-
-        case CPUPropertyType_SpecCtrlByHost:
-            i_setModified(IsModified_MachineData);
-            mHWData.backup();
-            mHWData->mSpecCtrlByHost = !!aValue;
-            break;
-
-        case CPUPropertyType_HWVirt:
-            i_setModified(IsModified_MachineData);
-            mHWData.backup();
-            mHWData->mNestedHWVirt = !!aValue;
-            break;
-
-        case CPUPropertyType_L1DFlushOnEMTScheduling:
-            i_setModified(IsModified_MachineData);
-            mHWData.backup();
-            mHWData->mL1DFlushOnSched = !!aValue;
-            break;
-
-        case CPUPropertyType_L1DFlushOnVMEntry:
-            i_setModified(IsModified_MachineData);
-            mHWData.backup();
-            mHWData->mL1DFlushOnVMEntry = !!aValue;
-            break;
-
-        case CPUPropertyType_MDSClearOnEMTScheduling:
-            i_setModified(IsModified_MachineData);
-            mHWData.backup();
-            mHWData->mMDSClearOnSched = !!aValue;
-            break;
-
-        case CPUPropertyType_MDSClearOnVMEntry:
-            i_setModified(IsModified_MachineData);
-            mHWData.backup();
-            mHWData->mMDSClearOnVMEntry = !!aValue;
-            break;
-
-        default:
-            return E_INVALIDARG;
-    }
-    return S_OK;
-}
-
-HRESULT Machine::getCPUIDLeafByOrdinal(ULONG aOrdinal, ULONG *aIdx, ULONG *aSubIdx, ULONG *aValEax, ULONG *aValEbx,
-                                       ULONG *aValEcx, ULONG *aValEdx)
-{
-    AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
-    if (aOrdinal < mHWData->mCpuIdLeafList.size())
-    {
-        for (settings::CpuIdLeafsList::const_iterator it = mHWData->mCpuIdLeafList.begin();
-             it != mHWData->mCpuIdLeafList.end();
-             ++it)
-        {
-            if (aOrdinal == 0)
-            {
-                const settings::CpuIdLeaf &rLeaf= *it;
-                *aIdx    = rLeaf.idx;
-                *aSubIdx = rLeaf.idxSub;
-                *aValEax = rLeaf.uEax;
-                *aValEbx = rLeaf.uEbx;
-                *aValEcx = rLeaf.uEcx;
-                *aValEdx = rLeaf.uEdx;
-                return S_OK;
-            }
-            aOrdinal--;
-        }
-    }
-    return E_INVALIDARG;
-}
-
-HRESULT Machine::getCPUIDLeaf(ULONG aIdx, ULONG aSubIdx, ULONG *aValEax, ULONG *aValEbx, ULONG *aValEcx, ULONG *aValEdx)
-{
-    AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
-
-    /*
-     * Search the list.
-     */
-    for (settings::CpuIdLeafsList::const_iterator it = mHWData->mCpuIdLeafList.begin(); it != mHWData->mCpuIdLeafList.end(); ++it)
-    {
-        const settings::CpuIdLeaf &rLeaf= *it;
-        if (   rLeaf.idx == aIdx
-            && (   aSubIdx == UINT32_MAX
-                || rLeaf.idxSub == aSubIdx) )
-        {
-            *aValEax = rLeaf.uEax;
-            *aValEbx = rLeaf.uEbx;
-            *aValEcx = rLeaf.uEcx;
-            *aValEdx = rLeaf.uEdx;
-            return S_OK;
-        }
-    }
-
-    return E_INVALIDARG;
-}
-
-
-HRESULT Machine::setCPUIDLeaf(ULONG aIdx, ULONG aSubIdx, ULONG aValEax, ULONG aValEbx, ULONG aValEcx, ULONG aValEdx)
-{
-    /*
-     * Validate input before taking locks and checking state.
-     */
-    if (aSubIdx != 0 && aSubIdx != UINT32_MAX)
-        return setError(E_INVALIDARG, tr("Currently only aSubIdx values 0 and 0xffffffff are supported: %#x"), aSubIdx);
-    if (   aIdx >= UINT32_C(0x20)
-        && aIdx - UINT32_C(0x80000000) >= UINT32_C(0x20)
-        && aIdx - UINT32_C(0xc0000000) >= UINT32_C(0x10) )
-        return setError(E_INVALIDARG, tr("CpuId override leaf %#x is out of range"), aIdx);
-
-    AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
-    HRESULT hrc = i_checkStateDependency(MutableStateDep);
-    if (FAILED(hrc)) return hrc;
-
-    /*
-     * Impose a maximum number of leaves.
-     */
-    if (mHWData->mCpuIdLeafList.size() > 256)
-        return setError(E_FAIL, tr("Max of 256 CPUID override leaves reached"));
-
-    /*
-     * Updating the list is a bit more complicated.  So, let's do a remove first followed by an insert.
-     */
-    i_setModified(IsModified_MachineData);
-    mHWData.backup();
-
-    for (settings::CpuIdLeafsList::iterator it = mHWData->mCpuIdLeafList.begin(); it != mHWData->mCpuIdLeafList.end(); )
-    {
-        settings::CpuIdLeaf &rLeaf= *it;
-        if (   rLeaf.idx == aIdx
-            && (   aSubIdx == UINT32_MAX
-                || rLeaf.idxSub == aSubIdx) )
-            it = mHWData->mCpuIdLeafList.erase(it);
-        else
-            ++it;
-    }
-
-    settings::CpuIdLeaf NewLeaf;
-    NewLeaf.idx    = aIdx;
-    NewLeaf.idxSub = aSubIdx == UINT32_MAX ? 0 : aSubIdx;
-    NewLeaf.uEax   = aValEax;
-    NewLeaf.uEbx   = aValEbx;
-    NewLeaf.uEcx   = aValEcx;
-    NewLeaf.uEdx   = aValEdx;
-    mHWData->mCpuIdLeafList.push_back(NewLeaf);
-    return S_OK;
-}
-
-HRESULT Machine::removeCPUIDLeaf(ULONG aIdx, ULONG aSubIdx)
-{
-    AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
-
-    HRESULT hrc = i_checkStateDependency(MutableStateDep);
-    if (FAILED(hrc)) return hrc;
-
-    /*
-     * Do the removal.
-     */
-    bool fModified = mHWData.isBackedUp();
-    for (settings::CpuIdLeafsList::iterator it = mHWData->mCpuIdLeafList.begin(); it != mHWData->mCpuIdLeafList.end(); )
-    {
-        settings::CpuIdLeaf &rLeaf= *it;
-        if (   rLeaf.idx == aIdx
-            && (   aSubIdx == UINT32_MAX
-                || rLeaf.idxSub == aSubIdx) )
-        {
-            if (!fModified)
-            {
-                fModified = true;
-                i_setModified(IsModified_MachineData);
-                mHWData.backup();
-                // Start from the beginning, since mHWData.backup() creates
-                // a new list, causing iterator mixup. This makes sure that
-                // the settings are not unnecessarily marked as modified,
-                // at the price of extra list walking.
-                it = mHWData->mCpuIdLeafList.begin();
-            }
-            else
-                it = mHWData->mCpuIdLeafList.erase(it);
-        }
-        else
-            ++it;
-    }
-
-    return S_OK;
-}
-
-HRESULT Machine::removeAllCPUIDLeaves()
-{
-    AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
-
-    HRESULT hrc = i_checkStateDependency(MutableStateDep);
-    if (FAILED(hrc)) return hrc;
-
-    if (mHWData->mCpuIdLeafList.size() > 0)
-    {
-        i_setModified(IsModified_MachineData);
-        mHWData.backup();
-
-        mHWData->mCpuIdLeafList.clear();
-    }
-
-    return S_OK;
-}
-HRESULT Machine::getHWVirtExProperty(HWVirtExPropertyType_T aProperty, BOOL *aValue)
-{
-    AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
-
-    switch(aProperty)
-    {
-        case HWVirtExPropertyType_Enabled:
-            *aValue = mHWData->mHWVirtExEnabled;
-            break;
-
-        case HWVirtExPropertyType_VPID:
-            *aValue = mHWData->mHWVirtExVPIDEnabled;
-            break;
-
-        case HWVirtExPropertyType_NestedPaging:
-            *aValue = mHWData->mHWVirtExNestedPagingEnabled;
-            break;
-
-        case HWVirtExPropertyType_UnrestrictedExecution:
-            *aValue = mHWData->mHWVirtExUXEnabled;
-            break;
-
-        case HWVirtExPropertyType_LargePages:
-            *aValue = mHWData->mHWVirtExLargePagesEnabled;
-            break;
-
-        case HWVirtExPropertyType_Force:
-            *aValue = mHWData->mHWVirtExForceEnabled;
-            break;
-
-        case HWVirtExPropertyType_UseNativeApi:
-            *aValue = mHWData->mHWVirtExUseNativeApi;
-            break;
-
-        case HWVirtExPropertyType_VirtVmsaveVmload:
-            *aValue = mHWData->mHWVirtExVirtVmsaveVmload;
-            break;
-
-        default:
-            return E_INVALIDARG;
-    }
-    return S_OK;
-}
-
-HRESULT Machine::setHWVirtExProperty(HWVirtExPropertyType_T aProperty, BOOL aValue)
-{
-    AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
-
-    HRESULT hrc = i_checkStateDependency(MutableStateDep);
-    if (FAILED(hrc)) return hrc;
-
-    switch (aProperty)
-    {
-        case HWVirtExPropertyType_Enabled:
-            i_setModified(IsModified_MachineData);
-            mHWData.backup();
-            mHWData->mHWVirtExEnabled = !!aValue;
-            break;
-
-        case HWVirtExPropertyType_VPID:
-            i_setModified(IsModified_MachineData);
-            mHWData.backup();
-            mHWData->mHWVirtExVPIDEnabled = !!aValue;
-            break;
-
-        case HWVirtExPropertyType_NestedPaging:
-            i_setModified(IsModified_MachineData);
-            mHWData.backup();
-            mHWData->mHWVirtExNestedPagingEnabled = !!aValue;
-            break;
-
-        case HWVirtExPropertyType_UnrestrictedExecution:
-            i_setModified(IsModified_MachineData);
-            mHWData.backup();
-            mHWData->mHWVirtExUXEnabled = !!aValue;
-            break;
-
-        case HWVirtExPropertyType_LargePages:
-            i_setModified(IsModified_MachineData);
-            mHWData.backup();
-            mHWData->mHWVirtExLargePagesEnabled = !!aValue;
-            break;
-
-        case HWVirtExPropertyType_Force:
-            i_setModified(IsModified_MachineData);
-            mHWData.backup();
-            mHWData->mHWVirtExForceEnabled = !!aValue;
-            break;
-
-        case HWVirtExPropertyType_UseNativeApi:
-            i_setModified(IsModified_MachineData);
-            mHWData.backup();
-            mHWData->mHWVirtExUseNativeApi = !!aValue;
-            break;
-
-        case HWVirtExPropertyType_VirtVmsaveVmload:
-            i_setModified(IsModified_MachineData);
-            mHWData.backup();
-            mHWData->mHWVirtExVirtVmsaveVmload = !!aValue;
-            break;
-
-        default:
-            return E_INVALIDARG;
-    }
 
     return S_OK;
 }
@@ -3114,41 +2500,6 @@ HRESULT Machine::setTeleporterPassword(const com::Utf8Str &aTeleporterPassword)
     }
 
     return hrc;
-}
-
-HRESULT Machine::getRTCUseUTC(BOOL *aRTCUseUTC)
-{
-    AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
-
-    *aRTCUseUTC = mUserData->s.fRTCUseUTC;
-
-    return S_OK;
-}
-
-HRESULT Machine::setRTCUseUTC(BOOL aRTCUseUTC)
-{
-    AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
-
-    /* Only allow it to be set to true when PoweredOff or Aborted.
-       (Clearing it is always permitted.) */
-    if (    aRTCUseUTC
-        &&  mData->mRegistered
-        &&  (   !i_isSessionMachine()
-             || (   mData->mMachineState != MachineState_PoweredOff
-                 && mData->mMachineState != MachineState_Teleported
-                 && mData->mMachineState != MachineState_Aborted
-                )
-            )
-       )
-        return setError(VBOX_E_INVALID_VM_STATE,
-                        tr("The machine is not powered off (state is %s)"),
-                        Global::stringifyMachineState(mData->mMachineState));
-
-    i_setModified(IsModified_MachineData);
-    mUserData.backup();
-    mUserData->s.fRTCUseUTC = !!aRTCUseUTC;
-
-    return S_OK;
 }
 
 HRESULT Machine::getIOCacheEnabled(BOOL *aIOCacheEnabled)
@@ -5680,6 +5031,7 @@ HRESULT Machine::createSharedFolder(const com::Utf8Str &aName, const com::Utf8St
                         tr("Shared folder named '%s' already exists"),
                         aName.c_str());
 
+    SymlinkPolicy_T enmSymlinkPolicy = SymlinkPolicy_None;
     sharedFolder.createObject();
     hrc = sharedFolder->init(i_getMachine(),
                              aName,
@@ -5687,7 +5039,8 @@ HRESULT Machine::createSharedFolder(const com::Utf8Str &aName, const com::Utf8St
                              !!aWritable,
                              !!aAutomount,
                              aAutoMountPoint,
-                             true /* fFailOnError */);
+                             true /* fFailOnError */,
+                             enmSymlinkPolicy);
     if (FAILED(hrc)) return hrc;
 
     i_setModified(IsModified_SharedFolders);
@@ -6444,8 +5797,13 @@ HRESULT Machine::addUSBController(const com::Utf8Str &aName, USBControllerType_T
                         aName.c_str());
 
     /* Check that we don't exceed the maximum number of USB controllers for the given type. */
+    ChipsetType_T enmChipsetType;
+    hrc = mPlatform->getChipsetType(&enmChipsetType);
+    if (FAILED(hrc))
+        return hrc;
+
     ULONG maxInstances;
-    hrc = mParent->i_getSystemProperties()->GetMaxInstancesOfUSBControllerType(mHWData->mChipsetType, aType, &maxInstances);
+    hrc = mPlatformProperties->GetMaxInstancesOfUSBControllerType(enmChipsetType, aType, &maxInstances);
     if (FAILED(hrc))
         return hrc;
 
@@ -6955,9 +6313,10 @@ HRESULT Machine::attachHostPCIDevice(LONG aHostAddress, LONG aDesiredGuestAddres
         if (FAILED(hrc)) return hrc;
 
         ChipsetType_T aChipset = ChipsetType_PIIX3;
-        COMGETTER(ChipsetType)(&aChipset);
+        hrc = mPlatform->COMGETTER(ChipsetType)(&aChipset);
+        if (FAILED(hrc)) return hrc;
 
-        if (aChipset != ChipsetType_ICH9)
+        if (aChipset != ChipsetType_ICH9) /** @todo BUGBUG ASSUMES x86! */
         {
             return setError(E_INVALIDARG,
                             tr("Host PCI attachment only supported with ICH9 chipset"));
@@ -7356,6 +6715,31 @@ HRESULT Machine::setVMProcessPriority(VMProcPriority_T aVMProcessPriority)
     alock.release();
     if (SUCCEEDED(hrc))
         hrc = i_onVMProcessPriorityChange(aVMProcessPriority);
+    return hrc;
+}
+
+HRESULT Machine::getVMExecutionEngine(VMExecutionEngine_T *aVMExecutionEngine)
+{
+    AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
+
+    *aVMExecutionEngine = mUserData->s.enmExecEngine;
+
+    return S_OK;
+}
+
+HRESULT Machine::setVMExecutionEngine(VMExecutionEngine_T aVMExecutionEngine)
+{
+    AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
+    HRESULT hrc = i_checkStateDependency(MutableOrSavedStateDep);
+    if (SUCCEEDED(hrc))
+    {
+        hrc = mUserData.backupEx();
+        if (SUCCEEDED(hrc))
+        {
+            i_setModified(IsModified_MachineData);
+            mUserData->s.enmExecEngine = aVMExecutionEngine;
+        }
+    }
     return hrc;
 }
 
@@ -8447,6 +7831,11 @@ Utf8Str Machine::i_getExtraData(const Utf8Str &strKey)
     return strResult;
 }
 
+FirmwareType_T Machine::i_getFirmwareType() const
+{
+    return mFirmwareSettings->i_getFirmwareType();
+}
+
 // protected methods
 /////////////////////////////////////////////////////////////////////////////
 
@@ -8595,15 +7984,22 @@ HRESULT Machine::initDataAndChildObjects()
     mStorageControllers.allocate();
     mUSBControllers.allocate();
 
+    /* create the platform + platform properties objects for this machine */
+    HRESULT hrc = unconst(mPlatform).createObject();
+    ComAssertComRCRetRC(hrc);
+    hrc = mPlatform->init(this);
+    ComAssertComRCRetRC(hrc);
+    hrc = unconst(mPlatformProperties).createObject();
+    ComAssertComRCRetRC(hrc);
+    hrc = mPlatformProperties->init(mParent);
+    ComAssertComRCRetRC(hrc);
+
     /* initialize mOSTypeId */
     mUserData->s.strOsType = mParent->i_getUnknownOSType()->i_id();
 
-/** @todo r=bird: init() methods never fails, right? Why don't we make them
- *        return void then! */
-
-    /* create associated BIOS settings object */
-    unconst(mBIOSSettings).createObject();
-    mBIOSSettings->init(this);
+    /* create associated firmware settings object */
+    unconst(mFirmwareSettings).createObject();
+    mFirmwareSettings->init(this);
 
     /* create associated recording settings object */
     unconst(mRecordingSettings).createObject();
@@ -8648,7 +8044,11 @@ HRESULT Machine::initDataAndChildObjects()
     mUSBDeviceFilters->init(this);
 
     /* create associated network adapter objects */
-    mNetworkAdapters.resize(Global::getMaxNetworkAdapters(mHWData->mChipsetType));
+    ChipsetType_T enmChipsetType;
+    hrc = mPlatform->getChipsetType(&enmChipsetType);
+    ComAssertComRC(hrc);
+
+    mNetworkAdapters.resize(PlatformProperties::s_getMaxNetworkAdapters(enmChipsetType));
     for (ULONG slot = 0; slot < mNetworkAdapters.size(); ++slot)
     {
         unconst(mNetworkAdapters[slot]).createObject();
@@ -8663,7 +8063,7 @@ HRESULT Machine::initDataAndChildObjects()
     unconst(mGuestDebugControl).createObject();
     mGuestDebugControl->init(this);
 
-    return S_OK;
+    return hrc;
 }
 
 /**
@@ -8748,10 +8148,22 @@ void Machine::uninitDataAndChildObjects()
         unconst(mGraphicsAdapter).setNull();
     }
 
-    if (mBIOSSettings)
+    if (mPlatform)
     {
-        mBIOSSettings->uninit();
-        unconst(mBIOSSettings).setNull();
+        mPlatform->uninit();
+        unconst(mPlatform).setNull();
+    }
+
+    if (mPlatformProperties)
+    {
+        mPlatformProperties->uninit();
+        unconst(mPlatformProperties).setNull();
+    }
+
+    if (mFirmwareSettings)
+    {
+        mFirmwareSettings->uninit();
+        unconst(mFirmwareSettings).setNull();
     }
 
     if (mRecordingSettings)
@@ -9206,7 +8618,7 @@ HRESULT Machine::i_loadHardware(const Guid *puuidRegistry,
                                 const settings::Hardware &data,
                                 const settings::Debugging *pDbg,
                                 const settings::Autostart *pAutostart,
-                                const settings::RecordingSettings &recording)
+                                const settings::Recording &recording)
 {
     AssertReturn(!i_isSessionMachine(), E_FAIL);
 
@@ -9221,28 +8633,6 @@ HRESULT Machine::i_loadHardware(const Guid *puuidRegistry,
         mHWData->mHWVersion = data.strVersion;
         mHWData->mHardwareUUID = data.uuid;
 
-        mHWData->mHWVirtExEnabled             = data.fHardwareVirt;
-        mHWData->mHWVirtExNestedPagingEnabled = data.fNestedPaging;
-        mHWData->mHWVirtExLargePagesEnabled   = data.fLargePages;
-        mHWData->mHWVirtExVPIDEnabled         = data.fVPID;
-        mHWData->mHWVirtExUXEnabled           = data.fUnrestrictedExecution;
-        mHWData->mHWVirtExForceEnabled        = data.fHardwareVirtForce;
-        mHWData->mHWVirtExUseNativeApi        = data.fUseNativeApi;
-        mHWData->mHWVirtExVirtVmsaveVmload    = data.fVirtVmsaveVmload;
-        mHWData->mPAEEnabled                  = data.fPAE;
-        mHWData->mLongMode                    = data.enmLongMode;
-        mHWData->mTripleFaultReset            = data.fTripleFaultReset;
-        mHWData->mAPIC                        = data.fAPIC;
-        mHWData->mX2APIC                      = data.fX2APIC;
-        mHWData->mIBPBOnVMExit                = data.fIBPBOnVMExit;
-        mHWData->mIBPBOnVMEntry               = data.fIBPBOnVMEntry;
-        mHWData->mSpecCtrl                    = data.fSpecCtrl;
-        mHWData->mSpecCtrlByHost              = data.fSpecCtrlByHost;
-        mHWData->mL1DFlushOnSched             = data.fL1DFlushOnSched;
-        mHWData->mL1DFlushOnVMEntry           = data.fL1DFlushOnVMEntry;
-        mHWData->mMDSClearOnSched             = data.fMDSClearOnSched;
-        mHWData->mMDSClearOnVMEntry           = data.fMDSClearOnVMEntry;
-        mHWData->mNestedHWVirt                = data.fNestedHWVirt;
         mHWData->mCPUCount                    = data.cCPUs;
         mHWData->mCPUHotPlugEnabled           = data.fCpuHotPlug;
         mHWData->mCpuExecutionCap             = data.ulCpuExecutionCap;
@@ -9263,20 +8653,6 @@ HRESULT Machine::i_loadHardware(const Guid *puuidRegistry,
             }
         }
 
-        // cpuid leafs
-        for (settings::CpuIdLeafsList::const_iterator
-             it = data.llCpuIdLeafs.begin();
-             it != data.llCpuIdLeafs.end();
-             ++it)
-        {
-            const settings::CpuIdLeaf &rLeaf= *it;
-            if (   rLeaf.idx < UINT32_C(0x20)
-                || rLeaf.idx - UINT32_C(0x80000000) < UINT32_C(0x20)
-                || rLeaf.idx - UINT32_C(0xc0000000) < UINT32_C(0x10) )
-                mHWData->mCpuIdLeafList.push_back(rLeaf);
-            /* else: just ignore */
-        }
-
         mHWData->mMemorySize = data.ulMemorySizeMB;
         mHWData->mPageFusionEnabled = data.fPageFusionEnabled;
 
@@ -9290,15 +8666,11 @@ HRESULT Machine::i_loadHardware(const Guid *puuidRegistry,
                 mHWData->mBootOrder[i] = it->second;
         }
 
-        mHWData->mFirmwareType = data.firmwareType;
         mHWData->mPointingHIDType = data.pointingHIDType;
         mHWData->mKeyboardHIDType = data.keyboardHIDType;
-        mHWData->mChipsetType = data.chipsetType;
-        mHWData->mIommuType = data.iommuType;
         mHWData->mParavirtProvider = data.paravirtProvider;
         mHWData->mParavirtDebug = data.strParavirtDebug;
         mHWData->mEmulatedUSBCardReaderEnabled = data.fEmulatedUSBCardReader;
-        mHWData->mHPETEnabled = data.fHPETEnabled;
 
         /* GraphicsAdapter */
         hrc = mGraphicsAdapter->i_loadSettings(data.graphicsAdapter);
@@ -9308,8 +8680,14 @@ HRESULT Machine::i_loadHardware(const Guid *puuidRegistry,
         hrc = mVRDEServer->i_loadSettings(data.vrdeSettings);
         if (FAILED(hrc)) return hrc;
 
-        /* BIOS */
-        hrc = mBIOSSettings->i_loadSettings(data.biosSettings);
+        /* Platform */
+        hrc = mPlatform->i_loadSettings(data.platformSettings);
+        if (FAILED(hrc)) return hrc;
+
+        i_platformPropertiesUpdate();
+
+        /* Firmware */
+        hrc = mFirmwareSettings->i_loadSettings(data.firmwareSettings);
         if (FAILED(hrc)) return hrc;
 
         /* Recording */
@@ -9348,8 +8726,8 @@ HRESULT Machine::i_loadHardware(const Guid *puuidRegistry,
         // network adapters (establish array size first and apply defaults, to
         // ensure reading the same settings as we saved, since the list skips
         // adapters having defaults)
-        size_t newCount = Global::getMaxNetworkAdapters(mHWData->mChipsetType);
-        size_t oldCount = mNetworkAdapters.size();
+        size_t const newCount = PlatformProperties::s_getMaxNetworkAdapters(data.platformSettings.chipsetType);
+        size_t const oldCount = mNetworkAdapters.size();
         if (newCount > oldCount)
         {
             mNetworkAdapters.resize(newCount);
@@ -9441,7 +8819,8 @@ HRESULT Machine::i_loadHardware(const Guid *puuidRegistry,
                                      RT_BOOL(sf.fWritable),
                                      RT_BOOL(sf.fAutoMount),
                                      sf.strAutoMountPoint,
-                                     false /* fFailOnError */);
+                                     false /* fFailOnError */,
+                                     sf.enmSymlinkPolicy);
             if (FAILED(hrc)) return hrc;
             mHWData->mSharedFolders.push_back(sharedFolder);
         }
@@ -10181,7 +9560,7 @@ HRESULT Machine::i_prepareSaveSettings(bool *pfNeedsGlobalSaveSettings,
                         newNVRAMFile = newConfigFile;
                         newNVRAMFile.stripSuffix();
                         newNVRAMFile += ".nvram";
-                        RTFileRename(NVRAMFile.c_str(), newNVRAMFile.c_str(), 0);
+                        RTPathRename(NVRAMFile.c_str(), newNVRAMFile.c_str(), 0);
                     }
                 }
             }
@@ -10230,7 +9609,7 @@ HRESULT Machine::i_prepareSaveSettings(bool *pfNeedsGlobalSaveSettings,
                 RTFileRename(newConfigFilePrev.c_str(), configFilePrev.c_str(), 0);
                 RTFileRename(newConfigFile.c_str(), configFile.c_str(), 0);
                 if (NVRAMFile.isNotEmpty() && newNVRAMFile.isNotEmpty())
-                    RTFileRename(newNVRAMFile.c_str(), NVRAMFile.c_str(), 0);
+                    RTPathRename(newNVRAMFile.c_str(), NVRAMFile.c_str(), 0);
             }
             if (dirRenamed)
                 RTPathRename(newConfigDir.c_str(), configDir.c_str(), 0);
@@ -10633,7 +10012,7 @@ HRESULT Machine::i_saveAllSnapshots(settings::MachineConfigFile &config)
  *  @param recording      Reference to reecording settings.
  */
 HRESULT Machine::i_saveHardware(settings::Hardware &data, settings::Debugging *pDbg,
-                                settings::Autostart *pAutostart, settings::RecordingSettings &recording)
+                                settings::Autostart *pAutostart, settings::Recording &recording)
 {
     HRESULT hrc = S_OK;
 
@@ -10651,28 +10030,6 @@ HRESULT Machine::i_saveHardware(settings::Hardware &data, settings::Debugging *p
         data.uuid = mHWData->mHardwareUUID;
 
         // CPU
-        data.fHardwareVirt          = !!mHWData->mHWVirtExEnabled;
-        data.fNestedPaging          = !!mHWData->mHWVirtExNestedPagingEnabled;
-        data.fLargePages            = !!mHWData->mHWVirtExLargePagesEnabled;
-        data.fVPID                  = !!mHWData->mHWVirtExVPIDEnabled;
-        data.fUnrestrictedExecution = !!mHWData->mHWVirtExUXEnabled;
-        data.fHardwareVirtForce     = !!mHWData->mHWVirtExForceEnabled;
-        data.fUseNativeApi          = !!mHWData->mHWVirtExUseNativeApi;
-        data.fVirtVmsaveVmload      = !!mHWData->mHWVirtExVirtVmsaveVmload;
-        data.fPAE                   = !!mHWData->mPAEEnabled;
-        data.enmLongMode            = mHWData->mLongMode;
-        data.fTripleFaultReset      = !!mHWData->mTripleFaultReset;
-        data.fAPIC                  = !!mHWData->mAPIC;
-        data.fX2APIC                = !!mHWData->mX2APIC;
-        data.fIBPBOnVMExit          = !!mHWData->mIBPBOnVMExit;
-        data.fIBPBOnVMEntry         = !!mHWData->mIBPBOnVMEntry;
-        data.fSpecCtrl              = !!mHWData->mSpecCtrl;
-        data.fSpecCtrlByHost        = !!mHWData->mSpecCtrlByHost;
-        data.fL1DFlushOnSched       = !!mHWData->mL1DFlushOnSched;
-        data.fL1DFlushOnVMEntry     = !!mHWData->mL1DFlushOnVMEntry;
-        data.fMDSClearOnSched       = !!mHWData->mMDSClearOnSched;
-        data.fMDSClearOnVMEntry     = !!mHWData->mMDSClearOnVMEntry;
-        data.fNestedHWVirt          = !!mHWData->mNestedHWVirt;
         data.cCPUs                  = mHWData->mCPUCount;
         data.fCpuHotPlug            = !!mHWData->mCPUHotPlugEnabled;
         data.ulCpuExecutionCap      = mHWData->mCpuExecutionCap;
@@ -10693,26 +10050,13 @@ HRESULT Machine::i_saveHardware(settings::Hardware &data, settings::Debugging *p
             }
         }
 
-        /* Standard and Extended CPUID leafs. */
-        data.llCpuIdLeafs.clear();
-        data.llCpuIdLeafs = mHWData->mCpuIdLeafList;
-
         // memory
         data.ulMemorySizeMB = mHWData->mMemorySize;
         data.fPageFusionEnabled = !!mHWData->mPageFusionEnabled;
 
-        // firmware
-        data.firmwareType = mHWData->mFirmwareType;
-
         // HID
         data.pointingHIDType = mHWData->mPointingHIDType;
         data.keyboardHIDType = mHWData->mKeyboardHIDType;
-
-        // chipset
-        data.chipsetType = mHWData->mChipsetType;
-
-        // iommu
-        data.iommuType = mHWData->mIommuType;
 
         // paravirt
         data.paravirtProvider = mHWData->mParavirtProvider;
@@ -10720,9 +10064,6 @@ HRESULT Machine::i_saveHardware(settings::Hardware &data, settings::Debugging *p
 
         // emulated USB card reader
         data.fEmulatedUSBCardReader = !!mHWData->mEmulatedUSBCardReaderEnabled;
-
-        // HPET
-        data.fHPETEnabled = !!mHWData->mHPETEnabled;
 
         // boot order
         data.mapBootOrder.clear();
@@ -10733,8 +10074,12 @@ HRESULT Machine::i_saveHardware(settings::Hardware &data, settings::Debugging *p
         hrc = mVRDEServer->i_saveSettings(data.vrdeSettings);
         if (FAILED(hrc)) throw hrc;
 
-        /* BIOS settings (required) */
-        hrc = mBIOSSettings->i_saveSettings(data.biosSettings);
+        /* Platform (required) */
+        hrc = mPlatform->i_saveSettings(data.platformSettings);
+        if (FAILED(hrc)) return hrc;
+
+        /* Firmware settings (required) */
+        hrc = mFirmwareSettings->i_saveSettings(data.firmwareSettings);
         if (FAILED(hrc)) throw hrc;
 
         /* Recording settings. */
@@ -10774,7 +10119,8 @@ HRESULT Machine::i_saveHardware(settings::Hardware &data, settings::Debugging *p
         if (FAILED(hrc)) throw hrc;
 
         /* Network adapters (required) */
-        size_t uMaxNICs = RT_MIN(Global::getMaxNetworkAdapters(mHWData->mChipsetType), mNetworkAdapters.size());
+        size_t const uMaxNICs =
+            RT_MIN(PlatformProperties::s_getMaxNetworkAdapters(data.platformSettings.chipsetType), mNetworkAdapters.size());
         data.llNetworkAdapters.clear();
         /* Write out only the nominal number of network adapters for this
          * chipset type. Since Machine::commit() hasn't been called there
@@ -10849,6 +10195,7 @@ HRESULT Machine::i_saveHardware(settings::Hardware &data, settings::Debugging *p
             sf.fWritable = !!pSF->i_isWritable();
             sf.fAutoMount = !!pSF->i_isAutoMounted();
             sf.strAutoMountPoint = pSF->i_getAutoMountPoint();
+            sf.enmSymlinkPolicy = pSF->i_getSymlinkPolicy();
 
             data.llSharedFolders.push_back(sf);
         }
@@ -12315,8 +11662,14 @@ void Machine::i_rollback(bool aNotify)
     if (mData->flModifications & IsModified_Storage)
         i_rollbackMedia();
 
-    if (mBIOSSettings)
-        mBIOSSettings->i_rollback();
+    if (mPlatform)
+    {
+        mPlatform->i_rollback();
+        i_platformPropertiesUpdate();
+    }
+
+    if (mFirmwareSettings)
+        mFirmwareSettings->i_rollback();
 
     if (mRecordingSettings && (mData->flModifications & IsModified_Recording))
         mRecordingSettings->i_rollback();
@@ -12345,8 +11698,15 @@ void Machine::i_rollback(bool aNotify)
     if (mGuestDebugControl && (mData->flModifications & IsModified_GuestDebugControl))
         mGuestDebugControl->i_rollback();
 
-    if (!mHWData.isNull())
-        mNetworkAdapters.resize(Global::getMaxNetworkAdapters(mHWData->mChipsetType));
+    if (mPlatform && (mData->flModifications & IsModified_Platform))
+    {
+        ChipsetType_T enmChipset;
+        HRESULT hrc = mPlatform->getChipsetType(&enmChipset);
+        ComAssertComRC(hrc);
+
+        mNetworkAdapters.resize(PlatformProperties::s_getMaxNetworkAdapters(enmChipset));
+    }
+
     NetworkAdapterVector networkAdapters(mNetworkAdapters.size());
     ComPtr<ISerialPort> serialPorts[RT_ELEMENTS(mSerialPorts)];
     ComPtr<IParallelPort> parallelPorts[RT_ELEMENTS(mParallelPorts)];
@@ -12453,7 +11813,8 @@ void Machine::i_commit()
     if (mMediumAttachments.isBackedUp())
         i_commitMedia(Global::IsOnline(mData->mMachineState));
 
-    mBIOSSettings->i_commit();
+    mPlatform->i_commit();
+    mFirmwareSettings->i_commit();
     mRecordingSettings->i_commit();
     mTrustedPlatformModule->i_commit();
     mNvramStore->i_commit();
@@ -12468,15 +11829,40 @@ void Machine::i_commit()
      * without using the Backupable<> template we need to handle the copying
      * of the list entries manually, including the creation of peers for the
      * new objects. */
+    ChipsetType_T enmChipset;
+    HRESULT hrc = mPlatform->getChipsetType(&enmChipset);
+    ComAssertComRC(hrc);
+
     bool commitNetworkAdapters = false;
-    size_t newSize = Global::getMaxNetworkAdapters(mHWData->mChipsetType);
+    size_t const newSize = PlatformProperties::s_getMaxNetworkAdapters(enmChipset);
     if (mPeer)
     {
+        size_t const oldSize     = mNetworkAdapters.size();
+        size_t const oldPeerSize = mPeer->mNetworkAdapters.size();
+
         /* commit everything, even the ones which will go away */
-        for (size_t slot = 0; slot < mNetworkAdapters.size(); slot++)
+        for (size_t slot = 0; slot < oldSize; slot++)
             mNetworkAdapters[slot]->i_commit();
         /* copy over the new entries, creating a peer and uninit the original */
-        mPeer->mNetworkAdapters.resize(RT_MAX(newSize, mPeer->mNetworkAdapters.size()));
+        mPeer->mNetworkAdapters.resize(RT_MAX(newSize, oldPeerSize));
+        /* make sure to have enough room for iterating over the (newly added) slots down below */
+        if (newSize > oldSize)
+        {
+            mNetworkAdapters.resize(newSize);
+
+            com::Utf8Str           osTypeId;
+            ComObjPtr<GuestOSType> osType = NULL;
+            hrc = getOSTypeId(osTypeId);
+            if (SUCCEEDED(hrc))
+                hrc = mParent->i_findGuestOSType(Bstr(osTypeId), osType);
+
+            for (size_t slot = oldSize; slot < newSize; slot++)
+            {
+                mNetworkAdapters[slot].createObject();
+                mNetworkAdapters[slot]->init(this, (ULONG)slot);
+                mNetworkAdapters[slot]->i_applyDefaults(SUCCEEDED(hrc) ? osType : NULL);
+            }
+        }
         for (size_t slot = 0; slot < newSize; slot++)
         {
             /* look if this adapter has a peer device */
@@ -12491,9 +11877,9 @@ void Machine::i_commit()
             mPeer->mNetworkAdapters[slot] = peer;
         }
         /* uninit any no longer needed network adapters */
-        for (size_t slot = newSize; slot < mNetworkAdapters.size(); ++slot)
+        for (size_t slot = newSize; slot < oldSize; ++slot)
             mNetworkAdapters[slot]->uninit();
-        for (size_t slot = newSize; slot < mPeer->mNetworkAdapters.size(); ++slot)
+        for (size_t slot = newSize; slot < oldPeerSize; ++slot)
         {
             if (mPeer->mNetworkAdapters[slot])
                 mPeer->mNetworkAdapters[slot]->uninit();
@@ -12710,7 +12096,9 @@ void Machine::i_copyFrom(Machine *aThat)
         *it = folder;
     }
 
-    mBIOSSettings->i_copyFrom(aThat->mBIOSSettings);
+    mPlatform->i_copyFrom(aThat->mPlatform);
+    i_platformPropertiesUpdate();
+    mFirmwareSettings->i_copyFrom(aThat->mFirmwareSettings);
     mRecordingSettings->i_copyFrom(aThat->mRecordingSettings);
     mTrustedPlatformModule->i_copyFrom(aThat->mTrustedPlatformModule);
     mNvramStore->i_copyFrom(aThat->mNvramStore);
@@ -12775,13 +12163,9 @@ void Machine::i_copyFrom(Machine *aThat)
  */
 bool Machine::i_isControllerHotplugCapable(StorageControllerType_T enmCtrlType)
 {
-    ComPtr<ISystemProperties> systemProperties;
-    HRESULT hrc = mParent->COMGETTER(SystemProperties)(systemProperties.asOutParam());
-    if (FAILED(hrc))
-        return false;
-
     BOOL aHotplugCapable = FALSE;
-    systemProperties->GetStorageControllerHotplugCapable(enmCtrlType, &aHotplugCapable);
+    HRESULT hrc = mPlatformProperties->GetStorageControllerHotplugCapable(enmCtrlType, &aHotplugCapable);
+    AssertComRC(hrc);
 
     return RT_BOOL(aHotplugCapable);
 }
@@ -12981,6 +12365,24 @@ void Machine::i_unregisterMetrics(PerformanceCollector *aCollector, Machine *aMa
 
 #endif /* VBOX_WITH_RESOURCE_USAGE_API */
 
+/**
+ * Updates the machine's platform properties based on the current platform architecture.
+ *
+ * @note    Called internally when committing, rolling back or loading settings.
+ */
+void Machine::i_platformPropertiesUpdate()
+{
+    if (mPlatform)
+    {
+        /* Update architecture for platform properties. */
+        PlatformArchitecture_T platformArchitecture;
+        HRESULT hrc = mPlatform->getArchitecture(&platformArchitecture);
+        ComAssertComRC(hrc);
+        hrc = mPlatformProperties->i_setArchitecture(platformArchitecture);
+        ComAssertComRC(hrc);
+    }
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -13087,8 +12489,15 @@ HRESULT SessionMachine::init(Machine *aMachine)
         mUSBControllers->push_back(ctl);
     }
 
-    unconst(mBIOSSettings).createObject();
-    mBIOSSettings->init(this, aMachine->mBIOSSettings);
+    unconst(mPlatformProperties).createObject();
+    mPlatformProperties->init(mParent);
+    unconst(mPlatform).createObject();
+    mPlatform->init(this, aMachine->mPlatform);
+
+    i_platformPropertiesUpdate();
+
+    unconst(mFirmwareSettings).createObject();
+    mFirmwareSettings->init(this, aMachine->mFirmwareSettings);
 
     unconst(mRecordingSettings).createObject();
     mRecordingSettings->init(this, aMachine->mRecordingSettings);
@@ -14798,9 +14207,32 @@ HRESULT SessionMachine::i_onVRDEServerChange(BOOL aRestart)
 }
 
 /**
+ * @note Caller needs to take the machine's lock if needed.
+ */
+HRESULT SessionMachine::i_onRecordingStateChange(BOOL aEnable, IProgress **aProgress)
+{
+    LogFlowThisFunc(("\n"));
+
+    AutoCaller autoCaller(this);
+    AssertComRCReturn(autoCaller.hrc(), autoCaller.hrc());
+
+    ComPtr<IInternalSessionControl> directControl;
+    {
+        if (mData->mSession.mLockType == LockType_VM)
+            directControl = mData->mSession.mDirectControl;
+    }
+
+    /* ignore notifications sent after #OnSessionEnd() is called */
+    if (!directControl)
+        return S_OK;
+
+    return directControl->OnRecordingStateChange(aEnable, aProgress);
+}
+
+/**
  * @note Locks this object for reading.
  */
-HRESULT SessionMachine::i_onRecordingChange(BOOL aEnable)
+HRESULT SessionMachine::i_onRecordingScreenStateChange(BOOL aEnable, ULONG aScreen)
 {
     LogFlowThisFunc(("\n"));
 
@@ -14818,7 +14250,7 @@ HRESULT SessionMachine::i_onRecordingChange(BOOL aEnable)
     if (!directControl)
         return S_OK;
 
-    return directControl->OnRecordingChange(aEnable);
+    return directControl->OnRecordingScreenStateChange(aEnable, aScreen);
 }
 
 /**
@@ -15739,47 +15171,6 @@ HRESULT Machine::authenticateExternal(const std::vector<com::Utf8Str> &aAuthPara
     ReturnComNotImplemented();
 }
 
-com::Utf8Str Machine::i_controllerNameFromBusType(StorageBus_T aBusType)
-{
-    com::Utf8Str strControllerName = "Unknown";
-    switch (aBusType)
-    {
-        case StorageBus_IDE:
-        {
-            strControllerName = "IDE";
-            break;
-        }
-        case StorageBus_SATA:
-        {
-            strControllerName = "SATA";
-            break;
-        }
-        case StorageBus_SCSI:
-        {
-            strControllerName = "SCSI";
-            break;
-        }
-        case StorageBus_Floppy:
-        {
-            strControllerName = "Floppy";
-            break;
-        }
-        case StorageBus_SAS:
-        {
-            strControllerName = "SAS";
-            break;
-        }
-        case StorageBus_USB:
-        {
-            strControllerName = "USB";
-            break;
-        }
-        default:
-            break;
-    }
-    return strControllerName;
-}
-
 HRESULT Machine::applyDefaults(const com::Utf8Str &aFlags)
 {
     /* it's assumed the machine already registered. If not, it's a problem of the caller */
@@ -15807,23 +15198,13 @@ HRESULT Machine::applyDefaults(const com::Utf8Str &aFlags)
 
     AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
 
-    /* Let the OS type select 64-bit ness. */
-    mHWData->mLongMode = osType->i_is64Bit()
-                       ? settings::Hardware::LongMode_Enabled : settings::Hardware::LongMode_Disabled;
-
-    /* Let the OS type enable the X2APIC */
-    mHWData->mX2APIC = osType->i_recommendedX2APIC();
+    mPlatform->i_applyDefaults(osType);
 
     /* This one covers IOAPICEnabled. */
-    mBIOSSettings->i_applyDefaults(osType);
+    mFirmwareSettings->i_applyDefaults(osType);
 
     /* Initialize default record settings. */
     mRecordingSettings->i_applyDefaults();
-
-    /* Initialize default BIOS settings here */
-    /* Hardware virtualization must be ON by default */
-    mHWData->mAPIC = true;
-    mHWData->mHWVirtExEnabled = true;
 
     hrc = osType->COMGETTER(RecommendedRAM)(&mHWData->mMemorySize);
     if (FAILED(hrc)) return hrc;
@@ -15850,50 +15231,23 @@ HRESULT Machine::applyDefaults(const com::Utf8Str &aFlags)
     hrc = osType->COMGETTER(Recommended2DVideoAcceleration)(&fAccelerate2DVideoEnabled);
     if (FAILED(hrc)) return hrc;
 
-    hrc = mGraphicsAdapter->COMSETTER(Accelerate2DVideoEnabled)(fAccelerate2DVideoEnabled);
-    if (FAILED(hrc)) return hrc;
+    hrc = mGraphicsAdapter->SetFeature(GraphicsFeature_Acceleration2DVideo, fAccelerate2DVideoEnabled);
+    if (FAILED(hrc))
+    {
+        if (hrc != VBOX_E_NOT_SUPPORTED)
+            return hrc;
+    }
 
     BOOL fAccelerate3DEnabled;
     hrc = osType->COMGETTER(Recommended3DAcceleration)(&fAccelerate3DEnabled);
     if (FAILED(hrc)) return hrc;
 
-    hrc = mGraphicsAdapter->COMSETTER(Accelerate3DEnabled)(fAccelerate3DEnabled);
-    if (FAILED(hrc)) return hrc;
-
-    hrc = osType->COMGETTER(RecommendedFirmware)(&mHWData->mFirmwareType);
-    if (FAILED(hrc)) return hrc;
-
-    hrc = osType->COMGETTER(RecommendedPAE)(&mHWData->mPAEEnabled);
-    if (FAILED(hrc)) return hrc;
-
-    hrc = osType->COMGETTER(RecommendedHPET)(&mHWData->mHPETEnabled);
-    if (FAILED(hrc)) return hrc;
-
-    BOOL mRTCUseUTC;
-    hrc = osType->COMGETTER(RecommendedRTCUseUTC)(&mRTCUseUTC);
-    if (FAILED(hrc)) return hrc;
-
-    setRTCUseUTC(mRTCUseUTC);
-    if (FAILED(hrc)) return hrc;
-
-    /* the setter does more than just the assignment, so use it */
-    ChipsetType_T enmChipsetType;
-    hrc = osType->COMGETTER(RecommendedChipset)(&enmChipsetType);
-    if (FAILED(hrc)) return hrc;
-
-    hrc = COMSETTER(ChipsetType)(enmChipsetType);
-    if (FAILED(hrc)) return hrc;
-
-    hrc = osType->COMGETTER(RecommendedTFReset)(&mHWData->mTripleFaultReset);
-    if (FAILED(hrc)) return hrc;
-
-    /* Apply IOMMU defaults. */
-    IommuType_T enmIommuType;
-    hrc = osType->COMGETTER(RecommendedIommuType)(&enmIommuType);
-    if (FAILED(hrc)) return hrc;
-
-    hrc = COMSETTER(IommuType)(enmIommuType);
-    if (FAILED(hrc)) return hrc;
+    hrc = mGraphicsAdapter->SetFeature(GraphicsFeature_Acceleration2DVideo, fAccelerate3DEnabled);
+    if (FAILED(hrc))
+    {
+        if (hrc != VBOX_E_NOT_SUPPORTED)
+            return hrc;
+    }
 
     /* Apply network adapters defaults */
     for (ULONG slot = 0; slot < mNetworkAdapters.size(); ++slot)
@@ -15930,7 +15284,7 @@ HRESULT Machine::applyDefaults(const com::Utf8Str &aFlags)
     Utf8Str strFloppyName, strDVDName, strHDName;
 
     /* GUI auto generates controller names using bus type. Do the same*/
-    strFloppyName = i_controllerNameFromBusType(StorageBus_Floppy);
+    strFloppyName = StorageController::i_controllerNameFromBusType(StorageBus_Floppy);
 
     /* Floppy recommended? add one. */
     hrc = osType->COMGETTER(RecommendedFloppy(&recommendedFloppy));
@@ -15948,7 +15302,7 @@ HRESULT Machine::applyDefaults(const com::Utf8Str &aFlags)
     hrc = osType->COMGETTER(RecommendedDVDStorageBus)(&dvdStorageBusType);
     if (FAILED(hrc)) return hrc;
 
-    strDVDName = i_controllerNameFromBusType(dvdStorageBusType);
+    strDVDName = StorageController::i_controllerNameFromBusType(dvdStorageBusType);
 
     hrc = addStorageController(strDVDName, dvdStorageBusType, dvdController);
     if (FAILED(hrc)) return hrc;
@@ -15963,7 +15317,7 @@ HRESULT Machine::applyDefaults(const com::Utf8Str &aFlags)
     hrc = osType->COMGETTER(RecommendedHDStorageBus)(&hdStorageBusType);
     if (FAILED(hrc)) return hrc;
 
-    strHDName = i_controllerNameFromBusType(hdStorageBusType);
+    strHDName = StorageController::i_controllerNameFromBusType(hdStorageBusType);
 
     if (hdStorageBusType != dvdStorageBusType && hdStorageControllerType != dvdStorageControllerType)
     {
@@ -15993,6 +15347,13 @@ HRESULT Machine::applyDefaults(const com::Utf8Str &aFlags)
         storageController->COMSETTER(PortCount)(1 + (dvdStorageControllerType == StorageControllerType_IntelAhci));
     else if (dvdStorageControllerType == StorageControllerType_IntelAhci)
         storageController->COMSETTER(PortCount)(1);
+
+    /* VirtioSCSI configures only one port per default  -- set two ports here, one for HDD and one for DVD drive. */
+    if (hdStorageControllerType == StorageControllerType_VirtioSCSI)
+    {
+        hrc = storageController->COMSETTER(PortCount)(2);
+        if (FAILED(hrc)) return hrc;
+    }
 
     /* USB stuff */
 
@@ -16061,7 +15422,7 @@ HRESULT Machine::applyDefaults(const com::Utf8Str &aFlags)
     }
 
     /* Enable the VMMDev testing feature for bootsector VMs: */
-    if (osTypeId == "VBoxBS_64")
+    if (osTypeId == GUEST_OS_ID_STR_X64("VBoxBS"))
     {
         hrc = setExtraData("VBoxInternal/Devices/VMMDev/0/Config/TestingEnabled", "1");
         if (FAILED(hrc))

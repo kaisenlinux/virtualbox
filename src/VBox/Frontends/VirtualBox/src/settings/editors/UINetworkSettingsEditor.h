@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,24 +31,23 @@
 # pragma once
 #endif
 
-/* Qt includes: */
-#include <QWidget>
-
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
-#include "UILibraryDefs.h"
+#include "UIEditor.h"
 #include "UIPortForwardingTable.h"
 
 /* COM includes: */
-#include "COMEnums.h"
+#include "KNetworkAdapterType.h"
+#include "KNetworkAttachmentType.h"
+#include "KNetworkAdapterPromiscModePolicy.h"
+
 
 /* Forward declarations: */
 class QCheckBox;
 class UINetworkAttachmentEditor;
 class UINetworkFeaturesEditor;
 
-/** QWidget subclass used as a network settings editor. */
-class SHARED_LIBRARY_STUFF UINetworkSettingsEditor : public QIWithRetranslateUI<QWidget>
+/** UIEditor sub-class used as a network settings editor. */
+class SHARED_LIBRARY_STUFF UINetworkSettingsEditor : public UIEditor
 {
     Q_OBJECT;
 
@@ -66,8 +65,6 @@ signals:
 
     /** @name Features editor stuff
      * @{ */
-        /** Notifies about the advanced button state change to @a fExpanded. */
-        void sigAdvancedButtonStateChange(bool fExpanded);
         /** Notifies about MAC address changed. */
         void sigMACAddressChanged();
     /** @} */
@@ -108,11 +105,6 @@ public:
 
     /** @name Features editor stuff
      * @{ */
-        /** Defines whether advanced button @a fExpanded. */
-        void setAdvancedButtonExpanded(bool fExpanded);
-        /** Returns whether advanced button expanded. */
-        bool advancedButtonExpanded() const;
-
         /** Defines adapter @a enmType. */
         void setAdapterType(const KNetworkAdapterType &enmType);
         /** Returns adapter type. */
@@ -143,8 +135,6 @@ public:
         /** Returns list of port forwarding rules. */
         UIPortForwardingDataList portForwardingRules() const;
 
-        /** Defines whether advanced options @a fAvailable. */
-        void setAdvancedOptionsAvailable(bool fAvailable);
         /** Defines whether adapter options @a fAvailable. */
         void setAdapterOptionsAvailable(bool fAvailable);
         /** Defines whether promiscuous options @a fAvailable. */
@@ -161,11 +151,13 @@ public:
 
 protected:
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
+    /** Handles filter change. */
+    virtual void handleFilterChange() RT_OVERRIDE;
 
 private slots:
 
+    /** Handles translation event. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
     /** Handles feature toggling. */
     void sltHandleFeatureToggled();
     /** Handles adapter attachment type change. */
@@ -182,6 +174,8 @@ private:
 
     /** Updates feature availability. */
     void updateFeatureAvailability();
+    /** Updates minimum layout hint. */
+    void updateMinimumLayoutHint();
 
     /** @name Values
      * @{ */

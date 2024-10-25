@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -105,33 +105,36 @@ VMMDECL(uint32_t) CPUMGetHyperCR3(PVMCPU pVCpu)
  * Macro for updating DRx values in raw-mode and ring-0 contexts.
  */
 #ifdef IN_RING0
-# define MAYBE_LOAD_DRx(a_pVCpu, a_fnLoad, a_uValue) do { a_fnLoad(a_uValue); } while (0)
+# define MAYBE_LOAD_DRx(a_pVCpu, a_fnLoad, a_uValue) do { \
+        if ((a_pVCpu)->cpum.s.fUseFlags & (CPUM_USED_DEBUG_REGS_GUEST | CPUM_USED_DEBUG_REGS_HYPER)) \
+            a_fnLoad(a_uValue); \
+    } while (0)
 #else
 # define MAYBE_LOAD_DRx(a_pVCpu, a_fnLoad, a_uValue) do { } while (0)
 #endif
 
-VMMDECL(void) CPUMSetHyperDR0(PVMCPU pVCpu, RTGCUINTREG uDr0)
+static void cpumSetHyperDR0(PVMCPU pVCpu, RTGCUINTREG uDr0)
 {
     pVCpu->cpum.s.Hyper.dr[0] = uDr0;
     MAYBE_LOAD_DRx(pVCpu, ASMSetDR0, uDr0);
 }
 
 
-VMMDECL(void) CPUMSetHyperDR1(PVMCPU pVCpu, RTGCUINTREG uDr1)
+static void cpumSetHyperDR1(PVMCPU pVCpu, RTGCUINTREG uDr1)
 {
     pVCpu->cpum.s.Hyper.dr[1] = uDr1;
     MAYBE_LOAD_DRx(pVCpu, ASMSetDR1, uDr1);
 }
 
 
-VMMDECL(void) CPUMSetHyperDR2(PVMCPU pVCpu, RTGCUINTREG uDr2)
+static void cpumSetHyperDR2(PVMCPU pVCpu, RTGCUINTREG uDr2)
 {
     pVCpu->cpum.s.Hyper.dr[2] = uDr2;
     MAYBE_LOAD_DRx(pVCpu, ASMSetDR2, uDr2);
 }
 
 
-VMMDECL(void) CPUMSetHyperDR3(PVMCPU pVCpu, RTGCUINTREG uDr3)
+static void cpumSetHyperDR3(PVMCPU pVCpu, RTGCUINTREG uDr3)
 {
     pVCpu->cpum.s.Hyper.dr[3] = uDr3;
     MAYBE_LOAD_DRx(pVCpu, ASMSetDR3, uDr3);
@@ -988,7 +991,7 @@ VMMDECL(void) CPUMGetGuestCpuId(PVMCPUCC pVCpu, uint32_t uLeaf, uint32_t uSubLea
                     AssertMsgFailed(("uLeaf=%#x\n", uLeaf));
             }
 
-            /* Intel CPUs supresses the SYSCALL bit when not executing in 64-bit mode: */
+            /* Intel CPUs suppress the SYSCALL bit when not executing in 64-bit mode: */
             if (   uLeaf == UINT32_C(0x80000001)
                 && f64BitMode == false
                 && (*pEdx & X86_CPUID_EXT_FEATURE_EDX_SYSCALL)
@@ -1096,6 +1099,19 @@ VMMDECL(CPUMMICROARCH) CPUMGetHostMicroarch(PCVM pVM)
 VMMDECL(CPUMCPUVENDOR) CPUMGetGuestCpuVendor(PVM pVM)
 {
     return (CPUMCPUVENDOR)pVM->cpum.s.GuestFeatures.enmCpuVendor;
+}
+
+
+/**
+ * Gets the guest CPU architecture.
+ *
+ * @returns CPU architecture.
+ * @param   pVM     The cross context VM structure.
+ */
+VMMDECL(CPUMARCH) CPUMGetGuestArch(PCVM pVM)
+{
+    RT_NOREF(pVM);
+    return kCpumArch_X86; /* Static as we are in the x86 VMM module here. */
 }
 
 
@@ -1227,19 +1243,19 @@ VMMDECL(int) CPUMRecalcHyperDRx(PVMCPUCC pVCpu, uint8_t iGstReg)
      * always have the LE and GE bits set, so no need to check and disable
      * stuff if they're cleared like we have to for the guest DR7.
      */
-    RTGCUINTREG uGstDr7 = CPUMGetGuestDR7(pVCpu);
-    /** @todo This isn't correct. BPs work without setting LE and GE under AMD-V.  They are also documented as unsupported by P6+. */
-    if (!(uGstDr7 & (X86_DR7_LE | X86_DR7_GE)))
-        uGstDr7 = 0;
-    else if (!(uGstDr7 & X86_DR7_LE))
-        uGstDr7 &= ~X86_DR7_LE_ALL;
-    else if (!(uGstDr7 & X86_DR7_GE))
-        uGstDr7 &= ~X86_DR7_GE_ALL;
-
     const RTGCUINTREG uDbgfDr7 = DBGFBpGetDR7(pVM);
-    if ((uGstDr7 | uDbgfDr7) & X86_DR7_ENABLED_MASK)
+    if (uDbgfDr7 & X86_DR7_ENABLED_MASK)
     {
         Assert(!CPUMIsGuestDebugStateActive(pVCpu));
+
+        RTGCUINTREG uGstDr7 = CPUMGetGuestDR7(pVCpu);
+        /** @todo This isn't correct. BPs work without setting LE and GE under AMD-V.  They are also documented as unsupported by P6+. */
+        if (!(uGstDr7 & (X86_DR7_LE | X86_DR7_GE)))
+            uGstDr7 = 0;
+        else if (!(uGstDr7 & X86_DR7_LE))
+            uGstDr7 &= ~X86_DR7_LE_ALL;
+        else if (!(uGstDr7 & X86_DR7_GE))
+            uGstDr7 &= ~X86_DR7_GE_ALL;
 
         /*
          * Ok, something is enabled.  Recalc each of the breakpoints, taking
@@ -1313,13 +1329,13 @@ VMMDECL(int) CPUMRecalcHyperDRx(PVMCPUCC pVCpu, uint8_t iGstReg)
          */
         pVCpu->cpum.s.fUseFlags |= CPUM_USE_DEBUG_REGS_HYPER;
         if (uNewDr3 != pVCpu->cpum.s.Hyper.dr[3])
-            CPUMSetHyperDR3(pVCpu, uNewDr3);
+            cpumSetHyperDR3(pVCpu, uNewDr3);
         if (uNewDr2 != pVCpu->cpum.s.Hyper.dr[2])
-            CPUMSetHyperDR2(pVCpu, uNewDr2);
+            cpumSetHyperDR2(pVCpu, uNewDr2);
         if (uNewDr1 != pVCpu->cpum.s.Hyper.dr[1])
-            CPUMSetHyperDR1(pVCpu, uNewDr1);
+            cpumSetHyperDR1(pVCpu, uNewDr1);
         if (uNewDr0 != pVCpu->cpum.s.Hyper.dr[0])
-            CPUMSetHyperDR0(pVCpu, uNewDr0);
+            cpumSetHyperDR0(pVCpu, uNewDr0);
         if (uNewDr7 != pVCpu->cpum.s.Hyper.dr[7])
             CPUMSetHyperDR7(pVCpu, uNewDr7);
     }
@@ -1582,7 +1598,7 @@ VMMDECL(bool) CPUMIsGuestInPAEMode(PCVMCPU pVCpu)
  * @returns true if in 64 bits protected mode, otherwise false.
  * @param   pVCpu       The cross context virtual CPU structure of the calling EMT.
  */
-VMMDECL(bool) CPUMIsGuestIn64BitCode(PVMCPU pVCpu)
+VMMDECL(bool) CPUMIsGuestIn64BitCode(PCVMCPU pVCpu)
 {
     CPUM_INT_ASSERT_NOT_EXTRN(pVCpu, CPUMCTX_EXTRN_CS | CPUMCTX_EXTRN_EFER);
     if (!CPUMIsGuestInLongMode(pVCpu))
@@ -1599,7 +1615,7 @@ VMMDECL(bool) CPUMIsGuestIn64BitCode(PVMCPU pVCpu)
  * @returns true if in 64 bits protected mode, otherwise false.
  * @param   pCtx        Pointer to the current guest CPU context.
  */
-VMM_INT_DECL(bool) CPUMIsGuestIn64BitCodeSlow(PCPUMCTX pCtx)
+VMM_INT_DECL(bool) CPUMIsGuestIn64BitCodeSlow(PCCPUMCTX pCtx)
 {
     return CPUMIsGuestIn64BitCode(CPUM_GUEST_CTX_TO_VMCPU(pCtx));
 }

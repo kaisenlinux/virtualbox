@@ -3,7 +3,7 @@
 ;
 
 ;
-; Copyright (C) 2006-2023 Oracle and/or its affiliates.
+; Copyright (C) 2006-2024 Oracle and/or its affiliates.
 ;
 ; This file is part of VirtualBox base platform packages, as
 ; available from https://www.virtualbox.org.
@@ -57,7 +57,7 @@ struc VMCPU
     .enmState               resd 1
 
     alignb 64
-    .iem                    resb 32832
+    .iem                    resb 129984 + 32768
 
     alignb 64
     .pVMR3                  RTR3PTR_RES 1
@@ -88,7 +88,11 @@ struc VMCPU
     alignb 64
     .gim                    resb 512
     alignb 64
+%ifdef VBOX_VMM_TARGET_ARMV8
+    .gic                    resb 3840
+%else
     .apic                   resb 3840
+%endif
 
     alignb 64
     .fTraceGroups           resd 1
@@ -98,7 +102,7 @@ struc VMCPU
     .aStatAdHoc             resb STAMPROFILEADV_size * 8
 
     alignb 4096
-    .pgm                    resb 4096+28672
+    .pgm                    resb 36864
     alignb 4096
     .cpum                   resb 102400
 %define VMCPU.cpum.GstCtx   VMCPU.cpum
@@ -140,7 +144,7 @@ struc VM
     alignb 64
     .cpum                   resb 8832 + 128*8192
     alignb 16384
-    .pgm                    resb 53888
+    .pgm                    resb 129728
     alignb 64
     .vmm                    resb 1600
     alignb 64
@@ -152,7 +156,7 @@ struc VM
     alignb 64
     .mm                     resb 192
     alignb 64
-    .pdm                    resb 22400
+    .pdm                    resb 22528
     alignb 64
     .iom                    resb 1152
     alignb 64
@@ -168,13 +172,17 @@ struc VM
     alignb 64
     .gim                    resb 448
     alignb 64
+%ifdef VBOX_VMM_TARGET_ARMV8
+    .gic                    resb 128
+%else
     .apic                   resb 128
+%endif
     alignb 64
     .vm                     resb 32
     .cfgm                   resb 8
     .iem                    resb 16
     .R0Stats                resb 64
-    .gcm                    resb 32
+    .gcm                    resb 8
 
     times ((($ + VMM_MAX_CPU_COUNT * RTR0PTR_CB + 16383) & ~16383) - ($ + VMM_MAX_CPU_COUNT * RTR0PTR_CB)) resb 1
     .apCpusR3               RTR3PTR_RES VMM_MAX_CPU_COUNT

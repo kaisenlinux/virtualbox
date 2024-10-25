@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -149,6 +149,7 @@ RTDECL(void) RTLogWriteCom(const char *pach, size_t cb)
         ASMOutU8(IPRT_UART_BASE, *pu8);
     }
 #else
+    RT_NOREF(pach, cb);
     /* PORTME? */
 #endif
 }

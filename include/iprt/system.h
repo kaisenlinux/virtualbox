@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -162,6 +162,35 @@ RTDECL(int) RTSystemQueryAvailableRam(uint64_t *pcb);
  *          the returned amount.
  */
 RTDECL(int) RTSystemQueryUnavailableRam(uint64_t *pcb);
+
+/**
+ * Returns the page size in bytes of the system.
+ *
+ * @returns Page size in bytes.
+ */
+RTDECL(uint32_t) RTSystemGetPageSize(void);
+
+/**
+ * Returns the page shift in bits of the system.
+ *
+ * @returns Page shift in bits.
+ */
+RTDECL(uint32_t) RTSystemGetPageShift(void);
+
+/**
+ * Returns the page offset mask of the system.
+ *
+ * @returns Page offset maske.
+ */
+RTDECL(uintptr_t) RTSystemGetPageOffsetMask(void);
+
+/**
+ * Aligns the given size to the systems page size.
+ *
+ * @returns Byte size aligned to the systems page size.
+ * @param   cb                  The size in bytes to align.
+ */
+RTDECL(size_t) RTSystemPageAlignSize(size_t cb);
 
 
 /**
@@ -368,6 +397,32 @@ RTDECL(uint64_t) RTSystemGetNtVersion(void);
  * Get the Windows NT product type (OSVERSIONINFOW::wProductType).
  */
 RTDECL(uint8_t) RTSystemGetNtProductType(void);
+
+/**
+ * Windows NT feature types.
+ */
+typedef enum RTSYSNTFEATURE
+{
+    /** Invalid feature. */
+    RTSYSNTFEATURE_INVALID = 0,
+    /** Memory integrity is a feature of the Core Isolation facility.
+     *  Introduced in Windows 10. */
+    RTSYSNTFEATURE_CORE_ISOLATION_MEMORY_INTEGRITY,
+    /** The usual 32-bit hack.  */
+    RTSYSNTFEATURE_32_BIT_HACK = 0x7fffffff
+} RTSYSNTFEATURE;
+/** Pointer to a Windows NT feature type. */
+typedef RTSYSNTFEATURE *PRTSYSNTFEATURE;
+
+/**
+ * Queries whether an NT feature is enabled or not.
+ *
+ * @returns IPRT status code.
+ * @retval  VERR_NOT_SUPPORTED if the feature is not supported on this platform.
+ * @param   enmFeature  Feature to query enabled status for.
+ * @param   pfEnabled   Where to return the enabled status on success.
+ */
+RTDECL(int) RTSystemQueryNtFeatureEnabled(RTSYSNTFEATURE enmFeature, bool *pfEnabled);
 
 #endif /* RT_OS_WINDOWS */
 

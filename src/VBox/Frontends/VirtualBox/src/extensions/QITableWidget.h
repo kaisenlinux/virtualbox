@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -88,9 +88,9 @@ public:
 protected:
 
     /** Handles paint @a pEvent. */
-    void paintEvent(QPaintEvent *pEvent);
+    void paintEvent(QPaintEvent *pEvent) RT_OVERRIDE RT_FINAL;
     /** Handles resize @a pEvent. */
-    void resizeEvent(QResizeEvent *pEvent);
+    void resizeEvent(QResizeEvent *pEvent) RT_OVERRIDE RT_FINAL;
 };
 
 #endif /* !FEQT_INCLUDED_SRC_extensions_QITableWidget_h */

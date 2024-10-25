@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,35 +31,41 @@
 # pragma once
 #endif
 
+/* Qt includes: */
+#include <QMainWindow>
+#include <QPointer>
+
 /* GUI includes: */
 #include "QIWithRestorableGeometry.h"
-#include "QIWithRetranslateUI.h"
 
 /* Forward declarations: */
 class QLabel;
 class UIHelpBrowserWidget;
 
-class SHARED_LIBRARY_STUFF UIHelpBrowserDialog : public QIWithRetranslateUI<QIWithRestorableGeometry<QMainWindow> >
+class SHARED_LIBRARY_STUFF UIHelpBrowserDialog : public QIWithRestorableGeometry<QMainWindow>
 {
     Q_OBJECT;
 
 public:
 
-    UIHelpBrowserDialog(QWidget *pParent, QWidget *pCenterWidget, const QString &strHelpFilePath);
-    /** A passthru function for QHelpIndexWidget::showHelpForKeyword. */
-    void showHelpForKeyword(const QString &strKeyword);
+    static void findManualFileAndShow(const QString &strKeyword = QString());
+
+    /** @name Remove default ctor, and copying.
+     * @{ */
+       UIHelpBrowserDialog() = delete;
+       UIHelpBrowserDialog(const UIHelpBrowserDialog &other) = delete;
+       void operator=(const UIHelpBrowserDialog &other) = delete;
+    /** @} */
 
 protected:
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
     virtual bool event(QEvent *pEvent) RT_OVERRIDE;
 
     /** @name Prepare/cleanup cascade.
      * @{ */
-    virtual void prepareCentralWidget();
-    virtual void loadSettings();
-    virtual void saveDialogGeometry();
+       virtual void prepareCentralWidget();
+       virtual void loadSettings();
+       virtual void saveDialogGeometry();
     /** @} */
 
     /** Returns whether the window should be maximized when geometry being restored. */
@@ -70,14 +76,22 @@ private slots:
     void sltStatusBarMessage(const QString& strLink, int iTimeOut);
     void sltStatusBarVisibilityChange(bool fVisible);
     void sltZoomPercentageChanged(int iPercentage);
+    void sltRetranslateUI();
 
 private:
+
+    UIHelpBrowserDialog(QWidget *pParent, QWidget *pCenterWidget, const QString &strHelpFilePath);
+    static void showUserManual(const QString &strHelpFilePath, const QString &strKeyword);
+
+    /** A passthru function for QHelpIndexWidget::showHelpForKeyword. */
+    void showHelpForKeyword(const QString &strKeyword);
 
     QString m_strHelpFilePath;
     UIHelpBrowserWidget *m_pWidget;
     QWidget *m_pCenterWidget;
     int m_iGeometrySaveTimerId;
     QLabel *m_pZoomLabel;
+    static QPointer<UIHelpBrowserDialog> m_pInstance;
 };
 
 

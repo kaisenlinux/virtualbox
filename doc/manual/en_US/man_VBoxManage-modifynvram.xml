@@ -3,7 +3,7 @@
     manpage, user manual, usage: VBoxManage modifynvram
 -->
 <!--
-    Copyright (C) 2021-2023 Oracle and/or its affiliates.
+    Copyright (C) 2021-2024 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.
@@ -30,7 +30,7 @@
 ]>
 <refentry id="vboxmanage-modifynvram" lang="en">
   <refentryinfo>
-    <pubdate>$Date: 2023-04-06 11:27:32 +0200 (Thu, 06 Apr 2023) $</pubdate>
+    <pubdate>$Date: 2024-09-16 16:03:52 +0200 (Mon, 16 Sep 2024) $</pubdate>
     <title>VBoxManage modifynvram</title>
   </refentryinfo>
 
@@ -48,67 +48,106 @@
   <refsynopsisdiv>
     <cmdsynopsis id="synopsis-vboxmanage-modifynvram-inituefivarstore">
       <command>VBoxManage modifynvram</command>
-      <arg choice="req"><replaceable>uuid|vmname</replaceable></arg>
+      <group choice="req">
+        <arg choice="plain"><replaceable>uuid</replaceable></arg>
+        <arg choice="plain"><replaceable>vmname</replaceable></arg>
+      </group>
       <arg choice="plain">inituefivarstore</arg>
     </cmdsynopsis>
     <cmdsynopsis id="synopsis-vboxmanage-modifynvram-enrollmssignatures">
       <command>VBoxManage modifynvram</command>
-      <arg choice="req"><replaceable>uuid|vmname</replaceable></arg>
+      <group choice="req">
+        <arg choice="plain"><replaceable>uuid</replaceable></arg>
+        <arg choice="plain"><replaceable>vmname</replaceable></arg>
+      </group>
       <arg choice="plain">enrollmssignatures</arg>
     </cmdsynopsis>
     <cmdsynopsis id="synopsis-vboxmanage-modifynvram-enrollorclpk">
       <command>VBoxManage modifynvram</command>
-      <arg choice="req"><replaceable>uuid|vmname</replaceable></arg>
+      <group choice="req">
+        <arg choice="plain"><replaceable>uuid</replaceable></arg>
+        <arg choice="plain"><replaceable>vmname</replaceable></arg>
+      </group>
       <arg choice="plain">enrollorclpk</arg>
     </cmdsynopsis>
     <cmdsynopsis id="synopsis-vboxmanage-modifynvram-enrollpk">
       <command>VBoxManage modifynvram</command>
-      <arg choice="req"><replaceable>uuid|vmname</replaceable></arg>
+      <group choice="req">
+        <arg choice="plain"><replaceable>uuid</replaceable></arg>
+        <arg choice="plain"><replaceable>vmname</replaceable></arg>
+      </group>
       <arg choice="plain">enrollpk</arg>
       <arg>--platform-key=<replaceable>filename</replaceable></arg>
       <arg>--owner-uuid=<replaceable>uuid</replaceable></arg>
     </cmdsynopsis>
     <cmdsynopsis id="synopsis-vboxmanage-modifynvram-enrollmok">
       <command>VBoxManage modifynvram</command>
-      <arg choice="req"><replaceable>uuid|vmname</replaceable></arg>
+      <group choice="req">
+        <arg choice="plain"><replaceable>uuid</replaceable></arg>
+        <arg choice="plain"><replaceable>vmname</replaceable></arg>
+      </group>
       <arg choice="plain">enrollmok</arg>
       <arg>--mok=<replaceable>filename</replaceable></arg>
       <arg>--owner-uuid=<replaceable>uuid</replaceable></arg>
     </cmdsynopsis>
+    <cmdsynopsis id="synopsis-vboxmanage-modifynvram-secureboot">
+      <command>VBoxManage modifynvram</command>
+      <group choice="req">
+        <arg choice="plain"><replaceable>uuid</replaceable></arg>
+        <arg choice="plain"><replaceable>vmname</replaceable></arg>
+      </group>
+      <arg choice="plain">secureboot</arg>
+      <group choice="req">
+        <arg choice="plain">--enable</arg>
+        <arg choice="plain">--disable</arg>
+      </group>
+    </cmdsynopsis>
     <cmdsynopsis id="synopsis-vboxmanage-modifynvram-listvars">
       <command>VBoxManage modifynvram</command>
-      <arg choice="req"><replaceable>uuid|vmname</replaceable></arg>
+      <group choice="req">
+        <arg choice="plain"><replaceable>uuid</replaceable></arg>
+        <arg choice="plain"><replaceable>vmname</replaceable></arg>
+      </group>
       <arg choice="plain">listvars</arg>
     </cmdsynopsis>
     <cmdsynopsis id="synopsis-vboxmanage-modifynvram-queryvar">
       <command>VBoxManage modifynvram</command>
-      <arg choice="req"><replaceable>uuid|vmname</replaceable></arg>
+      <group choice="req">
+        <arg choice="plain"><replaceable>uuid</replaceable></arg>
+        <arg choice="plain"><replaceable>vmname</replaceable></arg>
+      </group>
       <arg choice="plain">queryvar</arg>
       <arg>--name=<replaceable>name</replaceable></arg>
       <arg>--filename=<replaceable>filename</replaceable></arg>
     </cmdsynopsis>
     <cmdsynopsis id="synopsis-vboxmanage-modifynvram-deletevar">
       <command>VBoxManage modifynvram</command>
-      <arg choice="req"><replaceable>uuid|vmname</replaceable></arg>
+      <group choice="req">
+        <arg choice="plain"><replaceable>uuid</replaceable></arg>
+        <arg choice="plain"><replaceable>vmname</replaceable></arg>
+      </group>
       <arg choice="plain">deletevar</arg>
       <arg>--name=<replaceable>name</replaceable></arg>
       <arg>--owner-uuid=<replaceable>uuid</replaceable></arg>
     </cmdsynopsis>
     <cmdsynopsis id="synopsis-vboxmanage-modifynvram-changevar">
       <command>VBoxManage modifynvram</command>
-      <arg choice="req"><replaceable>uuid|vmname</replaceable></arg>
+      <group choice="req">
+        <arg choice="plain"><replaceable>uuid</replaceable></arg>
+        <arg choice="plain"><replaceable>vmname</replaceable></arg>
+      </group>
       <arg choice="plain">changevar</arg>
       <arg>--name=<replaceable>name</replaceable></arg>
       <arg>--filename=<replaceable>filename</replaceable></arg>
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-modifynvram-description">
     <title>Description</title>
 
     <para>The "modifynvram" commands are for experts who want to inspect and modify the
-      UEFI variable store of a virtual machine. Any mistakes done here can bring the virtual
-      machine in a non working state.</para>
+      UEFI variable store of a virtual machine. Any mistakes made here can result in
+      a non-bootable virtual machine.</para>
 
     <refsect2 id="vboxmanage-modifynvram-common-options">
       <title>Common options</title>
@@ -117,7 +156,7 @@
       machine:</para>
       <variablelist>
         <varlistentry>
-          <term><replaceable>uuid|vmname</replaceable></term>
+          <term><option><replaceable>uuid</replaceable> | <replaceable>vmname</replaceable></option></term>
           <listitem><para>Either the UUID or the name (case sensitive) of a VM.</para></listitem>
         </varlistentry>
       </variablelist>
@@ -127,7 +166,7 @@
       <title>modifynvram inituefivarstore</title>
       <remark role="help-copy-synopsis"/>
       <para>
-        Iniitalizes the UEFI variable store to a default state. Any previous existing variable
+        Initalizes the UEFI variable store to a default state. Any previous existing variable
         store is deleted. Use with extreme caution!
       </para>
     </refsect2>
@@ -171,11 +210,32 @@
       </variablelist>
     </refsect2>
 
+    <refsect2 id="vboxmanage-modifynvram-secureboot">
+      <title>modifynvram secureboot</title>
+      <remark role="help-copy-synopsis"/>
+      <para>
+        Enables or disables UEFI secure boot.
+      </para>
+      <variablelist>
+        <varlistentry>
+          <term><option>--enable</option></term>
+          <listitem><para>Enables UEFI secure boot if the state of the key
+            enrolment permits.</para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><option>--disable</option></term>
+          <listitem><para>Disables UEFI secure boot.</para>
+          </listitem>
+        </varlistentry>
+      </variablelist>
+    </refsect2>
+
     <refsect2 id="vboxmanage-modifynvram-listvars">
       <title>modifynvram listvars</title>
       <remark role="help-copy-synopsis"/>
       <para>
-        Lists all UEFI variables in the virtual machines's store along with their owner UUID.
+        Lists all UEFI variables in the virtual machine's store along with their owner UUID.
       </para>
     </refsect2>
 

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -235,9 +235,13 @@ static DECLCALLBACK(int) rtVfsStdDir_SetMode(void *pvThis, RTFMODE fMode, RTFMOD
             return rc;
         fMode |= ~fMask & ObjInfo.Attr.fMode;
     }
-    //RTPathSetMode
-    //return RTFileSetMode(pThis->hDir, fMode);
+#if 0
+    RTPathSetMode
+    return RTFileSetMode(pThis->hDir, fMode);
+#else
+    RT_NOREF(fMode);
     return VERR_NOT_IMPLEMENTED;
+#endif
 }
 
 

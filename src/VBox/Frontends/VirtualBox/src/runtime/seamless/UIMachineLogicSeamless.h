@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -44,11 +44,14 @@ class UIMachineLogicSeamless : public UIMachineLogic
 
 public:
 
-    /** Constructs seamless logic passing @a pParent to the base-class.
-      * @param  pSession  Brings the session UI reference. */
-    UIMachineLogicSeamless(QObject *pParent, UISession *pSession);
-    /** Destructs seamless logic. */
+    /** Constructs a logic passing @a pMachine and @a pSession to the base-class.
+      * @param  pMachine  Brings the machine this logic belongs to. */
+    UIMachineLogicSeamless(UIMachine *pMachine);
+    /** Destructs the logic. */
     virtual ~UIMachineLogicSeamless() RT_OVERRIDE;
+
+    /** Returns visual state type. */
+    virtual UIVisualStateType visualStateType() const RT_OVERRIDE { return UIVisualStateType_Seamless; }
 
     /** Returns an index of host-screen for guest-screen with @a iScreenId specified. */
     int hostScreenForGuestScreen(int iScreenId) const;
@@ -58,31 +61,31 @@ public:
 protected:
 
     /* Check if this logic is available: */
-    bool checkAvailability();
+    bool checkAvailability() RT_OVERRIDE;
 
     /** Returns machine-window flags for 'Seamless' machine-logic and passed @a uScreenId. */
-    virtual Qt::WindowFlags windowFlags(ulong uScreenId) const { Q_UNUSED(uScreenId); return Qt::FramelessWindowHint; }
+    virtual Qt::WindowFlags windowFlags(ulong uScreenId) const RT_OVERRIDE { Q_UNUSED(uScreenId); return Qt::FramelessWindowHint; }
 
     /** Adjusts machine-window geometry if necessary for 'Seamless'. */
-    virtual void adjustMachineWindowsGeometry();
+    virtual void adjustMachineWindowsGeometry() RT_OVERRIDE;
 
 private slots:
 
     /** Checks if some visual-state type was requested. */
-    void sltCheckForRequestedVisualStateType();
+    void sltCheckForRequestedVisualStateType() RT_OVERRIDE;
 
     /* Handler: Console callback stuff: */
-    void sltMachineStateChanged();
+    void sltMachineStateChanged() RT_OVERRIDE;
 
     /** Updates machine-window(s) location/size on screen-layout changes. */
     void sltScreenLayoutChanged();
 
     /** Handles guest-screen count change. */
-    virtual void sltGuestMonitorChange(KGuestMonitorChangedEventType changeType, ulong uScreenId, QRect screenGeo);
+    virtual void sltGuestMonitorChange(KGuestMonitorChangedEventType changeType, ulong uScreenId, QRect screenGeo) RT_OVERRIDE;
     /** Handles host-screen count change. */
-    virtual void sltHostScreenCountChange();
+    virtual void sltHostScreenCountChange() RT_OVERRIDE;
     /** Handles additions-state change. */
-    virtual void sltAdditionsStateChanged();
+    virtual void sltAdditionsStateChanged() RT_OVERRIDE;
 
 #ifndef RT_OS_DARWIN
     /** Invokes popup-menu. */
@@ -92,20 +95,20 @@ private slots:
 private:
 
     /* Prepare helpers: */
-    void prepareActionGroups();
-    void prepareActionConnections();
-    void prepareMachineWindows();
+    void prepareActionGroups() RT_OVERRIDE;
+    void prepareActionConnections() RT_OVERRIDE;
+    void prepareMachineWindows() RT_OVERRIDE;
 #ifndef VBOX_WS_MAC
-    void prepareMenu();
+    void prepareMenu() RT_OVERRIDE RT_FINAL;
 #endif /* !VBOX_WS_MAC */
 
     /* Cleanup helpers: */
 #ifndef VBOX_WS_MAC
-    void cleanupMenu();
+    void cleanupMenu() RT_OVERRIDE RT_FINAL;
 #endif /* !VBOX_WS_MAC */
-    void cleanupMachineWindows();
-    void cleanupActionConnections();
-    void cleanupActionGroups();
+    void cleanupMachineWindows() RT_OVERRIDE;
+    void cleanupActionConnections() RT_OVERRIDE;
+    void cleanupActionGroups() RT_OVERRIDE;
 
     /* Variables: */
     UIMultiScreenLayout *m_pScreenLayout;

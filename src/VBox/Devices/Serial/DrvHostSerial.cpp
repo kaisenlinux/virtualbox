@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -263,7 +263,8 @@ static DECLCALLBACK(int) drvHostSerialReadRdr(PPDMISERIALCONNECTOR pInterface, v
     do
     {
         void *pvSrc = NULL;
-        size_t cbThisRead = RT_MIN(drvHostSerialReadBufGetRead(pThis, &pvSrc), cbRead);
+        size_t cbReadMax  = drvHostSerialReadBufGetRead(pThis, &pvSrc);
+        size_t cbThisRead = RT_MIN(cbReadMax, cbRead);
         if (cbThisRead)
         {
             memcpy(pbDst, pvSrc, cbThisRead);
@@ -422,7 +423,7 @@ static DECLCALLBACK(int) drvHostSerialQueuesFlush(PPDMISERIALCONNECTOR pInterfac
     }
 
     LogFlowFunc(("-> %Rrc\n", rc));
-    return VINF_SUCCESS;
+    return rc;
 }
 
 

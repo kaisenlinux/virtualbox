@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -30,23 +30,20 @@
 #include <QTimer>
 
 /* GUI includes */
-#include "UICommon.h"
-#include "UISession.h"
-#include "UIMachineLogic.h"
-#include "UIMachineWindow.h"
-#include "UIMachineViewScale.h"
-#include "UIFrameBuffer.h"
-#include "UIExtraDataManager.h"
 #include "UIDesktopWidgetWatchdog.h"
+#include "UIExtraDataManager.h"
+#include "UIFrameBuffer.h"
+#include "UILoggingDefs.h"
+#include "UIMachine.h"
+#include "UIMachineLogic.h"
+#include "UIMachineViewScale.h"
+#include "UIMachineWindow.h"
 
 /* COM includes: */
-#include "CConsole.h"
-#include "CDisplay.h"
 #include "CGraphicsAdapter.h"
 
 /* Other VBox includes: */
-#include "VBox/log.h"
-#include <VBox/VBoxOGL.h>
+#include <VBox/VBoxOGL.h> // For VBOX_OGL_SCALE_FACTOR_MULTIPLIER
 
 
 UIMachineViewScale::UIMachineViewScale(UIMachineWindow *pMachineWindow, ulong uScreenId)
@@ -71,11 +68,13 @@ void UIMachineViewScale::sltPerformGuestScale()
     if (scaledSize.isValid())
     {
         /* Propagate scale-factor to 3D service if necessary: */
-        if (machine().GetGraphicsAdapter().GetAccelerate3DEnabled())
+        bool fAccelerate3DEnabled = false;
+        uimachine()->acquireWhetherAccelerate3DEnabled(fAccelerate3DEnabled);
+        if (fAccelerate3DEnabled)
         {
             double xScaleFactor = (double)scaledSize.width()  / frameBuffer()->width();
             double yScaleFactor = (double)scaledSize.height() / frameBuffer()->height();
-#if defined(VBOX_WS_WIN) || defined(VBOX_WS_X11)
+#if defined(VBOX_WS_WIN) || defined(VBOX_WS_NIX)
             // WORKAROUND:
             // On Windows and Linux opposing to macOS it's only Qt which can auto scale up,
             // not 3D overlay itself, so for auto scale-up mode we have to take that into account.
@@ -84,10 +83,10 @@ void UIMachineViewScale::sltPerformGuestScale()
                 xScaleFactor *= dDevicePixelRatioActual;
                 yScaleFactor *= dDevicePixelRatioActual;
             }
-#endif /* VBOX_WS_WIN || VBOX_WS_X11 */
-            display().NotifyScaleFactorChange(m_uScreenId,
-                                              (uint32_t)(xScaleFactor * VBOX_OGL_SCALE_FACTOR_MULTIPLIER),
-                                              (uint32_t)(yScaleFactor * VBOX_OGL_SCALE_FACTOR_MULTIPLIER));
+#endif /* VBOX_WS_WIN || VBOX_WS_NIX */
+            uimachine()->notifyScaleFactorChange(m_uScreenId,
+                                                 (uint32_t)(xScaleFactor * VBOX_OGL_SCALE_FACTOR_MULTIPLIER),
+                                                 (uint32_t)(yScaleFactor * VBOX_OGL_SCALE_FACTOR_MULTIPLIER));
         }
     }
 
@@ -130,11 +129,13 @@ void UIMachineViewScale::applyMachineViewScaleFactor()
     if (scaledSize.isValid())
     {
         /* Propagate scale-factor to 3D service if necessary: */
-        if (machine().GetGraphicsAdapter().GetAccelerate3DEnabled())
+        bool fAccelerate3DEnabled = false;
+        uimachine()->acquireWhetherAccelerate3DEnabled(fAccelerate3DEnabled);
+        if (fAccelerate3DEnabled)
         {
             double xScaleFactor = (double)scaledSize.width()  / frameBuffer()->width();
             double yScaleFactor = (double)scaledSize.height() / frameBuffer()->height();
-#if defined(VBOX_WS_WIN) || defined(VBOX_WS_X11)
+#if defined(VBOX_WS_WIN) || defined(VBOX_WS_NIX)
             // WORKAROUND:
             // On Windows and Linux opposing to macOS it's only Qt which can auto scale up,
             // not 3D overlay itself, so for auto scale-up mode we have to take that into account.
@@ -143,18 +144,20 @@ void UIMachineViewScale::applyMachineViewScaleFactor()
                 xScaleFactor *= dDevicePixelRatioActual;
                 yScaleFactor *= dDevicePixelRatioActual;
             }
-#endif /* VBOX_WS_WIN || VBOX_WS_X11 */
-            display().NotifyScaleFactorChange(m_uScreenId,
-                                              (uint32_t)(xScaleFactor * VBOX_OGL_SCALE_FACTOR_MULTIPLIER),
-                                              (uint32_t)(yScaleFactor * VBOX_OGL_SCALE_FACTOR_MULTIPLIER));
+#endif /* VBOX_WS_WIN || VBOX_WS_NIX */
+            uimachine()->notifyScaleFactorChange(m_uScreenId,
+                                                 (uint32_t)(xScaleFactor * VBOX_OGL_SCALE_FACTOR_MULTIPLIER),
+                                                 (uint32_t)(yScaleFactor * VBOX_OGL_SCALE_FACTOR_MULTIPLIER));
         }
     }
 
     /* Take unscaled HiDPI output mode into account: */
     frameBuffer()->setUseUnscaledHiDPIOutput(fUseUnscaledHiDPIOutput);
     /* Propagate unscaled-hidpi-output feature to 3D service if necessary: */
-    if (machine().GetGraphicsAdapter().GetAccelerate3DEnabled())
-        display().NotifyHiDPIOutputPolicyChange(fUseUnscaledHiDPIOutput);
+    bool fAccelerate3DEnabled = false;
+    uimachine()->acquireWhetherAccelerate3DEnabled(fAccelerate3DEnabled);
+    if (fAccelerate3DEnabled)
+        uimachine()->notifyHiDPIOutputPolicyChange(fUseUnscaledHiDPIOutput);
 
     /* Perform frame-buffer rescaling: */
     frameBuffer()->performRescale();
@@ -165,6 +168,11 @@ void UIMachineViewScale::applyMachineViewScaleFactor()
 
 void UIMachineViewScale::resendSizeHint()
 {
+    /* Skip if VM isn't running/paused yet: */
+    if (   !uimachine()->isRunning()
+        && !uimachine()->isPaused())
+        return;
+
     /* Get the last guest-screen size-hint, taking the scale factor into account. */
     const QSize sizeHint = scaledBackward(storedGuestScreenSizeHint());
     LogRel(("GUI: UIMachineViewScale::resendSizeHint: Restoring guest size-hint for screen %d to %dx%d\n",
@@ -174,10 +182,14 @@ void UIMachineViewScale::resendSizeHint()
     setMaximumGuestSize(sizeHint);
 
     /* Send saved size-hint to the guest: */
-    uisession()->setScreenVisibleHostDesires(screenId(), guestScreenVisibilityStatus());
-    display().SetVideoModeHint(screenId(),
-                               guestScreenVisibilityStatus(),
-                               false, 0, 0, sizeHint.width(), sizeHint.height(), 0, true);
+    uimachine()->setScreenVisibleHostDesires(screenId(), guestScreenVisibilityStatus());
+    uimachine()->setVideoModeHint(screenId(),
+                                  guestScreenVisibilityStatus(),
+                                  false /* change origin? */,
+                                  0 /* origin x */, 0 /* origin y */,
+                                  sizeHint.width(), sizeHint.height(),
+                                  0 /* bits per pixel */,
+                                  true /* notify? */);
 }
 
 QSize UIMachineViewScale::sizeHint() const

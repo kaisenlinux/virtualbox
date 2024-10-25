@@ -3,7 +3,7 @@
     manpage, user manual, usage: VBoxManage clonevm
 -->
 <!--
-    Copyright (C) 2006-2023 Oracle and/or its affiliates.
+    Copyright (C) 2006-2024 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.
@@ -30,7 +30,7 @@
 ]>
 <refentry id="vboxmanage-clonevm" lang="en">
   <refentryinfo>
-    <pubdate>$Date: 2023-01-17 15:15:46 +0100 (Tue, 17 Jan 2023) $</pubdate>
+    <pubdate>$Date: 2024-09-16 16:03:52 +0200 (Mon, 16 Sep 2024) $</pubdate>
     <title>VBoxManage clonevm</title>
   </refentryinfo>
 
@@ -73,7 +73,7 @@
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-clonevm-description">
     <title>Description</title>
     <para>
       The <command>VBoxManage clonevm</command> command creates a clone
@@ -86,7 +86,7 @@
     </para>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-clonevm-common-args">
     <title>Command Operand and Options</title>
     <para>
       The following list describes the operand and the options that you
@@ -238,7 +238,7 @@
     </variablelist>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-clonevm-examples">
     <title>Examples</title>
     <para>
       The following command creates and registers an exact clone of the
@@ -265,7 +265,7 @@ $ VBoxManage clonevm ol7 --name="ol7-dev-002" --register --snapshot="Snapshot 1"
 </screen>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-clonevm-see-also">
     <title>See Also</title>
     <para>
       <xref linkend="vboxmanage-registervm" />

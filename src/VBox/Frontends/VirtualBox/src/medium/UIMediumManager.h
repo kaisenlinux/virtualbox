@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,10 +31,15 @@
 # pragma once
 #endif
 
+/* Qt includes: */
+#include <QUuid>
+
 /* GUI includes: */
 #include "QIManagerDialog.h"
-#include "QIWithRetranslateUI.h"
 #include "UIMediumDefs.h"
+
+/* COM includes: */
+#include "KMachineState.h"
 
 /* Forward declarations: */
 class QAbstractButton;
@@ -100,7 +105,7 @@ private:
 
 
 /** QWidget extension providing GUI with the pane to control media related functionality. */
-class UIMediumManagerWidget : public QIWithRetranslateUI<QWidget>
+class UIMediumManagerWidget : public QWidget
 {
     Q_OBJECT;
 
@@ -108,6 +113,11 @@ class UIMediumManagerWidget : public QIWithRetranslateUI<QWidget>
     enum Action { Action_Add, Action_Edit, Action_Copy, Action_Remove, Action_Release };
 
 signals:
+
+    /** Notifies listeners about creation procedure was requested. */
+    void sigCreateMedium();
+    /** Notifies listeners about copy procedure was requested for medium with specified @a uMediumId. */
+    void sigCopyMedium(const QUuid &uMediumId);
 
     /** Notifies listeners about medium details-widget @a fVisible. */
     void sigMediumDetailsVisibilityChanged(bool fVisible);
@@ -135,14 +145,6 @@ public:
     /** Defines @a pProgressBar reference. */
     void setProgressBar(UIEnumerationProgressBar *pProgressBar);
 
-protected:
-
-    /** @name Event-handling stuff.
-      * @{ */
-        /** Handles translation event. */
-        virtual void retranslateUi() RT_OVERRIDE;
-    /** @} */
-
 public slots:
 
     /** @name Details-widget stuff.
@@ -157,19 +159,19 @@ private slots:
 
     /** @name Medium operation stuff.
       * @{ */
-        /** Handles UICommon::sigMediumCreated signal. */
+        /** Handles UIMediumEnumerator::sigMediumCreated signal. */
         void sltHandleMediumCreated(const QUuid &uMediumID);
-        /** Handles UICommon::sigMediumDeleted signal. */
+        /** Handles UIMediumEnumerator::sigMediumDeleted signal. */
         void sltHandleMediumDeleted(const QUuid &uMediumID);
     /** @} */
 
     /** @name Medium enumeration stuff.
       * @{ */
-        /** Handles UICommon::sigMediumEnumerationStarted signal. */
+        /** Handles UIMediumEnumerator::sigMediumEnumerationStarted signal. */
         void sltHandleMediumEnumerationStart();
-        /** Handles UICommon::sigMediumEnumerated signal. */
+        /** Handles UIMediumEnumerator::sigMediumEnumerated signal. */
         void sltHandleMediumEnumerated(const QUuid &uMediumID);
-        /** Handles UICommon::sigMediumEnumerationFinished signal. */
+        /** Handles UIMediumEnumerator::sigMediumEnumerationFinished signal. */
         void sltHandleMediumEnumerationFinish();
         void sltHandleMachineStateChange(const QUuid &uId, const KMachineState state);
     /** @} */
@@ -232,6 +234,12 @@ private slots:
       * @{ */
         /** Handles command to detach COM stuff. */
         void sltDetachCOM();
+    /** @} */
+
+    /** @name Event-handling stuff.
+      * @{ */
+        /** Handles translation event. */
+        void sltRetranslateUI();
     /** @} */
 
 private:
@@ -430,7 +438,7 @@ protected:
 
 
 /** QIManagerDialog extension providing GUI with the dialog to control media related functionality. */
-class UIMediumManager : public QIWithRetranslateUI<QIManagerDialog>
+class UIMediumManager : public QIManagerDialog
 {
     Q_OBJECT;
 
@@ -449,18 +457,18 @@ private slots:
         void sltHandleButtonBoxClick(QAbstractButton *pButton);
     /** @} */
 
+    /** @name Event-handling stuff.
+      * @{ */
+        /** Handles translation event. */
+        void sltRetranslateUI();
+    /** @} */
+
 private:
 
     /** Constructs Medium Manager dialog.
       * @param  pCenterWidget  Brings the widget reference to center according to.
       * @param  pActionPool    Brings the action-pool reference. */
     UIMediumManager(QWidget *pCenterWidget, UIActionPool *pActionPool);
-
-    /** @name Event-handling stuff.
-      * @{ */
-        /** Handles translation event. */
-        virtual void retranslateUi() RT_OVERRIDE;
-    /** @} */
 
     /** @name Prepare/cleanup cascade.
       * @{ */

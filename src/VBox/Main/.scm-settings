@@ -4,7 +4,7 @@
 #
 
 #
-# Copyright (C) 2010-2023 Oracle and/or its affiliates.
+# Copyright (C) 2010-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -34,7 +34,7 @@
 /cbinding/makefile.tstCAPIGlue:         --license-mit --treat-as Makefile
 
 # The Python bindings is licensed under dual GPL and CDDL.
-/glue/vboxapi.py:                       --license-ose-dual
+/glue/python/vboxapi.py:                --license-ose-dual
 
 # Source dirs.
 --filter-out-files /src-all/VBoxAPI-end.d
@@ -97,4 +97,3 @@
 
 /testcase/tstUnattendedScript-1.expected: --treat-as plaintext --external-copyright
 /testcase/tstUnattendedScript-1.template: --treat-as plaintext --external-copyright
-

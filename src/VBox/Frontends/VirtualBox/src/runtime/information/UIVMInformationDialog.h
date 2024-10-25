@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -33,28 +33,25 @@
 
 /* Qt includes: */
 #include <QMainWindow>
+#include <QUuid>
 
 /* GUI includes: */
 #include "QIWithRestorableGeometry.h"
-#include "QIWithRetranslateUI.h"
 
 /* COM includes: */
-#include "COMEnums.h"
-#include "CSession.h"
+#include "KMachineState.h"
 
 /* Forward declarations: */
 class QITabWidget;
 class QIDialogButtonBox;
-class UIMachineWindow;
+class UIActionPool;
 
 /* Type definitions: */
 typedef QIWithRestorableGeometry<QMainWindow> QMainWindowWithRestorableGeometry;
-typedef QIWithRetranslateUI<QMainWindowWithRestorableGeometry> QMainWindowWithRestorableGeometryAndRetranslateUi;
-
 
 /** QMainWindow subclass providing user
   * with the dialog unifying VM details and statistics. */
-class UIVMInformationDialog : public QMainWindowWithRestorableGeometryAndRetranslateUi
+class UIVMInformationDialog : public QMainWindowWithRestorableGeometry
 {
     Q_OBJECT;
 
@@ -64,28 +61,28 @@ signals:
 
 public:
 
-    /** Constructs information dialog for passed @a pMachineWindow. */
-    UIVMInformationDialog(UIMachineWindow *pMachineWindow);
-    /** Destructs information dialog. */
-    ~UIVMInformationDialog();
+    /** Constructs information dialog. */
+    UIVMInformationDialog(UIActionPool *pActionPool);
 
     /** Returns whether the dialog should be maximized when geometry being restored. */
     virtual bool shouldBeMaximized() const RT_OVERRIDE;
 
 protected:
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
     virtual void closeEvent(QCloseEvent *pEvent) RT_OVERRIDE;
     virtual bool event(QEvent *pEvent) RT_OVERRIDE;
 
 private slots:
 
+    /** Handles translation event. */
+    void sltRetranslateUI();
     /** Handles tab-widget page change. */
     void sltHandlePageChanged(int iIndex);
     void sltMachineStateChange(const QUuid &uMachineId, const KMachineState state);
+    void sltAdditionsStateChange();
 
 private:
+
     enum Tabs
     {
         Tabs_ConfigurationDetails = 0,
@@ -95,8 +92,6 @@ private:
     };
     /** Prepares all. */
     void prepare();
-    /** Prepares this. */
-    void prepareThis();
     /** Prepares central-widget. */
     void prepareCentralWidget();
     /** Prepares tab-widget. */
@@ -105,6 +100,8 @@ private:
     void prepareTab(int iTabIndex);
     /** Prepares button-box. */
     void prepareButtonBox();
+    /** Prepares connections: */
+    void prepareConnections();
     void loadDialogGeometry();
     void saveDialogGeometry();
 
@@ -116,12 +113,12 @@ private:
        QMap<int, QWidget*>           m_tabs;
        /** Holds the dialog button-box instance. */
        QIDialogButtonBox            *m_pButtonBox;
-       /** Holds the machine-window reference. */
-       UIMachineWindow              *m_pMachineWindow;
     /** @} */
     bool m_fCloseEmitted;
     int m_iGeometrySaveTimerId;
     QUuid m_uMachineId;
+    QString m_strMachineName;
+    UIActionPool *m_pActionPool;
 };
 
 #endif /* !FEQT_INCLUDED_SRC_runtime_information_UIVMInformationDialog_h */

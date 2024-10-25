@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1015,22 +1015,6 @@ typedef struct VMM2USERMETHODS const *PCVMM2USERMETHODS;
 
 
 /**
- * Data transport buffer (scatter/gather)
- */
-typedef struct PDMDATASEG
-{
-    /** Length of buffer in entry. */
-    size_t  cbSeg;
-    /** Pointer to the start of the buffer. */
-    void   *pvSeg;
-} PDMDATASEG;
-/** Pointer to a data transport segment. */
-typedef PDMDATASEG *PPDMDATASEG;
-/** Pointer to a const data transport segment. */
-typedef PDMDATASEG const *PCPDMDATASEG;
-
-
-/**
  * Forms of generic segment offloading.
  */
 typedef enum PDMNETWORKGSOTYPE
@@ -1189,12 +1173,18 @@ typedef enum CPUMMODE
 {
     /** The usual invalid zero entry. */
     CPUMMODE_INVALID = 0,
-    /** Real mode. */
+    /** Real mode - x86/amd64. */
     CPUMMODE_REAL,
-    /** Protected mode (32-bit). */
+    /** Protected mode (32-bit) - x86/amd64. */
     CPUMMODE_PROTECTED,
-    /** Long mode (64-bit). */
-    CPUMMODE_LONG
+    /** Long mode (64-bit) - x86/amd64. */
+    CPUMMODE_LONG,
+    /** ARMv8 - AARCH64 mode. */
+    CPUMMODE_ARMV8_AARCH64,
+    /** ARMv8 - AARCH32 mode. */
+    CPUMMODE_ARMV8_AARCH32,
+    /** hack forcing the size of the enum to 32-bits. */
+    CPUMMODE_32BIT_HACK = 0x7fffffff
 } CPUMMODE;
 
 
@@ -1207,6 +1197,17 @@ typedef enum DISCPUMODE
     DISCPUMODE_16BIT,
     DISCPUMODE_32BIT,
     DISCPUMODE_64BIT,
+
+    /** @name ARMv8 modes.
+     * @{ */
+    /** AArch64 A64 instruction set. */
+    DISCPUMODE_ARMV8_A64,
+    /** AArch32 A32 instruction set. */
+    DISCPUMODE_ARMV8_A32,
+    /** AArch32 T32 (aka Thumb) instruction set. */
+    DISCPUMODE_ARMV8_T32,
+    /** @} */
+
     /** hack forcing the size of the enum to 32-bits. */
     DISCPUMODE_MAKE_32BIT_HACK = 0x7fffffff
 } DISCPUMODE;
@@ -1216,10 +1217,11 @@ typedef struct DISSTATE *PDISSTATE;
 /** Pointer to a const disassembler state. */
 typedef struct DISSTATE const *PCDISSTATE;
 
-/** @deprecated  PDISSTATE and change pCpu and pDisState to pDis. */
-typedef PDISSTATE PDISCPUSTATE;
-/** @deprecated  PCDISSTATE and change pCpu and pDisState to pDis. */
-typedef PCDISSTATE PCDISCPUSTATE;
+/** Forward declaration of pointer to const opcode. */
+typedef const struct DISOPCODE *PCDISOPCODE;
+
+/** Forward declaration of pointer to opcode parameter. */
+typedef struct DISOPPARAM *PDISOPPARAM;
 
 
 /**

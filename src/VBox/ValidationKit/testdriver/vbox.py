@@ -8,7 +8,7 @@ VirtualBox Specific base testdriver.
 
 __copyright__ = \
 """
-Copyright (C) 2010-2023 Oracle and/or its affiliates.
+Copyright (C) 2010-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -37,7 +37,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155472 $"
+__version__ = "$Revision: 164827 $"
 
 # pylint: disable=unnecessary-semicolon
 
@@ -52,7 +52,7 @@ import time
 import traceback
 
 # Figure out where the validation kit lives and make sure it's in the path.
-try:    __file__
+try:    __file__                            # pylint: disable=used-before-assignment
 except: __file__ = sys.argv[0];
 g_ksValidationKitDir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)));
 if g_ksValidationKitDir not in sys.path:
@@ -487,11 +487,12 @@ class Build(object): # pylint: disable=too-few-public-methods
                 reporter.log3('Build: sVBoxManage=%s not found' % (sVBoxManage,));
 
             # Do some checks.
-            sVMMR0 = os.path.join(self.sInstallPath, 'VMMR0.r0');
-            if not os.path.isfile(sVMMR0) and utils.getHostOs() == 'solaris': # solaris is special.
-                sVMMR0 = os.path.join(self.sInstallPath, 'amd64' if utils.getHostArch() == 'amd64' else 'i386', 'VMMR0.r0');
-            if not os.path.isfile(sVMMR0):
-                raise base.GenError('%s is missing' % (sVMMR0,));
+            if utils.getHostOs() != 'darwin': # On macOS VMMR0.r0 might not be present anymore, especially on arm64.
+                sVMMR0 = os.path.join(self.sInstallPath, 'VMMR0.r0');
+                if not os.path.isfile(sVMMR0) and utils.getHostOs() == 'solaris': # solaris is special.
+                    sVMMR0 = os.path.join(self.sInstallPath, 'amd64' if utils.getHostArch() == 'amd64' else 'i386', 'VMMR0.r0');
+                if not os.path.isfile(sVMMR0):
+                    raise base.GenError('%s is missing' % (sVMMR0,));
 
         # Guest additions location is different on windows for some _stupid_ reason.
         if self.sOs == 'win' and self.sKind != 'development':
@@ -555,8 +556,7 @@ class EventHandlerBase(object):
         """
         Called when working in passive mode.
         """
-        self.oThread = threading.Thread(target = self.threadForPassiveMode, \
-            args=(), name=('PAS-%s' % (self.sName,)));
+        self.oThread = threading.Thread(target = self.threadForPassiveMode, args=(), name='PAS-%s' % (self.sName,) );
         self.oThread.setDaemon(True); # pylint: disable=deprecated-method
         self.oThread.start();
         return None;
@@ -616,14 +616,14 @@ class EventHandlerBase(object):
             try:
                 oRet = oVBoxMgr.createCallback(sICallbackNm, oSubClass, dArgsCopy);
             except:
-                reporter.errorXcpt('%s::registerCallback(%s) failed%s' % (sSrcParentNm, oRet, sLogSuffix));
+                reporter.errorXcpt('%s::createCallback(%s) failed%s' % (sSrcParentNm, sICallbackNm, sLogSuffix,));
             else:
                 try:
                     oSrcParent.registerCallback(oRet);
                     return oRet;
                 except Exception as oXcpt:
                     if fMustSucceed or ComError.notEqual(oXcpt, ComError.E_UNEXPECTED):
-                        reporter.errorXcpt('%s::registerCallback(%s)%s' % (sSrcParentNm, oRet, sLogSuffix));
+                        reporter.errorXcpt('%s::registerCallback(%s)%s' % (sSrcParentNm, oRet, sLogSuffix,));
         else:
             #
             # Scalable event handling introduced in VBox 4.0.
@@ -943,7 +943,7 @@ class TestDriver(base.TestDriver):                                              
             return True;
 
         # Try dev build first since that's where I'll be using it first...
-        if True is True: # pylint: disable=comparison-with-itself
+        if True is True: # pylint: disable=comparison-with-itself,comparison-of-constants
             try:
                 self.oBuild = Build(self, None);
                 reporter.log('VBox %s build at %s (%s).'
@@ -1066,6 +1066,7 @@ class TestDriver(base.TestDriver):                                              
         This will try detect an development or installed build if no build has
         been associated with the driver yet.
         """
+        reporter.log2('importVBoxApi started\n')
         if self.fImportedVBoxApi:
             return True;
 
@@ -1112,7 +1113,18 @@ class TestDriver(base.TestDriver):                                              
                 self._stopVBoxSVC();
         else:
             assert(self.oVBoxSvcProcess is None);
+        reporter.log2('importVBoxApi finished\n')
         return self.fImportedVBoxApi;
+
+    def _printEnv(self, dEnv = os.environ, fRaw = False): # pylint: disable=dangerous-default-value
+        """
+        Prints the given environment block to log2.
+
+        Uses the default environment block if not specified explicitly.
+        Removes any control characters found to not mess up the screen output.
+        """
+        for sKey, sVal in sorted(dEnv.items()):
+            reporter.log2('%s=%s' % (sKey, sVal if fRaw else re.sub(r'[\x00-\x1f]', '', sVal)));
 
     def _startVBoxSVC(self): # pylint: disable=too-many-statements
         """ Starts VBoxSVC. """
@@ -1132,8 +1144,7 @@ class TestDriver(base.TestDriver):                                              
         os.environ['VBOXSVC_RELEASE_LOG_FLAGS'] = 'time append';
 
         reporter.log2('VBoxSVC environment:');
-        for sKey, sVal in sorted(os.environ.items()):
-            reporter.log2('%s=%s' % (sKey, sVal));
+        self._printEnv();
 
         # Always leave a pid file behind so we can kill it during cleanup-before.
         self.sVBoxSvcPidFile = '%s/VBoxSVC.pid' % (self.sScratchPath,);
@@ -1196,8 +1207,14 @@ class TestDriver(base.TestDriver):                                              
                 iPipeR, iPipeW = os.pipe();
                 if hasattr(os, 'set_inheritable'):
                     os.set_inheritable(iPipeW, True);             # pylint: disable=no-member
+
+                # For VBox < 7.1 this is required.
                 os.environ['NSPR_INHERIT_FDS'] = 'vboxsvc:startup-pipe:5:0x%x' % (iPipeW,);
                 reporter.log2("NSPR_INHERIT_FDS=%s" % (os.environ['NSPR_INHERIT_FDS']));
+
+                # New way since VBox 7.1
+                os.environ['VBOX_STARTUP_PIPE_FD'] = '%u' % (iPipeW,);
+                reporter.log2("VBOX_STARTUP_PIPE_FD=%s" % (os.environ['VBOX_STARTUP_PIPE_FD']));
 
                 self.oVBoxSvcProcess = base.Process.spawn(sVBoxSVC, sVBoxSVC, '--auto-shutdown'); # SIGUSR1 requirement.
                 try: # Try make sure we get the SIGINT and not VBoxSVC.
@@ -1378,14 +1395,14 @@ class TestDriver(base.TestDriver):                                              
         os.environ['VBOX_RELEASE_LOG_FLAGS'] = 'time append';
 
         reporter.log2('Self environment:');
-        for sKey, sVal in sorted(os.environ.items()):
-            reporter.log2('%s=%s' % (sKey, sVal));
+        self._printEnv();
 
         # Hack the sys.path + environment so the vboxapi can be found.
         sys.path.insert(0, self.oBuild.sInstallPath);
         if self.oBuild.sSdkPath is not None:
             sys.path.insert(0, os.path.join(self.oBuild.sSdkPath, 'installer'))
-            sys.path.insert(1, os.path.join(self.oBuild.sSdkPath, 'install')); # stupid stupid windows installer!
+            sys.path.insert(0, os.path.join(self.oBuild.sSdkPath, 'installer', 'python', 'vboxapi', 'src')) # For >= VBox 7.1
+            sys.path.insert(1, os.path.join(self.oBuild.sSdkPath, 'install')); # stupid stupid windows installer (VBox < 7.1)!
             sys.path.insert(2, os.path.join(self.oBuild.sSdkPath, 'bindings', 'xpcom', 'python'))
         os.environ['VBOX_PROGRAM_PATH'] = self.oBuild.sInstallPath;
         reporter.log("sys.path: %s" % (sys.path));
@@ -1393,7 +1410,7 @@ class TestDriver(base.TestDriver):                                              
         try:
             from vboxapi import VirtualBoxManager;  # pylint: disable=import-error
         except:
-            reporter.logXcpt('Error importing vboxapi');
+            reporter.logXcpt('Error importing vboxapi (Python %s)' % (sys.version,));
             return False;
 
         # Exception and error hacks.
@@ -1452,7 +1469,7 @@ class TestDriver(base.TestDriver):                                              
             # x.y release, so the third component only indicates whether it's a stable or
             # development build of the next release.
             self.fpApiVer = aiVerComponents[0] + 0.1 * aiVerComponents[1];
-            if aiVerComponents[2] >= 51:
+            if aiVerComponents[2] >= 71:
                 if self.fpApiVer not in [6.1, 5.2, 4.3, 3.2,]:
                     self.fpApiVer += 0.1;
                 else:
@@ -1486,6 +1503,10 @@ class TestDriver(base.TestDriver):                                              
             vboxcon.goHackModuleClass.oVBoxMgr  = self.oVBoxMgr; # VBoxConstantWrappingHack.
             vboxcon.fpApiVer                    = self.fpApiVer;
             reporter.setComXcptFormatter(formatComOrXpComException);
+
+            # Enable possibly not production ready code which should be tested.
+            if self.fpApiVer >= 7.1 and utils.getHostArch() == 'arm64':
+                self.oVBox.setExtraData('VBoxInternal2/EnableX86OnArm', '1');
 
         except:
             self.oVBoxMgr = None;
@@ -1754,6 +1775,77 @@ class TestDriver(base.TestDriver):                                              
         if not self._detectBuild():
             return None;
         return self.oBuild.sGuestAdditionsIso;
+
+    @staticmethod
+    def versionToTuple(sVer, fIgnoreErrors = False):
+        """
+        Returns a semantic versioning string as a tuple.
+        """
+        try:
+            # Regular expression taken from semver.org (recommended regular expression for semantic version strings).
+            # Creative Commons ― CC BY 3.0
+            #
+            # Modified to also recognize our semantics:
+            # - We use "-BETA2" instead of "_BETA2".
+            oRegEx = re.compile(r'^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-|_]((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$'); # pylint: disable=line-too-long
+            oMatch = oRegEx.search(sVer);
+            return oMatch.groups();
+        except:
+            if not fIgnoreErrors:
+                reporter.logXcpt('Handling regex for "%s" failed' % (sVer,));
+        return None;
+
+    @staticmethod
+    def compareVersion(sVer1, sVer2, fIgnoreErrors = False):
+        """
+        Compares two version numbers and returns the result.
+
+        Takes either strings or version tuples as input.
+
+        Returns 0 if both versions match.
+        Return -1 if version 1 is bigger than version 2.
+        Return  1 if version 2 is bigger than version 1.
+        Returns None on error.
+        """
+        assert sVer1 is not None;
+        assert sVer2 is not None;
+        try:
+            tpVer1 = TestDriver.versionToTuple(sVer1, fIgnoreErrors);
+            if tpVer1 is None:
+                return None;
+            tpVer2 = TestDriver.versionToTuple(sVer2, fIgnoreErrors);
+            if tpVer2 is None:
+                return None;
+            if tpVer1 == tpVer2:
+                return 0;
+            return 1 if tuple(map(str, tpVer2)) > tuple(map(str, tpVer1)) else -1;
+        except:
+            if not fIgnoreErrors:
+                reporter.logXcpt();
+        return None;
+
+    @staticmethod
+    def isVersionEqualOrBigger(sVer1, sVer2, fIgnoreErrors = False):
+        """
+        Checks whether version 1 is equal or bigger than version 2.
+
+        Returns True if version 1 is equal or bigger than version 2, False if not.
+        """
+        return not TestDriver.compareVersion(sVer1, sVer2, fIgnoreErrors);
+
+    def getGuestAdditionsVersion(self, oSession, fIgnoreErrors = False):
+        """
+        Returns the installed Guest Additions version.
+
+        Returns version as a string (e.g. "7.0.6-beta2-whatever"), or None if not found / on error.
+        """
+        assert oSession is not None;
+        try:
+            return oSession.o.console.guest.additionsVersion;
+        except:
+            if not fIgnoreErrors:
+                reporter.errorXcpt('Getting the Guest Additions version failed');
+        return None;
 
     #
     # Override everything from the base class so the testdrivers don't have to
@@ -2172,6 +2264,14 @@ class TestDriver(base.TestDriver):                                              
         reporter.log("  Name:               %s" % (oVM.name,));
         reporter.log("  ID:                 %s" % (oVM.id,));
         oOsType = self.oVBox.getGuestOSType(oVM.OSTypeId);
+        if self.fpApiVer >= 7.1:
+            if oVM.platform.architecture == vboxcon.PlatformArchitecture_ARM:
+                sArch = 'ARM';
+            else:
+                sArch = 'x86';
+            reporter.log("  Architecture:       %s" % (sArch,));
+        else: # x86 only.
+            reporter.log("  Architecture:       x86");
         reporter.log("  OS Type:            %s - %s" % (oVM.OSTypeId, oOsType.description,));
         reporter.log("  Machine state:      %s" % (oVM.state,));
         reporter.log("  Session state:      %s" % (oVM.sessionState,));
@@ -2196,40 +2296,78 @@ class TestDriver(base.TestDriver):                                              
             reporter.log("  Monitors:           %s" % (oVM.monitorCount,));
             reporter.log("  GraphicsController: %s"
                          % (self.oVBoxMgr.getEnumValueName('GraphicsControllerType', oVM.graphicsControllerType),));              # pylint: disable=not-callable
-        reporter.log("  Chipset:            %s" % (self.oVBoxMgr.getEnumValueName('ChipsetType', oVM.chipsetType),));             # pylint: disable=not-callable
-        if self.fpApiVer >= 6.2 and hasattr(vboxcon, 'IommuType_None'):
-            reporter.log("  IOMMU:              %s" % (self.oVBoxMgr.getEnumValueName('IommuType', oVM.iommuType),));             # pylint: disable=not-callable
-        reporter.log("  Firmware:           %s" % (self.oVBoxMgr.getEnumValueName('FirmwareType', oVM.firmwareType),));           # pylint: disable=not-callable
-        reporter.log("  HwVirtEx:           %s" % (oVM.getHWVirtExProperty(vboxcon.HWVirtExPropertyType_Enabled),));
-        reporter.log("  VPID support:       %s" % (oVM.getHWVirtExProperty(vboxcon.HWVirtExPropertyType_VPID),));
-        reporter.log("  Nested paging:      %s" % (oVM.getHWVirtExProperty(vboxcon.HWVirtExPropertyType_NestedPaging),));
-        atTypes = [
-            ( 'CPUPropertyType_PAE',              'PAE:                '),
-            ( 'CPUPropertyType_LongMode',         'Long-mode:          '),
-            ( 'CPUPropertyType_HWVirt',           'Nested VT-x/AMD-V:  '),
-            ( 'CPUPropertyType_APIC',             'APIC:               '),
-            ( 'CPUPropertyType_X2APIC',           'X2APIC:             '),
-            ( 'CPUPropertyType_TripleFaultReset', 'TripleFaultReset:   '),
-            ( 'CPUPropertyType_IBPBOnVMExit',     'IBPBOnVMExit:       '),
-            ( 'CPUPropertyType_SpecCtrl',         'SpecCtrl:           '),
-            ( 'CPUPropertyType_SpecCtrlByHost',   'SpecCtrlByHost:     '),
-        ];
-        for sEnumValue, sDesc in atTypes:
-            if hasattr(vboxcon, sEnumValue):
-                reporter.log("  %s%s" % (sDesc, oVM.getCPUProperty(getattr(vboxcon, sEnumValue)),));
-        reporter.log("  ACPI:               %s" % (oVM.BIOSSettings.ACPIEnabled,));
-        reporter.log("  IO-APIC:            %s" % (oVM.BIOSSettings.IOAPICEnabled,));
-        if self.fpApiVer >= 3.2:
-            if self.fpApiVer >= 4.2:
-                reporter.log("  HPET:               %s" % (oVM.HPETEnabled,));
-            else:
-                reporter.log("  HPET:               %s" % (oVM.hpetEnabled,));
-        if self.fpApiVer >= 6.1 and hasattr(oVM, 'graphicsAdapter'):
-            reporter.log("  3D acceleration:    %s" % (oVM.graphicsAdapter.accelerate3DEnabled,));
-            reporter.log("  2D acceleration:    %s" % (oVM.graphicsAdapter.accelerate2DVideoEnabled,));
+        if self.fpApiVer >= 7.1:
+            reporter.log("  Chipset:            %s" % (self.oVBoxMgr.getEnumValueName('ChipsetType', oVM.platform.chipsetType),));# pylint: disable=not-callable
+            if hasattr(vboxcon, 'IommuType_None'):
+                reporter.log("  IOMMU:              %s" % (self.oVBoxMgr.getEnumValueName('IommuType', oVM.platform.iommuType),));# pylint: disable=not-callable
+            reporter.log("  Firmware:           %s"
+                         % (self.oVBoxMgr.getEnumValueName('FirmwareType', oVM.firmwareSettings.firmwareType),));                 # pylint: disable=not-callable
+            if oVM.platform.architecture == vboxcon.PlatformArchitecture_x86:
+                reporter.log("  HwVirtEx:           %s"
+                             % (oVM.platform.x86.getHWVirtExProperty(vboxcon.HWVirtExPropertyType_Enabled),));
+                reporter.log("  VPID support:       %s"
+                             % (oVM.platform.x86.getHWVirtExProperty(vboxcon.HWVirtExPropertyType_VPID),));
+                reporter.log("  Nested paging:      %s"
+                             % (oVM.platform.x86.getHWVirtExProperty(vboxcon.HWVirtExPropertyType_NestedPaging),));
         else:
-            reporter.log("  3D acceleration:    %s" % (oVM.accelerate3DEnabled,));
-            reporter.log("  2D acceleration:    %s" % (oVM.accelerate2DVideoEnabled,));
+            reporter.log("  Chipset:            %s" % (self.oVBoxMgr.getEnumValueName('ChipsetType', oVM.chipsetType),));         # pylint: disable=not-callable
+            if self.fpApiVer >= 6.2 and hasattr(vboxcon, 'IommuType_None'):
+                reporter.log("  IOMMU:              %s" % (self.oVBoxMgr.getEnumValueName('IommuType', oVM.iommuType),));         # pylint: disable=not-callable
+            reporter.log("  Firmware:           %s" % (self.oVBoxMgr.getEnumValueName('FirmwareType', oVM.firmwareType),));       # pylint: disable=not-callable
+            reporter.log("  HwVirtEx:           %s" % (oVM.getHWVirtExProperty(vboxcon.HWVirtExPropertyType_Enabled),));
+            reporter.log("  VPID support:       %s" % (oVM.getHWVirtExProperty(vboxcon.HWVirtExPropertyType_VPID),));
+            reporter.log("  Nested paging:      %s" % (oVM.getHWVirtExProperty(vboxcon.HWVirtExPropertyType_NestedPaging),));
+        atCpuPropertyTypesX86 = [
+            ( 'PAE',              'PAE:                '),
+            ( 'LongMode',         'Long-mode:          '),
+            ( 'HWVirt',           'Nested VT-x/AMD-V:  '),
+            ( 'APIC',             'APIC:               '),
+            ( 'X2APIC',           'X2APIC:             '),
+            ( 'TripleFaultReset', 'TripleFaultReset:   '),
+            ( 'IBPBOnVMExit',     'IBPBOnVMExit:       '),
+            ( 'SpecCtrl',         'SpecCtrl:           '),
+            ( 'SpecCtrlByHost',   'SpecCtrlByHost:     '),
+            ## @todo r=andy Add missing properties.
+        ];
+        fnGetCpuPropertyX86 = None;
+        if self.fpApiVer >= 7.1:
+            sCpuPropertyTypeNamePrefix = 'CpuPropertyTypeX86_';
+            if oVM.platform.architecture == vboxcon.PlatformArchitecture_x86:
+                fnGetCpuPropertyX86 = oVM.platform.x86.getCPUProperty;
+        else:
+            sCpuPropertyTypeNamePrefix = 'CpuPropertyType_';
+            fnGetCpuPropertyX86 = oVM.getCPUProperty;
+        if fnGetCpuPropertyX86:
+            for sEnumValue, sDesc in atCpuPropertyTypesX86:
+                if hasattr(vboxcon, sCpuPropertyTypeNamePrefix + sEnumValue):
+                    reporter.log("  %s%s" % (sDesc, fnGetCpuPropertyX86(getattr(vboxcon, sEnumValue)),));
+        if self.fpApiVer >= 7.1:
+            reporter.log("  ACPI:               %s" % (oVM.firmwareSettings.ACPIEnabled,));
+            reporter.log("  IO-APIC:            %s" % (oVM.firmwareSettings.IOAPICEnabled,));
+            if oVM.platform.architecture == vboxcon.PlatformArchitecture_x86:
+                reporter.log("  HPET:               %s" % (oVM.platform.x86.HPETEnabled,));
+        else:
+            reporter.log("  ACPI:               %s" % (oVM.BIOSSettings.ACPIEnabled,));
+            reporter.log("  IO-APIC:            %s" % (oVM.BIOSSettings.IOAPICEnabled,));
+            if self.fpApiVer >= 3.2:
+                if self.fpApiVer >= 4.2:
+                    reporter.log("  HPET:               %s" % (oVM.HPETEnabled,));
+                else:
+                    reporter.log("  HPET:               %s" % (oVM.hpetEnabled,));
+        if self.fpApiVer >= 6.1 and hasattr(oVM, 'graphicsAdapter'):
+            if self.fpApiVer >= 7.1 and hasattr(oVM.graphicsAdapter, 'isFeatureEnabled'):
+                fAccelerate3DEnabled = \
+                    oVM.graphicsAdapter.isFeatureEnabled(vboxcon.GraphicsFeature_Acceleration3D);
+                fAccelerate2DVideoEnabled = \
+                    oVM.graphicsAdapter.isFeatureEnabled(vboxcon.GraphicsFeature_Acceleration2DVideo);
+            else:
+                fAccelerate3DEnabled      = oVM.graphicsAdapter.accelerate3DEnabled;
+                fAccelerate2DVideoEnabled = oVM.graphicsAdapter.accelerate2DVideoEnabled;
+        else:
+            fAccelerate3DEnabled      = oVM.accelerate3DEnabled;
+            fAccelerate2DVideoEnabled = oVM.accelerate2DVideoEnabled;
+        reporter.log("  3D acceleration:    %s" % (fAccelerate3DEnabled,));
+        reporter.log("  2D acceleration:    %s" % (fAccelerate2DVideoEnabled,));
         reporter.log("  TeleporterEnabled:  %s" % (oVM.teleporterEnabled,));
         reporter.log("  TeleporterPort:     %s" % (oVM.teleporterPort,));
         reporter.log("  TeleporterAddress:  %s" % (oVM.teleporterAddress,));
@@ -2262,6 +2400,9 @@ class TestDriver(base.TestDriver):                                              
         reporter.log("    AudioController:  %s"
                      % (self.oVBoxMgr.getEnumValueName('AudioControllerType', oAdapter.audioController),));               # pylint: disable=not-callable
         reporter.log("    AudioEnabled:     %s" % (oAdapter.enabled,));
+        if self.fpApiVer >= 7.0:
+            reporter.log("    AudioEnabled In:  %s" % (oAdapter.enabledIn,));
+            reporter.log("    AudioEnabled Out: %s" % (oAdapter.enabledOut,));
         reporter.log("    Host AudioDriver: %s"
                      % (self.oVBoxMgr.getEnumValueName('AudioDriverType', oAdapter.audioDriver),));                       # pylint: disable=not-callable
 
@@ -2432,18 +2573,36 @@ class TestDriver(base.TestDriver):                                              
     # VM Api wrappers that logs errors, hides exceptions and other details.
     #
 
-    def createTestVMOnly(self, sName, sKind):
+    def createTestVMOnly(self, sName, sKind, sPlatformArchitecture = 'x86'):
         """
-        Creates and register a test VM without doing any kind of configuration.
+        Creates and registers a test VM without doing any kind of configuration.
+        Uses x86 as a platform architecture by default (only >= 7.1).
 
         Returns VM object (IMachine) on success, None on failure.
         """
         if not self.importVBoxApi():
             return None;
 
+        # Default to x86 if not explicitly specified.
+        if self.fpApiVer >= 7.1:
+            if not sPlatformArchitecture \
+            or     sPlatformArchitecture == 'x86':
+                enmPlatformArchitecture = vboxcon.PlatformArchitecture_x86;
+            elif sPlatformArchitecture == 'ARM':
+                enmPlatformArchitecture = vboxcon.PlatformArchitecture_ARM;
+            else:
+                reporter.error('Unkown platform architecture "%s"' % (sPlatformArchitecture,));
+                return None;
+        elif sPlatformArchitecture != 'x86':  # < 7.1 only has x86 support.
+            reporter.errorXcpt('This host version of VirtualBox only supports x86 as platform architecture');
+            return None;
+
         # create + register the VM
         try:
-            if self.fpApiVer >= 7.0: # Introduces VM encryption (three new parameters, empty for now).
+            if self.fpApiVer >= 7.1: # Introduces platform support (x86 + ARM).
+                oVM = self.oVBox.createMachine("", sName, enmPlatformArchitecture, [], self.tryFindGuestOsId(sKind), \
+                                               "", "", "", "");
+            elif self.fpApiVer >= 7.0: # Introduces VM encryption (three new parameters, empty for now).
                 oVM = self.oVBox.createMachine("", sName, [], self.tryFindGuestOsId(sKind), "", "", "", "");
             elif self.fpApiVer >= 4.2: # Introduces grouping (third parameter, empty for now).
                 oVM = self.oVBox.createMachine("", sName, [], self.tryFindGuestOsId(sKind), "");
@@ -2508,12 +2667,16 @@ class TestDriver(base.TestDriver):                                              
                      sChipsetType = 'piix3',
                      sIommuType = 'none',
                      sDvdControllerType = 'IDE Controller',
-                     sCom1RawFile = None):
+                     sCom1RawFile = None,
+                     fSecureBoot = False,
+                     sUefiMokPathPrefix = None,
+                     sGraphicsControllerType = None,
+                     sPlatformArchitecture = 'x86'):
         """
         Creates a test VM with a immutable HD from the test resources.
         """
         # create + register the VM
-        oVM = self.createTestVMOnly(sName, sKind);
+        oVM = self.createTestVMOnly(sName, sKind, sPlatformArchitecture);
         if not oVM:
             return None;
 
@@ -2527,16 +2690,6 @@ class TestDriver(base.TestDriver):                                              
                 fRc = oSession.setRamSize(cMbRam);
             if fRc and cCpus is not None:
                 fRc = oSession.setCpuCount(cCpus);
-            if fRc and fVirtEx is not None:
-                fRc = oSession.enableVirtEx(fVirtEx);
-            if fRc and fNestedPaging is not None:
-                fRc = oSession.enableNestedPaging(fNestedPaging);
-            if fRc and fIoApic is not None:
-                fRc = oSession.enableIoApic(fIoApic);
-            if fRc and fNstHwVirt is not None:
-                fRc = oSession.enableNestedHwVirt(fNstHwVirt);
-            if fRc and fPae is not None:
-                fRc = oSession.enablePae(fPae);
             if fRc and sDvdImage is not None:
                 fRc = oSession.attachDvd(sDvdImage, sDvdControllerType);
             if fRc and sHd is not None:
@@ -2566,6 +2719,8 @@ class TestDriver(base.TestDriver):                                              
                 fRc = oSession.setFirmwareType(vboxcon.FirmwareType_BIOS);
             elif fRc and sFirmwareType == 'efi':
                 fRc = oSession.setFirmwareType(vboxcon.FirmwareType_EFI);
+                if fRc and self.fpApiVer >= 7.0 and fSecureBoot:
+                    fRc = oSession.enableSecureBoot(fSecureBoot, sUefiMokPathPrefix);
             if fRc and self.fEnableDebugger:
                 fRc = oSession.setExtraData('VBoxInternal/DBGC/Enabled', '1');
             if fRc and self.fRecordingEnabled:
@@ -2577,7 +2732,10 @@ class TestDriver(base.TestDriver):                                              
                         if self.cMbRecordingMax > 0:
                             reporter.log('Recording file limit is set to %d MB' % (self.cMbRecordingMax));
                         oRecSettings = oSession.o.machine.recordingSettings;
-                        oRecSettings.enabled     = True;
+                        oRecSettings.enabled     = True; # For VBox < 7.1 this also starts recording.
+                        if self.fpApiVer >= 7.1:
+                            # For VBox >= 7.1 we have to explicitly start the recording.
+                            oRecSettings.start();
                         aoScreens = self.oVBoxMgr.getArray(oRecSettings, 'screens');
                         for oScreen in aoScreens:
                             try:
@@ -2610,16 +2768,52 @@ class TestDriver(base.TestDriver):                                              
                         reporter.log('Recording only available for VBox >= 6.1, sorry!')
                 except:
                     reporter.errorXcpt('failed to configure recording for "%s"' % (sName));
-            if fRc and sChipsetType == 'piix3':
-                fRc = oSession.setChipsetType(vboxcon.ChipsetType_PIIX3);
-            elif fRc and sChipsetType == 'ich9':
-                fRc = oSession.setChipsetType(vboxcon.ChipsetType_ICH9);
+            if fRc:
+                if sChipsetType == 'piix3':
+                    fRc = oSession.setChipsetType(vboxcon.ChipsetType_PIIX3);
+                elif sChipsetType == 'ich9':
+                    fRc = oSession.setChipsetType(vboxcon.ChipsetType_ICH9);
+                elif    self.fpApiVer >= 7.1 \
+                    and sChipsetType == 'armv8virtual': # ARM only is for VBox >= 7.1.
+                    fRc = oSession.setChipsetType(vboxcon.ChipsetType_ARMv8Virtual);
+                else: # This is fatal.
+                    reporter.log('Unknown chipset type "%s" specified' % (sChipsetType,));
             if fRc and sCom1RawFile:
                 fRc = oSession.setupSerialToRawFile(0, sCom1RawFile);
             if fRc and self.fpApiVer >= 6.2 and hasattr(vboxcon, 'IommuType_AMD') and sIommuType == 'amd':
                 fRc = oSession.setIommuType(vboxcon.IommuType_AMD);
             elif fRc and self.fpApiVer >= 6.2 and hasattr(vboxcon, 'IommuType_Intel') and sIommuType == 'intel':
                 fRc = oSession.setIommuType(vboxcon.IommuType_Intel);
+            if fRc and sGraphicsControllerType is not None:
+                if sGraphicsControllerType == 'VBoxSVGA':
+                    fRc = oSession.setVideoControllerType(vboxcon.GraphicsControllerType_VBoxSVGA);
+                elif sGraphicsControllerType == 'VMSVGA':
+                    fRc = oSession.setVideoControllerType(vboxcon.GraphicsControllerType_VMSVGA);
+                elif sGraphicsControllerType == 'VBoxVGA':
+                    fRc = oSession.setVideoControllerType(vboxcon.GraphicsControllerType_VBoxVGA);
+                elif sGraphicsControllerType == 'QemuRamFb':
+                    fRc = oSession.setVideoControllerType(vboxcon.GraphicsControllerType_QemuRamFB);
+
+            #
+            # x86-specifics.
+            #
+            if sPlatformArchitecture == 'x86':
+                if fRc and fVirtEx is not None:
+                    fRc = oSession.enableVirtExX86(fVirtEx);
+                if fRc and fNestedPaging is not None:
+                    fRc = oSession.enableNestedPagingX86(fNestedPaging);
+                if fRc and fIoApic is not None:
+                    fRc = oSession.enableIoApic(fIoApic);
+                if fRc and fNstHwVirt is not None:
+                    fRc = oSession.enableNestedHwVirtX86(fNstHwVirt);
+                if fRc and fPae is not None:
+                    fRc = oSession.enablePaeX86(fPae);
+
+            #
+            # ARM-specifics.
+            #
+            elif sPlatformArchitecture == 'ARM':
+                pass; ## @todo BUGBUG Add stuff for ARM here.
 
             if fRc: fRc = oSession.saveSettings();
             if not fRc:   oSession.discardSettings(True);
@@ -2654,6 +2848,7 @@ class TestDriver(base.TestDriver):                                              
                                  sName,
                                  iGroup,
                                  sKind,
+                                 sPlatformArchitecture = 'x86',
                                  sDvdImage = None,
                                  fFastBootLogo = True,
                                  eNic0AttachType = None,
@@ -2664,9 +2859,11 @@ class TestDriver(base.TestDriver):                                              
                                  sCom1RawFile = None):
         """
         Creates a test VM with all defaults and no HDs.
+
+        Defaults to the x86 platform architecture if not explicitly specified otherwise.
         """
         # create + register the VM
-        oVM = self.createTestVMOnly(sName, sKind);
+        oVM = self.createTestVMOnly(sName, sKind, sPlatformArchitecture);
         if oVM is not None:
             # Configure the VM with defaults according to sKind.
             fRc = True;
@@ -2892,7 +3089,7 @@ class TestDriver(base.TestDriver):                                              
         """
         sWinDir = '';
         if oTestVm.isWindows():
-            if oTestVm.sKind in ['WindowsNT4', 'WindowsNT3x',]:
+            if oTestVm.sKind in ['WindowsNT4', 'WindowsNT3x', 'Windows2000',]:
                 sWinDir = 'C:\\WinNT\\';
             else:
                 sWinDir = 'C:\\Windows\\';
@@ -3677,7 +3874,10 @@ class TestDriver(base.TestDriver):                                              
         if not self.isHostCpuIntel(fQuiet):
             return False;
 
-        (uFamilyModel, _, _, _) = self.oVBox.host.getProcessorCPUIDLeaf(0, 0x1, 0);
+        if self.fpApiVer >= 7.1:
+            (uFamilyModel, _, _, _) = self.oVBox.host.x86.getProcessorCPUIDLeaf(0, 0x1, 0);
+        else:
+            (uFamilyModel, _, _, _) = self.oVBox.host.getProcessorCPUIDLeaf(0, 0x1, 0);
         return ((uFamilyModel >> 8) & 0xf) == 0xf;
 
     def hasRawModeSupport(self, fQuiet = False):
@@ -3705,7 +3905,14 @@ class TestDriver(base.TestDriver):                                              
         self.importVBoxApi();
         if self.fpApiVer >= 5.0:
             try:
-                fVBox = self.oVBox.systemProperties.rawModeSupported;
+                if self.fpApiVer >= 7.1:
+                    # @todo r=aeichner Not entirely correct as we can support multiple platforms on a single host
+                    #                  each having an individual raw-mode status. Not relevant right now because
+                    #                  there is no raw-mode at all currently.
+                    oPlatformProperties = self.oVBox.getPlatformProperties(self.oVBox.host.architecture);
+                    fVBox = oPlatformProperties.rawModeSupported;
+                else:
+                    fVBox = self.oVBox.systemProperties.rawModeSupported;
             except:
                 if not fQuiet:
                     reporter.logXcpt();
@@ -3746,6 +3953,7 @@ class TestDriver(base.TestDriver):                                              
         fRemoveVm  = self.addTask(oSession);
         fRemoveTxs = self.addTask(oTxsSession);
 
+        reporter.log2('txsDoTask(%s): Running' % (str(fnAsync)));
         rc = fnAsync(*aArgs); # pylint: disable=star-args
         if rc is True:
             rc = False;
@@ -3754,25 +3962,25 @@ class TestDriver(base.TestDriver):                                              
                 if oTxsSession.isSuccess():
                     rc = oTxsSession.getResult();
                 elif fIgnoreErrors is True:
-                    reporter.log(  'txsDoTask: task failed (%s)' % (oTxsSession.getLastReply()[1],));
+                    reporter.log(  'txsDoTask(%s): task failed (%s)' % (str(fnAsync), oTxsSession.getLastReply()[1],));
                 else:
-                    reporter.error('txsDoTask: task failed (%s)' % (oTxsSession.getLastReply()[1],));
+                    reporter.error('txsDoTask(%s): task failed (%s)' % (str(fnAsync), oTxsSession.getLastReply()[1],));
             else:
                 oTxsSession.cancelTask();
                 if oTask is None:
                     if fIgnoreErrors is True:
-                        reporter.log(  'txsDoTask: The task timed out.');
+                        reporter.log(  'txsDoTask(%s): The task timed out.' % (str(fnAsync)));
                     else:
-                        reporter.errorTimeout('txsDoTask: The task timed out.');
+                        reporter.errorTimeout('txsDoTask(%s): The task timed out.' % (str(fnAsync)));
                 elif oTask is oSession:
-                    reporter.error('txsDoTask: The VM terminated unexpectedly');
+                    reporter.error('txsDoTask(%s): The VM terminated unexpectedly' % (str(fnAsync)));
                 else:
                     if fIgnoreErrors is True:
-                        reporter.log(  'txsDoTask: An unknown task %s was returned' % (oTask,));
+                        reporter.log(  'txsDoTask(%s): An unknown task %s was returned' % (str(fnAsync), oTask,));
                     else:
-                        reporter.error('txsDoTask: An unknown task %s was returned' % (oTask,));
+                        reporter.error('txsDoTask(%s): An unknown task %s was returned' % (str(fnAsync), oTask,));
         else:
-            reporter.error('txsDoTask: fnAsync returned %s' % (rc,));
+            reporter.error('txsDoTask(%s) returned %s' % (str(fnAsync), rc,));
 
         if fRemoveTxs:
             self.removeTask(oTxsSession);
@@ -4253,7 +4461,8 @@ class TestDriver(base.TestDriver):                                              
         return fRc;
 
     def txsRunTestRedirectStd(self, oTxsSession, sTestName, cMsTimeout, sExecName, asArgs = (), asAddEnv = (), sAsUser = "",
-                              oStdIn = '/dev/null', oStdOut = '/dev/null', oStdErr = '/dev/null', oTestPipe = '/dev/null'):
+                              oStdIn = '/dev/null', oStdOut = '/dev/null', oStdErr = '/dev/null', oTestPipe = '/dev/null',
+                              fIgnoreErrors = False):
         """
         Executes the specified test task, waiting till it completes or times out,
         redirecting stdin, stdout and stderr to the given objects.
@@ -4272,20 +4481,29 @@ class TestDriver(base.TestDriver):                                              
         # Submit the job.
         fRc = False;
         if oTxsSession.asyncExecEx(sExecName, asArgs, asAddEnv, oStdIn, oStdOut, oStdErr,
-                                   oTestPipe, sAsUser, cMsTimeout = self.adjustTimeoutMs(cMsTimeout)):
+                                   oTestPipe, sAsUser, cMsTimeout = self.adjustTimeoutMs(cMsTimeout),
+                                   fIgnoreErrors = fIgnoreErrors):
             self.addTask(oTxsSession);
 
             # Wait for the job to complete.
             while True:
                 oTask = self.waitForTasks(cMsTimeout + 1);
                 if oTask is None:
-                    reporter.log('txsRunTestRedirectStd: waitForTasks timed out');
+                    if fIgnoreErrors:
+                        reporter.log('txsRunTestRedirectStd: waitForTasks timed out');
+                    else:
+                        reporter.error('txsRunTestRedirectStd: waitForTasks timed out');
                     break;
                 if oTask is oTxsSession:
                     fRc = True;
-                    reporter.log('txsRunTestRedirectStd: isSuccess=%s getResult=%s'
-                                 % (oTxsSession.isSuccess(), oTxsSession.getResult()));
+                    if  not oTxsSession.isSuccess() \
+                    and not fIgnoreErrors:
+                        reporter.error('txsRunTestRedirectStd: failed; result is "%s"' % (oTxsSession.getResult()));
+                    else:
+                        reporter.log('txsRunTestRedirectStd: isSuccess=%s getResult=%s'
+                                     % (oTxsSession.isSuccess(), oTxsSession.getResult()));
                     break;
+
                 if not self.handleTask(oTask, 'txsRunTestRedirectStd'):
                     break;
 
@@ -4297,6 +4515,49 @@ class TestDriver(base.TestDriver):                                              
 
         reporter.testDone();
         return fRc;
+
+    def txsRunTestStdIn(self, oTxsSession, sTestName, cMsTimeout, sExecName, asArgs = (), asAddEnv = (), sAsUser = "",
+                        sStdIn = None, fIgnoreErrors = False):
+        """
+        Executes the specified test task, waiting till it completes or times out.
+        Redirecting simple string input into stdin, redirecting text stdout / stderr output to verbose logging.
+
+        The VM session (if any) must be in the task list.
+
+        Returns True if we executed the task and nothing abnormal happend.
+        Query the process status from the TXS session.
+
+        Returns False if some unexpected task was signalled or we failed to
+        submit the job.
+        """
+        assert sStdIn is not None;
+        class StdInWrapper(object): # pylint: disable=too-few-public-methods
+            """
+            Wraps sStdIn in a file like class.
+            """
+            def __init__(self, sStdIn):
+                self.sContent = sStdIn;
+                self.off      = 0;
+
+            def read(self, cbMax):
+                """
+                Returns next stdin input (up to cbMax), or an empty string if all input has been supplied already.
+                """
+                cbLeft = len(self.sContent) - self.off;
+                if cbLeft == 0:
+                    return "";
+                if cbLeft <= cbMax:
+                    sRet = self.sContent[self.off:(self.off + cbLeft)];
+                else:
+                    sRet = self.sContent[self.off:(self.off + cbMax)];
+                self.off = self.off + len(sRet);
+                reporter.log2('Reading from stdin: "%s"' % (sRet,));
+                return sRet;
+
+        return self.txsRunTestRedirectStd(oTxsSession, sTestName, cMsTimeout, sExecName, asArgs, asAddEnv, sAsUser,
+                                          oStdIn  = StdInWrapper(sStdIn),
+                                          oStdErr = reporter.FileWrapper('stderr'), oStdOut = reporter.FileWrapper('stdout'),
+                                          fIgnoreErrors = fIgnoreErrors);
 
     def txsRunTest2(self, oTxsSession1, oTxsSession2, sTestName, cMsTimeout,
             sExecName1, asArgs1,

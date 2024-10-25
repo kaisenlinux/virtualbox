@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -589,7 +589,7 @@ static DECLCALLBACK(int) drvramdiskBiosGetPCHSGeometry(PPDMIMEDIA pInterface,
                                                        PPDMMEDIAGEOMETRY pPCHSGeometry)
 {
     RT_NOREF2(pInterface, pPCHSGeometry);
-    return VERR_NOT_IMPLEMENTED;
+    return VERR_PDM_GEOMETRY_NOT_SET;
 }
 
 /** @copydoc PDMIMEDIA::pfnBiosSetPCHSGeometry */
@@ -605,7 +605,7 @@ static DECLCALLBACK(int) drvramdiskBiosGetLCHSGeometry(PPDMIMEDIA pInterface,
                                                        PPDMMEDIAGEOMETRY pLCHSGeometry)
 {
     RT_NOREF2(pInterface, pLCHSGeometry);
-    return VERR_NOT_IMPLEMENTED;
+    return VERR_PDM_GEOMETRY_NOT_SET;
 }
 
 /** @copydoc PDMIMEDIA::pfnBiosSetLCHSGeometry */
@@ -658,6 +658,49 @@ static DECLCALLBACK(bool) drvramdiskIsNonRotational(PPDMIMEDIA pInterface)
     return pThis->fNonRotational;
 }
 
+/** @interface_method_impl{PDMIMEDIA,pfnGetRegionCount} */
+static DECLCALLBACK(uint32_t) drvramdiskGetRegionCount(PPDMIMEDIA pInterface)
+{
+    RT_NOREF(pInterface);
+    return 1;
+}
+
+/** @interface_method_impl{PDMIMEDIA,pfnQueryRegionProperties} */
+static DECLCALLBACK(int) drvramdiskQueryRegionProperties(PPDMIMEDIA pInterface, uint32_t uRegion, uint64_t *pu64LbaStart,
+                                                         uint64_t *pcBlocks, uint64_t *pcbBlock,
+                                                         PVDREGIONDATAFORM penmDataForm)
+{
+    PDRVRAMDISK pThis = RT_FROM_MEMBER(pInterface, DRVRAMDISK, IMedia);
+    AssertReturn(uRegion == 0, VERR_INVALID_PARAMETER);
+    if (pu64LbaStart)
+        *pu64LbaStart = 0;
+    if (pcBlocks)
+        *pcBlocks = pThis->cbDisk / pThis->cbSector;
+    if (pcbBlock)
+        *pcbBlock = pThis->cbSector;
+    if (penmDataForm)
+        *penmDataForm = VDREGIONDATAFORM_RAW;
+    return VINF_SUCCESS;
+}
+
+/** @interface_method_impl{PDMIMEDIA,pfnQueryRegionPropertiesForLba} */
+static DECLCALLBACK(int) drvramdiskQueryRegionPropertiesForLba(PPDMIMEDIA pInterface, uint64_t u64LbaStart,
+                                                               uint32_t *puRegion, uint64_t *pcBlocks,
+                                                               uint64_t *pcbBlock, PVDREGIONDATAFORM penmDataForm)
+{
+    PDRVRAMDISK pThis = RT_FROM_MEMBER(pInterface, DRVRAMDISK, IMedia);
+    RT_NOREF(u64LbaStart);
+    if (puRegion)
+        *puRegion = 0;
+    if (pcBlocks)
+        *pcBlocks = pThis->cbDisk / pThis->cbSector;
+    if (pcbBlock)
+        *pcbBlock = pThis->cbSector;
+    if (penmDataForm)
+        *penmDataForm = VDREGIONDATAFORM_RAW;
+    return VINF_SUCCESS;
+}
+
 
 /*********************************************************************************************************************************
 *   Extended media interface methods                                                                                             *
@@ -681,7 +724,7 @@ static void drvramdiskMediaExIoReqWarningOutOfMemory(PPDMDRVINS pDrvIns)
  * @param   pThis     VBox disk container instance data.
  * @param   rc        Status code to check.
  */
-bool drvramdiskMediaExIoReqIsRedoSetWarning(PDRVRAMDISK pThis, int rc)
+static bool drvramdiskMediaExIoReqIsRedoSetWarning(PDRVRAMDISK pThis, int rc)
 {
     if (rc == VERR_NO_MEMORY)
     {
@@ -946,6 +989,17 @@ static DECLCALLBACK(int) drvramdiskIoReqWriteWorker(PDRVRAMDISK pThis, PPDMMEDIA
 }
 
 /**
+ * Kicks the worker thread out of the loop.
+ *
+ * @returns VBox status code.
+ * @retval  VERR_CANCELLED;
+ */
+static DECLCALLBACK(int) drvramdiskDestructQueue(void)
+{
+    return VERR_CANCELLED;
+}
+
+/**
  * Processes a read/write request.
  *
  * @returns VBox status code.
@@ -963,8 +1017,7 @@ static int drvramdiskMediaExIoReqReadWriteProcess(PDRVRAMDISK pThis, PPDMMEDIAEX
            && rc == VINF_SUCCESS)
     {
         if (pIoReq->enmType == PDMMEDIAEXIOREQTYPE_READ)
-            rc = RTReqQueueCallEx(pThis->hReqQ, NULL, 0, RTREQFLAGS_NO_WAIT,
-                                  (PFNRT)drvramdiskIoReqReadWorker, 2, pThis, pIoReq);
+            rc = RTReqQueueCallEx(pThis->hReqQ, NULL, 0, RTREQFLAGS_NO_WAIT, (PFNRT)drvramdiskIoReqReadWorker, 2, pThis, pIoReq);
         else
         {
             /* Sync memory buffer from the request initiator. */
@@ -1440,8 +1493,7 @@ static DECLCALLBACK(int) drvramdiskIoReqFlush(PPDMIMEDIAEX pInterface, PDMMEDIAE
     }
 
     ASMAtomicIncU32(&pThis->cIoReqsActive);
-    return RTReqQueueCallEx(pThis->hReqQ, NULL, 0, RTREQFLAGS_NO_WAIT,
-                            (PFNRT)drvramdiskIoReqFlushWorker, 2, pThis, pIoReq);
+    return RTReqQueueCallEx(pThis->hReqQ, NULL, 0, RTREQFLAGS_NO_WAIT, (PFNRT)drvramdiskIoReqFlushWorker, 2, pThis, pIoReq);
 }
 
 /**
@@ -1482,8 +1534,9 @@ static DECLCALLBACK(int) drvramdiskIoReqDiscard(PPDMIMEDIAEX pInterface, PDMMEDI
 
         ASMAtomicIncU32(&pThis->cIoReqsActive);
 
-        rc = RTReqQueueCallEx(pThis->hReqQ, NULL, 0, RTREQFLAGS_NO_WAIT,
-                              (PFNRT)drvramdiskIoReqDiscardWorker, 2, pThis, pIoReq);
+        rc = RTReqQueueCallEx(pThis->hReqQ, NULL, 0, RTREQFLAGS_NO_WAIT, (PFNRT)drvramdiskIoReqDiscardWorker, 2, pThis, pIoReq);
+        if (rc == VINF_SUCCESS)
+            rc = VINF_PDM_MEDIAEX_IOREQ_IN_PROGRESS;
     }
 
     return rc;
@@ -1648,11 +1701,32 @@ static DECLCALLBACK(void) drvramdiskDestruct(PPDMDRVINS pDrvIns)
 {
     PDRVRAMDISK pThis = PDMINS_2_DATA(pDrvIns, PDRVRAMDISK);
 
+    PRTREQ pReq = NULL;
+    int rc = RTReqQueueCallEx(pThis->hReqQ, &pReq, RT_INDEFINITE_WAIT, RTREQFLAGS_IPRT_STATUS, (PFNRT)drvramdiskDestructQueue, 0);
+    AssertRC(rc);
+    RTReqRelease(pReq);
+
     if (pThis->pTreeSegments)
     {
         RTAvlrFileOffsetDestroy(pThis->pTreeSegments, drvramdiskTreeDestroy, NULL);
         RTMemFree(pThis->pTreeSegments);
     }
+    if (pThis->hIoBufMgr)
+        IOBUFMgrDestroy(pThis->hIoBufMgr);
+
+    for (unsigned i = 0; i < RT_ELEMENTS(pThis->aIoReqAllocBins); i++)
+        if (pThis->aIoReqAllocBins[i].hMtxLstIoReqAlloc != NIL_RTSEMFASTMUTEX)
+            RTSemFastMutexDestroy(pThis->aIoReqAllocBins[i].hMtxLstIoReqAlloc);
+
+    if (RTCritSectIsInitialized(&pThis->CritSectIoReqsIoBufWait))
+        RTCritSectDelete(&pThis->CritSectIoReqsIoBufWait);
+
+    if (RTCritSectIsInitialized(&pThis->CritSectIoReqRedo))
+        RTCritSectDelete(&pThis->CritSectIoReqRedo);
+
+    if (pThis->hIoReqCache != NIL_RTMEMCACHE)
+        RTMemCacheDestroy(pThis->hIoReqCache);
+
     RTReqQueueDestroy(pThis->hReqQ);
 }
 
@@ -1679,22 +1753,26 @@ static DECLCALLBACK(int) drvramdiskConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg,
     pDrvIns->IBase.pfnQueryInterface     = drvramdiskQueryInterface;
 
     /* IMedia */
-    pThis->IMedia.pfnRead                = drvramdiskRead;
-    pThis->IMedia.pfnWrite               = drvramdiskWrite;
-    pThis->IMedia.pfnFlush               = drvramdiskFlush;
-    pThis->IMedia.pfnGetSize             = drvramdiskGetSize;
-    pThis->IMedia.pfnBiosIsVisible       = drvramdiskBiosIsVisible;
-    pThis->IMedia.pfnGetType             = drvramdiskGetType;
-    pThis->IMedia.pfnIsReadOnly          = drvramdiskIsReadOnly;
-    pThis->IMedia.pfnBiosGetPCHSGeometry = drvramdiskBiosGetPCHSGeometry;
-    pThis->IMedia.pfnBiosSetPCHSGeometry = drvramdiskBiosSetPCHSGeometry;
-    pThis->IMedia.pfnBiosGetLCHSGeometry = drvramdiskBiosGetLCHSGeometry;
-    pThis->IMedia.pfnBiosSetLCHSGeometry = drvramdiskBiosSetLCHSGeometry;
-    pThis->IMedia.pfnGetUuid             = drvramdiskGetUuid;
-    pThis->IMedia.pfnGetSectorSize       = drvramdiskGetSectorSize;
-    pThis->IMedia.pfnReadPcBios          = drvramdiskReadPcBios;
-    pThis->IMedia.pfnDiscard             = drvramdiskDiscard;
-    pThis->IMedia.pfnIsNonRotational     = drvramdiskIsNonRotational;
+    pThis->IMedia.pfnRead                        = drvramdiskRead;
+    pThis->IMedia.pfnWrite                       = drvramdiskWrite;
+    pThis->IMedia.pfnFlush                       = drvramdiskFlush;
+    pThis->IMedia.pfnGetSize                     = drvramdiskGetSize;
+    pThis->IMedia.pfnBiosIsVisible               = drvramdiskBiosIsVisible;
+    pThis->IMedia.pfnGetType                     = drvramdiskGetType;
+    pThis->IMedia.pfnIsReadOnly                  = drvramdiskIsReadOnly;
+    pThis->IMedia.pfnBiosGetPCHSGeometry         = drvramdiskBiosGetPCHSGeometry;
+    pThis->IMedia.pfnBiosSetPCHSGeometry         = drvramdiskBiosSetPCHSGeometry;
+    pThis->IMedia.pfnBiosGetLCHSGeometry         = drvramdiskBiosGetLCHSGeometry;
+    pThis->IMedia.pfnBiosSetLCHSGeometry         = drvramdiskBiosSetLCHSGeometry;
+    pThis->IMedia.pfnGetUuid                     = drvramdiskGetUuid;
+    pThis->IMedia.pfnGetSectorSize               = drvramdiskGetSectorSize;
+    pThis->IMedia.pfnReadPcBios                  = drvramdiskReadPcBios;
+    pThis->IMedia.pfnDiscard                     = drvramdiskDiscard;
+    pThis->IMedia.pfnIsNonRotational             = drvramdiskIsNonRotational;
+    pThis->IMedia.pfnSendCmd                     = NULL;
+    pThis->IMedia.pfnGetRegionCount              = drvramdiskGetRegionCount;
+    pThis->IMedia.pfnQueryRegionProperties       = drvramdiskQueryRegionProperties;
+    pThis->IMedia.pfnQueryRegionPropertiesForLba = drvramdiskQueryRegionPropertiesForLba;
 
     /* IMediaEx */
     pThis->IMediaEx.pfnQueryFeatures            = drvramdiskQueryFeatures;

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -457,8 +457,8 @@ static bool dbgDiggerDarwinIsSegmentPresent(PUVM pUVM, PCVMMR3VTABLE pVMM, uint6
     /*
      * Check that all the pages are present.
      */
-    cbSeg    += uSegAddr & X86_PAGE_OFFSET_MASK;
-    uSegAddr &= ~(uint64_t)X86_PAGE_OFFSET_MASK;
+    cbSeg    += uSegAddr & GUEST_PAGE_OFFSET_MASK;
+    uSegAddr &= ~(uint64_t)GUEST_PAGE_OFFSET_MASK;
     for (;;)
     {
         uint8_t     abBuf[8];
@@ -472,10 +472,10 @@ static bool dbgDiggerDarwinIsSegmentPresent(PUVM pUVM, PCVMMR3VTABLE pVMM, uint6
         }
 
         /* Advance */
-        if (cbSeg <= X86_PAGE_SIZE)
+        if (cbSeg <= GUEST_PAGE_SIZE)
             return true;
-        cbSeg    -= X86_PAGE_SIZE;
-        uSegAddr += X86_PAGE_SIZE;
+        cbSeg    -= GUEST_PAGE_SIZE;
+        uSegAddr += GUEST_PAGE_SIZE;
     }
 }
 
@@ -521,7 +521,7 @@ static int dbgDiggerDarwinAddModule(PDBGDIGGERDARWIN pThis, PUVM pUVM, PCVMMR3VT
     RT_NOREF1(pThis);
     union
     {
-        uint8_t             ab[2 * X86_PAGE_4K_SIZE];
+        uint8_t             ab[2 * GUEST_PAGE_SIZE];
         mach_header_64_t    Hdr64;
         mach_header_32_t    Hdr32;
     } uBuf;
@@ -529,7 +529,7 @@ static int dbgDiggerDarwinAddModule(PDBGDIGGERDARWIN pThis, PUVM pUVM, PCVMMR3VT
     /* Read the first page of the image. */
     DBGFADDRESS ModAddr;
     int rc = pVMM->pfnDBGFR3MemRead(pUVM, 0 /*idCpu*/,
-                                    pVMM->pfnDBGFR3AddrFromFlat(pUVM, &ModAddr, uModAddr), uBuf.ab, X86_PAGE_4K_SIZE);
+                                    pVMM->pfnDBGFR3AddrFromFlat(pUVM, &ModAddr, uModAddr), uBuf.ab, GUEST_PAGE_SIZE);
     if (RT_FAILURE(rc))
         return rc;
 
@@ -550,14 +550,14 @@ static int dbgDiggerDarwinAddModule(PDBGDIGGERDARWIN pThis, PUVM pUVM, PCVMMR3VT
     if (uBuf.Hdr32.ncmds > 256)
         return VERR_BAD_EXE_FORMAT;
     AssertCompileMembersSameSizeAndOffset(mach_header_64_t, sizeofcmds, mach_header_32_t, sizeofcmds);
-    if (uBuf.Hdr32.sizeofcmds > X86_PAGE_4K_SIZE * 2 - sizeof(mach_header_64_t))
+    if (uBuf.Hdr32.sizeofcmds > GUEST_PAGE_SIZE * 2 - sizeof(mach_header_64_t))
         return VERR_BAD_EXE_FORMAT;
 
     /* Do we need to read a 2nd page to get all the load commands? If so, do it. */
-    if (uBuf.Hdr32.sizeofcmds + (f64Bit ? sizeof(mach_header_64_t) : sizeof(mach_header_32_t)) > X86_PAGE_4K_SIZE)
+    if (uBuf.Hdr32.sizeofcmds + (f64Bit ? sizeof(mach_header_64_t) : sizeof(mach_header_32_t)) > GUEST_PAGE_SIZE)
     {
-        rc = pVMM->pfnDBGFR3MemRead(pUVM, 0 /*idCpu*/, pVMM->pfnDBGFR3AddrFromFlat(pUVM, &ModAddr, uModAddr + X86_PAGE_4K_SIZE),
-                                    &uBuf.ab[X86_PAGE_4K_SIZE], X86_PAGE_4K_SIZE);
+        rc = pVMM->pfnDBGFR3MemRead(pUVM, 0 /*idCpu*/, pVMM->pfnDBGFR3AddrFromFlat(pUVM, &ModAddr, uModAddr + GUEST_PAGE_SIZE),
+                                    &uBuf.ab[GUEST_PAGE_SIZE], GUEST_PAGE_SIZE);
         if (RT_FAILURE(rc))
             return rc;
     }
@@ -714,8 +714,10 @@ static int dbgDiggerDarwinAddModule(PDBGDIGGERDARWIN pThis, PUVM pUVM, PCVMMR3VT
             rc = RTDbgModSegmentAdd(hMod, aSegs[iSeg].uRva, aSegs[iSeg].cb, aSegs[iSeg].szName, 0, NULL);
             if (aSegs[iSeg].cb > 0 && RT_SUCCESS(rc))
             {
-                char szTmp[RTDBG_SEGMENT_NAME_LENGTH + sizeof("_start")];
-                strcat(strcpy(szTmp, aSegs[iSeg].szName), "_start");
+                static const char s_szSuffix[] = "_start";
+                size_t const      cchName = RTStrNLen(aSegs[iSeg].szName, sizeof(aSegs[iSeg].szName));
+                char              szTmp[sizeof(aSegs[iSeg].szName) + sizeof(s_szSuffix)];
+                memcpy(mempcpy(szTmp, aSegs[iSeg].szName, cchName), s_szSuffix, sizeof(s_szSuffix));
                 rc = RTDbgModSymbolAdd(hMod, szTmp, iSeg, 0 /*uRva*/, 0 /*cb*/, 0 /*fFlags*/, NULL);
             }
             uRvaNext += aSegs[iSeg].cb;
@@ -956,10 +958,9 @@ static DECLCALLBACK(int)  dbgDiggerDarwinInit(PUVM pUVM, PCVMMR3VTABLE pVMM, voi
                     /*
                      * Try add the module.
                      */
-                    LogRel(("OSXDig: kmod_info @%RGv: '%s' ver '%s', image @%#llx LB %#llx cbHdr=%#llx\n", AddrModInfo.FlatPtr,
-                            pszName, pszVersion, uImageAddr, cbImage, cbHdr));
                     rc = dbgDiggerDarwinAddModule(pThis, pUVM, pVMM, uImageAddr, pszName, NULL);
-
+                    LogRel(("OSXDig: kmod_info @%RGv: '%s' ver '%s', image @%#llx LB %#llx cbHdr=%#llx -> %Rrc\n", AddrModInfo.FlatPtr,
+                            pszName, pszVersion, uImageAddr, cbImage, cbHdr, rc));
 
                     /*
                      * Advance to the next kmod_info entry.
@@ -1010,7 +1011,7 @@ static DECLCALLBACK(bool)  dbgDiggerDarwinProbe(PUVM pUVM, PCVMMR3VTABLE pVMM, v
         DBGFADDRESS     KernelAddr;
         for (pVMM->pfnDBGFR3AddrFromFlat(pUVM, &KernelAddr, s_aRanges[iRange].uStart);
              KernelAddr.FlatPtr < s_aRanges[iRange].uEnd;
-             KernelAddr.FlatPtr += X86_PAGE_4K_SIZE)
+             KernelAddr.FlatPtr += GUEST_PAGE_SIZE)
         {
             static const uint8_t s_abNeedle[16 + 16] =
             {
@@ -1022,18 +1023,18 @@ static DECLCALLBACK(bool)  dbgDiggerDarwinProbe(PUVM pUVM, PCVMMR3VTABLE pVMM, v
                                             1, s_abNeedle, sizeof(s_abNeedle), &KernelAddr);
             if (RT_FAILURE(rc))
                 break;
-            pVMM->pfnDBGFR3AddrSub(&KernelAddr, KernelAddr.FlatPtr & X86_PAGE_4K_OFFSET_MASK);
+            pVMM->pfnDBGFR3AddrSub(&KernelAddr, KernelAddr.FlatPtr & GUEST_PAGE_OFFSET_MASK);
 
             /*
              * Read the first page of the image and check the headers.
              */
             union
             {
-                uint8_t             ab[X86_PAGE_4K_SIZE];
+                uint8_t             ab[GUEST_PAGE_SIZE];
                 mach_header_64_t    Hdr64;
                 mach_header_32_t    Hdr32;
             } uBuf;
-            rc = pVMM->pfnDBGFR3MemRead(pUVM, 0 /*idCpu*/, &KernelAddr, uBuf.ab, X86_PAGE_4K_SIZE);
+            rc = pVMM->pfnDBGFR3MemRead(pUVM, 0 /*idCpu*/, &KernelAddr, uBuf.ab, GUEST_PAGE_SIZE);
             if (RT_FAILURE(rc))
                 continue;
             AssertCompileMembersSameSizeAndOffset(mach_header_64_t, magic,   mach_header_32_t, magic);
@@ -1051,7 +1052,7 @@ static DECLCALLBACK(bool)  dbgDiggerDarwinProbe(PUVM pUVM, PCVMMR3VTABLE pVMM, v
             if (uBuf.Hdr32.ncmds > 256)
                 continue;
             AssertCompileMembersSameSizeAndOffset(mach_header_64_t, sizeofcmds, mach_header_32_t, sizeofcmds);
-            if (uBuf.Hdr32.sizeofcmds > X86_PAGE_4K_SIZE * 2 - sizeof(mach_header_64_t))
+            if (uBuf.Hdr32.sizeofcmds > GUEST_PAGE_SIZE * 2 - sizeof(mach_header_64_t))
                 continue;
 
             /* Seems good enough for now.

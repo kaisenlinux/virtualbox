@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2018-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2018-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -41,7 +41,11 @@
 #include <iprt/nt/hyperv.h>
 #include <iprt/critsect.h>
 #elif defined(RT_OS_DARWIN)
-# include "VMXInternal.h"
+# if defined(VBOX_VMM_TARGET_ARMV8)
+#  include <Hypervisor/Hypervisor.h>
+# else
+#  include "VMXInternal.h"
+# endif
 #endif
 
 RT_C_DECLS_BEGIN
@@ -107,10 +111,12 @@ typedef struct NEMWINIOCTL
 
 
 #ifdef RT_OS_DARWIN
+# if !defined(VBOX_VMM_TARGET_ARMV8)
 /** vCPU ID declaration to avoid dragging in HV headers here. */
 typedef unsigned hv_vcpuid_t;
 /** The HV VM memory space ID (ASID). */
 typedef unsigned hv_vm_space_t;
+# endif
 
 
 /** @name Darwin: Our two-bit physical page state for PGMPAGE
@@ -121,11 +127,35 @@ typedef unsigned hv_vm_space_t;
 # define NEM_DARWIN_PAGE_STATE_RWX         3
 /** @} */
 
+# if defined(VBOX_VMM_TARGET_ARMV8)
 /** The CPUMCTX_EXTRN_XXX mask for IEM. */
-# define NEM_DARWIN_CPUMCTX_EXTRN_MASK_FOR_IEM      (  IEM_CPUMCTX_EXTRN_MUST_MASK | CPUMCTX_EXTRN_INHIBIT_INT \
-                                                     | CPUMCTX_EXTRN_INHIBIT_NMI )
+#  define NEM_DARWIN_CPUMCTX_EXTRN_MASK_FOR_IEM      (  IEM_CPUMCTX_EXTRN_MUST_MASK )
+# else
+/** The CPUMCTX_EXTRN_XXX mask for IEM. */
+#  define NEM_DARWIN_CPUMCTX_EXTRN_MASK_FOR_IEM      (  IEM_CPUMCTX_EXTRN_MUST_MASK | CPUMCTX_EXTRN_INHIBIT_INT \
+                                                      | CPUMCTX_EXTRN_INHIBIT_NMI )
+#endif
+
 /** The CPUMCTX_EXTRN_XXX mask for IEM when raising exceptions. */
 # define NEM_DARWIN_CPUMCTX_EXTRN_MASK_FOR_IEM_XCPT (IEM_CPUMCTX_EXTRN_XCPT_MASK | NEM_DARWIN_CPUMCTX_EXTRN_MASK_FOR_IEM)
+
+
+# if defined(VBOX_VMM_TARGET_ARMV8)
+/**
+ * MMIO2 tracking region.
+ */
+typedef struct
+{
+    /* Start of the region. */
+    RTGCPHYS                    GCPhysStart;
+    /** End of the region. */
+    RTGCPHYS                    GCPhysLast;
+    /** Whether the region was accessed since last time. */
+    bool                        fDirty;
+} NEMHVMMIO2REGION;
+/** Pointer to a MMIO2 tracking region. */
+typedef NEMHVMMIO2REGION *PNEMHVMMIO2REGION;
+# endif
 
 #endif
 
@@ -190,6 +220,11 @@ typedef struct NEM
      *  us to use the debug execution loop. */
     bool                        fUseDebugLoop;
 
+#if defined(VBOX_VMM_TARGET_ARMV8)
+    /** The PPI interrupt number of the vTimer. */
+    uint32_t                    u32GicPpiVTimer;
+#endif
+
 #if defined(RT_OS_LINUX)
     /** The '/dev/kvm' file descriptor.   */
     int32_t                     fdKvm;
@@ -200,8 +235,13 @@ typedef struct NEM
     uint32_t                    cbVCpuMmap;
     /** KVM_CAP_NR_MEMSLOTS. */
     uint32_t                    cMaxMemSlots;
+# ifdef RT_ARCH_ARM64
+    /** KVM_CAP_ARM_VM_IPA_SIZE. */
+    uint32_t                    cIpaBits;
+# else
     /** KVM_CAP_X86_ROBUST_SINGLESTEP. */
     bool                        fRobustSingleStep;
+# endif
 
     /** Hint where there might be a free slot. */
     uint16_t                    idPrevSlot;
@@ -211,17 +251,24 @@ typedef struct NEM
 #elif defined(RT_OS_WINDOWS)
     /** Set if we've created the EMTs. */
     bool                        fCreatedEmts : 1;
+# if defined(VBOX_VMM_TARGET_ARMV8)
+    bool                        fHypercallExit : 1;
+    bool                        fGpaAccessFaultExit : 1;
+    /** Cache line flush size as a power of two. */
+    uint8_t                     cPhysicalAddressWidth;
+# else
     /** WHvRunVpExitReasonX64Cpuid is supported. */
     bool                        fExtendedMsrExit : 1;
     /** WHvRunVpExitReasonX64MsrAccess is supported. */
     bool                        fExtendedCpuIdExit : 1;
     /** WHvRunVpExitReasonException is supported. */
     bool                        fExtendedXcptExit : 1;
-# ifdef NEM_WIN_WITH_A20
+#  ifdef NEM_WIN_WITH_A20
     /** Set if we've started more than one CPU and cannot mess with A20. */
     bool                        fA20Fixed : 1;
     /** Set if A20 is enabled. */
     bool                        fA20Enabled : 1;
+#  endif
 # endif
     /** The reported CPU vendor.   */
     CPUMCPUVENDOR               enmCpuVendor;
@@ -273,6 +320,21 @@ typedef struct NEM
     bool                        fCreatedEmts : 1;
     /** Set if hv_vm_create() was called successfully. */
     bool                        fCreatedVm   : 1;
+    /** Set if EL2 is enabled. */
+    bool                        fEl2Enabled  : 1;
+# if defined(VBOX_VMM_TARGET_ARMV8)
+    /** @name vTimer related state.
+     * @{ */
+    /** The counter frequency in Hz as obtained from CNTFRQ_EL0. */
+    uint64_t                    u64CntFrqHz;
+    /** The vTimer offset programmed. */
+    uint64_t                    u64VTimerOff;
+    /** Dirty tracking slots. */
+    NEMHVMMIO2REGION            aMmio2DirtyTracking[8];
+    /** The vCPU config. */
+    hv_vcpu_config_t            hVCpuCfg;
+    /** @} */
+# else
     /** Set if hv_vm_space_create() was called successfully. */
     bool                        fCreatedAsid : 1;
     /** Set if Last Branch Record (LBR) is enabled. */
@@ -309,6 +371,7 @@ typedef struct NEM
     uint32_t                    idLbrInfoMsrFirst;
     /** The last valid host LBR info stack range. */
     uint32_t                    idLbrInfoMsrLast;
+# endif
 
     STAMCOUNTER                 StatMapPage;
     STAMCOUNTER                 StatUnmapPage;
@@ -359,8 +422,17 @@ typedef struct NEMCPU
     int32_t                     fdVCpu;
     /** Pointer to the KVM_RUN data exchange region. */
     R3PTRTYPE(struct kvm_run *) pRun;
+# if defined(VBOX_VMM_TARGET_ARMV8)
+    /** The IRQ device levels from device_irq_level. */
+    uint64_t                    fIrqDeviceLvls;
+    /** Status of the IRQ line when last seen. */
+    bool                        fIrqLastSeen;
+    /** Status of the FIQ line when last seen. */
+    bool                        fFiqLastSeen;
+# else
     /** The MSR_IA32_APICBASE value known to KVM. */
     uint64_t                    uKvmApicBase;
+#endif
 
     /** @name Statistics
      * @{ */
@@ -409,6 +481,11 @@ typedef struct NEMCPU
 
 
 #elif defined(RT_OS_WINDOWS)
+# ifdef VBOX_VMM_TARGET_ARMV8
+    /** Flag whether the ID registers were synced to the guest context
+     * (for first guest exec call on the EMT after loading the saved state). */
+    bool                        fIdRegsSynced;
+# else
     /** The current state of the interrupt windows (NEM_WIN_INTW_F_XXX). */
     uint8_t                     fCurrentInterruptWindows;
     /** The desired state of the interrupt windows (NEM_WIN_INTW_F_XXX). */
@@ -423,6 +500,7 @@ typedef struct NEMCPU
     RTR3PTR                     pvMsgSlotMapping;
     /** The windows thread handle. */
     RTR3PTR                     hNativeThreadHandle;
+# endif
 
     /** @name Statistics
      * @{ */
@@ -459,6 +537,21 @@ typedef struct NEMCPU
     /** @} */
 
 #elif defined(RT_OS_DARWIN)
+# if defined(VBOX_VMM_TARGET_ARMV8)
+    /** The vCPU handle associated with the EMT executing this vCPU. */
+    hv_vcpu_t                   hVCpu;
+    /** Pointer to the exit information structure. */
+    hv_vcpu_exit_t              *pHvExit;
+    /** Flag whether an event is pending. */
+    bool                        fEventPending;
+    /** Flag whether the vTimer got activated and is masked. */
+    bool                        fVTimerActivated;
+    /** Flag whether to update the vTimer offset. */
+    bool                        fVTimerOffUpdate;
+    /** Flag whether the ID registers were synced to the guest context
+     * (for first guest exec call on the EMT after loading the saved state). */
+    bool                        fIdRegsSynced;
+# else
     /** The vCPU handle associated with the EMT executing this vCPU. */
     hv_vcpuid_t                 hVCpuId;
 
@@ -529,6 +622,7 @@ typedef struct NEMCPU
     X86PDPE                     aPdpes[4];
     /** Pointer to the VMX statistics. */
     PVMXSTATISTICS              pVmxStats;
+# endif
 
     /** @name Statistics
      * @{ */

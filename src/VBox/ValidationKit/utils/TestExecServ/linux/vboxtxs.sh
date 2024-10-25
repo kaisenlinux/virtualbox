@@ -4,7 +4,7 @@
 #
 
 #
-# Copyright (C) 2006-2023 Oracle and/or its affiliates.
+# Copyright (C) 2006-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -95,6 +95,14 @@ case "`uname -m`" in
         binary=/opt/validationkit/linux/x86/TestExecService
         ;;
 
+    aarch64)
+        binary=/opt/validationkit/linux/arm64/TestExecService
+        ;;
+
+    arm|armv8l)
+        binary=/opt/validationkit/linux/arm32/TestExecService
+        ;;
+
     *)
         binary=/opt/validationkit/linux/x86/TestExecService
         ;;
@@ -132,6 +140,7 @@ stop() {
     if test -f $PIDFILE; then
         begin_msg "Stopping VirtualBox Test Execution Service" console
         killproc $binary
+        rm -f $PIDFILE
     fi
 }
 

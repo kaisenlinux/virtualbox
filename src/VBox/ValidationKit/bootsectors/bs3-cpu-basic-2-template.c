@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2007-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2007-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -40,6 +40,7 @@
 *********************************************************************************************************************************/
 #include <iprt/asm.h>
 #include <iprt/asm-amd64-x86.h>
+#include <iprt/asm-mem.h>
 
 
 /*********************************************************************************************************************************
@@ -935,8 +936,8 @@ BS3_DECL_NEAR(void) bs3CpuBasic2_RaiseXcpt1Common(uint16_t const uSysR0Cs, uint1
     k = (0x83 << (cIdteShift + 3)) - 1;
     for (; i <= k; i++, g_usBs3TestStep++)
     {
-        Idtr = IdtrSaved;
-        Idtr.cbIdt  = i;
+        Idtr.pIdt  = IdtrSaved.pIdt;
+        Idtr.cbIdt = i;
         ASMSetIDTR(&Idtr);
         Bs3TrapSetJmpAndRestore(&Ctx81, &TrapCtx);
         if (i < j)
@@ -1469,6 +1470,7 @@ BS3_DECL_NEAR(void) bs3CpuBasic2_TssGateEspCommon(bool const g_f16BitSys, PX86DE
 }
 
 # endif /* ARCH_BITS != 64 */
+
 #endif /* BS3_INSTANTIATING_CMN */
 
 

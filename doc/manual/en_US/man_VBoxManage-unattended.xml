@@ -3,7 +3,7 @@
     manpage, user manual, usage: VBoxManage unattended
 -->
 <!--
-    Copyright (C) 2006-2023 Oracle and/or its affiliates.
+    Copyright (C) 2006-2024 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.
@@ -30,7 +30,7 @@
 ]>
 <refentry id="vboxmanage-unattended" lang="en">
   <refentryinfo>
-    <pubdate>$Date: 2023-01-17 15:15:46 +0100 (Tue, 17 Jan 2023) $</pubdate>
+    <pubdate>$Date: 2024-09-16 16:03:52 +0200 (Mon, 16 Sep 2024) $</pubdate>
     <title>VBoxManage unattended</title>
   </refentryinfo>
 
@@ -53,10 +53,14 @@
     </cmdsynopsis>
     <cmdsynopsis id="synopsis-vboxmanage-unattended-install"> <!-- The 'id' is mandatory and must start with 'synopsis-'. -->
       <command>VBoxManage unattended install</command>
-      <arg choice="req"><replaceable>uuid|vmname</replaceable></arg>
+      <group choice="req">
+        <arg choice="plain"><replaceable>uuid</replaceable></arg>
+        <arg choice="plain"><replaceable>vmname</replaceable></arg>
+      </group>
       <arg choice="req">--iso=<replaceable>install-iso</replaceable></arg>
       <arg>--user=<replaceable>login</replaceable></arg>
-      <arg>--password=<replaceable>password</replaceable></arg>
+      <arg>--user-password=<replaceable>password</replaceable></arg>
+      <arg>--admin-password=<replaceable>password</replaceable></arg>
       <arg>--password-file=<replaceable>file</replaceable></arg>
       <arg>--full-user-name=<replaceable>name</replaceable></arg>
       <arg>--key=<replaceable>product-key</replaceable></arg>
@@ -83,7 +87,7 @@
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-unattended-description">
     <title>Description</title>
 
     <refsect2 id="vboxmanage-unattended-detect">
@@ -114,7 +118,7 @@
       </para>
       <variablelist>
         <varlistentry>
-          <term><replaceable>uuid|vmname</replaceable></term>
+          <term><option><replaceable>uuid</replaceable> | <replaceable>vmname</replaceable></option></term>
           <listitem><para>Either the UUID or the name (case sensitive) of a VM.</para></listitem>
         </varlistentry>
         <varlistentry>
@@ -126,15 +130,27 @@
           <listitem><para>The login name. (default: vboxuser)</para></listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--password=<replaceable>password</replaceable></option></term>
+          <term><option>--user-password=<replaceable>password</replaceable></option></term>
           <listitem>
-            <para>The login password.  This is used for the user given by <option>--user</option> as well as the
-              root/administrator user.  (default: changeme)</para></listitem>
+            <para>The user login password.  This is used for the user given by <option>--user</option>
+              (default: changeme)</para></listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--password-file=<replaceable>file</replaceable></option></term>
+          <term><option>--user-password-file=<replaceable>file</replaceable></option></term>
           <listitem>
-            <para>Alternative to <option>--password</option> for providing the password.  Special filename
+            <para>Alternative to <option>--user-password</option> for providing the user password.  Special filename
+              <computeroutput>stdin</computeroutput> can be used to read the password from standard input.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><option>--admin-password=<replaceable>password</replaceable></option></term>
+          <listitem>
+            <para>The admin / root login password.  If not specified, the password from <option>--user-password</option>
+              will be used.</para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><option>--admin-password-file=<replaceable>file</replaceable></option></term>
+          <listitem>
+            <para>Alternative to <option>--admin-password</option> for providing the admin / root password.  Special filename
               <computeroutput>stdin</computeroutput> can be used to read the password from standard input.</para></listitem>
         </varlistentry>
         <varlistentry>
@@ -147,7 +163,7 @@
         </varlistentry>
         <varlistentry>
           <term><option>--install-additions</option>, <option>--no-install-additions</option></term>
-          <listitem><para>Whether to install the VirtualBox guest additions.  (default: --no-install-addations)</para></listitem>
+          <listitem><para>Whether to install the VirtualBox guest additions.  (default: --no-install-additions)</para></listitem>
         </varlistentry>
         <varlistentry>
           <term><option>--additions-iso=<replaceable>add-iso</replaceable></option></term>
@@ -157,7 +173,7 @@
         <varlistentry>
           <term><option>--install-txs</option>, <option>--no-install-txs</option></term>
           <listitem>
-            <para>Whether to install the test execution service (TXS) from the VirtualBox ValidationKit.
+            <para>Whether to install the Test eXecution Service (TXS) from the VirtualBox ValidationKit.
               This is useful when preparing VMs for testing or similar.  (default: --no-install-txs)</para></listitem>
         </varlistentry>
         <varlistentry>
@@ -188,7 +204,7 @@
         <varlistentry>
           <term><option>--package-selection-adjustment=<replaceable>keyword</replaceable></option></term>
           <listitem>
-            <para>Adjustments to the guest OS packages/components selection.  This can be specfied more than once.  Currently
+            <para>Adjustments to the guest OS packages/components selection.  This can be specified more than once.  Currently
               the only recognized keyword is <computeroutput>minimal</computeroutput> which triggers a minimal installation for
               some of the guest OSes.</para></listitem>
         </varlistentry>
@@ -236,7 +252,7 @@
           <term><option>--extra-install-kernel-parameters=<replaceable>params</replaceable></option></term>
           <listitem>
             <para>
-              List of extra linux kernel parameters to use during the installation. (default: IMachine::OSTypeId dependent)
+              List of extra Linux kernel parameters to use during the installation. (default: IMachine::OSTypeId dependent)
             </para></listitem>
         </varlistentry>
         <varlistentry>
@@ -244,7 +260,7 @@
           <listitem>
             <para>
               Specifies the UI language for a Windows installation.  The <replaceable>lang</replaceable> is
-              generally on the form {ll}-{CC}.  See detectedOSLanguages results from <command>VBoxManage unattended detect</command>.
+              generally of the form {ll}-{CC}.  See the detectedOSLanguages results from <command>VBoxManage unattended detect</command>.
               (default: detectedOSLanguages[0])</para></listitem>
         </varlistentry>
 

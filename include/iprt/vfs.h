@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1065,7 +1065,7 @@ RTDECL(int)         RTVfsIoStrmReadAt(RTVFSIOSTREAM hVfsIos, RTFOFF off, void *p
 /**
  * Reads the remainder of the stream into a memory buffer.
  *
- * For simplifying string-style processing, the is a zero byte after the
+ * For simplifying string-style processing, there is a zero byte after the
  * returned buffer, making sure it can be used as a zero terminated string.
  *
  * @returns IPRT status code.
@@ -1073,6 +1073,7 @@ RTDECL(int)         RTVfsIoStrmReadAt(RTVFSIOSTREAM hVfsIos, RTFOFF off, void *p
  * @param   ppvBuf          Where to return the buffer.  Must pass to
  *                          RTVfsIoStrmReadAllFree for freeing, not RTMemFree!
  * @param   pcbBuf          Where to return the buffer size.
+ * @sa      RTVfsFileReadAll
  */
 RTDECL(int)         RTVfsIoStrmReadAll(RTVFSIOSTREAM hVfsIos, void **ppvBuf, size_t *pcbBuf);
 
@@ -1081,6 +1082,7 @@ RTDECL(int)         RTVfsIoStrmReadAll(RTVFSIOSTREAM hVfsIos, void **ppvBuf, siz
  *
  * @param   pvBuf           What RTVfsIoStrmReadAll returned.
  * @param   cbBuf           What RTVfsIoStrmReadAll returned.
+ * @sa      RTVfsFileReadAllFree
  */
 RTDECL(void)        RTVfsIoStrmReadAllFree(void *pvBuf, size_t cbBuf);
 
@@ -1132,7 +1134,7 @@ RTDECL(int)         RTVfsIoStrmWriteAt(RTVFSIOSTREAM hVfsIos, RTFOFF off, const 
  *                          read.  This can be NULL if @a fBlocking is true.
  * @sa      RTFileSgRead, RTSocketSgRead, RTPipeRead, RTPipeReadBlocking
  */
-RTDECL(int)         RTVfsIoStrmSgRead(RTVFSIOSTREAM hVfsIos, RTFOFF off, PCRTSGBUF pSgBuf, bool fBlocking, size_t *pcbRead);
+RTDECL(int)         RTVfsIoStrmSgRead(RTVFSIOSTREAM hVfsIos, RTFOFF off, PRTSGBUF pSgBuf, bool fBlocking, size_t *pcbRead);
 
 /**
  * Write bytes to the I/O stream from a gather buffer.
@@ -1151,7 +1153,7 @@ RTDECL(int)         RTVfsIoStrmSgRead(RTVFSIOSTREAM hVfsIos, RTFOFF off, PCRTSGB
  *                          written.  This can be NULL if @a fBlocking is true.
  * @sa      RTFileSgWrite, RTSocketSgWrite
  */
-RTDECL(int)         RTVfsIoStrmSgWrite(RTVFSIOSTREAM hVfsIos, RTFOFF off, PCRTSGBUF pSgBuf, bool fBlocking, size_t *pcbWritten);
+RTDECL(int)         RTVfsIoStrmSgWrite(RTVFSIOSTREAM hVfsIos, RTFOFF off, PRTSGBUF pSgBuf, bool fBlocking, size_t *pcbWritten);
 
 /**
  * Flush any buffered data to the I/O stream.
@@ -1230,6 +1232,7 @@ RTDECL(uint64_t)    RTVfsIoStrmGetOpenFlags(RTVFSIOSTREAM hVfsIos);
  * @param   fFlags          Flags governing the validation, see
  *                          RTVFS_VALIDATE_UTF8_XXX.
  * @param   poffError       Where to return the error offset. Optional.
+ *                          Not implemented yet!
  */
 RTDECL(int)        RTVfsIoStrmValidateUtf8Encoding(RTVFSIOSTREAM hVfsIos, uint32_t fFlags, PRTFOFF poffError);
 
@@ -1409,6 +1412,30 @@ RTDECL(int)         RTVfsFileRead(RTVFSFILE hVfsFile, void *pvBuf, size_t cbToRe
 RTDECL(int)         RTVfsFileReadAt(RTVFSFILE hVfsFile, RTFOFF off, void *pvBuf, size_t cbToRead, size_t *pcbRead);
 
 /**
+ * Reads the remainder of the file into a memory buffer.
+ *
+ * For simplifying string-style processing, there is a zero byte after the
+ * returned buffer, making sure it can be used as a zero terminated string.
+ *
+ * @returns IPRT status code.
+ * @param   hVfsFile        The VFS file handle.
+ * @param   ppvBuf          Where to return the buffer.  Must pass to
+ *                          RTVfsFileReadAllFree for freeing, not RTMemFree!
+ * @param   pcbBuf          Where to return the buffer size.
+ * @sa      RTVfsIoStrmReadAll
+ */
+RTDECL(int)         RTVfsFileReadAll(RTVFSFILE hVfsFile, void **ppvBuf, size_t *pcbBuf);
+
+/**
+ * Free memory buffer returned by RTVfsFileReadAll.
+ *
+ * @param   pvBuf           What RTVfsFileReadAll returned.
+ * @param   cbBuf           What RTVfsFileReadAll returned.
+ * @sa      RTVfsIoStrmReadAllFree
+ */
+RTDECL(void)        RTVfsFileReadAllFree(void *pvBuf, size_t cbBuf);
+
+/**
  * Write bytes to the file at the current position.
  *
  * @returns IPRT status code.
@@ -1455,7 +1482,7 @@ RTDECL(int)         RTVfsFileWriteAt(RTVFSFILE hVfsFile, RTFOFF off, const void 
  *                          read.  This can be NULL if @a fBlocking is true.
  * @sa      RTFileSgRead, RTSocketSgRead, RTPipeRead, RTPipeReadBlocking
  */
-RTDECL(int)         RTVfsFileSgRead(RTVFSFILE hVfsFile, RTFOFF off, PCRTSGBUF pSgBuf, bool fBlocking, size_t *pcbRead);
+RTDECL(int)         RTVfsFileSgRead(RTVFSFILE hVfsFile, RTFOFF off, PRTSGBUF pSgBuf, bool fBlocking, size_t *pcbRead);
 
 /**
  * Write bytes to the file from a gather buffer.
@@ -1474,7 +1501,7 @@ RTDECL(int)         RTVfsFileSgRead(RTVFSFILE hVfsFile, RTFOFF off, PCRTSGBUF pS
  *                          written.  This can be NULL if @a fBlocking is true.
  * @sa      RTFileSgWrite, RTSocketSgWrite
  */
-RTDECL(int)         RTVfsFileSgWrite(RTVFSFILE hVfsFile, RTFOFF off, PCRTSGBUF pSgBuf, bool fBlocking, size_t *pcbWritten);
+RTDECL(int)         RTVfsFileSgWrite(RTVFSFILE hVfsFile, RTFOFF off, PRTSGBUF pSgBuf, bool fBlocking, size_t *pcbWritten);
 
 /**
  * Flush any buffered data to the file.

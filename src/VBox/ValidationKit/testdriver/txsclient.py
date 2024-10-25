@@ -7,7 +7,7 @@ Test eXecution Service Client.
 """
 __copyright__ = \
 """
-Copyright (C) 2010-2023 Oracle and/or its affiliates.
+Copyright (C) 2010-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -36,7 +36,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 # Standard Python imports.
 import array;
@@ -483,7 +483,7 @@ class Session(TdTaskBase):
         self.fErr           = not fIgnoreErrors;
         self.fnTask         = fnTask;
         self.aTaskArgs      = aArgs;
-        self.oThread        = threading.Thread(target=self.taskThread, args=(), name=('TXS-%s' % (sStatus)));
+        self.oThread        = threading.Thread(target=self.taskThread, args=(), name='TXS-%s' % (sStatus));
         self.oThread.setDaemon(True); # pylint: disable=deprecated-method
         self.msStart        = base.timestampMilli();
 
@@ -526,7 +526,7 @@ class Session(TdTaskBase):
 
         if sys.version_info < (3, 9, 0):
             # Removed since Python 3.9.
-            return oThread.isAlive(); # pylint: disable=no-member
+            return oThread.isAlive(); # pylint: disable=no-member,deprecated-method
         return oThread.is_alive();
 
     def taskThread(self):
@@ -734,6 +734,8 @@ class Session(TdTaskBase):
                     sVer = getSZ(abPayload, 0);
                     if sVer is not None:
                         rc = sVer;
+                elif sOpcode == "UNKNOWN":
+                    reporter.log(self.fErr, 'taskVer got a UNKNOWN, txs server is probably too old, just ignore')
                 else:
                     reporter.maybeErr(self.fErr, 'taskVer got a bad reply: %s' % (sOpcode,));
             else:
@@ -874,8 +876,9 @@ class Session(TdTaskBase):
                     uStreamCrc32 = getU32(abPayload, 0);
                     oOut.uTxsClientCrc32 = zlib.crc32(abPayload[4:], oOut.uTxsClientCrc32);
                     if uStreamCrc32 != (oOut.uTxsClientCrc32 & 0xffffffff):
-                        sFailure = 'crc error - mine=%#x their=%#x (%s, %u bytes)' \
-                            % (oOut.uTxsClientCrc32 & 0xffffffff, uStreamCrc32, sOpcode, cbMsg);
+                        sFailure = 'crc error - mine=%#x their=%#x (%s, %u bytes: %s)' \
+                            % (oOut.uTxsClientCrc32 & 0xffffffff, uStreamCrc32, sOpcode, cbMsg,
+                               ' '.join(['%02x' % (b,) for b in abPayload]),);
                         reporter.maybeErr(self.fErr, 'taskExecEx: %s' % (sFailure));
                         rc = None;
                         break;
@@ -892,8 +895,7 @@ class Session(TdTaskBase):
                     reporter.log('taskExecEx: Standard input is ignored... why?');
                     del oStdIn.uTxsClientCrc32;
                     oStdIn = '/dev/null';
-                elif  sOpcode in ('STDINMEM', 'STDINBAD', 'STDINCRC',)\
-                  and msPendingInputReply is not None:
+                elif sOpcode in ('STDINMEM', 'STDINBAD', 'STDINCRC',) and msPendingInputReply is not None:
                     # TXS STDIN error, abort.
                     # TODO: STDINMEM - consider undoing the previous stdin read and try resubmitt it.
                     msPendingInputReply = None;
@@ -1188,8 +1190,8 @@ class Session(TdTaskBase):
                 # Convert to array - this is silly!
                 abBuf = array.array('B');
                 if utils.isString(sRaw):
-                    for i, _ in enumerate(sRaw):
-                        abBuf.append(ord(sRaw[i]));
+                    for ch in sRaw:
+                        abBuf.append(ord(ch));
                 else:
                     abBuf.extend(sRaw);
                 sRaw = None;

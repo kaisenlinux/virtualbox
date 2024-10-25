@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2014-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2014-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -182,11 +182,8 @@ int DnDPathRebase(const char *pcszPath, const char *pcszBaseOld, const char *pcs
 
     /* Do we need to see if the given path is part of the old base? */
     size_t idxBase;
-    if (   pcszBaseOld
-        && RTPathStartsWith(pcszPath, pcszBaseOld))
-    {
+    if (RTPathStartsWith(pcszPath, pcszBaseOld))
         idxBase = strlen(pcszBaseOld);
-    }
     else
         idxBase = 0;
 

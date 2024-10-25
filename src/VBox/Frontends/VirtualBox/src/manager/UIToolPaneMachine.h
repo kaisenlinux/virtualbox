@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2017-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2017-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,13 +32,13 @@
 #endif
 
 /* Qt includes: */
+#include <QUuid>
 #include <QWidget>
 
 /* GUI includes: */
 #include "UIExtraDataDefs.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CMachine.h"
 
 /* Forward declarations: */
@@ -74,6 +74,9 @@ signals:
     /** Notifies listeners about request to switch to Activity Overview pane. */
     void sigSwitchToActivityOverviewPane();
 
+    /** Notifies listeners about request to detach pane with tool type @enmToolType. */
+    void sigDetachToolPane(UIToolType enmToolType);
+
 public:
 
     /** Constructs tools pane passing @a pParent to the base-class. */
@@ -98,17 +101,22 @@ public:
     /** Defines error @a strDetails and switches to Error pane. */
     void setErrorDetails(const QString &strDetails);
 
-    /** Defines current machine @a pItem. */
-    void setCurrentItem(UIVirtualMachineItem *pItem);
-
     /** Defines the machine @a items. */
     void setItems(const QList<UIVirtualMachineItem*> &items);
 
     /** Returns whether current-state item of Snapshot pane is selected. */
     bool isCurrentStateItemSelected() const;
 
+    /** Returns currently selected snapshot ID if any. */
+    QUuid currentSnapshotId();
+
     /** Returns the help keyword of the current tool's widget. */
     QString currentHelpKeyword() const;
+
+private slots:
+
+    /** Handles the detach signals received from panes.*/
+    void sltDetachToolPane();
 
 private:
 
@@ -124,9 +132,6 @@ private:
 
     /** Holds the action pool reference. */
     UIActionPool *m_pActionPool;
-
-    /** Holds current machine item reference. */
-    UIVirtualMachineItem *m_pItem;
 
     /** Holds the stacked-layout instance. */
     QStackedLayout      *m_pLayout;

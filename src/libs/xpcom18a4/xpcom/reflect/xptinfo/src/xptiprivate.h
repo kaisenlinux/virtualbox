@@ -42,6 +42,9 @@
 #ifndef xptiprivate_h___
 #define xptiprivate_h___
 
+#include <iprt/stream.h>
+#include <iprt/string.h>
+
 #include "nscore.h"
 #include "nsISupports.h"
 
@@ -66,10 +69,7 @@
 #include "nsMemory.h"
 
 #include "nsISupportsArray.h"
-#include "nsSupportsArray.h"
 #include "nsInt64.h"
-
-#include "nsQuickSort.h"
 
 #include "nsXPIDLString.h"
 
@@ -78,11 +78,7 @@
 #include "nsAutoLock.h"
 
 #include "pldhash.h"
-#include "plstr.h"
-#include "prprf.h"
-#include "prio.h"
 #include "prtime.h"
-#include "prenv.h"
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -210,7 +206,7 @@ public:
         return  mDirectory == r.mDirectory &&
                 mSize == r.mSize &&
                 mDate == r.mDate &&
-                0 == PL_strcmp(mName, r.mName);
+                0 == RTStrCmp(mName, r.mName);
     }
 
     xptiFile(const xptiFile& r) {CopyFields(r);}
@@ -271,7 +267,7 @@ public:
 
     PRBool Equals(const xptiZipItem& r) const
     {
-        return 0 == PL_strcmp(mName, r.mName);
+        return 0 == RTStrCmp(mName, r.mName);
     }
 
     xptiZipItem(const xptiZipItem& r) {CopyFields(r);}
@@ -843,26 +839,25 @@ class xptiAutoLog
 public:    
     xptiAutoLog();  // not implemented
     xptiAutoLog(xptiInterfaceInfoManager* mgr,
-                nsILocalFile* logfile, PRBool append);
+                const char *logfile, PRBool append);
     ~xptiAutoLog();
 private:
-    void WriteTimestamp(PRFileDesc* fd, const char* msg);
+    void WriteTimestamp(PRTSTREAM pStream, const char* msg);
 
     xptiInterfaceInfoManager* mMgr;
-    PRFileDesc* mOldFileDesc;
+    PRTSTREAM mOldFileDesc;
 #ifdef DEBUG
-    PRFileDesc* m_DEBUG_FileDesc;
+    PRTSTREAM m_DEBUG_FileDesc;
 #endif
 };
 
 /***************************************************************************/
 
 class xptiInterfaceInfoManager 
-    : public nsIInterfaceInfoSuperManager
+    : public nsIInterfaceInfoManager
 {
     NS_DECL_ISUPPORTS
     NS_DECL_NSIINTERFACEINFOMANAGER
-    NS_DECL_NSIINTERFACEINFOSUPERMANAGER
 
     // helper
     PRBool 
@@ -876,9 +871,9 @@ public:
     static void FreeInterfaceInfoManager();
 
     xptiWorkingSet*  GetWorkingSet() {return &mWorkingSet;}
-    PRFileDesc*      GetOpenLogFile() {return mOpenLogFile;}
-    PRFileDesc*      SetOpenLogFile(PRFileDesc* fd) 
-        {PRFileDesc* temp = mOpenLogFile; mOpenLogFile = fd; return temp;}
+    PRTSTREAM        GetOpenLogFile() {return mOpenLogFile;}
+    PRTSTREAM        SetOpenLogFile(PRTSTREAM pStream) 
+        {PRTSTREAM temp = mOpenLogFile; mOpenLogFile = pStream; return temp;}
 
     PRBool LoadFile(const xptiTypelib& aTypelibRecord,
                     xptiWorkingSet* aWorkingSet = nsnull);
@@ -889,12 +884,12 @@ public:
     void   GetSearchPath(nsISupportsArray** aSearchPath)
         {NS_ADDREF(*aSearchPath = mSearchPath);}
 
-    static PRLock* GetResolveLock(xptiInterfaceInfoManager* self = nsnull) 
+    static RTSEMFASTMUTEX GetResolveLock(xptiInterfaceInfoManager* self = nsnull) 
         {if(!self && !(self = GetInterfaceInfoManagerNoAddRef())) 
             return nsnull;
          return self->mResolveLock;}
 
-    static PRLock* GetAutoRegLock(xptiInterfaceInfoManager* self = nsnull) 
+    static RTSEMFASTMUTEX GetAutoRegLock(xptiInterfaceInfoManager* self = nsnull) 
         {if(!self && !(self = GetInterfaceInfoManagerNoAddRef())) 
             return nsnull;
          return self->mAutoRegLock;}
@@ -958,14 +953,12 @@ private:
 
 private:
     xptiWorkingSet               mWorkingSet;
-    nsCOMPtr<nsILocalFile>       mStatsLogFile;
-    nsCOMPtr<nsILocalFile>       mAutoRegLogFile;
-    PRFileDesc*                  mOpenLogFile;
-    PRLock*                      mResolveLock;
-    PRLock*                      mAutoRegLock;
+    const char                   *mStatsLogFile;
+    const char                   *mAutoRegLogFile;
+    PRTSTREAM                    mOpenLogFile;
+    RTSEMFASTMUTEX               mResolveLock;
+    RTSEMFASTMUTEX               mAutoRegLock;
     PRMonitor*                   mInfoMonitor;
-    PRLock*                      mAdditionalManagersLock;
-    nsSupportsArray              mAdditionalManagers;
     nsCOMPtr<nsISupportsArray>   mSearchPath;
 };
 

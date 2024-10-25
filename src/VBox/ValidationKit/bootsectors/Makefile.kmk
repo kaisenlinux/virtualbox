@@ -4,7 +4,7 @@
 #
 
 #
-# Copyright (C) 2006-2023 Oracle and/or its affiliates.
+# Copyright (C) 2006-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -83,6 +83,14 @@ endef
 BLDPROGS += VBoxBs2Linker
 VBoxBs2Linker_TEMPLATE = VBoxBldProg
 VBoxBs2Linker_SOURCES = VBoxBs2Linker.cpp
+
+
+#
+# Tool for converting an assembly object file into a header.
+#
+BLDPROGS += VBoxBs3Obj2Hdr
+VBoxBs3Obj2Hdr_TEMPLATE = VBoxBldProg
+VBoxBs3Obj2Hdr_SOURCES = VBoxBs3Obj2Hdr.cpp
 
 
 #
@@ -263,15 +271,49 @@ ifdef VBOX_WITH_BS3KIT
  	bs3-cpu-basic-2-x0.c \
  	bs3-cpu-basic-2-32.c32 \
  	bs3-cpu-basic-2-pf.c32 \
- 	bs3-cpu-basic-2-asm.asm \
+ 	bs3-cpu-basic-2-invlpg.c32 \
  	bs3kit/bs3-cmn-instantiate-x0.c16 \
  	bs3kit/bs3-cmn-instantiate.c32 \
- 	bs3kit/bs3-cmn-instantiate.c64
+ 	bs3kit/bs3-cmn-instantiate.c64 \
+ 	bs3-cpu-basic-2-asm.asm
  bs3-cpu-basic-2-template.o:: \
  		$$(bs3-cpu-basic-2_0_OUTDIR)/bs3kit/bs3-cmn-instantiate-x0.o16 \
  		$$(bs3-cpu-basic-2_0_OUTDIR)/bs3kit/bs3-cmn-instantiate.o32 \
  		$$(bs3-cpu-basic-2_0_OUTDIR)/bs3kit/bs3-cmn-instantiate.o64 \
  		$$(bs3-cpu-basic-2_0_OUTDIR)/bs3-cpu-basic-2-asm.o16
+
+ # CPU basics #3 (first being bootsector2-cpu-basic-1).
+ MISCBINS += bs3-cpu-basic-3
+ bs3-cpu-basic-3_TEMPLATE = VBoxBS3KitImgBig
+ bs3-cpu-basic-3_INCS = .
+ bs3-cpu-basic-3_DEFS = BS3_CMN_INSTANTIATE_FILE1=bs3-cpu-basic-3-cmn-template.c
+ #bs3-cpu-basic-3_DEFS += BS3_MODE_INSTANTIATE_FILE1=bs3-cpu-basic-3-mode-template.c
+ bs3-cpu-basic-3_SOURCES = \
+ 	bs3kit/bs3-first-rm.asm \
+ 	bs3-cpu-basic-3.c \
+ 	bs3kit/bs3-cmn-instantiate-x0.c16 \
+ 	bs3kit/bs3-cmn-instantiate.c32 \
+ 	bs3kit/bs3-cmn-instantiate.c64 \
+ 	bs3-cpu-basic-3-asm.asm \
+ 	$(bs3-cpu-basic-3-high_1_TARGET)
+ bs3-cpu-basic-3-cmn-template.o:: \
+ 		$$(bs3-cpu-basic-3_0_OUTDIR)/bs3kit/bs3-cmn-instantiate-x0.o16 \
+ 		$$(bs3-cpu-basic-3_0_OUTDIR)/bs3kit/bs3-cmn-instantiate.o32 \
+ 		$$(bs3-cpu-basic-3_0_OUTDIR)/bs3kit/bs3-cmn-instantiate.o64 \
+ 		$$(bs3-cpu-basic-3_0_OUTDIR)/bs3-cpu-basic-3-asm.o16
+
+ MISCBINS += bs3-cpu-basic-3-high
+ bs3-cpu-basic-3-high_TEMPLATE = VBoxBS3KitHighImg
+ bs3-cpu-basic-3-high_INCS     = . $(bs3-cpu-basic-3-high_0_OUTDIR)
+ bs3-cpu-basic-3-high_SOURCES  = \
+ 	bs3kit/bs3-first-high-image.asm \
+ 	bs3-cpu-basic-3-high-asm.asm
+ bs3-cpu-basic-3-high_INTERMEDIATES = $(bs3-cpu-basic-3-high_0_OUTDIR)/bs3-cpu-basic-3-high-lea64.inc
+ bs3-cpu-basic-3-high_CLEANS        = $(bs3-cpu-basic-3-high_0_OUTDIR)/bs3-cpu-basic-3-high-lea64.inc
+ $$(bs3-cpu-basic-3-high_0_OUTDIR)/bs3-cpu-basic-3-high-lea64.inc: \
+ 		$(PATH_SUB_CURRENT)/bs3-cpu-basic-3-high-lea64.py | $$(dir $$@)
+	$(call MSG_GENERATE,bs3-cpu-basic-3-high,$@)
+	$(QUIET)$(REDIRECT) -0 /dev/null -- $(TIME) $(VBOX_BLD_PYTHON) "$<" "$@"
 
  #
  # CPU weird stuff #1.
@@ -344,34 +386,85 @@ ifdef VBOX_WITH_BS3KIT
  #
  MISCBINS += bs3-cpu-instr-2
  bs3-cpu-instr-2_TEMPLATE = VBoxBS3KitImg
- bs3-cpu-instr-2_INCS = .
+ bs3-cpu-instr-2_INCS = . $(bs3-cpu-instr-2_0_OUTDIR)
  bs3-cpu-instr-2_DEFS = BS3_CMN_INSTANTIATE_FILE1=bs3-cpu-instr-2-template.c
  bs3-cpu-instr-2_DEFS += BS3_MODE_INSTANTIATE_FILE1=bs3-cpu-instr-2-template.c
  bs3-cpu-instr-2_SOURCES = \
  	bs3kit/bs3-first-rm.asm \
  	bs3-cpu-instr-2.c \
  	bs3-cpu-instr-2-asm.asm \
+ 	bs3-cpu-instr-2-data16.c16 \
+ 	bs3-cpu-instr-2-data16-amd.c16 \
+ 	bs3-cpu-instr-2-data16-intel.c16 \
+ 	bs3-cpu-instr-2-data64.c64 \
+ 	bs3-cpu-instr-2-data64-amd.c64 \
+ 	bs3-cpu-instr-2-data64-intel.c64 \
  	bs3kit/bs3-cmn-instantiate-x0.c16 \
  	bs3kit/bs3-cmn-instantiate.c32 \
  	bs3kit/bs3-cmn-instantiate.c64
+ bs3-cpu-instr-2_CLEANS = $(bs3-cpu-instr-2_0_OUTDIR)/bs3-cpu-instr-2-asm-auto.h
+
+ bs3-cpu-instr-2_bs3kit/bs3-cmn-instantiate-x0.c16_DEPS = $(bs3-cpu-instr-2_0_OUTDIR)/bs3-cpu-instr-2-asm-auto.h
+ bs3-cpu-instr-2_bs3kit/bs3-cmn-instantiate.c32_DEPS    = $(bs3-cpu-instr-2_0_OUTDIR)/bs3-cpu-instr-2-asm-auto.h
+ bs3-cpu-instr-2_bs3kit/bs3-cmn-instantiate.c64_DEPS    = $(bs3-cpu-instr-2_0_OUTDIR)/bs3-cpu-instr-2-asm-auto.h
+
+ $$(bs3-cpu-instr-2_0_OUTDIR)/bs3-cpu-instr-2-asm-auto.h: \
+ 		$$(VBoxBs3Obj2Hdr_1_TARGET) $$(bs3-cpu-instr-2_0_OUTDIR)/bs3-cpu-instr-2-asm.o16
+	$(VBoxBs3Obj2Hdr_1_TARGET) --output "$@" "$(bs3-cpu-instr-2_0_OUTDIR)/bs3-cpu-instr-2-asm.o16"
+
  bs3-cpu-instr-2-template.o:: \
  		$$(bs3-cpu-instr-2_0_OUTDIR)/bs3kit/bs3-cmn-instantiate-x0.o16 \
  		$$(bs3-cpu-instr-2_0_OUTDIR)/bs3kit/bs3-cmn-instantiate.o32 \
  		$$(bs3-cpu-instr-2_0_OUTDIR)/bs3kit/bs3-cmn-instantiate.o64 \
  		$$(bs3-cpu-instr-2_0_OUTDIR)/bs3-cpu-instr-2-asm.o16
 
+
+
+ BLDPROGS.amd64 += bs3-cpu-instr-2-gen
+ bs3-cpu-instr-2-gen_TEMPLATE = VBoxAdvBldProg
+ bs3-cpu-instr-2-gen_SOURCES  = \
+ 	bs3-cpu-instr-2-gen.cpp \
+ 	bs3-cpu-instr-2-gen-asm.asm
+
  #
  # CPU instructions #3 - SSE, ++.
  #
  MISCBINS += bs3-cpu-instr-3
  bs3-cpu-instr-3_TEMPLATE = VBoxBS3KitImg
- bs3-cpu-instr-3_INCS = .
+ bs3-cpu-instr-3_INCS = . $(bs3-cpu-instr-3_0_OUTDIR)
  bs3-cpu-instr-3_SOURCES = \
  	bs3kit/bs3-first-init-all-pe32.asm \
  	bs3-cpu-instr-3.c32 \
  	bs3-cpu-instr-3-asm.asm
+ bs3-cpu-instr-3.c32_DEPS = $(bs3-cpu-instr-3_0_OUTDIR)/bs3-cpu-instr-3-asm-auto.h
+ bs3-cpu-instr-3_CLEANS = $(bs3-cpu-instr-3_0_OUTDIR)/bs3-cpu-instr-3-asm-auto.h
+
+ $$(bs3-cpu-instr-3_0_OUTDIR)/bs3-cpu-instr-3-asm-auto.h: \
+ 		$$(VBoxBs3Obj2Hdr_1_TARGET) $$(bs3-cpu-instr-3_0_OUTDIR)/bs3-cpu-instr-3-asm.o16
+	$(VBoxBs3Obj2Hdr_1_TARGET) --output "$@" "$(bs3-cpu-instr-3_0_OUTDIR)/bs3-cpu-instr-3-asm.o16"
+
  bs3-cpu-instr-3-template.o:: \
  		$$(bs3-cpu-instr-3_0_OUTDIR)/bs3-cpu-instr-3-asm.o16
+
+ #
+ # CPU instructions #4 - SSE, AVX, ++ FPU instructions.
+ #
+ MISCBINS += bs3-cpu-instr-4
+ bs3-cpu-instr-4_TEMPLATE = VBoxBS3KitImg
+ bs3-cpu-instr-4_INCS = . $(bs3-cpu-instr-4_0_OUTDIR)
+ bs3-cpu-instr-4_SOURCES = \
+ 	bs3kit/bs3-first-init-all-pe32.asm \
+ 	bs3-cpu-instr-4.c32 \
+ 	bs3-cpu-instr-4-asm.asm
+ bs3-cpu-instr-4.c32_DEPS = $(bs3-cpu-instr-4_0_OUTDIR)/bs3-cpu-instr-4-asm-auto.h
+ bs3-cpu-instr-4_CLEANS = $(bs3-cpu-instr-4_0_OUTDIR)/bs3-cpu-instr-4-asm-auto.h
+
+ $$(bs3-cpu-instr-4_0_OUTDIR)/bs3-cpu-instr-4-asm-auto.h: \
+ 		$$(VBoxBs3Obj2Hdr_1_TARGET) $$(bs3-cpu-instr-4_0_OUTDIR)/bs3-cpu-instr-4-asm.o16
+	$(VBoxBs3Obj2Hdr_1_TARGET) --output "$@" "$(bs3-cpu-instr-4_0_OUTDIR)/bs3-cpu-instr-4-asm.o16"
+
+ bs3-cpu-instr-4-template.o:: \
+ 		$$(bs3-cpu-instr-4_0_OUTDIR)/bs3-cpu-instr-4-asm.o16
 
  #
  # CPU generated instruction tests #1
@@ -398,8 +491,8 @@ ifdef VBOX_WITH_BS3KIT
 
  $$(bs3-cpu-generated-1_0_OUTDIR)/bs3-cpu-generated-1-data.c16: \
  		$(PATH_SUB_CURRENT)/bs3-cpu-generated-1-data.py \
- 		$(PATH_SUB_CURRENT)/../../VMM/VMMAll/IEMAllInstructionsPython.py \
- 		$(PATH_SUB_CURRENT)/../../VMM/VMMAll/IEMAllInstructions*.cpp.h \
+ 		$(PATH_SUB_CURRENT)/../../VMM/VMMAll/IEMAllInstPython.py \
+ 		$(PATH_SUB_CURRENT)/../../VMM/VMMAll/IEMAllInst*.cpp.h \
  		| $$(dir $$@)
 	$(REDIRECT) -0 /dev/null -- $(VBOX_BLD_PYTHON) $< $@
 
@@ -425,7 +518,8 @@ ifdef VBOX_WITH_BS3KIT
  bs3-timers-1_SOURCES = \
  	bs3kit/bs3-first-rm.asm \
  	bs3-timers-1.c \
- 	bs3-timers-1-x0.c
+ 	bs3-timers-1-x0.c \
+ 	bs3-timers-1-asm.asm
 
  #
  # Timing

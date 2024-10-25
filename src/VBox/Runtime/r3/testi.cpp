@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -83,6 +83,34 @@ RTR3DECL(int) RTTestISubV(const char *pszSubTestFmt, va_list va)
 RTR3DECL(int) RTTestISubDone(void)
 {
     return RTTestSubDone(NIL_RTTEST);
+}
+
+
+RTR3DECL(int) RTTestISubSub(const char *pszSubSubTest)
+{
+    return RTTestSubSub(NIL_RTTEST, pszSubSubTest);
+}
+
+
+RTR3DECL(int) RTTestISubSubF(const char *pszSubSubTestFmt, ...)
+{
+    va_list va;
+    va_start(va, pszSubSubTestFmt);
+    int cch = RTTestSubSubV(NIL_RTTEST, pszSubSubTestFmt, va);
+    va_end(va);
+    return cch;
+}
+
+
+RTR3DECL(int) RTTestISubSubV(const char *pszSubSubTestFmt, va_list va)
+{
+    return RTTestSubSubV(NIL_RTTEST, pszSubSubTestFmt, va);
+}
+
+
+RTR3DECL(int) RTTestISubSubDone(void)
+{
+    return RTTestSubSubDone(NIL_RTTEST);
 }
 
 

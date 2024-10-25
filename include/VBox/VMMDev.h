@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -53,23 +53,41 @@ RT_C_DECLS_BEGIN
  * @{
  */
 
+/** The VMMDev assumed page size (not the real guest page size which might be different
+ * between guest and host, on ARM for example), 4KiB is the minimum supported by both
+ * ARM and x86 and was the one used back when the device supported x86 only. */
+#define VMMDEV_PAGE_SIZE                                    _4K
+/** The VMMDev assumed page shift. */
+#define VMMDEV_PAGE_SHIFT                                   12
+/** The VMMDev assumed page offset mask. */
+#define VMMDEV_PAGE_OFFSET_MASK                             0xfff
+
 
 /** Size of VMMDev RAM region accessible by guest.
  * Must be big enough to contain VMMDevMemory structure (see further down).
  * For now: 4 megabyte.
  */
-#define VMMDEV_RAM_SIZE                                     (4 * 256 * PAGE_SIZE)
+#define VMMDEV_RAM_SIZE                                     (4 * 256 * VMMDEV_PAGE_SIZE)
 
 /** Size of VMMDev heap region accessible by guest.
  *  (Must be a power of two (pci range).)
  */
-#define VMMDEV_HEAP_SIZE                                    (4 * PAGE_SIZE)
+#define VMMDEV_HEAP_SIZE                                    (4 * VMMDEV_PAGE_SIZE)
 
 /** Port for generic request interface (relative offset). */
 #define VMMDEV_PORT_OFF_REQUEST                             0
 /** Port for requests that can be handled w/o going to ring-3 (relative offset).
  * This works like VMMDevReq_AcknowledgeEvents when read.  */
 #define VMMDEV_PORT_OFF_REQUEST_FAST                        8
+
+
+/** The MMIO region size if MMIO is used instead of PIO. */
+#define VMMDEV_MMIO_SIZE                                    _4K
+/** Port for generic request interface (relative offset). */
+#define VMMDEV_MMIO_OFF_REQUEST                             0
+/** Port for requests that can be handled w/o going to ring-3 (relative offset).
+ * This works like VMMDevReq_AcknowledgeEvents when read.  */
+#define VMMDEV_MMIO_OFF_REQUEST_FAST                        8
 
 
 /** @defgroup grp_vmmdev_req    VMMDev Generic Request Interface
@@ -422,7 +440,7 @@ AssertCompileSize(VMMDevReqMouseStatusEx, 24+24);
 /** The guest can read VMMDev events to find out about full mouse state */
 #define VMMDEV_MOUSE_GUEST_USES_FULL_STATE_PROTOCOL         RT_BIT(7)
 /** The host can provide full mouse state over VMMDev events */
-#define VMMDEV_MOUSE_HOST_USES_FULL_STATE_PROTOCOL          RT_BIT(8)
+#define VMMDEV_MOUSE_HOST_SUPPORTS_FULL_STATE_PROTOCOL      RT_BIT(8)
 /** The mask of all VMMDEV_MOUSE_* flags */
 #define VMMDEV_MOUSE_MASK                                   UINT32_C(0x000001ff)
 /** The mask of guest capability changes for which notification events should
@@ -442,7 +460,7 @@ AssertCompileSize(VMMDevReqMouseStatusEx, 24+24);
        | VMMDEV_MOUSE_HOST_CANNOT_HWPOINTER \
        | VMMDEV_MOUSE_HOST_RECHECKS_NEEDS_HOST_CURSOR \
        | VMMDEV_MOUSE_HOST_HAS_ABS_DEV \
-       | VMMDEV_MOUSE_HOST_USES_FULL_STATE_PROTOCOL)
+       | VMMDEV_MOUSE_HOST_SUPPORTS_FULL_STATE_PROTOCOL)
 /** @} */
 
 /** @name Absolute mouse reporting range
@@ -1744,7 +1762,7 @@ typedef struct
 AssertCompileSize(VMMDevHGCMCancel, 32);
 
 /**
- * HGCM cancel request structure, version 2.
+ * HGCM cancel request structure, version 2/old.
  *
  * Used by VMMDevReq_HGCMCancel2.
  *
@@ -1758,8 +1776,34 @@ typedef struct
     VMMDevRequestHeader header;
     /** The physical address of the request to cancel. */
     RTGCPHYS32 physReqToCancel;
+} VMMDevHGCMCancel2Old;
+AssertCompileSize(VMMDevHGCMCancel2Old, 24+4);
+
+/**
+ * HGCM cancel request structure, version 2 w/ 64-bit address.
+ *
+ * Used by VMMDevReq_HGCMCancel2.
+ *
+ * VINF_SUCCESS when cancelled.
+ * VERR_NOT_FOUND if the specified request cannot be found.
+ * VERR_INVALID_PARAMETER if the address is invalid valid.
+ *
+ * @note  For little endian guests, this is backwards compatible with
+ *        VMMDevHGCMCancel2Old since the hosts prior to 7.1 only checked for a
+ *        minimum sizeof(VMMDevHGCMCancel2Old) and would ignore any additional
+ *        bytes in the request.  Growing physReqToCancel to 64-bit makes use of
+ *        this, though the host code now require either the exactly old size or
+ *        a minimum size of this amended structure.
+ * @since VBox 7.1
+ */
+typedef struct
+{
+    /** Header. */
+    VMMDevRequestHeader header;
+    /** The physical address of the request to cancel. */
+    RTGCPHYS physReqToCancel;
 } VMMDevHGCMCancel2;
-AssertCompileSize(VMMDevHGCMCancel2, 24+4);
+AssertCompileSize(VMMDevHGCMCancel2, 24+8);
 
 #endif /* VBOX_WITH_HGCM */
 

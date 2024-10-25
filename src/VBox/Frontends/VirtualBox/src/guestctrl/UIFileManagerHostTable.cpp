@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -33,11 +33,14 @@
 /* GUI includes: */
 #include "QILabel.h"
 #include "UIActionPool.h"
+#include "UICommon.h"
 #include "UIFileManager.h"
-#include "UICustomFileSystemModel.h"
+#include "UIFileTableNavigationWidget.h"
+#include "UIFileSystemModel.h"
 #include "UIFileManagerHostTable.h"
 #include "UIPathOperations.h"
 #include "QIToolBar.h"
+#include "UITranslationEventListener.h"
 
 
 /*********************************************************************************************************************************
@@ -109,7 +112,7 @@ void UIHostDirectoryDiskUsageComputer::directoryStatisticsRecursive(const QStrin
     {
         const QFileInfo &entryInfo = entryList.at(i);
         if (entryInfo.baseName().isEmpty() || entryInfo.baseName() == "." ||
-            entryInfo.baseName() == UICustomFileSystemModel::strUpDirectoryString)
+            entryInfo.baseName() == UIFileSystemModel::strUpDirectoryString)
             continue;
         statistics.m_totalSize += entryInfo.size();
         if (entryInfo.isSymLink())
@@ -132,39 +135,43 @@ void UIHostDirectoryDiskUsageComputer::directoryStatisticsRecursive(const QStrin
 
 UIFileManagerHostTable::UIFileManagerHostTable(UIActionPool *pActionPool, QWidget *pParent /* = 0 */)
     :UIFileManagerTable(pActionPool, pParent)
+    , m_pModifierActionSeparator(0)
 {
+    setModelFileSystem(isWindowsFileSystem());
     initializeFileTree();
     prepareToolbar();
     prepareActionConnections();
     determinePathSeparator();
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIFileManagerHostTable::sltRetranslateUI);
 }
 
-/* static */ void UIFileManagerHostTable::scanDirectory(const QString& strPath, UICustomFileSystemItem *parent,
-                                                        QMap<QString, UICustomFileSystemItem*> &fileObjects)
+/* static */ bool UIFileManagerHostTable::scanDirectory(const QString& strPath, UIFileSystemItem *parent,
+                                                        QMap<QString, UIFileSystemItem*> &fileObjects)
 {
 
-    QDir directory(strPath);
+    QDir directory(UIPathOperations::addTrailingDelimiters(strPath));
     /* For some reason when this filter is applied, folder content  QDir::entryInfoList()
        returns an empty list: */
     /*directory.setFilter(QDir::NoDotAndDotDot);*/
-    parent->setIsOpened(true);
-    if (!directory.exists())
-        return;
+    if (!directory.exists() || !directory.isReadable())
+        return false;
     QFileInfoList entries = directory.entryInfoList(QDir::Hidden|QDir::AllEntries|QDir::NoDotAndDotDot);
+
+    parent->setIsOpened(true);
     for (int i = 0; i < entries.size(); ++i)
     {
         const QFileInfo &fileInfo = entries.at(i);
-
-        UICustomFileSystemItem *item = new UICustomFileSystemItem(fileInfo.fileName(), parent, fileType(fileInfo));
+        UIFileSystemItem *item = new UIFileSystemItem(fileInfo.fileName(), parent, fileType(fileInfo));
         if (!item)
             continue;
 
-        item->setData(fileInfo.size(),         UICustomFileSystemModelColumn_Size);
-        item->setData(fileInfo.lastModified(), UICustomFileSystemModelColumn_ChangeTime);
-        item->setData(fileInfo.owner(),        UICustomFileSystemModelColumn_Owner);
-        item->setData(permissionString(fileInfo.permissions()),  UICustomFileSystemModelColumn_Permissions);
-        item->setPath(fileInfo.absoluteFilePath());
+        item->setData(fileInfo.size(),         UIFileSystemModelData_Size);
+        item->setData(fileInfo.lastModified(), UIFileSystemModelData_ChangeTime);
+        item->setData(fileInfo.owner(),        UIFileSystemModelData_Owner);
+        item->setData(permissionString(fileInfo.permissions()),  UIFileSystemModelData_Permissions);
+
         /* if the item is a symlink set the target path and
            check the target if it is a directory: */
         if (fileInfo.isSymLink()) /** @todo No symlinks here on windows, while fsObjectPropertyString() does see them.  RTDirReadEx works wrt symlinks, btw. */
@@ -176,28 +183,32 @@ UIFileManagerHostTable::UIFileManagerHostTable(UIActionPool *pActionPool, QWidge
         fileObjects.insert(fileInfo.fileName(), item);
         item->setIsOpened(false);
     }
+    return true;
 }
 
-void UIFileManagerHostTable::retranslateUi()
+void UIFileManagerHostTable::sltRetranslateUI()
 {
     if (m_pLocationLabel)
         m_pLocationLabel->setText(UIFileManager::tr("Host File System:"));
     m_strTableName = UIFileManager::tr("Host");
-    UIFileManagerTable::retranslateUi();
+    UIFileManagerTable::sltRetranslateUI();
 }
 
 void UIFileManagerHostTable::prepareToolbar()
 {
     if (m_pToolBar && m_pActionPool)
     {
+        m_pToolBar->addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_GoBackward));
+        m_pToolBar->addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_GoForward));
         m_pToolBar->addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_GoUp));
         m_pToolBar->addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_GoHome));
         m_pToolBar->addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_Refresh));
-        m_pToolBar->addSeparator();
+
+        m_pModifierActionSeparator = m_pToolBar->addSeparator();
         m_pToolBar->addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_Delete));
         m_pToolBar->addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_Rename));
         m_pToolBar->addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_CreateNewDirectory));
-        // m_pToolBar->addSeparator();
+
         m_pToolBar->addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_Copy));
         m_pToolBar->addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_Cut));
         m_pToolBar->addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_Paste));
@@ -246,24 +257,41 @@ void UIFileManagerHostTable::createFileViewContextMenu(const QWidget *pWidget, c
     menu.exec(pWidget->mapToGlobal(point));
 }
 
-void UIFileManagerHostTable::readDirectory(const QString& strPath, UICustomFileSystemItem *parent, bool isStartDir /*= false*/)
+void UIFileManagerHostTable::toggleForwardBackwardActions()
 {
-    if (!parent)
+    if (!m_pNavigationWidget)
         return;
-
-    QMap<QString, UICustomFileSystemItem*> fileObjects;
-    scanDirectory(strPath, parent, fileObjects);
-    checkDotDot(fileObjects, parent, isStartDir);
+    if (m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_GoForward))
+        m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_GoForward)->setEnabled(m_pNavigationWidget->canGoForward());
+    if (m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_GoBackward))
+        m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_GoBackward)->setEnabled(m_pNavigationWidget->canGoBackward());
 }
 
-void UIFileManagerHostTable::deleteByItem(UICustomFileSystemItem *item)
+bool UIFileManagerHostTable::isWindowsFileSystem() const
+{
+    return uiCommon().hostOperatingSystem().contains("windows", Qt::CaseInsensitive);
+}
+
+bool UIFileManagerHostTable::readDirectory(const QString& strPath, UIFileSystemItem *parent, bool isStartDir /*= false*/)
+{
+    if (!parent)
+        return false;
+
+    QMap<QString, UIFileSystemItem*> fileObjects;
+    if (!scanDirectory(strPath, parent, fileObjects))
+        return false;
+    checkDotDot(fileObjects, parent, isStartDir);
+    return true;
+}
+
+void UIFileManagerHostTable::deleteByItem(UIFileSystemItem *item)
 {
     if (item->isUpDirectory())
         return;
     if (!item->isDirectory())
     {
         QDir itemToDelete;
-        itemToDelete.remove(item->path());
+        itemToDelete.remove(UIPathOperations::removeTrailingDelimiters(item->path()));
     }
     QDir itemToDelete(item->path());
     itemToDelete.setFilter(QDir::NoDotAndDotDot);
@@ -278,32 +306,11 @@ void UIFileManagerHostTable::deleteByItem(UICustomFileSystemItem *item)
         emit sigLogOutput(QString(item->path()).append(" could not be deleted"), m_strTableName, FileManagerLogType_Error);
 }
 
-void UIFileManagerHostTable::deleteByPath(const QStringList &pathList)
-{
-    foreach (const QString &strPath, pathList)
-    {
-        bool deleteSuccess = true;
-        KFsObjType eType = fileType(QFileInfo(strPath));
-        if (eType == KFsObjType_File || eType == KFsObjType_Symlink)
-        {
-            deleteSuccess = QDir().remove(strPath);
-        }
-        else if (eType == KFsObjType_Directory)
-        {
-            QDir itemToDelete(strPath);
-            itemToDelete.setFilter(QDir::NoDotAndDotDot);
-            deleteSuccess = itemToDelete.removeRecursively();
-        }
-        if (!deleteSuccess)
-            emit sigLogOutput(QString(strPath).append(" could not be deleted"), m_strTableName, FileManagerLogType_Error);
-    }
-}
-
 void UIFileManagerHostTable::goToHomeDirectory()
 {
     if (!rootItem() || rootItem()->childCount() <= 0)
         return;
-    UICustomFileSystemItem *startDirItem = rootItem()->child(0);
+    UIFileSystemItem *startDirItem = rootItem()->child(0);
     if (!startDirItem)
         return;
 
@@ -311,17 +318,14 @@ void UIFileManagerHostTable::goToHomeDirectory()
     goIntoDirectory(UIPathOperations::pathTrail(userHome));
 }
 
-bool UIFileManagerHostTable::renameItem(UICustomFileSystemItem *item, QString newBaseName)
+bool UIFileManagerHostTable::renameItem(UIFileSystemItem *item, const QString &strOldPath)
 {
-    if (!item || item->isUpDirectory() || newBaseName.isEmpty())
+    if (!item || item->isUpDirectory())
         return false;
-    QString newPath = UIPathOperations::constructNewItemPath(item->path(), newBaseName);
     QDir tempDir;
-    if (tempDir.rename(item->path(), newPath))
-    {
-        item->setPath(newPath);
+    if (tempDir.rename(strOldPath, item->path()))
         return true;
-    }
+
     return false;
 }
 
@@ -382,11 +386,7 @@ QString UIFileManagerHostTable::fsObjectPropertyString()
         /* Type: */
         propertyStringList << UIFileManager::tr("<b>Type:</b> %1<br/>").arg(fileTypeString(fileType(fileInfo)));
         /* Creation Date: */
-#if QT_VERSION >= QT_VERSION_CHECK(5, 10, 0)
         propertyStringList << UIFileManager::tr("<b>Created:</b> %1<br/>").arg(fileInfo.birthTime().toString());
-#else
-        propertyStringList << UIFileManager::tr("<b>Created:</b> %1<br/>").arg(fileInfo.created().toString());
-#endif
         /* Last Modification Date: */
         propertyStringList << UIFileManager::tr("<b>Modified:</b> %1<br/>").arg(fileInfo.lastModified().toString());
         /* Owner: */
@@ -530,6 +530,10 @@ void UIFileManagerHostTable::prepareActionConnections()
             this, &UIFileManagerTable::sltGoUp);
     connect(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_GoHome), &QAction::triggered,
             this, &UIFileManagerTable::sltGoHome);
+    connect(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_GoForward), &QAction::triggered,
+            this, &UIFileManagerTable::sltGoForward);
+    connect(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_GoBackward), &QAction::triggered,
+            this, &UIFileManagerTable::sltGoBackward);
     connect(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_Refresh), &QAction::triggered,
             this, &UIFileManagerTable::sltRefresh);
     connect(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_Delete), &QAction::triggered,

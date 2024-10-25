@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -37,7 +37,7 @@
 
 
 UINetworkSettingsEditor::UINetworkSettingsEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent)
     , m_fFeatureEnabled(false)
     , m_pCheckboxFeature(0)
     , m_pWidgetSettings(0)
@@ -100,17 +100,6 @@ void UINetworkSettingsEditor::setAttachmentOptionsAvailable(bool fAvailable)
 {
     if (m_pEditorNetworkAttachment)
         m_pEditorNetworkAttachment->setEnabled(fAvailable);
-}
-
-void UINetworkSettingsEditor::setAdvancedButtonExpanded(bool fExpanded)
-{
-    if (m_pEditorNetworkFeatures)
-        m_pEditorNetworkFeatures->setAdvancedButtonExpanded(fExpanded);
-}
-
-bool UINetworkSettingsEditor::advancedButtonExpanded() const
-{
-    return m_pEditorNetworkFeatures ? m_pEditorNetworkFeatures->advancedButtonExpanded() : false;
 }
 
 void UINetworkSettingsEditor::setAdapterType(const KNetworkAdapterType &enmType)
@@ -179,12 +168,6 @@ UIPortForwardingDataList UINetworkSettingsEditor::portForwardingRules() const
     return m_pEditorNetworkFeatures ? m_pEditorNetworkFeatures->portForwardingRules() : UIPortForwardingDataList();
 }
 
-void UINetworkSettingsEditor::setAdvancedOptionsAvailable(bool fAvailable)
-{
-    if (m_pEditorNetworkFeatures)
-        m_pEditorNetworkFeatures->setAdvancedOptionsAvailable(fAvailable);
-}
-
 void UINetworkSettingsEditor::setAdapterOptionsAvailable(bool fAvailable)
 {
     if (m_pEditorNetworkFeatures)
@@ -221,7 +204,7 @@ void UINetworkSettingsEditor::setForwardingOptionsAvailable(bool fAvailable)
         m_pEditorNetworkFeatures->setForwardingOptionsAvailable(fAvailable);
 }
 
-void UINetworkSettingsEditor::retranslateUi()
+void UINetworkSettingsEditor::sltRetranslateUI()
 {
     if (m_pCheckboxFeature)
     {
@@ -229,16 +212,12 @@ void UINetworkSettingsEditor::retranslateUi()
         m_pCheckboxFeature->setToolTip(tr("When checked, plugs this virtual network adapter into the virtual machine."));
     }
 
-    /* These editors have own labels, but we want them to be properly layouted according to each other: */
-    int iMinimumLayoutHint = 0;
-    if (m_pEditorNetworkAttachment)
-        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorNetworkAttachment->minimumLabelHorizontalHint());
-    if (m_pEditorNetworkFeatures)
-        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorNetworkFeatures->minimumLabelHorizontalHint());
-    if (m_pEditorNetworkAttachment)
-        m_pEditorNetworkAttachment->setMinimumLayoutIndent(iMinimumLayoutHint);
-    if (m_pEditorNetworkFeatures)
-        m_pEditorNetworkFeatures->setMinimumLayoutIndent(iMinimumLayoutHint);
+    updateMinimumLayoutHint();
+}
+
+void UINetworkSettingsEditor::handleFilterChange()
+{
+    updateMinimumLayoutHint();
 }
 
 void UINetworkSettingsEditor::sltHandleFeatureToggled()
@@ -279,7 +258,7 @@ void UINetworkSettingsEditor::prepare()
     updateFeatureAvailability();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UINetworkSettingsEditor::prepareWidgets()
@@ -313,12 +292,18 @@ void UINetworkSettingsEditor::prepareWidgets()
                 /* Prepare attachment type editor: */
                 m_pEditorNetworkAttachment = new UINetworkAttachmentEditor(m_pWidgetSettings);
                 if (m_pEditorNetworkAttachment)
+                {
+                    addEditor(m_pEditorNetworkAttachment);
                     pLayoutAdapterSettings->addWidget(m_pEditorNetworkAttachment);
+                }
 
                 /* Prepare advanced settingseditor: */
                 m_pEditorNetworkFeatures = new UINetworkFeaturesEditor(m_pWidgetSettings);
                 if (m_pEditorNetworkFeatures)
+                {
+                    addEditor(m_pEditorNetworkFeatures);
                     pLayoutAdapterSettings->addWidget(m_pEditorNetworkFeatures);
+                }
             }
 
             pLayout->addWidget(m_pWidgetSettings, 1, 1);
@@ -338,9 +323,6 @@ void UINetworkSettingsEditor::prepareConnections()
         connect(m_pEditorNetworkAttachment, &UINetworkAttachmentEditor::sigValueNameChanged,
                 this, &UINetworkSettingsEditor::sigAlternativeNameChanged);
     if (m_pEditorNetworkFeatures)
-        connect(m_pEditorNetworkFeatures, &UINetworkFeaturesEditor::sigAdvancedButtonStateChange,
-                this, &UINetworkSettingsEditor::sigAdvancedButtonStateChange);
-    if (m_pEditorNetworkFeatures)
         connect(m_pEditorNetworkFeatures, &UINetworkFeaturesEditor::sigMACAddressChanged,
                 this, &UINetworkSettingsEditor::sigMACAddressChanged);
 }
@@ -348,4 +330,18 @@ void UINetworkSettingsEditor::prepareConnections()
 void UINetworkSettingsEditor::updateFeatureAvailability()
 {
     m_pWidgetSettings->setEnabled(m_pCheckboxFeature->isChecked());
+}
+
+void UINetworkSettingsEditor::updateMinimumLayoutHint()
+{
+    /* These editors have own labels, but we want them to be properly layouted according to each other: */
+    int iMinimumLayoutHint = 0;
+    if (m_pEditorNetworkAttachment && !m_pEditorNetworkAttachment->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorNetworkAttachment->minimumLabelHorizontalHint());
+    if (m_pEditorNetworkFeatures && !m_pEditorNetworkFeatures->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorNetworkFeatures->minimumLabelHorizontalHint());
+    if (m_pEditorNetworkAttachment)
+        m_pEditorNetworkAttachment->setMinimumLayoutIndent(iMinimumLayoutHint);
+    if (m_pEditorNetworkFeatures)
+        m_pEditorNetworkFeatures->setMinimumLayoutIndent(iMinimumLayoutHint);
 }

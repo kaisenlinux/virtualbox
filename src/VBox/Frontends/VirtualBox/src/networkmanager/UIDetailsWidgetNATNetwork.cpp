@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -44,14 +44,14 @@
 #include "UINetworkManager.h"
 #include "UINetworkManagerUtils.h"
 #include "UINotificationCenter.h"
+#include "UITranslationEventListener.h"
 
 /* Other VBox includes: */
-#include "iprt/assert.h"
 #include "iprt/cidr.h"
 
 
 UIDetailsWidgetNATNetwork::UIDetailsWidgetNATNetwork(EmbedTo enmEmbedding, QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_enmEmbedding(enmEmbedding)
     , m_pTabWidget(0)
     , m_pLabelNetworkName(0)
@@ -151,7 +151,7 @@ void UIDetailsWidgetNATNetwork::updateButtonStates()
     emit sigDataChanged(m_oldData != m_newData);
 }
 
-void UIDetailsWidgetNATNetwork::retranslateUi()
+void UIDetailsWidgetNATNetwork::sltRetranslateUI()
 {
     /* Translate tab-widget: */
     if (m_pTabWidget)
@@ -304,7 +304,10 @@ void UIDetailsWidgetNATNetwork::prepare()
     prepareThis();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIDetailsWidgetNATNetwork::sltRetranslateUI);
 
     /* Update button states finally: */
     updateButtonStates();

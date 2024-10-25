@@ -51,15 +51,13 @@
 #include <nsIComponentLoader.h>
 #include <nsIInputStream.h>
 
-static PRInt32 cGateways = 0;
-PRInt32 _PyXPCOM_GetGatewayCount(void)
+#include <iprt/asm.h>
+
+static uint32_t cGateways = 0;
+uint32_t _PyXPCOM_GetGatewayCount(void)
 {
 	return cGateways;
 }
-
-extern PyG_Base *MakePyG_nsIModule(PyObject *);
-extern PyG_Base *MakePyG_nsIComponentLoader(PyObject *instance);
-extern PyG_Base *MakePyG_nsIInputStream(PyObject *instance);
 
 static char *PyXPCOM_szDefaultGatewayAttributeName = (char*)"_com_instance_default_gateway_";
 PyG_Base *GetDefaultGateway(PyObject *instance);
@@ -94,7 +92,7 @@ PyG_Base::CreateNew(PyObject *pPyInstance, const nsIID &iid, void **ppResult)
 PyG_Base::PyG_Base(PyObject *instance, const nsIID &iid)
 {
 	// Note that "instance" is the _policy_ instance!!
-	PR_AtomicIncrement(&cGateways);
+	ASMAtomicIncU32(&cGateways);
 	m_pBaseObject = GetDefaultGateway(instance);
 	// m_pWeakRef is an nsCOMPtr and needs no init.
 
@@ -159,7 +157,7 @@ PyG_Base::PyG_Base(PyObject *instance, const nsIID &iid)
 
 PyG_Base::~PyG_Base()
 {
-	PR_AtomicDecrement(&cGateways);
+	ASMAtomicDecU32(&cGateways);
 #ifdef DEBUG_LIFETIMES
 	PYXPCOM_LOG_DEBUG("PyG_Base: deleted %p", this);
 #endif
@@ -421,7 +419,7 @@ PyG_Base::QueryInterface(REFNSIID iid, void** ppv)
 nsrefcnt
 PyG_Base::AddRef(void)
 {
-	nsrefcnt cnt = (nsrefcnt) PR_AtomicIncrement((PRInt32*)&mRefCnt);
+	nsrefcnt cnt = (nsrefcnt) ASMAtomicIncS32((volatile int32_t*)&mRefCnt);
 #ifdef NS_BUILD_REFCNT_LOGGING
 	// If we have no pBaseObject, then we need to ignore them
 	if (m_pBaseObject == NULL)
@@ -433,7 +431,7 @@ PyG_Base::AddRef(void)
 nsrefcnt
 PyG_Base::Release(void)
 {
-	nsrefcnt cnt = (nsrefcnt) PR_AtomicDecrement((PRInt32*)&mRefCnt);
+	nsrefcnt cnt = (nsrefcnt) ASMAtomicDecS32((volatile int32_t*)&mRefCnt);
 #ifdef NS_BUILD_REFCNT_LOGGING
 	if (m_pBaseObject == NULL)
 		NS_LOG_RELEASE(this, cnt, refcntLogRepr);

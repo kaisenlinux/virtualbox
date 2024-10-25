@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -276,9 +276,9 @@ int rtR0MemObjNativeAllocLow(PPRTR0MEMOBJINTERNAL ppMem, size_t cb, bool fExecut
 }
 
 
-int rtR0MemObjNativeAllocCont(PPRTR0MEMOBJINTERNAL ppMem, size_t cb, bool fExecutable, const char *pszTag)
+int rtR0MemObjNativeAllocCont(PPRTR0MEMOBJINTERNAL ppMem, size_t cb, RTHCPHYS PhysHighest, bool fExecutable, const char *pszTag)
 {
-    return rtR0MemObjNativeAllocArea(ppMem, cb, fExecutable, RTR0MEMOBJTYPE_CONT, 0 /* PhysHighest */, 0 /* uAlignment */, pszTag);
+    return rtR0MemObjNativeAllocArea(ppMem, cb, fExecutable, RTR0MEMOBJTYPE_CONT, PhysHighest, 0 /* uAlignment */, pszTag);
 }
 
 int rtR0MemObjNativeAllocPhys(PPRTR0MEMOBJINTERNAL ppMem, size_t cb, RTHCPHYS PhysHighest, size_t uAlignment, const char *pszTag)
@@ -682,5 +682,12 @@ RTHCPHYS rtR0MemObjNativeGetPagePhysAddr(PRTR0MEMOBJINTERNAL pMem, size_t iPage)
         default:
             return NIL_RTHCPHYS;
     }
+}
+
+
+DECLHIDDEN(int) rtR0MemObjNativeZeroInitWithoutMapping(PRTR0MEMOBJINTERNAL pMem)
+{
+    RT_NOREF(pMem);
+    return VERR_NOT_IMPLEMENTED;
 }
 

@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -300,6 +300,7 @@ typedef struct px_proxy_factory *PLIBPROXYFACTORY;
 typedef PLIBPROXYFACTORY (* PFNLIBPROXYFACTORYCTOR)(void);
 typedef void             (* PFNLIBPROXYFACTORYDTOR)(PLIBPROXYFACTORY);
 typedef char          ** (* PFNLIBPROXYFACTORYGETPROXIES)(PLIBPROXYFACTORY, const char *);
+typedef void             (* PFNLIBPROXYFACTORYFREEPROXIES)(char **);
 #endif
 
 
@@ -363,6 +364,8 @@ static RTLDRMOD                                 g_hLdrLibProxy = NIL_RTLDRMOD;
 static PFNLIBPROXYFACTORYCTOR                   g_pfnLibProxyFactoryCtor = NULL;
 static PFNLIBPROXYFACTORYDTOR                   g_pfnLibProxyFactoryDtor = NULL;
 static PFNLIBPROXYFACTORYGETPROXIES             g_pfnLibProxyFactoryGetProxies = NULL;
+/** Can be NULL, as it was introduced with libproxy v0.4.16 (2020-12-04). */
+static PFNLIBPROXYFACTORYFREEPROXIES            g_pfnLibProxyFactoryFreeProxies = NULL;
 /** @} */
 #endif
 
@@ -1063,6 +1066,9 @@ static DECLCALLBACK(int) rtHttpLibProxyResolveImports(void *pvUser)
         if (RT_SUCCESS(rc))
             rc = RTLdrGetSymbol(hMod, "px_proxy_factory_get_proxies", (void **)&g_pfnLibProxyFactoryGetProxies);
         if (RT_SUCCESS(rc))
+            /* libproxy < 0.4.16 does not have this function, so ignore the return code. */
+            RTLdrGetSymbol(hMod, "px_proxy_factory_free_proxies", (void **)&g_pfnLibProxyFactoryFreeProxies);
+        if (RT_SUCCESS(rc))
         {
             RTMEM_WILL_LEAK(hMod);
             g_hLdrLibProxy = hMod;
@@ -1091,13 +1097,12 @@ static int rtHttpLibProxyConfigureProxyForUrl(PRTHTTPINTERNAL pThis, const char 
     if (RT_SUCCESS(rc))
     {
         /*
-         * Instance the factory and ask for a list of proxies.
+         * Instanciate the factory and ask for a list of proxies.
          */
         PLIBPROXYFACTORY pFactory = g_pfnLibProxyFactoryCtor();
         if (pFactory)
         {
             char **papszProxies = g_pfnLibProxyFactoryGetProxies(pFactory, pszUrl);
-            g_pfnLibProxyFactoryDtor(pFactory);
             if (papszProxies)
             {
                 /*
@@ -1119,11 +1124,18 @@ static int rtHttpLibProxyConfigureProxyForUrl(PRTHTTPINTERNAL pThis, const char 
                         break;
                 }
 
-                /* free the result. */
-                for (unsigned i = 0; papszProxies[i]; i++)
-                    free(papszProxies[i]);
-                free(papszProxies);
+                /* Free the result. */
+                if (g_pfnLibProxyFactoryFreeProxies) /* libproxy >= 0.4.16. */
+                    g_pfnLibProxyFactoryFreeProxies(papszProxies);
+                else
+                {
+                    for (unsigned i = 0; papszProxies[i]; i++)
+                        free(papszProxies[i]);
+                    free(papszProxies);
+                }
+                papszProxies = NULL;
             }
+            g_pfnLibProxyFactoryDtor(pFactory);
         }
     }
 
@@ -2067,7 +2079,6 @@ RTR3DECL(int) RTHttpSetProxy(RTHTTP hHttp, const char *pcszProxy, uint32_t uPort
 {
     PRTHTTPINTERNAL pThis = hHttp;
     RTHTTP_VALID_RETURN(pThis);
-    AssertPtrReturn(pcszProxy, VERR_INVALID_PARAMETER);
     AssertReturn(!pThis->fBusy, VERR_WRONG_ORDER);
 
     /*
@@ -2077,6 +2088,9 @@ RTR3DECL(int) RTHttpSetProxy(RTHTTP hHttp, const char *pcszProxy, uint32_t uPort
      * leave that to cURL.  (A bit afraid of breaking user settings.)
      */
     pThis->fUseSystemProxySettings = false;
+    if (!pcszProxy)
+        return rtHttpUpdateAutomaticProxyDisable(pThis);
+
     return rtHttpUpdateProxyConfig(pThis, CURLPROXY_HTTP, pcszProxy, uPort ? uPort : 1080, pcszProxyUser, pcszProxyPwd);
 }
 
@@ -2819,6 +2833,11 @@ static int rtHttpGetCalcStatus(PRTHTTPINTERNAL pThis, CURLcode rcCurl, uint32_t 
                 /* URL not found */
                 if (!puHttpStatus)
                     rc = VERR_HTTP_NOT_FOUND;
+                break;
+            case 501:
+                /* Requested function not supported */
+                if (!puHttpStatus)
+                    rc = VERR_HTTP_NOT_SUPPORTED;
                 break;
         }
 

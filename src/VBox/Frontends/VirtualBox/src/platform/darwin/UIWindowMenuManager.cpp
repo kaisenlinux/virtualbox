@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,6 +31,7 @@
 #include <QMenu>
 
 /* GUI includes: */
+#include "UITranslationEventListener.h"
 #include "UIWindowMenuManager.h"
 
 /* Other VBox includes: */
@@ -59,7 +60,7 @@ public:
     void removeWindow(QWidget *pWindow);
 
     /** Handles translation event. */
-    void retranslateUi();
+    virtual void retranslateUi();
 
     /** Updates toggle action states according to passed @a pActiveWindow. */
     void updateStatus(QWidget *pActiveWindow);
@@ -289,7 +290,7 @@ void UIWindowMenuManager::removeWindow(QWidget *pWindow)
     m_windows.removeAll(pWindow);
 }
 
-void UIWindowMenuManager::retranslateUi()
+void UIWindowMenuManager::sltRetranslateUI()
 {
     /* Translate all the helpers: */
     foreach (UIMenuHelper *pHelper, m_helpers.values())
@@ -303,6 +304,8 @@ UIWindowMenuManager::UIWindowMenuManager()
 
     /* Install global event-filter: */
     qApp->installEventFilter(this);
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIWindowMenuManager::sltRetranslateUI);
 }
 
 UIWindowMenuManager::~UIWindowMenuManager()
@@ -361,11 +364,11 @@ bool UIWindowMenuManager::eventFilter(QObject *pObject, QEvent *pEvent)
     {
         QWidget *pWidget = qobject_cast<QWidget*>(pObject);
         if (pWidget && m_helpers.contains(pWidget))
-            retranslateUi();
+            sltRetranslateUI();
     }
 
     /* Call to base-class: */
-    return QIWithRetranslateUI3<QObject>::eventFilter(pObject, pEvent);
+    return QObject::eventFilter(pObject, pEvent);
 }
 
 

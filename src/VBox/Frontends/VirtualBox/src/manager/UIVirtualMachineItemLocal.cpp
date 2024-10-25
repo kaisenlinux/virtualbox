@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,6 +35,8 @@
 #include "UIErrorString.h"
 #include "UIExtraDataManager.h"
 #include "UIIconPool.h"
+#include "UILocalMachineStuff.h"
+#include "UITranslationEventListener.h"
 #include "UIVirtualMachineItemLocal.h"
 #ifdef VBOX_WS_MAC
 # include <ApplicationServices/ApplicationServices.h>
@@ -84,11 +86,7 @@ void UIVirtualMachineItemLocal::recache()
         /* Determine snapshot attributes: */
         CSnapshot comSnapshot = m_comMachine.GetCurrentSnapshot();
         m_strSnapshotName = comSnapshot.isNull() ? QString() : comSnapshot.GetName();
-#if QT_VERSION >= QT_VERSION_CHECK(5, 8, 0)
         m_lastStateChange.setSecsSinceEpoch(m_comMachine.GetLastStateChange() / 1000);
-#else
-        m_lastStateChange.setTime_t(m_comMachine.GetLastStateChange() / 1000);
-#endif
         m_cSnaphot = m_comMachine.GetSnapshotCount();
 
         /* Determine VM states: */
@@ -159,7 +157,9 @@ void UIVirtualMachineItemLocal::recache()
     recachePixmap();
 
     /* Retranslate finally: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIVirtualMachineItemLocal::sltRetranslateUI);
 }
 
 void UIVirtualMachineItemLocal::recachePixmap()
@@ -229,7 +229,7 @@ bool UIVirtualMachineItemLocal::isItemRunningHeadless() const
     if (isItemRunning())
     {
         /* Open session to determine which frontend VM is started with: */
-        CSession comSession = uiCommon().openExistingSession(id());
+        CSession comSession = openExistingSession(id());
         if (!comSession.isNull())
         {
             /* Acquire the session name: */
@@ -262,18 +262,12 @@ bool UIVirtualMachineItemLocal::isItemCanBeSwitchedTo() const
            || isItemRunningHeadless();
 }
 
-void UIVirtualMachineItemLocal::retranslateUi()
+void UIVirtualMachineItemLocal::sltRetranslateUI()
 {
     /* This is used in tool-tip generation: */
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
     const QString strDateTime = m_lastStateChange.date() == QDate::currentDate()
                               ? QLocale::system().toString(m_lastStateChange.time(), QLocale::ShortFormat)
                               : QLocale::system().toString(m_lastStateChange, QLocale::ShortFormat);
-#else
-    const QString strDateTime = (m_lastStateChange.date() == QDate::currentDate())
-                              ? m_lastStateChange.time().toString(Qt::LocalDate)
-                              : m_lastStateChange.toString(Qt::LocalDate);
-#endif
 
     /* If machine is accessible: */
     if (m_fAccessible)

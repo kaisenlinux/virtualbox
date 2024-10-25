@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -51,6 +51,7 @@
 #include <VBox/log.h>
 #include <VBox/vmm/pdmaudioifs.h>
 
+#include <iprt/asm-mem.h>
 #include <iprt/asm.h>
 #include <iprt/asm-math.h>
 #include <iprt/assert.h>
@@ -406,6 +407,8 @@ DECLINLINE(void) PDMAudioPropsSetDefaultChannelIds(PPDMAUDIOPCMPROPS pProps)
  */
 DECLINLINE(void) PDMAudioPropsInit(PPDMAUDIOPCMPROPS pProps, uint8_t cbSample, bool fSigned, uint8_t cChannels, uint32_t uHz)
 {
+    Assert(cChannels <= PDMAUDIO_MAX_CHANNELS);
+
     pProps->cbFrame     = cbSample * cChannels;
     pProps->cbSampleX   = cbSample;
     pProps->cChannelsX  = cChannels;
@@ -428,6 +431,7 @@ DECLINLINE(void) PDMAudioPropsInit(PPDMAUDIOPCMPROPS pProps, uint8_t cbSample, b
 DECLINLINE(void) PDMAudioPropsInitEx(PPDMAUDIOPCMPROPS pProps, uint8_t cbSample, bool fSigned, uint8_t cChannels, uint32_t uHz,
                                      bool fLittleEndian, bool fRaw)
 {
+    Assert(cChannels <= PDMAUDIO_MAX_CHANNELS);
     Assert(!fRaw || cbSample == sizeof(int64_t));
     pProps->cbFrame     = cbSample * cChannels;
     pProps->cbSampleX   = cbSample;
@@ -502,6 +506,7 @@ DECLINLINE(uint32_t) PDMAudioPropsGetBitrate(PCPDMAUDIOPCMPROPS pProps)
  */
 DECL_FORCE_INLINE(uint8_t) PDMAudioPropsChannels(PCPDMAUDIOPCMPROPS pProps)
 {
+    AssertReturn(pProps->cChannelsX <= PDMAUDIO_MAX_CHANNELS, PDMAUDIO_MAX_CHANNELS);
     return pProps->cChannelsX;
 }
 

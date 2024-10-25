@@ -7,7 +7,7 @@ Test Manager Web-UI - Form Helpers.
 
 __copyright__ = \
 """
-Copyright (C) 2012-2023 Oracle and/or its affiliates.
+Copyright (C) 2012-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -36,7 +36,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 # Standard python imports.
 import copy;
@@ -550,6 +550,8 @@ class WuiHlpForm(object):
                          u' "fCpuHwVirt is True", "");\n' % (sName, sSecTimeoutDef);
                 sHtml += u'    %s_extendListEx("1-np", "1", "%s", "--cpu-counts 1 --virt-modes hwvirt-np", ' \
                          u' "fCpuNestedPaging is True", "");\n' % (sName, sSecTimeoutDef);
+                sHtml += u'    %s_extendListEx("1-nem", "1", "%s", "--cpu-counts 1 --virt-modes native-api", ' \
+                         u' "fNativeApi is True", "");\n' % (sName, sSecTimeoutDef);
                 sHtml += u'}\n';
                 sHtml += u'function vbox_%s_add_uni_amd64()\n' % (sName,);
                 sHtml += u'{\n';
@@ -557,6 +559,8 @@ class WuiHlpForm(object):
                          u' "fCpuHwVirt is True", "");\n' % (sName, sSecTimeoutDef);
                 sHtml += u'    %s_extendListEx("1-np", "%s", "--cpu-counts 1 --virt-modes hwvirt-np", ' \
                          u' "fCpuNestedPaging is True", "");\n' % (sName, sSecTimeoutDef);
+                sHtml += u'    %s_extendListEx("1-nem", "%s", "--cpu-counts 1 --virt-modes native-api", ' \
+                         u' "fNativeApi is True", "");\n' % (sName, sSecTimeoutDef);
                 sHtml += u'}\n';
                 sHtml += u'function vbox_%s_add_smp()\n' % (sName,);
                 sHtml += u'{\n';
@@ -564,10 +568,16 @@ class WuiHlpForm(object):
                          u' "fCpuHwVirt is True and cCpus >= 2", "");\n' % (sName, sSecTimeoutDef);
                 sHtml += u'    %s_extendListEx("2-np", "1", "%s", "--cpu-counts 2 --virt-modes hwvirt-np",' \
                          u' "fCpuNestedPaging is True and cCpus >= 2", "");\n' % (sName, sSecTimeoutDef);
+                sHtml += u'    %s_extendListEx("2-nem", "1", "%s", "--cpu-counts 2 --virt-modes native-api",' \
+                         u' "fNativeApi is True and cCpus >= 2", "");\n' % (sName, sSecTimeoutDef);
                 sHtml += u'    %s_extendListEx("3-hw", "1", "%s", "--cpu-counts 3 --virt-modes hwvirt",' \
                          u' "fCpuHwVirt is True and cCpus >= 3", "");\n' % (sName, sSecTimeoutDef);
+                sHtml += u'    %s_extendListEx("3-nem", "1", "%s", "--cpu-counts 3 --virt-modes native-api",' \
+                         u' "fNativeApi is True and cCpus >= 3", "");\n' % (sName, sSecTimeoutDef);
                 sHtml += u'    %s_extendListEx("4-np", "1", "%s", "--cpu-counts 4 --virt-modes hwvirt-np ",' \
                          u' "fCpuNestedPaging is True and cCpus >= 4", "");\n' % (sName, sSecTimeoutDef);
+                sHtml += u'    %s_extendListEx("4-nem", "1", "%s", "--cpu-counts 4 --virt-modes native-api",' \
+                         u' "fNativeApi is True and cCpus >= 4", "");\n' % (sName, sSecTimeoutDef);
                 #sHtml += u'    %s_extendListEx("6-hw", "1", "%s", "--cpu-counts 6 --virt-modes hwvirt",' \
                 #         u' "fCpuHwVirt is True and cCpus >= 6", "");\n' % (sName, sSecTimeoutDef);
                 #sHtml += u'    %s_extendListEx("8-np", "1", "%s", "--cpu-counts 8 --virt-modes hwvirt-np",' \
@@ -695,8 +705,7 @@ class WuiHlpForm(object):
 
         oDefMember = TestGroupMemberData();
         aoTestGroupMembers = list(aoTestGroupMembers); # Copy it so we can pop.
-        for iTestCase, _ in enumerate(aoAllTestCases):
-            oTestCase = aoAllTestCases[iTestCase];
+        for iTestCase, oTestCase in enumerate(aoAllTestCases):
 
             # Is it a member?
             oMember = None;
@@ -806,8 +815,7 @@ class WuiHlpForm(object):
 
         oDefMember = SchedGroupMemberData();
         aoSchedGroupMembers = list(aoSchedGroupMembers); # Copy it so we can pop.
-        for iTestGroup, _ in enumerate(aoAllRelevantTestGroups):
-            oTestGroup = aoAllRelevantTestGroups[iTestGroup];
+        for iTestGroup, oTestGroup in enumerate(aoAllRelevantTestGroups):
 
             # Is it a member?
             oMember = None;
@@ -1026,7 +1034,7 @@ class WuiHlpForm(object):
                   u' <thead>\n'
                   u'  <tr>\n'
                   u'    <th rowspan="2"></th>\n'
-                  u'    <th rowspan="2">Schedulding Group</th>\n'
+                  u'    <th rowspan="2">Scheduling Group</th>\n'
                   u'    <th rowspan="2">Priority [0..31]</th>\n'
                   u'  </tr>\n'
                   u' </thead>\n'

@@ -49,9 +49,12 @@
 #include <stdlib.h>   // mbtowc, wctomb
 #include <locale.h>   // setlocale
 #include "nscore.h"
-#include "prlock.h"
 #include "nsAString.h"
 #include "nsReadableUtils.h"
+
+#include <iprt/assert.h>
+#include <iprt/errcore.h>
+#include <iprt/semaphore.h>
 
 //
 // choose a conversion library.  we used to use mbrtowc/wcrtomb under Linux,
@@ -270,13 +273,13 @@ private:
     static iconv_t gUnicodeToUTF8;
     static iconv_t gUTF8ToUnicode;
 #endif
-    static PRLock *gLock;
+    static RTSEMFASTMUTEX gLock;
     static PRBool  gInitialized;
 
     static void LazyInit();
 
-    static void Lock()   { if (gLock) PR_Lock(gLock);   }
-    static void Unlock() { if (gLock) PR_Unlock(gLock); }
+    static void Lock()   { if (gLock != NILRTSEMFASTMUTEX) RTSemFastMutexRequest(gLock); }
+    static void Unlock() { if (gLock != NILRTSEMFASTMUTEX) RTSemFastMutexRelease(gLock); }
 };
 
 iconv_t nsNativeCharsetConverter::gNativeToUnicode = INVALID_ICONV_T;
@@ -287,7 +290,7 @@ iconv_t nsNativeCharsetConverter::gUTF8ToNative    = INVALID_ICONV_T;
 iconv_t nsNativeCharsetConverter::gUnicodeToUTF8   = INVALID_ICONV_T;
 iconv_t nsNativeCharsetConverter::gUTF8ToUnicode   = INVALID_ICONV_T;
 #endif
-PRLock *nsNativeCharsetConverter::gLock            = nsnull;
+RTSEMFASTMUTEX nsNativeCharsetConverter::gLock     = NIL_RTSEMFASTMUTEX;
 PRBool  nsNativeCharsetConverter::gInitialized     = PR_FALSE;
 
 void
@@ -363,16 +366,16 @@ nsNativeCharsetConverter::LazyInit()
 void
 nsNativeCharsetConverter::GlobalInit()
 {
-    gLock = PR_NewLock();
-    NS_ASSERTION(gLock, "lock creation failed");
+    int vrc = RTSemFastMutexCreate(&gLock);
+    NS_ASSERTION(RT_SUCCESS(vrc), "lock creation failed");
 }
 
 void
 nsNativeCharsetConverter::GlobalShutdown()
 {
-    if (gLock) {
-        PR_DestroyLock(gLock);
-        gLock = nsnull;
+    if (gLock != NIL_RTSEMFASTMUTEX) {
+        RTSemFastMutexDestroy(gLock);
+        gLock = NIL_RTSEMFASTMUTEX;
     }
 
     if (gNativeToUnicode != INVALID_ICONV_T) {
@@ -702,7 +705,8 @@ nsNativeCharsetConverter::UnicodeToNative(const PRUnichar **input,
     if (gWCharIsUnicode) {
         int incr;
 
-        while (*inputLeft && *outputLeft >= MB_CUR_MAX) {
+        /* MB_CUR_MAX better be positive. */
+        while (*inputLeft && *outputLeft >= (PRUint32)MB_CUR_MAX) {
 #ifdef HAVE_WCRTOMB
             incr = (int) wcrtomb(*output, (wchar_t) **input, &ps);
 #else
@@ -825,428 +829,6 @@ NS_ShutdownNativeCharsetUtils()
 }
 
 //-----------------------------------------------------------------------------
-// XP_BEOS
-//-----------------------------------------------------------------------------
-#elif defined(XP_BEOS)
-
-#include "nsAString.h"
-#include "nsReadableUtils.h"
-#include "nsString.h"
-
-NS_COM nsresult
-NS_CopyNativeToUnicode(const nsACString &input, nsAString  &output)
-{
-    CopyUTF8toUTF16(input, output);
-    return NS_OK;
-}
-
-NS_COM nsresult
-NS_CopyUnicodeToNative(const nsAString  &input, nsACString &output)
-{
-    CopyUTF16toUTF8(input, output);
-    return NS_OK;
-}
-
-void
-NS_StartupNativeCharsetUtils()
-{
-}
-
-void
-NS_ShutdownNativeCharsetUtils()
-{
-}
-
-//-----------------------------------------------------------------------------
-// XP_WIN
-//-----------------------------------------------------------------------------
-#elif defined(XP_WIN)
-
-#include <windows.h>
-#include "nsAString.h"
-
-NS_COM nsresult
-NS_CopyNativeToUnicode(const nsACString &input, nsAString &output)
-{
-    PRUint32 inputLen = input.Length();
-
-    nsACString::const_iterator iter;
-    input.BeginReading(iter);
-
-    const char *buf = iter.get();
-
-    // determine length of result
-    PRUint32 resultLen = 0;
-    int n = ::MultiByteToWideChar(CP_ACP, 0, buf, inputLen, NULL, 0);
-    if (n > 0)
-        resultLen += n;
-
-    // allocate sufficient space
-    output.SetLength(resultLen);
-    if (resultLen > 0) {
-        nsAString::iterator out_iter;
-        output.BeginWriting(out_iter);
-
-        PRUnichar *result = out_iter.get();
-
-        ::MultiByteToWideChar(CP_ACP, 0, buf, inputLen, result, resultLen);
-    }
-    return NS_OK;
-}
-
-NS_COM nsresult
-NS_CopyUnicodeToNative(const nsAString  &input, nsACString &output)
-{
-    PRUint32 inputLen = input.Length();
-
-    nsAString::const_iterator iter;
-    input.BeginReading(iter);
-
-    const PRUnichar *buf = iter.get();
-
-    // determine length of result
-    PRUint32 resultLen = 0;
-
-    int n = ::WideCharToMultiByte(CP_ACP, 0, buf, inputLen, NULL, 0, NULL, NULL);
-    if (n > 0)
-        resultLen += n;
-
-    // allocate sufficient space
-    output.SetLength(resultLen);
-    if (resultLen > 0) {
-        nsACString::iterator out_iter;
-        output.BeginWriting(out_iter);
-
-        // default "defaultChar" is '?', which is an illegal character on windows
-        // file system.  That will cause file uncreatable. Change it to '_'
-        const char defaultChar = '_';
-
-        char *result = out_iter.get();
-
-        ::WideCharToMultiByte(CP_ACP, 0, buf, inputLen, result, resultLen,
-                              &defaultChar, NULL);
-    }
-    return NS_OK;
-}
-
-void
-NS_StartupNativeCharsetUtils()
-{
-}
-
-void
-NS_ShutdownNativeCharsetUtils()
-{
-}
-
-//-----------------------------------------------------------------------------
-// XP_OS2
-//-----------------------------------------------------------------------------
-#elif defined(XP_OS2)
-
-#define INCL_DOS
-#include <os2.h>
-#include <uconv.h>
-#include "nsAString.h"
-#include <ulserrno.h>
-#include "nsNativeCharsetUtils.h"
-
-static UconvObject UnicodeConverter = NULL;
-
-NS_COM nsresult
-NS_CopyNativeToUnicode(const nsACString &input, nsAString  &output)
-{
-    PRUint32 inputLen = input.Length();
-
-    nsACString::const_iterator iter;
-    input.BeginReading(iter);
-    const char *inputStr = iter.get();
-
-    // determine length of result
-    PRUint32 resultLen = inputLen;
-    output.SetLength(resultLen);
-
-    nsAString::iterator out_iter;
-    output.BeginWriting(out_iter);
-    UniChar *result = (UniChar*)out_iter.get();
-
-    size_t cSubs = 0;
-    size_t resultLeft = resultLen;
-
-    if (!UnicodeConverter)
-      NS_StartupNativeCharsetUtils();
-
-    int unirc = ::UniUconvToUcs(UnicodeConverter, (void**)&inputStr, &inputLen,
-                                &result, &resultLeft, &cSubs);
-
-    NS_ASSERTION(unirc != UCONV_E2BIG, "Path too big");
-
-    if (unirc != ULS_SUCCESS) {
-        output.Truncate();
-        return NS_ERROR_FAILURE;
-    }
-
-    // Need to update string length to reflect how many bytes were actually
-    // written.
-    output.Truncate(resultLen - resultLeft);
-    return NS_OK;
-}
-
-NS_COM nsresult
-NS_CopyUnicodeToNative(const nsAString &input, nsACString &output)
-{
-    size_t inputLen = input.Length();
-
-    nsAString::const_iterator iter;
-    input.BeginReading(iter);
-    UniChar* inputStr = (UniChar*) NS_CONST_CAST(PRUnichar*, iter.get());
-
-    // maximum length of unicode string of length x converted to native
-    // codepage is x*2
-    size_t resultLen = inputLen * 2;
-    output.SetLength(resultLen);
-
-    nsACString::iterator out_iter;
-    output.BeginWriting(out_iter);
-    char *result = out_iter.get();
-
-    size_t cSubs = 0;
-    size_t resultLeft = resultLen;
-
-    if (!UnicodeConverter)
-      NS_StartupNativeCharsetUtils();
-  
-    int unirc = ::UniUconvFromUcs(UnicodeConverter, &inputStr, &inputLen,
-                                  (void**)&result, &resultLeft, &cSubs);
-
-    NS_ASSERTION(unirc != UCONV_E2BIG, "Path too big");
-  
-    if (unirc != ULS_SUCCESS) {
-        output.Truncate();
-        return NS_ERROR_FAILURE;
-    }
-
-    // Need to update string length to reflect how many bytes were actually
-    // written.
-    output.Truncate(resultLen - resultLeft);
-    return NS_OK;
-}
-
-void
-NS_StartupNativeCharsetUtils()
-{
-    ULONG ulLength;
-    ULONG ulCodePage;
-    DosQueryCp(sizeof(ULONG), &ulCodePage, &ulLength);
-
-    UniChar codepage[20];
-    int unirc = ::UniMapCpToUcsCp(ulCodePage, codepage, 20);
-    if (unirc == ULS_SUCCESS) {
-        unirc = ::UniCreateUconvObject(codepage, &UnicodeConverter);
-        if (unirc == ULS_SUCCESS) {
-            uconv_attribute_t attr;
-            ::UniQueryUconvObject(UnicodeConverter, &attr, sizeof(uconv_attribute_t), 
-                                  NULL, NULL, NULL);
-            attr.options = UCONV_OPTION_SUBSTITUTE_BOTH;
-            attr.subchar_len=1;
-            attr.subchar[0]='_';
-            ::UniSetUconvObject(UnicodeConverter, &attr);
-        }
-    }
-}
-
-void
-NS_ShutdownNativeCharsetUtils()
-{
-    ::UniFreeUconvObject(UnicodeConverter);
-}
-
-//-----------------------------------------------------------------------------
-// XP_MAC
-//-----------------------------------------------------------------------------
-#elif defined(XP_MAC)
-
-#include <UnicodeConverter.h>
-#include <TextCommon.h>
-#include <Script.h>
-#include <MacErrors.h>
-#include "nsAString.h"
-
-class nsFSStringConversionMac {
-public:
-     static nsresult UCSToFS(const nsAString& aIn, nsACString& aOut);  
-     static nsresult FSToUCS(const nsACString& ain, nsAString& aOut);  
-
-     static void CleanUp();
-
-private:
-     static TextEncoding GetSystemEncoding();
-     static nsresult PrepareEncoder();
-     static nsresult PrepareDecoder();
-     
-     static UnicodeToTextInfo sEncoderInfo;
-     static TextToUnicodeInfo sDecoderInfo;
-};
-
-UnicodeToTextInfo nsFSStringConversionMac::sEncoderInfo = nsnull;
-TextToUnicodeInfo nsFSStringConversionMac::sDecoderInfo = nsnull;
-
-nsresult nsFSStringConversionMac::UCSToFS(const nsAString& aIn, nsACString& aOut)
-{
-    nsresult rv = PrepareEncoder();
-    if (NS_FAILED(rv)) return rv;
-    
-    OSStatus err = noErr;
-    char stackBuffer[512];
-
-    aOut.Truncate();
-
-    // for each chunk of |aIn|...
-    nsReadingIterator<PRUnichar> iter;
-    aIn.BeginReading(iter);
-
-    PRUint32 fragmentLength = PRUint32(iter.size_forward());        
-    UInt32 bytesLeft = fragmentLength * sizeof(UniChar);
-        
-    do {
-        UInt32 bytesRead = 0, bytesWritten = 0;
-        err = ::ConvertFromUnicodeToText(sEncoderInfo,
-                                         bytesLeft,
-                                         (const UniChar*)iter.get(),
-                                         kUnicodeUseFallbacksMask | kUnicodeLooseMappingsMask,
-                                         0, nsnull, nsnull, nsnull,
-                                         sizeof(stackBuffer),
-                                         &bytesRead,
-                                         &bytesWritten,
-                                         stackBuffer);
-        if (err == kTECUsedFallbacksStatus)
-            err = noErr;
-        else if (err == kTECOutputBufferFullStatus) {
-            bytesLeft -= bytesRead;
-            iter.advance(bytesRead / sizeof(UniChar));
-        }
-        aOut.Append(stackBuffer, bytesWritten);
-    }
-    while (err == kTECOutputBufferFullStatus);
-
-    return (err == noErr) ? NS_OK : NS_ERROR_FAILURE;
-}
-
-nsresult nsFSStringConversionMac::FSToUCS(const nsACString& aIn, nsAString& aOut)
-{
-    nsresult rv = PrepareDecoder();
-    if (NS_FAILED(rv)) return rv;
-    
-    OSStatus err = noErr;
-    UniChar stackBuffer[512];
-
-    aOut.Truncate(0);
-
-    // for each chunk of |aIn|...
-    nsReadingIterator<char> iter;
-    aIn.BeginReading(iter);
-
-    PRUint32 fragmentLength = PRUint32(iter.size_forward());        
-    UInt32 bytesLeft = fragmentLength;
-    
-    do {
-        UInt32 bytesRead = 0, bytesWritten = 0;
-        err = ::ConvertFromTextToUnicode(sDecoderInfo,
-                                         bytesLeft,
-                                         iter.get(),
-                                         kUnicodeUseFallbacksMask | kUnicodeLooseMappingsMask,
-                                         0, nsnull, nsnull, nsnull,
-                                         sizeof(stackBuffer),
-                                         &bytesRead,
-                                         &bytesWritten,
-                                         stackBuffer);
-        if (err == kTECUsedFallbacksStatus)
-            err = noErr;
-        else if (err == kTECOutputBufferFullStatus) {
-            bytesLeft -= bytesRead;
-            iter.advance(bytesRead);
-        }
-        aOut.Append((PRUnichar *)stackBuffer, bytesWritten / sizeof(PRUnichar));
-    }
-    while (err == kTECOutputBufferFullStatus);
-
-    return (err == noErr) ? NS_OK : NS_ERROR_FAILURE;
-}
-
-void nsFSStringConversionMac::CleanUp()
-{
-    if (sDecoderInfo) {
-        ::DisposeTextToUnicodeInfo(&sDecoderInfo);
-        sDecoderInfo = nsnull;
-    }
-    if (sEncoderInfo) {
-        ::DisposeUnicodeToTextInfo(&sEncoderInfo);
-        sEncoderInfo = nsnull;
-    }  
-}
-
-TextEncoding nsFSStringConversionMac::GetSystemEncoding()
-{
-    OSStatus err;
-    TextEncoding theEncoding;
-    
-    err = ::UpgradeScriptInfoToTextEncoding(smSystemScript, kTextLanguageDontCare,
-        kTextRegionDontCare, NULL, &theEncoding);
-    
-    if (err != noErr)
-        theEncoding = kTextEncodingMacRoman;
-    
-    return theEncoding;
-}
-
-nsresult nsFSStringConversionMac::PrepareEncoder()
-{
-    nsresult rv = NS_OK;
-    if (!sEncoderInfo) {
-        OSStatus err;
-        err = ::CreateUnicodeToTextInfoByEncoding(GetSystemEncoding(), &sEncoderInfo);
-        if (err)
-            rv = NS_ERROR_FAILURE;
-    }
-    return rv;
-}
-
-nsresult nsFSStringConversionMac::PrepareDecoder()
-{
-    nsresult rv = NS_OK;
-    if (!sDecoderInfo) {
-        OSStatus err;
-        err = ::CreateTextToUnicodeInfoByEncoding(GetSystemEncoding(), &sDecoderInfo);
-        if (err)
-            rv = NS_ERROR_FAILURE;
-    }
-    return rv;
-}
-
-NS_COM nsresult
-NS_CopyNativeToUnicode(const nsACString &input, nsAString  &output)
-{
-    return nsFSStringConversionMac::FSToUCS(input, output);
-}
-
-NS_COM nsresult
-NS_CopyUnicodeToNative(const nsAString  &input, nsACString &output)
-{
-    return nsFSStringConversionMac::UCSToFS(input, output);
-}
-
-void
-NS_StartupNativeCharsetUtils()
-{
-}
-
-void
-NS_ShutdownNativeCharsetUtils()
-{
-    nsFSStringConversionMac::CleanUp();
-}
-
-//-----------------------------------------------------------------------------
 // default : truncate/zeropad
 //-----------------------------------------------------------------------------
 #else
@@ -1278,3 +860,4 @@ NS_ShutdownNativeCharsetUtils()
 }
 
 #endif
+

@@ -1,9 +1,12 @@
 /** @file
  * Testcase for shared folder case conversion code.
+ *
+ * @todo r=andy Testcase needs to be rewritten using the test framework.
+ *              Otherwise it's almost pointless to run this on the testboxes.
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -41,6 +44,7 @@
 #include <iprt/mem.h>
 #include <iprt/path.h>
 #include <iprt/string.h>
+#include <iprt/test.h>
 #include <iprt/uni.h>
 #include <stdio.h>
 
@@ -116,7 +120,7 @@ static const char *g_apszSUBDIREntries[] =
     "z.bat",
 };
 
-int rtDirOpenFiltered(RTDIR *phDir, const char *pszPath, RTDIRFILTER enmFilter, uint32_t fFlags)
+static int rtDirOpenFiltered(RTDIR *phDir, const char *pszPath, RTDIRFILTER enmFilter, uint32_t fFlags)
 {
     RT_NOREF2(enmFilter, fFlags);
     if (!strcmp(pszPath, "c:\\*"))
@@ -132,41 +136,52 @@ int rtDirOpenFiltered(RTDIR *phDir, const char *pszPath, RTDIRFILTER enmFilter, 
     return VINF_SUCCESS;
 }
 
-int rtDirClose(RTDIR hDir)
+static int rtDirClose(RTDIR hDir)
 {
     RT_NOREF1(hDir);
     iDirFile = 0;
     return VINF_SUCCESS;
 }
 
-int rtDirReadEx(RTDIR hDir, PRTDIRENTRYEX pDirEntry, size_t *pcbDirEntry, RTFSOBJATTRADD enmAdditionalAttribs, uint32_t fFlags)
+static int rtDirReadEx(RTDIR hDir, PRTDIRENTRYEX pDirEntry, size_t *pcbDirEntry, RTFSOBJATTRADD enmAdditionalAttribs, uint32_t fFlags)
 {
     RT_NOREF4(hDir, pcbDirEntry, enmAdditionalAttribs, fFlags);
+    const char *pszSrcName;
     switch (iDirList)
     {
         case 1:
             if (iDirFile == RT_ELEMENTS(g_apszDirsC))
                 return VERR_NO_MORE_FILES;
-            pDirEntry->cbName = (uint16_t)strlen(g_apszDirsC[iDirFile]);
-            strcpy(pDirEntry->szName, g_apszDirsC[iDirFile++]);
+            pszSrcName = g_apszDirsC[iDirFile];
             break;
         case 2:
             if (iDirFile == RT_ELEMENTS(g_apszTestdirEntries))
                 return VERR_NO_MORE_FILES;
-            pDirEntry->cbName = (uint16_t)strlen(g_apszTestdirEntries[iDirFile]);
-            strcpy(pDirEntry->szName, g_apszTestdirEntries[iDirFile++]);
+            pszSrcName = g_apszTestdirEntries[iDirFile];
             break;
         case 3:
             if (iDirFile == RT_ELEMENTS(g_apszSUBDIREntries))
                 return VERR_NO_MORE_FILES;
-            pDirEntry->cbName = (uint16_t)strlen(g_apszSUBDIREntries[iDirFile]);
-            strcpy(pDirEntry->szName, g_apszSUBDIREntries[iDirFile++]);
+            pszSrcName = g_apszSUBDIREntries[iDirFile];
             break;
+        default:
+            AssertFailed();
+            return VERR_NO_MORE_FILES;
     }
+
+    size_t const cbDirEntry  = *pcbDirEntry;
+    size_t const cbNameAvail = cbDirEntry - RT_UOFFSETOF(RTDIRENTRYEX, szName);
+    size_t const cchSrcName  = strlen(pszSrcName);
+    *pcbDirEntry = RT_UOFFSETOF(RTDIRENTRYEX, szName) + cchSrcName + 1;
+    pDirEntry->cbName = (uint16_t)cchSrcName;
+    AssertReturn(cchSrcName < cbNameAvail, VERR_BUFFER_OVERFLOW);
+
+    memcpy(pDirEntry->szName, pszSrcName, cchSrcName + 1);
+    iDirFile++;
     return VINF_SUCCESS;
 }
 
-int rtPathQueryInfo(const char *pszPath, PRTFSOBJINFO pObjInfo, RTFSOBJATTRADD enmAdditionalAttribs)
+static int rtPathQueryInfo(const char *pszPath, PRTFSOBJINFO pObjInfo, RTFSOBJATTRADD enmAdditionalAttribs)
 {
     RT_NOREF2(pObjInfo, enmAdditionalAttribs);
     int cMax;
@@ -206,82 +221,75 @@ int rtPathQueryInfo(const char *pszPath, PRTFSOBJINFO pObjInfo, RTFSOBJATTRADD e
 
 static int vbsfCorrectCasing(char *pszFullPath, char *pszStartComponent)
 {
-    PRTDIRENTRYEX  pDirEntry = NULL;
-    uint32_t       cbDirEntry;
-    size_t         cbComponent;
-    int            rc = VERR_FILE_NOT_FOUND;
-    RTDIR          hSearch = NIL_RTDIR;
-    char           szWildCard[4];
+    size_t const   cchComponent   = strlen(pszStartComponent);
 
-    Log2(("vbsfCorrectCasing: %s %s\n", pszFullPath, pszStartComponent));
+    Log2(("vbsfCorrectCasing: '%s' '%s' (%zu)\n", pszFullPath, pszStartComponent, cchComponent));
 
-    cbComponent = strlen(pszStartComponent);
-
-    cbDirEntry = 4096;
-    pDirEntry  = (PRTDIRENTRYEX)RTMemAlloc(cbDirEntry);
-    if (pDirEntry == 0)
-    {
-        AssertFailed();
-        return VERR_NO_MEMORY;
-    }
+    uint32_t const cbDirEntry     = 4096;
+    uint32_t const cbDirEntryName = cbDirEntry - RT_UOFFSETOF(RTDIRENTRYEX, szName);
+    PRTDIRENTRYEX  pDirEntry  = (PRTDIRENTRYEX)RTMemAlloc(cbDirEntry);
+    AssertReturn(pDirEntry, VERR_NO_MEMORY);
 
     /** @todo this is quite inefficient, especially for directories with many files */
-    Assert(pszFullPath < pszStartComponent-1);
-    Assert(*(pszStartComponent-1) == RTPATH_DELIMITER);
-    *(pszStartComponent-1) = 0;
-    strcpy(pDirEntry->szName, pszFullPath);
-    szWildCard[0] = RTPATH_DELIMITER;
-    szWildCard[1] = '*';
-    szWildCard[2] = 0;
-    strcat(pDirEntry->szName, szWildCard);
-
-    rc = RTDirOpenFiltered(&hSearch, pDirEntry->szName, RTDIRFILTER_WINNT, 0 /*fFlags*/);
-    *(pszStartComponent-1) = RTPATH_DELIMITER;
-    if (RT_FAILURE(rc))
-        goto end;
-
-    for(;;)
+    Assert(pszFullPath < pszStartComponent - 1);
+    Assert(pszStartComponent[-1] == RTPATH_DELIMITER);
+    pszStartComponent[-1] = '\0';
+    int rc = RTStrCopy(pDirEntry->szName, cbDirEntryName - sizeof(RTPATH_SLASH_STR "*"), pszFullPath);
+    pszStartComponent[-1] = RTPATH_DELIMITER;
+    if (RT_SUCCESS(rc))
     {
-        size_t cbDirEntrySize = cbDirEntry;
-
-        rc = RTDirReadEx(hSearch, pDirEntry, &cbDirEntrySize, RTFSOBJATTRADD_NOTHING, RTPATH_F_FOLLOW_LINK);
-        if (rc == VERR_NO_MORE_FILES)
-            break;
-
-        if (VINF_SUCCESS != rc && rc != VWRN_NO_DIRENT_INFO)
+        char szWildCard[4];
+        szWildCard[0] = RTPATH_DELIMITER;
+        szWildCard[1] = '*';
+        szWildCard[2] = '\0';
+        rc = RTStrCat(pDirEntry->szName, cbDirEntryName, szWildCard);
+    }
+    if (RT_SUCCESS(rc))
+    {
+        RTDIR hSearch = NIL_RTDIR;
+        rc = RTDirOpenFiltered(&hSearch, pDirEntry->szName, RTDIRFILTER_WINNT, 0 /*fFlags*/);
+        if (RT_SUCCESS(rc))
         {
-            AssertFailed();
-            if (rc != VERR_NO_TRANSLATION)
-                break;
-            else
-                continue;
-        }
+            for(;;)
+            {
+                size_t cbDirEntryRet = cbDirEntry;
+                rc = RTDirReadEx(hSearch, pDirEntry, &cbDirEntryRet, RTFSOBJATTRADD_NOTHING, RTPATH_F_FOLLOW_LINK);
+                if (rc == VERR_NO_MORE_FILES)
+                    break;
 
-        Log2(("vbsfCorrectCasing: found %s\n", &pDirEntry->szName[0]));
-        if (    pDirEntry->cbName == cbComponent
-            &&  !RTStrICmp(pszStartComponent, &pDirEntry->szName[0]))
-        {
-            Log(("Found original name %s (%s)\n", &pDirEntry->szName[0], pszStartComponent));
-            strcpy(pszStartComponent, &pDirEntry->szName[0]);
-            rc = VINF_SUCCESS;
-            break;
+                if (VINF_SUCCESS != rc && rc != VWRN_NO_DIRENT_INFO)
+                {
+                    AssertFailed();
+                    if (rc != VERR_NO_TRANSLATION)
+                        break;
+                    continue;
+                }
+
+                Log2(("vbsfCorrectCasing: found '%s'\n", &pDirEntry->szName[0]));
+                if (   pDirEntry->cbName == cchComponent
+                    && !RTStrICmp(pszStartComponent, &pDirEntry->szName[0]))
+                {
+                    Log(("Found original name %s (%s)\n", &pDirEntry->szName[0], pszStartComponent));
+                    memcpy(pszStartComponent, &pDirEntry->szName[0], cchComponent);
+                    pszStartComponent[cchComponent] = '\0'; /* paranoia */
+                    rc = VINF_SUCCESS;
+                    break;
+                }
+            }
+            if (RT_FAILURE(rc))
+                Log(("vbsfCorrectCasing %s failed with %d\n", pszStartComponent, rc));
+
+            RTDirClose(hSearch);
         }
     }
-    if (RT_FAILURE(rc))
-        Log(("vbsfCorrectCasing %s failed with %d\n", pszStartComponent, rc));
 
-end:
-    if (pDirEntry)
-        RTMemFree(pDirEntry);
-
-    if (hSearch)
-        RTDirClose(hSearch);
+    RTMemFree(pDirEntry);
     return rc;
 }
 
 
 
-int testCase(char *pszFullPath, bool fWildCard = false)
+static int testCase(char *pszFullPath, bool fWildCard = false)
 {
     int rc;
     RTFSOBJINFO info;
@@ -290,19 +298,19 @@ int testCase(char *pszFullPath, bool fWildCard = false)
     if (fWildCard)
     {
         /* strip off the last path component, that contains the wildcard(s) */
-        size_t   len = strlen(pszFullPath);
-        char    *src = pszFullPath + len - 1;
+        size_t cchLlen = strlen(pszFullPath);
+        char  *pszSrc  = pszFullPath + cchLlen - 1;
 
-        while(src > pszFullPath)
+        while(pszSrc > pszFullPath)
         {
-            if (*src == RTPATH_DELIMITER)
+            if (*pszSrc == RTPATH_DELIMITER)
                 break;
-            src--;
+            pszSrc--;
         }
-        if (*src == RTPATH_DELIMITER)
+        if (*pszSrc == RTPATH_DELIMITER)
         {
             bool fHaveWildcards = false;
-            char *temp = src;
+            char *temp = pszSrc;
 
             while(*temp)
             {
@@ -318,7 +326,7 @@ int testCase(char *pszFullPath, bool fWildCard = false)
 
             if (fHaveWildcards)
             {
-                pszWildCardComponent = src;
+                pszWildCardComponent = pszSrc;
                 *pszWildCardComponent = 0;
             }
         }
@@ -327,40 +335,39 @@ int testCase(char *pszFullPath, bool fWildCard = false)
     rc = RTPathQueryInfo(pszFullPath, &info, RTFSOBJATTRADD_NOTHING);
     if (rc == VERR_FILE_NOT_FOUND || rc == VERR_PATH_NOT_FOUND)
     {
-        size_t   len = strlen(pszFullPath);
-        char    *src = pszFullPath + len - 1;
+        char *pszSrc = &pszFullPath[strlen(pszFullPath) - 1];
 
         Log(("Handle case insensitive guest fs on top of host case sensitive fs for %s\n", pszFullPath));
 
         /* Find partial path that's valid */
-        while(src > pszFullPath)
+        while (pszSrc > pszFullPath)
         {
-            if (*src == RTPATH_DELIMITER)
+            if (*pszSrc == RTPATH_DELIMITER)
             {
-                *src = 0;
+                *pszSrc = '\0';
                 rc = RTPathQueryInfo (pszFullPath, &info, RTFSOBJATTRADD_NOTHING);
-                *src = RTPATH_DELIMITER;
+                *pszSrc = RTPATH_DELIMITER;
                 if (rc == VINF_SUCCESS)
                 {
 #ifdef DEBUG
-                    *src = 0;
+                    *pszSrc = '\0';
                     Log(("Found valid partial path %s\n", pszFullPath));
-                    *src = RTPATH_DELIMITER;
+                    *pszSrc = RTPATH_DELIMITER;
 #endif
                     break;
                 }
             }
 
-            src--;
+            pszSrc--;
         }
-        Assert(*src == RTPATH_DELIMITER && RT_SUCCESS(rc));
-        if (    *src == RTPATH_DELIMITER
+        Assert(*pszSrc == RTPATH_DELIMITER && RT_SUCCESS(rc));
+        if (    *pszSrc == RTPATH_DELIMITER
             &&  RT_SUCCESS(rc))
         {
-            src++;
+            pszSrc++;
             for(;;)
             {
-                char *end = src;
+                char *end = pszSrc;
                 bool fEndOfString = true;
 
                 while(*end)
@@ -374,11 +381,10 @@ int testCase(char *pszFullPath, bool fWildCard = false)
                 {
                     fEndOfString = false;
                     *end = 0;
-                    rc = RTPathQueryInfo(src, &info, RTFSOBJATTRADD_NOTHING);
+                    rc = RTPathQueryInfo(pszSrc, &info, RTFSOBJATTRADD_NOTHING);
                     Assert(rc == VINF_SUCCESS || rc == VERR_FILE_NOT_FOUND || rc == VERR_PATH_NOT_FOUND);
                 }
-                else
-                if (end == src)
+                else if (end == pszSrc)
                     rc = VINF_SUCCESS;  /* trailing delimiter */
                 else
                     rc = VERR_FILE_NOT_FOUND;
@@ -386,11 +392,11 @@ int testCase(char *pszFullPath, bool fWildCard = false)
                 if (rc == VERR_FILE_NOT_FOUND || rc == VERR_PATH_NOT_FOUND)
                 {
                     /* path component is invalid; try to correct the casing */
-                    rc = vbsfCorrectCasing(pszFullPath, src);
+                    rc = vbsfCorrectCasing(pszFullPath, pszSrc);
                     if (RT_FAILURE(rc))
                     {
                         if (!fEndOfString)
-                              *end = RTPATH_DELIMITER;
+                            *end = RTPATH_DELIMITER;
                         break;
                     }
                 }
@@ -399,7 +405,7 @@ int testCase(char *pszFullPath, bool fWildCard = false)
                     break;
 
                 *end = RTPATH_DELIMITER;
-                src = end + 1;
+                pszSrc = end + 1;
             }
             if (RT_FAILURE(rc))
                 Log(("Unable to find suitable component rc=%d\n", rc));
@@ -421,32 +427,45 @@ int testCase(char *pszFullPath, bool fWildCard = false)
 
 int main()
 {
-    char szTest[128];
+    RTTEST hTest;
+    RTEXITCODE rcExit = RTTestInitAndCreate("tstShflCase", &hTest);
+    if (rcExit != RTEXITCODE_SUCCESS)
+        return rcExit;
+    RTTestBanner(hTest);
 
-    RTR3InitExeNoArguments(0);
     RTLogFlush(NULL);
     RTLogDestinations(NULL, "stdout");
     RTLogGroupSettings(NULL, "misc=~0");
     RTLogFlags(NULL, "unbuffered");
 
-    strcpy(szTest, "c:\\test Dir\\z.bAt");
-    testCase(szTest);
-    strcpy(szTest, "c:\\test dir\\z.bAt");
-    testCase(szTest);
-    strcpy(szTest, "c:\\test dir\\SUBDIR\\z.bAt");
-    testCase(szTest);
-    strcpy(szTest, "c:\\test dir\\SUBDiR\\atestje.bat");
-    testCase(szTest);
-    strcpy(szTest, "c:\\TEST dir\\subDiR\\aTestje.baT");
-    testCase(szTest);
-    strcpy(szTest, "c:\\TEST dir\\subDiR\\*");
-    testCase(szTest, true);
-    strcpy(szTest, "c:\\TEST dir\\subDiR\\");
-    testCase(szTest ,true);
-    strcpy(szTest, "c:\\test dir\\SUBDIR\\");
-    testCase(szTest);
-    strcpy(szTest, "c:\\test dir\\invalid\\SUBDIR\\test.bat");
-    testCase(szTest);
-    return 0;
+    static const struct
+    {
+        int         rcExpect;
+        bool        fWildcard;
+        const char *pszPath;
+        size_t      cchPath;
+    } s_aTests[] =
+    {
+        { VINF_SUCCESS,         false, RT_STR_TUPLE("c:\\test Dir\\z.bAt") },
+        { VINF_SUCCESS,         false, RT_STR_TUPLE("c:\\test dir\\z.bAt") },
+        { VINF_SUCCESS,         false, RT_STR_TUPLE("c:\\test dir\\SUBDIR\\z.bAt") },
+        { VINF_SUCCESS,         false, RT_STR_TUPLE("c:\\test dir\\SUBDiR\\atestje.bat") },
+        { VINF_SUCCESS,         false, RT_STR_TUPLE("c:\\TEST dir\\subDiR\\aTestje.baT") },
+        { VINF_SUCCESS,          true, RT_STR_TUPLE("c:\\TEST dir\\subDiR\\*") },
+        { VINF_SUCCESS,          true, RT_STR_TUPLE("c:\\TEST dir\\subDiR\\") },
+        { VINF_SUCCESS,         false, RT_STR_TUPLE("c:\\test dir\\SUBDIR\\") },
+        { VERR_NO_MORE_FILES,   false, RT_STR_TUPLE("c:\\test dir\\invalid\\SUBDIR\\test.bat") },
+    };
+    for (size_t i = 0; i < RT_ELEMENTS(s_aTests); i++)
+    {
+        char szTest[128];
+        AssertContinueStmt(s_aTests[i].cchPath < sizeof(szTest), RTTestFailed(hTest, "too long: #%zu", i));
+        memcpy(szTest, s_aTests[i].pszPath, s_aTests[i].cchPath + 1);
+        int rc = testCase(szTest, s_aTests[i].fWildcard);
+        if (rc != s_aTests[i].rcExpect)
+            RTTestFailed(hTest, "testCase returned %Rrc, expected %Rrc (path: %s)",
+                         rc, s_aTests[i].rcExpect, s_aTests[i].pszPath);
+    }
+    return RTTestSummaryAndDestroy(hTest);
 }
 

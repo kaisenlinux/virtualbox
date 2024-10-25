@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -53,6 +53,7 @@
 #ifdef RT_OS_DARWIN
 # include <Carbon/Carbon.h>
 #endif
+#include <VBox/com/defs.h> /* For S_OK. */
 
 #ifdef UNITTEST
 # include "teststubs.h"
@@ -437,6 +438,39 @@ static bool vbsfPathIsWildcardChar(char c)
     return false;
 }
 
+/**
+ * Validate the symbolic link creation policy inside a guest operating in a shared folder.
+ *
+ * @returns S_OK or VERR_WRITE_PROTECT.
+ * @param pchSymlinkPath    The pathname of the symbolic link within the guest.
+ * @param enmSymlinkPolicy  The symbolic link creation policy being evaluated.
+ *
+ * The enmSymlinkPolicy symlink creation policies are:
+ *  - @a none:       no policy set
+ *  - @a any:        no restrictions
+ *  - @a forbidden:  no symlinks allowed
+ *  - @a relative:   relative paths only ('..' path components allowed)
+ *  - @a subtree:    relative paths only within the shared folder (no '..' path components allowed)
+ */
+static int vbsfPathEvalSymlinkPolicy(const char *pchSymlinkPath, SymlinkPolicy_T enmSymlinkPolicy)
+{
+    /* If no symlink policy has been set we continue the historical behaviour of applying no
+     * additional restrictions.  The "any" policy also has no symlink path limitations. */
+    if (   enmSymlinkPolicy == SymlinkPolicy_None
+        || enmSymlinkPolicy == SymlinkPolicy_AllowedToAnyTarget)
+        return S_OK;
+
+    /* No absolute paths allowed except for the "any" policy.  The symlink path can't
+     * contain '..' components if the "subtree" policy in effect. */
+    if (   RTPathStartsWithRoot(pchSymlinkPath)
+        || enmSymlinkPolicy == SymlinkPolicy_Forbidden
+        || (   enmSymlinkPolicy == SymlinkPolicy_AllowedInShareSubtree
+            && RTStrStr(pchSymlinkPath, "..")))
+        return VERR_WRITE_PROTECT;
+
+    return S_OK;
+}
+
 int vbsfPathGuestToHost(SHFLCLIENTDATA *pClient, SHFLROOT hRoot,
                         PCSHFLSTRING pGuestString, uint32_t cbGuestString,
                         char **ppszHostPath, uint32_t *pcbHostPathRoot,
@@ -490,12 +524,12 @@ int vbsfPathGuestToHost(SHFLCLIENTDATA *pClient, SHFLROOT hRoot,
 #ifdef RT_OS_DARWIN /* Misplaced hack! See todo! */
         uint32_t cwcSrc  = 0;
         PRTUTF16 pwszSrc = NULL;
-        rc = vbsfNormalizeStringDarwin(&pGuestString->String.ucs2[0],
+        rc = vbsfNormalizeStringDarwin(&pGuestString->String.utf16[0],
                                        pGuestString->u16Length / sizeof(RTUTF16),
                                        &pwszSrc, &cwcSrc);
 #else
         uint32_t  const cwcSrc  = pGuestString->u16Length / sizeof(RTUTF16);
-        PCRTUTF16 const pwszSrc = &pGuestString->String.ucs2[0];
+        PCRTUTF16 const pwszSrc = &pGuestString->String.utf16[0];
 #endif
 
         if (RT_SUCCESS(rc))
@@ -564,12 +598,16 @@ int vbsfPathGuestToHost(SHFLCLIENTDATA *pClient, SHFLROOT hRoot,
                 uint32_t cbSrc = cbGuestPath;
                 const char *pchSrc = pchGuestPath;
 
-                /* Strip leading delimiters from the path the guest specified. */
-                while (   cbSrc > 0
-                       && *pchSrc == pClient->PathDelimiter)
+                /* when validating source file pathnames for symbolic links we don't modify the path */
+                if (!(fu32Options & VBSF_O_PATH_CHECK_SYMLINK_POLICY))
                 {
-                    ++pchSrc;
-                    --cbSrc;
+                    /* Strip leading delimiters from the path the guest specified. */
+                    while (   cbSrc > 0
+                           && *pchSrc == pClient->PathDelimiter)
+                    {
+                        ++pchSrc;
+                        --cbSrc;
+                    }
                 }
 
                 /*
@@ -614,8 +652,24 @@ int vbsfPathGuestToHost(SHFLCLIENTDATA *pClient, SHFLROOT hRoot,
                 {
                     *pchDst++ = 0;
 
-                    /* Construct the full host path removing '.' and '..'. */
-                    rc = vbsfPathAbs(pszRoot, pchVerifiedPath, pszFullPath, cbFullPathAlloc);
+                    /* check if a symbolic link creation policy has been set */
+                    if (fu32Options & VBSF_O_PATH_CHECK_SYMLINK_POLICY)
+                    {
+                        /* copy the verified symlink source file path to be returned to the caller */
+                        rc = RTStrCopy(pszFullPath, cbFullPathAlloc, pchVerifiedPath);
+                        if (RT_SUCCESS(rc))
+                        {
+                            SymlinkPolicy_T enmSymlinkPolicy;
+                            rc = vbsfMappingsQuerySymlinkPolicy(pClient, hRoot, &enmSymlinkPolicy);
+                            if (RT_SUCCESS(rc))
+                                rc = vbsfPathEvalSymlinkPolicy(pchVerifiedPath, enmSymlinkPolicy);
+                        }
+                    }
+                    else
+                    {
+                        /* Construct the full host path removing '.' and '..'. */
+                        rc = vbsfPathAbs(pszRoot, pchVerifiedPath, pszFullPath, cbFullPathAlloc);
+                    }
                     if (RT_SUCCESS(rc))
                     {
                         if (pfu32PathFlags && fLastComponentHasWildcard)
@@ -666,7 +720,10 @@ int vbsfPathGuestToHost(SHFLCLIENTDATA *pClient, SHFLROOT hRoot,
                     }
                     else
                     {
-                        LogFunc(("vbsfPathAbs %Rrc\n", rc));
+                        if (fu32Options & VBSF_O_PATH_CHECK_SYMLINK_POLICY)
+                            LogFunc(("vbsfPathEvalSymlinkPolicy() returns rc=%Rrc\n", rc));
+                        else
+                            LogFunc(("vbsfPathAbs %Rrc\n", rc));
                     }
                 }
 

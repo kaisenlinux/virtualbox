@@ -1,3 +1,10 @@
+virtualbox (7.1.4-1kaisen) kaisen-packages; urgency=medium
+
+  * Import the 7.1.4 release
+
+ -- Kevin Chevreuil - Kaisen <kaisen@kaisenlinux.org>  Fri, 25 Oct 2024 12:39:16 +0100
+
+
 virtualbox (7.0.18-2kaisen) kaisen-packages; urgency=medium
 
   * Rebuild to support Python 3.12.1

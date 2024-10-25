@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -57,10 +57,10 @@
 # define RTALLOC_USE_EFENCE
 #endif
 
-/** @def RTALLOC_EFENCE_SIZE
- * The size of the fence. This must be page aligned.
+/** @def RTALLOC_EFENCE_SIZE_FACTOR
+ * The size of the fence as a multiple of the system page size.
  */
-#define RTALLOC_EFENCE_SIZE             PAGE_SIZE
+#define RTALLOC_EFENCE_SIZE_FACTOR      1
 
 /** @def RTALLOC_EFENCE_ALIGNMENT
  * The allocation alignment, power of two of course.

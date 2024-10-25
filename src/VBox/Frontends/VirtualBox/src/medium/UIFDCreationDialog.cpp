@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -37,22 +37,25 @@
 #include "UICommon.h"
 #include "UIFDCreationDialog.h"
 #include "UIFilePathSelector.h"
+#include "UIGlobalSession.h"
 #include "UIIconPool.h"
 #include "UIMedium.h"
+#include "UIMediumEnumerator.h"
+#include "UIMediumTools.h"
 #include "UIMessageCenter.h"
 #include "UINotificationCenter.h"
 #include "UIModalWindowManager.h"
+#include "UITranslationEventListener.h"
 
 /* COM includes: */
 #include "CSystemProperties.h"
-#include "CMedium.h"
 #include "CMediumFormat.h"
 
 
 UIFDCreationDialog::UIFDCreationDialog(QWidget *pParent,
                                        const QString &strDefaultFolder,
                                        const QString &strMachineName /* = QString() */)
-    : QIWithRetranslateUI<QDialog>(pParent)
+    : QDialog(pParent)
     , m_strDefaultFolder(strDefaultFolder)
     , m_strMachineName(strMachineName)
     , m_pPathLabel(0)
@@ -77,7 +80,7 @@ QUuid UIFDCreationDialog::createFloppyDisk(QWidget *pParent, const QString &strD
     QString strStartPath(strDefaultFolder);
 
     if (strStartPath.isEmpty())
-        strStartPath = uiCommon().defaultFolderPathForType(UIMediumDeviceType_Floppy);
+        strStartPath = UIMediumTools::defaultFolderPathForType(UIMediumDeviceType_Floppy);
 
     QWidget *pDialogParent = windowManager().realParentWindow(pParent);
 
@@ -103,13 +106,13 @@ void UIFDCreationDialog::accept()
 
     /* Acquire medium path & formats: */
     const QString strMediumLocation = m_pFilePathSelector->path();
-    const QVector<CMediumFormat> mediumFormats = UIMediumDefs::getFormatsForDeviceType(KDeviceType_Floppy);
+    const QVector<CMediumFormat> mediumFormats = getFormatsForDeviceType(KDeviceType_Floppy);
     /* Make sure we have both path and formats selected: */
     if (strMediumLocation.isEmpty() || mediumFormats.isEmpty())
         return;
 
     /* Get VBox for further activities: */
-    CVirtualBox comVBox = uiCommon().virtualBox();
+    CVirtualBox comVBox = gpGlobalSession->virtualBox();
 
     /* Create medium: */
     CMedium comMedium = comVBox.CreateMedium(mediumFormats[0].GetName(), strMediumLocation,
@@ -130,13 +133,13 @@ void UIFDCreationDialog::accept()
     UINotificationProgressMediumCreate *pNotification =
         new UINotificationProgressMediumCreate(comMedium, m_pSizeCombo->currentData().toLongLong(), variants);
     connect(pNotification, &UINotificationProgressMediumCreate::sigMediumCreated,
-            &uiCommon(), &UICommon::sltHandleMediumCreated);
+            gpMediumEnumerator, &UIMediumEnumerator::sltHandleMediumCreated);
     connect(pNotification, &UINotificationProgressMediumCreate::sigMediumCreated,
             this, &UIFDCreationDialog::sltHandleMediumCreated);
     gpNotificationCenter->append(pNotification);
 }
 
-void UIFDCreationDialog::retranslateUi()
+void UIFDCreationDialog::sltRetranslateUI()
 {
     if (m_strMachineName.isEmpty())
         setWindowTitle(QString("%1").arg(tr("Floppy Disk Creator")));
@@ -172,20 +175,6 @@ void UIFDCreationDialog::retranslateUi()
         m_pButtonBox->button(QDialogButtonBox::Cancel)->setToolTip(tr("Cancel"));
 }
 
-void UIFDCreationDialog::sltPathChanged(const QString &strPath)
-{
-    bool fIsFileUnique = checkFilePath(strPath);
-    m_pFilePathSelector->mark(!fIsFileUnique, tr("File already exists"));
-
-    if (m_pButtonBox && m_pButtonBox->button(QDialogButtonBox::Ok))
-        m_pButtonBox->button(QDialogButtonBox::Ok)->setEnabled(fIsFileUnique);
-}
-
-bool UIFDCreationDialog::checkFilePath(const QString &strPath) const
-{
-    return !QFileInfo(strPath).exists();
-}
-
 void UIFDCreationDialog::sltHandleMediumCreated(const CMedium &comMedium)
 {
     /* Store the ID of the newly created medium: */
@@ -193,6 +182,15 @@ void UIFDCreationDialog::sltHandleMediumCreated(const CMedium &comMedium)
 
     /* Close the dialog now: */
     QDialog::accept();
+}
+
+void UIFDCreationDialog::sltPathChanged(const QString &strPath)
+{
+    bool fIsFileUnique = checkFilePath(strPath);
+    m_pFilePathSelector->mark(!fIsFileUnique, tr("File already exists"), tr("File path is valid"));
+
+    if (m_pButtonBox && m_pButtonBox->button(QDialogButtonBox::Ok))
+        m_pButtonBox->button(QDialogButtonBox::Ok)->setEnabled(fIsFileUnique);
 }
 
 void UIFDCreationDialog::prepare()
@@ -272,13 +270,16 @@ void UIFDCreationDialog::prepare()
             connect(m_pButtonBox, &QDialogButtonBox::accepted, this, &UIFDCreationDialog::accept);
             connect(m_pButtonBox, &QDialogButtonBox::rejected, this, &UIFDCreationDialog::reject);
             connect(m_pButtonBox->button(QDialogButtonBox::Help), &QPushButton::pressed,
-                    &(msgCenter()), &UIMessageCenter::sltHandleHelpRequest);
+                    m_pButtonBox, &QIDialogButtonBox::sltHandleHelpRequest);
             pLayoutMain->addWidget(m_pButtonBox, 3, 0, 1, 3);
         }
     }
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIFDCreationDialog::sltRetranslateUI);
 
 #ifdef VBOX_WS_MAC
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
@@ -296,7 +297,7 @@ QString UIFDCreationDialog::getDefaultFilePath() const
 
     /* Make sure it's not empty if possible: */
     if (strDefaultFilePath.isEmpty())
-        strDefaultFilePath = uiCommon().virtualBox().GetSystemProperties().GetDefaultMachineFolder();
+        strDefaultFilePath = gpGlobalSession->virtualBox().GetSystemProperties().GetDefaultMachineFolder();
     if (strDefaultFilePath.isEmpty())
         return strDefaultFilePath;
 
@@ -310,4 +311,28 @@ QString UIFDCreationDialog::getDefaultFilePath() const
 
     /* Return default file-path: */
     return strDefaultFilePath;
+}
+
+bool UIFDCreationDialog::checkFilePath(const QString &strPath) const
+{
+    return !QFileInfo(strPath).exists();
+}
+
+/* static */
+QVector<CMediumFormat> UIFDCreationDialog::getFormatsForDeviceType(KDeviceType enmDeviceType)
+{
+    CSystemProperties comSystemProperties = gpGlobalSession->virtualBox().GetSystemProperties();
+    QVector<CMediumFormat> mediumFormats = comSystemProperties.GetMediumFormats();
+    QVector<CMediumFormat> formatList;
+    for (int i = 0; i < mediumFormats.size(); ++i)
+    {
+        /* File extensions */
+        QVector<QString> fileExtensions;
+        QVector<KDeviceType> deviceTypes;
+
+        mediumFormats[i].DescribeFileExtensions(fileExtensions, deviceTypes);
+        if (deviceTypes.contains(enmDeviceType))
+            formatList.push_back(mediumFormats[i]);
+    }
+    return formatList;
 }

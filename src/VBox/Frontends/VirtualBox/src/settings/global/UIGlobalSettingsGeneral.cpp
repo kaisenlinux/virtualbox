@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,10 +26,10 @@
  */
 
 /* Qt includes: */
+#include <QDir>
 #include <QVBoxLayout>
 
 /* GUI includes: */
-#include "UICommon.h"
 #include "UIDefaultMachineFolderEditor.h"
 #include "UIErrorString.h"
 #include "UIGlobalSettingsGeneral.h"
@@ -122,6 +122,9 @@ void UIGlobalSettingsGeneral::getFromCache()
         m_pEditorDefaultMachineFolder->setValue(oldData.m_strDefaultMachineFolder);
     if (m_pEditorVRDEAuthLibrary)
         m_pEditorVRDEAuthLibrary->setValue(oldData.m_strVRDEAuthLibrary);
+
+    /* Revalidate: */
+    revalidate();
 }
 
 void UIGlobalSettingsGeneral::putToCache()
@@ -153,14 +156,38 @@ void UIGlobalSettingsGeneral::saveFromCacheTo(QVariant &data)
     UISettingsPageGlobal::uploadData(data);
 }
 
-void UIGlobalSettingsGeneral::retranslateUi()
+bool UIGlobalSettingsGeneral::validate(QList<UIValidationMessage> &messages)
 {
-    /* These editors have own labels, but we want them to be properly layouted according to each other: */
-    int iMinimumLayoutHint = 0;
-    iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorDefaultMachineFolder->minimumLabelHorizontalHint());
-    iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorVRDEAuthLibrary->minimumLabelHorizontalHint());
-    m_pEditorDefaultMachineFolder->setMinimumLayoutIndent(iMinimumLayoutHint);
-    m_pEditorVRDEAuthLibrary->setMinimumLayoutIndent(iMinimumLayoutHint);
+    /* Pass by default: */
+    bool fPass = true;
+
+    /* Prepare message: */
+    UIValidationMessage message;
+
+    /* Check for the folder presence: */
+    if (   m_pEditorDefaultMachineFolder
+        && !QDir(m_pEditorDefaultMachineFolder->value()).exists())
+    {
+        message.second << tr("Default machine folder is missing.");
+        fPass = false;
+    }
+
+    /* Serialize message: */
+    if (!message.second.isEmpty())
+        messages << message;
+
+    /* Return result: */
+    return fPass;
+}
+
+void UIGlobalSettingsGeneral::sltRetranslateUI()
+{
+    updateMinimumLayoutHint();
+}
+
+void UIGlobalSettingsGeneral::handleFilterChange()
+{
+    updateMinimumLayoutHint();
 }
 
 void UIGlobalSettingsGeneral::prepare()
@@ -173,7 +200,7 @@ void UIGlobalSettingsGeneral::prepare()
     prepareWidgets();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIGlobalSettingsGeneral::prepareWidgets()
@@ -185,12 +212,20 @@ void UIGlobalSettingsGeneral::prepareWidgets()
         /* Prepare 'default machine folder' editor: */
         m_pEditorDefaultMachineFolder = new UIDefaultMachineFolderEditor(this);
         if (m_pEditorDefaultMachineFolder)
+        {
+            addEditor(m_pEditorDefaultMachineFolder);
             pLayout->addWidget(m_pEditorDefaultMachineFolder);
+            connect(m_pEditorDefaultMachineFolder, &UIDefaultMachineFolderEditor::sigPathChanged,
+                    this, &UIGlobalSettingsGeneral::revalidate);
+        }
 
         /* Prepare 'VRDE auth library' editor: */
         m_pEditorVRDEAuthLibrary = new UIVRDEAuthLibraryEditor(this);
         if (m_pEditorVRDEAuthLibrary)
+        {
+            addEditor(m_pEditorVRDEAuthLibrary);
             pLayout->addWidget(m_pEditorVRDEAuthLibrary);
+        }
 
         /* Add stretch to the end: */
         pLayout->addStretch();
@@ -242,4 +277,18 @@ bool UIGlobalSettingsGeneral::saveData()
     }
     /* Return result: */
     return fSuccess;
+}
+
+void UIGlobalSettingsGeneral::updateMinimumLayoutHint()
+{
+    /* These editors have own labels, but we want them to be properly layouted according to each other: */
+    int iMinimumLayoutHint = 0;
+    if (m_pEditorDefaultMachineFolder && !m_pEditorDefaultMachineFolder->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorDefaultMachineFolder->minimumLabelHorizontalHint());
+    if (m_pEditorVRDEAuthLibrary && !m_pEditorVRDEAuthLibrary->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorVRDEAuthLibrary->minimumLabelHorizontalHint());
+    if (m_pEditorDefaultMachineFolder)
+        m_pEditorDefaultMachineFolder->setMinimumLayoutIndent(iMinimumLayoutHint);
+    if (m_pEditorVRDEAuthLibrary)
+        m_pEditorVRDEAuthLibrary->setMinimumLayoutIndent(iMinimumLayoutHint);
 }

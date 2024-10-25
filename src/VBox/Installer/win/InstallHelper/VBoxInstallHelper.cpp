@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1168,17 +1168,21 @@ UINT __stdcall InstallPythonAPI(MSIHANDLE hModule)
      * Set up the VBox API.
      */
     /* Get the VBox API setup string. */
-    WCHAR wszVBoxSDKPath[RTPATH_MAX];
-    rcWin = VBoxGetMsiProp(hModule, L"CustomActionData", wszVBoxSDKPath, RT_ELEMENTS(wszVBoxSDKPath));
+    WCHAR wszVBoxPythonInstallerPath[RTPATH_MAX];
+    rcWin = VBoxGetMsiProp(hModule, L"CustomActionData", wszVBoxPythonInstallerPath, RT_ELEMENTS(wszVBoxPythonInstallerPath));
     if (rcWin == ERROR_SUCCESS)
     {
         /* Make sure our current working directory is the VBox installation path. */
-        if (SetCurrentDirectoryW(wszVBoxSDKPath))
+        if (SetCurrentDirectoryW(wszVBoxPythonInstallerPath))
         {
             /* Set required environment variables. */
-            if (SetEnvironmentVariableW(L"VBOX_INSTALL_PATH", wszVBoxSDKPath))
+            /** @todo r=andy: That can't be right!
+             *
+             *  r=bird: The variable probably isn't used because VBOX_MSI_INSTALL_PATH is
+             *          set by VBoxMergeApp.wxi. */
+            if (SetEnvironmentVariableW(L"VBOX_INSTALL_PATH", wszVBoxPythonInstallerPath))
             {
-                logStringF(hModule, "InstallPythonAPI: Invoking vboxapisetup.py in \"%ls\" ...", wszVBoxSDKPath);
+                logStringF(hModule, "InstallPythonAPI: Invoking vboxapisetup.py in \"%ls\" ...", wszVBoxPythonInstallerPath);
 
                 rcWin = procRun(hModule, wszPythonExe, L"vboxapisetup.py install");
                 if (rcWin == ERROR_SUCCESS)
@@ -1210,7 +1214,7 @@ UINT __stdcall InstallPythonAPI(MSIHANDLE hModule)
         }
         else
             logStringF(hModule, "InstallPythonAPI: Could set working directory to \"%ls\": LastError=%u",
-                       wszVBoxSDKPath, GetLastError());
+                       wszVBoxPythonInstallerPath, GetLastError());
     }
     else
         logStringF(hModule, "InstallPythonAPI: Unable to retrieve VBox installation directory: rcWin=%u (%#x)", rcWin, rcWin);
@@ -1332,7 +1336,7 @@ static UINT RenameDir(MSIHANDLE hModule, const WCHAR *pwszzDstDir, const WCHAR *
 }
 
 /** RTPathAppend-like function. */
-static UINT AppendToPath(wchar_t *pwszPath, size_t cwcPath, wchar_t *pwszAppend, bool fDoubleTerm = false)
+static UINT AppendToPath(wchar_t *pwszPath, size_t cwcPath, const wchar_t *pwszAppend, bool fDoubleTerm = false)
 {
     size_t cwcCurPath = RTUtf16Len(pwszPath);
     size_t cwcSlash   = cwcCurPath > 1 && RTPATH_IS_SLASH(pwszPath[cwcCurPath - 1]) ? 0 : 1;
@@ -1352,7 +1356,7 @@ static UINT AppendToPath(wchar_t *pwszPath, size_t cwcPath, wchar_t *pwszAppend,
 }
 
 /** RTPathJoin-like function. */
-static UINT JoinPaths(wchar_t *pwszPath, size_t cwcPath, wchar_t *pwszPath1, wchar_t *pwszAppend, bool fDoubleTerm = false)
+static UINT JoinPaths(wchar_t *pwszPath, size_t cwcPath, wchar_t *pwszPath1, const wchar_t *pwszAppend, bool fDoubleTerm = false)
 {
     size_t cwcCurPath = RTUtf16Len(pwszPath1);
     if (cwcCurPath < cwcPath)

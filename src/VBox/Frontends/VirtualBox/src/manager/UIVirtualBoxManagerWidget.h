@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,10 +32,10 @@
 #endif
 
 /* Qt includes: */
+#include <QUuid>
 #include <QWidget>
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
 #include "UISlidingAnimation.h"
 #include "UIToolPaneGlobal.h"
 #include "UIToolPaneMachine.h"
@@ -53,7 +53,7 @@ class UIVirtualBoxManager;
 class UIVirtualMachineItem;
 
 /** QWidget extension used as VirtualBox Manager Widget instance. */
-class UIVirtualBoxManagerWidget : public QIWithRetranslateUI<QWidget>
+class UIVirtualBoxManagerWidget : public QWidget
 {
     Q_OBJECT;
 
@@ -96,8 +96,18 @@ signals:
 
     /** @name Tools pane stuff.
       * @{ */
-        /** Notifies about Tool type change. */
-        void sigToolTypeChange();
+        /** Notifies about Global Tool type change. */
+        void sigToolTypeChangeGlobal();
+        /** Notifies about Machine Tool type change. */
+        void sigToolTypeChangeMachine();
+    /** @} */
+
+    /** @name Tools / Media pane stuff.
+      * @{ */
+        /** Notifies listeners about creation procedure was requested. */
+        void sigCreateMedium();
+        /** Notifies listeners about copy procedure was requested for medium with specified @a uMediumId. */
+        void sigCopyMedium(const QUuid &uMediumId);
     /** @} */
 
     /** @name Tools / Details pane stuff.
@@ -110,6 +120,12 @@ signals:
       * @{ */
         /** Notifies listeners about current Snapshots pane item change. */
         void sigCurrentSnapshotItemChange();
+    /** @} */
+
+    /** @name Tools / Generic pane stuff.
+      * @{ */
+        /** Notifies listeners about request to detach pane with tool type @p enmToolType. */
+        void sigDetachToolPane(UIToolType enmToolType);
     /** @} */
 
 public:
@@ -186,10 +202,15 @@ public:
 
     /** @name Tools pane stuff.
       * @{ */
-        /** Defines tools @a enmType. */
-        void setToolsType(UIToolType enmType);
-        /** Returns tools type. */
-        UIToolType toolsType() const;
+        /** Defines Global tools @a enmType. */
+        void setToolsTypeGlobal(UIToolType enmType);
+        /** Returns Global tools type. */
+        UIToolType toolsTypeGlobal() const;
+
+        /** Defines Machine tools @a enmType. */
+        void setToolsTypeMachine(UIToolType enmType);
+        /** Returns Machine tools type. */
+        UIToolType toolsTypeMachine() const;
 
         /** Returns a type of curent Global tool. */
         UIToolType currentGlobalTool() const;
@@ -199,10 +220,10 @@ public:
         bool isGlobalToolOpened(UIToolType enmType) const;
         /** Returns whether Machine tool of passed @a enmType is opened. */
         bool isMachineToolOpened(UIToolType enmType) const;
-        /** Switches to Global tool of passed @a enmType. */
-        void switchToGlobalTool(UIToolType enmType);
-        /** Switches to Machine tool of passed @a enmType. */
-        void switchToMachineTool(UIToolType enmType);
+        /** Switches Global tool to passed @a enmType. */
+        void switchGlobalToolTo(UIToolType enmType);
+        /** Switches Machine tool to passed @a enmType. */
+        void switchMachineToolTo(UIToolType enmType);
         /** Closes Global tool of passed @a enmType. */
         void closeGlobalTool(UIToolType enmType);
         /** Closes Machine tool of passed @a enmType. */
@@ -213,6 +234,9 @@ public:
       * @{ */
         /** Returns whether current-state item of Snapshot pane is selected. */
         bool isCurrentStateItemSelected() const;
+
+        /** Returns currently selected snapshot ID if any. */
+        QUuid currentSnapshotId();
     /** @} */
 
     /** @name Tool-bar stuff.
@@ -223,8 +247,8 @@ public:
 
     /** @name Help browser stuff.
       * @{ */
-        /** Shpws the help browser. */
-        void showHelpBrowser();
+        /** Returns the current help key word. */
+        QString currentHelpKeyword() const;
     /** @} */
 
 public slots:
@@ -235,20 +259,30 @@ public slots:
         void sltHandleToolBarContextMenuRequest(const QPoint &position);
     /** @} */
 
-protected:
+private slots:
 
     /** @name Event handling stuff.
       * @{ */
         /** Handles translation event. */
-        virtual void retranslateUi() RT_OVERRIDE;
+        void sltRetranslateUI();
     /** @} */
 
-private slots:
+    /** @name General stuff.
+      * @{ */
+        /** Handles request to commit data. */
+        void sltHandleCommitData();
+    /** @} */
 
     /** @name CVirtualBox event handling stuff.
       * @{ */
         /** Handles CVirtualBox event about state change for machine with @a uId. */
         void sltHandleStateChange(const QUuid &uId);
+    /** @} */
+
+    /** @name CVirtualBox extra-data event handling stuff.
+      * @{ */
+        /** Handles signal about settings expert mode change. */
+        void sltHandleSettingsExpertModeChange();
     /** @} */
 
     /** @name Splitter stuff.
@@ -271,23 +305,30 @@ private slots:
         void sltHandleChooserPaneIndexChange();
 
         /** Handles signal about Chooser-pane selection invalidated. */
-        void sltHandleChooserPaneSelectionInvalidated() { recacheCurrentItemInformation(true /* fDontRaiseErrorPane */); }
+        void sltHandleChooserPaneSelectionInvalidated() { recacheCurrentMachineItemInformation(true /* fDontRaiseErrorPane */); }
 
         /** Handles sliding animation complete signal.
           * @param  enmDirection  Brings which direction was animation finished for. */
         void sltHandleSlidingAnimationComplete(SlidingDirection enmDirection);
 
+        /** Handles state change for cloud profile with certain @a strProviderShortName and @a strProfileName. */
+        void sltHandleCloudProfileStateChange(const QString &strProviderShortName,
+                                              const QString &strProfileName);
         /** Handles state change for cloud machine with certain @a uId. */
         void sltHandleCloudMachineStateChange(const QUuid &uId);
     /** @} */
 
     /** @name Tools pane stuff.
       * @{ */
-        /** Handles tool menu request. */
-        void sltHandleToolMenuRequested(UIToolClass enmClass, const QPoint &position);
+        /** Handles tool popup-menu request. */
+        void sltHandleToolMenuRequested(const QPoint &position, UIVirtualMachineItem *pItem);
 
-        /** Handles signal about Tools-pane index change. */
-        void sltHandleToolsPaneIndexChange();
+        /** Handles signal about global Tools-menu index change.
+          * @param  enmType  Brings current tool type. */
+        void sltHandleGlobalToolsMenuIndexChange(UIToolType enmType) { switchGlobalToolTo(enmType); }
+        /** Handles signal about machine Tools-menu index change.
+          * @param  enmType  Brings current tool type. */
+        void sltHandleMachineToolsMenuIndexChange(UIToolType enmType) { switchMachineToolTo(enmType); }
 
         /** Handles signal requesting switch to Activity pane of machine with @a uMachineId. */
         void sltSwitchToMachineActivityPane(const QUuid &uMachineId);
@@ -319,11 +360,22 @@ private:
         void cleanup();
     /** @} */
 
-    /** @name Tools / Common stuff.
+    /** @name Common stuff.
       * @{ */
-        /** Recaches current item information.
+        /** Recaches current machine item information.
           * @param  fDontRaiseErrorPane  Brings whether we should not raise error-pane. */
-        void recacheCurrentItemInformation(bool fDontRaiseErrorPane = false);
+        void recacheCurrentMachineItemInformation(bool fDontRaiseErrorPane = false);
+    /** @} */
+
+    /** @name Tools stuff.
+      * @{ */
+        /** Updates Global tools menu. */
+        void updateToolsMenuGlobal();
+        /** Updates Machine tools menu for @a pItem specified. */
+        void updateToolsMenuMachine(UIVirtualMachineItem *pItem);
+
+        /** Handles current tool @a enmType change. */
+        void handleCurrentToolTypeChange(UIToolType enmType);
     /** @} */
 
     /** Holds the action-pool instance. */
@@ -345,8 +397,10 @@ private:
     UIToolPaneMachine  *m_pPaneToolsMachine;
     /** Holds the sliding-animation widget instance. */
     UISlidingAnimation *m_pSlidingAnimation;
-    /** Holds the Tools-pane instance. */
-    UITools            *m_pPaneTools;
+    /** Holds the Global Tools-menu instance. */
+    UITools            *m_pMenuToolsGlobal;
+    /** Holds the Machine Tools-menu instance. */
+    UITools            *m_pMenuToolsMachine;
 
     /** Holds the last selection type. */
     SelectionType  m_enmSelectionType;

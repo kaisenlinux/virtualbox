@@ -1,12 +1,12 @@
 #!/bin/sh
 # $Id: postinst-common.sh $
 ## @file
-# Oracle VM VirtualBox
+# Oracle VirtualBox
 # VirtualBox Linux post-installer common portions
 #
 
 #
-# Copyright (C) 2015-2023 Oracle and/or its affiliates.
+# Copyright (C) 2015-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -63,19 +63,31 @@ done
 
 # Install runlevel scripts and systemd unit files
 install_init_script "${MY_PATH}/vboxdrv.sh" vboxdrv
-install_init_script "${MY_PATH}/vboxballoonctrl-service.sh" vboxballoonctrl-service
-install_init_script "${MY_PATH}/vboxautostart-service.sh" vboxautostart-service
-install_init_script "${MY_PATH}/vboxweb-service.sh" vboxweb-service
+if [ -f ${MY_PATH}/vboxballoonctrl-service.sh ]; then
+    install_init_script "${MY_PATH}/vboxballoonctrl-service.sh" vboxballoonctrl-service
+fi
+if [ -f ${MY_PATH}/vboxautostart-service.sh ]; then
+    install_init_script "${MY_PATH}/vboxautostart-service.sh" vboxautostart-service
+fi
+if [ -f ${MY_PATH}/vboxweb-service.sh ]; then
+    install_init_script "${MY_PATH}/vboxweb-service.sh" vboxweb-service
+fi
 finish_init_script_install
 
 delrunlevel vboxdrv
 addrunlevel vboxdrv
 delrunlevel vboxballoonctrl-service
-addrunlevel vboxballoonctrl-service
+if [ -f ${MY_PATH}/vboxballoonctrl-service.sh ]; then
+    addrunlevel vboxballoonctrl-service
+fi
 delrunlevel vboxautostart-service
-addrunlevel vboxautostart-service
+if [ -f ${MY_PATH}/vboxautostart-service.sh ]; then
+    addrunlevel vboxautostart-service
+fi
 delrunlevel vboxweb-service
-addrunlevel vboxweb-service
+if [ -f ${MY_PATH}/vboxweb-service.sh ]; then
+    addrunlevel vboxweb-service
+fi
 
 ln -sf "${MY_PATH}/postinst-common.sh" /sbin/vboxconfig
 
@@ -118,8 +130,12 @@ test -n "${START}" &&
         echo "them. Please see your Linux system's documentation for more information." >&2
     else
         start_init_script vboxdrv
-        start_init_script vboxballoonctrl-service
-        start_init_script vboxautostart-service
+        if [ -f ${MY_PATH}/vboxballoonctrl-service.sh ]; then
+            start_init_script vboxballoonctrl-service
+        fi
+        if [ -f ${MY_PATH}/vboxautostart-service.sh ]; then
+            start_init_script vboxautostart-service
+        fi
         start_init_script vboxweb-service
     fi
 }

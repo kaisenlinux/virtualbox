@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -76,10 +76,9 @@ static const RTGETOPTDEF g_aRegisterVMOptions[] =
 RTEXITCODE handleRegisterVM(HandlerArg *a)
 {
     HRESULT hrc;
-    const char *VMName = NULL;
 
-    Bstr bstrVMName;
-    Bstr bstrPasswordFile;
+    const char *pszVmFile = NULL;
+    const char *pszPasswordFile = NULL;
 
     int c;
     RTGETOPTUNION ValueUnion;
@@ -92,12 +91,12 @@ RTEXITCODE handleRegisterVM(HandlerArg *a)
         switch (c)
         {
             case 'p':   // --password
-                bstrPasswordFile = ValueUnion.psz;
+                pszPasswordFile = ValueUnion.psz;
                 break;
 
             case VINF_GETOPT_NOT_OPTION:
-                if (bstrVMName.isEmpty())
-                    VMName = ValueUnion.psz;
+                if (!pszVmFile)
+                    pszVmFile = ValueUnion.psz;
                 else
                     return errorSyntax(Misc::tr("Invalid parameter '%s'"), ValueUnion.psz);
                 break;
@@ -119,9 +118,9 @@ RTEXITCODE handleRegisterVM(HandlerArg *a)
 
     Utf8Str strPassword;
 
-    if (bstrPasswordFile.isNotEmpty())
+    if (pszPasswordFile)
     {
-        if (bstrPasswordFile == "-")
+        if (pszPasswordFile[0] == '-' && pszPasswordFile[1] == '\0')
         {
             /* Get password from console. */
             RTEXITCODE rcExit = readPasswordFromConsole(&strPassword, Misc::tr("Enter password:"));
@@ -130,7 +129,7 @@ RTEXITCODE handleRegisterVM(HandlerArg *a)
         }
         else
         {
-            RTEXITCODE rcExit = readPasswordFile(a->argv[3], &strPassword);
+            RTEXITCODE rcExit = readPasswordFile(pszPasswordFile, &strPassword);
             if (rcExit == RTEXITCODE_FAILURE)
                 return RTMsgErrorExitFailure(Misc::tr("Failed to read password from file"));
         }
@@ -140,16 +139,16 @@ RTEXITCODE handleRegisterVM(HandlerArg *a)
     /** @todo Ugly hack to get both the API interpretation of relative paths
      * and the client's interpretation of relative paths. Remove after the API
      * has been redesigned. */
-    hrc = a->virtualBox->OpenMachine(Bstr(a->argv[0]).raw(),
+    hrc = a->virtualBox->OpenMachine(Bstr(pszVmFile).raw(),
                                      Bstr(strPassword).raw(),
                                      machine.asOutParam());
-    if (FAILED(hrc) && !RTPathStartsWithRoot(a->argv[0]))
+    if (FAILED(hrc) && !RTPathStartsWithRoot(pszVmFile))
     {
         char szVMFileAbs[RTPATH_MAX] = "";
-        int vrc = RTPathAbs(a->argv[0], szVMFileAbs, sizeof(szVMFileAbs));
+        int vrc = RTPathAbs(pszVmFile, szVMFileAbs, sizeof(szVMFileAbs));
         if (RT_FAILURE(vrc))
             return RTMsgErrorExitFailure(Misc::tr("Failed to convert \"%s\" to an absolute path: %Rrc"),
-                                         a->argv[0], vrc);
+                                         pszVmFile, vrc);
         CHECK_ERROR(a->virtualBox, OpenMachine(Bstr(szVMFileAbs).raw(),
                                                Bstr(strPassword).raw(),
                                                machine.asOutParam()));
@@ -262,30 +261,33 @@ RTEXITCODE handleUnregisterVM(HandlerArg *a)
 
 static const RTGETOPTDEF g_aCreateVMOptions[] =
 {
-    { "--name",           'n', RTGETOPT_REQ_STRING },
-    { "-name",            'n', RTGETOPT_REQ_STRING },
-    { "--groups",         'g', RTGETOPT_REQ_STRING },
-    { "--basefolder",     'p', RTGETOPT_REQ_STRING },
-    { "-basefolder",      'p', RTGETOPT_REQ_STRING },
-    { "--ostype",         'o', RTGETOPT_REQ_STRING },
-    { "-ostype",          'o', RTGETOPT_REQ_STRING },
-    { "--uuid",           'u', RTGETOPT_REQ_UUID },
-    { "-uuid",            'u', RTGETOPT_REQ_UUID },
-    { "--register",       'r', RTGETOPT_REQ_NOTHING },
-    { "-register",        'r', RTGETOPT_REQ_NOTHING },
-    { "--default",        'd', RTGETOPT_REQ_NOTHING },
-    { "-default",         'd', RTGETOPT_REQ_NOTHING },
-    { "--cipher",         'c', RTGETOPT_REQ_STRING },
-    { "-cipher",          'c', RTGETOPT_REQ_STRING },
-    { "--password-id",    'i', RTGETOPT_REQ_STRING },
-    { "-password-id",     'i', RTGETOPT_REQ_STRING },
-    { "--password",       'w', RTGETOPT_REQ_STRING },
-    { "-password",        'w', RTGETOPT_REQ_STRING },
+    { "--name",                  'n', RTGETOPT_REQ_STRING },
+    { "-name",                   'n', RTGETOPT_REQ_STRING },
+    { "--groups",                'g', RTGETOPT_REQ_STRING },
+    { "--basefolder",            'p', RTGETOPT_REQ_STRING },
+    { "-basefolder",             'p', RTGETOPT_REQ_STRING },
+    { "--ostype",                'o', RTGETOPT_REQ_STRING },
+    { "-ostype",                 'o', RTGETOPT_REQ_STRING },
+    { "--uuid",                  'u', RTGETOPT_REQ_UUID },
+    { "-uuid",                   'u', RTGETOPT_REQ_UUID },
+    { "--register",              'r', RTGETOPT_REQ_NOTHING },
+    { "-register",               'r', RTGETOPT_REQ_NOTHING },
+    { "--default",               'd', RTGETOPT_REQ_NOTHING },
+    { "-default",                'd', RTGETOPT_REQ_NOTHING },
+    { "--cipher",                'c', RTGETOPT_REQ_STRING },
+    { "-cipher",                 'c', RTGETOPT_REQ_STRING },
+    { "--password-id",           'i', RTGETOPT_REQ_STRING },
+    { "-password-id",            'i', RTGETOPT_REQ_STRING },
+    { "--password",              'w', RTGETOPT_REQ_STRING },
+    { "-password",               'w', RTGETOPT_REQ_STRING },
+    { "--platform-architecture", 'a', RTGETOPT_REQ_STRING },
+    { "--platform-arch",         'a', RTGETOPT_REQ_STRING }, /* Shorter. */
 };
 
 RTEXITCODE handleCreateVM(HandlerArg *a)
 {
     HRESULT hrc;
+    PlatformArchitecture_T platformArch = PlatformArchitecture_None;
     Bstr bstrBaseFolder;
     Bstr bstrName;
     Bstr bstrOsTypeId;
@@ -349,6 +351,15 @@ RTEXITCODE handleCreateVM(HandlerArg *a)
                 pszPassword = ValueUnion.psz;
                 break;
 
+            case 'a':   // --platform-architecture
+                if (!RTStrICmp(ValueUnion.psz, "x86"))
+                    platformArch = PlatformArchitecture_x86;
+                else if (!RTStrICmp(ValueUnion.psz, "arm"))
+                    platformArch = PlatformArchitecture_ARM;
+                else
+                    return errorArgument(Misc::tr("Invalid --platform-architecture argument '%s'"), ValueUnion.psz);
+                break;
+
             default:
                 return errorGetOpt(c, &ValueUnion);
         }
@@ -357,6 +368,26 @@ RTEXITCODE handleCreateVM(HandlerArg *a)
     /* check for required options */
     if (bstrName.isEmpty())
         return errorSyntax(Misc::tr("Parameter --name is required"));
+
+    /* If the platform architecture is not specified explicitly ... */
+    if (platformArch == PlatformArchitecture_None)
+    {
+        /* ... determine it from the guest OS type, if given. */
+        if (bstrOsTypeId.isNotEmpty())
+        {
+            ComPtr<IGuestOSType> ptrGuestOsType;
+            a->virtualBox->GetGuestOSType(bstrOsTypeId.raw(), ptrGuestOsType.asOutParam());
+            if (ptrGuestOsType.isNull())
+                return RTMsgErrorExit(RTEXITCODE_FAILURE, Misc::tr("Unknown or invalid guest OS type given."));
+            CHECK_ERROR2I_RET(ptrGuestOsType, COMGETTER(PlatformArchitecture)(&platformArch), RTEXITCODE_FAILURE);
+        }
+        else /* use the host's platform type as the VM platform type. */
+        {
+            ComPtr<IHost> host;
+            CHECK_ERROR2I_RET(a->virtualBox, COMGETTER(Host)(host.asOutParam()), RTEXITCODE_FAILURE);
+            CHECK_ERROR2I_RET(host, COMGETTER(Architecture)(&platformArch), RTEXITCODE_FAILURE);
+        }
+    }
 
     do
     {
@@ -397,6 +428,7 @@ RTEXITCODE handleCreateVM(HandlerArg *a)
         CHECK_ERROR_BREAK(a->virtualBox,
                           CreateMachine(bstrSettingsFile.raw(),
                                         bstrName.raw(),
+                                        platformArch,
                                         ComSafeArrayAsInParam(groups),
                                         bstrOsTypeId.raw(),
                                         createFlags.raw(),
@@ -669,6 +701,12 @@ RTEXITCODE handleCloneVM(HandlerArg *a)
                                                srcMachine.asOutParam()),
                     RTEXITCODE_FAILURE);
 
+    /* Get the platform architecture, to clone a VM which has the same architecture. */
+    ComPtr<IPlatform>      platform;
+    CHECK_ERROR_RET(srcMachine, COMGETTER(Platform)(platform.asOutParam()), RTEXITCODE_FAILURE);
+    PlatformArchitecture_T platformArch;
+    CHECK_ERROR_RET(platform, COMGETTER(Architecture)(&platformArch), RTEXITCODE_FAILURE);
+
     /* If a snapshot name/uuid was given, get the particular machine of this
      * snapshot. */
     if (pszSnapshotName)
@@ -703,6 +741,7 @@ RTEXITCODE handleCloneVM(HandlerArg *a)
     ComPtr<IMachine> trgMachine;
     CHECK_ERROR_RET(a->virtualBox, CreateMachine(bstrSettingsFile.raw(),
                                                  Bstr(pszTrgName).raw(),
+                                                 platformArch,
                                                  ComSafeArrayAsInParam(groups),
                                                  NULL,
                                                  createFlags.raw(),
@@ -931,7 +970,7 @@ static const RTGETOPTDEF g_aSetVMEncryptionOptions[] =
     { "--force",           'f', RTGETOPT_REQ_NOTHING},
 };
 
-RTEXITCODE handleSetVMEncryption(HandlerArg *a, const char *pszFilenameOrUuid)
+static RTEXITCODE handleSetVMEncryption(HandlerArg *a, const char *pszFilenameOrUuid)
 {
     HRESULT           hrc;
     ComPtr<IMachine>  machine;
@@ -1064,7 +1103,7 @@ RTEXITCODE handleSetVMEncryption(HandlerArg *a, const char *pszFilenameOrUuid)
     return SUCCEEDED(hrc) ? RTEXITCODE_SUCCESS : RTEXITCODE_FAILURE;
 }
 
-RTEXITCODE handleCheckVMPassword(HandlerArg *a, const char *pszFilenameOrUuid)
+static RTEXITCODE handleCheckVMPassword(HandlerArg *a, const char *pszFilenameOrUuid)
 {
     HRESULT hrc;
     ComPtr<IMachine> machine;
@@ -1107,7 +1146,7 @@ static const RTGETOPTDEF g_aAddVMOptions[] =
     { "--password-id", 'i', RTGETOPT_REQ_STRING }
 };
 
-RTEXITCODE handleAddVMPassword(HandlerArg *a, const char *pszFilenameOrUuid)
+static RTEXITCODE handleAddVMPassword(HandlerArg *a, const char *pszFilenameOrUuid)
 {
     HRESULT hrc;
     ComPtr<IMachine> machine;
@@ -1188,7 +1227,7 @@ RTEXITCODE handleAddVMPassword(HandlerArg *a, const char *pszFilenameOrUuid)
     return SUCCEEDED(hrc) ? RTEXITCODE_SUCCESS : RTEXITCODE_FAILURE;
 }
 
-RTEXITCODE handleRemoveVMPassword(HandlerArg *a, const char *pszFilenameOrUuid)
+static RTEXITCODE handleRemoveVMPassword(HandlerArg *a, const char *pszFilenameOrUuid)
 {
     HRESULT hrc;
     ComPtr<IMachine> machine;
@@ -1418,7 +1457,7 @@ RTEXITCODE handleSetExtraData(HandlerArg *a)
     return SUCCEEDED(hrc) ? RTEXITCODE_SUCCESS : RTEXITCODE_FAILURE;
 }
 
-RTEXITCODE handleSetProperty(HandlerArg *a)
+RTEXITCODE handleSetProperty(HandlerArg *a) /** @todo r=andy Rename this to handle[Get|Set]SystemProperty? */
 {
     HRESULT hrc;
 
@@ -1428,6 +1467,9 @@ RTEXITCODE handleSetProperty(HandlerArg *a)
 
     ComPtr<ISystemProperties> systemProperties;
     a->virtualBox->COMGETTER(SystemProperties)(systemProperties.asOutParam());
+
+    ComPtr<IPlatformProperties> platformProperties;
+    systemProperties->COMGETTER(Platform)(platformProperties.asOutParam());
 
     if (!strcmp(a->argv[0], "machinefolder"))
     {
@@ -1447,7 +1489,7 @@ RTEXITCODE handleSetProperty(HandlerArg *a)
             fHwVirtExclusive = false;
         else
             return errorArgument(Misc::tr("Invalid hwvirtexclusive argument '%s'"), a->argv[1]);
-        CHECK_ERROR(systemProperties, COMSETTER(ExclusiveHwVirt)(fHwVirtExclusive));
+        CHECK_ERROR(platformProperties, COMSETTER(ExclusiveHwVirt)(fHwVirtExclusive));
     }
     else if (   !strcmp(a->argv[0], "vrdeauthlibrary")
              || !strcmp(a->argv[0], "vrdpauthlibrary"))
@@ -1612,7 +1654,7 @@ static RTEXITCODE handleSharedFolderAdd(HandlerArg *a)
                 break;
             case VINF_GETOPT_NOT_OPTION:
                 if (pszMachineName)
-                    return errorArgument(Misc::tr("Machine name is given more than once: first '%s', then '%s'"),
+                    return errorArgument(Misc::tr("Machine name given more than once: first '%s', then '%s'"),
                                          pszMachineName, ValueUnion.psz);
                 pszMachineName = ValueUnion.psz;
                 break;
@@ -1724,7 +1766,7 @@ static RTEXITCODE handleSharedFolderRemove(HandlerArg *a)
                 break;
             case VINF_GETOPT_NOT_OPTION:
                 if (pszMachineName)
-                    return errorArgument(Misc::tr("Machine name is given more than once: first '%s', then '%s'"),
+                    return errorArgument(Misc::tr("Machine name given more than once: first '%s', then '%s'"),
                                          pszMachineName, ValueUnion.psz);
                 pszMachineName = ValueUnion.psz;
                 break;
@@ -1785,6 +1827,147 @@ static RTEXITCODE handleSharedFolderRemove(HandlerArg *a)
     return SUCCEEDED(hrc) ? RTEXITCODE_SUCCESS : RTEXITCODE_FAILURE;
 }
 
+static SymlinkPolicy_T nameToSymlinkPolicy(const char *pszName)
+{
+    if (!RTStrICmp(pszName, "forbidden"))
+        return SymlinkPolicy_Forbidden;
+    if (!RTStrICmp(pszName, "subtree"))
+        return SymlinkPolicy_AllowedInShareSubtree;
+    if (!RTStrICmp(pszName, "relative"))
+        return SymlinkPolicy_AllowedToRelativeTargets;
+    if (!RTStrICmp(pszName, "any"))
+        return SymlinkPolicy_AllowedToAnyTarget;
+
+    return SymlinkPolicy_None;
+}
+
+/**
+ * modify shared folder properties
+ */
+static RTEXITCODE handleSharedFolderModify(HandlerArg *a)
+{
+    /*
+     * Parse arguments (argv[0] == subcommand).
+     */
+    static const RTGETOPTDEF s_aModifyOptions[] =
+    {
+        { "--name",             'n', RTGETOPT_REQ_STRING },
+        { "-name",              'n', RTGETOPT_REQ_STRING },     // deprecated
+        { "--automount",        'a', RTGETOPT_REQ_BOOL },
+        { "-automount",         'a', RTGETOPT_REQ_BOOL },    // deprecated
+        { "--readonly",         'r', RTGETOPT_REQ_BOOL },
+        { "-readonly",          'r', RTGETOPT_REQ_BOOL },    // deprecated
+        { "--symlink-policy",   's', RTGETOPT_REQ_STRING },
+        { "-symlink-policy",    's', RTGETOPT_REQ_STRING },     // deprecated
+        { "--auto-mount-point", 'm', RTGETOPT_REQ_STRING },
+        { "-auto-mount-point",  'm', RTGETOPT_REQ_STRING },     // deprecated
+    };
+    const char *pszMachineName    = NULL;
+    const char *pszName           = NULL;
+    int         fWritable         = -1;
+    int         fAutoMount        = -1;
+    const char *pszAutoMountPoint = NULL;
+    SymlinkPolicy_T enmSymlinkPolicy = SymlinkPolicy_None;
+
+    RTGETOPTSTATE GetState;
+    RTGetOptInit(&GetState, a->argc, a->argv, s_aModifyOptions, RT_ELEMENTS(s_aModifyOptions), 1 /*iFirst*/, 0 /*fFlags*/);
+    int c;
+    RTGETOPTUNION ValueUnion;
+    while ((c = RTGetOpt(&GetState, &ValueUnion)))
+    {
+        switch (c)
+        {
+            case 'n':
+                pszName = ValueUnion.psz;
+                break;
+            case 'r':
+                fWritable = !ValueUnion.f;
+                break;
+            case 'a':
+                fAutoMount = ValueUnion.f;
+                break;
+            case 'm':
+                pszAutoMountPoint = ValueUnion.psz;
+                break;
+            case 's':
+                enmSymlinkPolicy = nameToSymlinkPolicy(ValueUnion.psz);
+                if (enmSymlinkPolicy == SymlinkPolicy_None)
+                    return errorArgument(Misc::tr("Invalid --symlink-policy argument '%s'"), ValueUnion.psz);
+                break;
+            case VINF_GETOPT_NOT_OPTION:
+                if (pszMachineName)
+                    return errorArgument(Misc::tr("Machine name given more than once: first '%s', then '%s'"),
+                                         pszMachineName, ValueUnion.psz);
+                pszMachineName = ValueUnion.psz;
+                break;
+            default:
+                return errorGetOpt(c, &ValueUnion);
+        }
+    }
+
+    if (!pszMachineName)
+        return errorSyntax(Misc::tr("No machine was specified"));
+    if (!pszName)
+        return errorSyntax(Misc::tr("No shared folder name (--name) was supplied."));
+
+    if (enmSymlinkPolicy == SymlinkPolicy_None && fWritable == -1 && fAutoMount == -1 && !pszAutoMountPoint)
+        return errorSyntax(Misc::tr("No shared folder attributes specified."));
+
+    /*
+     * Done parsing, do some real work.
+     */
+    ComPtr<IMachine> ptrMachine;
+    CHECK_ERROR2I_RET(a->virtualBox, FindMachine(Bstr(pszMachineName).raw(), ptrMachine.asOutParam()), RTEXITCODE_FAILURE);
+    AssertReturn(ptrMachine.isNotNull(), RTEXITCODE_FAILURE);
+
+    HRESULT hrc;
+    /* Open a session for the VM using an exclusive lock as this is for permanent shared folders.
+     * Support for modifying transient shared folders hasn't been implemented yet. */
+    CHECK_ERROR_RET(ptrMachine, LockMachine(a->session, LockType_Write), RTEXITCODE_FAILURE);
+
+    /* get the mutable session machine */
+    ComPtr<IMachine> ptrSessionMachine;
+    CHECK_ERROR_RET(a->session, COMGETTER(Machine)(ptrSessionMachine.asOutParam()), RTEXITCODE_FAILURE);
+
+    /* find the desired shared folder to modify */
+    com::SafeIfaceArray <ISharedFolder> sharedFolders;
+    CHECK_ERROR_RET(ptrSessionMachine, COMGETTER(SharedFolders)(ComSafeArrayAsOutParam(sharedFolders)), RTEXITCODE_FAILURE);
+    if (sharedFolders.size() == 0)
+        return RTMsgErrorExit(RTEXITCODE_FAILURE, Misc::tr("Machine '%s' has no shared folders configured.\n"),
+                              pszMachineName);
+
+    bool fFound = false;
+    for (size_t i = 0; i < sharedFolders.size(); ++i)
+    {
+        ComPtr<ISharedFolder> sharedFolder = sharedFolders[i];
+        Bstr bstrSharedFolderName;
+        CHECK_ERROR_RET(sharedFolder, COMGETTER(Name)(bstrSharedFolderName.asOutParam()), RTEXITCODE_FAILURE);
+        Utf8Str strSharedFolderName(bstrSharedFolderName);
+        if (!RTStrCmp(strSharedFolderName.c_str(), pszName))
+        {
+            fFound = true;
+            if (enmSymlinkPolicy != SymlinkPolicy_None)
+                CHECK_ERROR_RET(sharedFolder, COMSETTER(SymlinkPolicy)(enmSymlinkPolicy), RTEXITCODE_FAILURE);
+            if (fWritable != -1)
+                CHECK_ERROR_RET(sharedFolder, COMSETTER(Writable)((BOOL)fWritable), RTEXITCODE_FAILURE);
+            if (fAutoMount != -1)
+                CHECK_ERROR_RET(sharedFolder, COMSETTER(AutoMount)((BOOL)fAutoMount), RTEXITCODE_FAILURE);
+            if (pszAutoMountPoint)
+                CHECK_ERROR_RET(sharedFolder, COMSETTER(AutoMountPoint) (Bstr(pszAutoMountPoint).raw()), RTEXITCODE_FAILURE);
+            break;
+        }
+    }
+    if (!fFound)
+        return RTMsgErrorExit(RTEXITCODE_FAILURE, Misc::tr("Could not find a shared folder named '%s'.\n"), pszName);
+
+    /* commit and close the session */
+    if (SUCCEEDED(hrc))
+        CHECK_ERROR(ptrSessionMachine, SaveSettings());
+
+    CHECK_ERROR_RET(a->session, UnlockMachine(), RTEXITCODE_FAILURE);
+
+    return SUCCEEDED(hrc) ? RTEXITCODE_SUCCESS : RTEXITCODE_FAILURE;
+}
 
 RTEXITCODE handleSharedFolder(HandlerArg *a)
 {
@@ -1801,6 +1984,12 @@ RTEXITCODE handleSharedFolder(HandlerArg *a)
     {
         setCurrentSubcommand(HELP_SCOPE_SHAREDFOLDER_REMOVE);
         return handleSharedFolderRemove(a);
+    }
+
+    if (!strcmp(a->argv[0], "modify"))
+    {
+        setCurrentSubcommand(HELP_SCOPE_SHAREDFOLDER_MODIFY);
+        return handleSharedFolderModify(a);
     }
 
     return errorUnknownSubcommand(a->argv[0]);
@@ -1966,7 +2155,7 @@ RTEXITCODE handleExtPack(HandlerArg *a)
     return RTEXITCODE_SUCCESS;
 }
 
-RTEXITCODE handleUnattendedDetect(HandlerArg *a)
+static RTEXITCODE handleUnattendedDetect(HandlerArg *a)
 {
     HRESULT hrc;
 
@@ -2086,7 +2275,7 @@ RTEXITCODE handleUnattendedDetect(HandlerArg *a)
     return rcExit;
 }
 
-RTEXITCODE handleUnattendedInstall(HandlerArg *a)
+static RTEXITCODE handleUnattendedInstall(HandlerArg *a)
 {
     HRESULT hrc;
     char    szAbsPath[RTPATH_MAX];
@@ -2105,12 +2294,21 @@ RTEXITCODE handleUnattendedInstall(HandlerArg *a)
     /*
      * Parse options.
      */
+    enum kUnattendedInstallOpt
+    {
+        kUnattendedInstallOpt_AdminPassword = 1000,
+        kUnattendedInstallOpt_AdminPasswordFile
+    };
     static const RTGETOPTDEF s_aOptions[] =
     {
         { "--iso",                              'i', RTGETOPT_REQ_STRING },
         { "--user",                             'u', RTGETOPT_REQ_STRING },
-        { "--password",                         'p', RTGETOPT_REQ_STRING },
-        { "--password-file",                    'X', RTGETOPT_REQ_STRING },
+        { "--password",                         'p', RTGETOPT_REQ_STRING }, /* Keep for backwards compatibility! */
+        { "--password-file",                    'X', RTGETOPT_REQ_STRING }, /* Keep for backwards compatibility! */
+        { "--user-password",                    'p', RTGETOPT_REQ_STRING },
+        { "--user-password-file",               'X', RTGETOPT_REQ_STRING },
+        { "--admin-password",                   kUnattendedInstallOpt_AdminPassword, RTGETOPT_REQ_STRING },
+        { "--admin-password-file",              kUnattendedInstallOpt_AdminPasswordFile, RTGETOPT_REQ_STRING },
         { "--full-user-name",                   'U', RTGETOPT_REQ_STRING },
         { "--key",                              'k', RTGETOPT_REQ_STRING },
         { "--install-additions",                'A', RTGETOPT_REQ_NOTHING },
@@ -2168,17 +2366,31 @@ RTEXITCODE handleUnattendedInstall(HandlerArg *a)
                 CHECK_ERROR2_RET(hrc, ptrUnattended, COMSETTER(User)(Bstr(ValueUnion.psz).raw()), RTEXITCODE_FAILURE);
                 break;
 
-            case 'p':   // --password
-                CHECK_ERROR2_RET(hrc, ptrUnattended, COMSETTER(Password)(Bstr(ValueUnion.psz).raw()), RTEXITCODE_FAILURE);
+            case 'p':   // --[user-]password
+                CHECK_ERROR2_RET(hrc, ptrUnattended, COMSETTER(UserPassword)(Bstr(ValueUnion.psz).raw()), RTEXITCODE_FAILURE);
                 break;
 
-            case 'X':   // --password-file
+            case kUnattendedInstallOpt_AdminPassword: // --admin-password
+                CHECK_ERROR2_RET(hrc, ptrUnattended, COMSETTER(AdminPassword)(Bstr(ValueUnion.psz).raw()), RTEXITCODE_FAILURE);
+                break;
+
+            case 'X':   // --[user-]password-file
             {
                 Utf8Str strPassword;
                 RTEXITCODE rcExit = readPasswordFile(ValueUnion.psz, &strPassword);
                 if (rcExit != RTEXITCODE_SUCCESS)
                     return rcExit;
-                CHECK_ERROR2_RET(hrc, ptrUnattended, COMSETTER(Password)(Bstr(strPassword).raw()), RTEXITCODE_FAILURE);
+                CHECK_ERROR2_RET(hrc, ptrUnattended, COMSETTER(UserPassword)(Bstr(strPassword).raw()), RTEXITCODE_FAILURE);
+                break;
+            }
+
+            case kUnattendedInstallOpt_AdminPasswordFile:
+            {
+                Utf8Str strPassword;
+                RTEXITCODE rcExit = readPasswordFile(ValueUnion.psz, &strPassword);
+                if (rcExit != RTEXITCODE_SUCCESS)
+                    return rcExit;
+                CHECK_ERROR2_RET(hrc, ptrUnattended, COMSETTER(AdminPassword)(Bstr(strPassword).raw()), RTEXITCODE_FAILURE);
                 break;
             }
 
@@ -2386,7 +2598,9 @@ RTEXITCODE handleUnattendedInstall(HandlerArg *a)
 
     SHOW_STR_ATTR(IsoPath,                       "isoPath");
     SHOW_STR_ATTR(User,                          "user");
-    SHOW_STR_ATTR(Password,                      "password");
+    SHOW_STR_ATTR(UserPassword,                  "password"); /* Keep for backwards compatibility! */
+    SHOW_STR_ATTR(UserPassword,                  "user-password");
+    SHOW_STR_ATTR(AdminPassword,                 "admin-password");
     SHOW_STR_ATTR(FullUserName,                  "fullUserName");
     SHOW_STR_ATTR(ProductKey,                    "productKey");
     SHOW_STR_ATTR(AdditionsIsoPath,              "additionsIsoPath");

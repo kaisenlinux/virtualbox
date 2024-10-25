@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2014-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2014-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1007,7 +1007,7 @@ int GuestDnDTarget::i_sendMetaDataBody(GuestDnDSendCtx *pCtx)
             break;
 
         pvChunk += cbChunk;
-        AssertBreakStmt(cbData >= cbChunk, VERR_BUFFER_UNDERFLOW);
+        AssertBreakStmt(cbData >= cbChunk, vrc = VERR_BUFFER_UNDERFLOW);
         cbData  -= cbChunk;
     }
 
@@ -1209,7 +1209,8 @@ int GuestDnDTarget::i_sendFileData(GuestDnDSendCtx *pCtx,
 
     /* Protocol version 1 sends the file path *every* time with a new file chunk.
      * In protocol version 2 we only do this once with HOST_DND_FN_HG_SND_FILE_HDR. */
-    if (m_pState->m_uProtocolVersion <= 1)
+    AssertReturn(m_pState->m_uProtocolVersion, VERR_WRONG_ORDER);
+    if (m_pState->m_uProtocolVersion == 1)
     {
         const size_t cchDstPath = RTStrNLen(pcszDstPath, RTPATH_MAX);
 

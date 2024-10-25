@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2021-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2021-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -56,6 +56,13 @@
 #include "Audio/AudioTestServiceClient.h"
 
 #include "VBoxDD.h"
+
+
+/*********************************************************************************************************************************
+*   Common defines                                                                                                               *
+*********************************************************************************************************************************/
+/** Default (failsafe) timeout (in ms). */
+#define AUDIOTEST_TIMEOUT_DEFAULT_MS   RT_MS_5MIN
 
 
 /*********************************************************************************************************************************
@@ -254,6 +261,8 @@ typedef struct AUDIOTESTENV
 {
     /** Audio testing mode. */
     AUDIOTESTMODE           enmMode;
+    /** Failsafe timeout (in ms). Defaults to AUDIOTEST_TIMEOUT_DEFAULT_MS. */
+    RTMSINTERVAL            msTimeout;
     /** Whether self test mode is active or not. */
     bool                    fSelftest;
     /** Whether skip the actual verification or not. */
@@ -411,7 +420,7 @@ int         AudioTestDriverStackPerformSelftest(void);
 void        audioTestDriverStackDelete(PAUDIOTESTDRVSTACK pDrvStack);
 int         audioTestDriverStackInitEx(PAUDIOTESTDRVSTACK pDrvStack, PCPDMDRVREG pDrvReg, bool fEnabledIn, bool fEnabledOut, bool fWithDrvAudio);
 int         audioTestDriverStackInit(PAUDIOTESTDRVSTACK pDrvStack, PCPDMDRVREG pDrvReg, bool fWithDrvAudio);
-int         audioTestDriverStackProbe(PAUDIOTESTDRVSTACK pDrvStack, PCPDMDRVREG pDrvReg, bool fEnabledIn, bool fEnabledOut, bool fWithDrvAudio);
+int         audioTestDriverStackProbe(PAUDIOTESTDRVSTACK pDrvStack, bool fEnabledIn, bool fEnabledOut, bool fWithDrvAudio);
 int         audioTestDriverStackSetDevice(PAUDIOTESTDRVSTACK pDrvStack, PDMAUDIODIR enmDir, const char *pszDevId);
 /** @}  */
 

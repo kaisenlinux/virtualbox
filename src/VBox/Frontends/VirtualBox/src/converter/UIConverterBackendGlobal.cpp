@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -28,79 +28,31 @@
 /* Qt includes: */
 #include <QApplication>
 #include <QHash>
-#include <QRegExp>
 #include <QRegularExpression>
 
 /* GUI includes: */
-#include "UICommon.h"
-#include "UIConverterBackend.h"
+#include "UIConverter.h"
+#include "UIDefs.h"
+#include "UIExtraDataDefs.h"
+#include "UIGlobalSession.h"
 #include "UIIconPool.h"
+#include "UIMediumDefs.h"
+#include "UISettingsDefs.h"
+#include "UITranslator.h"
+#include "UIVRDESettingsEditor.h"
+#if defined(VBOX_WS_NIX) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
+# include "UIDesktopWidgetWatchdog.h"
+#endif
 
 /* COM includes: */
-#include "CSystemProperties.h"
+#include "CPlatformProperties.h"
 
-
-/* Determines if <Object of type X> can be converted to object of other type.
- * These functions returns 'true' for all allowed conversions. */
-template<> bool canConvert<Qt::Alignment>() { return true; }
-template<> bool canConvert<Qt::SortOrder>() { return true; }
-template<> bool canConvert<SizeSuffix>() { return true; }
-template<> bool canConvert<StorageSlot>() { return true; }
-template<> bool canConvert<DesktopWatchdogPolicy_SynthTest>() { return true; }
-template<> bool canConvert<UIExtraDataMetaDefs::DialogType>() { return true; }
-template<> bool canConvert<UIExtraDataMetaDefs::MenuType>() { return true; }
-template<> bool canConvert<UIExtraDataMetaDefs::MenuApplicationActionType>() { return true; }
-template<> bool canConvert<UIExtraDataMetaDefs::MenuHelpActionType>() { return true; }
-template<> bool canConvert<UIExtraDataMetaDefs::RuntimeMenuMachineActionType>() { return true; }
-template<> bool canConvert<UIExtraDataMetaDefs::RuntimeMenuViewActionType>() { return true; }
-template<> bool canConvert<UIExtraDataMetaDefs::RuntimeMenuInputActionType>() { return true; }
-template<> bool canConvert<UIExtraDataMetaDefs::RuntimeMenuDevicesActionType>() { return true; }
-#ifdef VBOX_WITH_DEBUGGER_GUI
-template<> bool canConvert<UIExtraDataMetaDefs::RuntimeMenuDebuggerActionType>() { return true; }
-#endif /* VBOX_WITH_DEBUGGER_GUI */
-#ifdef VBOX_WS_MAC
-template<> bool canConvert<UIExtraDataMetaDefs::MenuWindowActionType>() { return true; }
-#endif /* VBOX_WS_MAC */
-template<> bool canConvert<UIExtraDataMetaDefs::DetailsElementOptionTypeGeneral>() { return true; }
-template<> bool canConvert<UIExtraDataMetaDefs::DetailsElementOptionTypeSystem>() { return true; }
-template<> bool canConvert<UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay>() { return true; }
-template<> bool canConvert<UIExtraDataMetaDefs::DetailsElementOptionTypeStorage>() { return true; }
-template<> bool canConvert<UIExtraDataMetaDefs::DetailsElementOptionTypeAudio>() { return true; }
-template<> bool canConvert<UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork>() { return true; }
-template<> bool canConvert<UIExtraDataMetaDefs::DetailsElementOptionTypeSerial>() { return true; }
-template<> bool canConvert<UIExtraDataMetaDefs::DetailsElementOptionTypeUsb>() { return true; }
-template<> bool canConvert<UIExtraDataMetaDefs::DetailsElementOptionTypeSharedFolders>() { return true; }
-template<> bool canConvert<UIExtraDataMetaDefs::DetailsElementOptionTypeUserInterface>() { return true; }
-template<> bool canConvert<UIExtraDataMetaDefs::DetailsElementOptionTypeDescription>() { return true; }
-template<> bool canConvert<UIColorThemeType>() { return true; }
-template<> bool canConvert<UILaunchMode>() { return true; }
-template<> bool canConvert<UIToolType>() { return true; }
-template<> bool canConvert<UIVisualStateType>() { return true; }
-template<> bool canConvert<DetailsElementType>() { return true; }
-template<> bool canConvert<PreviewUpdateIntervalType>() { return true; }
-template<> bool canConvert<UIDiskEncryptionCipherType>() { return true; }
-template<> bool canConvert<GUIFeatureType>() { return true; }
-template<> bool canConvert<GlobalSettingsPageType>() { return true; }
-template<> bool canConvert<MachineSettingsPageType>() { return true; }
-template<> bool canConvert<UIRemoteMode>() { return true; }
-template<> bool canConvert<WizardType>() { return true; }
-template<> bool canConvert<IndicatorType>() { return true; }
-template<> bool canConvert<MachineCloseAction>() { return true; }
-template<> bool canConvert<MouseCapturePolicy>() { return true; }
-template<> bool canConvert<GuruMeditationHandlerType>() { return true; }
-template<> bool canConvert<ScalingOptimizationType>() { return true; }
-#ifndef VBOX_WS_MAC
-template<> bool canConvert<MiniToolbarAlignment>() { return true; }
-#endif
-template<> bool canConvert<InformationElementType>() { return true; }
-template<> bool canConvert<MaximumGuestScreenSizePolicy>() { return true; }
-template<> bool canConvert<UIMediumFormat>() { return true; }
-template<> bool canConvert<UISettingsDefs::RecordingMode>() { return true; }
-template<> bool canConvert<VMActivityOverviewColumn>(){ return true; };
+/* Other VBox includes: */
+#include "iprt/assert.h"
 
 
 /* QString <= Qt::Alignment: */
-template<> QString toInternalString(const Qt::Alignment &enmAlignment)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const Qt::Alignment &enmAlignment) const
 {
     QString strResult;
     switch (enmAlignment)
@@ -117,7 +69,7 @@ template<> QString toInternalString(const Qt::Alignment &enmAlignment)
 }
 
 /* Qt::Alignment <= QString: */
-template<> Qt::Alignment fromInternalString<Qt::Alignment>(const QString &strAlignment)
+template<> SHARED_LIBRARY_STUFF Qt::Alignment UIConverter::fromInternalString<Qt::Alignment>(const QString &strAlignment) const
 {
     if (strAlignment.compare("Top", Qt::CaseInsensitive) == 0)
         return Qt::AlignTop;
@@ -127,7 +79,7 @@ template<> Qt::Alignment fromInternalString<Qt::Alignment>(const QString &strAli
 }
 
 /* QString <= Qt::SortOrder: */
-template<> QString toInternalString(const Qt::SortOrder &enmSortOrder)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const Qt::SortOrder &enmSortOrder) const
 {
     QString strResult;
     switch (enmSortOrder)
@@ -144,7 +96,7 @@ template<> QString toInternalString(const Qt::SortOrder &enmSortOrder)
 }
 
 /* Qt::SortOrder <= QString: */
-template<> Qt::SortOrder fromInternalString<Qt::SortOrder>(const QString &strSortOrder)
+template<> SHARED_LIBRARY_STUFF Qt::SortOrder UIConverter::fromInternalString<Qt::SortOrder>(const QString &strSortOrder) const
 {
     if (strSortOrder.compare("Ascending", Qt::CaseInsensitive) == 0)
         return Qt::AscendingOrder;
@@ -154,17 +106,17 @@ template<> Qt::SortOrder fromInternalString<Qt::SortOrder>(const QString &strSor
 }
 
 /* QString <= SizeSuffix: */
-template<> QString toString(const SizeSuffix &sizeSuffix)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toString(const SizeSuffix &sizeSuffix) const
 {
     QString strResult;
     switch (sizeSuffix)
     {
-        case SizeSuffix_Byte:     strResult = QApplication::translate("UICommon", "B", "size suffix Bytes"); break;
-        case SizeSuffix_KiloByte: strResult = QApplication::translate("UICommon", "KB", "size suffix KBytes=1024 Bytes"); break;
-        case SizeSuffix_MegaByte: strResult = QApplication::translate("UICommon", "MB", "size suffix MBytes=1024 KBytes"); break;
-        case SizeSuffix_GigaByte: strResult = QApplication::translate("UICommon", "GB", "size suffix GBytes=1024 MBytes"); break;
-        case SizeSuffix_TeraByte: strResult = QApplication::translate("UICommon", "TB", "size suffix TBytes=1024 GBytes"); break;
-        case SizeSuffix_PetaByte: strResult = QApplication::translate("UICommon", "PB", "size suffix PBytes=1024 TBytes"); break;
+        case SizeSuffix_Byte:     strResult = QApplication::translate("UITranslator", "B", "size suffix Bytes"); break;
+        case SizeSuffix_KiloByte: strResult = QApplication::translate("UITranslator", "KB", "size suffix KBytes=1024 Bytes"); break;
+        case SizeSuffix_MegaByte: strResult = QApplication::translate("UITranslator", "MB", "size suffix MBytes=1024 KBytes"); break;
+        case SizeSuffix_GigaByte: strResult = QApplication::translate("UITranslator", "GB", "size suffix GBytes=1024 MBytes"); break;
+        case SizeSuffix_TeraByte: strResult = QApplication::translate("UITranslator", "TB", "size suffix TBytes=1024 GBytes"); break;
+        case SizeSuffix_PetaByte: strResult = QApplication::translate("UITranslator", "PB", "size suffix PBytes=1024 TBytes"); break;
         default:
         {
             AssertMsgFailed(("No text for size suffix=%d", sizeSuffix));
@@ -175,15 +127,15 @@ template<> QString toString(const SizeSuffix &sizeSuffix)
 }
 
 /* SizeSuffix <= QString: */
-template<> SizeSuffix fromString<SizeSuffix>(const QString &strSizeSuffix)
+template<> SHARED_LIBRARY_STUFF SizeSuffix UIConverter::fromString<SizeSuffix>(const QString &strSizeSuffix) const
 {
     QHash<QString, SizeSuffix> list;
-    list.insert(QApplication::translate("UICommon", "B", "size suffix Bytes"),               SizeSuffix_Byte);
-    list.insert(QApplication::translate("UICommon", "KB", "size suffix KBytes=1024 Bytes"),  SizeSuffix_KiloByte);
-    list.insert(QApplication::translate("UICommon", "MB", "size suffix MBytes=1024 KBytes"), SizeSuffix_MegaByte);
-    list.insert(QApplication::translate("UICommon", "GB", "size suffix GBytes=1024 MBytes"), SizeSuffix_GigaByte);
-    list.insert(QApplication::translate("UICommon", "TB", "size suffix TBytes=1024 GBytes"), SizeSuffix_TeraByte);
-    list.insert(QApplication::translate("UICommon", "PB", "size suffix PBytes=1024 TBytes"), SizeSuffix_PetaByte);
+    list.insert(QApplication::translate("UITranslator", "B", "size suffix Bytes"),               SizeSuffix_Byte);
+    list.insert(QApplication::translate("UITranslator", "KB", "size suffix KBytes=1024 Bytes"),  SizeSuffix_KiloByte);
+    list.insert(QApplication::translate("UITranslator", "MB", "size suffix MBytes=1024 KBytes"), SizeSuffix_MegaByte);
+    list.insert(QApplication::translate("UITranslator", "GB", "size suffix GBytes=1024 MBytes"), SizeSuffix_GigaByte);
+    list.insert(QApplication::translate("UITranslator", "TB", "size suffix TBytes=1024 GBytes"), SizeSuffix_TeraByte);
+    list.insert(QApplication::translate("UITranslator", "PB", "size suffix PBytes=1024 TBytes"), SizeSuffix_PetaByte);
     if (!list.contains(strSizeSuffix))
     {
         AssertMsgFailed(("No value for '%s'", strSizeSuffix.toUtf8().constData()));
@@ -192,15 +144,15 @@ template<> SizeSuffix fromString<SizeSuffix>(const QString &strSizeSuffix)
 }
 
 /* QString <= StorageSlot: */
-template<> QString toString(const StorageSlot &storageSlot)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toString(const StorageSlot &storageSlot) const
 {
     QString strResult;
     switch (storageSlot.bus)
     {
         case KStorageBus_IDE:
         {
-            int iMaxPort = uiCommon().virtualBox().GetSystemProperties().GetMaxPortCountForStorageBus(storageSlot.bus);
-            int iMaxDevice = uiCommon().virtualBox().GetSystemProperties().GetMaxDevicesPerPortForStorageBus(storageSlot.bus);
+            int iMaxPort = gpGlobalSession->virtualBox().GetPlatformProperties(KPlatformArchitecture_x86).GetMaxPortCountForStorageBus(storageSlot.bus);
+            int iMaxDevice = gpGlobalSession->virtualBox().GetPlatformProperties(KPlatformArchitecture_x86).GetMaxDevicesPerPortForStorageBus(storageSlot.bus);
             if (storageSlot.port < 0 || storageSlot.port > iMaxPort)
             {
                 AssertMsgFailed(("No text for bus=%d & port=%d", storageSlot.bus, storageSlot.port));
@@ -223,7 +175,7 @@ template<> QString toString(const StorageSlot &storageSlot)
         }
         case KStorageBus_SATA:
         {
-            int iMaxPort = uiCommon().virtualBox().GetSystemProperties().GetMaxPortCountForStorageBus(storageSlot.bus);
+            int iMaxPort = gpGlobalSession->virtualBox().GetPlatformProperties(KPlatformArchitecture_x86).GetMaxPortCountForStorageBus(storageSlot.bus);
             if (storageSlot.port < 0 || storageSlot.port > iMaxPort)
             {
                 AssertMsgFailed(("No text for bus=%d & port=%d", storageSlot.bus, storageSlot.port));
@@ -239,7 +191,7 @@ template<> QString toString(const StorageSlot &storageSlot)
         }
         case KStorageBus_SCSI:
         {
-            int iMaxPort = uiCommon().virtualBox().GetSystemProperties().GetMaxPortCountForStorageBus(storageSlot.bus);
+            int iMaxPort = gpGlobalSession->virtualBox().GetPlatformProperties(KPlatformArchitecture_x86).GetMaxPortCountForStorageBus(storageSlot.bus);
             if (storageSlot.port < 0 || storageSlot.port > iMaxPort)
             {
                 AssertMsgFailed(("No text for bus=%d & port=%d", storageSlot.bus, storageSlot.port));
@@ -255,7 +207,7 @@ template<> QString toString(const StorageSlot &storageSlot)
         }
         case KStorageBus_SAS:
         {
-            int iMaxPort = uiCommon().virtualBox().GetSystemProperties().GetMaxPortCountForStorageBus(storageSlot.bus);
+            int iMaxPort = gpGlobalSession->virtualBox().GetPlatformProperties(KPlatformArchitecture_x86).GetMaxPortCountForStorageBus(storageSlot.bus);
             if (storageSlot.port < 0 || storageSlot.port > iMaxPort)
             {
                 AssertMsgFailed(("No text for bus=%d & port=%d", storageSlot.bus, storageSlot.port));
@@ -271,7 +223,7 @@ template<> QString toString(const StorageSlot &storageSlot)
         }
         case KStorageBus_Floppy:
         {
-            int iMaxDevice = uiCommon().virtualBox().GetSystemProperties().GetMaxDevicesPerPortForStorageBus(storageSlot.bus);
+            int iMaxDevice = gpGlobalSession->virtualBox().GetPlatformProperties(KPlatformArchitecture_x86).GetMaxDevicesPerPortForStorageBus(storageSlot.bus);
             if (storageSlot.port != 0)
             {
                 AssertMsgFailed(("No text for bus=%d & port=%d", storageSlot.bus, storageSlot.port));
@@ -287,7 +239,7 @@ template<> QString toString(const StorageSlot &storageSlot)
         }
         case KStorageBus_USB:
         {
-            int iMaxPort = uiCommon().virtualBox().GetSystemProperties().GetMaxPortCountForStorageBus(storageSlot.bus);
+            int iMaxPort = gpGlobalSession->virtualBox().GetPlatformProperties(KPlatformArchitecture_x86).GetMaxPortCountForStorageBus(storageSlot.bus);
             if (storageSlot.port < 0 || storageSlot.port > iMaxPort)
             {
                 AssertMsgFailed(("No text for bus=%d & port=%d", storageSlot.bus, storageSlot.port));
@@ -303,7 +255,7 @@ template<> QString toString(const StorageSlot &storageSlot)
         }
         case KStorageBus_PCIe:
         {
-            int iMaxPort = uiCommon().virtualBox().GetSystemProperties().GetMaxPortCountForStorageBus(storageSlot.bus);
+            int iMaxPort = gpGlobalSession->virtualBox().GetPlatformProperties(KPlatformArchitecture_x86).GetMaxPortCountForStorageBus(storageSlot.bus);
             if (storageSlot.port < 0 || storageSlot.port > iMaxPort)
             {
                 AssertMsgFailed(("No text for bus=%d & port=%d", storageSlot.bus, storageSlot.port));
@@ -319,7 +271,7 @@ template<> QString toString(const StorageSlot &storageSlot)
         }
         case KStorageBus_VirtioSCSI:
         {
-            int iMaxPort = uiCommon().virtualBox().GetSystemProperties().GetMaxPortCountForStorageBus(storageSlot.bus);
+            int iMaxPort = gpGlobalSession->virtualBox().GetPlatformProperties(KPlatformArchitecture_x86).GetMaxPortCountForStorageBus(storageSlot.bus);
             if (storageSlot.port < 0 || storageSlot.port > iMaxPort)
             {
                 AssertMsgFailed(("No text for bus=%d & port=%d", storageSlot.bus, storageSlot.port));
@@ -343,7 +295,7 @@ template<> QString toString(const StorageSlot &storageSlot)
 }
 
 /* StorageSlot <= QString: */
-template<> StorageSlot fromString<StorageSlot>(const QString &strStorageSlot)
+template<> SHARED_LIBRARY_STUFF StorageSlot UIConverter::fromString<StorageSlot>(const QString &strStorageSlot) const
 {
     /* Prepare a hash of known port templates: */
     QHash<int, QString> templates;
@@ -361,11 +313,13 @@ template<> StorageSlot fromString<StorageSlot>(const QString &strStorageSlot)
 
     /* Search for a template index strStorageSlot corresponds to: */
     int iIndex = -1;
-    QRegExp regExp;
+    QRegularExpression re;
+    QRegularExpressionMatch mt;
     for (int i = 0; i < templates.size(); ++i)
     {
-        regExp = QRegExp(i >= 0 && i <= 3 ? templates.value(i) : templates.value(i).arg("(\\d+)"));
-        if (regExp.indexIn(strStorageSlot) != -1)
+        re.setPattern(i >= 0 && i <= 3 ? templates.value(i) : templates.value(i).arg("(\\d+)"));
+        mt = re.match(strStorageSlot);
+        if (mt.hasMatch())
         {
             iIndex = i;
             break;
@@ -402,8 +356,8 @@ template<> StorageSlot fromString<StorageSlot>(const QString &strStorageSlot)
         {
             if (result.bus == KStorageBus_Null)
                 break;
-            const int iMaxPort = uiCommon().virtualBox().GetSystemProperties().GetMaxPortCountForStorageBus(result.bus);
-            const int iMaxDevice = uiCommon().virtualBox().GetSystemProperties().GetMaxDevicesPerPortForStorageBus(result.bus);
+            const int iMaxPort = gpGlobalSession->virtualBox().GetPlatformProperties(KPlatformArchitecture_x86).GetMaxPortCountForStorageBus(result.bus);
+            const int iMaxDevice = gpGlobalSession->virtualBox().GetPlatformProperties(KPlatformArchitecture_x86).GetMaxDevicesPerPortForStorageBus(result.bus);
             const LONG iPort = iIndex / iMaxPort;
             const LONG iDevice = iIndex % iMaxPort;
             if (iPort < 0 || iPort > iMaxPort)
@@ -430,8 +384,8 @@ template<> StorageSlot fromString<StorageSlot>(const QString &strStorageSlot)
         {
             if (result.bus == KStorageBus_Null)
                 break;
-            const int iMaxPort = uiCommon().virtualBox().GetSystemProperties().GetMaxPortCountForStorageBus(result.bus);
-            const LONG iPort = regExp.cap(1).toInt();
+            const int iMaxPort = gpGlobalSession->virtualBox().GetPlatformProperties(KPlatformArchitecture_x86).GetMaxPortCountForStorageBus(result.bus);
+            const LONG iPort = mt.captured(1).toInt();
             const LONG iDevice = 0;
             if (iPort < 0 || iPort > iMaxPort)
             {
@@ -453,8 +407,9 @@ template<> StorageSlot fromString<StorageSlot>(const QString &strStorageSlot)
     return result;
 }
 
+#if defined(VBOX_WS_NIX) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
 /* DesktopWatchdogPolicy_SynthTest <= QString: */
-template<> DesktopWatchdogPolicy_SynthTest fromInternalString<DesktopWatchdogPolicy_SynthTest>(const QString &strPolicyType)
+template<> SHARED_LIBRARY_STUFF DesktopWatchdogPolicy_SynthTest UIConverter::fromInternalString<DesktopWatchdogPolicy_SynthTest>(const QString &strPolicyType) const
 {
     if (strPolicyType.compare("Disabled", Qt::CaseInsensitive) == 0)
         return DesktopWatchdogPolicy_SynthTest_Disabled;
@@ -466,9 +421,10 @@ template<> DesktopWatchdogPolicy_SynthTest fromInternalString<DesktopWatchdogPol
         return DesktopWatchdogPolicy_SynthTest_Both;
     return DesktopWatchdogPolicy_SynthTest_Both;
 }
+#endif /* VBOX_WS_NIX && !VBOX_GUI_WITH_CUSTOMIZATIONS1 */
 
 /* QString <= UIExtraDataMetaDefs::DialogType: */
-template<> QString toInternalString(const UIExtraDataMetaDefs::DialogType &enmDialogType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIExtraDataMetaDefs::DialogType &enmDialogType) const
 {
     QString strResult;
     switch (enmDialogType)
@@ -486,7 +442,7 @@ template<> QString toInternalString(const UIExtraDataMetaDefs::DialogType &enmDi
 }
 
 /* UIExtraDataMetaDefs::DialogType <= QString: */
-template<> UIExtraDataMetaDefs::DialogType fromInternalString<UIExtraDataMetaDefs::DialogType>(const QString &strDialogType)
+template<> SHARED_LIBRARY_STUFF UIExtraDataMetaDefs::DialogType UIConverter::fromInternalString<UIExtraDataMetaDefs::DialogType>(const QString &strDialogType) const
 {
     if (strDialogType.compare("VISOCreator", Qt::CaseInsensitive) == 0)
         return UIExtraDataMetaDefs::DialogType_VISOCreator;
@@ -498,7 +454,7 @@ template<> UIExtraDataMetaDefs::DialogType fromInternalString<UIExtraDataMetaDef
 }
 
 /* QString <= UIExtraDataMetaDefs::MenuType: */
-template<> QString toInternalString(const UIExtraDataMetaDefs::MenuType &menuType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIExtraDataMetaDefs::MenuType &menuType) const
 {
     QString strResult;
     switch (menuType)
@@ -526,7 +482,7 @@ template<> QString toInternalString(const UIExtraDataMetaDefs::MenuType &menuTyp
 }
 
 /* UIExtraDataMetaDefs::MenuType <= QString: */
-template<> UIExtraDataMetaDefs::MenuType fromInternalString<UIExtraDataMetaDefs::MenuType>(const QString &strMenuType)
+template<> SHARED_LIBRARY_STUFF UIExtraDataMetaDefs::MenuType UIConverter::fromInternalString<UIExtraDataMetaDefs::MenuType>(const QString &strMenuType) const
 {
     if (strMenuType.compare("Application", Qt::CaseInsensitive) == 0) return UIExtraDataMetaDefs::MenuType_Application;
     if (strMenuType.compare("Machine", Qt::CaseInsensitive) == 0)     return UIExtraDataMetaDefs::MenuType_Machine;
@@ -545,7 +501,7 @@ template<> UIExtraDataMetaDefs::MenuType fromInternalString<UIExtraDataMetaDefs:
 }
 
 /* QString <= UIExtraDataMetaDefs::MenuApplicationActionType: */
-template<> QString toInternalString(const UIExtraDataMetaDefs::MenuApplicationActionType &menuApplicationActionType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIExtraDataMetaDefs::MenuApplicationActionType &menuApplicationActionType) const
 {
     QString strResult;
     switch (menuApplicationActionType)
@@ -571,8 +527,8 @@ template<> QString toInternalString(const UIExtraDataMetaDefs::MenuApplicationAc
 }
 
 /* UIExtraDataMetaDefs::MenuApplicationActionType <= QString: */
-template<> UIExtraDataMetaDefs::MenuApplicationActionType
-fromInternalString<UIExtraDataMetaDefs::MenuApplicationActionType>(const QString &strMenuApplicationActionType)
+template<> SHARED_LIBRARY_STUFF UIExtraDataMetaDefs::MenuApplicationActionType
+UIConverter::fromInternalString<UIExtraDataMetaDefs::MenuApplicationActionType>(const QString &strMenuApplicationActionType) const
 {
 #ifdef VBOX_WS_MAC
     if (strMenuApplicationActionType.compare("About", Qt::CaseInsensitive) == 0)
@@ -596,7 +552,7 @@ fromInternalString<UIExtraDataMetaDefs::MenuApplicationActionType>(const QString
 }
 
 /* QString <= UIExtraDataMetaDefs::MenuHelpActionType: */
-template<> QString toInternalString(const UIExtraDataMetaDefs::MenuHelpActionType &menuHelpActionType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIExtraDataMetaDefs::MenuHelpActionType &menuHelpActionType) const
 {
     QString strResult;
     switch (menuHelpActionType)
@@ -621,8 +577,8 @@ template<> QString toInternalString(const UIExtraDataMetaDefs::MenuHelpActionTyp
 }
 
 /* UIExtraDataMetaDefs::MenuHelpActionType <= QString: */
-template<> UIExtraDataMetaDefs::MenuHelpActionType
-fromInternalString<UIExtraDataMetaDefs::MenuHelpActionType>(const QString &strMenuHelpActionType)
+template<> SHARED_LIBRARY_STUFF UIExtraDataMetaDefs::MenuHelpActionType
+UIConverter::fromInternalString<UIExtraDataMetaDefs::MenuHelpActionType>(const QString &strMenuHelpActionType) const
 {
     if (strMenuHelpActionType.compare("Contents", Qt::CaseInsensitive) == 0)
         return UIExtraDataMetaDefs::MenuHelpActionType_Contents;
@@ -646,7 +602,7 @@ fromInternalString<UIExtraDataMetaDefs::MenuHelpActionType>(const QString &strMe
 }
 
 /* QString <= UIExtraDataMetaDefs::RuntimeMenuMachineActionType: */
-template<> QString toInternalString(const UIExtraDataMetaDefs::RuntimeMenuMachineActionType &runtimeMenuMachineActionType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIExtraDataMetaDefs::RuntimeMenuMachineActionType &runtimeMenuMachineActionType) const
 {
     QString strResult;
     switch (runtimeMenuMachineActionType)
@@ -675,8 +631,8 @@ template<> QString toInternalString(const UIExtraDataMetaDefs::RuntimeMenuMachin
 }
 
 /* UIExtraDataMetaDefs::RuntimeMenuMachineActionType <= QString: */
-template<> UIExtraDataMetaDefs::RuntimeMenuMachineActionType
-fromInternalString<UIExtraDataMetaDefs::RuntimeMenuMachineActionType>(const QString &strRuntimeMenuMachineActionType)
+template<> SHARED_LIBRARY_STUFF UIExtraDataMetaDefs::RuntimeMenuMachineActionType
+UIConverter::fromInternalString<UIExtraDataMetaDefs::RuntimeMenuMachineActionType>(const QString &strRuntimeMenuMachineActionType) const
 {
     if (strRuntimeMenuMachineActionType.compare("SettingsDialog", Qt::CaseInsensitive) == 0)
         return UIExtraDataMetaDefs::RuntimeMenuMachineActionType_SettingsDialog;
@@ -710,7 +666,7 @@ fromInternalString<UIExtraDataMetaDefs::RuntimeMenuMachineActionType>(const QStr
 }
 
 /* QString <= UIExtraDataMetaDefs::RuntimeMenuViewActionType: */
-template<> QString toInternalString(const UIExtraDataMetaDefs::RuntimeMenuViewActionType &runtimeMenuViewActionType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIExtraDataMetaDefs::RuntimeMenuViewActionType &runtimeMenuViewActionType) const
 {
     QString strResult;
     switch (runtimeMenuViewActionType)
@@ -750,8 +706,8 @@ template<> QString toInternalString(const UIExtraDataMetaDefs::RuntimeMenuViewAc
 }
 
 /* UIExtraDataMetaDefs::RuntimeMenuViewActionType <= QString: */
-template<> UIExtraDataMetaDefs::RuntimeMenuViewActionType
-fromInternalString<UIExtraDataMetaDefs::RuntimeMenuViewActionType>(const QString &strRuntimeMenuViewActionType)
+template<> SHARED_LIBRARY_STUFF UIExtraDataMetaDefs::RuntimeMenuViewActionType
+UIConverter::fromInternalString<UIExtraDataMetaDefs::RuntimeMenuViewActionType>(const QString &strRuntimeMenuViewActionType) const
 {
     if (strRuntimeMenuViewActionType.compare("Fullscreen", Qt::CaseInsensitive) == 0)
         return UIExtraDataMetaDefs::RuntimeMenuViewActionType_Fullscreen;
@@ -803,7 +759,7 @@ fromInternalString<UIExtraDataMetaDefs::RuntimeMenuViewActionType>(const QString
 }
 
 /* QString <= UIExtraDataMetaDefs::RuntimeMenuInputActionType: */
-template<> QString toInternalString(const UIExtraDataMetaDefs::RuntimeMenuInputActionType &runtimeMenuInputActionType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIExtraDataMetaDefs::RuntimeMenuInputActionType &runtimeMenuInputActionType) const
 {
     QString strResult;
     switch (runtimeMenuInputActionType)
@@ -812,9 +768,9 @@ template<> QString toInternalString(const UIExtraDataMetaDefs::RuntimeMenuInputA
         case UIExtraDataMetaDefs::RuntimeMenuInputActionType_KeyboardSettings:   strResult = "KeyboardSettings"; break;
         case UIExtraDataMetaDefs::RuntimeMenuInputActionType_SoftKeyboard:       strResult = "SoftKeyboard"; break;
         case UIExtraDataMetaDefs::RuntimeMenuInputActionType_TypeCAD:            strResult = "TypeCAD"; break;
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
         case UIExtraDataMetaDefs::RuntimeMenuInputActionType_TypeCABS:           strResult = "TypeCABS"; break;
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
         case UIExtraDataMetaDefs::RuntimeMenuInputActionType_TypeCtrlBreak:      strResult = "TypeCtrlBreak"; break;
         case UIExtraDataMetaDefs::RuntimeMenuInputActionType_TypeInsert:         strResult = "TypeInsert"; break;
         case UIExtraDataMetaDefs::RuntimeMenuInputActionType_TypePrintScreen:    strResult = "TypePrintScreen"; break;
@@ -833,8 +789,8 @@ template<> QString toInternalString(const UIExtraDataMetaDefs::RuntimeMenuInputA
 }
 
 /* UIExtraDataMetaDefs::RuntimeMenuInputActionType <= QString: */
-template<> UIExtraDataMetaDefs::RuntimeMenuInputActionType
-fromInternalString<UIExtraDataMetaDefs::RuntimeMenuInputActionType>(const QString &strRuntimeMenuInputActionType)
+template<> SHARED_LIBRARY_STUFF UIExtraDataMetaDefs::RuntimeMenuInputActionType
+UIConverter::fromInternalString<UIExtraDataMetaDefs::RuntimeMenuInputActionType>(const QString &strRuntimeMenuInputActionType) const
 {
     if (strRuntimeMenuInputActionType.compare("Keyboard", Qt::CaseInsensitive) == 0)
         return UIExtraDataMetaDefs::RuntimeMenuInputActionType_Keyboard;
@@ -844,10 +800,10 @@ fromInternalString<UIExtraDataMetaDefs::RuntimeMenuInputActionType>(const QStrin
         return UIExtraDataMetaDefs::RuntimeMenuInputActionType_SoftKeyboard;
     if (strRuntimeMenuInputActionType.compare("TypeCAD", Qt::CaseInsensitive) == 0)
         return UIExtraDataMetaDefs::RuntimeMenuInputActionType_TypeCAD;
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     if (strRuntimeMenuInputActionType.compare("TypeCABS", Qt::CaseInsensitive) == 0)
         return UIExtraDataMetaDefs::RuntimeMenuInputActionType_TypeCABS;
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
     if (strRuntimeMenuInputActionType.compare("TypeCtrlBreak", Qt::CaseInsensitive) == 0)
         return UIExtraDataMetaDefs::RuntimeMenuInputActionType_TypeCtrlBreak;
     if (strRuntimeMenuInputActionType.compare("TypeInsert", Qt::CaseInsensitive) == 0)
@@ -868,7 +824,7 @@ fromInternalString<UIExtraDataMetaDefs::RuntimeMenuInputActionType>(const QStrin
 }
 
 /* QString <= UIExtraDataMetaDefs::RuntimeMenuDevicesActionType: */
-template<> QString toInternalString(const UIExtraDataMetaDefs::RuntimeMenuDevicesActionType &runtimeMenuDevicesActionType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIExtraDataMetaDefs::RuntimeMenuDevicesActionType &runtimeMenuDevicesActionType) const
 {
     QString strResult;
     switch (runtimeMenuDevicesActionType)
@@ -903,8 +859,8 @@ template<> QString toInternalString(const UIExtraDataMetaDefs::RuntimeMenuDevice
 }
 
 /* UIExtraDataMetaDefs::RuntimeMenuDevicesActionType <= QString: */
-template<> UIExtraDataMetaDefs::RuntimeMenuDevicesActionType
-fromInternalString<UIExtraDataMetaDefs::RuntimeMenuDevicesActionType>(const QString &strRuntimeMenuDevicesActionType)
+template<> SHARED_LIBRARY_STUFF UIExtraDataMetaDefs::RuntimeMenuDevicesActionType
+UIConverter::fromInternalString<UIExtraDataMetaDefs::RuntimeMenuDevicesActionType>(const QString &strRuntimeMenuDevicesActionType) const
 {
     if (strRuntimeMenuDevicesActionType.compare("HardDrives", Qt::CaseInsensitive) == 0)
         return UIExtraDataMetaDefs::RuntimeMenuDevicesActionType_HardDrives;
@@ -951,7 +907,7 @@ fromInternalString<UIExtraDataMetaDefs::RuntimeMenuDevicesActionType>(const QStr
 
 #ifdef VBOX_WITH_DEBUGGER_GUI
 /* QString <= UIExtraDataMetaDefs::RuntimeMenuDebuggerActionType: */
-template<> QString toInternalString(const UIExtraDataMetaDefs::RuntimeMenuDebuggerActionType &runtimeMenuDebuggerActionType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIExtraDataMetaDefs::RuntimeMenuDebuggerActionType &runtimeMenuDebuggerActionType) const
 {
     QString strResult;
     switch (runtimeMenuDebuggerActionType)
@@ -971,8 +927,8 @@ template<> QString toInternalString(const UIExtraDataMetaDefs::RuntimeMenuDebugg
 }
 
 /* UIExtraDataMetaDefs::RuntimeMenuDebuggerActionType <= QString: */
-template<> UIExtraDataMetaDefs::RuntimeMenuDebuggerActionType
-fromInternalString<UIExtraDataMetaDefs::RuntimeMenuDebuggerActionType>(const QString &strRuntimeMenuDebuggerActionType)
+template<> SHARED_LIBRARY_STUFF UIExtraDataMetaDefs::RuntimeMenuDebuggerActionType
+UIConverter::fromInternalString<UIExtraDataMetaDefs::RuntimeMenuDebuggerActionType>(const QString &strRuntimeMenuDebuggerActionType) const
 {
     if (strRuntimeMenuDebuggerActionType.compare("Statistics", Qt::CaseInsensitive) == 0)
         return UIExtraDataMetaDefs::RuntimeMenuDebuggerActionType_Statistics;
@@ -990,7 +946,7 @@ fromInternalString<UIExtraDataMetaDefs::RuntimeMenuDebuggerActionType>(const QSt
 
 #ifdef VBOX_WS_MAC
 /* QString <= UIExtraDataMetaDefs::MenuWindowActionType: */
-template<> QString toInternalString(const UIExtraDataMetaDefs::MenuWindowActionType &menuWindowActionType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIExtraDataMetaDefs::MenuWindowActionType &menuWindowActionType) const
 {
     QString strResult;
     switch (menuWindowActionType)
@@ -1008,8 +964,8 @@ template<> QString toInternalString(const UIExtraDataMetaDefs::MenuWindowActionT
 }
 
 /* UIExtraDataMetaDefs::MenuWindowActionType <= QString: */
-template<> UIExtraDataMetaDefs::MenuWindowActionType
-fromInternalString<UIExtraDataMetaDefs::MenuWindowActionType>(const QString &strMenuWindowActionType)
+template<> SHARED_LIBRARY_STUFF UIExtraDataMetaDefs::MenuWindowActionType
+UIConverter::fromInternalString<UIExtraDataMetaDefs::MenuWindowActionType>(const QString &strMenuWindowActionType) const
 {
     if (strMenuWindowActionType.compare("Minimize", Qt::CaseInsensitive) == 0)
         return UIExtraDataMetaDefs::MenuWindowActionType_Minimize;
@@ -1022,15 +978,19 @@ fromInternalString<UIExtraDataMetaDefs::MenuWindowActionType>(const QString &str
 #endif /* VBOX_WS_MAC */
 
 /* QString <= UIExtraDataMetaDefs::DetailsElementOptionTypeGeneral: */
-template<> QString toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeGeneral &enmDetailsElementOptionTypeGeneral)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeGeneral &enmDetailsElementOptionTypeGeneral) const
 {
     QString strResult;
     switch (enmDetailsElementOptionTypeGeneral)
     {
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeGeneral_Name:     strResult = QApplication::translate("UICommon", "Name"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeGeneral_OS:       strResult = QApplication::translate("UICommon", "OS"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeGeneral_Location: strResult = QApplication::translate("UICommon", "Location"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeGeneral_Groups:   strResult = QApplication::translate("UICommon", "Groups"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeGeneral_Name:
+            strResult = QApplication::translate("UIDetails", "Name", "details (general)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeGeneral_OS:
+            strResult = QApplication::translate("UIDetails", "Operating System", "details (general)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeGeneral_Location:
+            strResult = QApplication::translate("UIDetails", "Settings File Location", "details (general)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeGeneral_Groups:
+            strResult = QApplication::translate("UIDetails", "Groups", "details (general)"); break;
         default:
         {
             AssertMsgFailed(("No text for details element option type=%d", enmDetailsElementOptionTypeGeneral));
@@ -1041,7 +1001,7 @@ template<> QString toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeG
 }
 
 /* QString <= UIExtraDataMetaDefs::DetailsElementOptionTypeGeneral: */
-template<> QString toInternalString(const UIExtraDataMetaDefs::DetailsElementOptionTypeGeneral &enmDetailsElementOptionTypeGeneral)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIExtraDataMetaDefs::DetailsElementOptionTypeGeneral &enmDetailsElementOptionTypeGeneral) const
 {
     QString strResult;
     switch (enmDetailsElementOptionTypeGeneral)
@@ -1060,8 +1020,8 @@ template<> QString toInternalString(const UIExtraDataMetaDefs::DetailsElementOpt
 }
 
 /* UIExtraDataMetaDefs::DetailsElementOptionTypeGeneral <= QString: */
-template<> UIExtraDataMetaDefs::DetailsElementOptionTypeGeneral
-fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeGeneral>(const QString &strDetailsElementOptionTypeGeneral)
+template<> SHARED_LIBRARY_STUFF UIExtraDataMetaDefs::DetailsElementOptionTypeGeneral
+UIConverter::fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeGeneral>(const QString &strDetailsElementOptionTypeGeneral) const
 {
     if (strDetailsElementOptionTypeGeneral.compare("Name", Qt::CaseInsensitive) == 0)
         return UIExtraDataMetaDefs::DetailsElementOptionTypeGeneral_Name;
@@ -1075,20 +1035,29 @@ fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeGeneral>(const Q
 }
 
 /* QString <= UIExtraDataMetaDefs::DetailsElementOptionTypeSystem: */
-template<> QString toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeSystem &enmDetailsElementOptionTypeSystem)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeSystem &enmDetailsElementOptionTypeSystem) const
 {
     QString strResult;
     switch (enmDetailsElementOptionTypeSystem)
     {
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeSystem_RAM:             strResult = QApplication::translate("UICommon", "RAM"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeSystem_CPUCount:        strResult = QApplication::translate("UICommon", "CPU Count"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeSystem_CPUExecutionCap: strResult = QApplication::translate("UICommon", "CPU Execution Cap"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeSystem_BootOrder:       strResult = QApplication::translate("UICommon", "Boot Order"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeSystem_ChipsetType:     strResult = QApplication::translate("UICommon", "Chipset Type"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeSystem_TpmType:         strResult = QApplication::translate("UICommon", "TPM Type"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeSystem_Firmware:        strResult = QApplication::translate("UICommon", "Firmware"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeSystem_SecureBoot:      strResult = QApplication::translate("UICommon", "Secure Boot"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeSystem_Acceleration:    strResult = QApplication::translate("UICommon", "Acceleration"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeSystem_RAM:
+            strResult = QApplication::translate("UIDetails", "Base Memory", "details (system)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeSystem_CPUCount:
+            strResult = QApplication::translate("UIDetails", "Processors", "details (system)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeSystem_CPUExecutionCap:
+            strResult = QApplication::translate("UIDetails", "Execution Cap", "details (system)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeSystem_BootOrder:
+            strResult = QApplication::translate("UIDetails", "Boot Order", "details (system)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeSystem_ChipsetType:
+            strResult = QApplication::translate("UIDetails", "Chipset Type", "details (system)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeSystem_TpmType:
+            strResult = QApplication::translate("UIDetails", "TPM Type", "details (system)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeSystem_Firmware:
+            strResult = QApplication::translate("UIDetails", "EFI", "details (system)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeSystem_SecureBoot:
+            strResult = QApplication::translate("UIDetails", "Secure Boot", "details (system)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeSystem_Acceleration:
+            strResult = QApplication::translate("UIDetails", "Acceleration", "details (system)"); break;
         default:
         {
             AssertMsgFailed(("No text for details element option type=%d", enmDetailsElementOptionTypeSystem));
@@ -1099,7 +1068,7 @@ template<> QString toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeS
 }
 
 /* QString <= UIExtraDataMetaDefs::DetailsElementOptionTypeSystem: */
-template<> QString toInternalString(const UIExtraDataMetaDefs::DetailsElementOptionTypeSystem &enmDetailsElementOptionTypeSystem)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIExtraDataMetaDefs::DetailsElementOptionTypeSystem &enmDetailsElementOptionTypeSystem) const
 {
     QString strResult;
     switch (enmDetailsElementOptionTypeSystem)
@@ -1123,8 +1092,8 @@ template<> QString toInternalString(const UIExtraDataMetaDefs::DetailsElementOpt
 }
 
 /* UIExtraDataMetaDefs::DetailsElementOptionTypeSystem <= QString: */
-template<> UIExtraDataMetaDefs::DetailsElementOptionTypeSystem
-fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeSystem>(const QString &strDetailsElementOptionTypeSystem)
+template<> SHARED_LIBRARY_STUFF UIExtraDataMetaDefs::DetailsElementOptionTypeSystem
+UIConverter::fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeSystem>(const QString &strDetailsElementOptionTypeSystem) const
 {
     if (strDetailsElementOptionTypeSystem.compare("RAM", Qt::CaseInsensitive) == 0)
         return UIExtraDataMetaDefs::DetailsElementOptionTypeSystem_RAM;
@@ -1148,18 +1117,25 @@ fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeSystem>(const QS
 }
 
 /* QString <= UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay: */
-template<> QString toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay &enmDetailsElementOptionTypeDisplay)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay &enmDetailsElementOptionTypeDisplay) const
 {
     QString strResult;
     switch (enmDetailsElementOptionTypeDisplay)
     {
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay_VRAM:               strResult = QApplication::translate("UICommon", "VRAM"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay_ScreenCount:        strResult = QApplication::translate("UICommon", "Screen Count"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay_ScaleFactor:        strResult = QApplication::translate("UICommon", "Scale Factor"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay_GraphicsController: strResult = QApplication::translate("UICommon", "Graphics Controller"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay_Acceleration:       strResult = QApplication::translate("UICommon", "Acceleration"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay_VRDE:               strResult = QApplication::translate("UICommon", "VRDE"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay_Recording:          strResult = QApplication::translate("UICommon", "Recording"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay_VRAM:
+            strResult = QApplication::translate("UIDetails", "Video Memory", "details (display)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay_ScreenCount:
+            strResult = QApplication::translate("UIDetails", "Screens", "details (display)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay_ScaleFactor:
+            strResult = QApplication::translate("UIDetails", "Scale-factor", "details (display)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay_GraphicsController:
+            strResult = QApplication::translate("UIDetails", "Graphics Controller", "details (display)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay_Acceleration:
+            strResult = QApplication::translate("UIDetails", "Acceleration", "details (display)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay_VRDE:
+            strResult = QApplication::translate("UIDetails", "Remote Desktop Server", "details (display/vrde)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay_Recording:
+            strResult = QApplication::translate("UIDetails", "Recording", "details (display/recording)"); break;
         default:
         {
             AssertMsgFailed(("No text for details element option type=%d", enmDetailsElementOptionTypeDisplay));
@@ -1170,7 +1146,7 @@ template<> QString toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeD
 }
 
 /* QString <= UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay: */
-template<> QString toInternalString(const UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay &enmDetailsElementOptionTypeDisplay)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay &enmDetailsElementOptionTypeDisplay) const
 {
     QString strResult;
     switch (enmDetailsElementOptionTypeDisplay)
@@ -1192,8 +1168,8 @@ template<> QString toInternalString(const UIExtraDataMetaDefs::DetailsElementOpt
 }
 
 /* UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay <= QString: */
-template<> UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay
-fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay>(const QString &strDetailsElementOptionTypeDisplay)
+template<> SHARED_LIBRARY_STUFF UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay
+UIConverter::fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay>(const QString &strDetailsElementOptionTypeDisplay) const
 {
     if (strDetailsElementOptionTypeDisplay.compare("VRAM", Qt::CaseInsensitive) == 0)
         return UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay_VRAM;
@@ -1213,14 +1189,17 @@ fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay>(const Q
 }
 
 /* QString <= UIExtraDataMetaDefs::DetailsElementOptionTypeStorage: */
-template<> QString toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeStorage &enmDetailsElementOptionTypeStorage)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeStorage &enmDetailsElementOptionTypeStorage) const
 {
     QString strResult;
     switch (enmDetailsElementOptionTypeStorage)
     {
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeStorage_HardDisks:      strResult = QApplication::translate("UICommon", "Hard Disks"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeStorage_OpticalDevices: strResult = QApplication::translate("UICommon", "Optical Devices"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeStorage_FloppyDevices:  strResult = QApplication::translate("UICommon", "Floppy Devices"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeStorage_HardDisks:
+            strResult = QApplication::translate("UIDetails", "Hard Disks", "details (storage)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeStorage_OpticalDevices:
+            strResult = QApplication::translate("UIDetails", "Optical Devices", "details (storage)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeStorage_FloppyDevices:
+            strResult = QApplication::translate("UIDetails", "Floppy Devices", "details (storage)"); break;
         default:
         {
             AssertMsgFailed(("No text for details element option type=%d", enmDetailsElementOptionTypeStorage));
@@ -1231,7 +1210,7 @@ template<> QString toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeS
 }
 
 /* QString <= UIExtraDataMetaDefs::DetailsElementOptionTypeStorage: */
-template<> QString toInternalString(const UIExtraDataMetaDefs::DetailsElementOptionTypeStorage &enmDetailsElementOptionTypeStorage)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIExtraDataMetaDefs::DetailsElementOptionTypeStorage &enmDetailsElementOptionTypeStorage) const
 {
     QString strResult;
     switch (enmDetailsElementOptionTypeStorage)
@@ -1249,8 +1228,8 @@ template<> QString toInternalString(const UIExtraDataMetaDefs::DetailsElementOpt
 }
 
 /* UIExtraDataMetaDefs::DetailsElementOptionTypeStorage <= QString: */
-template<> UIExtraDataMetaDefs::DetailsElementOptionTypeStorage
-fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeStorage>(const QString &strDetailsElementOptionTypeStorage)
+template<> SHARED_LIBRARY_STUFF UIExtraDataMetaDefs::DetailsElementOptionTypeStorage
+UIConverter::fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeStorage>(const QString &strDetailsElementOptionTypeStorage) const
 {
     if (strDetailsElementOptionTypeStorage.compare("HardDisks", Qt::CaseInsensitive) == 0)
         return UIExtraDataMetaDefs::DetailsElementOptionTypeStorage_HardDisks;
@@ -1262,14 +1241,17 @@ fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeStorage>(const Q
 }
 
 /* QString <= UIExtraDataMetaDefs::DetailsElementOptionTypeAudio: */
-template<> QString toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeAudio &enmDetailsElementOptionTypeAudio)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeAudio &enmDetailsElementOptionTypeAudio) const
 {
     QString strResult;
     switch (enmDetailsElementOptionTypeAudio)
     {
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeAudio_Driver:     strResult = QApplication::translate("UICommon", "Driver"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeAudio_Controller: strResult = QApplication::translate("UICommon", "Controller"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeAudio_IO:         strResult = QApplication::translate("UICommon", "Input/Output"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeAudio_Driver:
+            strResult = QApplication::translate("UIDetails", "Host Driver", "details (audio)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeAudio_Controller:
+            strResult = QApplication::translate("UIDetails", "Controller", "details (audio)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeAudio_IO:
+            strResult = QApplication::translate("UIDetails", "Input/Output", "details (audio)"); break;
         default:
         {
             AssertMsgFailed(("No text for details element option type=%d", enmDetailsElementOptionTypeAudio));
@@ -1280,7 +1262,7 @@ template<> QString toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeA
 }
 
 /* QString <= UIExtraDataMetaDefs::DetailsElementOptionTypeAudio: */
-template<> QString toInternalString(const UIExtraDataMetaDefs::DetailsElementOptionTypeAudio &enmDetailsElementOptionTypeAudio)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIExtraDataMetaDefs::DetailsElementOptionTypeAudio &enmDetailsElementOptionTypeAudio) const
 {
     QString strResult;
     switch (enmDetailsElementOptionTypeAudio)
@@ -1298,8 +1280,8 @@ template<> QString toInternalString(const UIExtraDataMetaDefs::DetailsElementOpt
 }
 
 /* UIExtraDataMetaDefs::DetailsElementOptionTypeAudio <= QString: */
-template<> UIExtraDataMetaDefs::DetailsElementOptionTypeAudio
-fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeAudio>(const QString &strDetailsElementOptionTypeAudio)
+template<> SHARED_LIBRARY_STUFF UIExtraDataMetaDefs::DetailsElementOptionTypeAudio
+UIConverter::fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeAudio>(const QString &strDetailsElementOptionTypeAudio) const
 {
     if (strDetailsElementOptionTypeAudio.compare("Driver", Qt::CaseInsensitive) == 0)
         return UIExtraDataMetaDefs::DetailsElementOptionTypeAudio_Driver;
@@ -1311,23 +1293,32 @@ fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeAudio>(const QSt
 }
 
 /* QString <= UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork: */
-template<> QString toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork &enmDetailsElementOptionTypeNetwork)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork &enmDetailsElementOptionTypeNetwork) const
 {
     QString strResult;
     switch (enmDetailsElementOptionTypeNetwork)
     {
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork_NotAttached:     strResult = QApplication::translate("UICommon", "Not Attached", "network adapter"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork_NAT:             strResult = QApplication::translate("UICommon", "NAT"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork_BridgedAdapter:  strResult = QApplication::translate("UICommon", "Bridged Adapter"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork_InternalNetwork: strResult = QApplication::translate("UICommon", "Internal Network"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork_HostOnlyAdapter: strResult = QApplication::translate("UICommon", "Host Only Adapter"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork_GenericDriver:   strResult = QApplication::translate("UICommon", "Generic Driver"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork_NATNetwork:      strResult = QApplication::translate("UICommon", "NAT Network"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork_NotAttached:
+            strResult = QApplication::translate("UIDetails", "Not Attached", "details (network adapter)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork_NAT:
+            strResult = QApplication::translate("UIDetails", "NAT", "details (network)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork_BridgedAdapter:
+            strResult = QApplication::translate("UIDetails", "Bridged Adapter", "details (network)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork_InternalNetwork:
+            strResult = QApplication::translate("UIDetails", "Internal Network", "details (network)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork_HostOnlyAdapter:
+            strResult = QApplication::translate("UIDetails", "Host-only Adapter", "details (network)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork_GenericDriver:
+            strResult = QApplication::translate("UIDetails", "Generic Driver", "details (network)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork_NATNetwork:
+            strResult = QApplication::translate("UIDetails", "NAT Network", "details (network)"); break;
 #ifdef VBOX_WITH_CLOUD_NET
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork_CloudNetwork:    strResult = QApplication::translate("UICommon", "Cloud Network"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork_CloudNetwork:
+            strResult = QApplication::translate("UIDetails", "Cloud Network", "details (network)"); break;
 #endif
 #ifdef VBOX_WITH_VMNET
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork_HostOnlyNetwork: strResult = QApplication::translate("UICommon", "Host Only Network"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork_HostOnlyNetwork:
+            strResult = QApplication::translate("UIDetails", "Host-only Network", "details (network)"); break;
 #endif
         default:
         {
@@ -1339,7 +1330,7 @@ template<> QString toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeN
 }
 
 /* QString <= UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork: */
-template<> QString toInternalString(const UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork &enmDetailsElementOptionTypeNetwork)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork &enmDetailsElementOptionTypeNetwork) const
 {
     QString strResult;
     switch (enmDetailsElementOptionTypeNetwork)
@@ -1367,8 +1358,8 @@ template<> QString toInternalString(const UIExtraDataMetaDefs::DetailsElementOpt
 }
 
 /* UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork <= QString: */
-template<> UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork
-fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork>(const QString &strDetailsElementOptionTypeNetwork)
+template<> SHARED_LIBRARY_STUFF UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork
+UIConverter::fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork>(const QString &strDetailsElementOptionTypeNetwork) const
 {
     if (strDetailsElementOptionTypeNetwork.compare("NotAttached", Qt::CaseInsensitive) == 0)
         return UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork_NotAttached;
@@ -1396,16 +1387,21 @@ fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork>(const Q
 }
 
 /* QString <= UIExtraDataMetaDefs::DetailsElementOptionTypeSerial: */
-template<> QString toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeSerial &enmDetailsElementOptionTypeSerial)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeSerial &enmDetailsElementOptionTypeSerial) const
 {
     QString strResult;
     switch (enmDetailsElementOptionTypeSerial)
     {
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeSerial_Disconnected: strResult = QApplication::translate("UICommon", "Disconnected", "serial port"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeSerial_HostPipe:     strResult = QApplication::translate("UICommon", "Host Pipe"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeSerial_HostDevice:   strResult = QApplication::translate("UICommon", "Host Device"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeSerial_RawFile:      strResult = QApplication::translate("UICommon", "Raw File"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeSerial_TCP:          strResult = QApplication::translate("UICommon", "TCP"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeSerial_Disconnected:
+            strResult = QApplication::translate("UIDetails", "Disconnected", "details (serial port)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeSerial_HostPipe:
+            strResult = QApplication::translate("UIDetails", "Host Pipe", "details (serial)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeSerial_HostDevice:
+            strResult = QApplication::translate("UIDetails", "Host Device", "details (serial)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeSerial_RawFile:
+            strResult = QApplication::translate("UIDetails", "Raw File", "details (serial)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeSerial_TCP:
+            strResult = QApplication::translate("UIDetails", "TCP", "details (serial)"); break;
         default:
         {
             AssertMsgFailed(("No text for details element option type=%d", enmDetailsElementOptionTypeSerial));
@@ -1416,7 +1412,7 @@ template<> QString toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeS
 }
 
 /* QString <= UIExtraDataMetaDefs::DetailsElementOptionTypeSerial: */
-template<> QString toInternalString(const UIExtraDataMetaDefs::DetailsElementOptionTypeSerial &enmDetailsElementOptionTypeSerial)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIExtraDataMetaDefs::DetailsElementOptionTypeSerial &enmDetailsElementOptionTypeSerial) const
 {
     QString strResult;
     switch (enmDetailsElementOptionTypeSerial)
@@ -1436,8 +1432,8 @@ template<> QString toInternalString(const UIExtraDataMetaDefs::DetailsElementOpt
 }
 
 /* UIExtraDataMetaDefs::DetailsElementOptionTypeSerial <= QString: */
-template<> UIExtraDataMetaDefs::DetailsElementOptionTypeSerial
-fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeSerial>(const QString &strDetailsElementOptionTypeSerial)
+template<> SHARED_LIBRARY_STUFF UIExtraDataMetaDefs::DetailsElementOptionTypeSerial
+UIConverter::fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeSerial>(const QString &strDetailsElementOptionTypeSerial) const
 {
     if (strDetailsElementOptionTypeSerial.compare("Disconnected", Qt::CaseInsensitive) == 0)
         return UIExtraDataMetaDefs::DetailsElementOptionTypeSerial_Disconnected;
@@ -1453,13 +1449,15 @@ fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeSerial>(const QS
 }
 
 /* QString <= UIExtraDataMetaDefs::DetailsElementOptionTypeUsb: */
-template<> QString toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeUsb &enmDetailsElementOptionTypeUsb)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeUsb &enmDetailsElementOptionTypeUsb) const
 {
     QString strResult;
     switch (enmDetailsElementOptionTypeUsb)
     {
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeUsb_Controller:    strResult = QApplication::translate("UICommon", "Controller"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeUsb_DeviceFilters: strResult = QApplication::translate("UICommon", "Device Filters"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeUsb_Controller:
+            strResult = QApplication::translate("UIDetails", "USB Controller", "details (usb)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeUsb_DeviceFilters:
+            strResult = QApplication::translate("UIDetails", "Device Filters", "details (usb)"); break;
         default:
         {
             AssertMsgFailed(("No text for details element option type=%d", enmDetailsElementOptionTypeUsb));
@@ -1470,7 +1468,7 @@ template<> QString toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeU
 }
 
 /* QString <= UIExtraDataMetaDefs::DetailsElementOptionTypeUsb: */
-template<> QString toInternalString(const UIExtraDataMetaDefs::DetailsElementOptionTypeUsb &enmDetailsElementOptionTypeUsb)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIExtraDataMetaDefs::DetailsElementOptionTypeUsb &enmDetailsElementOptionTypeUsb) const
 {
     QString strResult;
     switch (enmDetailsElementOptionTypeUsb)
@@ -1487,8 +1485,8 @@ template<> QString toInternalString(const UIExtraDataMetaDefs::DetailsElementOpt
 }
 
 /* UIExtraDataMetaDefs::DetailsElementOptionTypeUsb <= QString: */
-template<> UIExtraDataMetaDefs::DetailsElementOptionTypeUsb
-fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeUsb>(const QString &strDetailsElementOptionTypeUsb)
+template<> SHARED_LIBRARY_STUFF UIExtraDataMetaDefs::DetailsElementOptionTypeUsb
+UIConverter::fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeUsb>(const QString &strDetailsElementOptionTypeUsb) const
 {
     if (strDetailsElementOptionTypeUsb.compare("Controller", Qt::CaseInsensitive) == 0)
         return UIExtraDataMetaDefs::DetailsElementOptionTypeUsb_Controller;
@@ -1498,7 +1496,7 @@ fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeUsb>(const QStri
 }
 
 /* QString <= UIExtraDataMetaDefs::DetailsElementOptionTypeSharedFolders: */
-template<> QString toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeSharedFolders &enmDetailsElementOptionTypeSharedFolders)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeSharedFolders &enmDetailsElementOptionTypeSharedFolders) const
 {
     QString strResult;
     switch (enmDetailsElementOptionTypeSharedFolders)
@@ -1513,7 +1511,7 @@ template<> QString toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeS
 }
 
 /* QString <= UIExtraDataMetaDefs::DetailsElementOptionTypeSharedFolders: */
-template<> QString toInternalString(const UIExtraDataMetaDefs::DetailsElementOptionTypeSharedFolders &enmDetailsElementOptionTypeSharedFolders)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIExtraDataMetaDefs::DetailsElementOptionTypeSharedFolders &enmDetailsElementOptionTypeSharedFolders) const
 {
     QString strResult;
     switch (enmDetailsElementOptionTypeSharedFolders)
@@ -1528,23 +1526,27 @@ template<> QString toInternalString(const UIExtraDataMetaDefs::DetailsElementOpt
 }
 
 /* UIExtraDataMetaDefs::DetailsElementOptionTypeSharedFolders <= QString: */
-template<> UIExtraDataMetaDefs::DetailsElementOptionTypeSharedFolders
-fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeSharedFolders>(const QString &strDetailsElementOptionTypeSharedFolders)
+template<> SHARED_LIBRARY_STUFF UIExtraDataMetaDefs::DetailsElementOptionTypeSharedFolders
+UIConverter::fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeSharedFolders>(const QString &strDetailsElementOptionTypeSharedFolders) const
 {
     RT_NOREF(strDetailsElementOptionTypeSharedFolders);
     return UIExtraDataMetaDefs::DetailsElementOptionTypeSharedFolders_Invalid;
 }
 
 /* QString <= UIExtraDataMetaDefs::DetailsElementOptionTypeUserInterface: */
-template<> QString toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeUserInterface &enmDetailsElementOptionTypeUserInterface)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeUserInterface &enmDetailsElementOptionTypeUserInterface) const
 {
     QString strResult;
     switch (enmDetailsElementOptionTypeUserInterface)
     {
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeUserInterface_VisualState: strResult = QApplication::translate("UICommon", "Visual State"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeUserInterface_MenuBar:     strResult = QApplication::translate("UICommon", "Menu Bar"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeUserInterface_StatusBar:   strResult = QApplication::translate("UICommon", "Status Bar"); break;
-        case UIExtraDataMetaDefs::DetailsElementOptionTypeUserInterface_MiniToolbar: strResult = QApplication::translate("UICommon", "Mini Toolbar"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeUserInterface_VisualState:
+            strResult = QApplication::translate("UIDetails", "Visual State", "details (user interface)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeUserInterface_MenuBar:
+            strResult = QApplication::translate("UIDetails", "Menu-bar", "details (user interface)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeUserInterface_StatusBar:
+            strResult = QApplication::translate("UIDetails", "Status-bar", "details (user interface)"); break;
+        case UIExtraDataMetaDefs::DetailsElementOptionTypeUserInterface_MiniToolbar:
+            strResult = QApplication::translate("UIDetails", "Mini-toolbar", "details (user interface)"); break;
         default:
         {
             AssertMsgFailed(("No text for details element option type=%d", enmDetailsElementOptionTypeUserInterface));
@@ -1555,7 +1557,7 @@ template<> QString toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeU
 }
 
 /* QString <= UIExtraDataMetaDefs::DetailsElementOptionTypeUserInterface: */
-template<> QString toInternalString(const UIExtraDataMetaDefs::DetailsElementOptionTypeUserInterface &enmDetailsElementOptionTypeUserInterface)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIExtraDataMetaDefs::DetailsElementOptionTypeUserInterface &enmDetailsElementOptionTypeUserInterface) const
 {
     QString strResult;
     switch (enmDetailsElementOptionTypeUserInterface)
@@ -1574,8 +1576,8 @@ template<> QString toInternalString(const UIExtraDataMetaDefs::DetailsElementOpt
 }
 
 /* UIExtraDataMetaDefs::DetailsElementOptionTypeUserInterface <= QString: */
-template<> UIExtraDataMetaDefs::DetailsElementOptionTypeUserInterface
-fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeUserInterface>(const QString &strDetailsElementOptionTypeUserInterface)
+template<> SHARED_LIBRARY_STUFF UIExtraDataMetaDefs::DetailsElementOptionTypeUserInterface
+UIConverter::fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeUserInterface>(const QString &strDetailsElementOptionTypeUserInterface) const
 {
     if (strDetailsElementOptionTypeUserInterface.compare("VisualState", Qt::CaseInsensitive) == 0)
         return UIExtraDataMetaDefs::DetailsElementOptionTypeUserInterface_VisualState;
@@ -1589,7 +1591,7 @@ fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeUserInterface>(c
 }
 
 /* QString <= UIExtraDataMetaDefs::DetailsElementOptionTypeDescription: */
-template<> QString toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeDescription &enmDetailsElementOptionTypeDescription)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeDescription &enmDetailsElementOptionTypeDescription) const
 {
     QString strResult;
     switch (enmDetailsElementOptionTypeDescription)
@@ -1604,7 +1606,7 @@ template<> QString toString(const UIExtraDataMetaDefs::DetailsElementOptionTypeD
 }
 
 /* QString <= UIExtraDataMetaDefs::DetailsElementOptionTypeDescription: */
-template<> QString toInternalString(const UIExtraDataMetaDefs::DetailsElementOptionTypeDescription &enmDetailsElementOptionTypeDescription)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIExtraDataMetaDefs::DetailsElementOptionTypeDescription &enmDetailsElementOptionTypeDescription) const
 {
     QString strResult;
     switch (enmDetailsElementOptionTypeDescription)
@@ -1619,15 +1621,15 @@ template<> QString toInternalString(const UIExtraDataMetaDefs::DetailsElementOpt
 }
 
 /* UIExtraDataMetaDefs::DetailsElementOptionTypeDescription <= QString: */
-template<> UIExtraDataMetaDefs::DetailsElementOptionTypeDescription
-fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeDescription>(const QString &strDetailsElementOptionTypeDescription)
+template<> SHARED_LIBRARY_STUFF UIExtraDataMetaDefs::DetailsElementOptionTypeDescription
+UIConverter::fromInternalString<UIExtraDataMetaDefs::DetailsElementOptionTypeDescription>(const QString &strDetailsElementOptionTypeDescription) const
 {
     RT_NOREF(strDetailsElementOptionTypeDescription);
     return UIExtraDataMetaDefs::DetailsElementOptionTypeDescription_Invalid;
 }
 
 /* QString <= UIColorThemeType: */
-template<> QString toString(const UIColorThemeType &colorThemeType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toString(const UIColorThemeType &colorThemeType) const
 {
     QString strResult;
     switch (colorThemeType)
@@ -1645,7 +1647,7 @@ template<> QString toString(const UIColorThemeType &colorThemeType)
 }
 
 /* QString <= UIColorThemeType: */
-template<> QString toInternalString(const UIColorThemeType &colorThemeType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIColorThemeType &colorThemeType) const
 {
     QString strResult;
     switch (colorThemeType)
@@ -1663,7 +1665,7 @@ template<> QString toInternalString(const UIColorThemeType &colorThemeType)
 }
 
 /* UIColorThemeType <= QString: */
-template<> UIColorThemeType fromInternalString<UIColorThemeType>(const QString &strColorThemeType)
+template<> UIColorThemeType SHARED_LIBRARY_STUFF UIConverter::fromInternalString<UIColorThemeType>(const QString &strColorThemeType) const
 {
     if (strColorThemeType.compare("Light", Qt::CaseInsensitive) == 0)
         return UIColorThemeType_Light;
@@ -1673,7 +1675,7 @@ template<> UIColorThemeType fromInternalString<UIColorThemeType>(const QString &
 }
 
 /* UILaunchMode <= QString: */
-template<> UILaunchMode fromInternalString<UILaunchMode>(const QString &strDefaultFrontendType)
+template<> UILaunchMode SHARED_LIBRARY_STUFF UIConverter::fromInternalString<UILaunchMode>(const QString &strDefaultFrontendType) const
 {
     if (strDefaultFrontendType.compare("Default", Qt::CaseInsensitive) == 0)
         return UILaunchMode_Default;
@@ -1685,7 +1687,7 @@ template<> UILaunchMode fromInternalString<UILaunchMode>(const QString &strDefau
 }
 
 /* QString <= UIToolType: */
-template<> QString toInternalString(const UIToolType &enmToolType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIToolType &enmToolType) const
 {
     QString strResult;
     switch (enmToolType)
@@ -1712,7 +1714,7 @@ template<> QString toInternalString(const UIToolType &enmToolType)
 }
 
 /* UIToolType <= QString: */
-template<> UIToolType fromInternalString<UIToolType>(const QString &strToolType)
+template<> SHARED_LIBRARY_STUFF UIToolType UIConverter::fromInternalString<UIToolType>(const QString &strToolType) const
 {
     if (strToolType.compare("Welcome", Qt::CaseInsensitive) == 0)
         return UIToolType_Welcome;
@@ -1742,7 +1744,7 @@ template<> UIToolType fromInternalString<UIToolType>(const QString &strToolType)
 }
 
 /* QString <= UIVisualStateType: */
-template<> QString toString(const UIVisualStateType &visualStateType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toString(const UIVisualStateType &visualStateType) const
 {
     QString strResult;
     switch (visualStateType)
@@ -1761,7 +1763,7 @@ template<> QString toString(const UIVisualStateType &visualStateType)
 }
 
 /* QString <= UIVisualStateType: */
-template<> QString toInternalString(const UIVisualStateType &visualStateType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIVisualStateType &visualStateType) const
 {
     QString strResult;
     switch (visualStateType)
@@ -1781,7 +1783,7 @@ template<> QString toInternalString(const UIVisualStateType &visualStateType)
 }
 
 /* UIVisualStateType <= QString: */
-template<> UIVisualStateType fromInternalString<UIVisualStateType>(const QString &strVisualStateType)
+template<> SHARED_LIBRARY_STUFF UIVisualStateType UIConverter::fromInternalString<UIVisualStateType>(const QString &strVisualStateType) const
 {
     if (strVisualStateType.compare("Normal", Qt::CaseInsensitive) == 0)
         return UIVisualStateType_Normal;
@@ -1797,7 +1799,7 @@ template<> UIVisualStateType fromInternalString<UIVisualStateType>(const QString
 }
 
 /* QString <= DetailsElementType: */
-template<> QString toString(const DetailsElementType &detailsElementType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toString(const DetailsElementType &detailsElementType) const
 {
     QString strResult;
     switch (detailsElementType)
@@ -1824,7 +1826,7 @@ template<> QString toString(const DetailsElementType &detailsElementType)
 }
 
 /* DetailsElementType <= QString: */
-template<> DetailsElementType fromString<DetailsElementType>(const QString &strDetailsElementType)
+template<> SHARED_LIBRARY_STUFF DetailsElementType UIConverter::fromString<DetailsElementType>(const QString &strDetailsElementType) const
 {
     if (strDetailsElementType.compare(QApplication::translate("UICommon", "General", "DetailsElementType"), Qt::CaseInsensitive) == 0)
         return DetailsElementType_General;
@@ -1854,7 +1856,7 @@ template<> DetailsElementType fromString<DetailsElementType>(const QString &strD
 }
 
 /* QString <= DetailsElementType: */
-template<> QString toInternalString(const DetailsElementType &detailsElementType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const DetailsElementType &detailsElementType) const
 {
     QString strResult;
     switch (detailsElementType)
@@ -1881,7 +1883,7 @@ template<> QString toInternalString(const DetailsElementType &detailsElementType
 }
 
 /* DetailsElementType <= QString: */
-template<> DetailsElementType fromInternalString<DetailsElementType>(const QString &strDetailsElementType)
+template<> SHARED_LIBRARY_STUFF DetailsElementType UIConverter::fromInternalString<DetailsElementType>(const QString &strDetailsElementType) const
 {
     if (strDetailsElementType.compare("general", Qt::CaseInsensitive) == 0)
         return DetailsElementType_General;
@@ -1911,7 +1913,7 @@ template<> DetailsElementType fromInternalString<DetailsElementType>(const QStri
 }
 
 /* QIcon <= DetailsElementType: */
-template<> QIcon toIcon(const DetailsElementType &detailsElementType)
+template<> SHARED_LIBRARY_STUFF QIcon UIConverter::toIcon(const DetailsElementType &detailsElementType) const
 {
     switch (detailsElementType)
     {
@@ -1937,7 +1939,7 @@ template<> QIcon toIcon(const DetailsElementType &detailsElementType)
 }
 
 /* QString <= PreviewUpdateIntervalType: */
-template<> QString toInternalString(const PreviewUpdateIntervalType &previewUpdateIntervalType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const PreviewUpdateIntervalType &previewUpdateIntervalType) const
 {
     /* Return corresponding QString representation for passed enum value: */
     switch (previewUpdateIntervalType)
@@ -1955,7 +1957,7 @@ template<> QString toInternalString(const PreviewUpdateIntervalType &previewUpda
 }
 
 /* PreviewUpdateIntervalType <= QString: */
-template<> PreviewUpdateIntervalType fromInternalString<PreviewUpdateIntervalType>(const QString &strPreviewUpdateIntervalType)
+template<> SHARED_LIBRARY_STUFF PreviewUpdateIntervalType UIConverter::fromInternalString<PreviewUpdateIntervalType>(const QString &strPreviewUpdateIntervalType) const
 {
     if (strPreviewUpdateIntervalType.compare("disabled", Qt::CaseInsensitive) == 0)
         return PreviewUpdateIntervalType_Disabled;
@@ -1974,7 +1976,7 @@ template<> PreviewUpdateIntervalType fromInternalString<PreviewUpdateIntervalTyp
 }
 
 /* int <= PreviewUpdateIntervalType: */
-template<> int toInternalInteger(const PreviewUpdateIntervalType &previewUpdateIntervalType)
+template<> SHARED_LIBRARY_STUFF int UIConverter::toInternalInteger(const PreviewUpdateIntervalType &previewUpdateIntervalType) const
 {
     /* Return corresponding integer representation for passed enum value: */
     switch (previewUpdateIntervalType)
@@ -1992,7 +1994,7 @@ template<> int toInternalInteger(const PreviewUpdateIntervalType &previewUpdateI
 }
 
 /* PreviewUpdateIntervalType <= int: */
-template<> PreviewUpdateIntervalType fromInternalInteger<PreviewUpdateIntervalType>(const int &iPreviewUpdateIntervalType)
+template<> SHARED_LIBRARY_STUFF PreviewUpdateIntervalType UIConverter::fromInternalInteger<PreviewUpdateIntervalType>(const int &iPreviewUpdateIntervalType) const
 {
     /* Add all the enum values into the hash: */
     QHash<int, PreviewUpdateIntervalType> hash;
@@ -2010,7 +2012,7 @@ template<> PreviewUpdateIntervalType fromInternalInteger<PreviewUpdateIntervalTy
 }
 
 /* QString <= UIDiskEncryptionCipherType: */
-template<> QString toInternalString(const UIDiskEncryptionCipherType &enmDiskEncryptionCipherType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIDiskEncryptionCipherType &enmDiskEncryptionCipherType) const
 {
     switch (enmDiskEncryptionCipherType)
     {
@@ -2022,7 +2024,7 @@ template<> QString toInternalString(const UIDiskEncryptionCipherType &enmDiskEnc
 }
 
 /* UIDiskEncryptionCipherType <= QString: */
-template<> UIDiskEncryptionCipherType fromInternalString<UIDiskEncryptionCipherType>(const QString &strDiskEncryptionCipherType)
+template<> SHARED_LIBRARY_STUFF UIDiskEncryptionCipherType UIConverter::fromInternalString<UIDiskEncryptionCipherType>(const QString &strDiskEncryptionCipherType) const
 {
     if (strDiskEncryptionCipherType.compare("AES-XTS256-PLAIN64", Qt::CaseInsensitive) == 0)
         return UIDiskEncryptionCipherType_XTS256;
@@ -2032,7 +2034,7 @@ template<> UIDiskEncryptionCipherType fromInternalString<UIDiskEncryptionCipherT
 }
 
 /* QString <= UIDiskEncryptionCipherType: */
-template<> QString toString(const UIDiskEncryptionCipherType &enmDiskEncryptionCipherType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toString(const UIDiskEncryptionCipherType &enmDiskEncryptionCipherType) const
 {
     switch (enmDiskEncryptionCipherType)
     {
@@ -2044,7 +2046,7 @@ template<> QString toString(const UIDiskEncryptionCipherType &enmDiskEncryptionC
 }
 
 /* UIDiskEncryptionCipherType <= QString: */
-template<> UIDiskEncryptionCipherType fromString<UIDiskEncryptionCipherType>(const QString &strDiskEncryptionCipherType)
+template<> SHARED_LIBRARY_STUFF UIDiskEncryptionCipherType UIConverter::fromString<UIDiskEncryptionCipherType>(const QString &strDiskEncryptionCipherType) const
 {
     if (strDiskEncryptionCipherType.compare("AES-XTS256-PLAIN64", Qt::CaseInsensitive) == 0)
         return UIDiskEncryptionCipherType_XTS256;
@@ -2054,7 +2056,7 @@ template<> UIDiskEncryptionCipherType fromString<UIDiskEncryptionCipherType>(con
 }
 
 /* QString <= GUIFeatureType: */
-template<> QString toInternalString(const GUIFeatureType &guiFeatureType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const GUIFeatureType &guiFeatureType) const
 {
     QString strResult;
     switch (guiFeatureType)
@@ -2076,7 +2078,7 @@ template<> QString toInternalString(const GUIFeatureType &guiFeatureType)
 }
 
 /* GUIFeatureType <= QString: */
-template<> GUIFeatureType fromInternalString<GUIFeatureType>(const QString &strGuiFeatureType)
+template<> SHARED_LIBRARY_STUFF GUIFeatureType UIConverter::fromInternalString<GUIFeatureType>(const QString &strGuiFeatureType) const
 {
     if (strGuiFeatureType.compare("noSelector", Qt::CaseInsensitive) == 0)
         return GUIFeatureType_NoSelector;
@@ -2093,7 +2095,7 @@ template<> GUIFeatureType fromInternalString<GUIFeatureType>(const QString &strG
 }
 
 /* QString <= GlobalSettingsPageType: */
-template<> QString toInternalString(const GlobalSettingsPageType &globalSettingsPageType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const GlobalSettingsPageType &globalSettingsPageType) const
 {
     QString strResult;
     switch (globalSettingsPageType)
@@ -2119,7 +2121,7 @@ template<> QString toInternalString(const GlobalSettingsPageType &globalSettings
 }
 
 /* GlobalSettingsPageType <= QString: */
-template<> GlobalSettingsPageType fromInternalString<GlobalSettingsPageType>(const QString &strGlobalSettingsPageType)
+template<> SHARED_LIBRARY_STUFF GlobalSettingsPageType UIConverter::fromInternalString<GlobalSettingsPageType>(const QString &strGlobalSettingsPageType) const
 {
     if (strGlobalSettingsPageType.compare("General", Qt::CaseInsensitive) == 0)
         return GlobalSettingsPageType_General;
@@ -2143,7 +2145,7 @@ template<> GlobalSettingsPageType fromInternalString<GlobalSettingsPageType>(con
 }
 
 /* QPixmap <= GlobalSettingsPageType: */
-template<> QPixmap toWarningPixmap(const GlobalSettingsPageType &type)
+template<> SHARED_LIBRARY_STUFF QPixmap UIConverter::toWarningPixmap(const GlobalSettingsPageType &type) const
 {
     switch (type)
     {
@@ -2164,7 +2166,7 @@ template<> QPixmap toWarningPixmap(const GlobalSettingsPageType &type)
 }
 
 /* QString <= MachineSettingsPageType: */
-template<> QString toInternalString(const MachineSettingsPageType &machineSettingsPageType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const MachineSettingsPageType &machineSettingsPageType) const
 {
     QString strResult;
     switch (machineSettingsPageType)
@@ -2175,7 +2177,6 @@ template<> QString toInternalString(const MachineSettingsPageType &machineSettin
         case MachineSettingsPageType_Storage:   strResult = "Storage"; break;
         case MachineSettingsPageType_Audio:     strResult = "Audio"; break;
         case MachineSettingsPageType_Network:   strResult = "Network"; break;
-        case MachineSettingsPageType_Ports:     strResult = "Ports"; break;
         case MachineSettingsPageType_Serial:    strResult = "Serial"; break;
         case MachineSettingsPageType_USB:       strResult = "USB"; break;
         case MachineSettingsPageType_SF:        strResult = "SharedFolders"; break;
@@ -2190,7 +2191,7 @@ template<> QString toInternalString(const MachineSettingsPageType &machineSettin
 }
 
 /* MachineSettingsPageType <= QString: */
-template<> MachineSettingsPageType fromInternalString<MachineSettingsPageType>(const QString &strMachineSettingsPageType)
+template<> SHARED_LIBRARY_STUFF MachineSettingsPageType UIConverter::fromInternalString<MachineSettingsPageType>(const QString &strMachineSettingsPageType) const
 {
     if (strMachineSettingsPageType.compare("General", Qt::CaseInsensitive) == 0)
         return MachineSettingsPageType_General;
@@ -2204,8 +2205,6 @@ template<> MachineSettingsPageType fromInternalString<MachineSettingsPageType>(c
         return MachineSettingsPageType_Audio;
     if (strMachineSettingsPageType.compare("Network", Qt::CaseInsensitive) == 0)
         return MachineSettingsPageType_Network;
-    if (strMachineSettingsPageType.compare("Ports", Qt::CaseInsensitive) == 0)
-        return MachineSettingsPageType_Ports;
     if (strMachineSettingsPageType.compare("Serial", Qt::CaseInsensitive) == 0)
         return MachineSettingsPageType_Serial;
     if (strMachineSettingsPageType.compare("USB", Qt::CaseInsensitive) == 0)
@@ -2218,7 +2217,7 @@ template<> MachineSettingsPageType fromInternalString<MachineSettingsPageType>(c
 }
 
 /* QPixmap <= MachineSettingsPageType: */
-template<> QPixmap toWarningPixmap(const MachineSettingsPageType &type)
+template<> SHARED_LIBRARY_STUFF QPixmap UIConverter::toWarningPixmap(const MachineSettingsPageType &type) const
 {
     switch (type)
     {
@@ -2228,7 +2227,6 @@ template<> QPixmap toWarningPixmap(const MachineSettingsPageType &type)
         case MachineSettingsPageType_Storage:   return UIIconPool::pixmap(":/hd_warning_16px.png");
         case MachineSettingsPageType_Audio:     return UIIconPool::pixmap(":/sound_warning_16px.png");
         case MachineSettingsPageType_Network:   return UIIconPool::pixmap(":/nw_warning_16px.png");
-        case MachineSettingsPageType_Ports:     return UIIconPool::pixmap(":/serial_port_warning_16px.png");
         case MachineSettingsPageType_Serial:    return UIIconPool::pixmap(":/serial_port_warning_16px.png");
         case MachineSettingsPageType_USB:       return UIIconPool::pixmap(":/usb_warning_16px.png");
         case MachineSettingsPageType_SF:        return UIIconPool::pixmap(":/sf_warning_16px.png");
@@ -2239,7 +2237,7 @@ template<> QPixmap toWarningPixmap(const MachineSettingsPageType &type)
 }
 
 /* QString <= UIRemoteMode: */
-template<> QString toString(const UIRemoteMode &enmMode)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toString(const UIRemoteMode &enmMode) const
 {
     QString strResult;
     switch (enmMode)
@@ -2257,7 +2255,7 @@ template<> QString toString(const UIRemoteMode &enmMode)
 }
 
 /* QString <= WizardType: */
-template<> QString toInternalString(const WizardType &wizardType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const WizardType &wizardType) const
 {
     QString strResult;
     switch (wizardType)
@@ -2280,7 +2278,7 @@ template<> QString toInternalString(const WizardType &wizardType)
 }
 
 /* WizardType <= QString: */
-template<> WizardType fromInternalString<WizardType>(const QString &strWizardType)
+template<> SHARED_LIBRARY_STUFF WizardType UIConverter::fromInternalString<WizardType>(const QString &strWizardType) const
 {
     if (strWizardType.compare("NewVM", Qt::CaseInsensitive) == 0)
         return WizardType_NewVM;
@@ -2302,7 +2300,7 @@ template<> WizardType fromInternalString<WizardType>(const QString &strWizardTyp
 }
 
 /* QString <= IndicatorType: */
-template<> QString toInternalString(const IndicatorType &indicatorType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const IndicatorType &indicatorType) const
 {
     QString strResult;
     switch (indicatorType)
@@ -2329,7 +2327,7 @@ template<> QString toInternalString(const IndicatorType &indicatorType)
 }
 
 /* IndicatorType <= QString: */
-template<> IndicatorType fromInternalString<IndicatorType>(const QString &strIndicatorType)
+template<> SHARED_LIBRARY_STUFF IndicatorType UIConverter::fromInternalString<IndicatorType>(const QString &strIndicatorType) const
 {
     if (strIndicatorType.compare("HardDisks", Qt::CaseInsensitive) == 0)
         return IndicatorType_HardDisks;
@@ -2359,23 +2357,24 @@ template<> IndicatorType fromInternalString<IndicatorType>(const QString &strInd
 }
 
 /* QString <= IndicatorType: */
-template<> QString toString(const IndicatorType &indicatorType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toString(const IndicatorType &indicatorType) const
 {
     QString strResult;
     switch (indicatorType)
     {
-        case IndicatorType_HardDisks:     strResult = QApplication::translate("UICommon", "Hard Disks", "IndicatorType"); break;
-        case IndicatorType_OpticalDisks:  strResult = QApplication::translate("UICommon", "Optical Disks", "IndicatorType"); break;
-        case IndicatorType_FloppyDisks:   strResult = QApplication::translate("UICommon", "Floppy Disks", "IndicatorType"); break;
-        case IndicatorType_Audio:         strResult = QApplication::translate("UICommon", "Audio", "IndicatorType"); break;
-        case IndicatorType_Network:       strResult = QApplication::translate("UICommon", "Network", "IndicatorType"); break;
-        case IndicatorType_USB:           strResult = QApplication::translate("UICommon", "USB", "IndicatorType"); break;
-        case IndicatorType_SharedFolders: strResult = QApplication::translate("UICommon", "Shared Folders", "IndicatorType"); break;
-        case IndicatorType_Display:       strResult = QApplication::translate("UICommon", "Display", "IndicatorType"); break;
-        case IndicatorType_Recording:     strResult = QApplication::translate("UICommon", "Recording", "IndicatorType"); break;
-        case IndicatorType_Features:      strResult = QApplication::translate("UICommon", "Features", "IndicatorType"); break;
-        case IndicatorType_Mouse:         strResult = QApplication::translate("UICommon", "Mouse", "IndicatorType"); break;
-        case IndicatorType_Keyboard:      strResult = QApplication::translate("UICommon", "Keyboard", "IndicatorType"); break;
+        case IndicatorType_HardDisks:         strResult = QApplication::translate("UICommon", "Hard Disks", "IndicatorType"); break;
+        case IndicatorType_OpticalDisks:      strResult = QApplication::translate("UICommon", "Optical Disks", "IndicatorType"); break;
+        case IndicatorType_FloppyDisks:       strResult = QApplication::translate("UICommon", "Floppy Disks", "IndicatorType"); break;
+        case IndicatorType_Audio:             strResult = QApplication::translate("UICommon", "Audio", "IndicatorType"); break;
+        case IndicatorType_Network:           strResult = QApplication::translate("UICommon", "Network", "IndicatorType"); break;
+        case IndicatorType_USB:               strResult = QApplication::translate("UICommon", "USB", "IndicatorType"); break;
+        case IndicatorType_SharedFolders:     strResult = QApplication::translate("UICommon", "Shared Folders", "IndicatorType"); break;
+        case IndicatorType_Display:           strResult = QApplication::translate("UICommon", "Display", "IndicatorType"); break;
+        case IndicatorType_Recording:         strResult = QApplication::translate("UICommon", "Recording", "IndicatorType"); break;
+        case IndicatorType_Features:          strResult = QApplication::translate("UICommon", "Features", "IndicatorType"); break;
+        case IndicatorType_Mouse:             strResult = QApplication::translate("UICommon", "Mouse", "IndicatorType"); break;
+        case IndicatorType_Keyboard:          strResult = QApplication::translate("UICommon", "Keyboard", "IndicatorType"); break;
+        case IndicatorType_KeyboardExtension: strResult = QApplication::translate("UICommon", "Keyboard Extension", "IndicatorType"); break;
         default:
         {
             AssertMsgFailed(("No text for indicator type=%d", indicatorType));
@@ -2386,7 +2385,7 @@ template<> QString toString(const IndicatorType &indicatorType)
 }
 
 /* QIcon <= IndicatorType: */
-template<> QIcon toIcon(const IndicatorType &indicatorType)
+template<> SHARED_LIBRARY_STUFF QIcon UIConverter::toIcon(const IndicatorType &indicatorType) const
 {
     switch (indicatorType)
     {
@@ -2412,7 +2411,7 @@ template<> QIcon toIcon(const IndicatorType &indicatorType)
 }
 
 /* QString <= MachineCloseAction: */
-template<> QString toInternalString(const MachineCloseAction &machineCloseAction)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const MachineCloseAction &machineCloseAction) const
 {
     QString strResult;
     switch (machineCloseAction)
@@ -2432,7 +2431,7 @@ template<> QString toInternalString(const MachineCloseAction &machineCloseAction
 }
 
 /* MachineCloseAction <= QString: */
-template<> MachineCloseAction fromInternalString<MachineCloseAction>(const QString &strMachineCloseAction)
+template<> SHARED_LIBRARY_STUFF MachineCloseAction UIConverter::fromInternalString<MachineCloseAction>(const QString &strMachineCloseAction) const
 {
     if (strMachineCloseAction.compare("Detach", Qt::CaseInsensitive) == 0)
         return MachineCloseAction_Detach;
@@ -2448,7 +2447,7 @@ template<> MachineCloseAction fromInternalString<MachineCloseAction>(const QStri
 }
 
 /* QString <= MouseCapturePolicy: */
-template<> QString toInternalString(const MouseCapturePolicy &mouseCapturePolicy)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const MouseCapturePolicy &mouseCapturePolicy) const
 {
     /* Return corresponding QString representation for passed enum value: */
     switch (mouseCapturePolicy)
@@ -2463,7 +2462,7 @@ template<> QString toInternalString(const MouseCapturePolicy &mouseCapturePolicy
 }
 
 /* MouseCapturePolicy <= QString: */
-template<> MouseCapturePolicy fromInternalString<MouseCapturePolicy>(const QString &strMouseCapturePolicy)
+template<> SHARED_LIBRARY_STUFF MouseCapturePolicy UIConverter::fromInternalString<MouseCapturePolicy>(const QString &strMouseCapturePolicy) const
 {
     if (strMouseCapturePolicy.compare("Default", Qt::CaseInsensitive) == 0)
         return MouseCapturePolicy_Default;
@@ -2475,7 +2474,7 @@ template<> MouseCapturePolicy fromInternalString<MouseCapturePolicy>(const QStri
 }
 
 /* QString <= GuruMeditationHandlerType: */
-template<> QString toInternalString(const GuruMeditationHandlerType &guruMeditationHandlerType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const GuruMeditationHandlerType &guruMeditationHandlerType) const
 {
     QString strResult;
     switch (guruMeditationHandlerType)
@@ -2493,7 +2492,7 @@ template<> QString toInternalString(const GuruMeditationHandlerType &guruMeditat
 }
 
 /* GuruMeditationHandlerType <= QString: */
-template<> GuruMeditationHandlerType fromInternalString<GuruMeditationHandlerType>(const QString &strGuruMeditationHandlerType)
+template<> SHARED_LIBRARY_STUFF GuruMeditationHandlerType UIConverter::fromInternalString<GuruMeditationHandlerType>(const QString &strGuruMeditationHandlerType) const
 {
     if (strGuruMeditationHandlerType.compare("Default", Qt::CaseInsensitive) == 0)
         return GuruMeditationHandlerType_Default;
@@ -2505,7 +2504,7 @@ template<> GuruMeditationHandlerType fromInternalString<GuruMeditationHandlerTyp
 }
 
 /* QString <= ScalingOptimizationType: */
-template<> QString toInternalString(const ScalingOptimizationType &optimizationType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const ScalingOptimizationType &optimizationType) const
 {
     QString strResult;
     switch (optimizationType)
@@ -2522,7 +2521,7 @@ template<> QString toInternalString(const ScalingOptimizationType &optimizationT
 }
 
 /* ScalingOptimizationType <= QString: */
-template<> ScalingOptimizationType fromInternalString<ScalingOptimizationType>(const QString &strOptimizationType)
+template<> SHARED_LIBRARY_STUFF ScalingOptimizationType UIConverter::fromInternalString<ScalingOptimizationType>(const QString &strOptimizationType) const
 {
     if (strOptimizationType.compare("None", Qt::CaseInsensitive) == 0)
         return ScalingOptimizationType_None;
@@ -2534,7 +2533,7 @@ template<> ScalingOptimizationType fromInternalString<ScalingOptimizationType>(c
 #ifndef VBOX_WS_MAC
 
 /* QString <= MiniToolbarAlignment: */
-template<> QString toInternalString(const MiniToolbarAlignment &miniToolbarAlignment)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const MiniToolbarAlignment &miniToolbarAlignment) const
 {
     /* Return corresponding QString representation for passed enum value: */
     switch (miniToolbarAlignment)
@@ -2548,7 +2547,7 @@ template<> QString toInternalString(const MiniToolbarAlignment &miniToolbarAlign
 }
 
 /* MiniToolbarAlignment <= QString: */
-template<> MiniToolbarAlignment fromInternalString<MiniToolbarAlignment>(const QString &strMiniToolbarAlignment)
+template<> SHARED_LIBRARY_STUFF MiniToolbarAlignment UIConverter::fromInternalString<MiniToolbarAlignment>(const QString &strMiniToolbarAlignment) const
 {
     if (strMiniToolbarAlignment.compare("Bottom", Qt::CaseInsensitive) == 0)
         return MiniToolbarAlignment_Bottom;
@@ -2560,7 +2559,7 @@ template<> MiniToolbarAlignment fromInternalString<MiniToolbarAlignment>(const Q
 #endif /* !VBOX_WS_MAC */
 
 /* QString <= InformationElementType: */
-template<> QString toString(const InformationElementType &informationElementType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toString(const InformationElementType &informationElementType) const
 {
     QString strResult;
     switch (informationElementType)
@@ -2590,7 +2589,7 @@ template<> QString toString(const InformationElementType &informationElementType
 }
 
 /* InformationElementType <= QString: */
-template<> InformationElementType fromString<InformationElementType>(const QString &strInformationElementType)
+template<> SHARED_LIBRARY_STUFF InformationElementType UIConverter::fromString<InformationElementType>(const QString &strInformationElementType) const
 {
     if (strInformationElementType.compare(QApplication::translate("UICommon", "General", "InformationElementType"), Qt::CaseInsensitive) == 0)
         return InformationElementType_General;
@@ -2626,7 +2625,7 @@ template<> InformationElementType fromString<InformationElementType>(const QStri
 }
 
 /* QString <= InformationElementType: */
-template<> QString toInternalString(const InformationElementType &informationElementType)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const InformationElementType &informationElementType) const
 {
     QString strResult;
     switch (informationElementType)
@@ -2654,7 +2653,7 @@ template<> QString toInternalString(const InformationElementType &informationEle
 }
 
 /* InformationElementType <= QString: */
-template<> InformationElementType fromInternalString<InformationElementType>(const QString &strInformationElementType)
+template<> SHARED_LIBRARY_STUFF InformationElementType UIConverter::fromInternalString<InformationElementType>(const QString &strInformationElementType) const
 {
     if (strInformationElementType.compare("general", Qt::CaseInsensitive) == 0)
         return InformationElementType_General;
@@ -2686,7 +2685,7 @@ template<> InformationElementType fromInternalString<InformationElementType>(con
 }
 
 /* QIcon <= InformationElementType: */
-template<> QIcon toIcon(const InformationElementType &informationElementType)
+template<> SHARED_LIBRARY_STUFF QIcon UIConverter::toIcon(const InformationElementType &informationElementType) const
 {
     switch (informationElementType)
     {
@@ -2715,7 +2714,7 @@ template<> QIcon toIcon(const InformationElementType &informationElementType)
 }
 
 /* QString <= MaximumGuestScreenSizePolicy: */
-template<> QString toString(const MaximumGuestScreenSizePolicy &enmMaximumGuestScreenSizePolicy)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toString(const MaximumGuestScreenSizePolicy &enmMaximumGuestScreenSizePolicy) const
 {
     QString strResult;
     switch (enmMaximumGuestScreenSizePolicy)
@@ -2733,7 +2732,7 @@ template<> QString toString(const MaximumGuestScreenSizePolicy &enmMaximumGuestS
 }
 
 /* QString <= MaximumGuestScreenSizePolicy: */
-template<> QString toInternalString(const MaximumGuestScreenSizePolicy &enmMaximumGuestScreenSizePolicy)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const MaximumGuestScreenSizePolicy &enmMaximumGuestScreenSizePolicy) const
 {
     QString strResult;
     switch (enmMaximumGuestScreenSizePolicy)
@@ -2750,8 +2749,8 @@ template<> QString toInternalString(const MaximumGuestScreenSizePolicy &enmMaxim
 }
 
 /* MaximumGuestScreenSizePolicy <= QString: */
-template<> MaximumGuestScreenSizePolicy
-fromInternalString<MaximumGuestScreenSizePolicy>(const QString &strMaximumGuestScreenSizePolicy)
+template<> SHARED_LIBRARY_STUFF MaximumGuestScreenSizePolicy
+UIConverter::fromInternalString<MaximumGuestScreenSizePolicy>(const QString &strMaximumGuestScreenSizePolicy) const
 {
     if (   strMaximumGuestScreenSizePolicy.isEmpty()
         || strMaximumGuestScreenSizePolicy.compare("auto", Qt::CaseInsensitive) == 0)
@@ -2765,7 +2764,7 @@ fromInternalString<MaximumGuestScreenSizePolicy>(const QString &strMaximumGuestS
 }
 
 /* QString <= UIMediumFormat: */
-template<> QString toString(const UIMediumFormat &enmUIMediumFormat)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toString(const UIMediumFormat &enmUIMediumFormat) const
 {
     QString strResult;
     switch (enmUIMediumFormat)
@@ -2786,7 +2785,7 @@ template<> QString toString(const UIMediumFormat &enmUIMediumFormat)
 }
 
 /* QString <= UIMediumFormat: */
-template<> QString toInternalString(const UIMediumFormat &enmUIMediumFormat)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIMediumFormat &enmUIMediumFormat) const
 {
     QString strResult;
     switch (enmUIMediumFormat)
@@ -2807,7 +2806,7 @@ template<> QString toInternalString(const UIMediumFormat &enmUIMediumFormat)
 }
 
 /* UIMediumFormat <= QString: */
-template<> UIMediumFormat fromInternalString<UIMediumFormat>(const QString &strUIMediumFormat)
+template<> SHARED_LIBRARY_STUFF UIMediumFormat UIConverter::fromInternalString<UIMediumFormat>(const QString &strUIMediumFormat) const
 {
     if (strUIMediumFormat.compare("VDI", Qt::CaseInsensitive) == 0)
         return UIMediumFormat_VDI;
@@ -2825,7 +2824,7 @@ template<> UIMediumFormat fromInternalString<UIMediumFormat>(const QString &strU
 }
 
 /* QString <= UISettingsDefs::RecordingMode: */
-template<> QString toString(const UISettingsDefs::RecordingMode &enmRecordingMode)
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toString(const UISettingsDefs::RecordingMode &enmRecordingMode) const
 {
     QString strResult;
     switch (enmRecordingMode)
@@ -2843,7 +2842,8 @@ template<> QString toString(const UISettingsDefs::RecordingMode &enmRecordingMod
     return strResult;
 }
 
-template<> QString toInternalString(const VMActivityOverviewColumn &enmVMActivityOverviewColumn)
+/* QString <= VMActivityOverviewColumn: */
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const VMActivityOverviewColumn &enmVMActivityOverviewColumn) const
 {
     QString strResult;
     switch (enmVMActivityOverviewColumn)
@@ -2871,7 +2871,8 @@ template<> QString toInternalString(const VMActivityOverviewColumn &enmVMActivit
     return strResult;
 }
 
-template<> VMActivityOverviewColumn fromInternalString<VMActivityOverviewColumn>(const QString &strVMActivityOverviewColumn)
+/* VMActivityOverviewColumn <= QString: */
+template<> SHARED_LIBRARY_STUFF VMActivityOverviewColumn UIConverter::fromInternalString<VMActivityOverviewColumn>(const QString &strVMActivityOverviewColumn) const
 {
     if (strVMActivityOverviewColumn.compare("VMName", Qt::CaseInsensitive) == 0)
         return VMActivityOverviewColumn_Name;
@@ -2902,4 +2903,50 @@ template<> VMActivityOverviewColumn fromInternalString<VMActivityOverviewColumn>
     if (strVMActivityOverviewColumn.compare("VMExits", Qt::CaseInsensitive) == 0)
         return VMActivityOverviewColumn_VMExits;
     return VMActivityOverviewColumn_Max;
+}
+
+/* QString <= UIVRDESecurityMethod: */
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toString(const UIVRDESecurityMethod &enmSecurityMethod) const
+{
+    QString strResult;
+    switch (enmSecurityMethod)
+    {
+        case UIVRDESecurityMethod_TLS:       strResult = QApplication::translate("UICommon", "TLS"); break;
+        case UIVRDESecurityMethod_RDP:       strResult = QApplication::translate("UICommon", "RDP"); break;
+        case UIVRDESecurityMethod_Negotiate: strResult = QApplication::translate("UICommon", "NEGOTIATE"); break;
+        default:
+        {
+            AssertMsgFailed(("No text for security method=%d", enmSecurityMethod));
+            break;
+        }
+    }
+    return strResult;
+}
+
+/* QString <= UIVRDESecurityMethod: */
+template<> SHARED_LIBRARY_STUFF QString UIConverter::toInternalString(const UIVRDESecurityMethod &enmSecurityMethod) const
+{
+    QString strResult;
+    switch (enmSecurityMethod)
+    {
+        case UIVRDESecurityMethod_TLS:       strResult = QString("TLS"); break;
+        case UIVRDESecurityMethod_RDP:       strResult = QString("RDP"); break;
+        case UIVRDESecurityMethod_Negotiate: strResult = QString("NEGOTIATE"); break;
+        default:
+        {
+            AssertMsgFailed(("No text for security method=%d", enmSecurityMethod));
+            break;
+        }
+    }
+    return strResult;
+}
+
+/* UIVRDESecurityMethod <= QString: */
+template<> SHARED_LIBRARY_STUFF UIVRDESecurityMethod UIConverter::fromInternalString<UIVRDESecurityMethod>(const QString &strSecurityMethod) const
+{
+    if (strSecurityMethod.compare("RDP", Qt::CaseInsensitive) == 0)
+        return UIVRDESecurityMethod_RDP;
+    if (strSecurityMethod.compare("NEGOTIATE", Qt::CaseInsensitive) == 0)
+        return UIVRDESecurityMethod_Negotiate;
+    return UIVRDESecurityMethod_TLS;
 }

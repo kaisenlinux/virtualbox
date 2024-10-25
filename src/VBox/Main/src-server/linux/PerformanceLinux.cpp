@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -48,7 +48,7 @@
 #include "LoggingNew.h"
 #include "Performance.h"
 
-#define VBOXVOLINFO_NAME "VBoxVolInfo"
+#define VBOXVOLINFO_EXE_NAME "VBoxVolInfo"
 
 namespace pm {
 
@@ -523,15 +523,22 @@ void CollectorLinux::addRaidDisks(const char *pcszDevice, DiskList& listDisks)
 
 void CollectorLinux::addVolumeDependencies(const char *pcszVolume, DiskList& listDisks)
 {
+    /** @todo r=bird: This is presumptive and will misbehave if someone puts VBox
+     *        in directory which path contains spaces or other problematic
+     *        characters.  This is one of the reasons to avoid popen(). */
+    static const char s_szSlashExeNameSpace[] = "/" VBOXVOLINFO_EXE_NAME " ";
+    size_t const cchVolume = strlen(pcszVolume);
     char szVolInfo[RTPATH_MAX];
-    int vrc = RTPathAppPrivateArch(szVolInfo, sizeof(szVolInfo) - sizeof("/" VBOXVOLINFO_NAME " ") - strlen(pcszVolume));
+    int vrc = RTPathAppPrivateArch(szVolInfo, sizeof(szVolInfo) - sizeof(s_szSlashExeNameSpace) - cchVolume);
     if (RT_FAILURE(vrc))
     {
         LogRel(("VolInfo: Failed to get program path, vrc=%Rrc\n", vrc));
+        /** @todo r=bird: inconsistent failure behaviour. if popen fails, volume is
+         *        pushed onto the list, while here it isn't. */
         return;
     }
-    strcat(szVolInfo, "/" VBOXVOLINFO_NAME " ");
-    strcat(szVolInfo, pcszVolume);
+    memcpy(mempcpy(strchr(szVolInfo, '\0'), s_szSlashExeNameSpace, sizeof(s_szSlashExeNameSpace) - 1),
+           pcszVolume, cchVolume + 1);
 
     FILE *fp = popen(szVolInfo, "r");
     if (fp)

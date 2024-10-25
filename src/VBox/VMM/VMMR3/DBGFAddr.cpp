@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -239,8 +239,7 @@ VMMR3DECL(bool) DBGFR3AddrIsValid(PUVM pUVM, PCDBGFADDRESS pAddress)
 static DECLCALLBACK(int) dbgfR3AddrToPhysOnVCpu(PVMCPU pVCpu, PCDBGFADDRESS pAddress, PRTGCPHYS pGCPhys)
 {
     VMCPU_ASSERT_EMT(pVCpu);
-    /* This is just a wrapper because we cannot pass FlatPtr thru VMR3ReqCall directly. */
-    PGMPTWALK Walk;
+    PGMPTWALK Walk = { NIL_RTGCPTR, NIL_RTGCPHYS, NIL_RTGCPHYS, false };
     int const rc = PGMGstGetPage(pVCpu, pAddress->FlatPtr, &Walk);
     *pGCPhys = Walk.GCPhys;
     return rc;
@@ -296,8 +295,8 @@ VMMR3DECL(int)  DBGFR3AddrToPhys(PUVM pUVM, VMCPUID idCpu, PCDBGFADDRESS pAddres
         if (VMCPU_IS_EMT(pVCpu))
             rc = dbgfR3AddrToPhysOnVCpu(pVCpu, pAddress, pGCPhys);
         else
-            rc = VMR3ReqPriorityCallWaitU(pUVM, pVCpu->idCpu,
-                                          (PFNRT)dbgfR3AddrToPhysOnVCpu, 3, pVCpu, pAddress, pGCPhys);
+            rc = VMR3ReqPriorityCallWaitU(pUVM, pVCpu->idCpu, (PFNRT)dbgfR3AddrToPhysOnVCpu, 3,
+                                          pVCpu, pAddress, pGCPhys);
     }
     return rc;
 }

@@ -4,7 +4,7 @@
 #
 
 #
-# Copyright (C) 2006-2023 Oracle and/or its affiliates.
+# Copyright (C) 2006-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -34,11 +34,7 @@ include $(KBUILD_PATH)/subheader.kmk
 #
 VBOX_VIRTUALBOX_SRC := $(PATH_SUB_CURRENT)
 VBOX_VIRTUALBOX_OUT_DIR := $(PATH_TARGET)/VirtualBox/misc
-ifndef VBOX_WITH_QT6
- USES += qt5
-else
- USES += qt6
-endif
+USES += qt6
 
 
 #
@@ -110,13 +106,11 @@ VirtualBox_NAME           = VirtualBox
 VirtualBox_DEPS           = $(UICommon_0_OUTDIR)/include/COMWrappers
 VirtualBox_SDKS.win       = ReorderCompilerIncs $(VBOX_WINPSDK) $(VBOX_WINDDK)
 VirtualBox_DEFS           =
-ifdef VBOX_WITH_QT6 # moc is too stupid to parse #if QT_VERSION > xxx, '#ifdef VBOX_IS_QT6_OR_LATER' works though (no spaces).
- VirtualBox_DEFS         += VBOX_IS_QT6_OR_LATER
-endif
+VirtualBox_DEFS          += VBOX_IS_QT6_OR_LATER
 VirtualBox_DEFS.debug     = VBOX_CHECK_STATE # QT_FATAL_ASSERT
-VirtualBox_DEFS.linux     = VBOX_WS_X11 QT_NO_DEPRECATED_WARNINGS
-VirtualBox_DEFS.solaris   = VBOX_WS_X11
-VirtualBox_DEFS.freebsd   = VBOX_WS_X11
+VirtualBox_DEFS.linux     = VBOX_WS_NIX QT_NO_DEPRECATED_WARNINGS
+VirtualBox_DEFS.solaris   = VBOX_WS_NIX
+VirtualBox_DEFS.freebsd   = VBOX_WS_NIX
 VirtualBox_DEFS.darwin    = VBOX_WS_MAC
 VirtualBox_DEFS.win       = VBOX_WS_WIN
 VirtualBox_DEFS.linux     += VBOX_WITH_MASKED_SEAMLESS VBOX_WITH_TRANSLUCENT_SEAMLESS
@@ -124,25 +118,30 @@ VirtualBox_DEFS.solaris   += VBOX_WITH_MASKED_SEAMLESS VBOX_WITH_TRANSLUCENT_SEA
 VirtualBox_DEFS.freebsd   += VBOX_WITH_MASKED_SEAMLESS VBOX_WITH_TRANSLUCENT_SEAMLESS
 VirtualBox_DEFS.darwin    += VBOX_WITH_TRANSLUCENT_SEAMLESS # VBOX_WITH_MASKED_SEAMLESS
 VirtualBox_DEFS.win       += VBOX_WITH_MASKED_SEAMLESS # VBOX_WITH_TRANSLUCENT_SEAMLESS
-ifndef VBOX_WITH_QT6 # qt6: The UICocoaSpecialControls needs restructuring because QMacCocoaViewContainer is gone. Too lazy for now.
- VirtualBox_DEFS.darwin   += VBOX_DARWIN_USE_NATIVE_CONTROLS
+ifdef VBOX_WITH_VMNET
+ VirtualBox_DEFS.darwin += VBOX_WITH_VMNET
 endif
+# qt6: The UICocoaSpecialControls needs restructuring because QMacCocoaViewContainer is gone. Too lazy for now.
+# VirtualBox_DEFS.darwin   += VBOX_DARWIN_USE_NATIVE_CONTROLS
 VirtualBox_DEFS.win       += UNICODE QT_DLL
+# Sort alphabetically!
 VirtualBox_DEFS           += \
+	$(if $(VBOX_GUI_WITH_CUSTOMIZATIONS1),VBOX_GUI_WITH_CUSTOMIZATIONS1) \
+	$(if $(VBOX_GUI_WITH_KEYS_RESET_HANDLER),VBOX_GUI_WITH_KEYS_RESET_HANDLER) \
+	$(if $(VBOX_GUI_WITH_PIDFILE),VBOX_GUI_WITH_PIDFILE) \
+	$(if $(VBOX_WITH_3D_ACCELERATION),VBOX_WITH_3D_ACCELERATION) \
 	$(if $(VBOX_WITH_ADDITIONS_AUTOUPDATE_UI),VBOX_WITH_ADDITIONS_AUTOUPDATE_UI) \
-	$(if $(VBOX_WITH_UPDATE_REQUEST),VBOX_WITH_UPDATE_REQUEST) \
-	$(if $(VBOX_WITH_NETFLT)$(eq $(KBUILD_TARGET),freebsd),VBOX_WITH_NETFLT) \
-	$(if $(VBOX_WITH_VDE),VBOX_WITH_VDE) \
-	$(if $(VBOX_WITH_HARDENING),VBOXR3_HARDENED_DLL) \
+	$(if $(VBOX_WITH_CLOUD_NET),VBOX_WITH_CLOUD_NET) \
 	$(if $(VBOX_WITH_DRAG_AND_DROP),VBOX_WITH_DRAG_AND_DROP) \
 	$(if $(VBOX_WITH_DRAG_AND_DROP_GH),VBOX_WITH_DRAG_AND_DROP_GH) \
 	$(if $(VBOX_WITH_DRAG_AND_DROP_PROMISES),VBOX_WITH_DRAG_AND_DROP_PROMISES) \
-	$(if $(VBOX_WITH_3D_ACCELERATION),VBOX_WITH_3D_ACCELERATION) \
-	$(if $(VBOX_GUI_WITH_PIDFILE),VBOX_GUI_WITH_PIDFILE) \
-	$(if $(VBOX_GUI_WITH_KEYS_RESET_HANDLER),VBOX_GUI_WITH_KEYS_RESET_HANDLER) \
-	$(if $(VBOX_GUI_WITH_CUSTOMIZATIONS1),VBOX_GUI_WITH_CUSTOMIZATIONS1) \
+	$(if $(VBOX_WITH_HARDENING),VBOXR3_HARDENED_DLL) \
+	$(if $(VBOX_WITH_NETFLT)$(eq $(KBUILD_TARGET),freebsd),VBOX_WITH_NETFLT) \
 	$(if $(VBOX_WITH_RAW_MODE),VBOX_WITH_RAW_MODE) \
-	$(if $(VBOX_WITH_SDS),VBOX_WITH_SDS,)
+	$(if $(VBOX_WITH_SDS),VBOX_WITH_SDS,) \
+	$(if $(VBOX_WITH_UPDATE_REQUEST),VBOX_WITH_UPDATE_REQUEST) \
+	$(if $(VBOX_WITH_VDE),VBOX_WITH_VDE) \
+	$(if $(VBOX_WITH_VIRT_ARMV8),VBOX_WITH_VIRT_ARMV8,)
 ifdef VBOX_WITH_DEBUGGER_GUI
  VirtualBox_DEFS          += VBOX_WITH_DEBUGGER_GUI
  if "$(KBUILD_TYPE)" != "release"
@@ -155,6 +154,9 @@ ifdef VBOX_WITH_LIBCURL
 endif
 if "$(KBUILD_TYPE)" != "release" || defined(VBOX_GUI_WITH_EXTRADATA_MANAGER_UI)
  VirtualBox_DEFS          += VBOX_GUI_WITH_EXTRADATA_MANAGER_UI
+endif
+if "$(KBUILD_TYPE)" != "release" || defined(VBOX_NOTIFICATION_CENTER_WITH_KEEP_BUTTON)
+ VirtualBox_DEFS          += VBOX_NOTIFICATION_CENTER_WITH_KEEP_BUTTON
 endif
 ifndef VBOX_WITHOUT_LESS_VIRTUALBOX_INCLUDING
  VirtualBox_DEFS          += VBOX_WITH_LESS_VIRTUALBOX_INCLUDING
@@ -172,13 +174,11 @@ endif
 VirtualBoxVM_DEPS           = $(UICommon_0_OUTDIR)/include/COMWrappers
 VirtualBoxVM_SDKS.win       = ReorderCompilerIncs $(VBOX_WINPSDK) $(VBOX_WINDDK)
 VirtualBoxVM_DEFS           = VBOX_RUNTIME_UI
-ifdef VBOX_WITH_QT6 # moc is too stupid to parse #if QT_VERSION > xxx, '#ifdef VBOX_IS_QT6_OR_LATER' works though (no spaces).
- VirtualBoxVM_DEFS         += VBOX_IS_QT6_OR_LATER
-endif
+VirtualBoxVM_DEFS          += VBOX_IS_QT6_OR_LATER
 VirtualBoxVM_DEFS.debug     = VBOX_CHECK_STATE # QT_FATAL_ASSERT
-VirtualBoxVM_DEFS.linux     = VBOX_WS_X11 QT_NO_DEPRECATED_WARNINGS
-VirtualBoxVM_DEFS.solaris   = VBOX_WS_X11
-VirtualBoxVM_DEFS.freebsd   = VBOX_WS_X11
+VirtualBoxVM_DEFS.linux     = VBOX_WS_NIX QT_NO_DEPRECATED_WARNINGS
+VirtualBoxVM_DEFS.solaris   = VBOX_WS_NIX
+VirtualBoxVM_DEFS.freebsd   = VBOX_WS_NIX
 VirtualBoxVM_DEFS.darwin    = VBOX_WS_MAC
 VirtualBoxVM_DEFS.win       = VBOX_WS_WIN
 VirtualBoxVM_DEFS.linux     += VBOX_WITH_MASKED_SEAMLESS VBOX_WITH_TRANSLUCENT_SEAMLESS
@@ -189,33 +189,31 @@ VirtualBoxVM_DEFS.win       += VBOX_WITH_MASKED_SEAMLESS # VBOX_WITH_TRANSLUCENT
 ifdef VBOX_WITH_VMNET
  VirtualBoxVM_DEFS.darwin   += VBOX_WITH_VMNET
 endif
-ifndef VBOX_WITH_QT6 # qt6: The UICocoaSpecialControls needs restructuring because QMacCocoaViewContainer is gone. Too lazy for now.
- VirtualBoxVM_DEFS.darwin   += VBOX_DARWIN_USE_NATIVE_CONTROLS
-endif
+# qt6: The UICocoaSpecialControls needs restructuring because QMacCocoaViewContainer is gone. Too lazy for now.
+# VirtualBoxVM_DEFS.darwin   += VBOX_DARWIN_USE_NATIVE_CONTROLS
 VirtualBoxVM_DEFS.win       += UNICODE QT_DLL
+# Sort alphabetically!
 VirtualBoxVM_DEFS           += \
+	$(if $(VBOX_GUI_WITH_CUSTOMIZATIONS1),VBOX_GUI_WITH_CUSTOMIZATIONS1) \
+	$(if $(VBOX_GUI_WITH_KEYS_RESET_HANDLER),VBOX_GUI_WITH_KEYS_RESET_HANDLER) \
+	$(if $(VBOX_GUI_WITH_PIDFILE),VBOX_GUI_WITH_PIDFILE) \
+	$(if $(VBOX_WITH_3D_ACCELERATION),VBOX_WITH_3D_ACCELERATION) \
 	$(if $(VBOX_WITH_ADDITIONS_AUTOUPDATE_UI),VBOX_WITH_ADDITIONS_AUTOUPDATE_UI) \
-	$(if $(VBOX_WITH_UPDATE_REQUEST),VBOX_WITH_UPDATE_REQUEST) \
-	$(if $(VBOX_WITH_NETFLT)$(eq $(KBUILD_TARGET),freebsd),VBOX_WITH_NETFLT) \
-	$(if $(VBOX_WITH_VDE),VBOX_WITH_VDE) \
-	$(if $(VBOX_WITH_HARDENING),VBOXR3_HARDENED_DLL) \
 	$(if $(VBOX_WITH_DRAG_AND_DROP),VBOX_WITH_DRAG_AND_DROP) \
 	$(if $(VBOX_WITH_DRAG_AND_DROP_GH),VBOX_WITH_DRAG_AND_DROP_GH) \
 	$(if $(VBOX_WITH_DRAG_AND_DROP_PROMISES),VBOX_WITH_DRAG_AND_DROP_PROMISES) \
-	$(if $(VBOX_WITH_3D_ACCELERATION),VBOX_WITH_3D_ACCELERATION) \
-	$(if $(VBOX_GUI_WITH_PIDFILE),VBOX_GUI_WITH_PIDFILE) \
-	$(if $(VBOX_GUI_WITH_KEYS_RESET_HANDLER),VBOX_GUI_WITH_KEYS_RESET_HANDLER) \
-	$(if $(VBOX_GUI_WITH_CUSTOMIZATIONS1),VBOX_GUI_WITH_CUSTOMIZATIONS1) \
+	$(if $(VBOX_WITH_HARDENING),VBOXR3_HARDENED_DLL) \
+	$(if $(VBOX_WITH_NETFLT)$(eq $(KBUILD_TARGET),freebsd),VBOX_WITH_NETFLT) \
 	$(if $(VBOX_WITH_RAW_MODE),VBOX_WITH_RAW_MODE) \
-	$(if $(VBOX_WITH_SDS),VBOX_WITH_SDS,)
+	$(if $(VBOX_WITH_SDS),VBOX_WITH_SDS,) \
+	$(if $(VBOX_WITH_UPDATE_REQUEST),VBOX_WITH_UPDATE_REQUEST) \
+	$(if $(VBOX_WITH_VDE),VBOX_WITH_VDE) \
+	$(if $(VBOX_WITH_VIRT_ARMV8),VBOX_WITH_VIRT_ARMV8,)
 ifdef VBOX_WITH_DEBUGGER_GUI
  VirtualBoxVM_DEFS          += VBOX_WITH_DEBUGGER_GUI
  if "$(KBUILD_TYPE)" != "release"
   VirtualBoxVM_DEFS         += VBOX_WITH_DEBUGGER_GUI_MENU
  endif
-endif
-ifdef VBOX_GUI_WITH_QTGLFRAMEBUFFER
- VirtualBoxVM_DEFS          += VBOX_GUI_WITH_QTGLFRAMEBUFFER
 endif
 ifdef VBOX_WITH_LIBCURL
  VirtualBoxVM_DEFS          += VBOX_GUI_WITH_NETWORK_MANAGER
@@ -223,6 +221,9 @@ ifdef VBOX_WITH_LIBCURL
 endif
 if "$(KBUILD_TYPE)" != "release" || defined(VBOX_GUI_WITH_EXTRADATA_MANAGER_UI)
  VirtualBoxVM_DEFS          += VBOX_GUI_WITH_EXTRADATA_MANAGER_UI
+endif
+if "$(KBUILD_TYPE)" != "release" || defined(VBOX_NOTIFICATION_CENTER_WITH_KEEP_BUTTON)
+ VirtualBoxVM_DEFS          += VBOX_NOTIFICATION_CENTER_WITH_KEEP_BUTTON
 endif
 ifndef VBOX_WITHOUT_LESS_VIRTUALBOX_INCLUDING
  VirtualBoxVM_DEFS          += VBOX_WITH_LESS_VIRTUALBOX_INCLUDING
@@ -235,37 +236,36 @@ endif
 UICommon_TEMPLATE = VBoxQtGuiDll
 UICommon_NAME = UICommon
 UICommon_DEFS         = VBOX_GUI_LIBRARY
-ifdef VBOX_WITH_QT6 # moc is too stupid to parse #if QT_VERSION > xxx, '#ifdef VBOX_IS_QT6_OR_LATER' works though (no spaces).
- UICommon_DEFS       += VBOX_IS_QT6_OR_LATER
-endif
+UICommon_DEFS        += VBOX_IS_QT6_OR_LATER
 UICommon_DEFS.darwin  = VBOX_WS_MAC
-UICommon_DEFS.freebsd = VBOX_WS_X11
-UICommon_DEFS.linux   = VBOX_WS_X11 QT_NO_DEPRECATED_WARNINGS
-UICommon_DEFS.solaris = VBOX_WS_X11
+UICommon_DEFS.freebsd = VBOX_WS_NIX
+UICommon_DEFS.linux   = VBOX_WS_NIX QT_NO_DEPRECATED_WARNINGS
+UICommon_DEFS.solaris = VBOX_WS_NIX
 UICommon_DEFS.win     = VBOX_WS_WIN
 UICommon_DEFS.debug   = VBOX_CHECK_STATE # QT_FATAL_ASSERT
 ifdef VBOX_WITH_VMNET
  UICommon_DEFS.darwin += VBOX_WITH_VMNET
 endif
-ifndef VBOX_WITH_QT6 # qt6: The UICocoaSpecialControls needs restructuring because QMacCocoaViewContainer is gone. Too lazy for now.
- UICommon_DEFS.darwin += VBOX_DARWIN_USE_NATIVE_CONTROLS
-endif
+# qt6: The UICocoaSpecialControls needs restructuring because QMacCocoaViewContainer is gone. Too lazy for now.
+# UICommon_DEFS.darwin += VBOX_DARWIN_USE_NATIVE_CONTROLS
 #UICommon_DEFS.win     += UNICODE QT_DLL
+# Sort alphabetically!
 UICommon_DEFS         += \
-	$(if $(VBOX_WITH_UPDATE_REQUEST),VBOX_WITH_UPDATE_REQUEST) \
-	$(if $(VBOX_WITH_CLOUD_NET),VBOX_WITH_CLOUD_NET) \
-	$(if $(VBOX_WITH_NETFLT)$(eq $(KBUILD_TARGET),freebsd),VBOX_WITH_NETFLT) \
-	$(if $(VBOX_WITH_VDE),VBOX_WITH_VDE) \
-	$(if $(VBOX_WITH_HARDENING),VBOXR3_HARDENED_DLL) \
-	$(if $(VBOX_WITH_DRAG_AND_DROP),VBOX_WITH_DRAG_AND_DROP) \
-	$(if $(VBOX_WITH_3D_ACCELERATION),VBOX_WITH_3D_ACCELERATION) \
-	$(if $(VBOX_GUI_WITH_PIDFILE),VBOX_GUI_WITH_PIDFILE) \
 	$(if $(VBOX_GUI_WITH_CUSTOMIZATIONS1),VBOX_GUI_WITH_CUSTOMIZATIONS1) \
+	$(if $(VBOX_GUI_WITH_PIDFILE),VBOX_GUI_WITH_PIDFILE) \
+	$(if $(VBOX_WITH_3D_ACCELERATION),VBOX_WITH_3D_ACCELERATION) \
+	$(if $(VBOX_WITH_CLOUD_NET),VBOX_WITH_CLOUD_NET) \
+	$(if $(VBOX_WITH_DOCS_QHELP),VBOX_WITH_DOCS_QHELP) \
+	$(if $(VBOX_WITH_DRAG_AND_DROP),VBOX_WITH_DRAG_AND_DROP) \
+	$(if $(VBOX_WITH_HARDENING),VBOXR3_HARDENED_DLL) \
+	$(if $(VBOX_WITH_NETFLT)$(eq $(KBUILD_TARGET),freebsd),VBOX_WITH_NETFLT) \
 	$(if $(VBOX_WITH_RAW_MODE),VBOX_WITH_RAW_MODE) \
-	$(if $(VBOX_WITH_QHELP_VIEWER),VBOX_WITH_QHELP_VIEWER) \
 	$(if $(VBOX_WITH_SCREENSAVER_CONTROL),VBOX_WITH_SCREENSAVER_CONTROL) \
 	$(if $(VBOX_WITH_SDS),VBOX_WITH_SDS,) \
-	$(if $(VBOX_WITH_UPDATE_AGENT),VBOX_WITH_UPDATE_AGENT)
+	$(if $(VBOX_WITH_UPDATE_AGENT),VBOX_WITH_UPDATE_AGENT) \
+	$(if $(VBOX_WITH_UPDATE_REQUEST),VBOX_WITH_UPDATE_REQUEST) \
+	$(if $(VBOX_WITH_VDE),VBOX_WITH_VDE) \
+	$(if $(VBOX_WITH_VIRT_ARMV8),VBOX_WITH_VIRT_ARMV8,)
 ifdef VBOX_WITH_DEBUGGER_GUI
  UICommon_DEFS        += VBOX_WITH_DEBUGGER_GUI
  if "$(KBUILD_TYPE)" != "release"
@@ -292,6 +292,7 @@ endif
 #
 VBOX_GUI_INC_DIRS = \
 	./src \
+	./src/cloud \
 	./src/cloud/consolemanager \
 	./src/cloud/machinesettings \
 	./src/cloud/profilemanager \
@@ -311,7 +312,7 @@ VBOX_GUI_INC_DIRS = \
 	./src/platform \
 	./src/platform/darwin \
 	./src/platform/win \
-	./src/platform/x11 \
+	./src/platform/nix \
 	./src/runtime \
 	./src/runtime/fullscreen \
 	./src/runtime/normal \
@@ -325,6 +326,7 @@ VBOX_GUI_INC_DIRS = \
 	./src/settings/machine \
 	./src/softkeyboard \
 	./src/snapshots \
+	./src/usb \
 	./src/widgets \
 	./src/widgets/graphics \
 	./src/wizards \
@@ -333,7 +335,6 @@ VBOX_GUI_INC_DIRS = \
 	./src/wizards/newvm \
 	./src/wizards/newvd \
 	./src/wizards/clonevm \
-	./src/wizards/clonevd \
 	./src/wizards/exportappliance \
 	./src/wizards/importappliance \
 	./src/wizards/editors
@@ -387,6 +388,7 @@ ifneq ($(KBUILD_TARGET),win)
  VirtualBox_CXXFLAGS += -Wno-switch
 endif
 
+VirtualBox_CXXFLAGS.win += /permissive-
 VirtualBox_CXXFLAGS.linux += $(VBOX_GCC_Wno-class-memaccess)
 
 ## @todo we're using a number of deprecated APIs, please fix and remove these!
@@ -401,13 +403,13 @@ else
  VirtualBox_LDFLAGS.win   += /SUBSYSTEM:console
 endif
 
+#
+# Parfait fails with an error that ../MacOS can't be accessed while standard clang has no problem with it.
+# As we don't want to run the output just omit the -rpath arguments to make it build
+#
 VirtualBox_LDFLAGS.darwin = \
-	$(if $(VBOX_WITH_HARDENING),,-rpath @executable_path/../MacOS -rpath @executable_path/../Frameworks) \
+	$(if-expr $(VBOX_WITH_HARDENING) || $(VBOX_WITH_PARFAIT),,-rpath @executable_path/../MacOS -rpath @executable_path/../Frameworks) \
 	-framework AppKit -framework Carbon -framework IOKit
-
-ifdef VBOX_GUI_WITH_QTGLFRAMEBUFFER
- VirtualBox_LDFLAGS.darwin += -framework OpenGL
-endif
 
 
 #
@@ -418,6 +420,7 @@ ifneq ($(KBUILD_TARGET),win)
  VirtualBoxVM_CXXFLAGS += -Wno-switch
 endif
 
+VirtualBoxVM_CXXFLAGS.win += /permissive-
 VirtualBoxVM_CXXFLAGS.linux += $(VBOX_GCC_Wno-class-memaccess)
 
 ## @todo we're using a number of deprecated APIs, please fix and remove these!
@@ -432,15 +435,19 @@ else
  VirtualBoxVM_LDFLAGS.win   += /SUBSYSTEM:console
 endif
 
-VirtualBoxVM_LDFLAGS.darwin = \
-	$(if $(VBOX_WITH_HARDENING) \
-	,-install_name $(VBOX_DYLD_EXECUTABLE_PATH)/VirtualBoxVM.dylib \
-	,-rpath @executable_path/../../../../MacOS \
-	-rpath @executable_path/../../../../Frameworks) \
-	-framework AppKit -framework Carbon -framework IOKit
-
-ifdef VBOX_GUI_WITH_QTGLFRAMEBUFFER
- VirtualBoxVM_LDFLAGS.darwin += -framework OpenGL
+#
+# Parfait fails with an error that ../MacOS can't be accessed while standard clang has no problem with it.
+# As we don't want to run the output just omit the -rpath arguments to make it build
+#
+ifndef VBOX_WITH_PARFAIT
+ VirtualBoxVM_LDFLAGS.darwin = \
+ 	$(if $(VBOX_WITH_HARDENING) \
+ 		,-install_name $(VBOX_DYLD_EXECUTABLE_PATH)/VirtualBoxVM.dylib \
+ 		,-rpath @executable_path/../../../../MacOS \
+ 		-rpath @executable_path/../../../../Frameworks) \
+ 	-framework AppKit -framework Carbon -framework IOKit
+else
+ VirtualBoxVM_LDFLAGS.darwin = -framework AppKit -framework Carbon -framework IOKit
 endif
 
 
@@ -452,6 +459,7 @@ endif
 UICommon_CXXFLAGS.linux += $(VBOX_GCC_Wno-class-memaccess)
 UICommon_CXXFLAGS.win += -wd4868 # prevents std::stable_sort from using functor/function comparator
 UICommon_CXXFLAGS.win += -bigobj # COMWrappers.cpp fails with too many sections on win64-dep otherwise.
+UICommon_CXXFLAGS.win += /permissive-
 
 ## @todo we're using a number of deprecated APIs, please fix and remove these!
 UICommon_CXXFLAGS.darwin    += -Wno-error=deprecated-declarations
@@ -463,10 +471,6 @@ UICommon_LDFLAGS.darwin = \
 	-framework AppKit \
 	-framework Carbon \
 	-framework IOKit
-
-ifdef VBOX_GUI_WITH_QTGLFRAMEBUFFER
- UICommon_LDFLAGS.darwin += -framework OpenGL
-endif
 
 #
 # VirtualBox Manager Application
@@ -507,17 +511,6 @@ endif
 # VBox keyboard shared library for X11 hosts:
 if1of ($(KBUILD_TARGET), freebsd linux netbsd openbsd solaris)
  VirtualBox_LIBS += $(PATH_STAGE_DLL)/VBoxKeyboard$(VBOX_SUFF_DLL)
-endif
-
-# These are 2D Video Acceleration and 3D Acceleration related libs:
-ifdef VBOX_GUI_WITH_QTGLFRAMEBUFFER
- VirtualBox_LIBS.win       += $(PATH_SDK_$(VBOX_WINPSDK)_LIB)/Opengl32.lib
- VirtualBox_LIBS.solaris   += GL
- VirtualBox_LIBS.linux     += GL
- VirtualBox_LIBS.freebsd   += GL
-endif
-ifdef VBOX_WITH_3D_ACCELERATION
- VirtualBox_LIBS += $(PATH_STAGE_LIB)/VBoxOGLTest$(VBOX_SUFF_LIB)
 endif
 
 # This one is global shared GUI library:
@@ -569,17 +562,6 @@ if1of ($(KBUILD_TARGET), freebsd linux netbsd openbsd solaris)
  VirtualBoxVM_LIBS += $(PATH_STAGE_DLL)/VBoxKeyboard$(VBOX_SUFF_DLL)
 endif
 
-# These are 2D Video Acceleration and 3D Acceleration related libs:
-ifdef VBOX_GUI_WITH_QTGLFRAMEBUFFER
- VirtualBoxVM_LIBS.win       += $(PATH_SDK_$(VBOX_WINPSDK)_LIB)/Opengl32.lib
- VirtualBoxVM_LIBS.solaris   += GL
- VirtualBoxVM_LIBS.linux     += GL
- VirtualBoxVM_LIBS.freebsd   += GL
-endif
-ifdef VBOX_WITH_3D_ACCELERATION
- VirtualBoxVM_LIBS += $(PATH_STAGE_LIB)/VBoxOGLTest$(VBOX_SUFF_LIB)
-endif
-
 ifeq ($(KBUILD_TARGET),win)
  VirtualBoxVM_LIBS += $(PATH_STAGE_LIB)/UICommon$(VBOX_SUFF_LIB)
 else
@@ -606,23 +588,13 @@ if1of ($(KBUILD_TARGET), freebsd linux netbsd openbsd solaris)
  UICommon_LIBS += $(PATH_STAGE_DLL)/VBoxKeyboard$(VBOX_SUFF_DLL)
 endif
 
-# These are 2D Video Acceleration and 3D Acceleration related libs:
-ifdef VBOX_GUI_WITH_QTGLFRAMEBUFFER
- UICommon_LIBS.win     += $(PATH_SDK_$(VBOX_WINPSDK)_LIB)/Opengl32.lib
- UICommon_LIBS.solaris += GL
- UICommon_LIBS.linux   += GL
- UICommon_LIBS.freebsd += GL
-endif
-ifdef VBOX_WITH_3D_ACCELERATION
- UICommon_LIBS += $(PATH_STAGE_LIB)/VBoxOGLTest$(VBOX_SUFF_LIB)
-endif
-
 
 #
 # VirtualBox Manager Application
 # Headers containing definitions of classes that use the Q_OBJECT macro.
 #
 VirtualBox_QT_MOCHDRS = \
+	src/cloud/UICloudMachineManager.h \
 	src/cloud/consolemanager/UICloudConsoleDetailsWidget.h \
 	src/cloud/consolemanager/UICloudConsoleManager.h \
 	src/cloud/machinesettings/UICloudMachineSettingsDialog.h \
@@ -676,7 +648,8 @@ VirtualBox_QT_MOCHDRS = \
 	src/medium/UIMediumDetailsWidget.h \
 	src/medium/UIMediumManager.h \
 	src/activity/overview/UIVMActivityOverviewWidget.h \
-	src/activity/overview/UIVMActivityToolWidget.h \
+	src/activity/overview/UIVMActivityOverviewModelView.h \
+	src/activity/vmactivity/UIVMActivityToolWidget.h \
 	src/networkmanager/UIDetailsWidgetCloudNetwork.h \
 	src/networkmanager/UIDetailsWidgetHostNetwork.h \
 	src/networkmanager/UIDetailsWidgetNATNetwork.h \
@@ -723,11 +696,6 @@ VirtualBox_QT_MOCHDRS = \
 	src/wizards/clonevm/UIWizardCloneVMTypePage.h \
 	src/wizards/clonevm/UIWizardCloneVMModePage.h \
 	src/wizards/clonevm/UIWizardCloneVMExpertPage.h \
-	src/wizards/clonevd/UIWizardCloneVD.h \
-	src/wizards/clonevd/UIWizardCloneVDFormatPage.h \
-	src/wizards/clonevd/UIWizardCloneVDVariantPage.h \
-	src/wizards/clonevd/UIWizardCloneVDPathSizePage.h \
-	src/wizards/clonevd/UIWizardCloneVDExpertPage.h \
 	src/wizards/exportappliance/UIWizardExportApp.h \
 	src/wizards/exportappliance/UIWizardExportAppPageExpert.h \
 	src/wizards/exportappliance/UIWizardExportAppPageFormat.h \
@@ -819,6 +787,7 @@ UICommon_QT_MOCHDRS = \
 	src/extensions/QILabel.h \
 	src/extensions/QILabelSeparator.h \
 	src/extensions/QILineEdit.h \
+	src/extensions/QIListWidget.h \
 	src/extensions/QIMainDialog.h \
 	src/extensions/QIManagerDialog.h \
 	src/extensions/QIMenu.h \
@@ -847,9 +816,9 @@ UICommon_QT_MOCHDRS = \
 	src/globals/UIActionPoolRuntime.h \
 	src/globals/UIAnimationFramework.h \
 	src/globals/UICommon.h \
-	src/globals/UICustomFileSystemModel.h \
+	src/globals/UIFileSystemModel.h \
 	src/globals/UIDesktopWidgetWatchdog.h \
-	src/globals/UIDialogPanel.h \
+	src/globals/UIGlobalSession.h \
 	src/globals/UIMainEventListener.h \
 	src/globals/UIMessageCenter.h \
 	src/globals/UIModalWindowManager.h \
@@ -863,38 +832,37 @@ UICommon_QT_MOCHDRS = \
 	src/globals/UIThreadPool.h \
 	src/globals/UITextTable.h \
 	src/globals/UITranslator.h \
+	src/globals/UITranslationEventListener.h \
 	src/globals/UIVirtualBoxEventHandler.h \
 	src/globals/UIVirtualBoxClientEventHandler.h \
 	src/globals/VBoxUtils.h \
 	src/guestctrl/UIFileManager.h \
 	src/guestctrl/UIFileManagerGuestTable.h \
 	src/guestctrl/UIFileManagerHostTable.h \
-	src/guestctrl/UIFileManagerLogPanel.h \
-	src/guestctrl/UIFileManagerOperationsPanel.h \
-	src/guestctrl/UIFileManagerOptionsPanel.h \
+	src/guestctrl/UIFileManagerPaneContainer.h \
 	src/guestctrl/UIFileManagerTable.h \
 	src/helpbrowser/UIHelpBrowserDialog.h \
+	src/helpbrowser/UIHelpViewer.h \
+	src/helpbrowser/UIHelpBrowserWidget.h \
 	src/logviewer/UIVMLogPage.h \
-	src/logviewer/UIVMLogViewerBookmarksPanel.h \
+	src/logviewer/UIVMLogViewerBookmarksWidget.h \
 	src/logviewer/UIVMLogViewerDialog.h \
-	src/logviewer/UIVMLogViewerFilterPanel.h \
-	src/logviewer/UIVMLogViewerOptionsPanel.h \
+	src/logviewer/UIVMLogViewerFilterWidget.h \
+	src/logviewer/UIVMLogViewerPreferencesWidget.h \
 	src/logviewer/UIVMLogViewerPanel.h \
-	src/logviewer/UIVMLogViewerSearchPanel.h \
+	src/logviewer/UIVMLogViewerSearchWidget.h \
 	src/logviewer/UIVMLogViewerTextEdit.h \
 	src/logviewer/UIVMLogViewerWidget.h \
 	src/activity/vmactivity/UIVMActivityMonitor.h \
+	src/activity/vmactivity/UIVMActivityMonitorContainer.h \
+	src/activity/UIMonitorCommon.h \
 	src/medium/UIFDCreationDialog.h \
 	src/medium/UIMediumEnumerator.h \
 	src/medium/UIMediumItem.h \
 	src/medium/UIMediumSearchWidget.h \
 	src/medium/UIMediumSelector.h \
-	src/medium/viso/UIVisoBrowserBase.h \
 	src/medium/viso/UIVisoContentBrowser.h \
 	src/medium/viso/UIVisoCreator.h \
-	src/medium/viso/UIVisoConfigurationPanel.h \
-	src/medium/viso/UIVisoCreatorOptionsPanel.h \
-	src/medium/viso/UIVisoHostBrowser.h \
 	src/notificationcenter/UINotificationCenter.h \
 	src/notificationcenter/UINotificationModel.h \
 	src/notificationcenter/UINotificationObject.h \
@@ -902,11 +870,13 @@ UICommon_QT_MOCHDRS = \
 	src/notificationcenter/UINotificationObjects.h \
 	src/notificationcenter/UINotificationProgressTask.h \
 	src/objects/UIExecutionQueue.h \
-	src/settings/UISettingsDialog.h \
-	src/settings/UISettingsDialogSpecific.h \
+	src/settings/UIAdvancedSettingsDialog.h \
+	src/settings/UIAdvancedSettingsDialogSpecific.h \
 	src/settings/UISettingsPage.h \
+	src/settings/UISettingsPageValidator.h \
 	src/settings/UISettingsSelector.h \
 	src/settings/UISettingsSerializer.h \
+	src/settings/UISettingsWarningPane.h \
 	src/settings/editors/UIAccelerationFeaturesEditor.h \
 	src/settings/editors/UIAudioControllerEditor.h \
 	src/settings/editors/UIAudioFeaturesEditor.h \
@@ -923,6 +893,7 @@ UICommon_QT_MOCHDRS = \
 	src/settings/editors/UIDisplayFeaturesEditor.h \
 	src/settings/editors/UIDisplayScreenFeaturesEditor.h \
 	src/settings/editors/UIDragAndDropEditor.h \
+	src/settings/editors/UIEditor.h \
 	src/settings/editors/UIExecutionCapEditor.h \
 	src/settings/editors/UIFontScaleEditor.h \
 	src/settings/editors/UIGraphicsControllerEditor.h \
@@ -930,6 +901,7 @@ UICommon_QT_MOCHDRS = \
 	src/settings/editors/UIHotKeyEditor.h \
 	src/settings/editors/UILanguageSettingsEditor.h \
 	src/settings/editors/UIMaximumGuestScreenSizeEditor.h \
+	src/settings/editors/UIMenuBarEditor.h \
 	src/settings/editors/UIMiniToolbarSettingsEditor.h \
 	src/settings/editors/UIMonitorCountEditor.h \
 	src/settings/editors/UIMotherboardFeaturesEditor.h \
@@ -943,11 +915,13 @@ UICommon_QT_MOCHDRS = \
 	src/settings/editors/UIProxyFeaturesEditor.h \
 	src/settings/editors/UIRecordingSettingsEditor.h \
 	src/settings/editors/UIScaleFactorEditor.h \
+	src/settings/editors/UISerialSettingsEditor.h \
 	src/settings/editors/UISharedClipboardEditor.h \
 	src/settings/editors/UISharedFolderDetailsEditor.h \
 	src/settings/editors/UISharedFoldersEditor.h \
 	src/settings/editors/UIShortcutConfigurationEditor.h \
 	src/settings/editors/UISnapshotFolderEditor.h \
+	src/settings/editors/UIStatusBarEditor.h \
 	src/settings/editors/UIStorageSettingsEditor.h \
 	src/settings/editors/UITpmEditor.h \
 	src/settings/editors/UIUSBControllerEditor.h \
@@ -977,11 +951,12 @@ UICommon_QT_MOCHDRS = \
 	src/settings/machine/UIMachineSettingsUSB.h \
 	src/widgets/UIAddDiskEncryptionPasswordDialog.h \
 	src/widgets/UIFilePathSelector.h \
+	src/widgets/UIFileTableNavigationWidget.h \
 	src/widgets/UIFilmContainer.h \
 	src/widgets/UIMediaComboBox.h \
 	src/widgets/UIMediumSizeEditor.h \
 	src/widgets/UIMenuBar.h \
-	src/widgets/UIMenuBarEditorWindow.h \
+	src/widgets/UIPaneContainer.h \
 	src/widgets/UIPopupBox.h \
 	src/widgets/UIPopupPane.h \
 	src/widgets/UIPopupPaneButtonPane.h \
@@ -993,10 +968,8 @@ UICommon_QT_MOCHDRS = \
 	src/widgets/UIProgressDialog.h \
 	src/widgets/UISlidingToolBar.h \
 	src/widgets/UISpecialControls.h \
-	src/widgets/UIStatusBarEditorWindow.h \
 	src/widgets/UISearchLineEdit.h \
 	src/widgets/UIToolBox.h \
-	src/widgets/UIWarningPane.h \
 	src/wizards/UINativeWizard.h \
 	src/wizards/UINativeWizardPage.h \
 	src/wizards/editors/UIUserNamePasswordEditor.h \
@@ -1006,12 +979,6 @@ UICommon_QT_MOCHDRS = \
 	src/wizards/newvd/UIWizardNewVDVariantPage.h \
 	src/wizards/newvd/UIWizardNewVDSizeLocationPage.h \
 	src/wizards/newvd/UIWizardNewVDExpertPage.h
-
-ifdef VBOX_WITH_QHELP_VIEWER
- UICommon_QT_MOCHDRS += \
- 	src/helpbrowser/UIHelpViewer.h \
- 	src/helpbrowser/UIHelpBrowserWidget.h
-endif
 
 ifdef VBOX_GUI_WITH_NETWORK_MANAGER
  UICommon_QT_MOCHDRS += \
@@ -1045,9 +1012,9 @@ VirtualBox_QT_MOCSRCS = \
 	src/extensionpackmanager/UIExtensionPackManager.cpp \
 	src/manager/UIVirtualBoxManager.cpp \
 	src/manager/UIVirtualMachineItemCloud.cpp \
-	src/manager/UIWelcomePane.cpp \
 	src/manager/chooser/UIChooserAbstractModel.cpp \
 	src/activity/overview/UIVMActivityOverviewWidget.cpp \
+	src/activity/overview/UIVMActivityOverviewModelView.cpp \
 	src/networkmanager/UINetworkManager.cpp \
 	src/snapshots/UISnapshotDetailsWidget.cpp \
 	src/snapshots/UISnapshotPane.cpp \
@@ -1090,41 +1057,36 @@ UICommon_QT_MOCSRCS = \
 	src/globals/UIVirtualBoxEventHandler.cpp \
 	src/globals/UIVirtualBoxClientEventHandler.cpp \
 	src/guestctrl/UIFileManager.cpp \
-	src/guestctrl/UIFileManagerLogPanel.cpp \
-	src/guestctrl/UIFileManagerOperationsPanel.cpp \
+	src/guestctrl/UIFileManagerPaneContainer.cpp \
 	src/guestctrl/UIFileManagerTable.cpp \
 	src/guestctrl/UIFileManagerGuestTable.cpp \
 	src/guestctrl/UIFileManagerHostTable.cpp \
-	src/logviewer/UIVMLogViewerFilterPanel.cpp \
+	src/helpbrowser/UIHelpViewer.cpp \
+	src/helpbrowser/UIHelpBrowserWidget.cpp \
+	src/logviewer/UIVMLogViewerFilterWidget.cpp \
 	src/logviewer/UIVMLogViewerTextEdit.cpp \
 	src/logviewer/UIVMLogViewerWidget.cpp \
 	src/activity/vmactivity/UIVMActivityMonitor.cpp \
 	src/medium/UIMediumEnumerator.cpp \
 	src/medium/viso/UIVisoContentBrowser.cpp \
-	src/medium/viso/UIVisoHostBrowser.cpp \
-	src/medium/viso/UIVisoBrowserBase.cpp \
+	src/medium/viso/UIVisoCreator.cpp \
 	src/notificationcenter/UINotificationCenter.cpp \
+	src/settings/UIAdvancedSettingsDialog.cpp \
+	src/settings/UISettingsSelector.cpp \
 	src/settings/editors/UIBaseMemoryEditor.cpp \
 	src/settings/editors/UIBootOrderEditor.cpp \
 	src/settings/editors/UIHotKeyEditor.cpp \
 	src/settings/editors/UILanguageSettingsEditor.cpp \
 	src/settings/editors/UISharedFoldersEditor.cpp \
 	src/settings/editors/UIShortcutConfigurationEditor.cpp \
+	src/settings/editors/UIStatusBarEditor.cpp \
 	src/settings/editors/UIStorageSettingsEditor.cpp \
 	src/settings/editors/UIUSBFiltersEditor.cpp \
-	src/settings/machine/UIMachineSettingsNetwork.cpp \
-	src/settings/machine/UIMachineSettingsSerial.cpp \
 	src/widgets/UIAddDiskEncryptionPasswordDialog.cpp \
+	src/widgets/UIFileTableNavigationWidget.cpp \
 	src/widgets/UIFilmContainer.cpp \
 	src/widgets/UIPortForwardingTable.cpp \
-	src/widgets/UIStatusBarEditorWindow.cpp \
 	src/widgets/UIToolBox.cpp
-
-ifdef VBOX_WITH_QHELP_VIEWER
- UICommon_QT_MOCSRCS += \
- 	src/helpbrowser/UIHelpViewer.cpp \
- 	src/helpbrowser/UIHelpBrowserWidget.cpp
-endif
 
 ifdef VBOX_GUI_WITH_NETWORK_MANAGER
  UICommon_QT_MOCSRCS += \
@@ -1149,6 +1111,9 @@ ifndef VBOX_GUI_WITH_CUSTOMIZATIONS1
  	src/globals/UIDesktopWidgetWatchdog.cpp
 endif
 
+# Common Guest / Host sources.
+VBOX_GH_SOURCES := \
+	$(PATH_ROOT)/src/VBox/GuestHost/DisplayServerType.cpp
 
 #
 # VirtualBox Manager Application
@@ -1156,6 +1121,7 @@ endif
 #
 VirtualBox_SOURCES = \
 	src/main.cpp \
+	src/cloud/UICloudMachineManager.cpp \
 	src/cloud/consolemanager/UICloudConsoleDetailsWidget.cpp \
 	src/cloud/consolemanager/UICloudConsoleManager.cpp \
 	src/cloud/machinesettings/UICloudMachineSettingsDialog.cpp \
@@ -1210,7 +1176,8 @@ VirtualBox_SOURCES = \
 	src/medium/UIMediumDetailsWidget.cpp \
 	src/medium/UIMediumManager.cpp \
 	src/activity/overview/UIVMActivityOverviewWidget.cpp \
-	src/activity/overview/UIVMActivityToolWidget.cpp \
+	src/activity/overview/UIVMActivityOverviewModelView.cpp \
+	src/activity/vmactivity/UIVMActivityToolWidget.cpp \
 	src/networkmanager/UIDetailsWidgetCloudNetwork.cpp \
 	src/networkmanager/UIDetailsWidgetHostNetwork.cpp \
 	src/networkmanager/UIDetailsWidgetNATNetwork.cpp \
@@ -1258,11 +1225,6 @@ VirtualBox_SOURCES = \
 	src/wizards/clonevm/UIWizardCloneVMTypePage.cpp \
 	src/wizards/clonevm/UIWizardCloneVMModePage.cpp \
 	src/wizards/clonevm/UIWizardCloneVMExpertPage.cpp \
-	src/wizards/clonevd/UIWizardCloneVD.cpp \
-	src/wizards/clonevd/UIWizardCloneVDFormatPage.cpp \
-	src/wizards/clonevd/UIWizardCloneVDVariantPage.cpp \
-	src/wizards/clonevd/UIWizardCloneVDPathSizePage.cpp \
-	src/wizards/clonevd/UIWizardCloneVDExpertPage.cpp \
 	src/wizards/exportappliance/UIWizardExportApp.cpp \
 	src/wizards/exportappliance/UIWizardExportAppPageExpert.cpp \
 	src/wizards/exportappliance/UIWizardExportAppPageFormat.cpp \
@@ -1278,9 +1240,10 @@ VirtualBox_SOURCES.darwin += \
 	src/platform/darwin/UIDesktopServices_darwin.cpp \
 	src/platform/darwin/UIDesktopServices_darwin_cocoa.mm
 
-if1of ($(KBUILD_TARGET), freebsd linux netbsd openbsd solaris) # X11
+if1of ($(KBUILD_TARGET), freebsd linux netbsd openbsd solaris) # U*nix
  VirtualBox_SOURCES += \
- 	src/platform/x11/UIDesktopServices_x11.cpp
+ 	src/platform/nix/UIDesktopServices_nix.cpp \
+ 	$(VBOX_GH_SOURCES) # For detecting display server
 endif
 
 VirtualBox_SOURCES.win += \
@@ -1354,6 +1317,11 @@ VirtualBoxVM_SOURCES.darwin += \
 	src/platform/darwin/UIAbstractDockIconPreview.cpp \
 	src/platform/darwin/UICocoaDockIconPreview.mm
 
+if1of ($(KBUILD_TARGET), freebsd linux netbsd openbsd solaris) # U*nix
+ VirtualBoxVM_SOURCES += \
+ 	$(VBOX_GH_SOURCES) # For detecting display server
+endif
+
 ifdef VBOX_WITH_HARDENING
  $(call VBOX_SET_VER_INFO_DLL,VirtualBoxVM,VirtualBox Virtual Machine (dll),$(VBOX_WINDOWS_ICON_FILE))
 else
@@ -1383,6 +1351,7 @@ UICommon_SOURCES = \
 	src/extensions/QILabel.cpp \
 	src/extensions/QILabelSeparator.cpp \
 	src/extensions/QILineEdit.cpp \
+	src/extensions/QIListWidget.cpp \
 	src/extensions/QIMainDialog.cpp \
 	src/extensions/QIManagerDialog.cpp \
 	src/extensions/QIMenu.cpp \
@@ -1416,16 +1385,17 @@ UICommon_SOURCES = \
 	src/globals/UIAnimationFramework.cpp \
 	src/globals/UICloudNetworkingStuff.cpp \
 	src/globals/UICommon.cpp \
-	src/globals/UICursor.cpp \
-	src/globals/UICustomFileSystemModel.cpp \
+	src/globals/UIFileSystemModel.cpp \
 	src/globals/UIDefs.cpp \
 	src/globals/UIDesktopWidgetWatchdog.cpp \
 	src/globals/UIDetailsGenerator.cpp \
-	src/globals/UIDialogPanel.cpp \
 	src/globals/UIErrorString.cpp \
 	src/globals/UIExtension.cpp \
+	src/globals/UIGlobalSession.cpp \
+	src/globals/UIGuestOSType.cpp \
 	src/globals/UIIconPool.cpp \
 	src/globals/UIImageTools.cpp \
+	src/globals/UILocalMachineStuff.cpp \
 	src/globals/UIMachineAttributeSetter.cpp \
 	src/globals/UIMainEventListener.cpp \
 	src/globals/UIMessageCenter.cpp \
@@ -1442,28 +1412,30 @@ UICommon_SOURCES = \
 	src/globals/UITask.cpp \
 	src/globals/UIThreadPool.cpp \
 	src/globals/UITranslator.cpp \
+	src/globals/UITranslationEventListener.cpp \
 	src/globals/UIVersion.cpp \
 	src/globals/UIVirtualBoxEventHandler.cpp \
 	src/globals/UIVirtualBoxClientEventHandler.cpp \
 	src/guestctrl/UIFileManager.cpp \
 	src/guestctrl/UIFileManagerGuestTable.cpp \
 	src/guestctrl/UIFileManagerHostTable.cpp \
-	src/guestctrl/UIFileManagerLogPanel.cpp \
-	src/guestctrl/UIFileManagerOperationsPanel.cpp \
-	src/guestctrl/UIFileManagerOptionsPanel.cpp \
+	src/guestctrl/UIFileManagerPaneContainer.cpp \
 	src/guestctrl/UIFileManagerTable.cpp \
 	src/helpbrowser/UIHelpBrowserDialog.cpp \
+	src/helpbrowser/UIHelpViewer.cpp \
+	src/helpbrowser/UIHelpBrowserWidget.cpp \
 	src/logviewer/UIVMLogPage.cpp \
-	src/logviewer/UIVMLogViewerBookmarksPanel.cpp \
+	src/logviewer/UIVMLogViewerBookmarksWidget.cpp \
 	src/logviewer/UIVMLogViewerDialog.cpp \
-	src/logviewer/UIVMLogViewerFilterPanel.cpp \
-	src/logviewer/UIVMLogViewerOptionsPanel.cpp \
+	src/logviewer/UIVMLogViewerFilterWidget.cpp \
+	src/logviewer/UIVMLogViewerPreferencesWidget.cpp \
 	src/logviewer/UIVMLogViewerPanel.cpp \
-	src/logviewer/UIVMLogViewerSearchPanel.cpp \
+	src/logviewer/UIVMLogViewerSearchWidget.cpp \
 	src/logviewer/UIVMLogViewerTextEdit.cpp \
 	src/logviewer/UIVMLogViewerWidget.cpp \
 	src/activity/UIMonitorCommon.cpp \
 	src/activity/vmactivity/UIVMActivityMonitor.cpp \
+	src/activity/vmactivity/UIVMActivityMonitorContainer.cpp \
 	src/medium/UIFDCreationDialog.cpp \
 	src/medium/UIMedium.cpp \
 	src/medium/UIMediumDefs.cpp \
@@ -1471,12 +1443,9 @@ UICommon_SOURCES = \
 	src/medium/UIMediumItem.cpp \
 	src/medium/UIMediumSearchWidget.cpp \
 	src/medium/UIMediumSelector.cpp \
-	src/medium/viso/UIVisoBrowserBase.cpp \
+	src/medium/UIMediumTools.cpp \
 	src/medium/viso/UIVisoContentBrowser.cpp \
 	src/medium/viso/UIVisoCreator.cpp \
-	src/medium/viso/UIVisoConfigurationPanel.cpp \
-	src/medium/viso/UIVisoCreatorOptionsPanel.cpp \
-	src/medium/viso/UIVisoHostBrowser.cpp \
 	src/notificationcenter/UINotificationCenter.cpp \
 	src/notificationcenter/UINotificationModel.cpp \
 	src/notificationcenter/UINotificationObject.cpp \
@@ -1486,11 +1455,13 @@ UICommon_SOURCES = \
 	src/objects/UIExecutionQueue.cpp \
 	src/objects/UIRichTextString.cpp \
 	src/settings/UISettingsDefs.cpp \
-	src/settings/UISettingsDialog.cpp \
-	src/settings/UISettingsDialogSpecific.cpp \
+	src/settings/UIAdvancedSettingsDialog.cpp \
+	src/settings/UIAdvancedSettingsDialogSpecific.cpp \
 	src/settings/UISettingsPage.cpp \
+	src/settings/UISettingsPageValidator.cpp \
 	src/settings/UISettingsSelector.cpp \
 	src/settings/UISettingsSerializer.cpp \
+	src/settings/UISettingsWarningPane.cpp \
 	src/settings/editors/UIAccelerationFeaturesEditor.cpp \
 	src/settings/editors/UIAudioControllerEditor.cpp \
 	src/settings/editors/UIAudioFeaturesEditor.cpp \
@@ -1507,6 +1478,7 @@ UICommon_SOURCES = \
 	src/settings/editors/UIDisplayFeaturesEditor.cpp \
 	src/settings/editors/UIDisplayScreenFeaturesEditor.cpp \
 	src/settings/editors/UIDragAndDropEditor.cpp \
+	src/settings/editors/UIEditor.cpp \
 	src/settings/editors/UIExecutionCapEditor.cpp \
 	src/settings/editors/UIFontScaleEditor.cpp \
 	src/settings/editors/UIGraphicsControllerEditor.cpp \
@@ -1514,6 +1486,7 @@ UICommon_SOURCES = \
 	src/settings/editors/UIHotKeyEditor.cpp \
 	src/settings/editors/UILanguageSettingsEditor.cpp \
 	src/settings/editors/UIMaximumGuestScreenSizeEditor.cpp \
+	src/settings/editors/UIMenuBarEditor.cpp \
 	src/settings/editors/UIMiniToolbarSettingsEditor.cpp \
 	src/settings/editors/UIMonitorCountEditor.cpp \
 	src/settings/editors/UIMotherboardFeaturesEditor.cpp \
@@ -1527,11 +1500,13 @@ UICommon_SOURCES = \
 	src/settings/editors/UIProxyFeaturesEditor.cpp \
 	src/settings/editors/UIRecordingSettingsEditor.cpp \
 	src/settings/editors/UIScaleFactorEditor.cpp \
+	src/settings/editors/UISerialSettingsEditor.cpp \
 	src/settings/editors/UISharedClipboardEditor.cpp \
 	src/settings/editors/UISharedFolderDetailsEditor.cpp \
 	src/settings/editors/UISharedFoldersEditor.cpp \
 	src/settings/editors/UIShortcutConfigurationEditor.cpp \
 	src/settings/editors/UISnapshotFolderEditor.cpp \
+	src/settings/editors/UIStatusBarEditor.cpp \
 	src/settings/editors/UIStorageSettingsEditor.cpp \
 	src/settings/editors/UITpmEditor.cpp \
 	src/settings/editors/UIUSBControllerEditor.cpp \
@@ -1559,13 +1534,15 @@ UICommon_SOURCES = \
 	src/settings/machine/UIMachineSettingsStorage.cpp \
 	src/settings/machine/UIMachineSettingsSystem.cpp \
 	src/settings/machine/UIMachineSettingsUSB.cpp \
+	src/usb/UIUSBTools.cpp \
 	src/widgets/UIAddDiskEncryptionPasswordDialog.cpp \
 	src/widgets/UIFilePathSelector.cpp \
+	src/widgets/UIFileTableNavigationWidget.cpp \
 	src/widgets/UIFilmContainer.cpp \
 	src/widgets/UIMediaComboBox.cpp \
 	src/widgets/UIMediumSizeEditor.cpp \
 	src/widgets/UIMenuBar.cpp \
-	src/widgets/UIMenuBarEditorWindow.cpp \
+	src/widgets/UIPaneContainer.cpp \
 	src/widgets/UIPopupBox.cpp \
 	src/widgets/UIPopupPane.cpp \
 	src/widgets/UIPopupPaneButtonPane.cpp \
@@ -1578,9 +1555,7 @@ UICommon_SOURCES = \
 	src/widgets/UISearchLineEdit.cpp \
 	src/widgets/UISlidingToolBar.cpp \
 	src/widgets/UISpecialControls.cpp \
-	src/widgets/UIStatusBarEditorWindow.cpp \
 	src/widgets/UIToolBox.cpp \
-	src/widgets/UIWarningPane.cpp \
 	src/wizards/UINativeWizard.cpp \
 	src/wizards/UINativeWizardPage.cpp \
 	src/wizards/editors/UIUserNamePasswordEditor.cpp \
@@ -1590,12 +1565,6 @@ UICommon_SOURCES = \
 	src/wizards/newvd/UIWizardNewVDVariantPage.cpp \
 	src/wizards/newvd/UIWizardNewVDSizeLocationPage.cpp \
 	src/wizards/newvd/UIWizardNewVDExpertPage.cpp
-
-ifdef VBOX_WITH_QHELP_VIEWER
- UICommon_SOURCES += \
- 	src/helpbrowser/UIHelpViewer.cpp \
- 	src/helpbrowser/UIHelpBrowserWidget.cpp
-endif
 
 ifdef VBOX_GUI_WITH_NETWORK_MANAGER
  UICommon_SOURCES += \
@@ -1615,10 +1584,10 @@ ifdef VBOX_GUI_WITH_NETWORK_MANAGER
  	src/settings/global/UIGlobalSettingsUpdate.cpp
 endif
 
-if1of ($(KBUILD_TARGET), freebsd linux netbsd openbsd solaris) # X11
+if1of ($(KBUILD_TARGET), freebsd linux netbsd openbsd solaris) # Un*x
  UICommon_SOURCES += \
- 	src/platform/x11/VBoxUtils-x11.cpp \
- 	src/platform/x11/XKeyboard-new.cpp
+ 	src/platform/nix/VBoxUtils-nix.cpp \
+ 	src/platform/nix/XKeyboard-new.cpp
 endif
 
 UICommon_SOURCES.win += \
@@ -1634,6 +1603,13 @@ UICommon_SOURCES.darwin += \
 	src/platform/darwin/VBoxUtils-darwin-cocoa.mm \
 	src/platform/darwin/VBoxUtils-darwin.cpp
 
+#
+# Include common guest / host sources.
+#
+if1of ($(KBUILD_TARGET), freebsd linux netbsd openbsd solaris) # U*nix
+ UICommon_SOURCES += \
+ 	$(VBOX_GH_SOURCES)
+endif
 
 #
 # VirtualBox Manager Application
@@ -1658,20 +1634,8 @@ endif
 # The Qt modules we're using.
 # (The include directory and lib/framework for each module will be added by the Qt unit.)
 #
-VirtualBox_QT_MODULES = Core Gui Widgets PrintSupport
-ifdef VBOX_WITH_QT6
- VirtualBox_QT_MODULES += StateMachine
-endif
-ifndef VBOX_WITH_QT6
- VirtualBox_QT_MODULES.linux   += X11Extras
- VirtualBox_QT_MODULES.solaris += X11Extras
- VirtualBox_QT_MODULES.freebsd += X11Extras
- VirtualBox_QT_MODULES.darwin  += MacExtras
-endif
-VirtualBox_QT_MODULES.win     += WinExtras
-ifdef VBOX_GUI_WITH_QTGLFRAMEBUFFER
- VirtualBox_QT_MODULES += OpenGL
-endif
+VirtualBox_QT_MODULES = Core Gui Widgets PrintSupport StateMachine
+VirtualBox_QT_MODULES.win += EntryPoint
 
 
 #
@@ -1679,20 +1643,8 @@ endif
 # The Qt modules we're using.
 # (The include directory and lib/framework for each module will be added by the Qt unit.)
 #
-VirtualBoxVM_QT_MODULES = Core Gui Widgets PrintSupport
-ifdef VBOX_WITH_QT6
- VirtualBoxVM_QT_MODULES += StateMachine
-endif
-ifndef VBOX_WITH_QT6
- VirtualBoxVM_QT_MODULES.linux   += X11Extras
- VirtualBoxVM_QT_MODULES.solaris += X11Extras
- VirtualBoxVM_QT_MODULES.freebsd += X11Extras
- VirtualBoxVM_QT_MODULES.darwin  += MacExtras
-endif
-VirtualBoxVM_QT_MODULES.win     += WinExtras
-ifdef VBOX_GUI_WITH_QTGLFRAMEBUFFER
- VirtualBoxVM_QT_MODULES += OpenGL
-endif
+VirtualBoxVM_QT_MODULES = Core Gui Widgets PrintSupport StateMachine
+VirtualBoxVM_QT_MODULES.win += EntryPoint
 
 
 #
@@ -1700,42 +1652,18 @@ endif
 # The Qt modules we're using.
 # (The include directory and lib/framework for each module will be added by the Qt unit.)
 #
-UICommon_QT_MODULES = Core Gui Widgets
-ifdef VBOX_WITH_QT6
- UICommon_QT_MODULES += StateMachine
-endif
-ifndef VBOX_WITH_QT6
- UICommon_QT_MODULES.linux   += X11Extras
-endif
+UICommon_QT_MODULES = Core Gui Widgets Help StateMachine
 ifdef VBOX_WITH_SCREENSAVER_CONTROL
  UICommon_QT_MODULES.linux    += DBus
  UICommon_QT_MODULES.linux    += Xml
-endif
-ifndef VBOX_WITH_QT6
- UICommon_QT_MODULES.solaris += X11Extras
 endif
 ifdef VBOX_WITH_SCREENSAVER_CONTROL
  UICommon_QT_MODULES.solaris  += DBus
  UICommon_QT_MODULES.solaris  += Xml
 endif
-ifndef VBOX_WITH_QT6
- UICommon_QT_MODULES.freebsd += X11Extras
-endif
 ifdef VBOX_WITH_SCREENSAVER_CONTROL
  UICommon_QT_MODULES.freebsd  += DBus
  UICommon_QT_MODULES.freebsd  += Xml
-endif
-ifndef VBOX_WITH_QT6
- UICommon_QT_MODULES.darwin  += MacExtras
-endif
-UICommon_QT_MODULES.win      += WinExtras
-
-ifdef VBOX_WITH_QHELP_VIEWER
- UICommon_QT_MODULES   += Help
-endif
-
-ifdef VBOX_GUI_WITH_QTGLFRAMEBUFFER
- UICommon_QT_MODULES += OpenGL
 endif
 
 
@@ -1847,7 +1775,6 @@ $(VBOX_VIRTUALBOX_OUT_DIR)/VirtualBoxBrand.qrc: \
 		-e 's;@VBOX_VBOX_40PX_PNG@;$(VBOX_BRAND_GUI_VBOX_40PX_PNG);g' \
 		-e 's;@VBOX_VBOX_48PX_PNG@;$(VBOX_BRAND_GUI_VBOX_48PX_PNG);g' \
 		-e 's;@VBOX_VBOX_64PX_PNG@;$(VBOX_BRAND_GUI_VBOX_64PX_PNG);g' \
-		-e 's;@VBOX_CUBE_42PX_PNG@;$(VBOX_BRAND_GUI_CUBE_42PX_PNG);g' \
 		-e 's;@VBOX_CUBE_SVG@;$(VBOX_BRAND_GUI_VBOX_SVG);g' \
 		--output $@ \
 		$<
@@ -2077,55 +2004,54 @@ OTHER_CLEAN += \
 
 QTGUI_DOXYFILE_INPUT_DIRS := \
 	$(addprefix $(PATH_SUB_CURRENT)/src/, \
-	converter \
-	extensions \
-	extensions/graphics \
-	extradata \
-	globals \
-	manager \
-	manager/chooser \
-	manager/details \
-	manager/tools \
-	manager \
-	manager \
-	medium \
-	net \
-	objects \
-	platform \
-	platform/darwin \
-	platform/os2 \
-	platform/win \
-	platform/x11 \
-	runtime \
-	runtime/fullscreen \
-	runtime/information \
-	runtime/guestctrl \
-	runtime/normal \
-	runtime/scale \
-	runtime/seamless \
-	selector \
-	selector/graphics \
-	selector/graphics/chooser \
-	selector/graphics/details \
-	settings \
-	settings/global \
-	settings/machine \
-	widgets \
-	widgets/graphics \
-	wizards \
-	wizards/addcloudvm \
-	wizards/clonevd \
-	wizards/clonevm \
-	wizards/exportappliance \
-	wizards/importappliance \
-	wizards/newcloudvm \
-	wizards/newvd \
-	wizards/newvm)
+		converter \
+		extensions \
+		extensions/graphics \
+		extradata \
+		globals \
+		manager \
+		manager/chooser \
+		manager/details \
+		manager/tools \
+		manager \
+		manager \
+		medium \
+		net \
+		objects \
+		platform \
+		platform/darwin \
+		platform/os2 \
+		platform/win \
+		platform/nix \
+		runtime \
+		runtime/fullscreen \
+		runtime/information \
+		runtime/guestctrl \
+		runtime/normal \
+		runtime/scale \
+		runtime/seamless \
+		selector \
+		selector/graphics \
+		selector/graphics/chooser \
+		selector/graphics/details \
+		settings \
+		settings/global \
+		settings/machine \
+		widgets \
+		widgets/graphics \
+		wizards \
+		wizards/addcloudvm \
+		wizards/clonevm \
+		wizards/exportappliance \
+		wizards/importappliance \
+		wizards/newcloudvm \
+		wizards/newvd \
+		wizards/newvm)
 
 QTGUI_DOXYFILE_INPUT := \
 	$(foreach dir, $(QTGUI_DOXYFILE_INPUT_DIRS), \
-	$(sort $(wildcard $(dir)/*.h)) \
-	$(sort $(wildcard $(dir)/*.cpp $(dir)/*.m $(dir)/*.mm)))
+		$(sort $(wildcard $(dir)/*.h)) \
+		$(sort $(wildcard $(dir)/*.cpp $(dir)/*.m $(dir)/*.mm)))
 
 includedep $(QTGUI_DOXYFILE_OUTPUT)/Doxyfile.qtgui.dep
 
@@ -2186,7 +2112,7 @@ include $(FILE_KBUILD_SUB_FOOTER)
 #
 #VirtualBox_QT_TRANSLATIONS = nls/VirtualBox_de.ts
 checknls::
-	# Check for missing :/ in image paths
+        # Check for missing :/ in image paths
 	grep -i "src=[^:%]" $(filter-out nls/qt_%.ts,$(VirtualBox_QT_TRANSLATIONS))
 
 updatenls:: makeallnls nls/VirtualBox_en.ts
@@ -2195,8 +2121,9 @@ makeallnls:: \
 		$(foreach header,$(VBOX_GUI_INC_DIRS),$(wildcard $(header)/*.h)) \
 		$(filter-out %.qrc,$(VirtualBox_VBOX_ALL_NLS_SOURCES) $(VirtualBox_VBOX_EXTRA_NLS_SOURCES))
 	$(call MSG_L1,lupdate all languages (nls/*.ts))
-	$(QUIET)$(TOOL_QT5_LUPDATE) \
+	$(QUIET)$(TOOL_QT6_LUPDATE) \
 		$^ \
+		-locations none \
 		-ts \
 		$(filter-out nls/VirtualBox_en.ts,$(filter-out nls/qt_%.ts,$(VirtualBox_QT_TRANSLATIONS))) \
 		nls/VirtualBox_xx_YY.ts
@@ -2207,8 +2134,9 @@ nls/VirtualBox_en.ts: \
 		$(foreach header,$(VBOX_GUI_INC_DIRS),$(wildcard $(header)/*.h)) \
 		$(filter-out %.qrc,$(VirtualBox_VBOX_ALL_NLS_SOURCES) $(VirtualBox_VBOX_EXTRA_NLS_SOURCES))
 	$(call MSG_L1,lupdate $@)
-	$(QUIET)$(TOOL_QT5_LUPDATE) \
+	$(QUIET)$(TOOL_QT6_LUPDATE) \
 		$^ \
+		-locations none \
 		-ts \
 		$@
 	$(QUIET)$(SED) -n -i -e \

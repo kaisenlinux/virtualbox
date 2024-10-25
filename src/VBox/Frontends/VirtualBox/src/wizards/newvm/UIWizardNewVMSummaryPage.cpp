@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,6 +26,7 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QHeaderView>
 #include <QList>
 #include <QFileInfo>
@@ -34,6 +35,8 @@
 /* GUI includes: */
 #include "QIRichTextLabel.h"
 #include "QITreeView.h"
+#include "UIGlobalSession.h"
+#include "UIGuestOSType.h"
 #include "UIIconPool.h"
 #include "UIMessageCenter.h"
 #include "UINotificationCenter.h"
@@ -55,9 +58,10 @@ public:
     UIWizardNewVMSummaryItem(QITreeView *pParentTree, const QString &strText,
                              const QVariant &data = QVariant(), const QIcon &icon = QIcon());
     ~UIWizardNewVMSummaryItem();
-    virtual UIWizardNewVMSummaryItem *childItem(int iIndex) const /* override final */;
-    virtual int childCount() const /* override final */;
-    virtual QString text() const /* override final */;
+    virtual UIWizardNewVMSummaryItem *childItem(int iIndex) const RT_OVERRIDE RT_FINAL;
+    virtual int childCount() const RT_OVERRIDE RT_FINAL;
+    virtual QString text() const RT_OVERRIDE RT_FINAL;
+    const QString &name() const;
     const QVariant &data() const;
     const QIcon &icon() const;
 
@@ -98,13 +102,13 @@ public:
 
     UIWizardNewVMSummaryModel(QITreeView *pParentTree);
     ~UIWizardNewVMSummaryModel();
-    virtual QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const /* override final */;
+    virtual QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const RT_OVERRIDE RT_FINAL;
 
     QModelIndex index(int row, int column,
-                      const QModelIndex &parent = QModelIndex()) const  /* override final */;
-    QModelIndex parent(const QModelIndex &index) const  /* override final */;
-    int rowCount(const QModelIndex &parent = QModelIndex()) const  /* override final */;
-    int columnCount(const QModelIndex &parent = QModelIndex()) const  /* override final */;
+                      const QModelIndex &parent = QModelIndex()) const  RT_OVERRIDE RT_FINAL;
+    QModelIndex parent(const QModelIndex &index) const  RT_OVERRIDE RT_FINAL;
+    int rowCount(const QModelIndex &parent = QModelIndex()) const  RT_OVERRIDE RT_FINAL;
+    int columnCount(const QModelIndex &parent = QModelIndex()) const  RT_OVERRIDE RT_FINAL;
 
     void populateData(UIWizardNewVM *pWizard);
 
@@ -173,8 +177,14 @@ int UIWizardNewVMSummaryItem::childCount() const
     return m_childList.size();
 }
 
-
 QString UIWizardNewVMSummaryItem::text() const
+{
+    return   m_data.isValid()
+           ? QString("%1: %2").arg(m_strText, m_data.toString())
+           : m_strText;
+}
+
+const QString &UIWizardNewVMSummaryItem::name() const
 {
     return m_strText;
 }
@@ -241,7 +251,7 @@ QVariant UIWizardNewVMSummaryModel::data(const QModelIndex &index, int role /* =
         switch (index.column())
         {
             case 0:
-                return pItem->text();
+                return pItem->name();
                 break;
             case 1:
                 return pItem->data();
@@ -353,7 +363,7 @@ void UIWizardNewVMSummaryModel::populateData(UIWizardNewVM *pWizard)
     pNameRoot->addChild(UIWizardNewVM::tr("Machine Name"), pWizard->machineBaseName());
     pNameRoot->addChild(UIWizardNewVM::tr("Machine Folder"), pWizard->machineFolder());
     pNameRoot->addChild(UIWizardNewVM::tr("ISO Image"), pWizard->ISOFilePath());
-    pNameRoot->addChild(UIWizardNewVM::tr("Guest OS Type"), pWizard->guestOSType().GetDescription());
+    pNameRoot->addChild(UIWizardNewVM::tr("Guest OS Type"), gpGlobalSession->guestOSTypeManager().getDescription(pWizard->guestOSTypeId()));
 
     const QString &ISOPath = pWizard->ISOFilePath();
     if (!ISOPath.isNull() && !ISOPath.isEmpty())
@@ -424,13 +434,9 @@ void UIWizardNewVMSummaryPage::prepare()
     pMainLayout->addWidget(m_pLabel);
 
     m_pTree = new QITreeView;
-    QString sty("QTreeView::branch {"
-                "background: palette(base);"
-                "}");
 
     if (m_pTree)
     {
-        //m_pTree->setStyleSheet(sty);
         m_pTree->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::MinimumExpanding);
         m_pTree->setAlternatingRowColors(true);
         m_pModel = new UIWizardNewVMSummaryModel(m_pTree);
@@ -447,7 +453,7 @@ void UIWizardNewVMSummaryPage::createConnections()
 {
 }
 
-void UIWizardNewVMSummaryPage::retranslateUi()
+void UIWizardNewVMSummaryPage::sltRetranslateUI()
 {
     setTitle(UIWizardNewVM::tr("Summary"));
     if (m_pLabel)
@@ -455,15 +461,16 @@ void UIWizardNewVMSummaryPage::retranslateUi()
                                             " chosen for the new virtual machine. When you are happy with the configuration"
                                             " press Finish to create the virtual machine. Alternatively you can go back"
                                             " and modify the configuration."));
+    if (m_pTree)
+        m_pTree->setWhatsThis(UIWizardNewVM::tr("Lists chosen configuration of the guest system."));
 }
 
 void UIWizardNewVMSummaryPage::initializePage()
 {
-    retranslateUi();
+    sltRetranslateUI();
     UIWizardNewVM *pWizard = wizardWindow<UIWizardNewVM>();
     AssertReturnVoid(pWizard && m_pModel);
-    if (m_pModel)
-        m_pModel->populateData(pWizard);
+    m_pModel->populateData(pWizard);
     if (m_pTree)
     {
         m_pTree->expandToDepth(4);

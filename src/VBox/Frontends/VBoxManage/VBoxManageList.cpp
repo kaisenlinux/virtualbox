@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -719,6 +719,271 @@ static HRESULT listUsbFilters(const ComPtr<IVirtualBox> &pVirtualBox)
     return hrc;
 }
 
+/**
+ * Returns the chipset type as a string.
+ *
+ * @return Chipset type as a string.
+ * @param  enmType               Chipset type to convert.
+ */
+static const char *chipsetTypeToStr(ChipsetType_T enmType)
+{
+    switch (enmType)
+    {
+        case ChipsetType_PIIX3:        return "PIIX3";
+        case ChipsetType_ICH9:         return "ICH9";
+        case ChipsetType_ARMv8Virtual: return "ARMv8Virtual";
+        case ChipsetType_Null:
+        default:
+            break;
+    }
+
+    return "<Unknown>";
+}
+
+/**
+ * Returns a platform architecture as a string.
+ *
+ * @return Platform architecture as a string.
+ * @param  enmArch               Platform architecture to convert.
+ */
+static const char *platformArchitectureToStr(PlatformArchitecture_T enmArch)
+{
+    switch (enmArch)
+    {
+        case PlatformArchitecture_x86: return "x86";
+        case PlatformArchitecture_ARM: return "ARMv8";
+        default:
+            break;
+    }
+
+    return "<Unknown>";
+}
+
+/**
+ * Returns the platform architecture for a given string.
+ *
+ * @return Platform architecture, or PlatformArchitecture_None if not found.
+ * @param  pszPlatform           Platform architecture to convert.
+ */
+static PlatformArchitecture_T platformArchitectureToStr(const char *pszPlatform)
+{
+    if (   !RTStrICmp(pszPlatform, "x86")
+        || !RTStrICmp(pszPlatform, "x86_64")
+        || !RTStrICmp(pszPlatform, "ia32")
+        || !RTStrICmp(pszPlatform, "amd64")
+        || !RTStrICmp(pszPlatform, "intel"))
+        return PlatformArchitecture_x86;
+    else if (   !RTStrICmp(pszPlatform, "arm")
+             || !RTStrICmp(pszPlatform, "armv8"))
+        return PlatformArchitecture_ARM;
+    return PlatformArchitecture_None;
+}
+
+/** @todo r=andy Make use of SHOW_ULONG_PROP and friends like in VBoxManageInfo to have a more uniform / prettier output.
+ *               Use nesting (as padding / tabs). */
+
+/**
+ * List chipset properties.
+ *
+ * @returns See produceList.
+ * @param   pVirtualBox         Reference to the IVirtualBox smart pointer.
+ */
+static HRESULT listPlatformChipsetProperties(const ComPtr<IPlatformProperties> &pPlatformProperties, ChipsetType_T enmChipsetType)
+{
+    const char *pszChipset = chipsetTypeToStr(enmChipsetType);
+    AssertPtrReturn(pszChipset, E_INVALIDARG);
+
+    /* Note: Keep the chipset name within the description -- makes it easier to grep for specific chipsts manually. */
+    ULONG ulValue;
+    pPlatformProperties->GetMaxNetworkAdapters(enmChipsetType, &ulValue);
+    RTPrintf(List::tr("Maximum %s Network Adapter count:   %u\n"), pszChipset, ulValue);
+    pPlatformProperties->GetMaxInstancesOfStorageBus(enmChipsetType, StorageBus_IDE, &ulValue);
+    RTPrintf(List::tr("Maximum %s IDE Controllers:   %u\n"), pszChipset, ulValue);
+    pPlatformProperties->GetMaxInstancesOfStorageBus(enmChipsetType, StorageBus_SATA, &ulValue);
+    RTPrintf(List::tr("Maximum %s SATA Controllers:  %u\n"), pszChipset, ulValue);
+    pPlatformProperties->GetMaxInstancesOfStorageBus(enmChipsetType, StorageBus_SCSI, &ulValue);
+    RTPrintf(List::tr("Maximum %s SCSI Controllers:  %u\n"), pszChipset, ulValue);
+    pPlatformProperties->GetMaxInstancesOfStorageBus(enmChipsetType, StorageBus_SAS, &ulValue);
+    RTPrintf(List::tr("Maximum %s SAS Controllers:   %u\n"), pszChipset, ulValue);
+    pPlatformProperties->GetMaxInstancesOfStorageBus(enmChipsetType, StorageBus_PCIe, &ulValue);
+    RTPrintf(List::tr("Maximum %s NVMe Controllers:  %u\n"), pszChipset, ulValue);
+    pPlatformProperties->GetMaxInstancesOfStorageBus(enmChipsetType, StorageBus_VirtioSCSI, &ulValue);
+    RTPrintf(List::tr("Maximum %s virtio-scsi Controllers:  %u\n"), pszChipset, ulValue);
+    pPlatformProperties->GetMaxInstancesOfStorageBus(enmChipsetType, StorageBus_Floppy, &ulValue);
+    RTPrintf(List::tr("Maximum %s Floppy Controllers:%u\n"), pszChipset, ulValue);
+
+    return S_OK;
+}
+
+/**
+ * Shows a single guest OS type.
+ *
+ * @returns HRESULT
+ * @param   ptrGuestOS          Guest OS type to show.
+ * @param   fLong               Set to @true to show the guest OS type information in a not-so-compact mode.
+ */
+static HRESULT showGuestOSType(ComPtr<IGuestOSType> ptrGuestOS, bool fLong)
+{
+    PlatformArchitecture_T enmPlatformArch = (PlatformArchitecture_T)PlatformArchitecture_None;
+    ptrGuestOS->COMGETTER(PlatformArchitecture)(&enmPlatformArch);
+    Bstr guestId;
+    Bstr guestDescription;
+    ptrGuestOS->COMGETTER(Description)(guestDescription.asOutParam());
+    ptrGuestOS->COMGETTER(Id)(guestId.asOutParam());
+    Bstr familyId;
+    Bstr familyDescription;
+    ptrGuestOS->COMGETTER(FamilyId)(familyId.asOutParam());
+    ptrGuestOS->COMGETTER(FamilyDescription)(familyDescription.asOutParam());
+    Bstr guestOSSubtype;
+    ptrGuestOS->COMGETTER(Subtype)(guestOSSubtype.asOutParam());
+    BOOL fIs64Bit;
+    ptrGuestOS->COMGETTER(Is64Bit)(&fIs64Bit);
+
+    if (fLong)
+    {
+        RTPrintf(         "ID:               %ls\n", guestId.raw());
+        RTPrintf(List::tr("Description:      %ls\n"), guestDescription.raw());
+        RTPrintf(List::tr("Family ID:        %ls\n"), familyId.raw());
+        RTPrintf(List::tr("Family Desc:      %ls\n"), familyDescription.raw());
+        if (guestOSSubtype.isNotEmpty())
+            RTPrintf(List::tr("OS Subtype:       %ls\n"), guestOSSubtype.raw());
+        RTPrintf(List::tr("Architecture:     %s\n"), platformArchitectureToStr(enmPlatformArch));
+        RTPrintf(List::tr("64 bit:           %RTbool\n"), fIs64Bit);
+    }
+    else
+    {
+        RTPrintf(         "ID / Description: %ls -- %ls\n", guestId.raw(), guestDescription.raw());
+        if (guestOSSubtype.isNotEmpty())
+            RTPrintf(List::tr("Family:           %ls / %ls (%ls)\n"),
+                     familyId.raw(), guestOSSubtype.raw(), familyDescription.raw());
+        else
+            RTPrintf(List::tr("Family:           %ls (%ls)\n"), familyId.raw(), familyDescription.raw());
+        RTPrintf(List::tr("Architecture:     %s%s\n"), platformArchitectureToStr(enmPlatformArch),
+                                                      fIs64Bit ? " (64-bit)" : "");
+    }
+    RTPrintf("\n");
+
+    return S_OK;
+}
+
+/**
+ * Lists guest OS types.
+ *
+ * @returns HRESULT
+ * @param   aGuestOSTypes           Reference to guest OS types to list.
+ * @param   fLong                   Set to @true to list the OS types in a not-so-compact mode.
+ * @param   fSorted                 Set to @true to list the OS types in a sorted manner (by guest OS type ID).
+ * @param   enmFilterByPlatformArch Filters the output by the given platform architecture, or shows all supported guest OS types
+ *                                  if PlatformArchitecture_None is specified.
+ */
+static HRESULT listGuestOSTypes(const com::SafeIfaceArray<IGuestOSType> &aGuestOSTypes, bool fLong, bool fSorted,
+                                PlatformArchitecture_T enmFilterByPlatformArch)
+{
+    RTPrintf(List::tr("Supported guest OS types%s:\n\n"),
+                      enmFilterByPlatformArch != PlatformArchitecture_None ? " (filtered)" : "");
+
+/** Filters the guest OS type output by skipping the current iteration. */
+#define FILTER_OUTPUT(a_GuestOSType) \
+    PlatformArchitecture_T enmPlatformArch = (PlatformArchitecture_T)PlatformArchitecture_None; \
+    ptrGuestOS->COMGETTER(PlatformArchitecture)(&enmPlatformArch); \
+    if (   enmFilterByPlatformArch != PlatformArchitecture_None \
+        && enmFilterByPlatformArch != enmPlatformArch) \
+        continue;
+
+    if (fSorted)
+    {
+        std::vector<std::pair<com::Bstr, IGuestOSType *> > sortedGuestOSTypes;
+        for (size_t i = 0; i < aGuestOSTypes.size(); ++i)
+        {
+            ComPtr<IGuestOSType> ptrGuestOS = aGuestOSTypes[i];
+            FILTER_OUTPUT(ptrGuestOS);
+
+            /* We sort by guest type ID. */
+            Bstr guestId;
+            ptrGuestOS->COMGETTER(Id)(guestId.asOutParam());
+            sortedGuestOSTypes.push_back(std::pair<com::Bstr, IGuestOSType *>(guestId, ptrGuestOS));
+        }
+
+        std::sort(sortedGuestOSTypes.begin(), sortedGuestOSTypes.end());
+        for (size_t i = 0; i < sortedGuestOSTypes.size(); ++i)
+            showGuestOSType(sortedGuestOSTypes[i].second, fLong);
+    }
+    else
+    {
+        for (size_t i = 0; i < aGuestOSTypes.size(); ++i)
+        {
+            ComPtr<IGuestOSType> ptrGuestOS = aGuestOSTypes[i];
+            FILTER_OUTPUT(ptrGuestOS);
+
+            showGuestOSType(ptrGuestOS, fLong);
+        }
+    }
+
+#undef FILTER_OUTPUT
+
+    return S_OK;
+}
+
+static HRESULT listPlatformProperties(const ComPtr<IPlatformProperties> &platformProperties)
+{
+    ULONG ulValue;
+    platformProperties->COMGETTER(SerialPortCount)(&ulValue);
+    RTPrintf(List::tr("Maximum Serial Port count:              %u\n"), ulValue);
+    platformProperties->COMGETTER(ParallelPortCount)(&ulValue);
+    RTPrintf(List::tr("Maximum Parallel Port count:            %u\n"), ulValue);
+    platformProperties->COMGETTER(MaxBootPosition)(&ulValue);
+    RTPrintf(List::tr("Maximum Boot Position:                  %u\n"), ulValue);
+    platformProperties->GetMaxPortCountForStorageBus(StorageBus_Floppy, &ulValue);
+    RTPrintf(List::tr("Maximum Floppy Port count:              %u\n"), ulValue);
+    platformProperties->GetMaxDevicesPerPortForStorageBus(StorageBus_Floppy, &ulValue);
+    RTPrintf(List::tr("Maximum Floppy Devices per Port:        %u\n"), ulValue);
+    platformProperties->GetMaxPortCountForStorageBus(StorageBus_VirtioSCSI, &ulValue);
+    RTPrintf(List::tr("Maximum virtio-scsi Port count:         %u\n"), ulValue);
+    platformProperties->GetMaxDevicesPerPortForStorageBus(StorageBus_VirtioSCSI, &ulValue);
+    RTPrintf(List::tr("Maximum virtio-scsi Devices per Port:   %u\n"), ulValue);
+    platformProperties->GetMaxPortCountForStorageBus(StorageBus_IDE, &ulValue);
+    RTPrintf(List::tr("Maximum IDE Port count:                 %u\n"), ulValue);
+    platformProperties->GetMaxDevicesPerPortForStorageBus(StorageBus_IDE, &ulValue);
+    RTPrintf(List::tr("Maximum IDE Devices per port:           %u\n"), ulValue);
+    platformProperties->GetMaxPortCountForStorageBus(StorageBus_SATA, &ulValue);
+    RTPrintf(List::tr("Maximum SATA Port count:                %u\n"), ulValue);
+    platformProperties->GetMaxDevicesPerPortForStorageBus(StorageBus_SATA, &ulValue);
+    RTPrintf(List::tr("Maximum SATA Device per port:          %u\n"), ulValue);
+    platformProperties->GetMaxPortCountForStorageBus(StorageBus_SCSI, &ulValue);
+    RTPrintf(List::tr("Maximum SCSI Port count:                %u\n"), ulValue);
+    platformProperties->GetMaxDevicesPerPortForStorageBus(StorageBus_SCSI, &ulValue);
+    RTPrintf(List::tr("Maximum SCSI Devices per port:          %u\n"), ulValue);
+    platformProperties->GetMaxPortCountForStorageBus(StorageBus_SAS, &ulValue);
+    RTPrintf(List::tr("Maximum SAS Port count:                 %u\n"), ulValue);
+    platformProperties->GetMaxDevicesPerPortForStorageBus(StorageBus_SAS, &ulValue);
+    RTPrintf(List::tr("Maximum SAS Devices per Port:           %u\n"), ulValue);
+    platformProperties->GetMaxPortCountForStorageBus(StorageBus_PCIe, &ulValue);
+    RTPrintf(List::tr("Maximum NVMe Port count:                %u\n"), ulValue);
+    platformProperties->GetMaxDevicesPerPortForStorageBus(StorageBus_PCIe, &ulValue);
+    RTPrintf(List::tr("Maximum NVMe Devices per Port:          %u\n"), ulValue);
+
+    SafeArray <ChipsetType_T> saChipset;
+    platformProperties->COMGETTER(SupportedChipsetTypes(ComSafeArrayAsOutParam(saChipset)));
+
+    RTPrintf(List::tr("Supported chipsets:                     "));
+    for (size_t i = 0; i < saChipset.size(); i++)
+    {
+        if (i > 0)
+            RTPrintf(", ");
+        RTPrintf("%s", chipsetTypeToStr(saChipset[i]));
+    }
+    RTPrintf("\n");
+
+    for (size_t i = 0; i < saChipset.size(); i++)
+    {
+        if (i > 0)
+            RTPrintf("\n");
+        RTPrintf(List::tr("%s chipset properties:\n"), chipsetTypeToStr(saChipset[i]));
+        listPlatformChipsetProperties(platformProperties, saChipset[i]);
+    }
+
+    return S_OK;
+}
 
 /**
  * List system properties.
@@ -730,6 +995,9 @@ static HRESULT listSystemProperties(const ComPtr<IVirtualBox> &pVirtualBox)
 {
     ComPtr<ISystemProperties> systemProperties;
     CHECK_ERROR2I_RET(pVirtualBox, COMGETTER(SystemProperties)(systemProperties.asOutParam()), hrcCheck);
+
+    ComPtr<IPlatformProperties> hostPlatformProperties;
+    CHECK_ERROR2I_RET(systemProperties, COMGETTER(Platform)(hostPlatformProperties.asOutParam()), hrcCheck);
 
     Bstr str;
     ULONG ulValue;
@@ -756,72 +1024,7 @@ static HRESULT listSystemProperties(const ComPtr<IVirtualBox> &pVirtualBox)
     RTPrintf(List::tr("Maximum guest CPU count:         %u\n"), ulValue);
     systemProperties->COMGETTER(InfoVDSize)(&i64Value);
     RTPrintf(List::tr("Virtual disk limit (info):       %lld Bytes\n", "" , i64Value), i64Value);
-    systemProperties->COMGETTER(SerialPortCount)(&ulValue);
-    RTPrintf(List::tr("Maximum Serial Port count:       %u\n"), ulValue);
-    systemProperties->COMGETTER(ParallelPortCount)(&ulValue);
-    RTPrintf(List::tr("Maximum Parallel Port count:     %u\n"), ulValue);
-    systemProperties->COMGETTER(MaxBootPosition)(&ulValue);
-    RTPrintf(List::tr("Maximum Boot Position:           %u\n"), ulValue);
-    systemProperties->GetMaxNetworkAdapters(ChipsetType_PIIX3, &ulValue);
-    RTPrintf(List::tr("Maximum PIIX3 Network Adapter count:   %u\n"), ulValue);
-    systemProperties->GetMaxNetworkAdapters(ChipsetType_ICH9,  &ulValue);
-    RTPrintf(List::tr("Maximum ICH9 Network Adapter count:   %u\n"), ulValue);
-    systemProperties->GetMaxInstancesOfStorageBus(ChipsetType_PIIX3, StorageBus_IDE, &ulValue);
-    RTPrintf(List::tr("Maximum PIIX3 IDE Controllers:   %u\n"), ulValue);
-    systemProperties->GetMaxInstancesOfStorageBus(ChipsetType_ICH9, StorageBus_IDE, &ulValue);
-    RTPrintf(List::tr("Maximum ICH9 IDE Controllers:    %u\n"), ulValue);
-    systemProperties->GetMaxPortCountForStorageBus(StorageBus_IDE, &ulValue);
-    RTPrintf(List::tr("Maximum IDE Port count:          %u\n"), ulValue);
-    systemProperties->GetMaxDevicesPerPortForStorageBus(StorageBus_IDE, &ulValue);
-    RTPrintf(List::tr("Maximum Devices per IDE Port:    %u\n"), ulValue);
-    systemProperties->GetMaxInstancesOfStorageBus(ChipsetType_PIIX3, StorageBus_SATA, &ulValue);
-    RTPrintf(List::tr("Maximum PIIX3 SATA Controllers:  %u\n"), ulValue);
-    systemProperties->GetMaxInstancesOfStorageBus(ChipsetType_ICH9, StorageBus_SATA, &ulValue);
-    RTPrintf(List::tr("Maximum ICH9 SATA Controllers:   %u\n"), ulValue);
-    systemProperties->GetMaxPortCountForStorageBus(StorageBus_SATA, &ulValue);
-    RTPrintf(List::tr("Maximum SATA Port count:         %u\n"), ulValue);
-    systemProperties->GetMaxDevicesPerPortForStorageBus(StorageBus_SATA, &ulValue);
-    RTPrintf(List::tr("Maximum Devices per SATA Port:   %u\n"), ulValue);
-    systemProperties->GetMaxInstancesOfStorageBus(ChipsetType_PIIX3, StorageBus_SCSI, &ulValue);
-    RTPrintf(List::tr("Maximum PIIX3 SCSI Controllers:  %u\n"), ulValue);
-    systemProperties->GetMaxInstancesOfStorageBus(ChipsetType_ICH9, StorageBus_SCSI, &ulValue);
-    RTPrintf(List::tr("Maximum ICH9 SCSI Controllers:   %u\n"), ulValue);
-    systemProperties->GetMaxPortCountForStorageBus(StorageBus_SCSI, &ulValue);
-    RTPrintf(List::tr("Maximum SCSI Port count:         %u\n"), ulValue);
-    systemProperties->GetMaxDevicesPerPortForStorageBus(StorageBus_SCSI, &ulValue);
-    RTPrintf(List::tr("Maximum Devices per SCSI Port:   %u\n"), ulValue);
-    systemProperties->GetMaxInstancesOfStorageBus(ChipsetType_PIIX3, StorageBus_SAS, &ulValue);
-    RTPrintf(List::tr("Maximum SAS PIIX3 Controllers:   %u\n"), ulValue);
-    systemProperties->GetMaxInstancesOfStorageBus(ChipsetType_ICH9, StorageBus_SAS, &ulValue);
-    RTPrintf(List::tr("Maximum SAS ICH9 Controllers:    %u\n"), ulValue);
-    systemProperties->GetMaxPortCountForStorageBus(StorageBus_SAS, &ulValue);
-    RTPrintf(List::tr("Maximum SAS Port count:          %u\n"), ulValue);
-    systemProperties->GetMaxDevicesPerPortForStorageBus(StorageBus_SAS, &ulValue);
-    RTPrintf(List::tr("Maximum Devices per SAS Port:    %u\n"), ulValue);
-    systemProperties->GetMaxInstancesOfStorageBus(ChipsetType_PIIX3, StorageBus_PCIe, &ulValue);
-    RTPrintf(List::tr("Maximum NVMe PIIX3 Controllers:  %u\n"), ulValue);
-    systemProperties->GetMaxInstancesOfStorageBus(ChipsetType_ICH9, StorageBus_PCIe, &ulValue);
-    RTPrintf(List::tr("Maximum NVMe ICH9 Controllers:   %u\n"), ulValue);
-    systemProperties->GetMaxPortCountForStorageBus(StorageBus_PCIe, &ulValue);
-    RTPrintf(List::tr("Maximum NVMe Port count:         %u\n"), ulValue);
-    systemProperties->GetMaxDevicesPerPortForStorageBus(StorageBus_PCIe, &ulValue);
-    RTPrintf(List::tr("Maximum Devices per NVMe Port:   %u\n"), ulValue);
-    systemProperties->GetMaxInstancesOfStorageBus(ChipsetType_PIIX3, StorageBus_VirtioSCSI, &ulValue);
-    RTPrintf(List::tr("Maximum virtio-scsi PIIX3 Controllers:  %u\n"), ulValue);
-    systemProperties->GetMaxInstancesOfStorageBus(ChipsetType_ICH9, StorageBus_VirtioSCSI, &ulValue);
-    RTPrintf(List::tr("Maximum virtio-scsi ICH9 Controllers:   %u\n"), ulValue);
-    systemProperties->GetMaxPortCountForStorageBus(StorageBus_VirtioSCSI, &ulValue);
-    RTPrintf(List::tr("Maximum virtio-scsi Port count:         %u\n"), ulValue);
-    systemProperties->GetMaxDevicesPerPortForStorageBus(StorageBus_VirtioSCSI, &ulValue);
-    RTPrintf(List::tr("Maximum Devices per virtio-scsi Port:   %u\n"), ulValue);
-    systemProperties->GetMaxInstancesOfStorageBus(ChipsetType_PIIX3, StorageBus_Floppy, &ulValue);
-    RTPrintf(List::tr("Maximum PIIX3 Floppy Controllers:%u\n"), ulValue);
-    systemProperties->GetMaxInstancesOfStorageBus(ChipsetType_ICH9, StorageBus_Floppy, &ulValue);
-    RTPrintf(List::tr("Maximum ICH9 Floppy Controllers: %u\n"), ulValue);
-    systemProperties->GetMaxPortCountForStorageBus(StorageBus_Floppy, &ulValue);
-    RTPrintf(List::tr("Maximum Floppy Port count:       %u\n"), ulValue);
-    systemProperties->GetMaxDevicesPerPortForStorageBus(StorageBus_Floppy, &ulValue);
-    RTPrintf(List::tr("Maximum Devices per Floppy Port: %u\n"), ulValue);
+
 #if 0
     systemProperties->GetFreeDiskSpaceWarning(&i64Value);
     RTPrintf(List::tr("Free disk space warning at:      %u Bytes\n", "", i64Value), i64Value);
@@ -834,9 +1037,9 @@ static HRESULT listSystemProperties(const ComPtr<IVirtualBox> &pVirtualBox)
 #endif
     systemProperties->COMGETTER(DefaultMachineFolder)(str.asOutParam());
     RTPrintf(List::tr("Default machine folder:          %ls\n"), str.raw());
-    systemProperties->COMGETTER(RawModeSupported)(&fValue);
+    hostPlatformProperties->COMGETTER(RawModeSupported)(&fValue);
     RTPrintf(List::tr("Raw-mode Supported:              %s\n"), fValue ? List::tr("yes") : List::tr("no"));
-    systemProperties->COMGETTER(ExclusiveHwVirt)(&fValue);
+    hostPlatformProperties->COMGETTER(ExclusiveHwVirt)(&fValue);
     RTPrintf(List::tr("Exclusive HW virtualization use: %s\n"), fValue ? List::tr("on") : List::tr("off"));
     systemProperties->COMGETTER(DefaultHardDiskFormat)(str.asOutParam());
     RTPrintf(List::tr("Default hard disk format:        %ls\n"), str.raw());
@@ -895,6 +1098,34 @@ static HRESULT listSystemProperties(const ComPtr<IVirtualBox> &pVirtualBox)
     systemProperties->COMGETTER(LanguageId)(str.asOutParam());
     RTPrintf(List::tr("User language:                   %ls\n"), str.raw());
 #endif
+
+    RTPrintf("Host platform properties:\n");
+    listPlatformProperties(hostPlatformProperties);
+
+    /* Separate host system / platform properties stuff from guest platform properties a bit. */
+    RTPrintf("\n");
+
+    SafeArray <PlatformArchitecture_T> saPlatformArch;
+    systemProperties->COMGETTER(SupportedPlatformArchitectures(ComSafeArrayAsOutParam(saPlatformArch)));
+    RTPrintf("Supported platform architectures: ");
+    for (size_t i = 0; i < saPlatformArch.size(); ++i)
+    {
+        if (i > 0)
+            RTPrintf(",");
+        RTPrintf(platformArchitectureToStr(saPlatformArch[i]));
+    }
+    RTPrintf("\n\n");
+
+    for (size_t i = 0; i < saPlatformArch.size(); ++i)
+    {
+        if (i > 0)
+            RTPrintf("\n");
+        ComPtr<IPlatformProperties> platformProperties;
+        pVirtualBox->GetPlatformProperties(saPlatformArch[i], platformProperties.asOutParam());
+        RTPrintf(List::tr("%s platform properties:\n"), platformArchitectureToStr(saPlatformArch[i]));
+        listPlatformProperties(platformProperties);
+    }
+
     return S_OK;
 }
 
@@ -1441,9 +1672,10 @@ static HRESULT displayCPUProfile(ICPUProfile *pProfile, size_t idx, int cchIdx, 
     const char *pszArchitecture = "???";
     switch (enmArchitecture)
     {
-        case CPUArchitecture_x86:       pszArchitecture = "x86"; break;
-        case CPUArchitecture_AMD64:     pszArchitecture = "AMD64"; break;
-
+        case CPUArchitecture_x86:      pszArchitecture = "x86"; break;
+        case CPUArchitecture_AMD64:    pszArchitecture = "AMD64"; break;
+        case CPUArchitecture_ARMv8_32: pszArchitecture = "ARMv8 (32-bit only)"; break;
+        case CPUArchitecture_ARMv8_64: pszArchitecture = "ARMv8 (64-bit)"; break;
 #ifdef VBOX_WITH_XPCOM_CPP_ENUM_HACK
         case CPUArchitecture_32BitHack:
 #endif
@@ -1901,6 +2133,87 @@ static HRESULT listHostDrives(const ComPtr<IVirtualBox> pVirtualBox, bool fOptLo
 }
 
 
+static HRESULT listExecutionEnginesForCpuArchitecture(CPUArchitecture_T enmCpuArchitecture, const ComPtr<ISystemProperties> ptrSysProps, const ComPtr<IHost> pHost,
+                                                      HRESULT hrc)
+{
+    const char *pszArchitecture = "???";
+    switch (enmCpuArchitecture)
+    {
+        case CPUArchitecture_x86:      pszArchitecture = "x86"; break;
+        case CPUArchitecture_AMD64:    pszArchitecture = "AMD64"; break;
+        case CPUArchitecture_ARMv8_32: pszArchitecture = "ARMv8 (32-bit only)"; break;
+        case CPUArchitecture_ARMv8_64: pszArchitecture = "ARMv8 (64-bit)"; break;
+#ifdef VBOX_WITH_XPCOM_CPP_ENUM_HACK
+        case CPUArchitecture_32BitHack:
+#endif
+        case CPUArchitecture_Any:
+            break;
+    }
+
+    /* Query all possible execution engines supported by the build. */
+    com::SafeArray<VMExecutionEngine_T> aExecutionEngines;
+    CHECK_ERROR2I_RET(ptrSysProps, GetExecutionEnginesForVmCpuArchitecture(enmCpuArchitecture,
+                                                                           ComSafeArrayAsOutParam(aExecutionEngines)), hrcCheck);
+
+    /* Don't dump anything if the architecture is not supported at all. */
+    if (aExecutionEngines.size())
+    {
+        /* Now filter out the ones the host actually supports. */
+        std::vector<VMExecutionEngine_T> vecExecEnginesSupported;
+        for (size_t i = 0; i < aExecutionEngines.size(); i++)
+        {
+            BOOL fSupported = FALSE;
+            CHECK_ERROR2I_RET(pHost, IsExecutionEngineSupported(enmCpuArchitecture, aExecutionEngines[i], &fSupported), hrcCheck);
+            if (fSupported)
+                vecExecEnginesSupported.push_back(aExecutionEngines[i]);
+        }
+
+        RTPrintf(List::tr("CPU Architecture: %s\n"), pszArchitecture);
+
+        /* Print what we've got. */
+        for (size_t i = 0; i < vecExecEnginesSupported.size(); i++)
+        {
+            const char *pszExecEngine = "???";
+            switch (vecExecEnginesSupported[i])
+            {
+                case VMExecutionEngine_Default:     pszExecEngine = "Default";     break;
+                case VMExecutionEngine_HwVirt:      pszExecEngine = "HwVirt";      break;
+                case VMExecutionEngine_NativeApi:   pszExecEngine = "NativeApi";   break;
+                case VMExecutionEngine_Interpreter: pszExecEngine = "Interpreter"; break;
+                case VMExecutionEngine_Recompiler:  pszExecEngine = "Recompiler";  break;
+                default: break;
+            }
+
+            RTPrintf("  #%02zu: %s\n", i, pszExecEngine);
+        }
+    }
+
+    return hrc;
+}
+
+
+/**
+ * List all execution engines supported by the host.
+ *
+ * @returns See produceList.
+ * @param   ptrVirtualBox       Reference to the smart IVirtualBox pointer.
+ */
+static HRESULT listExecutionEngines(const ComPtr<IVirtualBox> &ptrVirtualBox)
+{
+    ComPtr<ISystemProperties> ptrSysProps;
+    CHECK_ERROR2I_RET(ptrVirtualBox, COMGETTER(SystemProperties)(ptrSysProps.asOutParam()), hrcCheck);
+    ComPtr<IHost> pHost;
+    CHECK_ERROR2I_RET(ptrVirtualBox, COMGETTER(Host)(pHost.asOutParam()), hrcCheck);
+
+    HRESULT hrc = listExecutionEnginesForCpuArchitecture(CPUArchitecture_x86,      ptrSysProps, pHost, S_OK);
+            hrc = listExecutionEnginesForCpuArchitecture(CPUArchitecture_AMD64,    ptrSysProps, pHost, hrc);
+            hrc = listExecutionEnginesForCpuArchitecture(CPUArchitecture_ARMv8_32, ptrSysProps, pHost, hrc);
+            hrc = listExecutionEnginesForCpuArchitecture(CPUArchitecture_ARMv8_64, ptrSysProps, pHost, hrc);
+
+    return hrc;
+}
+
+
 /**
  * The type of lists we can produce.
  */
@@ -1910,6 +2223,7 @@ enum ListType_T
     kListVMs,
     kListRunningVMs,
     kListOsTypes,
+    kListOsSubtypes,
     kListHostDvds,
     kListHostFloppies,
     kListInternalNetworks,
@@ -1944,7 +2258,8 @@ enum ListType_T
     kListCloudProviders,
     kListCloudProfiles,
     kListCPUProfiles,
-    kListHostDrives
+    kListHostDrives,
+    kListExecutionEngines
 };
 
 
@@ -1954,9 +2269,13 @@ enum ListType_T
  * @returns S_OK or some COM error code that has been reported in full.
  * @param   enmList             The list to produce.
  * @param   fOptLong            Long (@c true) or short list format.
+ * @param   fOptSorted          Whether the output shall be sorted or not (depends on the actual command).
+ * @param   enmPlatformArch     Filters the list by the given platform architecture,
+ *                              or processes all platforms if PlatformArchitecture_None is specified.
  * @param   pVirtualBox         Reference to the IVirtualBox smart pointer.
  */
-static HRESULT produceList(enum ListType_T enmCommand, bool fOptLong, bool fOptSorted, const ComPtr<IVirtualBox> &pVirtualBox)
+static HRESULT produceList(enum ListType_T enmCommand, bool fOptLong, bool fOptSorted, PlatformArchitecture_T enmPlatformArch,
+                           const ComPtr<IVirtualBox> &pVirtualBox)
 {
     HRESULT hrc = S_OK;
     switch (enmCommand)
@@ -2051,30 +2370,39 @@ static HRESULT produceList(enum ListType_T enmCommand, bool fOptLong, bool fOptS
             com::SafeIfaceArray<IGuestOSType> coll;
             hrc = pVirtualBox->COMGETTER(GuestOSTypes)(ComSafeArrayAsOutParam(coll));
             if (SUCCEEDED(hrc))
+                listGuestOSTypes(coll, fOptLong, fOptSorted, enmPlatformArch);
+            break;
+        }
+
+        case kListOsSubtypes:
+        {
+            com::SafeArray<BSTR> GuestOSFamilies;
+            CHECK_ERROR(pVirtualBox, COMGETTER(GuestOSFamilies)(ComSafeArrayAsOutParam(GuestOSFamilies)));
+            if (SUCCEEDED(hrc))
             {
-                /*
-                 * Iterate through the collection.
-                 */
-                for (size_t i = 0; i < coll.size(); ++i)
+                for (size_t i = 0; i < GuestOSFamilies.size(); ++i)
                 {
-                    ComPtr<IGuestOSType> guestOS;
-                    guestOS = coll[i];
-                    Bstr guestId;
-                    guestOS->COMGETTER(Id)(guestId.asOutParam());
-                    RTPrintf("ID:          %ls\n", guestId.raw());
-                    Bstr guestDescription;
-                    guestOS->COMGETTER(Description)(guestDescription.asOutParam());
-                    RTPrintf(List::tr("Description: %ls\n"), guestDescription.raw());
-                    Bstr familyId;
-                    guestOS->COMGETTER(FamilyId)(familyId.asOutParam());
-                    RTPrintf(List::tr("Family ID:   %ls\n"), familyId.raw());
-                    Bstr familyDescription;
-                    guestOS->COMGETTER(FamilyDescription)(familyDescription.asOutParam());
-                    RTPrintf(List::tr("Family Desc: %ls\n"), familyDescription.raw());
-                    BOOL is64Bit;
-                    guestOS->COMGETTER(Is64Bit)(&is64Bit);
-                    RTPrintf(List::tr("64 bit:      %RTbool\n"), is64Bit);
-                    RTPrintf("\n");
+                    const Bstr bstrOSFamily = GuestOSFamilies[i];
+                    com::SafeArray<BSTR> GuestOSSubtypes;
+                    CHECK_ERROR(pVirtualBox,
+                                GetGuestOSSubtypesByFamilyId(bstrOSFamily.raw(),
+                                                             ComSafeArrayAsOutParam(GuestOSSubtypes)));
+                    if (SUCCEEDED(hrc))
+                    {
+                        RTPrintf("%ls\n", bstrOSFamily.raw());
+                        for (size_t j = 0; j < GuestOSSubtypes.size(); ++j)
+                        {
+                            RTPrintf("\t%ls\n", GuestOSSubtypes[j]);
+                            com::SafeArray<BSTR> GuestOSDescs;
+                            const Bstr bstrOSSubtype = GuestOSSubtypes[j];
+                            CHECK_ERROR(pVirtualBox,
+                                        GetGuestOSDescsBySubtype(bstrOSSubtype.raw(),
+                                                                 ComSafeArrayAsOutParam(GuestOSDescs)));
+                            if (SUCCEEDED(hrc))
+                                for (size_t k = 0; k < GuestOSDescs.size(); ++k)
+                                    RTPrintf("\t\t%ls\n", GuestOSDescs[k]);
+                        }
+                    }
                 }
             }
             break;
@@ -2153,28 +2481,51 @@ static HRESULT produceList(enum ListType_T enmCommand, bool fOptLong, bool fOptS
         case kListHostCpuIDs:
         {
             ComPtr<IHost> Host;
-            CHECK_ERROR(pVirtualBox, COMGETTER(Host)(Host.asOutParam()));
+            CHECK_ERROR_BREAK(pVirtualBox, COMGETTER(Host)(Host.asOutParam()));
+            PlatformArchitecture_T platformArch;
+            CHECK_ERROR_BREAK(Host, COMGETTER(Architecture)(&platformArch));
 
-            RTPrintf(List::tr("Host CPUIDs:\n\nLeaf no.  EAX      EBX      ECX      EDX\n"));
-            ULONG uCpuNo = 0; /* ASSUMES that CPU#0 is online. */
-            static uint32_t const s_auCpuIdRanges[] =
+            switch (platformArch)
             {
-                UINT32_C(0x00000000), UINT32_C(0x0000007f),
-                UINT32_C(0x80000000), UINT32_C(0x8000007f),
-                UINT32_C(0xc0000000), UINT32_C(0xc000007f)
-            };
-            for (unsigned i = 0; i < RT_ELEMENTS(s_auCpuIdRanges); i += 2)
-            {
-                ULONG uEAX, uEBX, uECX, uEDX, cLeafs;
-                CHECK_ERROR(Host, GetProcessorCPUIDLeaf(uCpuNo, s_auCpuIdRanges[i], 0, &cLeafs, &uEBX, &uECX, &uEDX));
-                if (cLeafs < s_auCpuIdRanges[i] || cLeafs > s_auCpuIdRanges[i+1])
-                    continue;
-                cLeafs++;
-                for (ULONG iLeaf = s_auCpuIdRanges[i]; iLeaf <= cLeafs; iLeaf++)
+                case PlatformArchitecture_x86:
                 {
-                    CHECK_ERROR(Host, GetProcessorCPUIDLeaf(uCpuNo, iLeaf, 0, &uEAX, &uEBX, &uECX, &uEDX));
-                    RTPrintf("%08x  %08x %08x %08x %08x\n", iLeaf, uEAX, uEBX, uECX, uEDX);
+                    ComPtr<IHostX86> HostX86;
+                    CHECK_ERROR_BREAK(Host, COMGETTER(X86)(HostX86.asOutParam()));
+
+                    RTPrintf(List::tr("Host CPUIDs:\n\nLeaf no.  EAX      EBX      ECX      EDX\n"));
+                    ULONG uCpuNo = 0; /* ASSUMES that CPU#0 is online. */
+                    static uint32_t const s_auCpuIdRanges[] =
+                    {
+                        UINT32_C(0x00000000), UINT32_C(0x0000007f),
+                        UINT32_C(0x80000000), UINT32_C(0x8000007f),
+                        UINT32_C(0xc0000000), UINT32_C(0xc000007f)
+                    };
+                    for (unsigned i = 0; i < RT_ELEMENTS(s_auCpuIdRanges); i += 2)
+                    {
+                        ULONG uEAX, uEBX, uECX, uEDX, cLeafs;
+                        CHECK_ERROR(HostX86, GetProcessorCPUIDLeaf(uCpuNo, s_auCpuIdRanges[i], 0, &cLeafs, &uEBX, &uECX, &uEDX));
+                        if (cLeafs < s_auCpuIdRanges[i] || cLeafs > s_auCpuIdRanges[i+1])
+                            continue;
+                        cLeafs++;
+                        for (ULONG iLeaf = s_auCpuIdRanges[i]; iLeaf <= cLeafs; iLeaf++)
+                        {
+                            CHECK_ERROR(HostX86, GetProcessorCPUIDLeaf(uCpuNo, iLeaf, 0, &uEAX, &uEBX, &uECX, &uEDX));
+                            RTPrintf("%08x  %08x %08x %08x %08x\n", iLeaf, uEAX, uEBX, uECX, uEDX);
+                        }
+                    }
+
+                    break;
                 }
+
+                case PlatformArchitecture_ARM:
+                {
+                    /** @todo BUGBUG Implement this for ARM! */
+                    break;
+                }
+
+                default:
+                    AssertFailed();
+                    break;
             }
             break;
         }
@@ -2263,6 +2614,11 @@ static HRESULT produceList(enum ListType_T enmCommand, bool fOptLong, bool fOptS
         case kListHostDrives:
             hrc = listHostDrives(pVirtualBox, fOptLong);
             break;
+
+        case kListExecutionEngines:
+            hrc = listExecutionEngines(pVirtualBox);
+            break;
+
         /* No default here, want gcc warnings. */
 
     } /* end switch */
@@ -2278,21 +2634,25 @@ static HRESULT produceList(enum ListType_T enmCommand, bool fOptLong, bool fOptS
  */
 RTEXITCODE handleList(HandlerArg *a)
 {
-    bool                fOptLong      = false;
-    bool                fOptMultiple  = false;
-    bool                fOptSorted    = false;
-    bool                fFirst        = true;
-    enum ListType_T     enmOptCommand = kListNotSpecified;
-    RTEXITCODE          rcExit = RTEXITCODE_SUCCESS;
+    bool                   fOptLong        = false;
+    bool                   fOptMultiple    = false;
+    bool                   fOptSorted      = false;
+    PlatformArchitecture_T enmPlatformArch = PlatformArchitecture_None;
+    bool                   fFirst          = true;
+    enum ListType_T        enmOptCommand   = kListNotSpecified;
+    RTEXITCODE             rcExit          = RTEXITCODE_SUCCESS;
 
     static const RTGETOPTDEF s_aListOptions[] =
     {
         { "--long",             'l',                     RTGETOPT_REQ_NOTHING },
         { "--multiple",         'm',                     RTGETOPT_REQ_NOTHING }, /* not offical yet */
+        { "--platform-arch",    'p',                     RTGETOPT_REQ_STRING  },
+        { "--platform",         'p',                     RTGETOPT_REQ_STRING  }, /* shortcut for '--platform-arch' */
         { "--sorted",           's',                     RTGETOPT_REQ_NOTHING },
         { "vms",                kListVMs,                RTGETOPT_REQ_NOTHING },
         { "runningvms",         kListRunningVMs,         RTGETOPT_REQ_NOTHING },
         { "ostypes",            kListOsTypes,            RTGETOPT_REQ_NOTHING },
+        { "ossubtypes",         kListOsSubtypes,         RTGETOPT_REQ_NOTHING },
         { "hostdvds",           kListHostDvds,           RTGETOPT_REQ_NOTHING },
         { "hostfloppies",       kListHostFloppies,       RTGETOPT_REQ_NOTHING },
         { "intnets",            kListInternalNetworks,   RTGETOPT_REQ_NOTHING },
@@ -2330,6 +2690,7 @@ RTEXITCODE handleList(HandlerArg *a)
         { "cloudprofiles",      kListCloudProfiles,      RTGETOPT_REQ_NOTHING },
         { "cpu-profiles",       kListCPUProfiles,        RTGETOPT_REQ_NOTHING },
         { "hostdrives",         kListHostDrives,         RTGETOPT_REQ_NOTHING },
+        { "execution-engines",  kListExecutionEngines,   RTGETOPT_REQ_NOTHING },
     };
 
     int                 ch;
@@ -2345,10 +2706,6 @@ RTEXITCODE handleList(HandlerArg *a)
                 fOptLong = true;
                 break;
 
-            case 's':
-                fOptSorted = true;
-                break;
-
             case 'm':
                 fOptMultiple = true;
                 if (enmOptCommand == kListNotSpecified)
@@ -2356,9 +2713,20 @@ RTEXITCODE handleList(HandlerArg *a)
                 ch = enmOptCommand;
                 RT_FALL_THRU();
 
+            case 'p':  /* --platform[-arch] */
+                enmPlatformArch = platformArchitectureToStr(ValueUnion.psz);
+                if (enmPlatformArch == PlatformArchitecture_None)
+                    return errorSyntax(List::tr("Invalid platform architecture specified"));
+                break;
+
+            case 's':
+                fOptSorted = true;
+                break;
+
             case kListVMs:
             case kListRunningVMs:
             case kListOsTypes:
+            case kListOsSubtypes:
             case kListHostDvds:
             case kListHostFloppies:
             case kListInternalNetworks:
@@ -2394,6 +2762,7 @@ RTEXITCODE handleList(HandlerArg *a)
             case kListCloudProfiles:
             case kListCPUProfiles:
             case kListHostDrives:
+            case kListExecutionEngines:
                 enmOptCommand = (enum ListType_T)ch;
                 if (fOptMultiple)
                 {
@@ -2402,7 +2771,7 @@ RTEXITCODE handleList(HandlerArg *a)
                     else
                         RTPrintf("\n");
                     RTPrintf("[%s]\n", ValueUnion.pDef->pszLong);
-                    HRESULT hrc = produceList(enmOptCommand, fOptLong, fOptSorted, a->virtualBox);
+                    HRESULT hrc = produceList(enmOptCommand, fOptLong, fOptSorted, enmPlatformArch, a->virtualBox);
                     if (FAILED(hrc))
                         rcExit = RTEXITCODE_FAILURE;
                 }
@@ -2423,7 +2792,7 @@ RTEXITCODE handleList(HandlerArg *a)
         return errorSyntax(List::tr("Missing subcommand for \"list\" command.\n"));
     if (!fOptMultiple)
     {
-        HRESULT hrc = produceList(enmOptCommand, fOptLong, fOptSorted, a->virtualBox);
+        HRESULT hrc = produceList(enmOptCommand, fOptLong, fOptSorted, enmPlatformArch, a->virtualBox);
         if (FAILED(hrc))
             rcExit = RTEXITCODE_FAILURE;
     }

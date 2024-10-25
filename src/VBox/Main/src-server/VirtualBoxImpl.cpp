@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -292,29 +292,29 @@ struct VirtualBox::Data
         : pMainConfigFile(NULL)
         , uuidMediaRegistry("48024e5c-fdd9-470f-93af-ec29f7ea518c")
         , uRegistryNeedsSaving(0)
-        , lockMachines(LOCKCLASS_LISTOFMACHINES)
+        , lockMachines(LOCKCLASS_LISTOFMACHINES, "Machines")
         , allMachines(lockMachines)
-        , lockGuestOSTypes(LOCKCLASS_LISTOFOTHEROBJECTS)
+        , lockGuestOSTypes(LOCKCLASS_LISTOFOTHEROBJECTS, "GuestOSTypes")
         , allGuestOSTypes(lockGuestOSTypes)
-        , lockMedia(LOCKCLASS_LISTOFMEDIA)
+        , lockMedia(LOCKCLASS_LISTOFMEDIA, "Media")
         , allHardDisks(lockMedia)
         , allDVDImages(lockMedia)
         , allFloppyImages(lockMedia)
-        , lockSharedFolders(LOCKCLASS_LISTOFOTHEROBJECTS)
+        , lockSharedFolders(LOCKCLASS_LISTOFOTHEROBJECTS, "SharedFolders")
         , allSharedFolders(lockSharedFolders)
-        , lockDHCPServers(LOCKCLASS_LISTOFOTHEROBJECTS)
+        , lockDHCPServers(LOCKCLASS_LISTOFOTHEROBJECTS, "DHCPServers")
         , allDHCPServers(lockDHCPServers)
-        , lockNATNetworks(LOCKCLASS_LISTOFOTHEROBJECTS)
+        , lockNATNetworks(LOCKCLASS_LISTOFOTHEROBJECTS, "NATNetworks")
         , allNATNetworks(lockNATNetworks)
 #ifdef VBOX_WITH_VMNET
-        , lockHostOnlyNetworks(LOCKCLASS_LISTOFOTHEROBJECTS)
+        , lockHostOnlyNetworks(LOCKCLASS_LISTOFOTHEROBJECTS, "HostOnlyNetworks")
         , allHostOnlyNetworks(lockHostOnlyNetworks)
 #endif /* VBOX_WITH_VMNET */
 #ifdef VBOX_WITH_CLOUD_NET
-        , lockCloudNetworks(LOCKCLASS_LISTOFOTHEROBJECTS)
+        , lockCloudNetworks(LOCKCLASS_LISTOFOTHEROBJECTS, "CloudNetworks")
         , allCloudNetworks(lockCloudNetworks)
 #endif /* VBOX_WITH_CLOUD_NET */
-        , mtxProgressOperations(LOCKCLASS_PROGRESSLIST)
+        , mtxProgressOperations(LOCKCLASS_PROGRESSLIST, "ProgressOperations")
         , pClientWatcher(NULL)
         , threadAsyncEvent(NIL_RTTHREAD)
         , pAsyncEventQ(NULL)
@@ -469,6 +469,20 @@ struct VirtualBox::Data
     /** @} */
 };
 
+
+/**
+ * VirtualBox firmware descriptor.
+ */
+typedef struct VBOXFWDESC
+{
+    FirmwareType_T  enmType;
+    bool            fBuiltIn;
+    const char     *pszFileName;
+    const char     *pszUrl;
+} VBoxFwDesc;
+typedef const VBOXFWDESC *PVBOXFWDESC;
+
+
 // constructor / destructor
 /////////////////////////////////////////////////////////////////////////////
 
@@ -543,7 +557,7 @@ HRESULT VirtualBox::init()
     if (sAPIVersion.isEmpty())
         sAPIVersion = VBOX_API_VERSION_STRING;
     if (!spMtxNatNetworkNameToRefCountLock)
-        spMtxNatNetworkNameToRefCountLock = new RWLockHandle(LOCKCLASS_VIRTUALBOXOBJECT);
+        spMtxNatNetworkNameToRefCountLock = new RWLockHandle(LOCKCLASS_VIRTUALBOXOBJECT, "spMtxNatNetworkNameToRefCountLock");
 
     LogFlowThisFunc(("Version: %s, Package: %s, API Version: %s\n", sVersion.c_str(), sPackageType.c_str(), sAPIVersion.c_str()));
 
@@ -1252,6 +1266,22 @@ HRESULT VirtualBox::getHost(ComPtr<IHost> &aHost)
     return S_OK;
 }
 
+HRESULT VirtualBox::getPlatformProperties(PlatformArchitecture_T platformArchitecture,
+                                          ComPtr<IPlatformProperties> &aPlatformProperties)
+{
+    ComObjPtr<PlatformProperties> platformProperties;
+    HRESULT hrc = platformProperties.createObject();
+    AssertComRCReturn(hrc, hrc);
+
+    hrc = platformProperties->init(this);
+    AssertComRCReturn(hrc, hrc);
+
+    hrc = platformProperties->i_setArchitecture(platformArchitecture);
+    AssertComRCReturn(hrc, hrc);
+
+    return platformProperties.queryInterfaceTo(aPlatformProperties.asOutParam());
+}
+
 HRESULT VirtualBox::getSystemProperties(ComPtr<ISystemProperties> &aSystemProperties)
 {
     /* mSystemProperties is const, no need to lock */
@@ -1357,15 +1387,57 @@ HRESULT VirtualBox::getProgressOperations(std::vector<ComPtr<IProgress> > &aProg
     return S_OK;
 }
 
-HRESULT VirtualBox::getGuestOSTypes(std::vector<ComPtr<IGuestOSType> > &aGuestOSTypes)
+
+/**
+ * Returns all supported guest OS types for one ore more platform architecture(s).
+ *
+ * @returns HRESULT
+ * @param   aArchitectures          Platform architectures to return supported guest OS types for.
+ *                                  If empty, all supported guest OS for all platform architectures will be returned.
+ * @param   aGuestOSTypes           Where to return the supported guest OS types.
+ *                                  Will be empty if none supported.
+ */
+HRESULT VirtualBox::i_getSupportedGuestOSTypes(std::vector<PlatformArchitecture_T> aArchitectures,
+                                               std::vector<ComPtr<IGuestOSType> > &aGuestOSTypes)
 {
     AutoReadLock al(m->allGuestOSTypes.getLockHandle() COMMA_LOCKVAL_SRC_POS);
-    aGuestOSTypes.resize(m->allGuestOSTypes.size());
-    size_t i = 0;
-    for (GuestOSTypesOList::const_iterator it = m->allGuestOSTypes.begin();
-         it != m->allGuestOSTypes.end(); ++it, ++i)
-         (*it).queryInterfaceTo(aGuestOSTypes[i].asOutParam());
+
+    aGuestOSTypes.clear();
+
+    /** @todo We might want to redo this at some point, to better group / hash this. */
+
+    for (GuestOSTypesOList::const_iterator it = m->allGuestOSTypes.begin(); it != m->allGuestOSTypes.end(); ++it)
+    {
+        bool fFound = false;
+        if (aArchitectures.size() == 0) /* If empty, we add all types we have. */
+            fFound = true;
+        else
+        {
+            for (size_t i = 0; i < aArchitectures.size(); i++)
+            {
+                if (aArchitectures[i] == (*it)->i_platformArchitecture())
+                {
+                    fFound = true;
+                    break;
+                }
+            }
+        }
+
+        if (fFound)
+        {
+            ComPtr<IGuestOSType> osType;
+            (*it).queryInterfaceTo(osType.asOutParam());
+            aGuestOSTypes.push_back(osType);
+        }
+    }
+
     return S_OK;
+}
+
+HRESULT VirtualBox::getGuestOSTypes(std::vector<ComPtr<IGuestOSType> > &aGuestOSTypes)
+{
+    std::vector<PlatformArchitecture_T> vecArchitectures; /* Stays empty to return all guest OS types. */
+    return VirtualBox::i_getSupportedGuestOSTypes(vecArchitectures, aGuestOSTypes);
 }
 
 HRESULT VirtualBox::getSharedFolders(std::vector<ComPtr<ISharedFolder> > &aSharedFolders)
@@ -1599,11 +1671,15 @@ HRESULT VirtualBox::getInternalNetworks(std::vector<com::Utf8Str> &aInternalNetw
 
         if (pMachine->i_isAccessible())
         {
-            uint32_t cNetworkAdapters = Global::getMaxNetworkAdapters(pMachine->i_getChipsetType());
+            ChipsetType_T enmChipsetType;
+            HRESULT hrc = pMachine->i_getPlatform()->getChipsetType(&enmChipsetType);
+            ComAssertComRC(hrc);
+
+            uint32_t const cNetworkAdapters = PlatformProperties::s_getMaxNetworkAdapters(enmChipsetType);
             for (ULONG i = 0; i < cNetworkAdapters; i++)
             {
                 ComPtr<INetworkAdapter> pNet;
-                HRESULT hrc = pMachine->GetNetworkAdapter(i, pNet.asOutParam());
+                hrc = pMachine->GetNetworkAdapter(i, pNet.asOutParam());
                 if (FAILED(hrc) || pNet.isNull())
                     continue;
                 Bstr strInternalNetwork;
@@ -1650,11 +1726,15 @@ HRESULT VirtualBox::getGenericNetworkDrivers(std::vector<com::Utf8Str> &aGeneric
 
         if (pMachine->i_isAccessible())
         {
-            uint32_t cNetworkAdapters = Global::getMaxNetworkAdapters(pMachine->i_getChipsetType());
+            ChipsetType_T enmChipsetType;
+            HRESULT hrc = pMachine->i_getPlatform()->getChipsetType(&enmChipsetType);
+            ComAssertComRC(hrc);
+
+            uint32_t const cNetworkAdapters = PlatformProperties::s_getMaxNetworkAdapters(enmChipsetType);
             for (ULONG i = 0; i < cNetworkAdapters; i++)
             {
                 ComPtr<INetworkAdapter> pNet;
-                HRESULT hrc = pMachine->GetNetworkAdapter(i, pNet.asOutParam());
+                hrc = pMachine->GetNetworkAdapter(i, pNet.asOutParam());
                 if (FAILED(hrc) || pNet.isNull())
                     continue;
                 Bstr strGenericNetworkDriver;
@@ -1818,7 +1898,8 @@ HRESULT VirtualBox::getCloudProviderManager(ComPtr<ICloudProviderManager> &aClou
     return hrc;
 }
 
-HRESULT VirtualBox::checkFirmwarePresent(FirmwareType_T aFirmwareType,
+HRESULT VirtualBox::checkFirmwarePresent(PlatformArchitecture_T aPlatformArchitecture,
+                                         FirmwareType_T aFirmwareType,
                                          const com::Utf8Str &aVersion,
                                          com::Utf8Str &aUrl,
                                          com::Utf8Str &aFile,
@@ -1826,14 +1907,7 @@ HRESULT VirtualBox::checkFirmwarePresent(FirmwareType_T aFirmwareType,
 {
     NOREF(aVersion);
 
-    static const struct
-    {
-        FirmwareType_T  enmType;
-        bool            fBuiltIn;
-        const char     *pszFileName;
-        const char     *pszUrl;
-    }
-    firmwareDesc[] =
+    static const VBOXFWDESC s_FwDescX86[] =
     {
         {   FirmwareType_BIOS,    true,  NULL,             NULL },
 #ifdef VBOX_WITH_EFI_IN_DD2
@@ -1847,21 +1921,50 @@ HRESULT VirtualBox::checkFirmwarePresent(FirmwareType_T aFirmwareType,
 #endif
     };
 
-    for (size_t i = 0; i < sizeof(firmwareDesc) / sizeof(firmwareDesc[0]); i++)
+    static const VBOXFWDESC s_FwDescArm[] =
     {
-        if (aFirmwareType != firmwareDesc[i].enmType)
+#ifdef VBOX_WITH_EFI_IN_DD2
+        {   FirmwareType_EFI32,   true,  "VBoxEFIAArch32.fd",   NULL },
+        {   FirmwareType_EFI64,   true,  "VBoxEFIAArch64.fd",   NULL },
+#else
+        {   FirmwareType_EFI32,   false, "VBoxEFIAArch32.fd",   "http://virtualbox.org/firmware/VBoxEFIAArch32.fd" },
+        {   FirmwareType_EFI64,   false, "VBoxEFIAArch64.fd",   "http://virtualbox.org/firmware/VBoxEFIAArch64.fd" },
+#endif
+    };
+
+    PVBOXFWDESC pFwDesc = NULL;
+    uint32_t cFwDesc = 0;
+    if (aPlatformArchitecture == PlatformArchitecture_x86)
+    {
+        pFwDesc = &s_FwDescX86[0];
+        cFwDesc = RT_ELEMENTS(s_FwDescX86);
+    }
+    else if (aPlatformArchitecture == PlatformArchitecture_ARM)
+    {
+        pFwDesc = &s_FwDescArm[0];
+        cFwDesc = RT_ELEMENTS(s_FwDescArm);
+    }
+    else
+        return E_INVALIDARG;
+
+    for (size_t i = 0; i < cFwDesc; i++)
+    {
+        if (aFirmwareType != pFwDesc->enmType)
+        {
+            pFwDesc++;
             continue;
+        }
 
         /* compiled-in firmware */
-        if (firmwareDesc[i].fBuiltIn)
+        if (pFwDesc->fBuiltIn)
         {
-            aFile = firmwareDesc[i].pszFileName;
+            aFile = pFwDesc->pszFileName;
             *aResult = TRUE;
             break;
         }
 
         Utf8Str    fullName;
-        Utf8StrFmt shortName("Firmware%c%s", RTPATH_DELIMITER, firmwareDesc[i].pszFileName);
+        Utf8StrFmt shortName("Firmware%c%s", RTPATH_DELIMITER, pFwDesc->pszFileName);
         int vrc = i_calculateFullPath(shortName, fullName);
         AssertRCReturn(vrc, VBOX_E_IPRT_ERROR);
         if (RTFileExists(fullName.c_str()))
@@ -1874,7 +1977,7 @@ HRESULT VirtualBox::checkFirmwarePresent(FirmwareType_T aFirmwareType,
         char szVBoxPath[RTPATH_MAX];
         vrc = RTPathExecDir(szVBoxPath, RTPATH_MAX);
         AssertRCReturn(vrc, VBOX_E_IPRT_ERROR);
-        vrc = RTPathAppend(szVBoxPath, sizeof(szVBoxPath), firmwareDesc[i].pszFileName);
+        vrc = RTPathAppend(szVBoxPath, sizeof(szVBoxPath), pFwDesc->pszFileName);
         AssertRCReturn(vrc, VBOX_E_IPRT_ERROR);
         if (RTFileExists(szVBoxPath))
         {
@@ -1884,7 +1987,7 @@ HRESULT VirtualBox::checkFirmwarePresent(FirmwareType_T aFirmwareType,
         }
 
         /** @todo account for version in the URL */
-        aUrl = firmwareDesc[i].pszUrl;
+        aUrl = pFwDesc->pszUrl;
         *aResult = FALSE;
 
         /* Assume single record per firmware type */
@@ -1893,6 +1996,42 @@ HRESULT VirtualBox::checkFirmwarePresent(FirmwareType_T aFirmwareType,
 
     return S_OK;
 }
+
+/**
+ * Walk the list of GuestOSType objects and return a list of all known guest
+ * OS families.
+ *
+ * @param aOSFamilies    Where to store the list of guest OS families.
+ *
+ * @note Locks the guest OS types list for reading.
+ */
+HRESULT VirtualBox::getGuestOSFamilies(std::vector<com::Utf8Str> &aOSFamilies)
+{
+    std::list<com::Utf8Str> allOSFamilies;
+
+    AutoReadLock alock(m->allGuestOSTypes.getLockHandle() COMMA_LOCKVAL_SRC_POS);
+
+    for (GuestOSTypesOList::const_iterator it = m->allGuestOSTypes.begin();
+         it != m->allGuestOSTypes.end(); ++it)
+    {
+        const Utf8Str &familyId = (*it)->i_familyId();
+        AssertMsg(!familyId.isEmpty(), ("familfyId must not be NULL"));
+        allOSFamilies.push_back(familyId);
+    }
+
+    /* throw out any duplicates */
+    allOSFamilies.sort();
+    allOSFamilies.unique();
+
+    aOSFamilies.resize(allOSFamilies.size());
+    size_t i = 0;
+    for (std::list<com::Utf8Str>::const_iterator it = allOSFamilies.begin();
+         it != allOSFamilies.end(); ++it, ++i)
+        aOSFamilies[i] = (*it);
+
+    return S_OK;
+}
+
 // Wrapped IVirtualBox methods
 /////////////////////////////////////////////////////////////////////////////
 
@@ -2087,6 +2226,7 @@ namespace
 /** @note Locks mSystemProperties object for reading. */
 HRESULT VirtualBox::createMachine(const com::Utf8Str &aSettingsFile,
                                   const com::Utf8Str &aName,
+                                  PlatformArchitecture_T aArchitecture,
                                   const std::vector<com::Utf8Str> &aGroups,
                                   const com::Utf8Str &aOsTypeId,
                                   const com::Utf8Str &aFlags,
@@ -2095,16 +2235,26 @@ HRESULT VirtualBox::createMachine(const com::Utf8Str &aSettingsFile,
                                   const com::Utf8Str &aPassword,
                                   ComPtr<IMachine> &aMachine)
 {
+    if (aArchitecture == PlatformArchitecture_None)
+        return setError(E_INVALIDARG, tr("'Must specify a valid platform architecture"));
+
     LogFlowThisFuncEnter();
-    LogFlowThisFunc(("aSettingsFile=\"%s\", aName=\"%s\", aOsTypeId =\"%s\", aCreateFlags=\"%s\"\n",
-                     aSettingsFile.c_str(), aName.c_str(), aOsTypeId.c_str(), aFlags.c_str()));
+    LogFlowThisFunc(("aSettingsFile=\"%s\", aName=\"%s\", aArchitecture=%#x, aOsTypeId =\"%s\", aCreateFlags=\"%s\"\n",
+                     aSettingsFile.c_str(), aName.c_str(), aArchitecture, aOsTypeId.c_str(), aFlags.c_str()));
+
+#if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64)
+    if (aArchitecture != PlatformArchitecture_x86)/* x86 hosts only allows creating x86 VMs for now. */
+        return setError(VBOX_E_PLATFORM_ARCH_NOT_SUPPORTED, tr("'Creating VMs for platform architecture %s not supported on %s"),
+                        Global::stringifyPlatformArchitecture(aArchitecture),
+                        Global::stringifyPlatformArchitecture(PlatformArchitecture_x86));
+#endif
 
     StringsList llGroups;
     HRESULT hrc = i_convertMachineGroups(aGroups, &llGroups);
     if (FAILED(hrc))
         return hrc;
 
-    /** @todo r=bird: Would be goot to rewrite this parsing using offset into
+    /** @todo r=bird: Would be good to rewrite this parsing using offset into
      *        aFlags and drop all the C pointers, strchr, misguided RTStrStr and
      *        tedious copying of substrings. */
     Utf8Str strCreateFlags(aFlags); /** @todo r=bird: WTF is the point of this copy? */
@@ -2184,6 +2334,7 @@ HRESULT VirtualBox::createMachine(const com::Utf8Str &aSettingsFile,
     hrc = machine->init(this,
                         strSettingsFile,
                         aName,
+                        aArchitecture,
                         llGroups,
                         aOsTypeId,
                         osType,
@@ -3790,6 +3941,18 @@ void VirtualBox::i_onUpdateAgentSettingsChanged(IUpdateAgent *aAgent, const Utf8
 }
 #endif /* VBOX_WITH_UPDATE_AGENT */
 
+#ifdef VBOX_WITH_EXTPACK
+void VirtualBox::i_onExtPackInstalled(const Utf8Str &aExtPackName)
+{
+    ::FireExtPackInstalledEvent(m->pEventSource, aExtPackName);
+}
+
+void VirtualBox::i_onExtPackUninstalled(const Utf8Str &aExtPackName)
+{
+    ::FireExtPackUninstalledEvent(m->pEventSource, aExtPackName);
+}
+#endif
+
 /**
  *  @note Locks the list of other objects for reading.
  */
@@ -4350,6 +4513,121 @@ HRESULT VirtualBox::i_findGuestOSType(const Utf8Str &strOSType,
     return setError(VBOX_E_OBJECT_NOT_FOUND,
                     tr("'%s' is not a valid Guest OS type"),
                     strOSType.c_str());
+}
+
+/**
+ * Walk the list of GuestOSType objects and return a list of guest OS
+ * subtypes which correspond to the supplied guest OS family ID.
+ *
+ * @param strOSFamily    Guest OS family ID.
+ * @param aOSSubtypes    Where to store the list of guest OS subtypes.
+ *
+ * @note Locks the guest OS types list for reading.
+ */
+HRESULT VirtualBox::getGuestOSSubtypesByFamilyId(const Utf8Str &strOSFamily,
+                                                 std::vector<com::Utf8Str> &aOSSubtypes)
+{
+    std::list<com::Utf8Str> allOSSubtypes;
+
+    AutoReadLock alock(m->allGuestOSTypes.getLockHandle() COMMA_LOCKVAL_SRC_POS);
+
+    bool fFoundGuestOSType = false;
+    for (GuestOSTypesOList::const_iterator it = m->allGuestOSTypes.begin();
+         it != m->allGuestOSTypes.end(); ++it)
+    {
+        const Utf8Str &familyId = (*it)->i_familyId();
+        AssertMsg(!familyId.isEmpty(), ("familfyId must not be NULL"));
+        if (familyId.compare(strOSFamily, Utf8Str::CaseInsensitive) == 0)
+        {
+            fFoundGuestOSType = true;
+            break;
+        }
+    }
+
+    if (!fFoundGuestOSType)
+       return setError(VBOX_E_OBJECT_NOT_FOUND,
+                       tr("'%s' is not a valid guest OS family identifier."), strOSFamily.c_str());
+
+    for (GuestOSTypesOList::const_iterator it = m->allGuestOSTypes.begin();
+         it != m->allGuestOSTypes.end(); ++it)
+    {
+        const Utf8Str &familyId = (*it)->i_familyId();
+        AssertMsg(!familyId.isEmpty(), ("familfyId must not be NULL"));
+        if (familyId.compare(strOSFamily, Utf8Str::CaseInsensitive) == 0)
+        {
+            const Utf8Str &strOSSubtype = (*it)->i_subtype();
+            if (!strOSSubtype.isEmpty())
+                allOSSubtypes.push_back(strOSSubtype);
+        }
+    }
+
+    /* throw out any duplicates */
+    allOSSubtypes.sort();
+    allOSSubtypes.unique();
+
+    aOSSubtypes.resize(allOSSubtypes.size());
+    size_t i = 0;
+    for (std::list<com::Utf8Str>::const_iterator it = allOSSubtypes.begin();
+         it != allOSSubtypes.end(); ++it, ++i)
+        aOSSubtypes[i] = (*it);
+
+    return S_OK;
+}
+
+/**
+ * Walk the list of GuestOSType objects and return a list of guest OS
+ * descriptions which correspond to the supplied guest OS subtype.
+ *
+ * @param strOSSubtype     Guest OS subtype.
+ * @param aGuestOSDescs    Where to store the list of guest OS descriptions..
+ *
+ * @note Locks the guest OS types list for reading.
+ */
+HRESULT VirtualBox::getGuestOSDescsBySubtype(const Utf8Str &strOSSubtype,
+                                             std::vector<com::Utf8Str> &aGuestOSDescs)
+{
+    std::list<com::Utf8Str> allOSDescs;
+
+    AutoReadLock alock(m->allGuestOSTypes.getLockHandle() COMMA_LOCKVAL_SRC_POS);
+
+    bool fFoundGuestOSSubtype = false;
+    for (GuestOSTypesOList::const_iterator it = m->allGuestOSTypes.begin();
+         it != m->allGuestOSTypes.end(); ++it)
+    {
+        const Utf8Str &guestOSSubtype = (*it)->i_subtype();
+        /* Only some guest OS types have a populated subtype value. */
+        if (guestOSSubtype.isNotEmpty() &&
+            guestOSSubtype.compare(strOSSubtype, Utf8Str::CaseInsensitive) == 0)
+        {
+            fFoundGuestOSSubtype = true;
+            break;
+        }
+    }
+
+    if (!fFoundGuestOSSubtype)
+       return setError(VBOX_E_OBJECT_NOT_FOUND,
+                       tr("'%s' is not a valid guest OS subtype."), strOSSubtype.c_str());
+
+    for (GuestOSTypesOList::const_iterator it = m->allGuestOSTypes.begin();
+         it != m->allGuestOSTypes.end(); ++it)
+    {
+        const Utf8Str &guestOSSubtype = (*it)->i_subtype();
+        /* Only some guest OS types have a populated subtype value. */
+        if (guestOSSubtype.isNotEmpty() &&
+            guestOSSubtype.compare(strOSSubtype, Utf8Str::CaseInsensitive) == 0)
+        {
+            const Utf8Str &strOSDesc = (*it)->i_description();
+            allOSDescs.push_back(strOSDesc);
+        }
+    }
+
+    aGuestOSDescs.resize(allOSDescs.size());
+    size_t i = 0;
+    for (std::list<com::Utf8Str>::const_iterator it = allOSDescs.begin();
+         it != allOSDescs.end(); ++it, ++i)
+        aGuestOSDescs[i] = (*it);
+
+    return S_OK;
 }
 
 /**

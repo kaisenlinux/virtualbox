@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -188,7 +188,7 @@ void UIMachineSettingsAudio::saveFromCacheTo(QVariant &data)
     UISettingsPageMachine::uploadData(data);
 }
 
-void UIMachineSettingsAudio::retranslateUi()
+void UIMachineSettingsAudio::sltRetranslateUI()
 {
 }
 
@@ -215,7 +215,7 @@ void UIMachineSettingsAudio::prepare()
     prepareConnections();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIMachineSettingsAudio::prepareWidgets()
@@ -227,7 +227,10 @@ void UIMachineSettingsAudio::prepareWidgets()
         /* Prepare settings editor: */
         m_pEditorAudioSettings = new UIAudioSettingsEditor(this);
         if (m_pEditorAudioSettings)
+        {
+            addEditor(m_pEditorAudioSettings);
             pLayout->addWidget(m_pEditorAudioSettings);
+        }
 
         pLayout->addStretch();
     }

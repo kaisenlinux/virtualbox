@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -43,6 +43,7 @@
 #include <iprt/param.h>
 #include <iprt/errcore.h>
 #include <iprt/string.h>
+#include <iprt/system.h>
 
 #include <errno.h>
 #include <sys/mman.h>
@@ -92,8 +93,8 @@ RTDECL(int) RTMemProtect(void *pv, size_t cb, unsigned fProtect) RT_NO_THROW_DEF
     /*
      * Align the request.
      */
-    cb += (uintptr_t)pv & PAGE_OFFSET_MASK;
-    pv = (void *)((uintptr_t)pv & ~PAGE_OFFSET_MASK);
+    cb += (uintptr_t)pv & RTSystemGetPageOffsetMask();
+    pv = (void *)((uintptr_t)pv & ~RTSystemGetPageOffsetMask());
 
     /*
      * Change the page attributes.

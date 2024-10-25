@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -34,6 +34,7 @@
 #include "QIFileDialog.h"
 #include "UICommon.h"
 #include "UIDownloaderUserManual.h"
+#include "UIGlobalSession.h"
 #include "UIMessageCenter.h"
 #include "UIModalWindowManager.h"
 #include "UINetworkReply.h"
@@ -44,9 +45,9 @@
 UIDownloaderUserManual::UIDownloaderUserManual()
 {
     /* Get version number and adjust it for test and trunk builds. The server only has official releases. */
-    const QString strVersion = UIVersion(uiCommon().vboxVersionStringNormalized()).effectiveReleasedVersion().toString();
+    const QString strVersion = UIVersion(UIVersionInfo::vboxVersionStringNormalized()).effectiveReleasedVersion().toString();
 
-    /* Compose User Manual filename: */
+    /* Compose User Guide filename: */
     QString strUserManualFullFileName = uiCommon().helpFile();
     QString strUserManualShortFileName = QFileInfo(strUserManualFullFileName).fileName();
 
@@ -57,13 +58,13 @@ UIDownloaderUserManual::UIDownloaderUserManual()
     addSource(strSource2);
 
     /* Set target: */
-    QString strUserManualDestination = QDir(uiCommon().homeFolder()).absoluteFilePath(strUserManualShortFileName);
+    QString strUserManualDestination = QDir(gpGlobalSession->homeFolder()).absoluteFilePath(strUserManualShortFileName);
     setTarget(strUserManualDestination);
 }
 
 QString UIDownloaderUserManual::description() const
 {
-    return UIDownloader::description().arg(tr("VirtualBox User Manual"));
+    return UIDownloader::description().arg(tr("VirtualBox User Guide"));
 }
 
 bool UIDownloaderUserManual::askForDownloadingConfirmation(UINetworkReply *pReply)
@@ -109,7 +110,7 @@ void UIDownloaderUserManual::handleDownloadedObject(UINetworkReply *pReply)
         /* Ask the user for another location for the user-manual file: */
         QString strTarget = QIFileDialog::getExistingDirectory(QFileInfo(target()).absolutePath(),
                                                                windowManager().mainWindowShown(),
-                                                               tr("Select folder to save User Manual to"), true);
+                                                               tr("Select folder to save User Guide to"), true);
 
         /* Check if user had really set a new target: */
         if (!strTarget.isNull())

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1769,7 +1769,7 @@ RTDECL(int) RTZipBlockCompress(RTZIPTYPE enmType, RTZIPLEVEL enmLevel, uint32_t 
             };
             if (    cbSrc == _4K
                 &&  !((uintptr_t)pvSrc & 15)
-                &&  ASMMemIsZeroPage(pvSrc))
+                &&  ASMMemIsZero(pvSrc, _4K))
             {
                 if (RT_UNLIKELY(cbDst < sizeof(s_abZero4K)))
                     return VERR_BUFFER_OVERFLOW;

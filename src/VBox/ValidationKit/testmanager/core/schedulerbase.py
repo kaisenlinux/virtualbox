@@ -9,7 +9,7 @@ Test Manager - Base class and utilities for the schedulers.
 
 __copyright__ = \
 """
-Copyright (C) 2012-2023 Oracle and/or its affiliates.
+Copyright (C) 2012-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -38,7 +38,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 
 # Standard python imports.
@@ -451,7 +451,7 @@ class SchedulerBase(object):
 
             def next(self):
                 """ For python 2.x. """
-                return self.__next__();
+                return self.__next__();     # pylint: disable=unnecessary-dunder-call
 
         class BuildCacheEntry(object):
             """ Build cache entry. """
@@ -788,8 +788,8 @@ GROUP BY SchedQueues.idSchedGroup''');
         aoGangMembers = TestSetLogic(self._oDb).getGang(oTestSet.idTestSetGangLeader);
 
         sArgs = ' --gang-member-no %s --gang-members %s' % (oTestSet.iGangMemberNo, len(aoGangMembers));
-        for i, _ in enumerate(aoGangMembers):
-            sArgs = ' --gang-ipv4-%s %s' % (i, aoGangMembers[i].ip); ## @todo IPv6
+        for i, sIp in enumerate(aoGangMembers):
+            sArgs = ' --gang-ipv4-%s %s' % (i, sIp); ## @todo IPv6
 
         return sArgs;
 

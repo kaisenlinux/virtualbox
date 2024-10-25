@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -605,7 +605,7 @@ HRESULT Bstr::appendWorkerUtf8NoThrow(const char *pszSrc, size_t cchSrc) RT_NOEX
 {
     size_t cwcSrc;
     int vrc = RTStrCalcUtf16LenEx(pszSrc, cchSrc, &cwcSrc);
-    AssertRCStmt(vrc, E_INVALIDARG);
+    AssertRCReturn(vrc, E_INVALIDARG);
 
     size_t cwcOld = length();
     size_t cwcTotal = cwcOld + cwcSrc;
@@ -615,7 +615,7 @@ HRESULT Bstr::appendWorkerUtf8NoThrow(const char *pszSrc, size_t cchSrc) RT_NOEX
     {
         PRTUTF16 pwszDst = &m_bstr[cwcOld];
         vrc = RTStrToUtf16Ex(pszSrc, cchSrc, &pwszDst, cwcSrc + 1, NULL);
-        AssertRCStmt(vrc, E_INVALIDARG);
+        AssertRCReturn(vrc, E_INVALIDARG);
     }
     m_bstr[cwcTotal] = '\0';
     return S_OK;

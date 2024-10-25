@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,10 +26,12 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QComboBox>
 #include <QEvent>
 #include <QHeaderView>
 #include <QItemEditorFactory>
+#include <QLineEdit>
 #include <QPointer>
 #include <QPushButton>
 #include <QSortFilterProxyModel>
@@ -42,10 +44,11 @@
 #include "QIDialogButtonBox.h"
 #include "QIStyledItemDelegate.h"
 #include "QITableView.h"
-#include "QIWithRetranslateUI.h"
 #include "UIFormEditorWidget.h"
+#include "UIGlobalSession.h"
 #include "UIIconPool.h"
 #include "UINotificationCenter.h"
+#include "UITranslationEventListener.h"
 
 /* COM includes: */
 #include "CBooleanFormValue.h"
@@ -53,11 +56,16 @@
 #include "CForm.h"
 #include "CFormValue.h"
 #include "CRangedIntegerFormValue.h"
+#include "CRangedInteger64FormValue.h"
 #include "CStringFormValue.h"
+#include "CSystemProperties.h"
 #include "CVirtualSystemDescriptionForm.h"
 
 /* VirtualBox interface declarations: */
 #include <VBox/com/VirtualBox.h>
+
+/* External includes: */
+#include <math.h>
 
 
 /** Form Editor data types. */
@@ -204,10 +212,61 @@ private:
 Q_DECLARE_METATYPE(RangedIntegerData);
 
 
+/** Class used to hold ranged-integer64 data. */
+class RangedInteger64Data
+{
+public:
+
+    /** Constructs null ranged-integer64 data. */
+    RangedInteger64Data()
+        : m_iMinimum(-1), m_iMaximum(-1)
+        , m_iInteger(-1), m_strSuffix(QString()) {}
+    /** Constructs ranged-integer64 data on the basis of passed @a iMinimum, @a iMaximum, @a iInteger and @a strSuffix. */
+    RangedInteger64Data(qlonglong iMinimum, qlonglong iMaximum, qlonglong iInteger, const QString strSuffix)
+        : m_iMinimum(iMinimum), m_iMaximum(iMaximum)
+        , m_iInteger(iInteger), m_strSuffix(strSuffix) {}
+    /** Constructs ranged-integer64 data on the basis of @a another ranged-integer data. */
+    RangedInteger64Data(const RangedInteger64Data &another)
+        : m_iMinimum(another.minimum()), m_iMaximum(another.maximum())
+        , m_iInteger(another.integer()), m_strSuffix(another.suffix()) {}
+
+    /** Assigns values of @a another ranged-integer to this one. */
+    RangedInteger64Data &operator=(const RangedInteger64Data &another)
+    {
+        m_iMinimum = another.minimum();
+        m_iMaximum = another.maximum();
+        m_iInteger = another.integer();
+        m_strSuffix = another.suffix();
+        return *this;
+    }
+
+    /** Returns minimum value. */
+    qlonglong minimum() const { return m_iMinimum; }
+    /** Returns maximum value. */
+    qlonglong maximum() const { return m_iMaximum; }
+    /** Returns current value. */
+    qlonglong integer() const { return m_iInteger; }
+    /** Returns suffix value. */
+    QString suffix() const { return m_strSuffix; }
+
+private:
+
+    /** Holds minimum value. */
+    qlonglong  m_iMinimum;
+    /** Holds maximum value. */
+    qlonglong  m_iMaximum;
+    /** Holds current value. */
+    qlonglong  m_iInteger;
+    /** Holds suffix value. */
+    QString    m_strSuffix;
+};
+Q_DECLARE_METATYPE(RangedInteger64Data);
+
+
 /** QWidget extension used as dummy TextData editor.
   * It's not actually an editor, but Edit... button instead which opens
   * real editor passing stored model index received from TextData value. */
-class TextEditor : public QIWithRetranslateUI<QWidget>
+class TextEditor : public QWidget
 {
     Q_OBJECT;
     Q_PROPERTY(TextData text READ text WRITE setText USER true);
@@ -217,13 +276,10 @@ public:
     /** Constructs TextData editor passing @a pParent to the base-class. */
     TextEditor(QWidget *pParent = 0);
 
-protected:
-
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
 private slots:
 
+    /** Handles translation event. */
+    void sltRetranslateUI();
     /** Handles button click. */
     void sltHandleButtonClick();
 
@@ -296,6 +352,38 @@ private:
 
     /** Holds the unchanged suffix. */
     QString  m_strSuffix;
+};
+
+
+/** QLineEdit extension used as RangedInteger64Data editor. */
+class RangedInteger64Editor : public QLineEdit
+{
+    Q_OBJECT;
+    Q_PROPERTY(RangedInteger64Data rangedInteger64 READ rangedInteger64 WRITE setRangedInteger64 USER true);
+
+public:
+
+    /** Constructs RangedInteger64Data editor passing @a pParent to the base-class. */
+    RangedInteger64Editor(QWidget *pParent = 0);
+
+private:
+
+    /** Defines @a rangedInteger. */
+    void setRangedInteger64(const RangedInteger64Data &rangedInteger64);
+    /** Returns ranged-integer. */
+    RangedInteger64Data rangedInteger64() const;
+
+    /** Holds the minimum guest RAM in MBs. */
+    qlonglong  m_iMinimumGuestRAM;
+    /** Holds the maximum value. */
+    qlonglong  m_iMaximumGuestRAM;
+
+    /** Holds the minimum value. */
+    qlonglong  m_iMinimum;
+    /** Holds the maximum value. */
+    qlonglong  m_iMaximum;
+    /** Holds the unchanged suffix. */
+    QString    m_strSuffix;
 };
 
 
@@ -374,6 +462,11 @@ public:
     /** Defines @a rangedInteger value. */
     void setRangedInteger(const RangedIntegerData &rangedInteger);
 
+    /** Returns value cast to ranged-integer64. */
+    RangedInteger64Data toRangedInteger64() const;
+    /** Defines @a rangedInteger64 value. */
+    void setRangedInteger64(const RangedInteger64Data &rangedInteger64);
+
     /** Updates value cells. */
     void updateValueCells();
 
@@ -407,17 +500,19 @@ private:
     int  m_iGeneration;
 
     /** Holds cached bool value. */
-    bool               m_fBool;
+    bool                 m_fBool;
     /** Holds whether cached string value is multiline. */
-    bool               m_fMultilineString;
+    bool                 m_fMultilineString;
     /** Holds cached text value. */
-    TextData           m_text;
+    TextData             m_text;
     /** Holds cached string value. */
-    QString            m_strString;
+    QString              m_strString;
     /** Holds cached choice value. */
-    ChoiceData         m_choice;
+    ChoiceData           m_choice;
     /** Holds cached ranged-integer value. */
-    RangedIntegerData  m_rangedInteger;
+    RangedIntegerData    m_rangedInteger;
+    /** Holds cached ranged-integer64 value. */
+    RangedInteger64Data  m_rangedInteger64;
 
     /** Holds the cell instances. */
     QVector<UIFormEditorCell*>  m_cells;
@@ -434,39 +529,34 @@ public:
     /** Constructs Form Editor model passing @a pParent to the base-class. */
     UIFormEditorModel(UIFormEditorWidget *pParent);
     /** Destructs Port Forwarding model. */
-    virtual ~UIFormEditorModel() RT_OVERRIDE;
+    virtual ~UIFormEditorModel() RT_OVERRIDE RT_FINAL;
 
     /** Clears form. */
     void clearForm();
     /** Defines form @a values. */
     void setFormValues(const CFormValueVector &values);
 
-    /** Returns the number of children. */
-    int childCount() const;
-    /** Returns the child item with @a iIndex. */
-    QITableViewRow *childItem(int iIndex) const;
-
-    /** Returns the index of the item in the model specified by the given @a iRow, @a iColumn and @a parentIdx. */
-    virtual QModelIndex index(int iRow, int iColumn, const QModelIndex &parentIdx = QModelIndex()) const RT_OVERRIDE;
-
-    /** Returns flags for item with certain @a index. */
-    virtual Qt::ItemFlags flags(const QModelIndex &index) const RT_OVERRIDE;
-
-    /** Returns row count of certain @a parent. */
-    virtual int rowCount(const QModelIndex &parent = QModelIndex()) const RT_OVERRIDE;
-    /** Returns column count of certain @a parent. */
-    virtual int columnCount(const QModelIndex &parent = QModelIndex()) const RT_OVERRIDE;
-
-    /** Returns header data for @a iSection, @a enmOrientation and @a iRole specified. */
-    virtual QVariant headerData(int iSection, Qt::Orientation enmOrientation, int iRole) const RT_OVERRIDE;
-
-    /** Defines the @a iRole data for item with @a index as @a value. */
-    virtual bool setData(const QModelIndex &index, const QVariant &value, int iRole = Qt::EditRole) RT_OVERRIDE;
-    /** Returns the @a iRole data for item with @a index. */
-    virtual QVariant data(const QModelIndex &index, int iRole) const RT_OVERRIDE;
-
     /** Creates actual TextData editor for specified @a index. */
     void createTextDataEditor(const QModelIndex &index);
+
+    /** Returns the index of the item in the model specified by the given @a iRow, @a iColumn and @a parentIdx. */
+    virtual QModelIndex index(int iRow, int iColumn, const QModelIndex &parentIdx = QModelIndex()) const RT_OVERRIDE RT_FINAL;
+
+    /** Returns flags for item with certain @a index. */
+    virtual Qt::ItemFlags flags(const QModelIndex &index) const RT_OVERRIDE RT_FINAL;
+
+    /** Returns row count of certain @a parent. */
+    virtual int rowCount(const QModelIndex &parent = QModelIndex()) const RT_OVERRIDE RT_FINAL;
+    /** Returns column count of certain @a parent. */
+    virtual int columnCount(const QModelIndex &parent = QModelIndex()) const RT_OVERRIDE RT_FINAL;
+
+    /** Returns header data for @a iSection, @a enmOrientation and @a iRole specified. */
+    virtual QVariant headerData(int iSection, Qt::Orientation enmOrientation, int iRole) const RT_OVERRIDE RT_FINAL;
+
+    /** Defines the @a iRole data for item with @a index as @a value. */
+    virtual bool setData(const QModelIndex &index, const QVariant &value, int iRole = Qt::EditRole) RT_OVERRIDE RT_FINAL;
+    /** Returns the @a iRole data for item with @a index. */
+    virtual QVariant data(const QModelIndex &index, int iRole) const RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -503,11 +593,6 @@ public:
     /** Constructs the Form Editor proxy-model passing @a pParent to the base-class. */
     UIFormEditorProxyModel(QObject *pParent = 0);
 
-    /** Returns the number of children. */
-    int childCount() const;
-    /** Returns the child item with @a iIndex. */
-    QITableViewRow *childItem(int iIndex) const;
-
 protected:
 
     /** Returns whether item in the row indicated by the given @a iSourceRow and @a srcParenIdx should be included in the model. */
@@ -522,15 +607,36 @@ class UIFormEditorView : public QITableView
 
 public:
 
-    /** Constructs Form Editor table-view. */
+    /** Constructs Form Editor table-view, passing @a pParent to the base-class. */
     UIFormEditorView(QWidget *pParent = 0);
+    /** Destruts Form Editor table-view. */
+    virtual ~UIFormEditorView() RT_OVERRIDE;
 
 protected:
 
-    /** Returns the number of children. */
-    virtual int childCount() const RT_OVERRIDE;
-    /** Returns the child item with @a iIndex. */
-    virtual QITableViewRow *childItem(int iIndex) const RT_OVERRIDE;
+    /** Handles @a pEvent. */
+    virtual bool event(QEvent *pEvent) RT_OVERRIDE;
+
+protected slots:
+
+    /** Handles rows being inserted.
+      * @param  parent  Brings the parent under which new rows being inserted.
+      * @param  iStart  Brings the starting position (inclusive).
+      * @param  iStart  Brings the end position (inclusive). */
+    virtual void rowsInserted(const QModelIndex &parent, int iStart, int iEnd) RT_OVERRIDE;
+
+private:
+
+    /** Prepares everything. */
+    void prepare();
+    /** Cleanups everything. */
+    void cleanup();
+
+    /** Adjusts table contents. */
+    void adjust();
+
+    /** Holds the item editor factory instance. */
+    QItemEditorFactory *m_pItemEditorFactory;
 };
 
 
@@ -539,13 +645,13 @@ protected:
 *********************************************************************************************************************************/
 
 TextEditor::TextEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_pButton(0)
 {
     prepare();
 }
 
-void TextEditor::retranslateUi()
+void TextEditor::sltRetranslateUI()
 {
     m_pButton->setText(UIFormEditorWidget::tr("Edit..."));
 }
@@ -559,7 +665,7 @@ void TextEditor::sltHandleButtonClick()
         if (   !parent()
             || !parent()->parent())
             break;
-        UIFormEditorView *pView = qobject_cast<UIFormEditorView*>(parent()->parent());
+        QITableView *pView = qobject_cast<QITableView*>(parent()->parent());
 
         /* Get the proxy model: */
         if (   !pView
@@ -598,7 +704,9 @@ void TextEditor::prepare()
     }
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+        this, &TextEditor::sltRetranslateUI);
 }
 
 void TextEditor::setText(const TextData &text)
@@ -623,7 +731,7 @@ ChoiceEditor::ChoiceEditor(QWidget *pParent /* = 0 */)
     /* Make sure QIStyledDelegate aware of us: */
     setProperty("has_sigCommitData", true);
     /* Configure connections: */
-    connect(this, static_cast<void(ChoiceEditor::*)(int)>(&ChoiceEditor::currentIndexChanged),
+    connect(this, &ChoiceEditor::currentIndexChanged,
             this, &ChoiceEditor::sltCurrentIndexChanged);
 }
 
@@ -674,6 +782,80 @@ RangedIntegerData RangedIntegerEditor::rangedInteger() const
 
 
 /*********************************************************************************************************************************
+*   Class RangedInteger64Editor implementation.                                                                                  *
+*********************************************************************************************************************************/
+
+RangedInteger64Editor::RangedInteger64Editor(QWidget *pParent /* = 0 */)
+    : QLineEdit(pParent)
+    , m_iMinimumGuestRAM(0)
+    , m_iMaximumGuestRAM(0)
+    , m_iMinimum(0)
+    , m_iMaximum(0)
+{
+    /* Acquire min/max amount of RAM guest in theory could have: */
+    CSystemProperties comProps = gpGlobalSession->virtualBox().GetSystemProperties();
+    if (comProps.isOk())
+    {
+        m_iMinimumGuestRAM = comProps.GetMinGuestRAM();
+        m_iMaximumGuestRAM = comProps.GetMaxGuestRAM();
+    }
+}
+
+void RangedInteger64Editor::setRangedInteger64(const RangedInteger64Data &rangedInteger64)
+{
+    /* Parse incoming rangedInteger64: */
+    m_iMinimum = rangedInteger64.minimum();
+    m_iMaximum = rangedInteger64.maximum();
+    m_strSuffix = rangedInteger64.suffix();
+    const qlonglong iValue = rangedInteger64.integer();
+
+    /* Acquire effective values: */
+    qlonglong iMinEffective = 0;
+    qlonglong iMaxEffective = 0;
+    qlonglong iValueEffective = 0;
+    /* We wish to represent bytes as megabytes: */
+    if (m_strSuffix == "B")
+    {
+        iMinEffective = m_iMinimum / _1M;
+        iMaxEffective = m_iMaximum / _1M;
+        iValueEffective = iValue / _1M;
+    }
+    /* For now we will keep all the other suffixes untouched: */
+    else
+    {
+        iMinEffective = m_iMinimum;
+        iMaxEffective = m_iMaximum;
+        iValueEffective = iValue;
+    }
+
+    /* Make sure minimum, maximum and actual values are within the bounds: */
+    iMinEffective = qMax(iMinEffective, m_iMinimumGuestRAM);
+    iMaxEffective = qMin(iMaxEffective, m_iMaximumGuestRAM);
+    iValueEffective = qMax(iValueEffective, m_iMinimumGuestRAM);
+    iValueEffective = qMin(iValueEffective, m_iMaximumGuestRAM);
+
+    /* Finally assign validator bounds and actual value: */
+    setValidator(new QIntValidator((int)iMinEffective, (int)iMaxEffective, this));
+    setText(QString::number(iValueEffective));
+}
+
+RangedInteger64Data RangedInteger64Editor::rangedInteger64() const
+{
+    const qlonglong iValueEffective = locale().toLongLong(text());
+
+    /* Acquire literal value: */
+    qlonglong iValue = 0;
+    /* We should bring megabytes back to bytes: */
+    if (m_strSuffix == "B")
+        iValue = iValueEffective * _1M;
+    /* For now we will keep all the other suffixes untouched: */
+    else
+        iValue = iValueEffective;
+    return RangedInteger64Data(m_iMinimum, m_iMaximum, iValue, m_strSuffix);
+}
+
+
+/*********************************************************************************************************************************
 *   Class UIFormEditorCell implementation.                                                                                       *
 *********************************************************************************************************************************/
 
@@ -700,6 +882,7 @@ UIFormEditorRow::UIFormEditorRow(QITableView *pParent, UIFormEditorWidget *pForm
     , m_strString(QString())
     , m_choice(ChoiceData())
     , m_rangedInteger(RangedIntegerData())
+    , m_rangedInteger64(RangedInteger64Data())
 {
     prepare();
 }
@@ -829,6 +1012,24 @@ void UIFormEditorRow::setRangedInteger(const RangedIntegerData &rangedInteger)
     updateValueCells();
 }
 
+RangedInteger64Data UIFormEditorRow::toRangedInteger64() const
+{
+    AssertReturn(valueType() == KFormValueType_RangedInteger64, RangedInteger64Data());
+    return m_rangedInteger64;
+}
+
+void UIFormEditorRow::setRangedInteger64(const RangedInteger64Data &rangedInteger64)
+{
+    AssertReturnVoid(valueType() == KFormValueType_RangedInteger64);
+    CRangedInteger64FormValue comValue(m_comValue);
+    UINotificationProgressVsdFormValueSet *pNotification = new UINotificationProgressVsdFormValueSet(comValue,
+                                                                                                     rangedInteger64.integer());
+    UINotificationCenter *pCenter = m_pFormEditorWidget->notificationCenter()
+                                  ? m_pFormEditorWidget->notificationCenter() : gpNotificationCenter;
+    pCenter->handleNow(pNotification);
+    updateValueCells();
+}
+
 void UIFormEditorRow::updateValueCells()
 {
     m_iGeneration = m_comValue.GetGeneration();
@@ -875,10 +1076,35 @@ void UIFormEditorRow::updateValueCells()
             const int iInteger = comValue.GetInteger();
             const QString strSuffix = comValue.GetSuffix();
             m_rangedInteger = RangedIntegerData(iMinimum, iMaximum, iInteger, strSuffix);
-            m_cells[UIFormEditorDataType_Value]->setText(  m_rangedInteger.suffix().isEmpty()
-                                                         ? QString::number(m_rangedInteger.integer())
-                                                         : QString("%1 %2").arg(m_rangedInteger.integer())
-                                                                           .arg(m_rangedInteger.suffix()));
+            m_cells[UIFormEditorDataType_Value]->setText(  strSuffix.isEmpty()
+                                                         ? QString::number(iInteger)
+                                                         : QString("%1 %2").arg(iInteger)
+                                                                           .arg(strSuffix));
+            /// @todo check for errors
+            break;
+        }
+        case KFormValueType_RangedInteger64:
+        {
+            CRangedInteger64FormValue comValue(m_comValue);
+            const qlonglong iMinimum = comValue.GetMinimum();
+            const qlonglong iMaximum = comValue.GetMaximum();
+            const qlonglong iInteger = comValue.GetInteger();
+            const QString strSuffix = comValue.GetSuffix();
+            m_rangedInteger64 = RangedInteger64Data(iMinimum, iMaximum, iInteger, strSuffix);
+            /* Display suffix and effective value can be different: */
+            QString strEffectiveSuffix = strSuffix;
+            QString strEffectiveValue;
+            if (strSuffix.isEmpty())
+                strEffectiveValue = QString::number(iInteger);
+            else if (strSuffix != "B")
+                strEffectiveValue = QString("%1 %2").arg(iInteger).arg(strEffectiveSuffix);
+            else
+            {
+                /* We wish to convert bytes to megabytes: */
+                strEffectiveSuffix = "MB";
+                strEffectiveValue = QString("%1 %2").arg(iInteger / _1M).arg(strEffectiveSuffix);
+            }
+            m_cells[UIFormEditorDataType_Value]->setText(strEffectiveValue);
             /// @todo check for errors
             break;
         }
@@ -969,17 +1195,45 @@ void UIFormEditorModel::setFormValues(const CFormValueVector &values)
     endInsertRows();
 }
 
-int UIFormEditorModel::childCount() const
+void UIFormEditorModel::createTextDataEditor(const QModelIndex &index)
 {
-    return rowCount();
-}
-
-QITableViewRow *UIFormEditorModel::childItem(int iIndex) const
-{
-    /* Make sure index within the bounds: */
-    AssertReturn(iIndex >= 0 && iIndex < m_dataList.size(), 0);
-    /* Return corresponding row: */
-    return m_dataList[iIndex];
+    /* Create dialog on-the-fly: */
+    QPointer<QIDialog> pDialog = new QIDialog(view());
+    if (pDialog)
+    {
+        /* We will need that pointer: */
+        QTextEdit *pEditor = 0;
+        /* Create layout: */
+        QVBoxLayout *pLayout = new QVBoxLayout(pDialog);
+        if (pLayout)
+        {
+            /* Create text-editor: */
+            pEditor = new QTextEdit;
+            if (pEditor)
+            {
+                const TextData td = data(index, Qt::EditRole).value<TextData>();
+                pEditor->setPlainText(td.text());
+                pLayout->addWidget(pEditor);
+            }
+            /* Create button-box: */
+            QIDialogButtonBox *pBox = new QIDialogButtonBox;
+            if (pBox)
+            {
+                pBox->setStandardButtons(QDialogButtonBox::Cancel | QDialogButtonBox::Ok);
+                connect(pBox, &QIDialogButtonBox::accepted, pDialog.data(), &QIDialog::accept);
+                connect(pBox, &QIDialogButtonBox::rejected, pDialog.data(), &QIDialog::reject);
+                pLayout->addWidget(pBox);
+            }
+        }
+        /* Execute the dialog: */
+        if (pDialog->execute() == QDialog::Accepted)
+        {
+            const TextData td = TextData(pEditor->toPlainText(), index);
+            setData(index, QVariant::fromValue(td));
+        }
+        /* Cleanup: */
+        delete pDialog;
+    }
 }
 
 QModelIndex UIFormEditorModel::index(int iRow, int iColumn, const QModelIndex &parentIdx /* = QModelIndex() */) const
@@ -1111,6 +1365,13 @@ bool UIFormEditorModel::setData(const QModelIndex &index, const QVariant &value,
                             updateGeneration();
                             return true;
                         }
+                        case KFormValueType_RangedInteger64:
+                        {
+                            m_dataList[index.row()]->setRangedInteger64(value.value<RangedInteger64Data>());
+                            emit dataChanged(index, index);
+                            updateGeneration();
+                            return true;
+                        }
                         default:
                             return false;
                     }
@@ -1199,6 +1460,8 @@ QVariant UIFormEditorModel::data(const QModelIndex &index, int iRole) const
                             return QVariant::fromValue(m_dataList[index.row()]->toChoice());
                         case KFormValueType_RangedInteger:
                             return QVariant::fromValue(m_dataList[index.row()]->toRangedInteger());
+                        case KFormValueType_RangedInteger64:
+                            return QVariant::fromValue(m_dataList[index.row()]->toRangedInteger64());
                         default:
                             return QVariant();
                     }
@@ -1225,47 +1488,6 @@ QVariant UIFormEditorModel::data(const QModelIndex &index, int iRole) const
         }
         default:
             return QVariant();
-    }
-}
-
-void UIFormEditorModel::createTextDataEditor(const QModelIndex &index)
-{
-    /* Create dialog on-the-fly: */
-    QPointer<QIDialog> pDialog = new QIDialog(view());
-    if (pDialog)
-    {
-        /* We will need that pointer: */
-        QTextEdit *pEditor = 0;
-        /* Create layout: */
-        QVBoxLayout *pLayout = new QVBoxLayout(pDialog);
-        if (pLayout)
-        {
-            /* Create text-editor: */
-            pEditor = new QTextEdit;
-            if (pEditor)
-            {
-                const TextData td = data(index, Qt::EditRole).value<TextData>();
-                pEditor->setPlainText(td.text());
-                pLayout->addWidget(pEditor);
-            }
-            /* Create button-box: */
-            QIDialogButtonBox *pBox = new QIDialogButtonBox;
-            if (pBox)
-            {
-                pBox->setStandardButtons(QDialogButtonBox::Cancel | QDialogButtonBox::Ok);
-                connect(pBox, &QIDialogButtonBox::accepted, pDialog.data(), &QIDialog::accept);
-                connect(pBox, &QIDialogButtonBox::rejected, pDialog.data(), &QIDialog::reject);
-                pLayout->addWidget(pBox);
-            }
-        }
-        /* Execute the dialog: */
-        if (pDialog->execute() == QDialog::Accepted)
-        {
-            const TextData td = TextData(pEditor->toPlainText(), index);
-            setData(index, QVariant::fromValue(td));
-        }
-        /* Cleanup: */
-        delete pDialog;
     }
 }
 
@@ -1324,24 +1546,6 @@ UIFormEditorProxyModel::UIFormEditorProxyModel(QObject *pParent /* = 0 */)
 {
 }
 
-int UIFormEditorProxyModel::childCount() const
-{
-    return rowCount();
-}
-
-QITableViewRow *UIFormEditorProxyModel::childItem(int iIndex) const
-{
-    /* Make sure iIndex within the bounds: */
-    AssertReturn(iIndex >= 0 && iIndex < rowCount(), 0);
-    /* Acquire actual index of source model: */
-    const QModelIndex i = sourceModel()->index(iIndex, 0);
-    AssertReturn(i.isValid(), 0);
-    /* Get packed item pointer: */
-    UIFormEditorRow *pItem = static_cast<UIFormEditorRow*>(i.internalPointer());
-    AssertReturn(pItem, 0);
-    return pItem;
-}
-
 bool UIFormEditorProxyModel::filterAcceptsRow(int iSourceRow, const QModelIndex &sourceParent) const
 {
     /* Acquire actual index of source model: */
@@ -1362,24 +1566,133 @@ bool UIFormEditorProxyModel::filterAcceptsRow(int iSourceRow, const QModelIndex 
 *   Class UIFormEditorView implementation.                                                                                       *
 *********************************************************************************************************************************/
 
-UIFormEditorView::UIFormEditorView(QWidget * /* pParent = 0 */)
+UIFormEditorView::UIFormEditorView(QWidget *pParent /* = 0 */)
+    : QITableView(pParent)
+    , m_pItemEditorFactory(0)
 {
-    /* Configure widget a bit: */
-    setEditTriggers(QAbstractItemView::DoubleClicked | QAbstractItemView::SelectedClicked | QAbstractItemView::EditKeyPressed);
+    prepare();
 }
 
-int UIFormEditorView::childCount() const
+UIFormEditorView::~UIFormEditorView()
 {
-    /* Redirect request to model: */
-    AssertPtrReturn(model(), 0);
-    return qobject_cast<UIFormEditorProxyModel*>(model())->childCount();
+    cleanup();
 }
 
-QITableViewRow *UIFormEditorView::childItem(int iIndex) const
+bool UIFormEditorView::event(QEvent *pEvent)
 {
-    /* Redirect request to model: */
-    AssertPtrReturn(model(), 0);
-    return qobject_cast<UIFormEditorProxyModel*>(model())->childItem(iIndex);
+    /* Process different event-types: */
+    switch (pEvent->type())
+    {
+        /* Adjust table on show/resize events: */
+        case QEvent::Show:
+        case QEvent::Resize:
+        {
+            adjust();
+            break;
+        }
+        default:
+            break;
+    }
+
+    /* Call to base-class: */
+    return QITableView::event(pEvent);
+}
+
+void UIFormEditorView::rowsInserted(const QModelIndex &parent, int iStart, int iEnd)
+{
+    /* Call to base-class: */
+    QITableView::rowsInserted(parent, iStart, iEnd);
+
+    /* Adjust table on rows being inserted: */
+    adjust();
+}
+
+void UIFormEditorView::prepare()
+{
+    /* Disable TAB-key navigation: */
+    setTabKeyNavigation(false);
+    /* Adjust selection mode: */
+    setSelectionMode(QAbstractItemView::SingleSelection);
+    /* Extend trigger set: */
+    setEditTriggers(  QAbstractItemView::DoubleClicked
+                    | QAbstractItemView::SelectedClicked
+                    | QAbstractItemView::EditKeyPressed);
+
+    /* Adjust header policy: */
+    verticalHeader()->hide();
+    verticalHeader()->setDefaultSectionSize((int)(verticalHeader()->minimumSectionSize() * 1.33));
+
+    /* We certainly have abstract item delegate: */
+    QAbstractItemDelegate *pAbstractItemDelegate = itemDelegate();
+    if (pAbstractItemDelegate)
+    {
+        /* But is this also styled item delegate? */
+        QIStyledItemDelegate *pStyledItemDelegate = qobject_cast<QIStyledItemDelegate*>(pAbstractItemDelegate);
+        if (pStyledItemDelegate)
+        {
+            /* Configure item delegate: */
+            pStyledItemDelegate->setWatchForEditorDataCommits(true);
+
+            /* Create new item editor factory: */
+            m_pItemEditorFactory = new QItemEditorFactory;
+            if (m_pItemEditorFactory)
+            {
+                /* Register TextEditor as the TextData editor: */
+                int iTextId = qRegisterMetaType<TextData>();
+                QStandardItemEditorCreator<TextEditor> *pTextEditorItemCreator = new QStandardItemEditorCreator<TextEditor>();
+                m_pItemEditorFactory->registerEditor(iTextId, pTextEditorItemCreator);
+
+                /* Register ChoiceEditor as the ChoiceData editor: */
+                int iChoiceId = qRegisterMetaType<ChoiceData>();
+                QStandardItemEditorCreator<ChoiceEditor> *pChoiceEditorItemCreator = new QStandardItemEditorCreator<ChoiceEditor>();
+                m_pItemEditorFactory->registerEditor(iChoiceId, pChoiceEditorItemCreator);
+
+                /* Register RangedIntegerEditor as the RangedIntegerData editor: */
+                int iRangedIntegerId = qRegisterMetaType<RangedIntegerData>();
+                QStandardItemEditorCreator<RangedIntegerEditor> *pRangedIntegerEditorItemCreator = new QStandardItemEditorCreator<RangedIntegerEditor>();
+                m_pItemEditorFactory->registerEditor(iRangedIntegerId, pRangedIntegerEditorItemCreator);
+
+                /* Register RangedInteger64Editor as the RangedInteger64Data editor: */
+                int iRangedInteger64Id = qRegisterMetaType<RangedInteger64Data>();
+                QStandardItemEditorCreator<RangedInteger64Editor> *pRangedInteger64EditorItemCreator = new QStandardItemEditorCreator<RangedInteger64Editor>();
+                m_pItemEditorFactory->registerEditor(iRangedInteger64Id, pRangedInteger64EditorItemCreator);
+
+                /* Set newly created item editor factory for table delegate: */
+                pStyledItemDelegate->setItemEditorFactory(m_pItemEditorFactory);
+            }
+        }
+    }
+}
+
+void UIFormEditorView::cleanup()
+{
+    /* Cleanup editor factory delegate: */
+    delete m_pItemEditorFactory;
+    m_pItemEditorFactory = 0;
+}
+
+void UIFormEditorView::adjust()
+{
+    horizontalHeader()->setStretchLastSection(false);
+    /* If table is NOT empty: */
+    if (model()->rowCount())
+    {
+        /* Resize table to contents size-hint and emit a spare place for first column: */
+        resizeColumnsToContents();
+        const int iFullWidth = viewport()->width();
+        const int iNameWidth = horizontalHeader()->sectionSize(UIFormEditorDataType_Name);
+        const int iValueWidth = qMax(0, iFullWidth - iNameWidth);
+        horizontalHeader()->resizeSection(UIFormEditorDataType_Value, iValueWidth);
+    }
+    /* If table is empty: */
+    else
+    {
+        /* Resize table columns to be equal in size: */
+        const int iFullWidth = viewport()->width();
+        horizontalHeader()->resizeSection(UIFormEditorDataType_Name, iFullWidth / 2);
+        horizontalHeader()->resizeSection(UIFormEditorDataType_Value, iFullWidth / 2);
+    }
+    horizontalHeader()->setStretchLastSection(true);
 }
 
 
@@ -1393,17 +1706,11 @@ UIFormEditorWidget::UIFormEditorWidget(QWidget *pParent /* = 0 */,
     , m_pNotificationCenter(pNotificationCenter)
     , m_pTableView(0)
     , m_pTableModel(0)
-    , m_pItemEditorFactory(0)
 {
     prepare();
 }
 
-UIFormEditorWidget::~UIFormEditorWidget()
-{
-    cleanup();
-}
-
-UIFormEditorView *UIFormEditorWidget::view() const
+QITableView *UIFormEditorWidget::view() const
 {
     return m_pTableView;
 }
@@ -1429,56 +1736,30 @@ void UIFormEditorWidget::setWhatsThis(const QString &strWhatsThis)
 void UIFormEditorWidget::clearForm()
 {
     m_pTableModel->clearForm();
-    adjustTable();
 }
 
-void UIFormEditorWidget::setValues(const QVector<CFormValue> &values)
+void UIFormEditorWidget::setFormValues(const QVector<CFormValue> &values)
 {
     m_pTableModel->setFormValues(values);
-    adjustTable();
 }
 
 void UIFormEditorWidget::setForm(const CForm &comForm)
 {
     AssertPtrReturnVoid(m_pTableModel);
     /// @todo add some check..
-    setValues(comForm.GetValues());
+    setFormValues(comForm.GetValues());
 }
 
 void UIFormEditorWidget::setVirtualSystemDescriptionForm(const CVirtualSystemDescriptionForm &comForm)
 {
     AssertPtrReturnVoid(m_pTableModel);
     /// @todo add some check..
-    setValues(comForm.GetValues());
+    setFormValues(comForm.GetValues());
 }
 
 void UIFormEditorWidget::makeSureEditorDataCommitted()
 {
     m_pTableView->makeSureEditorDataCommitted();
-}
-
-bool UIFormEditorWidget::eventFilter(QObject *pObject, QEvent *pEvent)
-{
-    /* Process events for table only: */
-    if (pObject != m_pTableView)
-        return QWidget::eventFilter(pObject, pEvent);
-
-    /* Process different event-types: */
-    switch (pEvent->type())
-    {
-        case QEvent::Show:
-        case QEvent::Resize:
-        {
-            /* Adjust table: */
-            adjustTable();
-            break;
-        }
-        default:
-            break;
-    }
-
-    /* Call to base-class: */
-    return QWidget::eventFilter(pObject, pEvent);
 }
 
 void UIFormEditorWidget::prepare()
@@ -1502,82 +1783,9 @@ void UIFormEditorWidget::prepare()
         if (m_pTableView)
         {
             m_pTableView->setModel(pProxyModel);
-            m_pTableView->setTabKeyNavigation(false);
-            m_pTableView->verticalHeader()->hide();
-            m_pTableView->verticalHeader()->setDefaultSectionSize((int)(m_pTableView->verticalHeader()->minimumSectionSize() * 1.33));
-            m_pTableView->setSelectionMode(QAbstractItemView::SingleSelection);
-            m_pTableView->installEventFilter(this);
-
-            /* We certainly have abstract item delegate: */
-            QAbstractItemDelegate *pAbstractItemDelegate = m_pTableView->itemDelegate();
-            if (pAbstractItemDelegate)
-            {
-                /* But is this also styled item delegate? */
-                QIStyledItemDelegate *pStyledItemDelegate = qobject_cast<QIStyledItemDelegate*>(pAbstractItemDelegate);
-                if (pStyledItemDelegate)
-                {
-                    /* Configure item delegate: */
-                    pStyledItemDelegate->setWatchForEditorDataCommits(true);
-
-                    /* Create new item editor factory: */
-                    m_pItemEditorFactory = new QItemEditorFactory;
-                    if (m_pItemEditorFactory)
-                    {
-                        /* Register TextEditor as the TextData editor: */
-                        int iTextId = qRegisterMetaType<TextData>();
-                        QStandardItemEditorCreator<TextEditor> *pTextEditorItemCreator = new QStandardItemEditorCreator<TextEditor>();
-                        m_pItemEditorFactory->registerEditor((QVariant::Type)iTextId, pTextEditorItemCreator);
-
-                        /* Register ChoiceEditor as the ChoiceData editor: */
-                        int iChoiceId = qRegisterMetaType<ChoiceData>();
-                        QStandardItemEditorCreator<ChoiceEditor> *pChoiceEditorItemCreator = new QStandardItemEditorCreator<ChoiceEditor>();
-                        m_pItemEditorFactory->registerEditor((QVariant::Type)iChoiceId, pChoiceEditorItemCreator);
-
-                        /* Register RangedIntegerEditor as the RangedIntegerData editor: */
-                        int iRangedIntegerId = qRegisterMetaType<RangedIntegerData>();
-                        QStandardItemEditorCreator<RangedIntegerEditor> *pRangedIntegerEditorItemCreator = new QStandardItemEditorCreator<RangedIntegerEditor>();
-                        m_pItemEditorFactory->registerEditor((QVariant::Type)iRangedIntegerId, pRangedIntegerEditorItemCreator);
-
-                        /* Set newly created item editor factory for table delegate: */
-                        pStyledItemDelegate->setItemEditorFactory(m_pItemEditorFactory);
-                    }
-                }
-            }
-
-            /* Add into layout: */
             pLayout->addWidget(m_pTableView);
         }
     }
-}
-
-void UIFormEditorWidget::cleanup()
-{
-    delete m_pItemEditorFactory;
-    m_pItemEditorFactory = 0;
-}
-
-void UIFormEditorWidget::adjustTable()
-{
-    m_pTableView->horizontalHeader()->setStretchLastSection(false);
-    /* If table is NOT empty: */
-    if (m_pTableModel->rowCount())
-    {
-        /* Resize table to contents size-hint and emit a spare place for first column: */
-        m_pTableView->resizeColumnsToContents();
-        const int iFullWidth = m_pTableView->viewport()->width();
-        const int iNameWidth = m_pTableView->horizontalHeader()->sectionSize(UIFormEditorDataType_Name);
-        const int iValueWidth = qMax(0, iFullWidth - iNameWidth);
-        m_pTableView->horizontalHeader()->resizeSection(UIFormEditorDataType_Value, iValueWidth);
-    }
-    /* If table is empty: */
-    else
-    {
-        /* Resize table columns to be equal in size: */
-        const int iFullWidth = m_pTableView->viewport()->width();
-        m_pTableView->horizontalHeader()->resizeSection(UIFormEditorDataType_Name, iFullWidth / 2);
-        m_pTableView->horizontalHeader()->resizeSection(UIFormEditorDataType_Value, iFullWidth / 2);
-    }
-    m_pTableView->horizontalHeader()->setStretchLastSection(true);
 }
 
 

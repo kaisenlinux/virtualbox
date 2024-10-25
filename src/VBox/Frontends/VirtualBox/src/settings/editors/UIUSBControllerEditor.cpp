@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,15 +31,15 @@
 #include <QVBoxLayout>
 
 /* GUI includes: */
-#include "UICommon.h"
+#include "UIGlobalSession.h"
 #include "UIUSBControllerEditor.h"
 
 /* COM includes: */
-#include "CSystemProperties.h"
+#include "CPlatformProperties.h"
 
 
 UIUSBControllerEditor::UIUSBControllerEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent, true /* show in basic mode? */)
     , m_enmValue(KUSBControllerType_Max)
     , m_pRadioButtonUSB1(0)
     , m_pRadioButtonUSB2(0)
@@ -73,7 +73,7 @@ KUSBControllerType UIUSBControllerEditor::value() const
     return m_enmValue;
 }
 
-void UIUSBControllerEditor::retranslateUi()
+void UIUSBControllerEditor::sltRetranslateUI()
 {
     if (m_pRadioButtonUSB1)
     {
@@ -95,6 +95,11 @@ void UIUSBControllerEditor::retranslateUi()
     }
 }
 
+void UIUSBControllerEditor::handleFilterChange()
+{
+    updateButtonSet();
+}
+
 void UIUSBControllerEditor::prepare()
 {
     /* Create main layout: */
@@ -111,6 +116,7 @@ void UIUSBControllerEditor::prepare()
             m_pRadioButtonUSB1 = new QRadioButton(this);
             if (m_pRadioButtonUSB1)
             {
+                m_pRadioButtonUSB1->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Minimum);
                 m_pRadioButtonUSB1->setVisible(false);
                 pLayout->addWidget(m_pRadioButtonUSB1);
             }
@@ -118,6 +124,7 @@ void UIUSBControllerEditor::prepare()
             m_pRadioButtonUSB2 = new QRadioButton(this);
             if (m_pRadioButtonUSB2)
             {
+                m_pRadioButtonUSB2->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Minimum);
                 m_pRadioButtonUSB2->setVisible(false);
                 pLayout->addWidget(m_pRadioButtonUSB2);
             }
@@ -125,11 +132,12 @@ void UIUSBControllerEditor::prepare()
             m_pRadioButtonUSB3 = new QRadioButton(this);
             if (m_pRadioButtonUSB3)
             {
+                m_pRadioButtonUSB3->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Minimum);
                 m_pRadioButtonUSB3->setVisible(false);
                 pLayout->addWidget(m_pRadioButtonUSB3);
             }
 
-            connect(pButtonGroup, static_cast<void(QButtonGroup::*)(QAbstractButton*)>(&QButtonGroup::buttonClicked),
+            connect(pButtonGroup, &QButtonGroup::buttonClicked,
                     this, &UIUSBControllerEditor::sigValueChanged);
         }
     }
@@ -138,13 +146,16 @@ void UIUSBControllerEditor::prepare()
     updateButtonSet();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIUSBControllerEditor::updateButtonSet()
 {
     /* Load currently supported types: */
-    CSystemProperties comProperties = uiCommon().virtualBox().GetSystemProperties();
+    const KPlatformArchitecture enmArch = optionalFlags().contains("arch")
+                                        ? optionalFlags().value("arch").value<KPlatformArchitecture>()
+                                        : KPlatformArchitecture_x86;
+    CPlatformProperties comProperties = gpGlobalSession->virtualBox().GetPlatformProperties(enmArch);
     m_supportedValues = comProperties.GetSupportedUSBControllerTypes();
 
     /* Make sure requested value if sane is present as well: */

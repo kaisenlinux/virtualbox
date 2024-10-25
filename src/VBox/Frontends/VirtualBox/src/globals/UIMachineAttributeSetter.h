@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,8 +32,8 @@
 #endif
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CMachine.h"
+#include "KNetworkAttachmentType.h"
 
 /** Known machine attributes. */
 enum MachineAttribute

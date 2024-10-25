@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -211,8 +211,12 @@ static void testTransferRootsSetSingle(RTTEST hTest,
                                        int rcExpected)
 {
     PSHCLTRANSFER pTransfer;
-    int rc = ShClTransferCreate(&pTransfer);
+    int rc = ShClTransferCreate(SHCLTRANSFERDIR_TO_REMOTE, SHCLSOURCE_LOCAL, NULL /* Callbacks */, &pTransfer);
     RTTESTI_CHECK_RC_OK(rc);
+
+    SHCLTXPROVIDER Provider;
+    RTTESTI_CHECK(ShClTransferProviderLocalQueryInterface(&Provider) != NULL);
+    RTTESTI_CHECK_RC_OK(ShClTransferSetProvider(pTransfer, &Provider));
 
     char szTestTransferRootsSetDir[RTPATH_MAX];
     rc = testCreateTempDir(hTest, "testTransferRootsSet", szTestTransferRootsSetDir, sizeof(szTestTransferRootsSetDir));
@@ -226,7 +230,7 @@ static void testTransferRootsSetSingle(RTTEST hTest,
     rc = testAddRootEntries(hTest, szTestTransferRootsSetDir, lstBase, lstToExtend, &pszRoots);
     RTTESTI_CHECK_RC_OK_RETV(rc);
 
-    rc = ShClTransferRootsSet(pTransfer, pszRoots, strlen(pszRoots) + 1);
+    rc = ShClTransferRootsSetFromStringList(pTransfer, pszRoots, strlen(pszRoots) + 1);
     RTTESTI_CHECK_RC(rc, rcExpected);
 
     RTStrFree(pszRoots);
@@ -238,13 +242,14 @@ static void testTransferRootsSetSingle(RTTEST hTest,
 static void testTransferObjOpenSingle(RTTEST hTest,
                                       RTCList<TESTTRANSFERROOTENTRY> &lstRoots, const char *pszObjPath, int rcExpected)
 {
-    RT_NOREF(hTest);
-
     PSHCLTRANSFER pTransfer;
-    int rc = ShClTransferCreate(&pTransfer);
+    int rc = ShClTransferCreate(SHCLTRANSFERDIR_TO_REMOTE, SHCLSOURCE_LOCAL, NULL /* Callbacks */, &pTransfer);
     RTTESTI_CHECK_RC_OK(rc);
 
-    rc = ShClTransferInit(pTransfer, SHCLTRANSFERDIR_FROM_REMOTE, SHCLSOURCE_LOCAL);
+    SHCLTXPROVIDER Provider;
+    ShClTransferProviderLocalQueryInterface(&Provider);
+
+    rc = ShClTransferSetProvider(pTransfer, &Provider);
     RTTESTI_CHECK_RC_OK(rc);
 
     char szTestTransferObjOpenDir[RTPATH_MAX];
@@ -261,7 +266,10 @@ static void testTransferObjOpenSingle(RTTEST hTest,
     rc = testAddRootEntries(hTest, szTestTransferObjOpenDir, lstRoots, lstToExtendEmpty, &pszRoots);
     RTTESTI_CHECK_RC_OK_RETV(rc);
 
-    rc = ShClTransferRootsSet(pTransfer, pszRoots, strlen(pszRoots) + 1);
+    rc = ShClTransferRootsSetFromStringList(pTransfer, pszRoots, strlen(pszRoots) + 1);
+    RTTESTI_CHECK_RC_OK(rc);
+
+    rc = ShClTransferInit(pTransfer);
     RTTESTI_CHECK_RC_OK(rc);
 
     RTStrFree(pszRoots);
@@ -282,24 +290,70 @@ static void testTransferObjOpenSingle(RTTEST hTest,
         RTTESTI_CHECK_RC_OK(rc);
     }
 
+    ShClTransferObjOpenParmsDestroy(&openCreateParms);
+
     rc = ShClTransferDestroy(pTransfer);
     RTTESTI_CHECK_RC_OK(rc);
 }
 
-static void testTransferBasics(RTTEST hTest)
+static void testEvents(void)
 {
-    RT_NOREF(hTest);
-
-    RTTestISub("Testing transfer basics");
+    RTTestISub("Testing events");
 
     SHCLEVENTSOURCE Source;
-    int rc = ShClEventSourceCreate(&Source, 0);
-    RTTESTI_CHECK_RC_OK(rc);
-    rc = ShClEventSourceDestroy(&Source);
-    RTTESTI_CHECK_RC_OK(rc);
+    RTTESTI_CHECK_RC_OK(ShClEventSourceCreate(&Source, 0));
+    RTTESTI_CHECK(ShClEventSourceGetLast(&Source) == NULL); /* Should be empty. */
+    RTTESTI_CHECK_RC_OK(ShClEventSourceDestroy(&Source));
+    RTTESTI_CHECK_RC_OK(ShClEventSourceDestroy(&Source)); /* Destroying a second time, intentional. */
+
+    RTTESTI_CHECK_RC_OK(ShClEventSourceCreate(&Source, 42));
+    PSHCLEVENT pEvent;
+    RTTESTI_CHECK_RC_OK(ShClEventSourceGenerateAndRegisterEvent(&Source, &pEvent));
+    ShClEventSourceReset(&Source);
+    RTTESTI_CHECK(ShClEventSourceGetLast(&Source) == NULL); /* Event still valid, but removed from the source. */
+    RTTESTI_CHECK(ShClEventRelease(pEvent) == 0); /* Free'd event, as ref count is 0. */
+    RTTESTI_CHECK(ShClEventSourceGetLast(&Source) == NULL); /* Now it should be empty. */
+    RTTESTI_CHECK_RC_OK(ShClEventSourceDestroy(&Source));
+
+    /* Test delayed destruction of the event by retaining it. */
+    RTTESTI_CHECK_RC_OK(ShClEventSourceCreate(&Source, 42));
+    RTTESTI_CHECK_RC_OK(ShClEventSourceGenerateAndRegisterEvent(&Source, &pEvent));
+    RTTESTI_CHECK_RC_OK(ShClEventRetain(pEvent));
+    RTTESTI_CHECK(ShClEventGetRefs(pEvent) == 2);
+    RTTESTI_CHECK_RC_OK(ShClEventSourceDestroy(&Source));
+    RTTESTI_CHECK(ShClEventGetRefs(pEvent) == 2); /* Make sure the ref count didn't drop due to ShClEventSourceDestroy(). */
+    RTTESTI_CHECK(ShClEventRelease(pEvent) == 1);
+    RTTESTI_CHECK(ShClEventGetRefs(pEvent) == 1);
+    RTTESTI_CHECK(ShClEventRelease(pEvent) == 0); /* Free'd event, as ref count is 0. */
+    RTTESTI_CHECK_RC_OK(ShClEventSourceDestroy(&Source)); /* Try to destruct again. */
+}
+
+static void testTransferBasics(void)
+{
+    RTTestISub("Testing transfer basics");
+
     PSHCLTRANSFER pTransfer;
-    rc = ShClTransferCreate(&pTransfer);
+    int rc = ShClTransferCreate(SHCLTRANSFERDIR_TO_REMOTE, SHCLSOURCE_LOCAL, NULL /* Callbacks */, &pTransfer);
     RTTESTI_CHECK_RC_OK(rc);
+    rc = ShClTransferDestroy(pTransfer);
+    RTTESTI_CHECK_RC_OK(rc);
+    pTransfer = NULL; /* Was free'd above. */
+    rc = ShClTransferDestroy(pTransfer); /* Second time, intentional. */
+    RTTESTI_CHECK_RC_OK(rc);
+
+    PSHCLLIST pList = ShClTransferListAlloc();
+    RTTESTI_CHECK(pList != NULL);
+    rc = ShClTransferCreate(SHCLTRANSFERDIR_TO_REMOTE, SHCLSOURCE_LOCAL, NULL /* Callbacks */, &pTransfer);
+    RTTESTI_CHECK_RC_OK(rc);
+    ShClTransferListFree(pList);
+    pList = NULL;
+    ShClTransferListFree(pList); /* Second time, intentional. */
+
+    SHCLLISTENTRY Entry;
+    RTTESTI_CHECK_RC_OK(ShClTransferListEntryInit(&Entry));
+    ShClTransferListEntryDestroy(&Entry);
+    ShClTransferListEntryDestroy(&Entry); /* Second time, intentional. */
+
     rc = ShClTransferDestroy(pTransfer);
     RTTESTI_CHECK_RC_OK(rc);
 }
@@ -374,16 +428,23 @@ int main(int argc, char *argv[])
         return rcExit;
     RTTestBanner(hTest);
 
-    testTransferBasics(hTest);
+    /* For negative stuff that may assert: */
+    bool const fMayPanic = RTAssertSetMayPanic(false);
+    bool const fQuiet    = RTAssertSetQuiet(true);
+
+    testEvents();
+    testTransferBasics();
     testTransferRootsSet(hTest);
     testTransferObjOpen(hTest);
 
     int rc = testRemoveTempDir(hTest);
     RTTESTI_CHECK_RC(rc, VINF_SUCCESS);
 
+    RTAssertSetMayPanic(fMayPanic);
+    RTAssertSetQuiet(fQuiet);
+
     /*
      * Summary
      */
     return RTTestSummaryAndDestroy(hTest);
 }
-

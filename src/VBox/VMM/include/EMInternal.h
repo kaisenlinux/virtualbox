@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -129,13 +129,12 @@ typedef struct EM
 {
     /** Whether IEM executes everything. */
     bool                    fIemExecutesAll;
+    /** Whether IEM execution (pure) is recompiled (true) or interpreted (false). */
+    bool                    fIemRecompiled;
     /** Whether a triple fault triggers a guru. */
     bool                    fGuruOnTripleFault;
     /** Alignment padding. */
-    bool                    afPadding[2];
-
-    /** Id of the VCPU that last executed code in the recompiler. */
-    VMCPUID                 idLastRemCpu;
+    bool                    afPadding[5];
 } EM;
 /** Pointer to EM VM instance data. */
 typedef EM *PEM;
@@ -158,18 +157,17 @@ typedef struct EMCPU
     bool                    fHypercallEnabled;
 
     /** Explicit padding. */
-    uint8_t                 abPadding0[3];
+    uint8_t                 abPadding0[7];
 
-    /** The number of instructions we've executed in IEM since switching to the
-     *  EMSTATE_IEM_THEN_REM state. */
-    uint32_t                cIemThenRemInstructions;
-
-    /** Start of the current time slice in ms. */
-    uint64_t                u64TimeSliceStart;
-    /** Start of the current time slice in thread execution time (ms). */
-    uint64_t                u64TimeSliceStartExec;
-    /** Current time slice value. */
-    uint64_t                u64TimeSliceExec;
+    /** Start of the current time slice in ms (RTTimeMilliTS). */
+    uint64_t                msTimeSliceStart;
+    /** The sum of the RTThreadGetExecutionTimeMilli() values at the start of the
+     * current slice. */
+    uint64_t                cMsTimeSliceStartExec;
+    /** Number of milliseconds into the current time slice last we checked.
+     * This is in terms of the RTThreadGetExecutionTimeMilli() total, like for
+     * cMsTimeSliceStartExec. */
+    uint64_t                cMsTimeSliceExec;
 
     /** Pending ring-3 I/O port access (VINF_EM_PENDING_R3_IOPORT_READ / VINF_EM_PENDING_R3_IOPORT_WRITE). */
     struct
@@ -200,7 +198,11 @@ typedef struct EMCPU
     {
         /** Padding used in the other rings.
          * This must be larger than jmp_buf on any supported platform. */
+#if defined(RT_OS_LINUX) && defined(RT_ARCH_ARM64)
+        char                achPaddingFatalLongJump[512];
+#else
         char                achPaddingFatalLongJump[256];
+#endif
 #ifdef IN_RING3
         /** Long buffer jump for fatal VM errors.
          * It will jump to before the outer EM loop is entered. */
@@ -210,7 +212,7 @@ typedef struct EMCPU
 
     /** For saving stack space, the disassembler state is allocated here instead of
      * on the stack. */
-    DISCPUSTATE             DisState;
+    DISSTATE                Dis;
 
     /** @name Execution profiling.
      * @{ */
@@ -223,14 +225,8 @@ typedef struct EMCPU
     STAMPROFILE             StatIEMThenREM;
     STAMPROFILEADV          StatNEMEntry;
     STAMPROFILE             StatNEMExec;
-    STAMPROFILE             StatREMEmu;
     STAMPROFILE             StatREMExec;
-    STAMPROFILE             StatREMSync;
-    STAMPROFILEADV          StatREMTotal;
-    STAMPROFILE             StatRAWExec;
-    STAMPROFILEADV          StatRAWEntry;
-    STAMPROFILEADV          StatRAWTail;
-    STAMPROFILEADV          StatRAWTotal;
+    STAMPROFILE             StatREMTotal;
     STAMPROFILEADV          StatTotal;
     /** @} */
 
@@ -325,9 +321,7 @@ int             emR3RawStep(PVM pVM, PVMCPU pVCpu);
 
 VBOXSTRICTRC    emR3NemSingleInstruction(PVM pVM, PVMCPU pVCpu, uint32_t fFlags);
 
-int             emR3SingleStepExecRem(PVM pVM, PVMCPU pVCpu, uint32_t cIterations);
-
-bool            emR3IsExecutionAllowed(PVM pVM, PVMCPU pVCpu);
+bool            emR3IsExecutionAllowedSlow(PVM pVM, PVMCPU pVCpu);
 
 VBOXSTRICTRC    emR3ExecutePendingIoPortWrite(PVM pVM, PVMCPU pVCpu);
 VBOXSTRICTRC    emR3ExecutePendingIoPortRead(PVM pVM, PVMCPU pVCpu);

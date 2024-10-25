@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -454,7 +454,7 @@ const char *gctlFileStatusToText(FileStatus_T enmStatus)
 /**
  * Translates a file system objec type to a string.
  */
-const char *gctlFsObjTypeToName(FsObjType_T enmType)
+static const char *gctlFsObjTypeToName(FsObjType_T enmType)
 {
     switch (enmType)
     {
@@ -900,7 +900,15 @@ static void gctlCtxTerm(PGCTLCMDCTX pCtx)
             if (pCtx->cVerbose)
                 RTPrintf(GuestCtrl::tr("Closing guest session ...\n"));
 
-            CHECK_ERROR(pCtx->pGuestSession, Close());
+            if (pCtx->pGuestSession.isNotNull())
+                CHECK_ERROR(pCtx->pGuestSession, Close());
+
+            if (pCtx->cVerbose > 4)
+            {
+                SafeIfaceArray <IGuestSession> collSessions;
+                CHECK_ERROR(pCtx->pGuest, COMGETTER(Sessions)(ComSafeArrayAsOutParam(collSessions)));
+                RTPrintf(GuestCtrl::tr("Now %zu guest sessions registered\n"), collSessions.size());
+            }
         }
         else if (   pCtx->fDetachGuestSession
                  && pCtx->cVerbose)
@@ -1170,6 +1178,7 @@ static RTEXITCODE gctlHandleRunCommon(PGCTLCMDCTX pCtx, int argc, char **argv, b
     {
         GCTLCMD_COMMON_OPTION_DEFS()
         { "--arg0",                         '0',                                      RTGETOPT_REQ_STRING  },
+        { "--cwd",                          'C',                                      RTGETOPT_REQ_STRING  },
         { "--putenv",                       'E',                                      RTGETOPT_REQ_STRING  },
         { "--exe",                          'e',                                      RTGETOPT_REQ_STRING  },
         { "--timeout",                      't',                                      RTGETOPT_REQ_UINT32  },
@@ -1201,6 +1210,7 @@ static RTEXITCODE gctlHandleRunCommon(PGCTLCMDCTX pCtx, int argc, char **argv, b
     com::SafeArray<IN_BSTR>                 aEnv;
     const char *                            pszImage            = NULL;
     const char *                            pszArg0             = NULL; /* Argument 0 to use. pszImage will be used if not specified. */
+    const char *                            pszCwd              = NULL;
     bool                                    fWaitForStdOut      = fRunCmd;
     bool                                    fWaitForStdErr      = fRunCmd;
     RTVFSIOSTREAM                           hVfsStdOut          = NIL_RTVFSIOSTREAM;
@@ -1244,6 +1254,10 @@ static RTEXITCODE gctlHandleRunCommon(PGCTLCMDCTX pCtx, int argc, char **argv, b
 
                 case '0':
                     pszArg0 = ValueUnion.psz;
+                    break;
+
+                case 'C':
+                    pszCwd = ValueUnion.psz;
                     break;
 
                 case 'e':
@@ -1337,18 +1351,27 @@ static RTEXITCODE gctlHandleRunCommon(PGCTLCMDCTX pCtx, int argc, char **argv, b
         else
         {
             aWaitFlags.push_back(ProcessWaitForFlag_Terminate);
-            fWaitForStdOut = gctlRunSetupHandle(fWaitForStdOut, RTHANDLESTD_OUTPUT, "stdout", enmStdOutTransform, &hVfsStdOut);
-            if (fWaitForStdOut)
+            if (gctlRunSetupHandle(fWaitForStdOut, RTHANDLESTD_OUTPUT, "stdout", enmStdOutTransform, &hVfsStdOut))
             {
-                aCreateFlags.push_back(ProcessCreateFlag_WaitForStdOut);
-                aWaitFlags.push_back(ProcessWaitForFlag_StdOut);
+                if (fWaitForStdOut)
+                {
+                    aCreateFlags.push_back(ProcessCreateFlag_WaitForStdOut);
+                    aWaitFlags.push_back(ProcessWaitForFlag_StdOut);
+                }
             }
-            fWaitForStdErr = gctlRunSetupHandle(fWaitForStdErr, RTHANDLESTD_ERROR, "stderr", enmStdErrTransform, &hVfsStdErr);
-            if (fWaitForStdErr)
+            else /* Failed to set up handle, disable. */
+                fWaitForStdOut = false;
+
+            if (gctlRunSetupHandle(fWaitForStdErr, RTHANDLESTD_ERROR, "stderr", enmStdErrTransform, &hVfsStdErr))
             {
-                aCreateFlags.push_back(ProcessCreateFlag_WaitForStdErr);
-                aWaitFlags.push_back(ProcessWaitForFlag_StdErr);
+                if (fWaitForStdErr)
+                {
+                    aCreateFlags.push_back(ProcessCreateFlag_WaitForStdErr);
+                    aWaitFlags.push_back(ProcessWaitForFlag_StdErr);
+                }
             }
+            else /* Failed to set up handle, disable. */
+                fWaitForStdErr = false;
         }
     }
     catch (std::bad_alloc &)
@@ -1382,6 +1405,7 @@ static RTEXITCODE gctlHandleRunCommon(PGCTLCMDCTX pCtx, int argc, char **argv, b
             ComPtr<IGuestProcess> pProcess;
             CHECK_ERROR_BREAK(pCtx->pGuestSession, ProcessCreate(Bstr(pszImage).raw(),
                                                                  ComSafeArrayAsInParam(aArgs),
+                                                                 Bstr(pszCwd).raw(),
                                                                  ComSafeArrayAsInParam(aEnv),
                                                                  ComSafeArrayAsInParam(aCreateFlags),
                                                                  gctlRunGetRemainingTime(msStart, cMsTimeout),
@@ -2258,7 +2282,7 @@ static DECLCALLBACK(RTEXITCODE) gctlHandleMv(PGCTLCMDCTX pCtx, int argc, char **
         else
             pszDstCur = RTStrDup(pszDst);
 
-        AssertPtrBreakStmt(pszDstCur, VERR_NO_MEMORY);
+        AssertPtrBreakStmt(pszDstCur, hrc = E_OUTOFMEMORY);
 
         if (pCtx->cVerbose)
             RTPrintf(GuestCtrl::tr("Renaming %s \"%s\" to \"%s\" ...\n"),
@@ -2351,8 +2375,10 @@ static DECLCALLBACK(RTEXITCODE) gctlHandleMkTemp(PGCTLCMDCTX pCtx, int argc, cha
     if (strTemplate.isEmpty())
         return errorSyntax(GuestCtrl::tr("No template specified!"));
 
+#ifndef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
     if (!fDirectory)
         return errorSyntax(GuestCtrl::tr("Creating temporary files is currently not supported!"));
+#endif
 
     RTEXITCODE rcExit = gctlCtxPostOptionParsingInit(pCtx);
     if (rcExit != RTEXITCODE_SUCCESS)
@@ -2397,6 +2423,210 @@ static DECLCALLBACK(RTEXITCODE) gctlHandleMkTemp(PGCTLCMDCTX pCtx, int argc, cha
     }
 
     return FAILED(hrc) ? RTEXITCODE_FAILURE : RTEXITCODE_SUCCESS;
+}
+
+static DECLCALLBACK(RTEXITCODE) gctlHandleMount(PGCTLCMDCTX pCtx, int argc, char **argv)
+{
+    AssertPtrReturn(pCtx, RTEXITCODE_FAILURE);
+
+    static const RTGETOPTDEF s_aOptions[] =
+    {
+        GCTLCMD_COMMON_OPTION_DEFS()
+    };
+
+    int ch;
+    RTGETOPTUNION ValueUnion;
+    RTGETOPTSTATE GetState;
+    RTGetOptInit(&GetState, argc, argv, s_aOptions, RT_ELEMENTS(s_aOptions), 1, RTGETOPTINIT_FLAGS_OPTS_FIRST);
+
+    while ((ch = RTGetOpt(&GetState, &ValueUnion)) != 0)
+    {
+        /* For options that require an argument, ValueUnion has received the value. */
+        switch (ch)
+        {
+            GCTLCMD_COMMON_OPTION_CASES(pCtx, ch, &ValueUnion);
+
+            default:
+                return errorGetOpt(ch, &ValueUnion);
+        }
+    }
+
+    RTEXITCODE rcExit = gctlCtxPostOptionParsingInit(pCtx);
+    if (rcExit != RTEXITCODE_SUCCESS)
+        return rcExit;
+
+    HRESULT hrc = S_OK;
+
+    com::SafeArray<BSTR> mountPoints;
+    CHECK_ERROR_RET(pCtx->pGuestSession, COMGETTER(MountPoints)(ComSafeArrayAsOutParam(mountPoints)), RTEXITCODE_FAILURE);
+
+    for (size_t i = 0; i < mountPoints.size(); ++i)
+        RTPrintf("%ls\n", mountPoints[i]);
+
+    if (pCtx->cVerbose)
+        RTPrintf("Found %zu mount points\n", mountPoints.size());
+
+    return RTEXITCODE_SUCCESS;
+}
+
+static DECLCALLBACK(RTEXITCODE) gctlHandleFsInfo(PGCTLCMDCTX pCtx, int argc, char **argv)
+{
+    AssertPtrReturn(pCtx, RTEXITCODE_FAILURE);
+
+    /*
+     * Parse arguments.
+     */
+    enum GCTLCMD_FSINFO_OPT
+    {
+        GCTLCMD_FSINFO_OPT_TOTAL = 1000
+    };
+
+    static const RTGETOPTDEF s_aOptions[] =
+    {
+        GCTLCMD_COMMON_OPTION_DEFS()
+        { "--human-readable",           'h',                            RTGETOPT_REQ_NOTHING },
+        { "--total",                    GCTLCMD_FSINFO_OPT_TOTAL,       RTGETOPT_REQ_NOTHING }
+    };
+
+    int ch;
+    RTGETOPTUNION ValueUnion;
+    RTGETOPTSTATE GetState;
+    RTGetOptInit(&GetState, argc, argv, s_aOptions, RT_ELEMENTS(s_aOptions), 1, RTGETOPTINIT_FLAGS_OPTS_FIRST);
+
+    bool fHumanReadable = false;
+    bool fShowTotal = false;
+
+    while (  (ch = RTGetOpt(&GetState, &ValueUnion)) != 0
+           && ch != VINF_GETOPT_NOT_OPTION)
+    {
+        /* For options that require an argument, ValueUnion has received the value. */
+        switch (ch)
+        {
+            GCTLCMD_COMMON_OPTION_CASES(pCtx, ch, &ValueUnion);
+
+            case 'h':
+                fHumanReadable = true;
+                break;
+
+            case GCTLCMD_FSINFO_OPT_TOTAL:
+                fShowTotal = true;
+                break;
+
+            default:
+                return errorGetOpt(ch, &ValueUnion);
+        }
+    }
+
+    if (ch != VINF_GETOPT_NOT_OPTION)
+        return errorSyntax(GuestCtrl::tr("No path specified to query information for!"));
+
+    RTEXITCODE rcExit = gctlCtxPostOptionParsingInit(pCtx);
+    if (rcExit != RTEXITCODE_SUCCESS)
+        return rcExit;
+
+    /* Stay within 80 characters width by default. */
+    unsigned const cwFileSys     = 10;
+    /* When displaying human-readable sizes, we need less space for a column. */
+    unsigned const cwSize        = fHumanReadable ? 10 : 14;
+    unsigned const cwSizeTotal   = cwSize;
+    unsigned const cwSizeUsed    = cwSize;
+    unsigned const cwSizeAvail   = cwSize;
+    unsigned const cwUsePercent  = 6;
+    unsigned const cwPathSpacing = 3; /* Spacing between last value and actual path. */
+
+    RTPrintf("%-*s%*s%*s%*s%*s%*s%s\n",
+             cwFileSys, GuestCtrl::tr("Filesystem"),
+             cwSizeTotal, GuestCtrl::tr("Total"), cwSizeUsed, GuestCtrl::tr("Used"), cwSizeAvail, GuestCtrl::tr("Avail"),
+             cwUsePercent, GuestCtrl::tr("Use%"),
+             cwPathSpacing, "",
+             GuestCtrl::tr("Path"));
+
+    uint64_t cbTotalSize = 0;
+    uint64_t cbTotalFree = 0;
+
+    while (ch == VINF_GETOPT_NOT_OPTION)
+    {
+        ComPtr<IGuestFsInfo> pFsInfo;
+        HRESULT hrc;
+        CHECK_ERROR(pCtx->pGuestSession, FsQueryInfo(Bstr(ValueUnion.psz).raw(), pFsInfo.asOutParam()));
+        if (FAILED(hrc))
+        {
+            rcExit = RTEXITCODE_FAILURE;
+        }
+        else
+        {
+            Bstr bstr;
+            CHECK_ERROR2I(pFsInfo, COMGETTER(Type)(bstr.asOutParam()));
+            /** @todo Add label and mount point once we return this. */
+            LONG64 cbTotal, cbFree;
+            CHECK_ERROR2I(pFsInfo, COMGETTER(TotalSize)(&cbTotal));
+            CHECK_ERROR2I(pFsInfo, COMGETTER(FreeSize)(&cbFree));
+            uint8_t const uPercentUsed = (cbTotal - cbFree) * 100 / cbTotal;
+            if (fHumanReadable)
+            {
+                RTPrintf("%-*ls%*Rhcb%*Rhcb%*Rhcb%*RU8%%%*s%s",
+                         cwFileSys, bstr.raw(),                                 /* Filesystem */
+                         cwSizeTotal, cbTotal,                                  /* Total */
+                         cwSizeUsed,  cbTotal - cbFree,                         /* Used */
+                         cwSizeAvail, cbFree,                                   /* Available */
+                         cwUsePercent - 1 /* For percent sign */, uPercentUsed, /* Percent */
+                         cwPathSpacing, "",
+                         ValueUnion.psz);                                       /* Path */
+            }
+            else
+            {
+                RTPrintf("%-*ls%*RU64%*RU64%*RU64%*RU8%%%*s%s",
+                         cwFileSys, bstr.raw(),                                 /* Filesystem */
+                         cwSizeTotal, cbTotal,                                  /* Total */
+                         cwSizeUsed,  cbTotal - cbFree,                         /* Used */
+                         cwSizeAvail, cbFree,                                   /* Available */
+                         cwUsePercent - 1 /* For percent sign */, uPercentUsed, /* Percent */
+                         cwPathSpacing, "",
+                         ValueUnion.psz);                                       /* Path */
+            }
+
+            if (fShowTotal)
+            {
+                cbTotalSize += cbTotal;
+                cbTotalFree += cbFree;
+            }
+            RTPrintf("\n");
+        }
+
+        /* Next path. */
+        ch = RTGetOpt(&GetState, &ValueUnion);
+    }
+
+    if (fShowTotal)
+    {
+        uint8_t const uPercentUsed = (cbTotalSize - cbTotalFree) * 100 / cbTotalSize;
+
+        if (fHumanReadable)
+        {
+            RTPrintf("%-*s%*Rhcb%*Rhcb%*Rhcb%*RU8%%%*s%s",
+                     cwFileSys, "total",
+                     cwSizeTotal, cbTotalSize,                                  /* Total */
+                     cwSizeUsed,  cbTotalSize - cbTotalFree,                    /* Used */
+                     cwSizeAvail, cbTotalFree,                                  /* Available */
+                     cwUsePercent - 1 /* For percent sign */, uPercentUsed,     /* Percent */
+                     cwPathSpacing, "",
+                     "-");                                                      /* Path */
+        }
+        else
+        {
+            RTPrintf("%-*s%*RU64%*RU64%*RU64%*RU8%%%*s%s",
+                     cwFileSys, "total",                                        /* Filesystem */
+                     cwSizeTotal, cbTotalSize,                                  /* Total */
+                     cwSizeUsed,  cbTotalSize - cbTotalFree,                    /* Used */
+                     cwSizeAvail, cbTotalFree,                                  /* Available */
+                     cwUsePercent - 1 /* For percent sign */, uPercentUsed,     /* Percent */
+                     cwPathSpacing, "",
+                     "-");                                                      /* Path */
+        }
+        RTPrintf("\n");
+    }
+
+    return rcExit;
 }
 
 static DECLCALLBACK(RTEXITCODE) gctlHandleStat(PGCTLCMDCTX pCtx, int argc, char **argv)
@@ -3623,6 +3853,11 @@ RTEXITCODE handleGuestControl(HandlerArg *pArg)
         { "mktemp",             gctlHandleMkTemp,           HELP_SCOPE_GUESTCONTROL_MKTEMP,    0 },
         { "createtemp",         gctlHandleMkTemp,           HELP_SCOPE_GUESTCONTROL_MKTEMP,    0 },
         { "createtemporary",    gctlHandleMkTemp,           HELP_SCOPE_GUESTCONTROL_MKTEMP,    0 },
+
+        { "mount",              gctlHandleMount,            HELP_SCOPE_GUESTCONTROL_MOUNT,     0 },
+
+        { "df",                 gctlHandleFsInfo,           HELP_SCOPE_GUESTCONTROL_FSINFO,    0 },
+        { "fsinfo",             gctlHandleFsInfo,           HELP_SCOPE_GUESTCONTROL_FSINFO,    0 },
 
         { "stat",               gctlHandleStat,             HELP_SCOPE_GUESTCONTROL_STAT,      0 },
 

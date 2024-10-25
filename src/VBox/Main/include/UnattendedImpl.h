@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -56,7 +56,6 @@ struct WIMImage
     VBOXOSTYPE mOSType;
     WIMImage() : mImageIndex(0), mOSType(VBOXOSTYPE_Unknown) { }
     const Utf8Str &formatName(Utf8Str &r_strName) const;
-    VBOXOSTYPE mEnmOsType;
 };
 
 /**
@@ -80,7 +79,8 @@ public:
     // public methods for internal purposes
     Utf8Str const &i_getIsoPath() const;
     Utf8Str const &i_getUser() const;
-    Utf8Str const &i_getPassword() const;
+    Utf8Str const &i_getUserPassword() const;
+    Utf8Str const &i_getAdminPassword() const;
     Utf8Str const &i_getFullUserName() const;
     Utf8Str const &i_getProductKey() const;
     Utf8Str const &i_getProxy() const;
@@ -88,6 +88,8 @@ public:
     bool           i_getInstallGuestAdditions() const;
     Utf8Str const &i_getValidationKitIsoPath() const;
     bool           i_getInstallTestExecService() const;
+    Utf8Str const &i_getUserPayloadIsoPath() const;
+    bool           i_getInstallUserPayload() const;
     Utf8Str const &i_getTimeZone() const;
     PCRTTIMEZONEINFO i_getTimeZoneInfo() const;
     Utf8Str const &i_getLocale() const;
@@ -104,6 +106,7 @@ public:
      * located, from the perspective of the running unattended install. */
     Utf8Str const &i_getAuxiliaryInstallDir() const;
     Utf8Str const &i_getExtraInstallKernelParameters() const;
+    Utf8Str const &i_getAdditionsInstallPackage() const;
 
     bool           i_isRtcUsingUtc() const;
     bool           i_isGuestOs64Bit() const;
@@ -125,7 +128,8 @@ private:
     /** @name Values of the IUnattended attributes.
      * @{ */
     Utf8Str         mStrUser;
-    Utf8Str         mStrPassword;
+    Utf8Str         mStrUserPassword;
+    Utf8Str         mStrAdminPassword;
     Utf8Str         mStrFullUserName;
     Utf8Str         mStrProductKey;
     Utf8Str         mStrIsoPath;
@@ -133,6 +137,8 @@ private:
     bool            mfInstallGuestAdditions;
     bool            mfInstallTestExecService;
     Utf8Str         mStrValidationKitIsoPath;
+    Utf8Str         mStrUserPayloadIsoPath;
+    bool            mfInstallUserPayload;
     Utf8Str         mStrTimeZone;
     PCRTTIMEZONEINFO mpTimeZoneInfo;
     Utf8Str         mStrLocale;
@@ -148,6 +154,7 @@ private:
     Utf8Str         mStrPostInstallCommand;
     Utf8Str         mStrExtraInstallKernelParameters;
     Utf8Str         mStrProxy;
+    Utf8Str         mStrAdditionsInstallPackage;
 
     bool            mfDoneDetectIsoOS;         /**< Set by detectIsoOS(), cleared by setIsoPath(). */
     Utf8Str         mStrDetectedOSTypeId;
@@ -158,6 +165,8 @@ private:
     Utf8Str         mStrDetectedOSHints;
     RTCList<WIMImage> mDetectedImages;
     bool            mfAvoidUpdatesOverNetwork;
+    com::SafeIfaceArray<IGuestOSType> mSupportedGuestOSTypes;
+    bool           mfDoneSupportedGuestOSList;
     /** @} */
 
     // wrapped IUnattended functions:
@@ -192,8 +201,10 @@ private:
     HRESULT setIsoPath(const com::Utf8Str &isoPath);
     HRESULT getUser(com::Utf8Str &user);
     HRESULT setUser(const com::Utf8Str &user);
-    HRESULT getPassword(com::Utf8Str &password);
-    HRESULT setPassword(const com::Utf8Str &password);
+    HRESULT getUserPassword(com::Utf8Str &password);
+    HRESULT setUserPassword(const com::Utf8Str &password);
+    HRESULT getAdminPassword(com::Utf8Str &password);
+    HRESULT setAdminPassword(const com::Utf8Str &password);
     HRESULT getFullUserName(com::Utf8Str &user);
     HRESULT setFullUserName(const com::Utf8Str &user);
     HRESULT getProductKey(com::Utf8Str &productKey);
@@ -206,8 +217,16 @@ private:
     HRESULT setValidationKitIsoPath(const com::Utf8Str &aValidationKitIsoPath);
     HRESULT getInstallTestExecService(BOOL *aInstallTestExecService);
     HRESULT setInstallTestExecService(BOOL aInstallTestExecService);
+    HRESULT getUserPayloadIsoPath(com::Utf8Str &aUserPayloadIsoPath);
+    HRESULT setUserPayloadIsoPath(const com::Utf8Str &aUserPayloadIsoPath);
+    HRESULT getInstallUserPayload(BOOL *aInstallUserPayload);
+    HRESULT setInstallUserPayload(BOOL aInstallUserPayload);
     HRESULT getTimeZone(com::Utf8Str &aTimezone);
     HRESULT setTimeZone(const com::Utf8Str &aTimezone);
+    HRESULT getKeyboardLayout(com::Utf8Str &aKeyboardLayout);
+    HRESULT setKeyboardLayout(const com::Utf8Str &aKeyboardLayout);
+    HRESULT getKeyboardVariant(com::Utf8Str &aKeyboardVariant);
+    HRESULT setKeyboardVariant(const com::Utf8Str &aKeyboardVariant);
     HRESULT getLocale(com::Utf8Str &aLocale);
     HRESULT setLocale(const com::Utf8Str &aLocale);
     HRESULT getLanguage(com::Utf8Str &aLanguage);
@@ -312,6 +331,11 @@ private:
      * @returns true if we've got all necessary stuff for a successful detection.
      */
     bool i_updateDetectedAttributeForImage(WIMImage const &rImage);
+
+    /**
+     * Gets the list of guest OS type IDs supported by the current host.
+     */
+    HRESULT i_getListOfSupportedGuestOS();
 
 };
 

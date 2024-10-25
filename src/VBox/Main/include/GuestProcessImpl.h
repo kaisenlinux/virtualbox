@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -216,6 +216,65 @@ struct GuestProcessToolErrorInfo
 };
 
 /**
+ * Wrapper class for running guest processes.
+ */
+class GuestProcessWrapper
+{
+public:
+    DECLARE_TRANSLATE_METHODS(GuestProcessWrapper)
+
+    GuestProcessWrapper(void);
+
+    virtual ~GuestProcessWrapper(void);
+
+public:
+
+    int init(GuestSession *pGuestSession, const GuestProcessStartupInfo &startupInfo, bool fAsync, int *pvrcGuest);
+
+    void uninit(void);
+
+    /** Returns the stdout output from the guest process. */
+    GuestProcessOutputStream &getStdOut(void) { return mStdOut; }
+
+    /** Returns the stderr output from the guest proces. */
+    GuestProcessOutputStream &getStdErr(void) { return mStdErr; }
+
+    bool isRunning(void);
+
+    bool isTerminatedOk(void);
+
+    int getTerminationStatus(int32_t *piExitCode = NULL);
+
+    int terminate(uint32_t uTimeoutMS, int *pvrcGuest);
+
+    int wait(int *pvrcGuest);
+
+public:
+
+#if 0 /* unused */
+    virtual int onOutputCallback(uint32_t uHandle, const std::vector<Utf8Str> &vecData);
+#endif
+
+    virtual int onOutputCallback(uint32_t uHandle, const BYTE *pbData, size_t cbData);
+
+    virtual int onInputCallback(uint32_t uHandle, std::vector<Utf8Str> &vecData);
+
+protected:
+
+    /** Pointer to session this toolbox object is bound to. */
+    ComObjPtr<GuestSession>     pSession;
+    /** Pointer to process object this object is bound to. */
+    ComObjPtr<GuestProcess>     pProcess;
+    /** The process startup info. */
+    GuestProcessStartupInfo     mStartupInfo;
+    /** Stream object for handling stdout data. */
+    GuestProcessOutputStream    mStdOut;
+    /** Stream object for handling stderr data. */
+    GuestProcessOutputStream    mStdErr;
+};
+
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT
+/**
  * Internal class for handling the BusyBox-like tools built into VBoxService
  * on the guest side. It's also called the VBoxService Toolbox (tm).
  *
@@ -227,63 +286,50 @@ struct GuestProcessToolErrorInfo
  *
  * Note! When implementing new functionality / commands, do *not* use this approach anymore!
  *       This class has to be kept to guarantee backwards-compatibility.
+ *
+ * Deprecated, do not use anymore.
  */
-class GuestProcessTool
+class GuestProcessToolbox : public GuestProcessWrapper
 {
 public:
-    DECLARE_TRANSLATE_METHODS(GuestProcessTool)
+    DECLARE_TRANSLATE_METHODS(GuestProcessToolbox)
 
-    GuestProcessTool(void);
+    GuestProcessToolbox(void);
 
-    virtual ~GuestProcessTool(void);
+    virtual ~GuestProcessToolbox(void);
 
 public:
 
-    int init(GuestSession *pGuestSession, const GuestProcessStartupInfo &startupInfo, bool fAsync, int *pvrcGuest);
+    int wait(uint32_t fToolWaitFlags, int *pvrcGuest);
 
-    void uninit(void);
+    int waitEx(uint32_t fToolWaitFlags, GuestToolboxStreamBlock *strmBlockOut, int *pvrcGuest);
 
-    int getCurrentBlock(uint32_t uHandle, GuestProcessStreamBlock &strmBlock);
+    int getCurrentBlock(uint32_t uHandle, GuestToolboxStreamBlock &strmBlock);
 
     int getRc(void) const;
 
     /** Returns the stdout output from the guest process tool. */
-    GuestProcessStream &getStdOut(void) { return mStdOut; }
+    GuestToolboxStream &getStdOut(void) { return mStdOut; }
 
     /** Returns the stderr output from the guest process tool. */
-    GuestProcessStream &getStdErr(void) { return mStdErr; }
-
-    int wait(uint32_t fToolWaitFlags, int *pvrcGuest);
-
-    int waitEx(uint32_t fToolWaitFlags, GuestProcessStreamBlock *pStreamBlock, int *pvrcGuest);
-
-    bool isRunning(void);
-
-    bool isTerminatedOk(void);
-
-    int getTerminationStatus(int32_t *piExitCode = NULL);
-
-    int terminate(uint32_t uTimeoutMS, int *pvrcGuest);
+    GuestToolboxStream &getStdErr(void) { return mStdErr; }
 
 public:
 
     /** Wrapped @name Static run methods.
+     * @note Do not call anything 'run' here, it's way too common.
      * @{ */
-    static int run(GuestSession *pGuestSession, const GuestProcessStartupInfo &startupInfo, int *pvrcGuest);
+    static int runTool(GuestSession *pGuestSession, const GuestProcessStartupInfo &startupInfo, int *pvrcGuest,
+                       GuestCtrlStreamObjects *pLstStdOutObjPairs = NULL, uint32_t cStdOutObjectsToRead = 1);
 
-    static int runErrorInfo(GuestSession *pGuestSession, const GuestProcessStartupInfo &startupInfo, GuestProcessToolErrorInfo &errorInfo);
-
-    static int runEx(GuestSession *pGuestSession, const GuestProcessStartupInfo &startupInfo,
-                     GuestCtrlStreamObjects *pStrmOutObjects, uint32_t cStrmOutObjects, int *pvrcGuest);
-
-    static int runExErrorInfo(GuestSession *pGuestSession, const GuestProcessStartupInfo &startupInfo,
-                              GuestCtrlStreamObjects *pStrmOutObjects, uint32_t cStrmOutObjects, GuestProcessToolErrorInfo &errorInfo);
+    static int runToolWithErrorInfo(GuestSession *pGuestSession, const GuestProcessStartupInfo &startupInfo,
+                                    GuestProcessToolErrorInfo &errorInfo,
+                                    GuestCtrlStreamObjects *pLstStdOutObjPairs = NULL, uint32_t cStdOutObjectsToRead = 1);
     /** @}  */
 
     /** Wrapped @name Static exit code conversion methods.
      * @{ */
     static int exitCodeToRc(const GuestProcessStartupInfo &startupInfo, int32_t iExitCode);
-
     static int exitCodeToRc(const char *pszTool, int32_t iExitCode);
     /** @}  */
 
@@ -294,17 +340,12 @@ public:
 
 protected:
 
-    /** Pointer to session this toolbox object is bound to. */
-    ComObjPtr<GuestSession>     pSession;
-    /** Pointer to process object this toolbox object is bound to. */
-    ComObjPtr<GuestProcess>     pProcess;
-    /** The toolbox' startup info. */
-    GuestProcessStartupInfo     mStartupInfo;
     /** Stream object for handling the toolbox' stdout data. */
-    GuestProcessStream          mStdOut;
+    GuestToolboxStream          mStdOut;
     /** Stream object for handling the toolbox' stderr data. */
-    GuestProcessStream          mStdErr;
+    GuestToolboxStream          mStdErr;
 };
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT */
 
 #endif /* !MAIN_INCLUDED_GuestProcessImpl_h */
 

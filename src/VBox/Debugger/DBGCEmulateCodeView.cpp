@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -154,7 +154,7 @@ static const DBGCVARDESC    g_aArgBrkREM[] =
 static const DBGCVARDESC    g_aArgDumpMem[] =
 {
     /* cTimesMin,   cTimesMax,  enmCategory,            fFlags,                         pszName,        pszDescription */
-    {  0,           1,          DBGCVAR_CAT_POINTER,    0,                              "address",      "Address where to start dumping memory." },
+    {  0,           1,          DBGCVAR_CAT_POINTER,    0,                              "address",      "Address where to start dumping memory. Tip: Use the L or LB operator to specify how may items or bytes to dump." },
 };
 
 
@@ -498,8 +498,8 @@ const DBGCCMD    g_aCmdsCodeView[] =
     { "pa",         1,        1,        &g_aArgStepTraceTo[0], RT_ELEMENTS(g_aArgStepTraceTo), 0,    dbgcCmdStepTraceTo, "<addr> [count] [cmds]","Step to the given address." },
     { "pc",         0,        0,        &g_aArgStepTrace[0], RT_ELEMENTS(g_aArgStepTrace),  0,       dbgcCmdStepTrace,   "[count] [cmds]",       "Step to the next call instruction." },
     { "pt",         0,        0,        &g_aArgStepTrace[0], RT_ELEMENTS(g_aArgStepTrace),  0,       dbgcCmdStepTrace,   "[count] [cmds]",       "Step to the next return instruction." },
-    { "r",          0,        3,        &g_aArgReg[0],      RT_ELEMENTS(g_aArgReg),         0,       dbgcCmdReg,         "[reg [[=] newval]]",   "Show or set register(s) - active reg set." },
-    { "rg",         0,        3,        &g_aArgReg[0],      RT_ELEMENTS(g_aArgReg),         0,       dbgcCmdRegGuest,    "[reg [[=] newval]]",   "Show or set register(s) - guest reg set." },
+    { "r",          0,        3,        &g_aArgReg[0],      RT_ELEMENTS(g_aArgReg),         0,       dbgcCmdReg,         "[reg [[=] newval]]",   "Show or set register(s) - active reg set. Special 'all' register for showing all. Append a dot '.' to display sub-fields and aliases." },
+    { "rg",         0,        3,        &g_aArgReg[0],      RT_ELEMENTS(g_aArgReg),         0,       dbgcCmdRegGuest,    "[reg [[=] newval]]",   "Show or set register(s) - guest reg set. Special 'all' register for showing all. Append a dot '.' to display sub-fields and aliases." },
     { "rg32",       0,        0,        NULL,               0,                              0,       dbgcCmdRegGuest,    "",                     "Show 32-bit guest registers." },
     { "rg64",       0,        0,        NULL,               0,                              0,       dbgcCmdRegGuest,    "",                     "Show 64-bit guest registers." },
     { "rt",         0,        0,        NULL,               0,                              0,       dbgcCmdRegTerse,    "",                     "Toggles terse / verbose register info." },
@@ -1342,6 +1342,9 @@ static DECLCALLBACK(int) dbgcCmdUnassemble(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHlp, 
     {
         if (!DBGCVAR_ISPOINTER(pDbgc->DisasmPos.enmType))
         {
+#if defined(VBOX_VMM_TARGET_ARMV8)
+            AssertReleaseFailed();
+#else
             /** @todo Batch query CS, RIP, CPU mode and flags. */
             PVMCPU pVCpu = VMMR3GetCpuByIdU(pUVM, pDbgc->idCpu);
             if (CPUMIsGuestIn64BitCode(pVCpu))
@@ -1361,6 +1364,7 @@ static DECLCALLBACK(int) dbgcCmdUnassemble(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHlp, 
                     fFlags |= DBGF_DISAS_FLAGS_16BIT_REAL_MODE;
                 }
             }
+#endif
 
             fFlags |= DBGF_DISAS_FLAGS_CURRENT_GUEST;
         }
@@ -1586,8 +1590,10 @@ static void dbgcCmdUnassembleCfgDumpCalcBbSize(DBGFFLOWBB hFlowBb, PDBGCFLOWBBDU
         DBGFR3FlowBbQueryError(hFlowBb, &pszErr);
         if (pszErr)
         {
+            uint32_t cchErr = (uint32_t)strlen(pszErr);
+
             pDumpBb->cchHeight++;
-            pDumpBb->cchWidth = RT_MAX(pDumpBb->cchWidth, (uint32_t)strlen(pszErr));
+            pDumpBb->cchWidth = RT_MAX(pDumpBb->cchWidth, cchErr);
         }
     }
     for (unsigned i = 0; i < cInstr; i++)
@@ -1595,7 +1601,9 @@ static void dbgcCmdUnassembleCfgDumpCalcBbSize(DBGFFLOWBB hFlowBb, PDBGCFLOWBBDU
         const char *pszInstr = NULL;
         int rc = DBGFR3FlowBbQueryInstr(hFlowBb, i, NULL, NULL, &pszInstr);
         AssertRC(rc);
-        pDumpBb->cchWidth = RT_MAX(pDumpBb->cchWidth, (uint32_t)strlen(pszInstr));
+
+        uint32_t cchInstr = (uint32_t)strlen(pszInstr);
+        pDumpBb->cchWidth = RT_MAX(pDumpBb->cchWidth, cchInstr);
     }
     pDumpBb->cchWidth += 4; /* Include spacing and border left and right. */
 }
@@ -1753,7 +1761,6 @@ static void dbgcCmdUnassembleCfgDumpBranchTbl(PDBGCFLOWBRANCHTBLDUMP pDumpBranch
 /**
  * Fills in the dump states for the basic blocks and branch tables.
  *
- * @returns VBox status code.
  * @param   hFlowIt             The control flow graph iterator handle.
  * @param   hFlowBranchTblIt    The control flow graph branch table iterator handle.
  * @param   paDumpBb            The array of basic block dump states.
@@ -1761,9 +1768,9 @@ static void dbgcCmdUnassembleCfgDumpBranchTbl(PDBGCFLOWBRANCHTBLDUMP pDumpBranch
  * @param   cBbs                Number of basic blocks.
  * @param   cBranchTbls         Number of branch tables.
  */
-static int dbgcCmdUnassembleCfgDumpCalcDimensions(DBGFFLOWIT hFlowIt, DBGFFLOWBRANCHTBLIT hFlowBranchTblIt,
-                                                  PDBGCFLOWBBDUMP paDumpBb, PDBGCFLOWBRANCHTBLDUMP paDumpBranchTbl,
-                                                  uint32_t cBbs, uint32_t cBranchTbls)
+static void dbgcCmdUnassembleCfgDumpCalcDimensions(DBGFFLOWIT hFlowIt, DBGFFLOWBRANCHTBLIT hFlowBranchTblIt,
+                                                   PDBGCFLOWBBDUMP paDumpBb, PDBGCFLOWBRANCHTBLDUMP paDumpBranchTbl,
+                                                   uint32_t cBbs, uint32_t cBranchTbls)
 {
     RT_NOREF2(cBbs, cBranchTbls);
 
@@ -1790,8 +1797,6 @@ static int dbgcCmdUnassembleCfgDumpCalcDimensions(DBGFFLOWIT hFlowIt, DBGFFLOWBR
             hFlowBranchTbl = DBGFR3FlowBranchTblItNext(hFlowBranchTblIt);
         }
     }
-
-    return VINF_SUCCESS;
 }
 
 /**
@@ -1824,8 +1829,8 @@ static int dbgcCmdUnassembleCfgDump(DBGFFLOW hCfg, bool fUseColor, PDBGCCMDHLP p
 
     if (RT_SUCCESS(rc))
     {
-        rc = dbgcCmdUnassembleCfgDumpCalcDimensions(hCfgIt, hFlowBranchTblIt, paDumpBb, paDumpBranchTbl,
-                                                    cBbs, cBranchTbls);
+        dbgcCmdUnassembleCfgDumpCalcDimensions(hCfgIt, hFlowBranchTblIt, paDumpBb, paDumpBranchTbl,
+                                               cBbs, cBranchTbls);
 
         /* Calculate the ASCII screen dimensions and create one. */
         uint32_t cchWidth = 0;
@@ -2101,6 +2106,9 @@ static DECLCALLBACK(int) dbgcCmdUnassembleCfg(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHl
     {
         if (!DBGCVAR_ISPOINTER(pDbgc->DisasmPos.enmType))
         {
+#if defined(VBOX_VMM_TARGET_ARMV8)
+            AssertReleaseFailed();
+#else
             /** @todo Batch query CS, RIP, CPU mode and flags. */
             PVMCPU pVCpu = VMMR3GetCpuByIdU(pUVM, pDbgc->idCpu);
             if (CPUMIsGuestIn64BitCode(pVCpu))
@@ -2120,6 +2128,7 @@ static DECLCALLBACK(int) dbgcCmdUnassembleCfg(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHl
                     fFlags |= DBGF_DISAS_FLAGS_16BIT_REAL_MODE;
                 }
             }
+#endif
 
             fFlags |= DBGF_DISAS_FLAGS_CURRENT_GUEST;
         }
@@ -2158,11 +2167,12 @@ static DECLCALLBACK(int) dbgcCmdUnassembleCfg(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHl
             return DBGCCmdHlpFail(pCmdHlp, pCmd, "Unknown range type %d", pDbgc->DisasmPos.enmRangeType);
     }
 
+    int rc;
+#if 0 /** @todo Unused right now. */
     /*
      * Convert physical and host addresses to guest addresses.
      */
     RTDBGAS hDbgAs = pDbgc->hDbgAs;
-    int rc;
     switch (pDbgc->DisasmPos.enmType)
     {
         case DBGCVAR_TYPE_GC_FLAT:
@@ -2183,6 +2193,7 @@ static DECLCALLBACK(int) dbgcCmdUnassembleCfg(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHl
         }
         default: AssertFailed(); break;
     }
+#endif
 
     DBGFADDRESS CurAddr;
     if (   (fFlags & DBGF_DISAS_FLAGS_MODE_MASK) == DBGF_DISAS_FLAGS_16BIT_REAL_MODE
@@ -2237,10 +2248,14 @@ static DECLCALLBACK(int) dbgcCmdListSource(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHlp, 
     {
         if (!DBGCVAR_ISPOINTER(pDbgc->SourcePos.enmType))
         {
+#if defined(VBOX_VMM_TARGET_ARMV8)
+            AssertReleaseFailed();
+#else
             PVMCPU pVCpu = VMMR3GetCpuByIdU(pUVM, pDbgc->idCpu);
             pDbgc->SourcePos.enmType     = DBGCVAR_TYPE_GC_FAR;
             pDbgc->SourcePos.u.GCFar.off = CPUMGetGuestEIP(pVCpu);
             pDbgc->SourcePos.u.GCFar.sel = CPUMGetGuestCS(pVCpu);
+#endif
         }
         pDbgc->SourcePos.enmRangeType = DBGCVAR_RANGE_NONE;
     }
@@ -2361,12 +2376,15 @@ static DECLCALLBACK(int) dbgcCmdListSource(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHlp, 
                             break;
 
                         rc = DBGCCmdHlpPrintf(pCmdHlp, "         %4d: %s\n", Line.uLineNo - cBefore - 1, szLine);
+                        if (RT_FAILURE(rc))
+                            break;
                         szLine[0] = '\0';
                         const char *pszShutUpGcc = fgets(szLine, sizeof(szLine), phFile); NOREF(pszShutUpGcc);
                         cLines++;
                     }
                     /* print the actual line */
-                    rc = DBGCCmdHlpPrintf(pCmdHlp, "%08llx %4d: %s\n", Line.Address, Line.uLineNo, szLine);
+                    if (RT_SUCCESS(rc))
+                        rc = DBGCCmdHlpPrintf(pCmdHlp, "%08llx %4d: %s\n", Line.Address, Line.uLineNo, szLine);
                 }
                 fclose(phFile);
                 if (RT_FAILURE(rc))
@@ -2418,6 +2436,7 @@ static DECLCALLBACK(int) dbgcCmdRegCommon(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHlp, P
                                           const char *pszPrefix)
 {
     PDBGC pDbgc = DBGC_CMDHLP2DBGC(pCmdHlp);
+    int   rc;
     DBGC_CMDHLP_ASSERT_PARSER_RET(pCmdHlp, pCmd, 0, cArgs == 1 || cArgs == 2 || cArgs == 3);
     DBGC_CMDHLP_ASSERT_PARSER_RET(pCmdHlp, pCmd, 0,    paArgs[0].enmType == DBGCVAR_TYPE_STRING
                                                     || paArgs[0].enmType == DBGCVAR_TYPE_SYMBOL);
@@ -2425,7 +2444,8 @@ static DECLCALLBACK(int) dbgcCmdRegCommon(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHlp, P
     /*
      * Parse the register name and kind.
      */
-    const char *pszReg = paArgs[0].u.pszString;
+    bool const  fAllRegs = strcmp(paArgs[0].u.pszString, "all") == 0;
+    const char *pszReg   = paArgs[0].u.pszString;
     if (*pszReg == '@')
         pszReg++;
     VMCPUID idCpu = pDbgc->idCpu;
@@ -2437,35 +2457,182 @@ static DECLCALLBACK(int) dbgcCmdRegCommon(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHlp, P
         idCpu |= DBGFREG_HYPER_VMCPUID;
     }
     const char * const pszActualPrefix = idCpu & DBGFREG_HYPER_VMCPUID ? "." : "";
-
-    /*
-     * Query the register type & value (the setter needs the type).
-     */
-    DBGFREGVALTYPE  enmType;
-    DBGFREGVAL      Value;
-    int rc = DBGFR3RegNmQuery(pUVM, idCpu, pszReg, &Value, &enmType);
-    if (RT_FAILURE(rc))
-    {
-        if (rc == VERR_DBGF_REGISTER_NOT_FOUND)
-            return DBGCCmdHlpVBoxError(pCmdHlp, VERR_INVALID_PARAMETER, "Unknown register: '%s%s'.\n",
-                                       pszActualPrefix,  pszReg);
-        return DBGCCmdHlpVBoxError(pCmdHlp, rc, "DBGFR3RegNmQuery failed querying '%s%s': %Rrc.\n",
-                                   pszActualPrefix,  pszReg, rc);
-    }
     if (cArgs == 1)
     {
         /*
          * Show the register.
+         *
+         * If it ends with a '.' or '.*', we'll show any subfields and aliases as
+         * well.  This is a special VBox twist.
          */
+        size_t cchReg    = strlen(pszReg);
+        size_t cchSuffix = 0;
+        if (cchReg >= 2 && pszReg[cchReg - 1] == '.')
+            cchSuffix = 1;
+        else if (cchReg >= 3 && pszReg[cchReg - 1] == '*' && pszReg[cchReg - 2] == '.')
+            cchSuffix = 2;
+
         char szValue[160];
-        rc = DBGFR3RegFormatValue(szValue, sizeof(szValue), &Value, enmType, true /*fSpecial*/);
-        if (RT_SUCCESS(rc))
-            rc = DBGCCmdHlpPrintf(pCmdHlp, "%s%s=%s\n", pszActualPrefix, pszReg, szValue);
+        if (!cchSuffix && !fAllRegs)
+        {
+            DBGFREGVALTYPE  enmType;
+            DBGFREGVAL      Value;
+            rc = DBGFR3RegNmQuery(pUVM, idCpu, pszReg, &Value, &enmType);
+            if (RT_FAILURE(rc))
+            {
+                if (rc == VERR_DBGF_REGISTER_NOT_FOUND)
+                    return DBGCCmdHlpVBoxError(pCmdHlp, VERR_INVALID_PARAMETER, "Unknown register: '%s%s'.\n",
+                                               pszActualPrefix,  pszReg);
+                return DBGCCmdHlpVBoxError(pCmdHlp, rc, "DBGFR3RegNmQuery failed querying '%s%s': %Rrc.\n",
+                                           pszActualPrefix,  pszReg, rc);
+            }
+
+            rc = DBGFR3RegFormatValue(szValue, sizeof(szValue), &Value, enmType, true /*fSpecial*/);
+            if (RT_SUCCESS(rc))
+                rc = DBGCCmdHlpPrintf(pCmdHlp, "%s%s=%s\n", pszActualPrefix, pszReg, szValue);
+            else
+                rc = DBGCCmdHlpVBoxError(pCmdHlp, rc, "DBGFR3RegFormatValue failed: %Rrc.\n", rc);
+        }
         else
-            rc = DBGCCmdHlpVBoxError(pCmdHlp, rc, "DBGFR3RegFormatValue failed: %Rrc.\n", rc);
+        {
+            /*
+             * Register + aliases + subfields OR 'all'.
+             */
+            /* Duplicate the register specifier sans suffix. */
+            char            *pszRegBase = RTStrDupN(pszReg, cchReg - cchSuffix);
+            AssertReturn(pszRegBase, VERR_NO_STR_MEMORY);
+
+            /* Make a rough guess on how many entires we need, or query it in the case of 'all'. */
+            size_t          cRegsAlloc = 128;
+            if (fAllRegs)
+                DBGFR3RegNmQueryAllCount(pUVM, &cRegsAlloc);
+            PDBGFREGENTRYNM paRegs = (PDBGFREGENTRYNM)RTMemTmpAlloc(sizeof(paRegs[0]) * cRegsAlloc);
+            AssertReturnStmt(paRegs, RTStrFree(pszRegBase), VERR_NO_TMP_MEMORY);
+            size_t          cRegs = cRegsAlloc;
+
+            /* Query the registers.*/
+            if (fAllRegs)
+                rc = DBGFR3RegNmQueryAll(pUVM, paRegs, cRegs);
+            else
+                rc = DBGFR3RegNmQueryEx(pUVM, idCpu, pszRegBase, DBGFR3REG_QUERY_EX_F_SUBFIELDS | DBGFR3REG_QUERY_EX_F_ALIASES,
+                                        paRegs, &cRegs);
+            if (rc == VERR_BUFFER_OVERFLOW && !fAllRegs)
+            {
+                RTMemTmpFree(paRegs);
+                cRegsAlloc = cRegs;
+                paRegs = (PDBGFREGENTRYNM)RTMemTmpAlloc(sizeof(paRegs[0]) * cRegsAlloc);
+                AssertReturnStmt(paRegs, RTStrFree(pszRegBase), VERR_NO_TMP_MEMORY);
+                rc = DBGFR3RegNmQueryEx(pUVM, idCpu, pszRegBase,
+                                        DBGFR3REG_QUERY_EX_F_SUBFIELDS | DBGFR3REG_QUERY_EX_F_ALIASES, paRegs, &cRegs);
+            }
+            if (RT_SUCCESS(rc))
+            {
+                /* Find max lengths and sizes for producing pretty columns. */
+                size_t cchMaxNm         = 2;
+                size_t cchMaxSubFieldNm = 2;
+                size_t cMaxSubFieldBits = 1;
+                if (*pszActualPrefix == '\0')
+                    for (uint32_t iReg = 0; iReg < cRegs; iReg++)
+                    {
+                        size_t const cchName = strlen(paRegs[iReg].pszName);
+                        if (cchMaxNm < cchName)
+                            cchMaxNm = cchName;
+                        if (paRegs[iReg].u.s.fSubField)
+                        {
+                            cchMaxSubFieldNm = RT_MAX(cchMaxSubFieldNm, cchName);
+                            cMaxSubFieldBits = RT_MAX(cMaxSubFieldBits, paRegs[iReg].u.s.cBits);
+                        }
+                    }
+
+                /* Output the registers. */
+                size_t   cchMaxSubFieldValue = 2 + (cMaxSubFieldBits + 3) / 4;
+                size_t   cMaxSameLine        = 80 / (2 + cchMaxSubFieldNm + 1 + cchMaxSubFieldValue);
+                unsigned iSameLine           = 0;
+                for (uint32_t iReg = 0; iReg < cRegs; iReg++)
+                {
+                    if (   !paRegs[iReg].u.s.fSubField
+                        || !paRegs[iReg].u.s.cBits)
+                        rc = DBGFR3RegFormatValue(szValue, sizeof(szValue), &paRegs[iReg].Val,
+                                                  paRegs[iReg].enmType, true /*fSpecial*/);
+                    else
+                        rc = DBGFR3RegFormatValueEx(szValue, sizeof(szValue), &paRegs[iReg].Val, paRegs[iReg].enmType,
+                                                    16,
+                                                    (paRegs[iReg].u.s.cBits + 3) / 4,
+                                                    0,
+                                                    (paRegs[iReg].u.s.cBits == 1 ? 0 : RTSTR_F_SPECIAL) | RTSTR_F_WIDTH);
+                    if (RT_SUCCESS(rc))
+                    {
+                        if (!paRegs[iReg].u.s.fSubField)
+                        {
+                            if (iSameLine > 0)
+                                rc = DBGCCmdHlpPrintf(pCmdHlp, "\n");
+                            if (RT_SUCCESS(rc))
+                            {
+                                if (*pszActualPrefix == '\0')
+                                    rc = DBGCCmdHlpPrintf(pCmdHlp, "%*s=%s\n", cchMaxNm, paRegs[iReg].pszName, szValue);
+                                else
+                                    rc = DBGCCmdHlpPrintf(pCmdHlp, "%s%s=%s\n", pszActualPrefix, paRegs[iReg].pszName, szValue);
+                            }
+                            iSameLine = 0;
+                        }
+                        else
+                        {
+                            if (*pszActualPrefix == '\0')
+                                rc = DBGCCmdHlpPrintf(pCmdHlp, "  %*s=%s", cchMaxSubFieldNm, paRegs[iReg].pszName, szValue);
+                            else
+                                rc = DBGCCmdHlpPrintf(pCmdHlp, "  %s%s=%s", pszActualPrefix, paRegs[iReg].pszName, szValue);
+                            iSameLine++;
+                            if (iSameLine < cMaxSameLine)
+                            {
+                                size_t cchValue = strlen(szValue);
+                                if (cchValue < cchMaxSubFieldValue)
+                                    rc = DBGCCmdHlpPrintf(pCmdHlp, "%*s", cchMaxSubFieldValue - cchValue, "");
+                            }
+                            else
+                            {
+                                rc = DBGCCmdHlpPrintf(pCmdHlp, "\n");
+                                iSameLine = 0;
+                            }
+                        }
+                    }
+                    else
+                        rc = DBGCCmdHlpVBoxError(pCmdHlp, rc, "DBGFR3RegFormatValue[Ex] failed for %s: %Rrc.\n",
+                                                 paRegs[iReg].pszName, rc);
+                }
+                if (iSameLine > 0)
+                    rc = DBGCCmdHlpPrintf(pCmdHlp, "\n");
+            }
+            else if (fAllRegs)
+                rc = DBGCCmdHlpVBoxError(pCmdHlp, rc, "DBGFR3RegNmQueryAll failed: %Rrc.\n", rc);
+            else if (rc == VERR_DBGF_REGISTER_NOT_FOUND)
+                rc = DBGCCmdHlpVBoxError(pCmdHlp, VERR_INVALID_PARAMETER, "Unknown register: '%s%s'.\n",
+                                         pszActualPrefix, pszRegBase);
+            else
+                rc = DBGCCmdHlpVBoxError(pCmdHlp, rc, "DBGFR3RegNmQueryEx failed querying '%s%s': %Rrc.\n",
+                                         pszActualPrefix, pszRegBase, rc);
+            RTStrFree(pszRegBase);
+            RTMemTmpFree(paRegs);
+        }
     }
     else
     {
+        /*
+         * We're about to modify the register.
+         *
+         * First we need to query the register type (see below).
+         */
+        DBGFREGVALTYPE  enmType;
+        DBGFREGVAL      Value;
+        rc = DBGFR3RegNmQuery(pUVM, idCpu, pszReg, &Value, &enmType);
+        if (RT_FAILURE(rc))
+        {
+            if (rc == VERR_DBGF_REGISTER_NOT_FOUND)
+                return DBGCCmdHlpVBoxError(pCmdHlp, VERR_INVALID_PARAMETER, "Unknown register: '%s%s'.\n",
+                                           pszActualPrefix,  pszReg);
+            return DBGCCmdHlpVBoxError(pCmdHlp, rc, "DBGFR3RegNmQuery failed querying '%s%s': %Rrc.\n",
+                                       pszActualPrefix,  pszReg, rc);
+        }
+
         DBGCVAR   NewValueTmp;
         PCDBGCVAR pNewValue;
         if (cArgs == 3)
@@ -3004,7 +3171,7 @@ static int dbgcCmdDumpDTWorker64(PDBGCCMDHLP pCmdHlp, PCX86DESC64 pDesc, unsigne
                 return VINF_SUCCESS;
         }
     }
-    return VINF_SUCCESS;
+    return rc;
 }
 
 
@@ -3053,7 +3220,7 @@ static int dbgcCmdDumpDTWorker32(PDBGCCMDHLP pCmdHlp, PCX86DESC pDesc, unsigned 
                          | ((uint32_t)pDesc->Gen.u8BaseHigh2 << 24);
         uint32_t cbLimit = pDesc->Gen.u16LimitLow | (pDesc->Gen.u4LimitHigh << 16);
         if (pDesc->Gen.u1Granularity)
-            cbLimit <<= PAGE_SHIFT;
+            cbLimit <<= GUEST_PAGE_SHIFT;
 
         rc = DBGCCmdHlpPrintf(pCmdHlp, "%04x %s Bas=%08x Lim=%08x DPL=%d %s %s %s %s AVL=%d L=%d%s\n",
                                 iEntry, s_apszTypes[pDesc->Gen.u4Type], u32Base, cbLimit,
@@ -3107,7 +3274,7 @@ static int dbgcCmdDumpDTWorker32(PDBGCCMDHLP pCmdHlp, PCX86DESC pDesc, unsigned 
                                  | ((uint32_t)pDesc->Gen.u8BaseHigh2 << 24);
                 uint32_t cbLimit = pDesc->Gen.u16LimitLow | (pDesc->Gen.u4LimitHigh << 16);
                 if (pDesc->Gen.u1Granularity)
-                    cbLimit <<= PAGE_SHIFT;
+                    cbLimit <<= GUEST_PAGE_SHIFT;
 
                 rc = DBGCCmdHlpPrintf(pCmdHlp, "%04x %s Bas=%08x Lim=%08x DPL=%d %s %s %s %s AVL=%d R=%d%s\n",
                                         iEntry, s_apszTypes[pDesc->Gen.u4Type], u32Base, cbLimit,
@@ -3585,8 +3752,9 @@ static DECLCALLBACK(int) dbgcCmdDumpMem(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHlp, PUV
                                 rc = DBGCCmdHlpPrintf(pCmdHlp, " %s + %RGv", Symbol.szName, offDisp);
                             else
                                 rc = DBGCCmdHlpPrintf(pCmdHlp, " %s - %RGv", Symbol.szName, -offDisp);
-                            if (Symbol.cb > 0)
-                                rc = DBGCCmdHlpPrintf(pCmdHlp, " (LB %RGv)", Symbol.cb);
+                            if (   RT_SUCCESS(rc)
+                                && Symbol.cb > 0)
+                                DBGCCmdHlpPrintf(pCmdHlp, " (LB %RGv)", Symbol.cb);
                         }
                     }
 
@@ -3617,6 +3785,8 @@ static DECLCALLBACK(int) dbgcCmdDumpMem(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHlp, PUV
                 }
             }
             rc = DBGCCmdHlpPrintf(pCmdHlp, "\n");
+            if (RT_FAILURE(rc))
+                return rc;
         }
         else
         {
@@ -3684,6 +3854,12 @@ static DECLCALLBACK(int) dbgcCmdDumpMem(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHlp, PUV
  */
 static RTGCPHYS dbgcGetGuestPageMode(PDBGC pDbgc, bool *pfPAE, bool *pfLME, bool *pfPSE, bool *pfPGE, bool *pfNXE)
 {
+#if defined(VBOX_VMM_TARGET_ARMV8)
+    AssertReleaseFailed();
+    RT_NOREF(pDbgc, pfPAE, pfLME, pfPSE, pfPGE, pfNXE);
+    *pfPAE = *pfLME = *pfPSE = *pfPGE = *pfNXE = false;
+    return ~(RTGCPHYS)0;
+#else
     PVMCPU      pVCpu = VMMR3GetCpuByIdU(pDbgc->pUVM, pDbgc->idCpu);
     RTGCUINTREG cr4   = CPUMGetGuestCR4(pVCpu);
     *pfPSE = !!(cr4 & X86_CR4_PSE);
@@ -3699,6 +3875,7 @@ static RTGCPHYS dbgcGetGuestPageMode(PDBGC pDbgc, bool *pfPAE, bool *pfLME, bool
     *pfLME = CPUMGetGuestMode(pVCpu) == CPUMMODE_LONG;
     *pfNXE = false; /* GUEST64 GUESTNX */
     return CPUMGetGuestCR3(pVCpu);
+#endif
 }
 
 
@@ -3715,6 +3892,12 @@ static RTGCPHYS dbgcGetGuestPageMode(PDBGC pDbgc, bool *pfPAE, bool *pfLME, bool
  */
 static RTHCPHYS dbgcGetShadowPageMode(PDBGC pDbgc, bool *pfPAE, bool *pfLME, bool *pfPSE, bool *pfPGE, bool *pfNXE)
 {
+#if defined(VBOX_VMM_TARGET_ARMV8)
+    RT_NOREF(pDbgc, pfPAE, pfLME, pfPSE, pfPGE, pfNXE);
+    AssertReleaseFailed();
+    *pfPAE = *pfLME = *pfPSE = *pfPGE = *pfNXE = false;
+    return ~(RTHCPHYS)0;
+#else
     PVMCPU pVCpu = VMMR3GetCpuByIdU(pDbgc->pUVM, pDbgc->idCpu);
 
     *pfPSE = true;
@@ -3742,6 +3925,7 @@ static RTHCPHYS dbgcGetShadowPageMode(PDBGC pDbgc, bool *pfPAE, bool *pfLME, boo
             break;
     }
     return PGMGetHyperCR3(pVCpu);
+#endif
 }
 
 
@@ -3796,7 +3980,7 @@ static DECLCALLBACK(int) dbgcCmdDumpPageDir(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHlp,
         else
             DBGCVAR_INIT_GC_FLAT(&VarDefault, 0);
         paArgs = &VarDefault;
-        cArgs = 1;
+        //cArgs = 1; Unused
     }
     else if (paArgs[0].enmType == DBGCVAR_TYPE_NUMBER)
     {
@@ -3805,8 +3989,8 @@ static DECLCALLBACK(int) dbgcCmdDumpPageDir(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHlp,
         VarDefault = paArgs[0];
         if (fPAE)
             return DBGCCmdHlpPrintf(pCmdHlp, "PDE indexing is only implemented for 32-bit paging.\n");
-        if (VarDefault.u.u64Number >= PAGE_SIZE / cbEntry)
-            return DBGCCmdHlpPrintf(pCmdHlp, "PDE index is out of range [0..%d].\n", PAGE_SIZE / cbEntry - 1);
+        if (VarDefault.u.u64Number >= GUEST_PAGE_SIZE / cbEntry)
+            return DBGCCmdHlpPrintf(pCmdHlp, "PDE index is out of range [0..%d].\n", GUEST_PAGE_SIZE / cbEntry - 1);
         VarDefault.u.u64Number <<= X86_PD_SHIFT;
         VarDefault.enmType = DBGCVAR_TYPE_GC_FLAT;
         paArgs = &VarDefault;
@@ -3835,7 +4019,7 @@ static DECLCALLBACK(int) dbgcCmdDumpPageDir(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHlp,
             case DBGCVAR_RANGE_ELEMENTS:    cEntries = VarPDEAddr.u64Range; break;
             default:                        cEntries = 10; break;
         }
-        cEntriesMax = PAGE_SIZE / cbEntry;
+        cEntriesMax = GUEST_PAGE_SIZE / cbEntry;
     }
     else
     {
@@ -3844,7 +4028,7 @@ static DECLCALLBACK(int) dbgcCmdDumpPageDir(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHlp,
          */
         switch (paArgs[0].enmRangeType)
         {
-            case DBGCVAR_RANGE_BYTES:       cEntries = paArgs[0].u64Range / PAGE_SIZE; break;
+            case DBGCVAR_RANGE_BYTES:       cEntries = paArgs[0].u64Range / GUEST_PAGE_SIZE; break;
             case DBGCVAR_RANGE_ELEMENTS:    cEntries = paArgs[0].u64Range; break;
             default:                        cEntries = 10; break;
         }
@@ -3912,7 +4096,7 @@ static DECLCALLBACK(int) dbgcCmdDumpPageDir(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHlp,
             VarPDEAddr = VarCur;
             VarPDEAddr.u.u64Number += iEntry * sizeof(X86PDE);
         }
-        cEntriesMax = (PAGE_SIZE - iEntry) / cbEntry;
+        cEntriesMax = (GUEST_PAGE_SIZE - iEntry) / cbEntry;
     }
 
     /* adjust cEntries */
@@ -4049,7 +4233,7 @@ static DECLCALLBACK(int) dbgcCmdDumpPageHierarchy(PCDBGCCMD pCmd, PDBGCCMDHLP pC
         return DBGCCmdHlpFail(pCmdHlp, pCmd, "Failed to convert %DV to a flat address: %Rrc", pRange, rc);
 
     uint64_t cbRange;
-    rc = DBGCCmdHlpVarGetRange(pCmdHlp, pRange, PAGE_SIZE, PAGE_SIZE * 8, &cbRange);
+    rc = DBGCCmdHlpVarGetRange(pCmdHlp, pRange, GUEST_PAGE_SIZE, GUEST_PAGE_SIZE * 8, &cbRange);
     if (RT_FAILURE(rc))
         return DBGCCmdHlpFail(pCmdHlp, pCmd, "Failed to obtain the range of %DV: %Rrc", pRange, rc);
 
@@ -4182,7 +4366,7 @@ static DECLCALLBACK(int) dbgcCmdDumpPageTable(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHl
             case DBGCVAR_RANGE_ELEMENTS:    cEntries = VarPTEAddr.u64Range; break;
             default:                        cEntries = 10; break;
         }
-        cEntriesMax = PAGE_SIZE / cbEntry;
+        cEntriesMax = GUEST_PAGE_SIZE / cbEntry;
     }
     else
     {
@@ -4191,7 +4375,7 @@ static DECLCALLBACK(int) dbgcCmdDumpPageTable(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHl
          */
         switch (paArgs[0].enmRangeType)
         {
-            case DBGCVAR_RANGE_BYTES:       cEntries = paArgs[0].u64Range / PAGE_SIZE; break;
+            case DBGCVAR_RANGE_BYTES:       cEntries = paArgs[0].u64Range / GUEST_PAGE_SIZE; break;
             case DBGCVAR_RANGE_ELEMENTS:    cEntries = paArgs[0].u64Range; break;
             default:                        cEntries = 10; break;
         }
@@ -4207,7 +4391,7 @@ static DECLCALLBACK(int) dbgcCmdDumpPageTable(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHl
             VarGCPtr.u.GCFlat = (uintptr_t)VarGCPtr.u.pvHCFlat;
             VarGCPtr.enmType = DBGCVAR_TYPE_GC_FLAT;
         }
-        VarGCPtr.u.GCFlat &= ~(RTGCPTR)PAGE_OFFSET_MASK;
+        VarGCPtr.u.GCFlat &= ~(RTGCPTR)GUEST_PAGE_OFFSET_MASK;
 
         /*
          * Do the paging walk until we get to the page table.
@@ -4280,7 +4464,7 @@ static DECLCALLBACK(int) dbgcCmdDumpPageTable(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHl
             VarPTEAddr.u.u64Number = Pde.u & X86_PDE_PG_MASK;
             VarPTEAddr.u.u64Number += iEntry * sizeof(X86PTE);
         }
-        cEntriesMax = (PAGE_SIZE - iEntry) / cbEntry;
+        cEntriesMax = (GUEST_PAGE_SIZE - iEntry) / cbEntry;
     }
 
     /* adjust cEntries */
@@ -4340,7 +4524,7 @@ static DECLCALLBACK(int) dbgcCmdDumpPageTable(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHl
          */
         VarPTEAddr.u.u64Number += cbEntry;
         if (iEntry != ~0U)
-            VarGCPtr.u.GCFlat += PAGE_SIZE;
+            VarGCPtr.u.GCFlat += GUEST_PAGE_SIZE;
     } while (cEntries-- > 0);
 
     return VINF_SUCCESS;
@@ -4894,7 +5078,7 @@ static DECLCALLBACK(int) dbgcCmdMemoryInfo(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHlp, 
  * @param   paVars  The array of variables to convert.
  * @param   cVars   The number of variables.
  */
-int dbgcVarsToBytes(PDBGCCMDHLP pCmdHlp, void *pvBuf, uint32_t *pcbBuf, size_t cbUnit, PCDBGCVAR paVars, unsigned cVars)
+static int dbgcVarsToBytes(PDBGCCMDHLP pCmdHlp, void *pvBuf, uint32_t *pcbBuf, size_t cbUnit, PCDBGCVAR paVars, unsigned cVars)
 {
     union
     {
@@ -5986,10 +6170,13 @@ static int dbgcDoListNear(PDBGCCMDHLP pCmdHlp, PUVM pUVM, PCDBGCVAR pArg)
             rc = DBGCCmdHlpPrintf(pCmdHlp, "%DV %s + %RGv", &AddrVar, Symbol.szName, offDisp);
         else
             rc = DBGCCmdHlpPrintf(pCmdHlp, "%DV %s - %RGv", &AddrVar, Symbol.szName, -offDisp);
-        if (Symbol.cb > 0)
-            rc = DBGCCmdHlpPrintf(pCmdHlp, " (LB %RGv)\n", Symbol.cb);
-        else
-            rc = DBGCCmdHlpPrintf(pCmdHlp, "\n");
+        if (RT_SUCCESS(rc))
+        {
+            if (Symbol.cb > 0)
+                rc = DBGCCmdHlpPrintf(pCmdHlp, " (LB %RGv)\n", Symbol.cb);
+            else
+                rc = DBGCCmdHlpPrintf(pCmdHlp, "\n");
+        }
     }
 
     return rc;
@@ -6434,6 +6621,9 @@ static DECLCALLBACK(int) dbgcCmdTraceFlowEnable(PCDBGCCMD pCmd, PDBGCCMDHLP pCmd
     {
         if (!DBGCVAR_ISPOINTER(pDbgc->DisasmPos.enmType))
         {
+#if defined(VBOX_VMM_TARGET_ARMV8)
+            AssertReleaseFailed();
+#else
             /** @todo Batch query CS, RIP, CPU mode and flags. */
             PVMCPU pVCpu = VMMR3GetCpuByIdU(pUVM, pDbgc->idCpu);
             if (CPUMIsGuestIn64BitCode(pVCpu))
@@ -6453,6 +6643,7 @@ static DECLCALLBACK(int) dbgcCmdTraceFlowEnable(PCDBGCCMD pCmd, PDBGCCMDHLP pCmd
                     fFlags |= DBGF_DISAS_FLAGS_16BIT_REAL_MODE;
                 }
             }
+#endif
 
             fFlags |= DBGF_DISAS_FLAGS_CURRENT_GUEST;
         }
@@ -6467,11 +6658,13 @@ static DECLCALLBACK(int) dbgcCmdTraceFlowEnable(PCDBGCCMD pCmd, PDBGCCMDHLP pCmd
         pDbgc->DisasmPos = paArgs[0];
     pDbgc->pLastPos = &pDbgc->DisasmPos;
 
+
+    int rc;
+#if 0 /** @todo unused right now */
     /*
      * Convert physical and host addresses to guest addresses.
      */
     RTDBGAS hDbgAs = pDbgc->hDbgAs;
-    int rc;
     switch (pDbgc->DisasmPos.enmType)
     {
         case DBGCVAR_TYPE_GC_FLAT:
@@ -6492,6 +6685,7 @@ static DECLCALLBACK(int) dbgcCmdTraceFlowEnable(PCDBGCCMD pCmd, PDBGCCMDHLP pCmd
         }
         default: AssertFailed(); break;
     }
+#endif
 
     DBGFADDRESS CurAddr;
     if (   (fFlags & DBGF_DISAS_FLAGS_MODE_MASK) == DBGF_DISAS_FLAGS_16BIT_REAL_MODE

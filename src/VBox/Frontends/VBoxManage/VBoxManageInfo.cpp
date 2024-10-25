@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -399,7 +399,7 @@ const char *machineStateToName(MachineState_T machineState, bool fShort)
     return Info::tr("unknown");
 }
 
-const char *facilityStateToName(AdditionsFacilityStatus_T faStatus, bool fShort)
+static const char *facilityStateToName(AdditionsFacilityStatus_T faStatus, bool fShort)
 {
     switch (faStatus)
     {
@@ -470,7 +470,7 @@ DECLINLINE(bool) doesMachineReadableStringNeedEscaping(const char *psz)
 /**
  * This simply outputs the string adding necessary escaping and nothing else.
  */
-void outputMachineReadableStringWorker(const char *psz)
+static void outputMachineReadableStringWorker(const char *psz)
 {
     for (;;)
     {
@@ -798,17 +798,36 @@ HRESULT showBandwidthGroups(ComPtr<IBandwidthControl> &bwCtrl,
     return VINF_SUCCESS;
 }
 
+static const char *symlinkPolicyToName(SymlinkPolicy_T enmSymlinkPolicy)
+{
+    switch (enmSymlinkPolicy)
+    {
+        case SymlinkPolicy_AllowedToAnyTarget:
+            return ("any");
+        case SymlinkPolicy_AllowedInShareSubtree:
+            return ("subtree");
+        case SymlinkPolicy_AllowedToRelativeTargets:
+            return ("relative");
+        case SymlinkPolicy_Forbidden:
+            return("forbidden");
+        default:
+            return("none");
+    }
+}
+
 /** Shows a shared folder.   */
 static HRESULT showSharedFolder(ComPtr<ISharedFolder> &sf, VMINFO_DETAILS details, const char *pszDesc,
                                 const char *pszMrInfix, size_t idxMr, bool fFirst)
 {
     Bstr name, hostPath, bstrAutoMountPoint;
     BOOL writable = FALSE, fAutoMount = FALSE;
+    SymlinkPolicy_T enmSymlinkPolicy = SymlinkPolicy_None;
     CHECK_ERROR2I_RET(sf, COMGETTER(Name)(name.asOutParam()), hrcCheck);
     CHECK_ERROR2I_RET(sf, COMGETTER(HostPath)(hostPath.asOutParam()), hrcCheck);
     CHECK_ERROR2I_RET(sf, COMGETTER(Writable)(&writable), hrcCheck);
     CHECK_ERROR2I_RET(sf, COMGETTER(AutoMount)(&fAutoMount), hrcCheck);
     CHECK_ERROR2I_RET(sf, COMGETTER(AutoMountPoint)(bstrAutoMountPoint.asOutParam()), hrcCheck);
+    CHECK_ERROR2I_RET(sf, COMGETTER(SymlinkPolicy)(&enmSymlinkPolicy), hrcCheck);
 
     if (fFirst && details != VMINFO_MACHINEREADABLE)
         RTPrintf("\n\n");
@@ -823,6 +842,8 @@ static HRESULT showSharedFolder(ComPtr<ISharedFolder> &sf, VMINFO_DETAILS detail
         RTPrintf(Info::tr("Name: '%ls', Host path: '%ls' (%s), %s%s"),
                  name.raw(), hostPath.raw(), pszDesc, writable ? Info::tr("writable") : Info::tr("readonly"),
                  fAutoMount ? Info::tr(", auto-mount") : "");
+        if (enmSymlinkPolicy != SymlinkPolicy_None)
+            RTPrintf(Info::tr(", symlink-policy: %s"), symlinkPolicyToName(enmSymlinkPolicy));
         if (bstrAutoMountPoint.isNotEmpty())
             RTPrintf(Info::tr(", mount-point: '%ls'\n"), bstrAutoMountPoint.raw());
         else
@@ -1153,6 +1174,17 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
         return S_OK;
     }
 
+    ComPtr<IPlatform> platform;
+    CHECK_ERROR_RET(machine, COMGETTER(Platform)(platform.asOutParam()), hrc);
+    ComPtr<IPlatformProperties> platformProperties;
+    CHECK_ERROR_RET(platform, COMGETTER(Properties)(platformProperties.asOutParam()), hrc);
+
+    PlatformArchitecture_T platformArch;
+    CHECK_ERROR_RET(platform, COMGETTER(Architecture)(&platformArch), hrc);
+
+    ComPtr<IFirmwareSettings> firmwareSettings;
+    CHECK_ERROR_RET(machine, COMGETTER(FirmwareSettings)(firmwareSettings.asOutParam()), hrc);
+
     if (details == VMINFO_COMPACT)
     {
         Bstr machineName;
@@ -1179,6 +1211,8 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
         }
     }
     SHOW_STRINGARRAY_PROP( machine, Groups,                     "groups",               Info::tr("Groups:"));
+    SHOW_UTF8_STRING(      "platformArchitecture",              Info::tr("Platform Architecture:"),
+                                                                                        platformArch == PlatformArchitecture_x86 ? "x86" : "ARM");
     Bstr osTypeId;
     CHECK_ERROR2I_RET(machine, COMGETTER(OSTypeId)(osTypeId.asOutParam()), hrcCheck);
     ComPtr<IGuestOSType> osType;
@@ -1198,11 +1232,10 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
     machine->COMGETTER(GraphicsAdapter)(pGraphicsAdapter.asOutParam());
     SHOW_ULONG_PROP(pGraphicsAdapter, VRAMSize,                 "vram",                 Info::tr("VRAM size:"),       "MB");
     SHOW_ULONG_PROP(       machine, CPUExecutionCap,            "cpuexecutioncap",      Info::tr("CPU exec cap:"),    "%");
-    SHOW_BOOLEAN_PROP(     machine, HPETEnabled,                "hpet",                 Info::tr("HPET:"));
     SHOW_STRING_PROP_MAJ(  machine, CPUProfile,                 "cpu-profile",          Info::tr("CPUProfile:"),      "host", 6);
 
     ChipsetType_T chipsetType;
-    CHECK_ERROR2I_RET(machine, COMGETTER(ChipsetType)(&chipsetType), hrcCheck);
+    CHECK_ERROR2I_RET(platform, COMGETTER(ChipsetType)(&chipsetType), hrcCheck);
     const char *pszChipsetType;
     switch (chipsetType)
     {
@@ -1212,8 +1245,9 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
             else
                 pszChipsetType = Info::tr("invalid");
             break;
-        case ChipsetType_PIIX3: pszChipsetType = "piix3"; break;
-        case ChipsetType_ICH9:  pszChipsetType = "ich9"; break;
+        case ChipsetType_PIIX3:        pszChipsetType = "piix3";        break;
+        case ChipsetType_ICH9:         pszChipsetType = "ich9";         break;
+        case ChipsetType_ARMv8Virtual: pszChipsetType = "armv8virtual"; break;
         default:
             AssertFailed();
             if (details == VMINFO_MACHINEREADABLE)
@@ -1225,7 +1259,7 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
     SHOW_UTF8_STRING("chipset", Info::tr("Chipset:"), pszChipsetType);
 
     FirmwareType_T firmwareType;
-    CHECK_ERROR2I_RET(machine, COMGETTER(FirmwareType)(&firmwareType), hrcCheck);
+    CHECK_ERROR2I_RET(firmwareSettings, COMGETTER(FirmwareType)(&firmwareType), hrcCheck);
     const char *pszFirmwareType;
     switch (firmwareType)
     {
@@ -1245,60 +1279,87 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
     SHOW_UTF8_STRING("firmware", Info::tr("Firmware:"), pszFirmwareType);
 
     SHOW_ULONG_PROP(       machine, CPUCount, "cpus", Info::tr("Number of CPUs:"), "");
-    SHOW_BOOLEAN_METHOD(   machine, GetCPUProperty(CPUPropertyType_PAE, &f), "pae", "PAE:");
-    SHOW_BOOLEAN_METHOD(   machine, GetCPUProperty(CPUPropertyType_LongMode, &f), "longmode", Info::tr("Long Mode:"));
-    SHOW_BOOLEAN_METHOD(   machine, GetCPUProperty(CPUPropertyType_TripleFaultReset, &f), "triplefaultreset", Info::tr("Triple Fault Reset:"));
-    SHOW_BOOLEAN_METHOD(   machine, GetCPUProperty(CPUPropertyType_APIC, &f), "apic", "APIC:");
-    SHOW_BOOLEAN_METHOD(   machine, GetCPUProperty(CPUPropertyType_X2APIC, &f), "x2apic", "X2APIC:");
-    SHOW_BOOLEAN_METHOD(   machine, GetCPUProperty(CPUPropertyType_HWVirt, &f), "nested-hw-virt", Info::tr("Nested VT-x/AMD-V:"));
-    SHOW_ULONG_PROP(       machine, CPUIDPortabilityLevel, "cpuid-portability-level", Info::tr("CPUID Portability Level:"), "");
 
-    if (details != VMINFO_MACHINEREADABLE)
-        RTPrintf("%-28s ", Info::tr("CPUID overrides:"));
-    ULONG uOrdinal = 0;
-    for (uOrdinal = 0; uOrdinal < _4K; uOrdinal++)
+    switch (platformArch)
     {
-        ULONG uLeaf, uSubLeaf, uEAX, uEBX, uECX, uEDX;
-        hrc = machine->GetCPUIDLeafByOrdinal(uOrdinal, &uLeaf, &uSubLeaf, &uEAX, &uEBX, &uECX, &uEDX);
-        if (SUCCEEDED(hrc))
+        case PlatformArchitecture_x86:
         {
-            if (details == VMINFO_MACHINEREADABLE)
-                RTPrintf("cpuid=%08x,%08x,%08x,%08x,%08x,%08x", uLeaf, uSubLeaf, uEAX, uEBX, uECX, uEDX);
-            else
+            ComPtr<IPlatformX86> platformX86;
+            CHECK_ERROR_RET(platform, COMGETTER(X86)(platformX86.asOutParam()), hrc);
+
+            SHOW_BOOLEAN_PROP(     platformX86, HPETEnabled, "hpet", Info::tr("HPET:"));
+            SHOW_BOOLEAN_METHOD(   platformX86, GetCPUProperty(CPUPropertyTypeX86_PAE, &f), "pae", "PAE:");
+            SHOW_BOOLEAN_METHOD(   platformX86, GetCPUProperty(CPUPropertyTypeX86_LongMode, &f), "longmode", Info::tr("Long Mode:"));
+            SHOW_BOOLEAN_METHOD(   platformX86, GetCPUProperty(CPUPropertyTypeX86_TripleFaultReset, &f), "triplefaultreset", Info::tr("Triple Fault Reset:"));
+            SHOW_BOOLEAN_METHOD(   platformX86, GetCPUProperty(CPUPropertyTypeX86_APIC, &f), "apic", "APIC:");
+            SHOW_BOOLEAN_METHOD(   platformX86, GetCPUProperty(CPUPropertyTypeX86_X2APIC, &f), "x2apic", "X2APIC:");
+            SHOW_BOOLEAN_METHOD(   platformX86, GetCPUProperty(CPUPropertyTypeX86_HWVirt, &f), "nested-hw-virt", Info::tr("Nested VT-x/AMD-V:"));
+
+            if (details != VMINFO_MACHINEREADABLE)
+                RTPrintf("%-28s ", Info::tr("CPUID overrides:"));
+            ULONG uOrdinal = 0;
+            for (uOrdinal = 0; uOrdinal < _4K; uOrdinal++)
             {
-                if (!uOrdinal)
-                    RTPrintf(Info::tr("Leaf no.      EAX      EBX      ECX      EDX\n"));
-                RTPrintf("%-28s %08x/%03x  %08x %08x %08x %08x\n", "", uLeaf, uSubLeaf, uEAX, uEBX, uECX, uEDX);
+                ULONG uLeaf, uSubLeaf, uEAX, uEBX, uECX, uEDX;
+                hrc = platformX86->GetCPUIDLeafByOrdinal(uOrdinal, &uLeaf, &uSubLeaf, &uEAX, &uEBX, &uECX, &uEDX);
+                if (SUCCEEDED(hrc))
+                {
+                    if (details == VMINFO_MACHINEREADABLE)
+                        RTPrintf("cpuid=%08x,%08x,%08x,%08x,%08x,%08x", uLeaf, uSubLeaf, uEAX, uEBX, uECX, uEDX);
+                    else
+                    {
+                        if (!uOrdinal)
+                            RTPrintf(Info::tr("Leaf no.      EAX      EBX      ECX      EDX\n"));
+                        RTPrintf("%-28s %08x/%03x  %08x %08x %08x %08x\n", "", uLeaf, uSubLeaf, uEAX, uEBX, uECX, uEDX);
+                    }
+                }
+                else
+                {
+                    if (hrc != E_INVALIDARG)
+                        com::GlueHandleComError(machine, "GetCPUIDLeaf", hrc, __FILE__, __LINE__);
+                    break;
+                }
             }
-        }
-        else
-        {
-            if (hrc != E_INVALIDARG)
-                com::GlueHandleComError(machine, "GetCPUIDLeaf", hrc, __FILE__, __LINE__);
+            if (!uOrdinal && details != VMINFO_MACHINEREADABLE)
+                RTPrintf(Info::tr("None\n"));
+
+            SHOW_BOOLEAN_METHOD(platformX86, GetHWVirtExProperty(HWVirtExPropertyType_Enabled,   &f),   "hwvirtex",     Info::tr("Hardware Virtualization:"));
+            SHOW_BOOLEAN_METHOD(platformX86, GetHWVirtExProperty(HWVirtExPropertyType_NestedPaging, &f),"nestedpaging", Info::tr("Nested Paging:"));
+            SHOW_BOOLEAN_METHOD(platformX86, GetHWVirtExProperty(HWVirtExPropertyType_LargePages, &f),  "largepages",   Info::tr("Large Pages:"));
+            SHOW_BOOLEAN_METHOD(platformX86, GetHWVirtExProperty(HWVirtExPropertyType_VPID, &f),        "vtxvpid",      "VT-x VPID:");
+            SHOW_BOOLEAN_METHOD(platformX86, GetHWVirtExProperty(HWVirtExPropertyType_UnrestrictedExecution, &f), "vtxux", Info::tr("VT-x Unrestricted Exec.:"));
+            SHOW_BOOLEAN_METHOD(platformX86, GetHWVirtExProperty(HWVirtExPropertyType_VirtVmsaveVmload, &f),      "virtvmsavevmload", Info::tr("AMD-V Virt. Vmsave/Vmload:"));
             break;
         }
-    }
-    if (!uOrdinal && details != VMINFO_MACHINEREADABLE)
-        RTPrintf(Info::tr("None\n"));
 
-    ComPtr<IBIOSSettings> biosSettings;
-    CHECK_ERROR2I_RET(machine, COMGETTER(BIOSSettings)(biosSettings.asOutParam()), hrcCheck);
+        case PlatformArchitecture_ARM:
+        {
+            /** @todo BUGBUG ARM stuff here */
+            break;
+        }
+
+        default:
+            AssertFailed();
+            break;
+    }
+
+    SHOW_ULONG_PROP(       machine, CPUIDPortabilityLevel, "cpuid-portability-level", Info::tr("CPUID Portability Level:"), "");
 
     ComPtr<INvramStore> nvramStore;
     CHECK_ERROR2I_RET(machine, COMGETTER(NonVolatileStore)(nvramStore.asOutParam()), hrcCheck);
 
-    BIOSBootMenuMode_T bootMenuMode;
-    CHECK_ERROR2I_RET(biosSettings, COMGETTER(BootMenuMode)(&bootMenuMode), hrcCheck);
+    FirmwareBootMenuMode_T enmBootMenuMode;
+    CHECK_ERROR2I_RET(firmwareSettings, COMGETTER(BootMenuMode)(&enmBootMenuMode), hrcCheck);
     const char *pszBootMenu;
-    switch (bootMenuMode)
+    switch (enmBootMenuMode)
     {
-        case BIOSBootMenuMode_Disabled:
+        case FirmwareBootMenuMode_Disabled:
             if (details == VMINFO_MACHINEREADABLE)
                 pszBootMenu = "disabled";
             else
                 pszBootMenu = Info::tr("disabled");
             break;
-        case BIOSBootMenuMode_MenuOnly:
+        case FirmwareBootMenuMode_MenuOnly:
             if (details == VMINFO_MACHINEREADABLE)
                 pszBootMenu = "menuonly";
             else
@@ -1315,7 +1376,7 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
     ComPtr<ISystemProperties> systemProperties;
     CHECK_ERROR2I_RET(pVirtualBox, COMGETTER(SystemProperties)(systemProperties.asOutParam()), hrcCheck);
     ULONG maxBootPosition = 0;
-    CHECK_ERROR2I_RET(systemProperties, COMGETTER(MaxBootPosition)(&maxBootPosition), hrcCheck);
+    CHECK_ERROR2I_RET(platformProperties, COMGETTER(MaxBootPosition)(&maxBootPosition), hrcCheck);
     for (ULONG i = 1; i <= maxBootPosition; i++)
     {
         DeviceType_T bootOrder;
@@ -1338,11 +1399,11 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
         SHOW_UTF8_STRING(FmtNm(szNm, "boot%u", i), FmtNm(szNm, Info::tr("Boot Device %u:"), i), pszDevice);
     }
 
-    SHOW_BOOLEAN_PROP(biosSettings, ACPIEnabled,                "acpi",                 "ACPI:");
-    SHOW_BOOLEAN_PROP(biosSettings, IOAPICEnabled,              "ioapic",               "IOAPIC:");
+    SHOW_BOOLEAN_PROP(firmwareSettings, ACPIEnabled,                "acpi",                 "ACPI:");
+    SHOW_BOOLEAN_PROP(firmwareSettings, IOAPICEnabled,              "ioapic",               "IOAPIC:");
 
     APICMode_T apicMode;
-    CHECK_ERROR2I_RET(biosSettings, COMGETTER(APICMode)(&apicMode), hrcCheck);
+    CHECK_ERROR2I_RET(firmwareSettings, COMGETTER(APICMode)(&apicMode), hrcCheck);
     const char *pszAPIC;
     switch (apicMode)
     {
@@ -1368,22 +1429,24 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
     }
     SHOW_UTF8_STRING("biosapic", Info::tr("BIOS APIC mode:"), pszAPIC);
 
-    SHOW_LONG64_PROP(biosSettings,  TimeOffset, "biossystemtimeoffset", Info::tr("Time offset:"),  Info::tr("ms"));
+    SHOW_LONG64_PROP(firmwareSettings,  TimeOffset, "biossystemtimeoffset", Info::tr("Time offset:"),  Info::tr("ms"));
     Bstr bstrNVRAMFile;
     CHECK_ERROR2I_RET(nvramStore, COMGETTER(NonVolatileStorageFile)(bstrNVRAMFile.asOutParam()), hrcCheck);
     if (bstrNVRAMFile.isNotEmpty())
         SHOW_BSTR_STRING("NvramFile", Info::tr("BIOS NVRAM File:"), bstrNVRAMFile);
-    SHOW_BOOLEAN_PROP_EX(machine,   RTCUseUTC, "rtcuseutc", Info::tr("RTC:"), "UTC", Info::tr("local time"));
-    SHOW_BOOLEAN_METHOD(machine, GetHWVirtExProperty(HWVirtExPropertyType_Enabled,   &f),   "hwvirtex",     Info::tr("Hardware Virtualization:"));
-    SHOW_BOOLEAN_METHOD(machine, GetHWVirtExProperty(HWVirtExPropertyType_NestedPaging, &f),"nestedpaging", Info::tr("Nested Paging:"));
-    SHOW_BOOLEAN_METHOD(machine, GetHWVirtExProperty(HWVirtExPropertyType_LargePages, &f),  "largepages",   Info::tr("Large Pages:"));
-    SHOW_BOOLEAN_METHOD(machine, GetHWVirtExProperty(HWVirtExPropertyType_VPID, &f),        "vtxvpid",      "VT-x VPID:");
-    SHOW_BOOLEAN_METHOD(machine, GetHWVirtExProperty(HWVirtExPropertyType_UnrestrictedExecution, &f), "vtxux", Info::tr("VT-x Unrestricted Exec.:"));
-    SHOW_BOOLEAN_METHOD(machine, GetHWVirtExProperty(HWVirtExPropertyType_VirtVmsaveVmload, &f),      "virtvmsavevmload", Info::tr("AMD-V Virt. Vmsave/Vmload:"));
+    if (   firmwareType == FirmwareType_EFI || firmwareType == FirmwareType_EFI32
+        || firmwareType == FirmwareType_EFI64 || firmwareType == FirmwareType_EFIDUAL)
+    {
+        ComPtr<IUefiVariableStore> uefiVarStore;
+        hrc = nvramStore->COMGETTER(UefiVariableStore)(uefiVarStore.asOutParam());
+        if (SUCCEEDED(hrc))
+            SHOW_BOOLEAN_PROP(uefiVarStore, SecureBootEnabled, "SecureBoot", Info::tr("UEFI Secure Boot:"));
+    }
+    SHOW_BOOLEAN_PROP_EX(platform,   RTCUseUTC, "rtcuseutc", Info::tr("RTC:"), "UTC", Info::tr("local time"));
 
-#ifdef VBOX_WITH_IOMMU_AMD
+#ifdef VBOX_WITH_IOMMU_AMD /** @todo BUGBUG Do we set / needs this for ARM as well? */
     IommuType_T iommuType;
-    CHECK_ERROR2I_RET(machine, COMGETTER(IommuType)(&iommuType), hrcCheck);
+    CHECK_ERROR2I_RET(platform, COMGETTER(IommuType)(&iommuType), hrcCheck);
     const char *pszIommuType = iommuTypeToString(iommuType, details);
     SHOW_UTF8_STRING("iommu", "IOMMU:", pszIommuType);
 #endif
@@ -1472,9 +1535,9 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
     }
 
     SHOW_ULONG_PROP(pGraphicsAdapter, MonitorCount,             "monitorcount",             Info::tr("Monitor count:"), "");
-    SHOW_BOOLEAN_PROP(pGraphicsAdapter, Accelerate3DEnabled,    "accelerate3d",             Info::tr("3D Acceleration:"));
+    SHOW_BOOLEAN_METHOD(pGraphicsAdapter, IsFeatureEnabled(GraphicsFeature_Acceleration3D, &f), "accelerate3d", "3D Acceleration:");
 #ifdef VBOX_WITH_VIDEOHWACCEL
-    SHOW_BOOLEAN_PROP(pGraphicsAdapter, Accelerate2DVideoEnabled, "accelerate2dvideo",      Info::tr("2D Video Acceleration:"));
+    SHOW_BOOLEAN_METHOD(pGraphicsAdapter, IsFeatureEnabled(GraphicsFeature_Acceleration2DVideo, &f), "accelerate2dvideo", "2D Video Acceleration:");
 #endif
     SHOW_BOOLEAN_PROP(    machine,  TeleporterEnabled,          "teleporterenabled",        Info::tr("Teleporter Enabled:"));
     SHOW_ULONG_PROP(      machine,  TeleporterPort,             "teleporterport",           Info::tr("Teleporter Port:"), "");
@@ -1586,7 +1649,7 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
         }
 
     /* get the maximum amount of NICS */
-    ULONG maxNICs = getMaxNics(pVirtualBox, machine);
+    ULONG maxNICs = getMaxNics(machine);
 
     for (ULONG currentNIC = 0; currentNIC < maxNICs; currentNIC++)
     {
@@ -2008,7 +2071,7 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
 
     /* get the maximum amount of UARTs */
     ULONG maxUARTs = 0;
-    sysProps->COMGETTER(SerialPortCount)(&maxUARTs);
+    platformProperties->COMGETTER(SerialPortCount)(&maxUARTs);
     for (ULONG currentUART = 0; currentUART < maxUARTs; currentUART++)
     {
         ComPtr<ISerialPort> uart;
@@ -2029,22 +2092,22 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
             }
             else
             {
-                ULONG ulIRQ, ulIOBase;
+                ULONG ulIRQ, ulIOAddress;
                 PortMode_T HostMode;
                 Bstr path;
                 BOOL fServer;
                 UartType_T UartType;
                 uart->COMGETTER(IRQ)(&ulIRQ);
-                uart->COMGETTER(IOBase)(&ulIOBase);
+                uart->COMGETTER(IOAddress)(&ulIOAddress);
                 uart->COMGETTER(Path)(path.asOutParam());
                 uart->COMGETTER(Server)(&fServer);
                 uart->COMGETTER(HostMode)(&HostMode);
                 uart->COMGETTER(UartType)(&UartType);
 
                 if (details == VMINFO_MACHINEREADABLE)
-                    RTPrintf("%s=\"%#06x,%d\"\n", szNm, ulIOBase, ulIRQ);
+                    RTPrintf("%s=\"%#06x,%d\"\n", szNm, ulIOAddress, ulIRQ);
                 else
-                    RTPrintf(Info::tr("%-28s I/O base: %#06x, IRQ: %d"), szNm, ulIOBase, ulIRQ);
+                    RTPrintf(Info::tr("%-28s I/O address: %#06x, IRQ: %d"), szNm, ulIOAddress, ulIRQ);
                 switch (HostMode)
                 {
                     default:
@@ -2114,7 +2177,7 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
 
     /* get the maximum amount of LPTs */
     ULONG maxLPTs = 0;
-    sysProps->COMGETTER(ParallelPortCount)(&maxLPTs);
+    platformProperties->COMGETTER(ParallelPortCount)(&maxLPTs);
     for (ULONG currentLPT = 0; currentLPT < maxLPTs; currentLPT++)
     {
         ComPtr<IParallelPort> lpt;
@@ -2836,7 +2899,17 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
         ComPtr<IRecordingSettings> recordingSettings;
         CHECK_ERROR_RET(machine, COMGETTER(RecordingSettings)(recordingSettings.asOutParam()), hrc);
 
-        BOOL  fEnabled;
+        BOOL fStarted = FALSE;
+        ComPtr<IProgress> progress;
+        hrc = recordingSettings->COMGETTER(Progress)(progress.asOutParam());
+        if (SUCCEEDED(hrc))
+        {
+            hrc = progress->COMGETTER(Completed)(&fStarted);
+            fStarted = !fStarted;
+        }
+        SHOW_BOOL_VALUE_EX("recording_started", Info::tr("Recording status:"), fStarted, Info::tr("started"), Info::tr("stopped"));
+
+        BOOL fEnabled;
         CHECK_ERROR_RET(recordingSettings, COMGETTER(Enabled)(&fEnabled), hrc);
         SHOW_BOOL_VALUE_EX("recording_enabled", Info::tr("Recording enabled:"), fEnabled, Info::tr("yes"), Info::tr("no"));
 

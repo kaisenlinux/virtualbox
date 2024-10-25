@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,10 +35,17 @@
 #include "UIExtraDataDefs.h"
 #include "UITextTable.h"
 
+/* COM includes: */
+#include "KParavirtProvider.h"
+#include "KVMExecutionEngine.h"
+
 /* Forward declarations: */
 class CCloudMachine;
+class CConsole;
 class CFormValue;
+class CGuest;
 class CMachine;
+class CNetworkAdapter;
 
 /** Details generation namespace. */
 namespace UIDetailsGenerator
@@ -80,6 +87,47 @@ namespace UIDetailsGenerator
 
     SHARED_LIBRARY_STUFF UITextTable generateMachineInformationDescription(CMachine &comMachine,
                                                                            const UIExtraDataMetaDefs::DetailsElementOptionTypeDescription &fOptions);
+
+    SHARED_LIBRARY_STUFF void acquireHardDiskStatusInfo(CMachine &comMachine, QString &strInfo,
+                                                        uint &cAttachmentsCount);
+
+    SHARED_LIBRARY_STUFF void acquireOpticalDiskStatusInfo(CMachine &comMachine, QString &strInfo,
+                                                           uint &cAttachmentsCount, uint &cAttachmentsMountedCount);
+
+    SHARED_LIBRARY_STUFF void acquireFloppyDiskStatusInfo(CMachine &comMachine, QString &strInfo,
+                                                          uint &cAttachmentsCount, uint &cAttachmentsMountedCount);
+
+    SHARED_LIBRARY_STUFF void acquireAudioStatusInfo(CMachine &comMachine, QString &strInfo,
+                                                     bool &fAudioEnabled, bool &fEnabledOutput, bool &fEnabledInput);
+
+    SHARED_LIBRARY_STUFF void acquireNetworkStatusInfo(CMachine &comMachine, QString &strInfo,
+                                                       bool &fAdaptersPresent, bool &fCablesDisconnected);
+
+    SHARED_LIBRARY_STUFF void acquireUsbStatusInfo(CMachine &comMachine, CConsole &comConsole,
+                                                   QString &strInfo, bool &fUsbEnabled, uint &cUsbFilterCount);
+
+    SHARED_LIBRARY_STUFF void acquireSharedFoldersStatusInfo(CMachine &comMachine, CConsole &comConsole, CGuest &comGuest,
+                                                             QString &strInfo, uint &cFoldersCount);
+
+    SHARED_LIBRARY_STUFF void acquireDisplayStatusInfo(CMachine &comMachine, QString &strInfo,
+                                                       uint &uVRAMSize, uint &cMonitorCount, bool &fAcceleration3D);
+
+    SHARED_LIBRARY_STUFF void acquireRecordingStatusInfo(CMachine &comMachine, QString &strInfo,
+                                                         bool &fRecordingEnabled);
+
+    SHARED_LIBRARY_STUFF void acquireFeaturesStatusInfo(CMachine &comMachine, QString &strInfo,
+                                                        KVMExecutionEngine &enmEngine,
+                                                        bool fNestedPagingEnabled, bool fUxEnabled,
+                                                        KParavirtProvider enmProvider);
+
+    SHARED_LIBRARY_STUFF QString summarizeGenericProperties(const CNetworkAdapter &comAdapter);
+
+    /** Holds the table row format 1. */
+    extern const QString e_strTableRow1;
+    /** Holds the table row format 2. */
+    extern const QString e_strTableRow2;
+    /** Holds the table row format 3. */
+    extern const QString e_strTableRow3;
 }
 
 #endif /* !FEQT_INCLUDED_SRC_globals_UIDetailsGenerator_h */

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -41,7 +41,6 @@
 #include <VBox/VBoxCocoa.h>
 #include <ApplicationServices/ApplicationServices.h>
 #undef PVM // Stupid, stupid apple headers (sys/param.h)!!
-#include <iprt/cdefs.h>
 
 /* External includes: */
 #include <ApplicationServices/ApplicationServices.h>

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -80,7 +80,7 @@ struct RTSEMMUTEXINTERNAL
 /**
  * This function is a crude approximation of pthread_mutex_timedlock.
  */
-int rtSemFallbackPthreadMutexTimedlock(pthread_mutex_t *mutex, RTMSINTERVAL cMillies)
+static int rtSemFallbackPthreadMutexTimedlock(pthread_mutex_t *mutex, RTMSINTERVAL cMillies)
 {
     struct timespec ts;
     int rc;

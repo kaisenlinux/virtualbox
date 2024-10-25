@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -143,12 +143,12 @@ public:
                  IVirtualBoxErrorInfo *aNext = NULL);
 
     // IVirtualBoxErrorInfo properties
-    STDMETHOD(COMGETTER(ResultCode))(LONG *aResultCode);
-    STDMETHOD(COMGETTER(ResultDetail))(LONG *aResultDetail);
-    STDMETHOD(COMGETTER(InterfaceID))(BSTR *aIID);
-    STDMETHOD(COMGETTER(Component))(BSTR *aComponent);
-    STDMETHOD(COMGETTER(Text))(BSTR *aText);
-    STDMETHOD(COMGETTER(Next))(IVirtualBoxErrorInfo **aNext);
+    STDMETHOD(COMGETTER(ResultCode))(LONG *aResultCode) RT_OVERRIDE;
+    STDMETHOD(COMGETTER(ResultDetail))(LONG *aResultDetail) RT_OVERRIDE;
+    STDMETHOD(COMGETTER(InterfaceID))(BSTR *aIID) RT_OVERRIDE;
+    STDMETHOD(COMGETTER(Component))(BSTR *aComponent) RT_OVERRIDE;
+    STDMETHOD(COMGETTER(Text))(BSTR *aText) RT_OVERRIDE;
+    STDMETHOD(COMGETTER(Next))(IVirtualBoxErrorInfo **aNext) RT_OVERRIDE;
 
     const char* getComponentName() const { return "VirtualBoxErrorInfo"; }
 

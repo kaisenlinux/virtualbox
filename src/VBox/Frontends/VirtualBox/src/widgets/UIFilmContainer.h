@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,14 +35,9 @@
 #include <QWidget>
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
 #include "UILibraryDefs.h"
 
-/* Other VBox includes: */
-#include <VBox/com/com.h>
-
 /* Forward declarations: */
-class QCheckBox;
 class QScrollArea;
 class QVBoxLayout;
 class UIFilm;
@@ -59,9 +54,9 @@ public:
     UIFilmContainer(QWidget *pParent = 0);
 
     /** Returns the film-container check-box values. */
-    QVector<BOOL> value() const;
+    QVector<bool> value() const;
     /** Defines the film-container check-box @a values. */
-    void setValue(const QVector<BOOL> &values);
+    void setValue(const QVector<bool> &values);
 
 private:
 

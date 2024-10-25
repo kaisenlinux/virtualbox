@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2021-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2021-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -336,6 +336,14 @@ void UINotificationDownloader::sltHandleProgressFinished()
     m_pDownloader = 0;
     m_fDone = true;
     emit sigProgressFinished();
+
+    /* If there was no error and no reason to keep progress alive, - finish him! */
+    if (   error().isEmpty()
+#ifdef VBOX_NOTIFICATION_CENTER_WITH_KEEP_BUTTON
+        && !gEDataManager->keepSuccessfullNotificationProgresses()
+#endif
+        )
+        close();
 }
 
 #endif /* VBOX_GUI_WITH_NETWORK_MANAGER */

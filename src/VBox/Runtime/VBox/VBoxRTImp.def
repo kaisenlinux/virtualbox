@@ -4,7 +4,7 @@
 ;
 
 ;
-; Copyright (C) 2010-2023 Oracle and/or its affiliates.
+; Copyright (C) 2010-2024 Oracle and/or its affiliates.
 ;
 ; This file is part of VirtualBox base platform packages, as
 ; available from https://www.virtualbox.org.
@@ -80,7 +80,6 @@ EXPORTS
     ASMBitNextClear             ; not-amd64 not-x86
     ASMBitFirstSet              ; not-amd64 not-x86
     ASMBitNextSet               ; not-amd64 not-x86
-    ASMMemZeroPage              ; not-amd64 not-x86
     ASMMemZero32                ; not-amd64 not-x86
     ASMMemFill32                ; not-amd64 not-x86
     ASMMemFirstMismatchingU8    ; not-amd64 not-x86
@@ -1209,14 +1208,15 @@ EXPORTS
     RTLdrOpen
     RTLdrRelocate
     RTLdrSize
-    RTLinuxFindDevicePath               ; only-linux
-    RTLinuxFindDevicePathV              ; only-linux
-    RTLinuxSysFsClose                   ; only-linux
     RTLinuxSysFsExists                  ; only-linux
+    RTLinuxSysFsExistsEx                ; only-linux
+    RTLinuxSysFsExistsExV               ; only-linux
     RTLinuxSysFsExistsV                 ; only-linux
     RTLinuxSysFsGetLinkDest             ; only-linux
     RTLinuxSysFsGetLinkDestV            ; only-linux
     RTLinuxSysFsOpen                    ; only-linux
+    RTLinuxSysFsOpenEx                  ; only-linux
+    RTLinuxSysFsOpenExV                 ; only-linux
     RTLinuxSysFsOpenV                   ; only-linux
     RTLinuxSysFsReadDevNumFile          ; only-linux
     RTLinuxSysFsReadDevNumFileV         ; only-linux
@@ -1226,6 +1226,18 @@ EXPORTS
     RTLinuxSysFsReadStr                 ; only-linux
     RTLinuxSysFsReadStrFile             ; only-linux
     RTLinuxSysFsReadStrFileV            ; only-linux
+    RTLinuxSysFsWriteFile               ; only-linux
+    RTLinuxSysFsWriteStr                ; only-linux
+    RTLinuxSysFsWriteStrFile            ; only-linux
+    RTLinuxSysFsWriteStrFileV           ; only-linux
+    RTLinuxSysFsWriteU16File            ; only-linux
+    RTLinuxSysFsWriteU16FileV           ; only-linux
+    RTLinuxSysFsWriteU32File            ; only-linux
+    RTLinuxSysFsWriteU32FileV           ; only-linux
+    RTLinuxSysFsWriteU64File            ; only-linux
+    RTLinuxSysFsWriteU64FileV           ; only-linux
+    RTLinuxSysFsWriteU8File             ; only-linux
+    RTLinuxSysFsWriteU8FileV            ; only-linux
     RTLockValidatorClassAddPriorClass
     RTLockValidatorClassCreate
     RTLockValidatorClassCreateEx
@@ -1961,6 +1973,10 @@ EXPORTS
     RTTestISubDone
     RTTestISubF
     RTTestISubV
+    RTTestISubSub
+    RTTestISubSubDone
+    RTTestISubSubF
+    RTTestISubSubV
     RTTestIValue
     RTTestIValueF
     RTTestIValueV
@@ -1976,8 +1992,14 @@ EXPORTS
     RTTestSkipAndDestroyV
     RTTestSub
     RTTestSubDone
+    RTTestSubErrorCount
     RTTestSubF
     RTTestSubV
+    RTTestSubSub
+    RTTestSubSubDone
+    RTTestSubSubErrorCount
+    RTTestSubSubF
+    RTTestSubSubV
     RTTestSummaryAndDestroy
     RTTestValue
     RTTestValueF

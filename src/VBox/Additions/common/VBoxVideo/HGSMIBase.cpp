@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -255,8 +255,8 @@ DECLHIDDEN(int)  VBoxHGSMIUpdatePointerShape(PHGSMIGUESTCOMMANDCONTEXT pCtx, uin
  * @returns  iprt status code.
  * @returns  VERR_NO_MEMORY      HGSMI heap allocation failed.
  */
-DECLHIDDEN(int) VBoxHGSMICursorPosition(PHGSMIGUESTCOMMANDCONTEXT pCtx, bool fReportPosition,
-                                        uint32_t x, uint32_t y, uint32_t *pxHost, uint32_t *pyHost)
+DECLHIDDEN(int) VBoxHGSMIReportCursorPosition(PHGSMIGUESTCOMMANDCONTEXT pCtx, bool fReportPosition,
+                                              uint32_t x, uint32_t y, uint32_t *pxHost, uint32_t *pyHost)
 {
     VBVACURSORPOSITION *p;
 

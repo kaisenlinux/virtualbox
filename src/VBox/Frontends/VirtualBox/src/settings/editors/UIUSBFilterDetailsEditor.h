@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,7 +32,6 @@
 #endif
 
 #include "QIDialog.h"
-#include "QIWithRetranslateUI.h"
 #include "UIExtraDataDefs.h"
 
 /* Forward declarations: */
@@ -42,7 +41,7 @@ class QIDialogButtonBox;
 class QILineEdit;
 
 /** QIDialog subclass used as a USB filter editor. */
-class SHARED_LIBRARY_STUFF UIUSBFilterDetailsEditor : public QIWithRetranslateUI2<QIDialog>
+class SHARED_LIBRARY_STUFF UIUSBFilterDetailsEditor : public QIDialog
 {
     Q_OBJECT;
 
@@ -96,12 +95,10 @@ public:
     /** Returns port. */
     UIRemoteMode remoteMode() const;
 
-protected:
+private slots:
 
     /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
-private slots:
+    void sltRetranslateUI();
 
     /** Performs validation for connected sender. */
     void sltRevalidate();

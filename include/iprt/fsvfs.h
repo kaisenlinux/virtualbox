@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -195,6 +195,75 @@ RTDECL(int) RTFsIso9660VolOpen(RTVFSFILE hVfsFileIn, uint32_t fFlags, PRTVFS phV
  */
 RTDECL(int) RTFsNtfsVolOpen(RTVFSFILE hVfsFileIn, uint32_t fMntFlags, uint32_t fNtfsFlags, PRTVFS phVfs, PRTERRINFO pErrInfo);
 
+
+/** @name RTFSPDB_F_XXX - PDB mount flags.
+ * @{ */
+/** Don't provide module names, just plain stream numbering. */
+#define RTFSPDB_F_NO_NAMES          RT_BIT_32(0)
+/** @} */
+
+/**
+ * Opens an PDB container volume.
+ *
+ * The program database container files are used by the Microsoft Visual C++
+ * toolchain for storing debug information (.pdb), intermediate compiler state
+ * (.idb) and possibly other things.  They are supposedly a win9x alternative to
+ * using NTFS file streams, so the container contains "streams" rather than
+ * "files".  (There are some really old version of the PDB files (v1) which does
+ * not contain streams, just plain type/debug info.  That is not supported.)
+ *
+ * The streams are numbered and can all be opened by their number, e.g. "1" will
+ * open the PDB metadata header stream.  If the stream is special or have an
+ * name table entry, the name will be appended to the stream number together
+ * with a dash. So, stream "1" can also be accessed as "1-pdb". Named streams
+ * will also be recognized by just the name w/o the stream prefix, so stream
+ * also be accessed as just "pdb".  The only caveat to this last naming
+ * variation is that it doesn't work of the name starts with a digit, as that is
+ * taken to mean a stream number.
+ *
+ * The RTVFSQIEX_VOL_LABEL returns the PDB cache subdirectory, i.e. UUID+Age or
+ * Timestamp+Age depending on the PDB version.
+ *
+ * The PDB version can be obtained by querying RTVFSQIEX_VOL_LABEL_ALT, which
+ * will return "pdb-v2-xxxxxx" or "pdb-v7-xxxxxxxx", where the 'x' sequences are
+ * digits making up a year-month-date figure for the visual C++ compiler
+ * creating the PDB. Version 2 may have both 6 and 8 digit variants.
+ *
+ * Standard stream names:
+ *  - root                          - stream \#0, the root stream
+ *  - pdb                           - stream \#1, the PDB header
+ *  - tpi                           - stream \#2, the type info
+ *  - dbi                           - stream \#3, the DBI stream
+ *      - dbi-module-info           - Module info DBI substream.
+ *      - dbi-section-contributions - Section contribs DBI substream.
+ *      - dbi-section-map           - Section map DBI substream.
+ *      - dbi-source-info           - Source info DBI substream.
+ *      - dbi-type-server-map       - Type server map DBI substream.
+ *      - dbi-continue-and-edit     - Continue and edit DBI substream.
+ *      - dbi-optional-header       - Optional DBI header (substream).
+ *      - dbi-unknown               - Unkown DBI substream.
+ *  - global-symbol-hash            - RTPDBDBIHDR::idxGlobalStream
+ *  - public-symbol-hash            - RTPDBDBIHDR::idxPublicStream
+ *  - symbols-records               - RTPDBDBIHDR::idxSymRecStream
+ *  - image-fpo-masm-section        - RTPDBDBIOPT_IDX_FPO_MASM
+ *  - image-exception               - RTPDBDBIOPT_IDX_EXCEPTION
+ *  - image-fixup                   - RTPDBDBIOPT_IDX_FIXUP
+ *  - omap-to-src                   - RTPDBDBIOPT_IDX_OMAP_TO_SRC
+ *  - omap-from-src                 - RTPDBDBIOPT_IDX_OMAP_FROM_SRC
+ *  - image-section-headers         - RTPDBDBIOPT_IDX_SECTION_HEADERS
+ *  - clr-token-id-map              - RTPDBDBIOPT_IDX_CLR_TOKEN_ID_MAP
+ *  - image-xdata-section           - RTPDBDBIOPT_IDX_XDATA
+ *  - image-pdata-section           - RTPDBDBIOPT_IDX_PDATA
+ *  - image-fpo                     - RTPDBDBIOPT_IDX_FPO
+ *  - image-orginal-section-headers - RTPDBDBIOPT_IDX_ORG_SECTION_HEADERS
+ *
+ * @returns IPRT status code.
+ * @param   hVfsFileIn      The file or device backing the volume.
+ * @param   fFlags          RTFSPDB_F_XXX.
+ * @param   phVfs           Where to return the virtual file system handle.
+ * @param   pErrInfo        Where to return additional error information.
+ */
+RTDECL(int) RTFsPdbVolOpen(RTVFSFILE hVfsFileIn, uint32_t fFlags, PRTVFS phVfs, PRTERRINFO pErrInfo);
 
 /** @} */
 

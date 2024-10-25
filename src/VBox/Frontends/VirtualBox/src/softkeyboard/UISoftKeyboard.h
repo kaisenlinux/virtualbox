@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -34,20 +34,15 @@
 /* Qt includes: */
 #include <QMainWindow>
 
-/* COM includes: */
-#include "COMDefs.h"
-
 /* GUI includes: */
 #include "QIWithRestorableGeometry.h"
-#include "QIWithRetranslateUI.h"
 
 /* Forward declarations: */
-class CKeyboard;
 class QHBoxLayout;
 class QToolButton;
 class UIKeyboardLayoutEditor;
 class UILayoutSelector;
-class UISession;
+class UIMachine;
 class UISoftKeyboardKey;
 class UISoftKeyboardSettingsWidget;
 class UISoftKeyboardStatusBarWidget;
@@ -57,36 +52,27 @@ class QStackedWidget;
 
 /* Type definitions: */
 typedef QIWithRestorableGeometry<QMainWindow> QMainWindowWithRestorableGeometry;
-typedef QIWithRetranslateUI<QMainWindowWithRestorableGeometry> QMainWindowWithRestorableGeometryAndRetranslateUi;
 
-class UISoftKeyboard : public QMainWindowWithRestorableGeometryAndRetranslateUi
+class UISoftKeyboard : public QMainWindowWithRestorableGeometry
 {
     Q_OBJECT;
 
 signals:
 
-    void sigHelpRequested(const QString &strHelpKeyword);
     void sigClose();
 
 public:
 
-    UISoftKeyboard(QWidget *pParent, UISession *pSession, QWidget *pCenterWidget,
-                   QString strMachineName = QString());
-    ~UISoftKeyboard();
+    UISoftKeyboard(QWidget *pParent, UIMachine *pMachine,
+                   QWidget *pCenterWidget, QString strMachineName = QString());
 
 protected:
 
-    virtual void retranslateUi() RT_OVERRIDE;
     virtual bool shouldBeMaximized() const RT_OVERRIDE;
     virtual void closeEvent(QCloseEvent *event) RT_OVERRIDE;
     bool event(QEvent *pEvent) RT_OVERRIDE;
 
 private slots:
-
-    void sltKeyboardLedsChange();
-    void sltPutKeyboardSequence(QVector<LONG> sequence);
-    void sltPutUsageCodesPress(QVector<QPair<LONG, LONG> > sequence);
-    void sltPutUsageCodesRelease(QVector<QPair<LONG, LONG> > sequence);
 
     /** Handles the signal we get from the layout selector widget.
       * Selection changed is forwarded to the keyboard widget. */
@@ -128,9 +114,8 @@ private:
     void configure();
     void updateStatusBarMessage(const QString &strLayoutName);
     void updateLayoutSelectorList();
-    CKeyboard& keyboard() const;
 
-    UISession     *m_pSession;
+    UIMachine     *m_pMachine;
     QWidget       *m_pCenterWidget;
     QHBoxLayout   *m_pMainLayout;
     QString        m_strMachineName;

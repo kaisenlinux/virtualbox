@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -757,8 +757,8 @@ RTEXITCODE handleImportAppliance(HandlerArg *arg)
                                     RTPrintf(Appliance::tr("%2u: Guest memory specified with --memory: %RU32 MB\n"),
                                              a, ulMemMB);
 
-                                    /* IVirtualSystemDescription guest memory size is in bytes.
-                                      It's always stored in bytes in VSD according to the old internal agreement within the team */
+                                   /* IVirtualSystemDescription guest memory size is in bytes.
+                                      It's alway stored in bytes in VSD according to the old internal agreement within the team */
                                     uint64_t ullMemBytes = (uint64_t)ulMemMB * _1M;
                                     strOverride = Utf8StrFmt("%RU64", ullMemBytes);
                                     bstrFinalValue = strOverride;
@@ -1031,8 +1031,15 @@ RTEXITCODE handleImportAppliance(HandlerArg *arg)
                                         default:  // Not reached since vsdControllerType validated above but silence gcc.
                                             break;
                                     }
-                                    CHECK_ERROR_RET(systemProperties, GetMaxPortCountForStorageBus(enmStorageBus, &maxPorts),
-                                        RTEXITCODE_FAILURE);
+
+                                    PlatformArchitecture_T platformArch = PlatformArchitecture_x86; /** @todo BUGBUG Appliances only handle x86 so far! */
+
+                                    ComPtr<IPlatformProperties> pPlatformProperties;
+                                    CHECK_ERROR_RET(pVirtualBox, GetPlatformProperties(platformArch, pPlatformProperties.asOutParam()),
+                                                                                       RTEXITCODE_FAILURE);
+
+                                    CHECK_ERROR_RET(pPlatformProperties, GetMaxPortCountForStorageBus(enmStorageBus, &maxPorts),
+                                                    RTEXITCODE_FAILURE);
                                     if (uTargetControllerPort >= maxPorts)
                                         return errorSyntax(Appliance::tr("Illegal port value: %u. For %ls controllers the only valid values are 0 to %lu (inclusive)"),
                                                            uTargetControllerPort,

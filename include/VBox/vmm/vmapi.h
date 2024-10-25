@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -434,18 +434,29 @@ VMMR3DECL(int)          VMR3AtRuntimeErrorDeregister(PUVM pUVM, PFNVMATRUNTIMEER
 VMMR3_INT_DECL(int)     VMR3SetRuntimeErrorWorker(PVM pVM);
 VMMR3_INT_DECL(uint32_t) VMR3GetRuntimeErrorCount(PUVM pUVM);
 
-VMMR3DECL(int)          VMR3ReqCallU(PUVM pUVM, VMCPUID idDstCpu, PVMREQ *ppReq, RTMSINTERVAL cMillies, uint32_t fFlags, PFNRT pfnFunction, unsigned cArgs, ...);
-VMMR3DECL(int)          VMR3ReqCallVU(PUVM pUVM, VMCPUID idDstCpu, PVMREQ *ppReq, RTMSINTERVAL cMillies, uint32_t fFlags, PFNRT pfnFunction, unsigned cArgs, va_list Args);
-VMMR3_INT_DECL(int)     VMR3ReqCallWait(PVM pVM, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs, ...);
-VMMR3DECL(int)          VMR3ReqCallWaitU(PUVM pUVM, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs, ...);
-VMMR3DECL(int)          VMR3ReqCallNoWait(PVM pVM, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs, ...);
-VMMR3DECL(int)          VMR3ReqCallNoWaitU(PUVM pUVM, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs, ...);
-VMMR3_INT_DECL(int)     VMR3ReqCallVoidWait(PVM pVM, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs, ...);
-VMMR3DECL(int)          VMR3ReqCallVoidWaitU(PUVM pUVM, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs, ...);
-VMMR3DECL(int)          VMR3ReqCallVoidNoWait(PVM pVM, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs, ...);
-VMMR3DECL(int)          VMR3ReqPriorityCallWait(PVM pVM, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs, ...);
-VMMR3DECL(int)          VMR3ReqPriorityCallWaitU(PUVM pUVM, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs, ...);
-VMMR3DECL(int)          VMR3ReqPriorityCallVoidWaitU(PUVM pUVM, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs, ...);
+/** Maximum argument count for VMR3ReqCallU and friends. */
+#define VMREQ_MAX_ARGS              9
+/** Maximum argument count for VMR3ReqCallU and friends when
+ *  VMREQ_F_EXTRA_ARGS_ALL_PTRS is used. */
+#define VMREQ_MAX_ARGS_EXTENDED     15
+/** Flag to OR into the argumnet count to indicate that all arguments
+ * starting with VMREQ_MAX_ARGS are pointer size and won't cause trouble.
+ * @see @bugref{10725} and VMR3ReqCallVU caveats.  */
+#define VMREQ_F_EXTRA_ARGS_ALL_PTRS 0x00008000U
+VMMR3DECL(int)          VMR3ReqCallU(PUVM pUVM, VMCPUID idDstCpu, PVMREQ *ppReq, RTMSINTERVAL cMillies, uint32_t fFlags,
+                                     PFNRT pfnFunction, unsigned cArgs, ...) RT_IPRT_CALLREQ_ATTR(6, 7, 8);
+VMMR3DECL(int)          VMR3ReqCallVU(PUVM pUVM, VMCPUID idDstCpu, PVMREQ *ppReq, RTMSINTERVAL cMillies, uint32_t fFlags,
+                                      PFNRT pfnFunction, unsigned cArgs, va_list Args) RT_IPRT_CALLREQ_ATTR(6, 7, 0);
+VMMR3_INT_DECL(int)     VMR3ReqCallWait(PVM pVM, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs, ...) RT_IPRT_CALLREQ_ATTR(3, 4, 5);
+VMMR3DECL(int)          VMR3ReqCallWaitU(PUVM pUVM, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs, ...) RT_IPRT_CALLREQ_ATTR(3, 4, 5);
+VMMR3DECL(int)          VMR3ReqCallNoWait(PVM pVM, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs, ...) RT_IPRT_CALLREQ_ATTR(3, 4, 5);
+VMMR3DECL(int)          VMR3ReqCallNoWaitU(PUVM pUVM, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs, ...) RT_IPRT_CALLREQ_ATTR(3, 4, 5);
+VMMR3_INT_DECL(int)     VMR3ReqCallVoidWait(PVM pVM, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs, ...) RT_IPRT_CALLREQ_ATTR(3, 4, 5);
+VMMR3DECL(int)          VMR3ReqCallVoidWaitU(PUVM pUVM, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs, ...) RT_IPRT_CALLREQ_ATTR(3, 4, 5);
+VMMR3DECL(int)          VMR3ReqCallVoidNoWait(PVM pVM, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs, ...) RT_IPRT_CALLREQ_ATTR(3, 4, 5);
+VMMR3DECL(int)          VMR3ReqPriorityCallWait(PVM pVM, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs, ...) RT_IPRT_CALLREQ_ATTR(3, 4, 5);
+VMMR3DECL(int)          VMR3ReqPriorityCallWaitU(PUVM pUVM, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs, ...) RT_IPRT_CALLREQ_ATTR(3, 4, 5);
+VMMR3DECL(int)          VMR3ReqPriorityCallVoidWaitU(PUVM pUVM, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs, ...) RT_IPRT_CALLREQ_ATTR(3, 4, 5);
 VMMR3DECL(int)          VMR3ReqAlloc(PUVM pUVM, PVMREQ *ppReq, VMREQTYPE enmType, VMCPUID idDstCpu);
 VMMR3DECL(int)          VMR3ReqFree(PVMREQ pReq);
 VMMR3DECL(int)          VMR3ReqQueue(PVMREQ pReq, RTMSINTERVAL cMillies);
@@ -462,7 +473,18 @@ VMMR3_INT_DECL(int)     VMR3ReqProcessU(PUVM pUVM, VMCPUID idDstCpu, bool fPrior
 VMMR3_INT_DECL(void)        VMR3NotifyGlobalFFU(PUVM pUVM, uint32_t fFlags);
 VMMR3_INT_DECL(void)        VMR3NotifyCpuFFU(PUVMCPU pUVMCpu, uint32_t fFlags);
 VMMR3DECL(int)              VMR3NotifyCpuDeviceReady(PVM pVM, VMCPUID idCpu);
-VMMR3_INT_DECL(int)         VMR3WaitHalted(PVM pVM, PVMCPU pVCpu, bool fIgnoreInterrupts);
+
+/** @name Flags for VMR3WaitHalted.
+ * @{ */
+/** Flag whether to ignore interrupts. */
+#define VMWAITHALTED_F_IGNORE_IRQS  RT_BIT_32(0)
+#if defined(VBOX_VMM_TARGET_ARMV8)
+/** Flag whether to ignore fast interrupts. */
+# define VMWAITHALTED_F_IGNORE_FIQS RT_BIT_32(1)
+#endif
+/** @} */
+VMMR3_INT_DECL(int)         VMR3WaitHalted(PVM pVM, PVMCPU pVCpu, uint32_t fFlags);
+
 VMMR3_INT_DECL(int)         VMR3WaitU(PUVMCPU pUVMCpu);
 VMMR3DECL(int)              VMR3WaitForDeviceReady(PVM pVM, VMCPUID idCpu);
 VMMR3_INT_DECL(int)         VMR3AsyncPdmNotificationWaitU(PUVMCPU pUVCpu);

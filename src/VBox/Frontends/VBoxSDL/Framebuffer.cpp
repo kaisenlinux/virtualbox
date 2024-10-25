@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -334,10 +334,7 @@ STDMETHODIMP VBoxSDLFB::COMGETTER(WinId)(LONG64 *winId)
 {
     if (!winId)
         return E_POINTER;
-#ifdef RT_OS_DARWIN
-    if (mWinId == NULL) /* (In case it failed the first time.) */
-        mWinId = (intptr_t)VBoxSDLGetDarwinWindowId();
-#endif
+
     *winId = mWinId;
     return S_OK;
 }
@@ -388,7 +385,7 @@ STDMETHODIMP VBoxSDLFB::NotifyUpdate(ULONG x, ULONG y,
     LogFlow(("VBoxSDLFB::NotifyUpdate: x = %d, y = %d, w = %d, h = %d\n",
              x, y, w, h));
 
-#ifdef VBOXSDL_WITH_X11
+#if defined(VBOXSDL_WITH_X11) || defined(RT_OS_DARWIN)
     /*
      * SDL does not allow us to make this call from any other thread than
      * the main SDL thread (which initialized the video mode). So we have
@@ -399,9 +396,16 @@ STDMETHODIMP VBoxSDLFB::NotifyUpdate(ULONG x, ULONG y,
     event.type       = SDL_USEREVENT;
     event.user.code  = mScreenId;
     event.user.type  = SDL_USER_EVENT_UPDATERECT;
-    // 16 bit is enough for coordinates
-    event.user.data1 = (void*)(uintptr_t)(x << 16 | y);
-    event.user.data2 = (void*)(uintptr_t)(w << 16 | h);
+
+    SDL_Rect *pUpdateRect = (SDL_Rect *)RTMemAlloc(sizeof(SDL_Rect));
+    AssertPtrReturn(pUpdateRect, E_OUTOFMEMORY);
+    pUpdateRect->x = x;
+    pUpdateRect->y = y;
+    pUpdateRect->w = w;
+    pUpdateRect->h = h;
+    event.user.data1 = pUpdateRect;
+
+    event.user.data2 = NULL;
     PushNotifyUpdateEvent(&event);
 #else /* !VBOXSDL_WITH_X11 */
     update(x, y, w, h, true /* fGuestRelative */);
@@ -838,12 +842,11 @@ void VBoxSDLFB::resizeSDL(void)
  */
 void VBoxSDLFB::update(int x, int y, int w, int h, bool fGuestRelative)
 {
-#ifdef VBOXSDL_WITH_X11
+#if defined(VBOXSDL_WITH_X11) || defined(RT_OS_DARWIN)
     AssertMsg(gSdlNativeThread == RTThreadNativeSelf(), ("Wrong thread! SDL is not threadsafe!\n"));
 #endif
     RTCritSectEnter(&mUpdateLock);
-    Log(("Updates %d, %d,%d %dx%d\n", mfUpdates, x, y, w, h));
-    // printf("Updates %d, %d,%d %dx%d\n", mfUpdates, x, y, w, h);
+    Log3Func(("mfUpdates=%RTbool %d,%d %dx%d\n", mfUpdates, x, y, w, h));
     if (!mfUpdates)
     {
         RTCritSectLeave(&mUpdateLock);
@@ -857,12 +860,9 @@ void VBoxSDLFB::update(int x, int y, int w, int h, bool fGuestRelative)
         return;
     }
 
-    /* the source and destination rectangles */
-    SDL_Rect srcRect;
-    SDL_Rect dstRect;
-
     /* this is how many pixels we have to cut off from the height for this specific blit */
-    int yCutoffGuest = 0;
+    int const yCutoffGuest = 0;
+
     /**
      * If we get a SDL window relative update, we
      * just perform a full screen update to keep things simple.
@@ -877,6 +877,7 @@ void VBoxSDLFB::update(int x, int y, int w, int h, bool fGuestRelative)
         h = mGuestYRes;
     }
 
+    SDL_Rect srcRect;
     srcRect.x = x;
     srcRect.y = y + yCutoffGuest;
     srcRect.w = w;
@@ -889,20 +890,21 @@ void VBoxSDLFB::update(int x, int y, int w, int h, bool fGuestRelative)
      * or the label cuts off a portion of the guest screen (mTopOffset == 0;
      * yCutoffGuest >= 0)
      */
+    SDL_Rect dstRect;
     dstRect.x = x + mCenterXOffset;
     dstRect.y = y + yCutoffGuest + mTopOffset + mCenterYOffset;
     dstRect.w = w;
     dstRect.h = RT_MAX(0, h - yCutoffGuest);
 
-    SDL_Texture *pNewTexture = SDL_CreateTextureFromSurface(mpRenderer, mSurfVRAM);
-    /** @todo Do we need to update the dirty rect for the texture for SDL2 here as well? */
-    // SDL_RenderClear(mpRenderer);
-    //SDL_UpdateTexture(mpTexture, &dstRect, mSurfVRAM->pixels, mSurfVRAM->pitch);
-    // SDL_RenderCopy(mpRenderer, mpTexture, NULL, NULL);
-    SDL_RenderCopy(mpRenderer, pNewTexture, &srcRect, &dstRect);
-    SDL_RenderPresent(mpRenderer);
-    SDL_DestroyTexture(pNewTexture);
+    /* Calculate the offset within the VRAM to update the streaming texture directly. */
+    uint8_t const *pbOff = (uint8_t *)mSurfVRAM->pixels
+                         + (srcRect.y * mBytesPerLine) + (srcRect.x * (mBitsPerPixel / 8));
+    SDL_UpdateTexture(mpTexture, &srcRect, pbOff, mSurfVRAM->pitch);
+    SDL_RenderCopy(mpRenderer, mpTexture, NULL, NULL);
+
     RTCritSectLeave(&mUpdateLock);
+
+    SDL_RenderPresent(mpRenderer);
 }
 
 /**

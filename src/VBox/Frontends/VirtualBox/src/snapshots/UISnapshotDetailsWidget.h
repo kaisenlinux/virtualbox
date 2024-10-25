@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,11 +35,9 @@
 #include <QWidget>
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
 #include "UIExtraDataDefs.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CGraphicsAdapter.h"
 #include "CMachine.h"
 #include "CSnapshot.h"
@@ -103,7 +101,7 @@ protected:
 
 
 /** QWidget extension providing GUI with snapshot details-widget. */
-class UISnapshotDetailsWidget : public QIWithRetranslateUI<QWidget>
+class UISnapshotDetailsWidget : public QWidget
 {
     Q_OBJECT;
 
@@ -128,8 +126,6 @@ public:
 
 protected:
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
     /** Handles buttons translation. */
     void retranslateButtons();
 
@@ -147,6 +143,8 @@ private slots:
     void sltHandleChangeAccepted();
     /** Handles snapshot details change rejecting. */
     void sltHandleChangeRejected();
+    /** Handles translation event. */
+    void sltRetranslateUI();
 
 private:
 
@@ -185,8 +183,6 @@ private:
     static QString accelerationReport(const CMachine &comMachine);
     /** Acquires @a comMachine scale-factor report. */
     static double scaleFactorReport(CMachine comMachine);
-    /** Acquires @a comMachine display acceleration report. */
-    static QString displayAccelerationReport(CGraphicsAdapter comGraphics);
     /** Acquires @a comMachine VRDE server report. */
     static QStringList vrdeServerReport(CMachine comMachine);
     /** Acquires @a comMachine recording report. */
@@ -209,9 +205,6 @@ private:
     static QString empReport(const QString &strValue, const QString &strOldValue);
     /** Prepares emhasized report for a given @a strValue, depending on @a fDo flag. */
     static QString empReport(const QString &strValue, bool fIgnore);
-
-    /** Summarizes generic properties. */
-    static QString summarizeGenericProperties(const CNetworkAdapter &adapter);
 
     /** Holds the machine object to load data from. */
     CMachine   m_comMachine;
@@ -260,4 +253,3 @@ private:
 };
 
 #endif /* !FEQT_INCLUDED_SRC_snapshots_UISnapshotDetailsWidget_h */
-

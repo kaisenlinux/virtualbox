@@ -3,7 +3,7 @@
     manpage, user manual, usage: VBoxManage getextradata
 -->
 <!--
-    Copyright (C) 2006-2023 Oracle and/or its affiliates.
+    Copyright (C) 2006-2024 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.
@@ -30,7 +30,7 @@
 ]>
 <refentry id="vboxmanage-getextradata" lang="en">
   <refentryinfo>
-    <pubdate>$Date: 2023-01-18 00:40:56 +0100 (Wed, 18 Jan 2023) $</pubdate>
+    <pubdate>$Date: 2024-09-16 23:42:41 +0200 (Mon, 16 Sep 2024) $</pubdate>
     <title>VBoxManage getextradata</title>
   </refentryinfo>
 
@@ -55,14 +55,14 @@
         <arg choice="plain"><replaceable>uuid</replaceable></arg>
         <arg choice="plain"><replaceable>vmname</replaceable></arg>
       </group>
-      <group choice="plain">
-        <arg choice="req"><replaceable>keyword</replaceable></arg>
-        <arg>enumerate</arg>
+      <group choice="req">
+        <arg choice="plain"><replaceable>keyword</replaceable></arg>
+        <arg choice="plain">enumerate</arg>
       </group>
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-getextradata-description">
     <title>Description</title>
     <para>
       The <command>VBoxManage getextradata</command> command enables you
@@ -78,7 +78,7 @@
           </para></listitem>
       </varlistentry>
       <varlistentry>
-        <term><replaceable>uuid</replaceable> | <replaceable>vmname</replaceable></term>
+        <term><option><replaceable>uuid</replaceable> | <replaceable>vmname</replaceable></option></term>
         <listitem><para>
             Specifies the Universally Unique Identifier (UUID) or name
             of the VM.
@@ -100,7 +100,7 @@
     </variablelist>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-getextradata-examples">
     <title>Examples</title>
     <remark role="help-scope" condition="GLOBAL"/>
     <para>
@@ -109,7 +109,7 @@
     </para>
 <screen>$ VBoxManage getextradata Fedora5 installdate
 VirtualBox Command Line Management Interface Version <replaceable>version-number</replaceable>
-Copyright (C) 2005-2023 Oracle and/or its affiliates
+Copyright (C) 2005-2024 Oracle and/or its affiliates
 
 Value: 2006.01.01</screen>
     <para>
@@ -125,24 +125,17 @@ Key: GUI/LastNormalWindowPosition, Value: 851,286,1048,738</screen>
       in the configuration:
     </para>
 <screen>$ VBoxManage getextradata global enumerate
-Key: GUI/Details/Elements, Value: general,system,preview,display,storage,audio,network,usb,sharedFolders,description
-Key: GUI/DetailsPageBoxes, Value: general,system,preview,display,storage,audio,network,usb,sharedFolders,description
-Key: GUI/GroupDefinitions/, Value: m=43349dd8-2aa3-41b8-988f-0e255ce68090,m=9ebcd81e-5231-48ce-a27d-28218757f3fe,m=c690e8b1-93a0-4c95-9cd7-6437fff93251,m=f7c1e10d-3722-4891-887e-07b3c4104946
-Key: GUI/HideDescriptionForWizards, Value: NewVM
-Key: GUI/LastItemSelected, Value: m=ol7u4
+Key: GUI/LastItemSelected, Value: m=OracleLinux7u4
 Key: GUI/LastWindowPosition, Value: 951,510,960,520
-Key: GUI/RecentFolderCD, Value: C:/Users/user1
-Key: GUI/RecentListCD, Value: C:\Users\user1\V1.iso,C:\Users\user1\V2.iso,C:\Users\user1\V3.iso
 Key: GUI/SplitterSizes, Value: 318,637
-Key: GUI/SuppressMessages, Value: remindAboutMouseIntegration,remindAboutAutoCapture
 Key: GUI/Toolbar/MachineTools/Order, Value: Details
 Key: GUI/Tools/LastItemsSelected, Value: Welcome,Details
 Key: GUI/UpdateCheckCount, Value: 71
-Key: GUI/UpdateDate, Value: 1 d, 2019-04-10, stable, 5.2.22
+Key: GUI/UpdateDate, Value: 1 d, 2022-10-10, stable, 7.0.0
 Key: GUI/VirtualMediaManager/Details/Expanded, Value: true</screen>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-getextradata-see-also">
     <title>See Also</title>
     <para>
       <xref linkend="vboxmanage-setextradata" />

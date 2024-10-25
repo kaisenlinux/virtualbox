@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -54,10 +54,26 @@
 #define VBOX_SHCL_FMT_BITMAP        RT_BIT(1)
 /** Shared Clipboard format is HTML. */
 #define VBOX_SHCL_FMT_HTML          RT_BIT(2)
-#ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS
-/** Shared Clipboard format is a transfer list. */
-# define VBOX_SHCL_FMT_URI_LIST     RT_BIT(3)
-#endif
+/** Shared Clipboard format is a transfer list.
+ *
+ *  When requesting (reading) data with this format, the following happens:
+ *  - Acts as a beacon for transfer negotiation / handshake.
+ *  - The receiving side (source) initializes a transfer locally.
+ *  - The receiving side reports the transfer status (INIT) to the sending side (target).
+ *  - The sending side proceeds initializing the transfer locally.
+ *  - The sending side reports its transfer status (INIT) to the receiving side.
+ *
+ *  Note: When receiving an error via a transfer status, the transfer must be destroyed and
+ *  is considered as being failed wholesale.
+ *
+ *  @since 7.1
+ */
+#define VBOX_SHCL_FMT_URI_LIST      RT_BIT(3)
+/** Shared Clipboard format valid mask. */
+#define VBOX_SHCL_FMT_VALID_MASK    0xf
+/** Maximum number of Shared Clipboard formats.
+ *  This currently ASSUMES that there are no gaps in the bit mask. */
+#define VBOX_SHCL_FMT_MAX           VBOX_SHCL_FMT_VALID_MASK
 /** @}  */
 
 
@@ -70,6 +86,11 @@ typedef SHCLFORMAT *PSHCLFORMAT;
 typedef uint32_t SHCLFORMATS;
 /** Pointer to a bit map of Shared Clipboard formats (VBOX_SHCL_FMT_XXX). */
 typedef SHCLFORMATS *PSHCLFORMATS;
+
+/** Defines the default timeout (in ms) to use for clipboard single wait operations.
+ *  Not being used for lenghtly operations as a whole!
+ *  Note: Don't set this too high, otherwise the UI feels sluggish. */
+#define SHCL_TIMEOUT_DEFAULT_MS                 RT_MS_5SEC
 
 
 /**
@@ -167,6 +188,8 @@ typedef struct SHCLEVENT
     RTSEMEVENTMULTI     hEvtMulSem;
     /** Payload to this event, optional (NULL). */
     PSHCLEVENTPAYLOAD   pPayload;
+    /** Result code (IPRT-style) to assign. */
+    int                 rc;
 } SHCLEVENT;
 /** Pointer to a shared clipboard event. */
 typedef SHCLEVENT *PSHCLEVENT;
@@ -192,6 +215,7 @@ typedef struct SHCLEVENTSOURCE
 /** @name Shared Clipboard data payload functions.
  *  @{
  */
+int ShClPayloadInit(uint32_t uID, void *pvData, uint32_t cbData, PSHCLEVENTPAYLOAD *ppPayload);
 int ShClPayloadAlloc(uint32_t uID, const void *pvData, uint32_t cbData, PSHCLEVENTPAYLOAD *ppPayload);
 void ShClPayloadFree(PSHCLEVENTPAYLOAD pPayload);
 /** @} */
@@ -213,8 +237,10 @@ PSHCLEVENT ShClEventSourceGetLast(PSHCLEVENTSOURCE pSource);
 uint32_t ShClEventGetRefs(PSHCLEVENT pEvent);
 uint32_t ShClEventRetain(PSHCLEVENT pEvent);
 uint32_t ShClEventRelease(PSHCLEVENT pEvent);
+int ShClEventSignalEx(PSHCLEVENT pEvent, int rc, PSHCLEVENTPAYLOAD pPayload);
 int ShClEventSignal(PSHCLEVENT pEvent, PSHCLEVENTPAYLOAD pPayload);
 int ShClEventWait(PSHCLEVENT pEvent, RTMSINTERVAL uTimeoutMs, PSHCLEVENTPAYLOAD *ppPayload);
+int ShClEventWaitEx(PSHCLEVENT pEvent, RTMSINTERVAL uTimeoutMs, int *pRc, PSHCLEVENTPAYLOAD *ppPayload);
 /** @} */
 
 /**
@@ -232,6 +258,48 @@ typedef enum SHCLSOURCE
     /** The usual 32-bit hack. */
     SHCLSOURCE_32BIT_HACK = 0x7fffffff
 } SHCLSOURCE;
+
+/** @name Shared Clipboard caching.
+ *  @{
+ */
+/**
+ * A single Shared Clipboard cache entry.
+ *
+ * One entry marks exactly one clipboard format at a time.
+ */
+typedef struct _SHCLCACHEENTRY
+{
+    /** Entry data.
+     *  Acts as a beacon for entry validation. */
+    void  *pvData;
+    /** Entry data size (in bytes). */
+    size_t cbData;
+} SHCLCACHEENTRY;
+/** Pointer to a Shared Clipboard cache entry. */
+typedef SHCLCACHEENTRY *PSHCLCACHEENTRY;
+
+/**
+ * A (very simple) Shared Clipboard cache.
+ */
+typedef struct _SHCLCACHE
+{
+    /** Entries for all formats.
+     *  Right now this is static to keep it simple. */
+    SHCLCACHEENTRY aEntries[VBOX_SHCL_FMT_MAX];
+} SHCLCACHE;
+/** Pointer to a Shared Clipboard cache. */
+typedef SHCLCACHE *PSHCLCACHE;
+
+void ShClCacheEntryGet(PSHCLCACHEENTRY pCacheEntry, void **pvData, size_t *pcbData);
+
+void ShClCacheInit(PSHCLCACHE pCache);
+void ShClCacheDestroy(PSHCLCACHE pCache);
+void ShClCacheInvalidate(PSHCLCACHE pCache);
+void ShClCacheInvalidateEntry(PSHCLCACHE pCache, SHCLFORMAT uFmt);
+PSHCLCACHEENTRY ShClCacheGet(PSHCLCACHE pCache, SHCLFORMAT uFmt);
+int ShClCacheSet(PSHCLCACHE pCache, SHCLFORMAT uFmt, const void *pvData, size_t cbData);
+int ShClCacheSetMultiple(PSHCLCACHE pCache, SHCLFORMATS uFmts, const void *pvData, size_t cbData);
+/** @}  */
 
 /** Opaque data structure for the X11/VBox frontend/glue code.
  * @{ */
@@ -315,7 +383,8 @@ typedef struct _SHCLCALLBACKS
      *         The function will be invoked for every single target the clipboard requests.
      *         Runs in Xt event thread for the X11 code.
      *
-     * @returns VBox status code. VERR_NO_DATA if no data available.
+     * @returns VBox status code.
+     * @retval  VERR_NO_DATA if no data available.
      * @param   pCtx            Opaque context pointer for the glue code.
      * @param   uFmt            The format in which the data should be transferred
      *                          (VBOX_SHCL_FMT_XXX).
@@ -341,13 +410,8 @@ typedef struct _SHCLCALLBACKS
      */
     DECLCALLBACKMEMBER(int, pfnOnSendDataToDest, (PSHCLCONTEXT pCtx, void *pv, uint32_t cb, void *pvUser));
 } SHCLCALLBACKS;
+/** Pointer to a Shared Clipboard callback table. */
 typedef SHCLCALLBACKS *PSHCLCALLBACKS;
-/** @} */
-
-/** Opaque request structure for X11 clipboard data.
- * @{ */
-struct CLIPREADCBREQ;
-typedef struct CLIPREADCBREQ CLIPREADCBREQ;
 /** @} */
 
 #endif /* !VBOX_INCLUDED_GuestHost_SharedClipboard_h */

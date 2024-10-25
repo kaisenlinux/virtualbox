@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -351,7 +351,7 @@ static DECLCALLBACK(int) drvNetSnifferAttach(PPDMDRVINS pDrvIns, uint32_t fFlags
         AssertMsgFailed(("Failed to attach to driver below! rc=%Rrc\n", rc));
 
     RTCritSectLeave(&pThis->XmitLock);
-    return VINF_SUCCESS;
+    return rc;
 }
 
 

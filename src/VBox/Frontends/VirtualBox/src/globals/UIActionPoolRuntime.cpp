@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -27,6 +27,7 @@
 
 /* Qt includes: */
 #include <QActionGroup>
+#include <QApplication>
 
 /* GUI includes: */
 #include "UICommon.h"
@@ -34,6 +35,7 @@
 #include "UIConverter.h"
 #include "UIDesktopWidgetWatchdog.h"
 #include "UIExtraDataManager.h"
+#include "UIGlobalSession.h"
 #include "UIIconPool.h"
 #include "UIShortcutPool.h"
 
@@ -123,7 +125,7 @@ protected:
     }
 
     /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
+    virtual QKeySequence defaultShortcut(UIType) const RT_OVERRIDE
     {
         return QKeySequence("S");
     }
@@ -173,7 +175,7 @@ protected:
     }
 
     /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
+    virtual QKeySequence defaultShortcut(UIType) const RT_OVERRIDE
     {
         return QKeySequence("T");
     }
@@ -223,7 +225,7 @@ protected:
     }
 
     /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
+    virtual QKeySequence defaultShortcut(UIType) const RT_OVERRIDE
     {
         return QKeySequence("N");
     }
@@ -270,12 +272,6 @@ protected:
     virtual QString shortcutExtraDataID() const RT_OVERRIDE
     {
         return QString("FileManagerDialog");
-    }
-
-    /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
-    {
-        return QKeySequence();
     }
 
     /** Handles translation event. */
@@ -326,7 +322,7 @@ protected:
     }
 
     /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
+    virtual QKeySequence defaultShortcut(UIType) const RT_OVERRIDE
     {
         return QKeySequence("P");
     }
@@ -376,7 +372,7 @@ protected:
     }
 
     /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
+    virtual QKeySequence defaultShortcut(UIType) const RT_OVERRIDE
     {
         return QKeySequence("R");
     }
@@ -514,7 +510,7 @@ protected:
     }
 
     /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
+    virtual QKeySequence defaultShortcut(UIType) const RT_OVERRIDE
     {
 #ifdef VBOX_WS_MAC
         return QKeySequence("U");
@@ -730,7 +726,7 @@ protected:
     }
 
     /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
+    virtual QKeySequence defaultShortcut(UIType) const RT_OVERRIDE
     {
         return QKeySequence("F");
     }
@@ -783,7 +779,7 @@ protected:
     }
 
     /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
+    virtual QKeySequence defaultShortcut(UIType) const RT_OVERRIDE
     {
         return QKeySequence("L");
     }
@@ -836,7 +832,7 @@ protected:
     }
 
     /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
+    virtual QKeySequence defaultShortcut(UIType) const RT_OVERRIDE
     {
         return QKeySequence("C");
     }
@@ -887,7 +883,7 @@ protected:
     }
 
     /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
+    virtual QKeySequence defaultShortcut(UIType) const RT_OVERRIDE
     {
         return QKeySequence("M");
     }
@@ -938,7 +934,7 @@ protected:
     }
 
     /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
+    virtual QKeySequence defaultShortcut(UIType) const RT_OVERRIDE
     {
         return QKeySequence("A");
     }
@@ -1035,7 +1031,7 @@ protected:
     }
 
     /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
+    virtual QKeySequence defaultShortcut(UIType) const RT_OVERRIDE
     {
         return QKeySequence("E");
     }
@@ -1680,7 +1676,7 @@ protected:
     }
 
     /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
+    virtual QKeySequence defaultShortcut(UIType) const RT_OVERRIDE
     {
         return QKeySequence("Del");
     }
@@ -1693,7 +1689,7 @@ protected:
     }
 };
 
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
 /** X11: Simple action extension, used as 'Perform Type CABS' action class. */
 class UIActionSimpleRuntimePerformTypeCABS : public UIActionSimple
 {
@@ -1731,7 +1727,7 @@ protected:
     }
 
     /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
+    virtual QKeySequence defaultShortcut(UIType) const RT_OVERRIDE
     {
         return QKeySequence("Backspace");
     }
@@ -1743,7 +1739,7 @@ protected:
         setStatusTip(QApplication::translate("UIActionPool", "Send the %1 sequence to the virtual machine").arg("Ctrl-Alt-Backspace"));
     }
 };
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
 
 /** Simple action extension, used as 'Perform Type Ctrl Break' action class. */
 class UIActionSimpleRuntimePerformTypeCtrlBreak : public UIActionSimple
@@ -1958,7 +1954,7 @@ protected:
     }
 
     /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
+    virtual QKeySequence defaultShortcut(UIType) const RT_OVERRIDE
     {
 #ifdef VBOX_WS_MAC
         return QKeySequence("Insert");
@@ -2831,7 +2827,7 @@ protected:
     virtual void retranslateUi() RT_OVERRIDE
     {
         setName(QApplication::translate("UIActionPool", "&Upgrade Guest Additions..."));
-        setStatusTip(QApplication::translate("UIActionPool", "Upgrade Guest Additions"));
+        setStatusTip(QApplication::translate("UIActionPool", "Upgrade guest additions"));
     }
 };
 
@@ -3174,7 +3170,7 @@ protected:
 *********************************************************************************************************************************/
 
 UIActionPoolRuntime::UIActionPoolRuntime(bool fTemporary /* = false */)
-    : UIActionPool(UIActionPoolType_Runtime, fTemporary)
+    : UIActionPool(UIType_RuntimeUI, fTemporary)
     , m_cHostScreens(0)
     , m_cGuestScreens(0)
     , m_fGuestSupportsGraphics(false)
@@ -3346,9 +3342,9 @@ void UIActionPoolRuntime::preparePool()
     m_pool[UIActionIndexRT_M_Input_M_Keyboard_S_Settings] = new UIActionSimpleRuntimeShowKeyboardSettings(this);
     m_pool[UIActionIndexRT_M_Input_M_Keyboard_S_SoftKeyboard] = new UIActionSimpleRuntimeShowSoftKeyboard(this);
     m_pool[UIActionIndexRT_M_Input_M_Keyboard_S_TypeCAD] = new UIActionSimpleRuntimePerformTypeCAD(this);
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     m_pool[UIActionIndexRT_M_Input_M_Keyboard_S_TypeCABS] = new UIActionSimpleRuntimePerformTypeCABS(this);
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
     m_pool[UIActionIndexRT_M_Input_M_Keyboard_S_TypeCtrlBreak] = new UIActionSimpleRuntimePerformTypeCtrlBreak(this);
     m_pool[UIActionIndexRT_M_Input_M_Keyboard_S_TypeInsert] = new UIActionSimpleRuntimePerformTypeInsert(this);
     m_pool[UIActionIndexRT_M_Input_M_Keyboard_S_TypePrintScreen] = new UIActionSimpleRuntimePerformTypePrintScreen(this);
@@ -3501,8 +3497,8 @@ void UIActionPoolRuntime::updateConfiguration()
     }
 
     /* Recache extension-pack related action restrictions: */
-    CExtPackManager extPackManager = uiCommon().virtualBox().GetExtensionPackManager();
-    if (!extPackManager.isNull() && !extPackManager.IsExtPackUsable(GUI_ExtPackName))
+    CExtPackManager extPackManager = gpGlobalSession->virtualBox().GetExtensionPackManager();
+    if (extPackManager.isNull() || !extPackManager.IsExtPackUsable(GUI_ExtPackName))
     {
         m_restrictedActionsMenuView[UIActionRestrictionLevel_Base] = (UIExtraDataMetaDefs::RuntimeMenuViewActionType)
             (m_restrictedActionsMenuView[UIActionRestrictionLevel_Base] | UIExtraDataMetaDefs::RuntimeMenuViewActionType_VRDEServer);
@@ -3600,7 +3596,7 @@ void UIActionPoolRuntime::updateShortcuts()
     UIActionPool::updateShortcuts();
     /* Create temporary Manager UI pool to do the same: */
     if (!isTemporary())
-        UIActionPool::createTemporary(UIActionPoolType_Manager);
+        UIActionPool::createTemporary(UIType_ManagerUI);
 }
 
 void UIActionPoolRuntime::sltHandleConfigurationChange(const QUuid &uMachineID)
@@ -4235,7 +4231,7 @@ void UIActionPoolRuntime::updateMenuInputKeyboard()
 
     /* 'Type CAD' action: */
     fSeparator = addAction(pMenu, action(UIActionIndexRT_M_Input_M_Keyboard_S_TypeCAD)) || fSeparator;
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     /* 'Type CABS' action: */
     fSeparator = addAction(pMenu, action(UIActionIndexRT_M_Input_M_Keyboard_S_TypeCABS)) || fSeparator;
 #endif

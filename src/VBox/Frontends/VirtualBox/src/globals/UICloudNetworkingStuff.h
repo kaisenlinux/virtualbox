@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2020-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2020-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -36,7 +36,6 @@
 #include "UINotificationCenter.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CCloudClient.h"
 #include "CCloudMachine.h"
 #include "CCloudProfile.h"
@@ -183,6 +182,18 @@ namespace UICloudNetworkingStuff
     SHARED_LIBRARY_STUFF bool applyCloudMachineSettingsForm(const CCloudMachine &comCloudMachine,
                                                             const CForm &comForm,
                                                             UINotificationCenter *pParent);
+
+    /** Creates cloud machine clone.
+      * @param  strProviderShortName  Brings short provider name.
+      * @param  strProfileName        Brings profile name.
+      * @param  comCloudMachine       Brings cloud machine instance of which being cloned.
+      * @param  strCloneName          Brings clone name.
+      * @param  pParent               Brings notification-center reference. */
+    SHARED_LIBRARY_STUFF void createCloudMachineClone(const QString &strProviderShortName,
+                                                      const QString &strProfileName,
+                                                      const CCloudMachine &comCloudMachine,
+                                                      const QString &strCloneName,
+                                                      UINotificationCenter *pParent);
 }
 
 /* Using across any module who included us: */

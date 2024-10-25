@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2014-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2014-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -59,7 +59,7 @@ static int gimR0HvPageAllocZ(PRTR0MEMOBJ pMemObj, PRTR0PTR ppVirt, PRTHCPHYS pHC
     AssertPtr(ppVirt);
     AssertPtr(pHCPhys);
 
-    int rc = RTR0MemObjAllocCont(pMemObj, HOST_PAGE_SIZE, false /* fExecutable */);
+    int rc = RTR0MemObjAllocCont(pMemObj, HOST_PAGE_SIZE, NIL_RTHCPHYS /*PhysHighest*/, false /* fExecutable */);
     if (RT_FAILURE(rc))
         return rc;
     *ppVirt  = RTR0MemObjAddress(*pMemObj);

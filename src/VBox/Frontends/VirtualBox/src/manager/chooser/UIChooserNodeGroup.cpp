@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -30,6 +30,7 @@
 #include "UIChooserNodeGroup.h"
 #include "UIChooserNodeGlobal.h"
 #include "UIChooserNodeMachine.h"
+#include "UITranslationEventListener.h"
 
 /* Other VBox includes: */
 #include "iprt/assert.h"
@@ -52,7 +53,9 @@ UIChooserNodeGroup::UIChooserNodeGroup(UIChooserNode *pParent,
         parentNode()->addNode(this, iPosition);
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIChooserNodeGroup::sltRetranslateUI);
 }
 
 UIChooserNodeGroup::UIChooserNodeGroup(UIChooserNode *pParent,
@@ -72,7 +75,9 @@ UIChooserNodeGroup::UIChooserNodeGroup(UIChooserNode *pParent,
     copyContents(pCopyFrom);
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIChooserNodeGroup::sltRetranslateUI);
 }
 
 UIChooserNodeGroup::~UIChooserNodeGroup()
@@ -172,9 +177,9 @@ void UIChooserNodeGroup::addNode(UIChooserNode *pNode, int iPosition)
 {
     switch (pNode->type())
     {
-        case UIChooserNodeType_Group:   m_nodesGroup.insert(iPosition == -1 ? m_nodesGroup.size() : iPosition, pNode); return;
-        case UIChooserNodeType_Global:  m_nodesGlobal.insert(iPosition == -1 ? m_nodesGlobal.size() : iPosition, pNode); return;
-        case UIChooserNodeType_Machine: m_nodesMachine.insert(iPosition == -1 ? m_nodesMachine.size() : iPosition, pNode); return;
+        case UIChooserNodeType_Group:   m_nodesGroup.insert(iPosition < 0 || iPosition > m_nodesGroup.size() ? m_nodesGroup.size() : iPosition, pNode); return;
+        case UIChooserNodeType_Global:  m_nodesGlobal.insert(iPosition < 0 || iPosition > m_nodesGlobal.size() ? m_nodesGlobal.size() : iPosition, pNode); return;
+        case UIChooserNodeType_Machine: m_nodesMachine.insert(iPosition < 0 || iPosition > m_nodesMachine.size() ? m_nodesMachine.size() : iPosition, pNode); return;
         default: break;
     }
     AssertFailedReturnVoid();
@@ -310,7 +315,7 @@ QUuid UIChooserNodeGroup::id() const
     return m_uId;
 }
 
-void UIChooserNodeGroup::retranslateUi()
+void UIChooserNodeGroup::sltRetranslateUI()
 {
     /* Update group-item: */
     if (item())

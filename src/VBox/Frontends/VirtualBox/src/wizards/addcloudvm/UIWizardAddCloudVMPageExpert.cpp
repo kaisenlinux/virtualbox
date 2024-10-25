@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,19 +26,20 @@
  */
 
 /* Qt includes: */
+#include <QComboBox>
+#include <QGridLayout>
 #include <QHBoxLayout>
 #include <QHeaderView>
-#include <QListWidget>
+#include <QLabel>
 #include <QPushButton>
 #include <QTableWidget>
 #include <QVBoxLayout>
 
 /* GUI includes: */
-#include "QIComboBox.h"
+#include "QIListWidget.h"
 #include "QIToolButton.h"
 #include "UICloudNetworkingStuff.h"
 #include "UIIconPool.h"
-#include "UIToolBox.h"
 #include "UIVirtualBoxEventHandler.h"
 #include "UIVirtualBoxManager.h"
 #include "UIWizardAddCloudVM.h"
@@ -49,7 +50,7 @@ using namespace UIWizardAddCloudVMSource;
 
 
 UIWizardAddCloudVMPageExpert::UIWizardAddCloudVMPageExpert()
-    : m_pToolBox(0)
+    : m_pLayoutProvider(0)
     , m_pProviderLabel(0)
     , m_pProviderComboBox(0)
     , m_pProfileLabel(0)
@@ -58,89 +59,87 @@ UIWizardAddCloudVMPageExpert::UIWizardAddCloudVMPageExpert()
     , m_pSourceInstanceLabel(0)
     , m_pSourceInstanceList(0)
 {
-    /* Prepare main layout: */
-    QVBoxLayout *pLayoutMain = new QVBoxLayout(this);
-    if (pLayoutMain)
+    /* Prepare provider layout: */
+    m_pLayoutProvider = new QGridLayout(this);
+    if (m_pLayoutProvider)
     {
-        /* Prepare tool-box: */
-        m_pToolBox = new UIToolBox(this);
-        if (m_pToolBox)
+        m_pLayoutProvider->setContentsMargins(0, 0, 0, 0);
+        m_pLayoutProvider->setColumnStretch(0, 0);
+        m_pLayoutProvider->setColumnStretch(1, 1);
+        m_pLayoutProvider->setRowStretch(2, 0);
+        m_pLayoutProvider->setRowStretch(3, 1);
+
+        /* Prepare provider label: */
+        m_pProviderLabel = new QLabel(this);
+        if (m_pProviderLabel)
+            m_pLayoutProvider->addWidget(m_pProviderLabel, 0, 0, Qt::AlignRight);
+
+        /* Prepare provider combo-box: */
+        m_pProviderComboBox = new QComboBox(this);
+        if (m_pProviderComboBox)
         {
-            /* Prepare location widget: */
-            QWidget *pWidgetLocation = new QWidget(m_pToolBox);
-            if (pWidgetLocation)
+            m_pProviderLabel->setBuddy(m_pProviderComboBox);
+            m_pLayoutProvider->addWidget(m_pProviderComboBox, 0, 1);
+        }
+
+        /* Prepare profile label: */
+        m_pProfileLabel = new QLabel(this);
+        if (m_pProfileLabel)
+            m_pLayoutProvider->addWidget(m_pProfileLabel, 1, 0, Qt::AlignRight);
+
+        /* Prepare profile layout: */
+        QHBoxLayout *pLayoutProfile = new QHBoxLayout;
+        if (pLayoutProfile)
+        {
+            pLayoutProfile->setContentsMargins(0, 0, 0, 0);
+            pLayoutProfile->setSpacing(1);
+
+            /* Prepare profile combo-box: */
+            m_pProfileComboBox = new QComboBox(this);
+            if (m_pProfileComboBox)
             {
-                /* Prepare location layout: */
-                QVBoxLayout *pLayoutLocation = new QVBoxLayout(pWidgetLocation);
-                if (pLayoutLocation)
-                {
-                    pLayoutLocation->setContentsMargins(0, 0, 0, 0);
-
-                    /* Prepare provider combo-box: */
-                    m_pProviderComboBox = new QIComboBox(pWidgetLocation);
-                    if (m_pProviderComboBox)
-                        pLayoutLocation->addWidget(m_pProviderComboBox);
-
-                    /* Prepare profile layout: */
-                    QHBoxLayout *pLayoutProfile = new QHBoxLayout;
-                    if (pLayoutProfile)
-                    {
-                        pLayoutProfile->setContentsMargins(0, 0, 0, 0);
-                        pLayoutProfile->setSpacing(1);
-
-                        /* Prepare profile combo-box: */
-                        m_pProfileComboBox = new QIComboBox(pWidgetLocation);
-                        if (m_pProfileComboBox)
-                            pLayoutProfile->addWidget(m_pProfileComboBox);
-
-                        /* Prepare profile tool-button: */
-                        m_pProfileToolButton = new QIToolButton(pWidgetLocation);
-                        if (m_pProfileToolButton)
-                        {
-                            m_pProfileToolButton->setIcon(UIIconPool::iconSet(":/cloud_profile_manager_16px.png",
-                                                                              ":/cloud_profile_manager_disabled_16px.png"));
-                            pLayoutProfile->addWidget(m_pProfileToolButton);
-                        }
-
-                        /* Add into layout: */
-                        pLayoutLocation->addLayout(pLayoutProfile);
-                    }
-                }
-
-                /* Add into tool-box: */
-                m_pToolBox->insertPage(0, pWidgetLocation, QString());
+                m_pProfileLabel->setBuddy(m_pProfileComboBox);
+                pLayoutProfile->addWidget(m_pProfileComboBox);
             }
 
-            /* Prepare source widget: */
-            QWidget *pWidgetSource = new QWidget(m_pToolBox);
-            if (pWidgetSource)
+            /* Prepare profile tool-button: */
+            m_pProfileToolButton = new QIToolButton(this);
+            if (m_pProfileToolButton)
             {
-                /* Prepare source layout: */
-                QVBoxLayout *pLayoutSource = new QVBoxLayout(pWidgetSource);
-                if (pLayoutSource)
-                {
-                    pLayoutSource->setContentsMargins(0, 0, 0, 0);
-
-                    /* Prepare source instances table: */
-                    m_pSourceInstanceList = new QListWidget(pWidgetSource);
-                    if (m_pSourceInstanceList)
-                    {
-                        /* A bit of look&feel: */
-                        m_pSourceInstanceList->setAlternatingRowColors(true);
-                        /* Allow to select more than one item to add: */
-                        m_pSourceInstanceList->setSelectionMode(QAbstractItemView::ExtendedSelection);
-
-                        /* Add into layout: */
-                        pLayoutSource->addWidget(m_pSourceInstanceList);
-                    }
-                }
-
-                /* Add into tool-box: */
-                m_pToolBox->insertPage(1, pWidgetSource, QString());
+                m_pProfileToolButton->setIcon(UIIconPool::iconSet(":/cloud_profile_manager_16px.png",
+                                                                  ":/cloud_profile_manager_disabled_16px.png"));
+                pLayoutProfile->addWidget(m_pProfileToolButton);
             }
 
             /* Add into layout: */
-            pLayoutMain->addWidget(m_pToolBox);
+            m_pLayoutProvider->addLayout(pLayoutProfile, 1, 1);
+        }
+
+        /* Prepare source instance label: */
+        m_pSourceInstanceLabel = new QLabel(this);
+        if (m_pSourceInstanceLabel)
+            m_pLayoutProvider->addWidget(m_pSourceInstanceLabel, 2, 0, Qt::AlignRight);
+
+        /* Prepare source instances table: */
+        m_pSourceInstanceList = new QIListWidget(this);
+        if (m_pSourceInstanceList)
+        {
+            m_pSourceInstanceLabel->setBuddy(m_pSourceInstanceLabel);
+            /* Make source image list fit 50 symbols
+             * horizontally and 8 lines vertically: */
+            const QFontMetrics fm(m_pSourceInstanceList->font());
+            const int iFontWidth = fm.horizontalAdvance('x');
+            const int iTotalWidth = 50 * iFontWidth;
+            const int iFontHeight = fm.height();
+            const int iTotalHeight = 8 * iFontHeight;
+            m_pSourceInstanceList->setMinimumSize(QSize(iTotalWidth, iTotalHeight));
+            /* A bit of look&feel: */
+            m_pSourceInstanceList->setAlternatingRowColors(true);
+            /* Allow to select more than one item to add: */
+            m_pSourceInstanceList->setSelectionMode(QAbstractItemView::ExtendedSelection);
+
+            /* Add into layout: */
+            m_pLayoutProvider->addWidget(m_pSourceInstanceList, 2, 1, 2, 1);
         }
     }
 
@@ -149,13 +148,13 @@ UIWizardAddCloudVMPageExpert::UIWizardAddCloudVMPageExpert()
             this, &UIWizardAddCloudVMPageExpert::sltHandleProviderComboChange);
     connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigCloudProfileChanged,
             this, &UIWizardAddCloudVMPageExpert::sltHandleProviderComboChange);
-    connect(m_pProviderComboBox, &QIComboBox::activated,
+    connect(m_pProviderComboBox, &QComboBox::activated,
             this, &UIWizardAddCloudVMPageExpert::sltHandleProviderComboChange);
-    connect(m_pProfileComboBox, static_cast<void(QIComboBox::*)(int)>(&QIComboBox::currentIndexChanged),
+    connect(m_pProfileComboBox, &QComboBox::currentIndexChanged,
             this, &UIWizardAddCloudVMPageExpert::sltHandleProfileComboChange);
     connect(m_pProfileToolButton, &QIToolButton::clicked,
             this, &UIWizardAddCloudVMPageExpert::sltHandleProfileButtonClick);
-    connect(m_pSourceInstanceList, &QListWidget::itemSelectionChanged,
+    connect(m_pSourceInstanceList, &QIListWidget::itemSelectionChanged,
             this, &UIWizardAddCloudVMPageExpert::sltHandleSourceInstanceChange);
 }
 
@@ -164,40 +163,44 @@ UIWizardAddCloudVM *UIWizardAddCloudVMPageExpert::wizard() const
     return qobject_cast<UIWizardAddCloudVM*>(UINativeWizardPage::wizard());
 }
 
-void UIWizardAddCloudVMPageExpert::retranslateUi()
+void UIWizardAddCloudVMPageExpert::sltRetranslateUI()
 {
-    /* Translate tool-box: */
-    if (m_pToolBox)
+    /* Translate provider label: */
+    if (m_pProviderLabel)
+        m_pProviderLabel->setText(UIWizardAddCloudVM::tr("&Provider:"));
+    /* Translate received values of Provider combo-box.
+     * We are enumerating starting from 0 for simplicity: */
+    if (m_pProviderComboBox)
     {
-        m_pToolBox->setPageTitle(0, UIWizardAddCloudVM::tr("Location"));
-        m_pToolBox->setPageTitle(1, UIWizardAddCloudVM::tr("Source"));
+        m_pProviderComboBox->setToolTip(UIWizardAddCloudVM::tr("Selects cloud service provider."));
+        for (int i = 0; i < m_pProviderComboBox->count(); ++i)
+            m_pProviderComboBox->setItemText(i, m_pProviderComboBox->itemData(i, ProviderData_Name).toString());
     }
 
     /* Translate profile stuff: */
+    if (m_pProfileLabel)
+        m_pProfileLabel->setText(UIWizardAddCloudVM::tr("P&rofile:"));
+    if (m_pProfileComboBox)
+        m_pProfileComboBox->setToolTip(UIWizardAddCloudVM::tr("Selects cloud profile."));
     if (m_pProfileToolButton)
-        m_pProfileToolButton->setToolTip(UIWizardAddCloudVM::tr("Open Cloud Profile Manager..."));
+    {
+        m_pProfileToolButton->setText(UIWizardAddCloudVM::tr("Cloud Profile Manager"));
+        m_pProfileToolButton->setToolTip(UIWizardAddCloudVM::tr("Opens cloud profile manager..."));
+    }
 
-    /* Translate received values of Source combo-box.
-     * We are enumerating starting from 0 for simplicity: */
-    if (m_pProviderComboBox)
-        for (int i = 0; i < m_pProviderComboBox->count(); ++i)
-        {
-            m_pProviderComboBox->setItemText(i, m_pProviderComboBox->itemData(i, ProviderData_Name).toString());
-            m_pProviderComboBox->setItemData(i, UIWizardAddCloudVM::tr("Add VM from cloud service provider."), Qt::ToolTipRole);
-        }
-
-    /* Update tool-tips: */
-    updateComboToolTip(m_pProviderComboBox);
+    /* Translate instances stuff: */
+    if (m_pSourceInstanceLabel)
+        m_pSourceInstanceLabel->setText(UIWizardAddCloudVM::tr("&Instances:"));
+    if (m_pSourceInstanceList)
+        m_pSourceInstanceList->setWhatsThis(UIWizardAddCloudVM::tr("Lists all the cloud VM instances."));
 }
 
 void UIWizardAddCloudVMPageExpert::initializePage()
 {
-    /* Choose 1st tool to be chosen initially: */
-    m_pToolBox->setCurrentPage(0);
     /* Populate providers: */
     populateProviders(m_pProviderComboBox, wizard()->notificationCenter());
     /* Translate providers: */
-    retranslateUi();
+    sltRetranslateUI();
     /* Fetch it, asynchronously: */
     QMetaObject::invokeMethod(this, "sltHandleProviderComboChange", Qt::QueuedConnection);
     /* Make image list focused by default: */
@@ -232,9 +235,6 @@ bool UIWizardAddCloudVMPageExpert::validatePage()
 
 void UIWizardAddCloudVMPageExpert::sltHandleProviderComboChange()
 {
-    /* Update combo tool-tip: */
-    updateComboToolTip(m_pProviderComboBox);
-
     /* Update wizard fields: */
     wizard()->setProviderShortName(m_pProviderComboBox->currentData(ProviderData_ShortName).toString());
 
@@ -253,9 +253,7 @@ void UIWizardAddCloudVMPageExpert::sltHandleProfileComboChange()
     wizard()->setClient(cloudClientByName(wizard()->providerShortName(), wizard()->profileName(), wizard()->notificationCenter()));
 
     /* Update profile instances: */
-    wizard()->wizardButton(WizardButtonType_Expert)->setEnabled(false);
     populateProfileInstances(m_pSourceInstanceList, wizard()->notificationCenter(), wizard()->client());
-    wizard()->wizardButton(WizardButtonType_Expert)->setEnabled(true);
     sltHandleSourceInstanceChange();
 
     /* Notify about changes: */

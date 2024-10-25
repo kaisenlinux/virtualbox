@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -345,7 +345,7 @@ static int splitFile(const char *pcszOutDir, const char *pcszContent, FILE *pFil
         free(pszFilename);
 
         pcszSearch = pcszEnd;
-    } while (rc == 0 && pcszSearch);
+    } while (rc == 0);
 
     printf("filesplitter: Out of %lu files: %lu rewritten, %lu unchanged. (%s)\n",
            cFilesWritten + cFilesUnchanged, cFilesWritten, cFilesUnchanged, pcszOutDir);

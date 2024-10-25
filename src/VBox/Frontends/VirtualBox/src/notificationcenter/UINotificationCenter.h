@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2021-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2021-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -34,11 +34,11 @@
 /* Qt includes: */
 #include <QEventLoop>
 #include <QPointer>
+#include <QMap>
 #include <QUuid>
 #include <QWidget>
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
 #include "UILibraryDefs.h"
 #include "UINotificationObjects.h"
 
@@ -51,9 +51,10 @@ class QVBoxLayout;
 class QIToolButton;
 class UINotificationModel;
 class UINotificationObject;
+class UINotificationObjectItem;
 
 /** QWidget-based notification-center overlay. */
-class SHARED_LIBRARY_STUFF UINotificationCenter : public QIWithRetranslateUI<QWidget>
+class SHARED_LIBRARY_STUFF UINotificationCenter : public QWidget
 {
     Q_OBJECT;
     Q_PROPERTY(int animatedValue READ animatedValue WRITE setAnimatedValue);
@@ -64,6 +65,9 @@ signals:
     void sigOpen();
     /** Requests sliding state-machine to close overlay. */
     void sigClose();
+
+    /** Notifies listener about all operations aborted. */
+    void sigOperationsAborted();
 
 public:
 
@@ -77,7 +81,7 @@ public:
     /** Constructs notification-center passing @a pParent to the base-class. */
     UINotificationCenter(QWidget *pParent);
     /** Destructs notification-center. */
-    virtual ~UINotificationCenter() /* override final */;
+    virtual ~UINotificationCenter() RT_OVERRIDE RT_FINAL;
 
     /** Defines notification-center @a pParent. */
     void setParent(QWidget *pParent);
@@ -93,20 +97,21 @@ public:
     /** Immediately and synchronously handles passed notification @a pProgress.
       * @note It's a blocking call finished by sltHandleProgressFinished(). */
     bool handleNow(UINotificationProgress *pProgress);
+    /** Returns whether center has blocking operation. */
+    bool hasOperationsPending() const;
+    /** Aborts blocking operations being performed. */
+    void abortOperations();
 
 protected:
 
-    /** Handles translation event. */
-    virtual void retranslateUi() /* override final */;
-
     /** Preprocesses any Qt @a pEvent for passed @a pObject. */
-    virtual bool eventFilter(QObject *pObject, QEvent *pEvent) /* override final */;
+    virtual bool eventFilter(QObject *pObject, QEvent *pEvent) RT_OVERRIDE RT_FINAL;
 
     /** Handles any Qt @a pEvent. */
-    virtual bool event(QEvent *pEvent) /* override final */;
+    virtual bool event(QEvent *pEvent) RT_OVERRIDE RT_FINAL;
 
     /** Handles paint @a pEvent. */
-    virtual void paintEvent(QPaintEvent *pEvent) /* override final */;
+    virtual void paintEvent(QPaintEvent *pEvent) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -142,6 +147,9 @@ private slots:
       * @note Breaks blocking handleNow() call. */
     void sltHandleProgressFinished();
 
+    /** Handles translation event. */
+    void sltRetranslateUI();
+
 private:
 
     /** Prepares everything. */
@@ -154,6 +162,10 @@ private:
     void prepareStateMachineSliding();
     /** Prepares open-timer. */
     void prepareOpenTimer();
+    /** Cleanups model. */
+    void cleanupModel();
+    /** Cleanups items. */
+    void cleanupItems();
     /** Cleanups everything. */
     void cleanup();
 
@@ -201,7 +213,7 @@ private:
     QVBoxLayout  *m_pLayoutItems;
 
     /** Holds the map of item instances. */
-    QMap<QUuid, QWidget*>  m_items;
+    QMap<QUuid, UINotificationObjectItem*>  m_items;
 
     /** Holds the sliding state-machine instance. */
     QStateMachine *m_pStateMachineSliding;

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -314,6 +314,10 @@ typedef struct fd_format_t {
 
 /* Note: Low-density disks (160K/180K/320K/360K) use 250 Kbps data rate
  * in 40-track drives, but 300 Kbps in high-capacity 80-track drives.
+ * This is because high-density 5.25" drives rotate at 360 RPM while
+ * other drives spin at 300 RPM.
+ * For that reason, low-density 5.25" aliases for 3.5" drives use 250 Kbps
+ * data rate while the "real" 5.25" versions use 300 Kbps.
  */
 static fd_format_t const fd_formats[] = {
     /* First entry is default format */
@@ -361,12 +365,12 @@ static fd_format_t const fd_formats[] = {
     /* 1.2 MB and low density 3"1/2 floppy 'aliases' */
     { FDRIVE_DRV_144, 15, 80, 1, FDRIVE_RATE_500K,  "1.2 MB 3\"1/2", },
     { FDRIVE_DRV_144, 16, 80, 1, FDRIVE_RATE_500K, "1.28 MB 3\"1/2", },
-    { FDRIVE_DRV_144, 10, 40, 1, FDRIVE_RATE_300K,  "400 kB 3\"1/2", },    /* CP Backup 5.25" DD */
-    { FDRIVE_DRV_144,  9, 40, 1, FDRIVE_RATE_300K,  "360 kB 3\"1/2", },
-    { FDRIVE_DRV_144,  9, 40, 0, FDRIVE_RATE_300K,  "180 kB 3\"1/2", },
-    { FDRIVE_DRV_144,  8, 40, 1, FDRIVE_RATE_300K,  "320 kB 3\"1/2", },
-    { FDRIVE_DRV_144,  8, 40, 0, FDRIVE_RATE_300K,  "160 kB 3\"1/2", },
-    /* For larger than real life floppy images (see DrvBlock.cpp). */
+    { FDRIVE_DRV_144, 10, 40, 1, FDRIVE_RATE_250K,  "400 kB 3\"1/2", },    /* CP Backup 5.25" DD */
+    { FDRIVE_DRV_144,  9, 40, 1, FDRIVE_RATE_250K,  "360 kB 3\"1/2", },
+    { FDRIVE_DRV_144,  9, 40, 0, FDRIVE_RATE_250K,  "180 kB 3\"1/2", },
+    { FDRIVE_DRV_144,  8, 40, 1, FDRIVE_RATE_250K,  "320 kB 3\"1/2", },
+    { FDRIVE_DRV_144,  8, 40, 0, FDRIVE_RATE_250K,  "160 kB 3\"1/2", },
+    /* For larger than real life floppy images (see DrvVD.cpp). */
     /* 15.6 MB fake floppy disk (just need something big). */
     { FDRIVE_DRV_FAKE_15_6,  63, 255, 1, FDRIVE_RATE_1M,   "15.6 MB fake 15.6", },
     { FDRIVE_DRV_FAKE_15_6,  36,  80, 1, FDRIVE_RATE_1M,   "2.88 MB fake 15.6", },
@@ -912,15 +916,22 @@ static inline fdrive_t *drv3(fdctrl_t *fdctrl)
 
 static fdrive_t *get_cur_drv(fdctrl_t *fdctrl)
 {
+#if MAX_FD == 2
+    if (fdctrl->dor & FD_DRV_SELMASK)
+        return drv1(fdctrl);
+
+    return drv0(fdctrl);
+#else
     switch (fdctrl->dor & FD_DRV_SELMASK) {
         case 0: return drv0(fdctrl);
         case 1: return drv1(fdctrl);
-#if MAX_FD == 4
+# if MAX_FD == 4
         case 2: return drv2(fdctrl);
         case 3: return drv3(fdctrl);
-#endif
+# endif
         default: return NULL;
     }
+#endif
 }
 
 /* Status A register : 0x00 (read-only) */
@@ -1281,9 +1292,15 @@ static void fdctrl_start_transfer(fdctrl_t *fdctrl, int direction)
     } else {
         int tmp;
         fdctrl->data_len = 128 << (fdctrl->fifo[5] > 7 ? 7 : fdctrl->fifo[5]);
-        tmp = (fdctrl->fifo[6] - ks + 1);
-        if (fdctrl->fifo[0] & 0x80)
-            tmp += fdctrl->fifo[6];
+        if (fdctrl->fifo[6] >= ks) {
+            /* EOT is beyond the starting sector */
+            tmp = (fdctrl->fifo[6] - ks + 1);
+            if (fdctrl->fifo[0] & 0x80)
+                tmp += fdctrl->fifo[6];
+        } else {
+            /* EOT is below starting sector; keep going until we run out of sectors. */
+            tmp = 255;
+        }
         fdctrl->data_len *= tmp;
     }
     fdctrl->eot = fdctrl->fifo[6];
@@ -2842,7 +2859,7 @@ static DECLCALLBACK(int)  fdcAttach(PPDMDEVINS pDevIns, unsigned iLUN, uint32_t 
     fdctrl_t *fdctrl = PDMDEVINS_2_DATA(pDevIns, fdctrl_t *);
     fdrive_t *drv;
     int rc;
-    LogFlow (("ideDetach: iLUN=%u\n", iLUN));
+    LogFlow (("fdcAttach: iLUN=%u\n", iLUN));
 
     AssertMsgReturn(fFlags & PDM_TACH_FLAGS_NOT_HOT_PLUG,
                     ("The FDC device does not support hotplugging\n"),
@@ -2888,7 +2905,7 @@ static DECLCALLBACK(void) fdcDetach(PPDMDEVINS pDevIns, unsigned iLUN, uint32_t 
 {
     RT_NOREF(fFlags);
     fdctrl_t *pThis = PDMDEVINS_2_DATA(pDevIns, fdctrl_t *);
-    LogFlow (("ideDetach: iLUN=%u\n", iLUN));
+    LogFlow (("fdcDetach: iLUN=%u\n", iLUN));
 
     switch (iLUN)
     {
@@ -3082,7 +3099,7 @@ static DECLCALLBACK(int) fdcConstruct(PPDMDEVINS pDevIns, int iInstance, PCFGMNO
         AssertRCReturn(rc, rc);
     }
     else
-        AssertMsgFailedReturn(("Memory mapped floppy not support by now\n"), VERR_NOT_SUPPORTED);
+        AssertMsgFailedReturn(("Memory mapped floppy not supported\n"), VERR_NOT_SUPPORTED);
 
     /*
      * Register the saved state data unit.

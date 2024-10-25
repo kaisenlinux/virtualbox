@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -77,7 +77,7 @@ static DECLCALLBACK(void) handleVDError(void *pvUser, int vrc, RT_SRC_POS_DECL, 
 static int parseMediumVariant(const char *psz, MediumVariant_T *pMediumVariant)
 {
     int vrc = VINF_SUCCESS;
-    unsigned uMediumVariant = (unsigned)(*pMediumVariant);
+    unsigned uMediumVariant = (unsigned)*pMediumVariant;
     while (psz && *psz && RT_SUCCESS(vrc))
     {
         size_t len;

@@ -4,7 +4,7 @@
 ;
 
 ;
-; Copyright (C) 2007-2023 Oracle and/or its affiliates.
+; Copyright (C) 2007-2024 Oracle and/or its affiliates.
 ;
 ; This file is part of VirtualBox base platform packages, as
 ; available from https://www.virtualbox.org.
@@ -83,8 +83,13 @@ BS3_PROC_BEGIN_CMN Bs3RegCtxRestore, BS3_PBC_HYBRID
 %if TMPL_BITS == 16
         cmp     byte [BS3_DATA16_WRT(g_bBs3CurrentMode)], BS3_MODE_RM
         je      .in_ring0
+        cmp     byte [BS3_DATA16_WRT(g_bBs3CurrentMode)], BS3_MODE_LM16
+        je      .do_syscall_restore_ctx
         test    byte [BS3_DATA16_WRT(g_bBs3CurrentMode)], BS3_MODE_CODE_V86
         jnz     .do_syscall_restore_ctx
+%elif TMPL_BITS == 32
+        cmp     byte [BS3_DATA16_WRT(g_bBs3CurrentMode)], BS3_MODE_LM32
+        je      .do_syscall_restore_ctx
 %endif
         mov     ax, ss
         test    al, 3
@@ -417,7 +422,7 @@ BS3_PROC_BEGIN_CMN Bs3RegCtxRestore, BS3_PBC_HYBRID
         lar     eax, dx
         jnz     .iretq_ok
         test    eax, X86LAR_F_D | X86LAR_F_L
-        jnz     .iretq_ok               ; Returning to a big of long SS needs not extra work.
+        jnz     .iretq_ok               ; Returning to a big or long SS needs not extra work.
 
         lar     eax, word [xBX + BS3REGCTX.cs]
         jnz     .iretq_ok
@@ -425,6 +430,7 @@ BS3_PROC_BEGIN_CMN Bs3RegCtxRestore, BS3_PBC_HYBRID
         jnz     .iretq_ok               ; It doesn't matter when returning to 64-bit code.
 
         ; Convert ss:sp to a flat address.
+        movzx   ecx, cx                 ; 16-bit stacks are 16-bit, so chop the offset down.
         BS3_EXTERN_CMN Bs3SelFar32ToFlat32NoClobber
         call    Bs3SelFar32ToFlat32NoClobber
         mov     rdi, rax

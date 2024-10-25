@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -110,17 +110,19 @@ rtmon_get_defaults(void)
     req.ifp.sdl_len = sizeof(req.ifp);
 #endif
 
+    int rc = 1;
     nsent = write(rtsock, &req, req.rtm.rtm_msglen);
     if (nsent < 0) {
         if (errno == ESRCH) {
             /* there's no default route */
-            return 0;
+            rc = 0;
         }
         else {
             DPRINTF0(("rtmon: failed to send RTM_GET\n"));
-            return -1;
+            rc = -1;
         }
     }
 
-    return 1;
+    close(rtsock);
+    return rc;
 }

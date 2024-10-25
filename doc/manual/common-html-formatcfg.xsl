@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <!--
-    Copyright (C) 2006-2023 Oracle and/or its affiliates.
+    Copyright (C) 2006-2024 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.
@@ -120,62 +120,6 @@
   <xsl:apply-templates select="node()"/>
 </xsl:template>
 
-
-<!-- This is for allow special CSS rules to apply to the refsect stuff. -->
-<xsl:template match="sect2[     @role      = 'not-in-toc']/title
-                   | sect3[     @role      = 'not-in-toc']/title
-                   | sect4[     @role      = 'not-in-toc']/title
-                   | sect5[     @role      = 'not-in-toc']/title
-                   | section[   @role      = 'not-in-toc']/title
-                   | simplesect[@role      = 'not-in-toc']/title
-                   | sect1[     @condition = 'refentry']/title
-                   | sect2[     @condition = 'refentry']/title
-                   | sect1[     starts-with(@condition, 'refsect')]/title
-                   | sect2[     starts-with(@condition, 'refsect')]/title
-                   | sect3[     starts-with(@condition, 'refsect')]/title
-                   | sect4[     starts-with(@condition, 'refsect')]/title
-                   | sect5[     starts-with(@condition, 'refsect')]/title
-                   | section[   starts-with(@condition, 'refsect')]/title
-                   | simplesect[starts-with(@condition, 'refsect')]/title
-" mode="titlepage.mode">
-  <xsl:element name="div">
-    <xsl:attribute name="class">
-      <xsl:value-of select="../@role"/>
-      <xsl:if test="../@role and ../@condition">
-        <xsl:text> </xsl:text>
-      </xsl:if>
-      <xsl:value-of select="../@condition"/>
-    </xsl:attribute>
-    <xsl:apply-imports/>
-  </xsl:element>
-</xsl:template>
-
-<xsl:template match="sect2[     @role      = 'not-in-toc']
-                   | sect3[     @role      = 'not-in-toc']
-                   | sect4[     @role      = 'not-in-toc']
-                   | sect5[     @role      = 'not-in-toc']
-                   | section[   @role      = 'not-in-toc']
-                   | simplesect[@role      = 'not-in-toc']
-                   | sect1[     @condition = 'refentry']
-                   | sect2[     @condition = 'refentry']
-                   | sect1[     starts-with(@condition, 'refsect')]
-                   | sect2[     starts-with(@condition, 'refsect')]
-                   | sect3[     starts-with(@condition, 'refsect')]
-                   | sect4[     starts-with(@condition, 'refsect')]
-                   | sect5[     starts-with(@condition, 'refsect')]
-                   | section[   starts-with(@condition, 'refsect')]
-                   | simplesect[starts-with(@condition, 'refsect')]" >
-  <xsl:element name="div">
-    <xsl:attribute name="class">
-      <xsl:value-of select="@role"/>
-      <xsl:if test="@role and @condition">
-        <xsl:text> </xsl:text>
-      </xsl:if>
-      <xsl:value-of select="@condition"/>
-    </xsl:attribute>
-    <xsl:apply-imports/>
-  </xsl:element>
-</xsl:template>
 
 <!-- To use CSS to correctly insert hanging indent when soft wrapping and
   <sbr>'ing a synopsis, we must place each command in its own <p>.  The default

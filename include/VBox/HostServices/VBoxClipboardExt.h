@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -40,27 +40,65 @@
 #endif
 
 #include <VBox/types.h>
+#include <VBox/GuestHost/SharedClipboard.h>
 #ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS
 # include <VBox/GuestHost/SharedClipboard-transfers.h>
 #endif
 
-#define VBOX_CLIPBOARD_EXT_FN_SET_CALLBACK         (0)
-#define VBOX_CLIPBOARD_EXT_FN_FORMAT_ANNOUNCE      (1)
-#define VBOX_CLIPBOARD_EXT_FN_DATA_READ            (2)
-#define VBOX_CLIPBOARD_EXT_FN_DATA_WRITE           (3)
+/** Sets (or unsets) a clipboard extension callback. */
+#define VBOX_CLIPBOARD_EXT_FN_SET_CALLBACK               (0)
+/** The guest reports clipboard formats to the extension. */
+#define VBOX_CLIPBOARD_EXT_FN_FORMAT_REPORT_TO_HOST      (1)
+/** The clipboard service wants to report formats to the guest. */
+#define VBOX_CLIPBOARD_EXT_FN_FORMAT_REPORT_TO_GUEST     (2)
+/** The clipboard service requests clipboard data from the extension. */
+#define VBOX_CLIPBOARD_EXT_FN_DATA_READ                  (3)
+/** The clipboard service writes clipboard data to the extension. */
+#define VBOX_CLIPBOARD_EXT_FN_DATA_WRITE                 (4)
+/** The clipboard service announces an error to the extension. */
+#define VBOX_CLIPBOARD_EXT_FN_ERROR                      (5)
 
-typedef DECLCALLBACKTYPE(int, FNVRDPCLIPBOARDEXTCALLBACK,(uint32_t u32Function, uint32_t u32Format, void *pvData, uint32_t cbData));
-typedef FNVRDPCLIPBOARDEXTCALLBACK *PFNVRDPCLIPBOARDEXTCALLBACK;
+typedef DECLCALLBACKTYPE(int, FNSHCLEXTCALLBACK,(uint32_t u32Function, uint32_t u32Format, void *pvData, uint32_t cbData));
+typedef FNSHCLEXTCALLBACK *PFNSHCLEXTCALLBACK;
 
+/**
+ * Structure for holding Shared Clipboard service extension parameters.
+ */
 typedef struct _SHCLEXTPARMS
 {
-    uint32_t                        uFormat;
     union
     {
-        void                       *pvData;
-        PFNVRDPCLIPBOARDEXTCALLBACK pfnCallback;
+        /** Reports clipboard formats. */
+        struct
+        {
+            SHCLFORMATS             uFormats;
+        } ReportFormats;
+        /** Reads / writes clipboard data. */
+        struct
+        {
+            SHCLFORMAT              uFormat;
+            void                   *pvData;
+            uint32_t                cbData;
+        } ReadWriteData;
+        /** Sets a read / write callback. */
+        struct
+        {
+            PFNSHCLEXTCALLBACK
+                                    pfnCallback;
+        } SetCallback;
+        /** Reports a clipboard error. */
+        struct
+        {
+            /** Clipboard ID. Optional and can be NULL. */
+            char                   *pszId;
+            /** User friendly error message. */
+            char                   *pszMsg;
+            /** IPRT-style error code. */
+            int                     rc;
+        } Error;
     } u;
-    uint32_t   cbData;
 } SHCLEXTPARMS;
+/** Pointer to Shared Clipboard service extension parameters. */
+typedef SHCLEXTPARMS *PSHCLEXTPARMS;
 
 #endif /* !VBOX_INCLUDED_HostServices_VBoxClipboardExt_h */

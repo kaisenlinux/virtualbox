@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,13 +32,13 @@
 
 /* GUI includes: */
 #include "UIDisplayFeaturesEditor.h"
-#ifdef VBOX_WS_X11
-# include "VBoxUtils-x11.h"
+#ifdef VBOX_WS_NIX
+# include "VBoxUtils-nix.h"
 #endif
 
 
 UIDisplayFeaturesEditor::UIDisplayFeaturesEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent)
     , m_fActivateOnMouseHover(false)
     , m_fDisableHostScreenSaver(false)
     , m_pLabel(0)
@@ -97,7 +97,7 @@ void UIDisplayFeaturesEditor::setMinimumLayoutIndent(int iIndent)
         m_pLayout->setColumnMinimumWidth(0, iIndent);
 }
 
-void UIDisplayFeaturesEditor::retranslateUi()
+void UIDisplayFeaturesEditor::sltRetranslateUI()
 {
     if (m_pLabel)
         m_pLabel->setText(tr("Extended Features:"));
@@ -140,14 +140,14 @@ void UIDisplayFeaturesEditor::prepare()
         /* Prepare 'disable host screen saver' check-box: */
 #if defined(VBOX_WS_WIN)
         m_pCheckBoxDisableHostScreenSaver = new QCheckBox(this);
-#elif defined(VBOX_WS_X11)
-        if (NativeWindowSubsystem::X11CheckDBusScreenSaverServices())
+#elif defined(VBOX_WS_NIX)
+        if (NativeWindowSubsystem::checkDBusScreenSaverServices())
             m_pCheckBoxDisableHostScreenSaver = new QCheckBox(this);
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
         if (m_pCheckBoxDisableHostScreenSaver)
             m_pLayout->addWidget(m_pCheckBoxDisableHostScreenSaver, 1, 1);
     }
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }

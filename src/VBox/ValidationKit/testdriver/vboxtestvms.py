@@ -7,7 +7,7 @@ VirtualBox Test VMs
 
 __copyright__ = \
 """
-Copyright (C) 2010-2023 Oracle and/or its affiliates.
+Copyright (C) 2010-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -36,7 +36,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 # Standard Python imports.
 import copy;
@@ -56,15 +56,16 @@ from testdriver import vboxcon;
 
 
 # All virtualization modes.
-g_asVirtModes      = ['hwvirt', 'hwvirt-np', 'raw',];
-# All virtualization modes except for raw-mode.
-g_asVirtModesNoRaw = ['hwvirt', 'hwvirt-np',];
+g_asVirtModes      = ['hwvirt', 'hwvirt-np', 'raw', 'native-api', 'interpreter', 'recompiler'];
 # Dictionary mapping the virtualization mode mnemonics to a little less cryptic
 # strings used in test descriptions.
 g_dsVirtModeDescs  = {
-    'raw'       : 'Raw-mode',
-    'hwvirt'    : 'HwVirt',
-    'hwvirt-np' : 'NestedPaging'
+    'raw'         : 'Raw-mode',
+    'hwvirt'      : 'HwVirt',
+    'hwvirt-np'   : 'NestedPaging',
+    'native-api'  : 'NativeApi',
+    'interpreter' : 'Interpreter',
+    'recompiler'  : 'Recompiler'
 };
 
 ## @name VM grouping flags
@@ -113,24 +114,26 @@ g_aaNameToDetails = \
     [ 'Windows2008_64', 'Windows2008_64',        g_k64,    1,  64, ['w2k8r2', 'w2k8r2sp[0-9]', 'win2k8r2', 'win2k8r2sp[0-9]']], # max cpus/cores??
     [ 'Windows7',       'Windows7',              g_k32,    1,  32, ['w7',     'w7sp[0-9]', 'win7',]],        # max cpus/cores??
     [ 'Windows7_64',    'Windows7_64',           g_k64,    1,  64, ['w7-64',  'w7sp[0-9]-64', 'win7-64',]],  # max cpus/cores??
-    [ 'Windows2012',    'Windows2012',           g_k64,    1,  64, ['w2k12',  'w2k12sp[0-9]', 'win2k12', 'win2k12sp[0-9]',]], # max cpus/cores??
+    [ 'Windows2012_64', 'Windows2012_64',        g_k64,    1,  64, ['w2k12',  'w2k12sp[0-9]', 'win2k12', 'win2k12sp[0-9]',]], # max cpus/cores??
     [ 'Windows8',       'Windows8',     g_k32 | g_kiNoRaw, 1,  32, ['w8',     'w8sp[0-9]', 'win8',]],        # max cpus/cores??
     [ 'Windows8_64',    'Windows8_64',           g_k64,    1,  64, ['w8-64',  'w8sp[0-9]-64', 'win8-64',]],  # max cpus/cores??
     [ 'Windows81',      'Windows81',    g_k32 | g_kiNoRaw, 1,  32, ['w81',    'w81sp[0-9]', 'win81',]],       # max cpus/cores??
     [ 'Windows81_64',   'Windows81_64',          g_k64,    1,  64, ['w81-64', 'w81sp[0-9]-64', 'win81-64',]], # max cpus/cores??
     [ 'Windows10',      'Windows10',    g_k32 | g_kiNoRaw, 1,  32, ['w10',    'w10sp[0-9]', 'win10',]],       # max cpus/cores??
     [ 'Windows10_64',   'Windows10_64',          g_k64,    1,  64, ['w10-64', 'w10sp[0-9]-64', 'win10-64',]], # max cpus/cores??
-    [ 'Windows2016',    'Windows2016',           g_k64,    1,  64, ['w2k16',  'w2k16sp[0-9]', 'win2k16', 'win2k16sp[0-9]',]], # max cpus/cores??
-    [ 'Windows2019',    'Windows2019',           g_k64,    1,  64, ['w2k19',  'w2k19sp[0-9]', 'win2k19', 'win2k19sp[0-9]',]], # max cpus/cores??
-    [ 'Windows2022',    'Windows2022',           g_k64,    1,  64, ['w2k22',  'w2k22sp[0-9]', 'win2k22', 'win2k22sp[0-9]',]], # max cpus/cores??
-    [ 'Windows11',      'Windows11',             g_k64,    1,  64, ['w11', 'w11-64', 'w11sp[0-9]-64', 'win11', 'win11-64',]], # max cpus/cores??
+    [ 'Windows2016_64', 'Windows2016_64',        g_k64,    1,  64, ['w2k16',  'w2k16sp[0-9]', 'win2k16', 'win2k16sp[0-9]',]], # max cpus/cores??
+    [ 'Windows2019_64', 'Windows2019_64',        g_k64,    1,  64, ['w2k19',  'w2k19sp[0-9]', 'win2k19', 'win2k19sp[0-9]',]], # max cpus/cores??
+    [ 'Windows2022_64', 'Windows2022_64',        g_k64,    1,  64, ['w2k22',  'w2k22sp[0-9]', 'win2k22', 'win2k22sp[0-9]',]], # max cpus/cores??
+    [ 'Windows11_64',   'Windows11_64',          g_k64,    2,  64, ['w11', 'w11-64', 'w11sp[0-9]-64', 'win11', 'win11-64',]], # max cpus/cores??
     [ 'Linux',          'Debian',                g_k32,    1, 256, ['deb[0-9]*', 'debian[0-9]*', ]],
     [ 'Linux_64',       'Debian_64',             g_k64,    1, 256, ['deb[0-9]*-64', 'debian[0-9]*-64', ]],
+    [ 'Linux_arm64',    'Debian_arm64',          g_k64,    1, 256, ['deb[0-9]*-arm64', 'debian[0-9]*-arm64', ]],
     [ 'Linux',          'RedHat',                g_k32,    1, 256, ['rhel',   'rhel[0-9]', 'rhel[0-9]u[0-9]']],
     [ 'Linux',          'Fedora',                g_k32,    1, 256, ['fedora', 'fedora[0-9]*', ]],
     [ 'Linux_64',       'Fedora_64',             g_k64,    1, 256, ['fedora-64', 'fedora[0-9]*-64', ]],
     [ 'Linux',          'Oracle',                g_k32,    1, 256, ['ols[0-9]*', 'oel[0-9]*', ]],
     [ 'Linux_64',       'Oracle_64',             g_k64,    1, 256, ['ols[0-9]*-64', 'oel[0-9]*-64', ]],
+    [ 'Linux_arm64',    'Oracle_arm64',          g_k64,    1, 256, ['ols[0-9]*-arm64', 'oel[0-9]*-arm64', ]],
     [ 'Linux',          'OpenSUSE',              g_k32,    1, 256, ['opensuse[0-9]*', 'suse[0-9]*', ]],
     [ 'Linux_64',       'OpenSUSE_64',           g_k64,    1, 256, ['opensuse[0-9]*-64', 'suse[0-9]*-64', ]],
     [ 'Linux',          'Ubuntu',                g_k32,    1, 256, ['ubuntu[0-9]*', ]],
@@ -141,8 +144,10 @@ g_aaNameToDetails = \
     [ 'Solaris',        'Solaris',               g_k32,    1, 256, ['sol10',  'sol10u[0-9]']],
     [ 'Solaris_64',     'Solaris_64',            g_k64,    1, 256, ['sol10-64', 'sol10u-64[0-9]']],
     [ 'Solaris_64',     'Solaris11_64',          g_k64,    1, 256, ['sol11u1']],
-    [ 'BSD',            'FreeBSD_64',            g_k32_64, 1, 1,   ['bs-.*']], # boot sectors, wanted 64-bit type.
+    [ 'BSD',            'FreeBSD_64',            g_k32_64, 1, 1,   ['bs-.*']],  # boot sectors, wanted 64-bit type.
+    [ 'BSD',            'FreeBSD_64',            g_k32_64, 1, 1,   ['bs3-.*']], # boot sectors, wanted 64-bit type.
     [ 'DOS',            'DOS',                   g_k32,    1, 1,   ['bs-.*']],
+    [ 'DOS',            'DOS',                   g_k32,    1, 1,   ['bs3-.*']],
 ];
 
 
@@ -170,6 +175,15 @@ g_ksParavirtProviderKVM     = 'kvm';
 ## Valid paravirtualization providers.
 g_kasParavirtProviders = ( g_ksParavirtProviderNone, g_ksParavirtProviderDefault, g_ksParavirtProviderLegacy,
                            g_ksParavirtProviderMinimal, g_ksParavirtProviderHyperV, g_ksParavirtProviderKVM );
+
+## @name String constants for platform architectures. The createVMXXX functions depend on these strings.
+## @{
+g_kasPlatformArchitectureX86 = 'x86';
+g_kasPlatformArchitectureARM = 'ARM';
+## @}
+
+## Valid platform architectures.
+g_kasPlatformArchitectures = ( g_kasPlatformArchitectureX86, g_kasPlatformArchitectureARM );
 
 # Mapping for support of paravirtualisation providers per guest OS.
 #g_kdaParavirtProvidersSupported = {
@@ -213,10 +227,13 @@ def _intersects(asSet1, asSet2):
 class BaseTestVm(object):
     """
     Base class for Test VMs.
+
+    Defaults to the x86 platform architecture.
     """
 
     def __init__(self, # pylint: disable=too-many-arguments
                  sVmName,                                   # type: str
+                 sPlatformArchitecture = 'x86',             # type: str
                  fGrouping = 0,                             # type: int
                  oSet = None,                               # type: TestVmSet
                  sKind = None,                              # type: str
@@ -230,6 +247,7 @@ class BaseTestVm(object):
                  ):
         self.oSet                    = oSet                 # type: TestVmSet
         self.sVmName                 = sVmName;
+        self.sPlatformArchitecture   = sPlatformArchitecture;
         self.iGroup                  = iGroup;              # Startup group (for MAC address uniqueness and non-NAT networking).
         self.fGrouping               = fGrouping;
         self.sKind                   = sKind;               # API Guest OS type.
@@ -388,13 +406,14 @@ class BaseTestVm(object):
         Returns Wrapped VM object on success, None on failure.
         """
         return oTestDrv.createTestVmWithDefaults(self.sVmName,
-                                                 iGroup             = self.iGroup,
-                                                 sKind              = self.sKind,
-                                                 eNic0AttachType    = eNic0AttachType,
-                                                 sDvdImage          = sDvdImage,
-                                                 fVmmDevTestingPart = self.fVmmDevTestingPart,
-                                                 fVmmDevTestingMmio = self.fVmmDevTestingMmio,
-                                                 sCom1RawFile       = self.__sCom1RawFile if self.fCom1RawFile else None
+                                                 iGroup                = self.iGroup,
+                                                 sKind                 = self.sKind,
+                                                 sPlatformArchitecture = self.sPlatformArchitecture,
+                                                 eNic0AttachType       = eNic0AttachType,
+                                                 sDvdImage             = sDvdImage,
+                                                 fVmmDevTestingPart    = self.fVmmDevTestingPart,
+                                                 fVmmDevTestingMmio    = self.fVmmDevTestingMmio,
+                                                 sCom1RawFile          = self.__sCom1RawFile if self.fCom1RawFile else None
                                                  );
 
     def _createVmPost(self, oTestDrv, oVM, eNic0AttachType, sDvdImage): # type: (base.testdriver, Any, int, str) -> Any
@@ -420,6 +439,8 @@ class BaseTestVm(object):
             reporter.log('Skipping Shanghai (Zhaoxin) incompatible VM.');
         elif self.isP4Incompatible() and oTestDrv.isHostCpuP4():
             reporter.log('Skipping P4 incompatible VM.');
+        elif self.sPlatformArchitecture == 'ARM' and utils.getHostArch() == 'amd64':
+            reporter.log('Skipping ARM VM on amd64 host');
         else:
             return False;
         return True;
@@ -465,7 +486,7 @@ class BaseTestVm(object):
 
     def getResourceSet(self):
         """
-        Resturns a list of reosurces that the VM needs.
+        Returns a list of resources that the VM needs.
         """
         return [];
 
@@ -531,8 +552,19 @@ class BaseTestVm(object):
                 else:
                     oSession = oTestDrv.openSession(oVM);
                     if oSession is not None:
-                        fRc =         oSession.enableVirtEx(sVirtMode != 'raw');
-                        fRc = fRc and oSession.enableNestedPaging(sVirtMode == 'hwvirt-np');
+                        if oSession.fpApiVer >= 7.1:
+                            adVmExecEngines = {
+                                'hwvirt'                   : vboxcon.VMExecutionEngine_HwVirt,
+                                'hwvirt-np'                : vboxcon.VMExecutionEngine_HwVirt,
+                                'native-api'               : vboxcon.VMExecutionEngine_NativeApi,
+                                'interpreter'              : vboxcon.VMExecutionEngine_Interpreter,
+                                'recompiler'               : vboxcon.VMExecutionEngine_Recompiler,
+                            };
+                            fRc = oSession.setExecutionEngine(adVmExecEngines[sVirtMode]);
+                        else:
+                            fRc = oSession.enableVirtExX86(sVirtMode != 'raw');
+
+                        fRc = fRc and oSession.enableNestedPagingX86(sVirtMode == 'hwvirt-np');
                         fRc = fRc and oSession.setCpuCount(cCpus);
                         if cCpus > 1:
                             fRc = fRc and oSession.enableIoApic(True);
@@ -549,7 +581,7 @@ class BaseTestVm(object):
                             fRc = fRc and oSession.setParavirtProvider(adParavirtProviders[sParavirtMode]);
 
                         fCfg64Bit = self.is64bitRequired() or (self.is64bit() and fHostSupports64bit and sVirtMode != 'raw');
-                        fRc = fRc and oSession.enableLongMode(fCfg64Bit);
+                        fRc = fRc and oSession.enableLongModeX86(fCfg64Bit);
                         if fCfg64Bit: # This is to avoid GUI pedantic warnings in the GUI. Sigh.
                             oOsType = oSession.getOsType();
                             if oOsType is not None:
@@ -584,7 +616,11 @@ class BaseTestVm(object):
 
     def getGuestArch(self):
         """ Same as util.getHostArch. """
-        return 'amd64' if self.sKind.find('_64') >= 0 else 'x86';
+        if self.sKind.find('_arm64') >= 0: return 'arm64';
+        if self.sKind.find('_arm32') >= 0: return 'arm32';
+        if self.sKind.find('_64') >= 0:    return 'amd64';
+
+        return 'x86';
 
     def getGuestOs(self):
         """ Same as util.getHostOs. """
@@ -702,8 +738,12 @@ class BaseTestVm(object):
         if not oTestDrv.isHostCpuAmd():
             return False;
         try:
-            (uMaxExt, _, _, _) = oTestDrv.oVBox.host.getProcessorCPUIDLeaf(0, 0x80000000, 0);
-            (uFamilyModel, _, _, _) = oTestDrv.oVBox.host.getProcessorCPUIDLeaf(0, 0x80000001, 0);
+            if oTestDrv.fpApiVer >= 7.1:
+                (uMaxExt, _, _, _) = oTestDrv.oVBox.host.x86.getProcessorCPUIDLeaf(0, 0x80000000, 0);
+                (uFamilyModel, _, _, _) = oTestDrv.oVBox.host.x86.getProcessorCPUIDLeaf(0, 0x80000001, 0);
+            else:
+                (uMaxExt, _, _, _) = oTestDrv.oVBox.host.getProcessorCPUIDLeaf(0, 0x80000000, 0);
+                (uFamilyModel, _, _, _) = oTestDrv.oVBox.host.getProcessorCPUIDLeaf(0, 0x80000001, 0);
         except:
             reporter.logXcpt();
             return False;
@@ -972,7 +1012,11 @@ class TestVm(object):
                  sChipsetType = 'piix3',                    # type: str
                  sIommuType = 'none',                       # type: str
                  sHddControllerType = 'IDE Controller',     # type: str
-                 sDvdControllerType = 'IDE Controller'      # type: str
+                 sDvdControllerType = 'IDE Controller',     # type: str
+                 sGraphicsControllerType = None,            # type: str
+                 fSecureBoot = False,                       # type: bool
+                 sUefiMokPathPrefix = None,                 # type: str
+                 sPlatformArchitecture = 'x86'              # type: str
                  ):
         self.oSet                    = oSet;
         self.sVmName                 = sVmName;
@@ -987,6 +1031,7 @@ class TestVm(object):
         self.sGuestOsType            = None;
         self.sDvdImage               = None;         # Relative to the testrsrc root.
         self.sDvdControllerType      = sDvdControllerType;
+        self.sGraphicsControllerType = sGraphicsControllerType;
         self.fIoApic                 = fIoApic;
         self.fNstHwVirt              = fNstHwVirt;
         self.fPae                    = fPae;
@@ -999,6 +1044,10 @@ class TestVm(object):
         self.sChipsetType            = sChipsetType;
         self.sIommuType              = sIommuType;
         self.fCom1RawFile            = False;
+
+        self.fSecureBoot             = fSecureBoot;
+        self.sUefiMokPathPrefix      = sUefiMokPathPrefix;
+        self.sPlatformArchitecture   = sPlatformArchitecture;
 
         self.fSnapshotRestoreCurrent = False;        # Whether to restore execution on the current snapshot.
         self.fSkip                   = False;        # All VMs are included in the configured set by default.
@@ -1138,6 +1187,8 @@ class TestVm(object):
         if self.fNstHwVirt and not oTestDrv.hasHostNestedHwVirt():
             reporter.log('Ignoring VM %s (Nested hardware-virtualization not support on this host).' % (self.sVmName,));
             return True;
+        if self.sPlatformArchitecture == 'ARM' and utils.getHostArch() == 'amd64':
+            return True;
         return False;
 
     def createVm(self, oTestDrv, eNic0AttachType = None, sDvdImage = None):
@@ -1197,7 +1248,11 @@ class TestVm(object):
                                      sFirmwareType      = self.sFirmwareType,
                                      sChipsetType       = self.sChipsetType,
                                      sIommuType         = self.sIommuType,
-                                     sCom1RawFile       = self.sCom1RawFile if self.fCom1RawFile else None
+                                     sCom1RawFile       = self.sCom1RawFile if self.fCom1RawFile else None,
+                                     fSecureBoot        = self.fSecureBoot,
+                                     sUefiMokPathPrefix = self.sUefiMokPathPrefix,
+                                     sGraphicsControllerType = self.sGraphicsControllerType,
+                                     sPlatformArchitecture   = self.sPlatformArchitecture
                                      );
 
     def getReconfiguredVm(self, oTestDrv, cCpus, sVirtMode, sParavirtMode = None):
@@ -1223,11 +1278,24 @@ class TestVm(object):
                     fRc = None; # Skip the test.
                 elif self.isP4Incompatible() and oTestDrv.isHostCpuP4():
                     fRc = None; # Skip the test.
+                elif self.sPlatformArchitecture == 'ARM' and utils.getHostArch() == 'amd64':
+                    fRc = None; # Skip the test.
                 else:
                     oSession = oTestDrv.openSession(oVM);
                     if oSession is not None:
-                        fRc =         oSession.enableVirtEx(sVirtMode != 'raw');
-                        fRc = fRc and oSession.enableNestedPaging(sVirtMode == 'hwvirt-np');
+                        if oSession.fpApiVer >= 7.1:
+                            adVmExecEngines = {
+                                'hwvirt'                   : vboxcon.VMExecutionEngine_HwVirt,
+                                'hwvirt-np'                : vboxcon.VMExecutionEngine_HwVirt,
+                                'native-api'               : vboxcon.VMExecutionEngine_NativeApi,
+                                'interpreter'              : vboxcon.VMExecutionEngine_Interpreter,
+                                'recompiler'               : vboxcon.VMExecutionEngine_Recompiler,
+                            };
+                            fRc = oSession.setExecutionEngine(adVmExecEngines[sVirtMode]);
+                        else:
+                            fRc = oSession.enableVirtExX86(sVirtMode != 'raw');
+
+                        fRc = fRc and oSession.enableNestedPagingX86(sVirtMode == 'hwvirt-np');
                         fRc = fRc and oSession.setCpuCount(cCpus);
                         if cCpus > 1:
                             fRc = fRc and oSession.enableIoApic(True);
@@ -1244,7 +1312,7 @@ class TestVm(object):
                             fRc = fRc and oSession.setParavirtProvider(adParavirtProviders[sParavirtMode]);
 
                         fCfg64Bit = self.is64bitRequired() or (self.is64bit() and fHostSupports64bit and sVirtMode != 'raw');
-                        fRc = fRc and oSession.enableLongMode(fCfg64Bit);
+                        fRc = fRc and oSession.enableLongModeX86(fCfg64Bit);
                         if fCfg64Bit: # This is to avoid GUI pedantic warnings in the GUI. Sigh.
                             oOsType = oSession.getOsType();
                             if oOsType is not None:
@@ -1278,7 +1346,11 @@ class TestVm(object):
 
     def getGuestArch(self):
         """ Same as util.getHostArch. """
-        return 'amd64' if self.sKind.find('_64') >= 0 else 'x86';
+        if self.sKind.find('_arm64') >= 0: return 'arm64';
+        if self.sKind.find('_arm32') >= 0: return 'arm32';
+        if self.sKind.find('_64') >= 0:    return 'amd64';
+
+        return 'x86';
 
     def getGuestOs(self):
         """ Same as util.getHostOs. """
@@ -1396,8 +1468,12 @@ class TestVm(object):
         if not oTestDrv.isHostCpuAmd():
             return False;
         try:
-            (uMaxExt, _, _, _) = oTestDrv.oVBox.host.getProcessorCPUIDLeaf(0, 0x80000000, 0);
-            (uFamilyModel, _, _, _) = oTestDrv.oVBox.host.getProcessorCPUIDLeaf(0, 0x80000001, 0);
+            if oTestDrv.fpApiVer >= 7.1:
+                (uMaxExt, _, _, _) = oTestDrv.oVBox.host.x86.getProcessorCPUIDLeaf(0, 0x80000000, 0);
+                (uFamilyModel, _, _, _) = oTestDrv.oVBox.host.x86.getProcessorCPUIDLeaf(0, 0x80000001, 0);
+            else:
+                (uMaxExt, _, _, _) = oTestDrv.oVBox.host.getProcessorCPUIDLeaf(0, 0x80000000, 0);
+                (uFamilyModel, _, _, _) = oTestDrv.oVBox.host.getProcessorCPUIDLeaf(0, 0x80000001, 0);
         except:
             reporter.logXcpt();
             return False;
@@ -1488,6 +1564,7 @@ class AncientTestVm(TestVm):
                  sHddControllerName = 'IDE Controller',     # type: str
                  sDvdControllerName = 'IDE Controller',     # type: str
                  cMBRamMax = None,                          # type: int
+                 sGraphicsControllerType = None             # type: str
                  ):
         TestVm.__init__(self,
                         sVmName,
@@ -1502,7 +1579,8 @@ class AncientTestVm(TestVm):
                         sChipsetType = sChipsetType,
                         sHddControllerType = sHddControllerName,
                         sDvdControllerType = sDvdControllerName,
-                        asParavirtModesSup = (g_ksParavirtProviderNone,)
+                        asParavirtModesSup = (g_ksParavirtProviderNone,),
+                        sGraphicsControllerType = sGraphicsControllerType
                         );
         self.fCom1RawFile = True;
         self.cMBRamMax= cMBRamMax;
@@ -1592,15 +1670,22 @@ class TestVmSet(object):
         reporter.log('      Default: %s  (all)' % (self.getAllVmNames(),));
         reporter.log('  --skip-vms     <vm1[:vm2[:...]]>');
         reporter.log('      Skip the specified VMs when testing.');
+        reporter.log('  --skip-win-vms');
+        reporter.log('      Skips Windows test VMs (accumulative).');
+        reporter.log('  --skip-non-win-vms');
+        reporter.log('      Skips non-Windows test VMs (accumulative).');
         reporter.log('  --snapshot-restore-current');
         reporter.log('      Restores the current snapshot and resumes execution.');
         reporter.log('  --paravirt-modes   <pv1[:pv2[:...]]>');
         reporter.log('      Set of paravirtualized providers (modes) to tests. Intersected with what the test VM supports.');
         reporter.log('      Default is the first PV mode the test VMs support, generally same as "legacy".');
-        reporter.log('  --with-nested-hwvirt-only');
+        reporter.log('  --with-x86-nested-hwvirt-only');
         reporter.log('      Test VMs using nested hardware-virtualization only.');
-        reporter.log('  --without-nested-hwvirt-only');
+        reporter.log('  --without-x86-nested-hwvirt-only');
         reporter.log('      Test VMs not using nested hardware-virtualization only.');
+        reporter.log('  --platform-arch    <architecture>');
+        reporter.log('      Specifies the test VM platform architecture to use.');
+        reporter.log('      Default: x86');
         ## @todo Add more options for controlling individual VMs.
         return True;
 
@@ -1684,6 +1769,18 @@ class TestVmSet(object):
                 else:
                     oTestVm.fSkip = True;
 
+        elif asArgs[iArg] == '--skip-win-vms':
+            asTestVMs = asArgs[iArg].split(':');
+            for oTestVm in self.aoTestVms:
+                if oTestVm.isWindows():
+                    oTestVm.fSkip = True;
+
+        elif asArgs[iArg] == '--skip-non-win-vms':
+            asTestVMs = asArgs[iArg].split(':');
+            for oTestVm in self.aoTestVms:
+                if not oTestVm.isWindows():
+                    oTestVm.fSkip = True;
+
         elif asArgs[iArg] == '--snapshot-restore-current':
             for oTestVm in self.aoTestVms:
                 if oTestVm.fSkip is False:
@@ -1707,15 +1804,30 @@ class TestVmSet(object):
             for oTestVm in self.aoTestVms:
                 oTestVm.asParavirtModesSup = oTestVm.asParavirtModesSupOrg;
 
-        elif asArgs[iArg] == '--with-nested-hwvirt-only':
+        # First is kept for backwards compatibility.
+        elif asArgs[iArg] == '--with-nested-hwvirt-only' \
+        or   asArgs[iArg] == '--with-x86-nested-hwvirt-only':
             for oTestVm in self.aoTestVms:
                 if oTestVm.fNstHwVirt is False:
                     oTestVm.fSkip = True;
 
-        elif asArgs[iArg] == '--without-nested-hwvirt-only':
+        # First is kept for backwards compatibility.
+        elif asArgs[iArg] == '--without-nested-hwvirt-only' \
+        or   asArgs[iArg] == '--without-x86-nested-hwvirt-only':
             for oTestVm in self.aoTestVms:
                 if oTestVm.fNstHwVirt is True:
                     oTestVm.fSkip = True;
+
+        elif asArgs[iArg] == '--platform-arch':
+            iArg += 1;
+            if iArg >= len(asArgs):
+                raise base.InvalidOption('The "--platform-arch" takes a string to specify the platform architecture');
+            sPlatformArchitecture = asArgs[iArg];
+            if sPlatformArchitecture not in g_kasPlatformArchitectures:
+                raise base.InvalidOption('The "--platform-arch" value "%s" is not valid; valid values are: %s'
+                                         % (sPlatformArchitecture, ', '.join(g_kasPlatformArchitectures),));
+            for oTestVm in self.aoTestVms:
+                oTestVm.sPlatformArchitecture = sPlatformArchitecture;
 
         else:
             return iArg;
@@ -1764,23 +1876,92 @@ class TestVmSet(object):
 
         return True;
 
-    def _removeUnsupportedVirtModes(self, oTestDrv):
+    def _removeUnsupportedVirtModes(self, oTestDrv, oVm, asVirtModesWanted):
         """
-        Removes unsupported virtualization modes.
+        Removes unsupported virtualization modes for the given VM.
         """
-        if 'hwvirt' in self.asVirtModes and not oTestDrv.hasHostHwVirt():
-            reporter.log('Hardware assisted virtualization is not available on the host, skipping it.');
-            self.asVirtModes.remove('hwvirt');
 
-        if 'hwvirt-np' in self.asVirtModes and not oTestDrv.hasHostNestedPaging():
-            reporter.log('Nested paging not supported by the host, skipping it.');
-            self.asVirtModes.remove('hwvirt-np');
+        # pylint: disable=line-too-long
+        if oTestDrv.fpApiVer >= 7.1:
+            enmCpuArch = None;
+            if oVm.sPlatformArchitecture == 'x86':
+                if oVm.is64bitRequired():
+                    enmCpuArch = vboxcon.CPUArchitecture_AMD64;
+                else:
+                    enmCpuArch = vboxcon.CPUArchitecture_x86;
+            elif oVm.sPlatformArchitecture == 'ARM':
+                if oVm.is64bitRequired():
+                    enmCpuArch = vboxcon.CPUArchitecture_ARMv8_64;
+                else:
+                    enmCpuArch = vboxcon.CPUArchitecture_ARMv8_32;
 
-        if 'raw' in self.asVirtModes and not oTestDrv.hasRawModeSupport():
-            reporter.log('Raw-mode virtualization is not available in this build (or perhaps for this host), skipping it.');
-            self.asVirtModes.remove('raw');
+            try:
+                #
+                # Get the list of theoretically supported execution engines and then filter
+                # out the ones the host doesn't support.
+                #
+                aenmExecEnginesTmp = oTestDrv.oVBox.systemProperties.getExecutionEnginesForVmCpuArchitecture(enmCpuArch);
 
-        return True;
+                aenmExecEngines = [];
+                for enmExecEngine in aenmExecEnginesTmp:
+                    if oTestDrv.oVBox.host.isExecutionEngineSupported(enmCpuArch, enmExecEngine):
+                        aenmExecEngines.append(enmExecEngine);
+
+                if 'raw' in asVirtModesWanted and not oTestDrv.hasRawModeSupport():
+                    reporter.log('Raw-mode virtualization is not available in this build (or perhaps for this host), skipping it.');
+                    asVirtModesWanted.remove('raw');
+
+                if 'hwvirt' in asVirtModesWanted and not vboxcon.VMExecutionEngine_HwVirt in aenmExecEngines:
+                    reporter.log('Hardware assisted virtualization is not available on the host, skipping it.');
+                    asVirtModesWanted.remove('hwvirt');
+
+                if 'hwvirt-np' in asVirtModesWanted and (   not vboxcon.VMExecutionEngine_HwVirt in aenmExecEngines \
+                                                         or not oTestDrv.hasHostNestedPaging()):
+                    reporter.log('Nested paging not supported by the host, skipping it.');
+                    asVirtModesWanted.remove('hwvirt-np');
+
+                if 'native-api' in asVirtModesWanted and (   not vboxcon.VMExecutionEngine_NativeApi in aenmExecEngines \
+                                                          or not oTestDrv.oVBox.host.isExecutionEngineSupported(enmCpuArch, vboxcon.VMExecutionEngine_NativeApi)):
+                    reporter.log('Native API (aka NEM) virtualization is not available in this build (or perhaps for this host) and VM CPU architecture, skipping it.');
+                    asVirtModesWanted.remove('native-api');
+
+                if 'interpreter' in asVirtModesWanted and not vboxcon.VMExecutionEngine_Interpreter in aenmExecEngines:
+                    reporter.log('IEM interpreter is not available in this build (or perhaps for this host) and VM CPU architecture, skipping it.');
+                    asVirtModesWanted.remove('interpreter');
+
+                if 'recompiler' in asVirtModesWanted and not vboxcon.VMExecutionEngine_Recompiler in aenmExecEngines:
+                    reporter.log('IEM recompiler is not available in this build (or perhaps for this host) and VM CPU architecture, skipping it.');
+                    asVirtModesWanted.remove('recompiler');
+            except:
+                reporter.errorXcpt('failed to query supported execution engines for "%s"' % (oVm.sVmName, ));
+                asVirtModesWanted = [];
+        else:
+            if 'native-api' in asVirtModesWanted:
+                asVirtModesWanted.remove('native-api');
+            if 'interpreter' in asVirtModesWanted:
+                asVirtModesWanted.remove('interpreter');
+            if 'recompiler' in asVirtModesWanted:
+                asVirtModesWanted.remove('recompiler');
+
+            if 'hwvirt' in asVirtModesWanted and not oTestDrv.hasHostHwVirt():
+                reporter.log('Hardware assisted virtualization is not available on the host, skipping it.');
+                asVirtModesWanted.remove('hwvirt');
+
+            # r=aeichner: For 7.0 there is no native API mode to set but NEM gets picked by default on macOS.
+            #             But because the darwin testboxes don't report the hwvirt or hwvirt-np capability anymore (see @bugref{10592})
+            #             this results in no virt mode being supported and all the VMs getting skipped (but the test marked as
+            #             succeeded anyway). In order to keep the default behavior we keep at least hwvirt-np on macOS which will
+            #             make use of NEM automatically and testing with 7.0 continues working.
+            if 'hwvirt-np' in asVirtModesWanted and not oTestDrv.hasHostNestedPaging() and utils.getHostOs() != 'darwin':
+                reporter.log('Nested paging not supported by the host, skipping it.');
+                asVirtModesWanted.remove('hwvirt-np');
+
+            if 'raw' in asVirtModesWanted and not oTestDrv.hasRawModeSupport():
+                reporter.log('Raw-mode virtualization is not available in this build (or perhaps for this host), skipping it.');
+                asVirtModesWanted.remove('raw');
+
+        # pylint: enable=line-too-long
+        return asVirtModesWanted;
 
     def actionExecute(self, oTestDrv, fnCallback): # pylint: disable=too-many-locals
         """
@@ -1794,7 +1975,6 @@ class TestVmSet(object):
         test is skipped.  (True is for success, False is for failure.)
         """
 
-        self._removeUnsupportedVirtModes(oTestDrv);
         cMaxCpus = oTestDrv.getHostCpuCount();
 
         #
@@ -1812,6 +1992,9 @@ class TestVmSet(object):
 
             # Intersect the supported modes and the ones being testing.
             asVirtModesSup = [sMode for sMode in oTestVm.asVirtModesSup if sMode in self.asVirtModes];
+
+            # Filter out what the host doesn't support.
+            asVirtModesSup = self._removeUnsupportedVirtModes(oTestDrv, oTestVm, asVirtModesSup);
 
             # Ditto for CPUs.
             acCpusSup      = [cCpus for cCpus in oTestVm.acCpusSup      if cCpus in self.acCpus];
@@ -1873,7 +2056,7 @@ class TestVmSet(object):
 
                         cTests = cTests + (rc2 is not None);
                         if sParavirtMode is not None:
-                            reporter.testDone(fSkipped = (rc2 is None));
+                            reporter.testDone(fSkipped = rc2 is None);
 
                     reporter.testDone(fSkipped = cTests == cStartTests);
 
@@ -1933,16 +2116,37 @@ class TestVmManager(object):
         TestVm('tst-ol-8_1-64-efi',         kfGrpStdSmoke,        sHd = '6.1/efi/ol-8_1-efi-amd64-2.vdi',
                sKind = 'Oracle_64', acCpusSup = range(1, 33), fIoApic = True, sFirmwareType = 'efi',
                asParavirtModesSup = [g_ksParavirtProviderKVM,]),
-        TestVm('tst-ol-6u2-32',             kfGrpStdSmoke,        sHd = '6.1/ol-6u2-x86.vdi',
+        TestVm('tst-ol-8_1-64-efi-sb',      kfGrpStdSmoke,        sHd = '6.1/efi/ol-8_1-efi-amd64-2.vdi',
+               sKind = 'Oracle_64', acCpusSup = range(1, 33), fIoApic = True, sFirmwareType = 'efi',
+               asParavirtModesSup = [g_ksParavirtProviderKVM,], fSecureBoot = True, sUefiMokPathPrefix = '7.0/mok/vbox-test-MOK'),
+        TestVm('tst-ol-6u10-32',            kfGrpStdSmoke,        sHd = '7.1/ol-6u10-x86.vdi',
                sKind = 'Oracle',    acCpusSup = range(1, 33), fIoApic = True,
                asParavirtModesSup = [g_ksParavirtProviderKVM,]),
+        TestVm('tst-ol-9_2-amd64',          kfGrpStdSmoke,        sHd = '7.1/smoketests/ol-9_2-amd64-txs.vdi',
+               sKind = 'Oracle_64', acCpusSup = range(1, 33), fIoApic = True,
+               asParavirtModesSup = [g_ksParavirtProviderKVM,], sHddControllerType='SATA Controller',
+               sDvdControllerType = 'SATA Controller', sGraphicsControllerType = 'VMSVGA'),
+        # Note: Don't use this image for VBoxService / Guest Control-related tests anymore;
+        #       The distro has a buggy dbus implementation, which crashes often in some dbus watcher functions when being
+        #       invoked by pm_sm_authenticate(). Also, the distro's repositories can't be used either easily anymore due to old
+        #       certificates and/or authentication methods. However, newer versions, such as OL6u9 or u10 should work fine.
+        #TestVm('tst-ol-6u2-32',             kfGrpStdSmoke,        sHd = '6.1/ol-6u2-x86.vdi',
+        #       sKind = 'Oracle',    acCpusSup = range(1, 33), fIoApic = True,
+        #       asParavirtModesSup = [g_ksParavirtProviderKVM,]),
         TestVm('tst-ubuntu-15_10-64-efi',   kfGrpStdSmoke,        sHd = '6.1/efi/ubuntu-15_10-efi-amd64-3.vdi',
                sKind = 'Ubuntu_64', acCpusSup = range(1, 33), fIoApic = True, sFirmwareType = 'efi',
                asParavirtModesSup = [g_ksParavirtProviderKVM,]),
+        # Note: Temporary disabled. Probably too old distro for Secure Boot experiments, insmod fails to
+        #       insert guest modules with ENOPKG (Package not Installed).
+        #TestVm('tst-ubuntu-15_10-64-efi-sb', kfGrpStdSmoke,       sHd = '6.1/efi/ubuntu-15_10-efi-amd64-3.vdi',
+        #       sKind = 'Ubuntu_64', acCpusSup = range(1, 33), fIoApic = True, sFirmwareType = 'efi',
+        #       asParavirtModesSup = [g_ksParavirtProviderKVM,], fSecureBoot = True,
+        #           sUefiMokPathPrefix = '7.0/mok/vbox-test-MOK'),
         # Note: Deprecated / buggy; use the one in the 6.1 folder.
         #TestVm('tst-ubuntu-15_10-64-efi',   kfGrpStdSmoke,        sHd = '4.2/efi/ubuntu-15_10-efi-amd64.vdi',
         #       sKind = 'Ubuntu_64', acCpusSup = range(1, 33), fIoApic = True, sFirmwareType = 'efi',
         #       asParavirtModesSup = [g_ksParavirtProviderKVM,]),
+        # Note: Has ancient Guest Additions 3.0.14 installed already.
         TestVm('tst-rhel5',                 kfGrpSmoke,           sHd = '3.0/tcp/rhel5.vdi',
                sKind = 'RedHat', acCpusSup = range(1, 33), fIoApic = True, sNic0AttachType = 'nat'),
         TestVm('tst-arch',                  kfGrpStandard,        sHd = '4.2/usb/tst-arch.vdi',
@@ -1952,11 +2156,11 @@ class TestVmManager(object):
         #       sKind = 'Ubuntu_64', acCpusSup = range(1, 33), fIoApic = True),
         TestVm('tst-ol76-64',   kfGrpStdSmoke,        sHd = '4.2/ol76/t-ol76-64.vdi',
                sKind = 'Oracle_64', acCpusSup = range(1, 33), fIoApic = True),
-        TestVm('tst-ubuntu-20_04-64-amdvi',     kfGrpStdSmoke,    sHd = '6.1/ubuntu-20_04-64.vdi',
+        TestVm('tst-ubuntu-20_04-64-amdvi',     kfGrpStdSmoke,    sHd = '6.1/ubuntu-20_04-64-updated_by_ksenia.vdi',
                sKind = 'Ubuntu_64', acCpusSup = range(1, 33), fIoApic = True,
                asParavirtModesSup = [g_ksParavirtProviderKVM,], sNic0AttachType = 'nat', sChipsetType = 'ich9',
                sIommuType = 'amd'),
-        TestVm('tst-ubuntu-20_04-64-vtd',     kfGrpStdSmoke,      sHd = '6.1/ubuntu-20_04-64.vdi',
+        TestVm('tst-ubuntu-20_04-64-vtd',     kfGrpStdSmoke,      sHd = '6.1/ubuntu-20_04-64-updated_by_ksenia.vdi',
                sKind = 'Ubuntu_64', acCpusSup = range(1, 33), fIoApic = True,
                asParavirtModesSup = [g_ksParavirtProviderKVM,], sNic0AttachType = 'nat', sChipsetType = 'ich9',
                sIommuType = 'intel'),
@@ -2018,6 +2222,9 @@ class TestVmManager(object):
         # W7
         TestVm('tst-win7',                  kfGrpStdSmoke,        sHd = '6.1/win7-32/t-win7-32-1.vdi',
                sKind = 'Windows7',    acCpusSup = range(1, 33), fIoApic = True),
+        TestVm('tst-win7-64',               kfGrpStdSmoke,        sHd = '7.0/win7-64/win7-64.vdi',
+               sKind = 'Windows7_64', acCpusSup = range(1, 33), fIoApic = True,
+               sHddControllerType = 'SATA Controller'),
         # Note: Deprecated due to activation issues; use t-win7-32-1 instead.
         #TestVm('tst-win7',                  kfGrpStdSmoke,        sHd = '6.1/win7-32/t-win7-32.vdi',
         #       sKind = 'Windows7',    acCpusSup = range(1, 33), fIoApic = True),
@@ -2026,23 +2233,32 @@ class TestVmManager(object):
         #       sKind = 'Windows7', acCpusSup = range(1, 33), fIoApic = True),
 
         # W8
-        TestVm('tst-win8-64',               kfGrpStdSmoke,        sHd = '4.2/win8-64/t-win8-64.vdi',
+        TestVm('tst-win8-64',               kfGrpStdSmoke,        sHd = '4.2/win8-64/t-win8-64-active-admin-acc.vdi',
                sKind = 'Windows8_64', acCpusSup = range(1, 33), fIoApic = True),
         #TestVm('tst-win8-64-ich9',          kfGrpStdSmoke,         sHd = '4.2/win8-64/t-win8-64.vdi',
         #       sKind = 'Windows8_64', acCpusSup = range(1, 33), fIoApic = True, sChipsetType = 'ich9'),
 
         # W10
-        TestVm('tst-win10-efi',             kfGrpStdSmoke,        sHd = '4.2/efi/win10-efi-x86.vdi',
+        TestVm('tst-win10-efi',             kfGrpStdSmoke,        sHd = '4.2/efi/win10-efi-x86-edited2.vdi',
                sKind = 'Windows10', acCpusSup = range(1, 33), fIoApic = True, sFirmwareType = 'efi'),
-        TestVm('tst-win10-64-efi',          kfGrpStdSmoke,        sHd = '4.2/efi/win10-efi-amd64.vdi',
+        TestVm('tst-win10-64-efi',          kfGrpStdSmoke,        sHd = '4.2/efi/t-win10-64-efi-2.vdi',
                sKind = 'Windows10_64', acCpusSup = range(1, 33), fIoApic = True, sFirmwareType = 'efi'),
         #TestVm('tst-win10-64-efi-ich9',     kfGrpStdSmoke,         sHd = '4.2/efi/win10-efi-amd64.vdi',
         #       sKind = 'Windows10_64', acCpusSup = range(1, 33), fIoApic = True, sFirmwareType = 'efi', sChipsetType = 'ich9'),
+
+        # W11
+        TestVm('tst-win11-64-efi',           kfGrpStdSmoke,       sHd = '7.0/win11/t-win11-64-efi-2.vdi',
+               sKind = 'Windows11_64', acCpusSup = range(1, 33), fIoApic = True, sFirmwareType = 'efi',
+               sHddControllerType = 'SATA Controller', sDvdControllerType = 'SATA Controller',
+               sGraphicsControllerType = 'VBoxSVGA', asVirtModesSup = ['hwvirt-np',] ),
 
         # Nested hardware-virtualization
         TestVm('tst-nsthwvirt-ubuntu-64',   kfGrpStdSmoke,       sHd = '5.3/nat/nsthwvirt-ubuntu64/t-nsthwvirt-ubuntu64.vdi',
                sKind = 'Ubuntu_64', acCpusSup = range(1, 2), asVirtModesSup = ['hwvirt-np',], fIoApic = True, fNstHwVirt = True,
                sNic0AttachType = 'nat'),
+        TestVm('tst-nsthwvirt-win10-hv-64', kfGrpStdSmoke,       sHd = '7.1/smoketests/t-nsthwvirt-win10-hv-64.vdi',
+               sKind = 'Windows10_64', acCpusSup = range(1, 2), asVirtModesSup = ['hwvirt-np',], fIoApic = True,
+               fNstHwVirt = True, sNic0AttachType = 'nat', asParavirtModesSup = [g_ksParavirtProviderNone,]),
 
         # Audio testing.
         TestVm('tst-audio-debian10-64',     kfGrpStdSmoke,       sHd = '6.1/audio/debian10-amd64-7.vdi',
@@ -2067,6 +2283,14 @@ class TestVmManager(object):
                       sHd = '5.2/great-old-ones/t-dos71/t-dos71.vdi'),
 
         #AncientTestVm('tst-dos5-win311a',       sKind = 'DOS',  sHd = '5.2/great-old-ones/t-dos5-win311a/t-dos5-win311a.vdi'),
+
+        #
+        # ARM
+        #
+        TestVm('tst-ol-9_2-arm64',          kfGrpStdSmoke,        sHd = '7.1/smoketests/ol-9_2-arm64-txs.vdi',
+               sKind = 'Oracle_arm64', acCpusSup = range(1, 33), sChipsetType = 'armv8virtual', \
+               sHddControllerType='VirtIO SCSI Controller', sDvdControllerType = 'SATA Controller', \
+               sGraphicsControllerType = 'QemuRamFb', sPlatformArchitecture = 'ARM'),
     );
 
 

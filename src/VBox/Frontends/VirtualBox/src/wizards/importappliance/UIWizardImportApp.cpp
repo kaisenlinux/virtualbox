@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -38,6 +38,8 @@
 /* GUI includes: */
 #include "QIDialog.h"
 #include "QIFileDialog.h"
+#include "UICommon.h"
+#include "UIGlobalSession.h"
 #include "UINotificationCenter.h"
 #include "UIWizardImportApp.h"
 #include "UIWizardImportAppPageExpert.h"
@@ -74,7 +76,7 @@ public:
         pMainLayout->addWidget(m_pButtonBox);
 
         /* Translate */
-        retranslateUi();
+        sltRetranslateUI();
 
         /* Setup connections: */
         connect(m_pButtonBox, &QDialogButtonBox::rejected, this, &UIImportLicenseViewer::reject);
@@ -88,7 +90,7 @@ public:
     {
         m_strName = strName;
         m_strText = strText;
-        retranslateUi();
+        sltRetranslateUI();
     }
 
 private slots:
@@ -121,7 +123,7 @@ private slots:
 private:
 
     /* Translation stuff: */
-    void retranslateUi()
+    void sltRetranslateUI()
     {
         /* Translate dialog: */
         setWindowTitle(tr("Software License Agreement"));
@@ -154,7 +156,7 @@ private:
 UIWizardImportApp::UIWizardImportApp(QWidget *pParent,
                                      bool fImportFromOCIByDefault,
                                      const QString &strFileName)
-    : UINativeWizard(pParent, WizardType_ImportAppliance, WizardMode_Auto, "ovf")
+    : UINativeWizard(pParent, WizardType_ImportAppliance, "ovf")
     , m_fImportFromOCIByDefault(fImportFromOCIByDefault)
     , m_strFileName(strFileName)
     , m_fSourceCloudOne(false)
@@ -179,7 +181,7 @@ bool UIWizardImportApp::setFile(const QString &strName)
         return false;
 
     /* Create an appliance object: */
-    CVirtualBox comVBox = uiCommon().virtualBox();
+    CVirtualBox comVBox = gpGlobalSession->virtualBox();
     CAppliance comAppliance = comVBox.CreateAppliance();
     if (!comVBox.isOk())
     {
@@ -288,10 +290,10 @@ void UIWizardImportApp::populatePages()
     }
 }
 
-void UIWizardImportApp::retranslateUi()
+void UIWizardImportApp::sltRetranslateUI()
 {
     /* Call to base-class: */
-    UINativeWizard::retranslateUi();
+    UINativeWizard::sltRetranslateUI();
 
     /* Translate wizard: */
     setWindowTitle(tr("Import Virtual Appliance"));

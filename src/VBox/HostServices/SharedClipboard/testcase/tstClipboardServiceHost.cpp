@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -101,7 +101,9 @@ static void testSetMode(void)
 
     u32Mode = ShClSvcGetMode();
     RTTESTI_CHECK_MSG(u32Mode == VBOX_SHCL_MODE_OFF, ("u32Mode=%u\n", (unsigned) u32Mode));
-    table.pfnUnload(NULL);
+
+    rc = table.pfnUnload(NULL);
+    RTTESTI_CHECK_RC(rc, VINF_SUCCESS);
 }
 
 #ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS
@@ -125,13 +127,16 @@ static void testSetTransferMode(void)
     RTTESTI_CHECK_RC(rc, VERR_INVALID_FLAGS);
 
     /* Enable transfers. */
-    HGCMSvcSetU32(&parms[0], VBOX_SHCL_TRANSFER_MODE_ENABLED);
+    HGCMSvcSetU32(&parms[0], VBOX_SHCL_TRANSFER_MODE_F_ENABLED);
     rc = table.pfnHostCall(NULL, VBOX_SHCL_HOST_FN_SET_TRANSFER_MODE, 1, parms);
     RTTESTI_CHECK_RC(rc, VINF_SUCCESS);
 
     /* Disable transfers again. */
-    HGCMSvcSetU32(&parms[0], VBOX_SHCL_TRANSFER_MODE_DISABLED);
+    HGCMSvcSetU32(&parms[0], VBOX_SHCL_TRANSFER_MODE_F_NONE);
     rc = table.pfnHostCall(NULL, VBOX_SHCL_HOST_FN_SET_TRANSFER_MODE, 1, parms);
+    RTTESTI_CHECK_RC(rc, VINF_SUCCESS);
+
+    rc = table.pfnUnload(NULL);
     RTTESTI_CHECK_RC(rc, VINF_SUCCESS);
 }
 #endif /* VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS */
@@ -139,7 +144,7 @@ static void testSetTransferMode(void)
 /* Adds a host data read request message to the client's message queue. */
 static void testMsgAddReadData(PSHCLCLIENT pClient, SHCLFORMATS fFormats)
 {
-    int rc = ShClSvcGuestDataRequest(pClient, fFormats, NULL /* pidEvent */);
+    int rc = ShClSvcReadDataFromGuestAsync(pClient, fFormats, NULL /* ppEvent */);
     RTTESTI_CHECK_RC_OK(rc);
 }
 
@@ -329,8 +334,6 @@ int ShClBackendWriteData(PSHCLBACKEND, PSHCLCLIENT, PSHCLCLIENTCMDCTX, SHCLFORMA
 int ShClBackendSync(PSHCLBACKEND, PSHCLCLIENT) { return VINF_SUCCESS; }
 
 #ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS
-int ShClBackendTransferCreate(PSHCLBACKEND, PSHCLCLIENT, PSHCLTRANSFER) { return VINF_SUCCESS; }
-int ShClBackendTransferDestroy(PSHCLBACKEND, PSHCLCLIENT, PSHCLTRANSFER) { return VINF_SUCCESS; }
-int ShClBackendTransferGetRoots(PSHCLBACKEND, PSHCLCLIENT, PSHCLTRANSFER) { return VINF_SUCCESS; }
+int ShClBackendTransferHandleStatusReply(PSHCLBACKEND, PSHCLCLIENT, PSHCLTRANSFER, SHCLSOURCE, SHCLTRANSFERSTATUS, int) { return VINF_SUCCESS; }
 #endif /* VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS */
 

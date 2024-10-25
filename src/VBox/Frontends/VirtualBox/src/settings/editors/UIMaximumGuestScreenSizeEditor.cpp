@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -33,7 +33,6 @@
 #include <QSpinBox>
 
 /* GUI includes: */
-#include "UICommon.h"
 #include "UIConverter.h"
 #include "UIMaximumGuestScreenSizeEditor.h"
 
@@ -66,7 +65,7 @@ bool UIMaximumGuestScreenSizeValue::equal(const UIMaximumGuestScreenSizeValue &o
 *********************************************************************************************************************************/
 
 UIMaximumGuestScreenSizeEditor::UIMaximumGuestScreenSizeEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent)
     , m_pLayout(0)
     , m_pLabelPolicy(0)
     , m_pComboPolicy(0)
@@ -128,7 +127,7 @@ void UIMaximumGuestScreenSizeEditor::setMinimumLayoutIndent(int iIndent)
         m_pLayout->setColumnMinimumWidth(0, iIndent);
 }
 
-void UIMaximumGuestScreenSizeEditor::retranslateUi()
+void UIMaximumGuestScreenSizeEditor::sltRetranslateUI()
 {
     if (m_pLabelPolicy)
         m_pLabelPolicy->setText(tr("Maximum Guest Screen &Size:"));
@@ -156,10 +155,6 @@ void UIMaximumGuestScreenSizeEditor::sltHandleCurrentPolicyIndexChanged()
 {
     if (m_pComboPolicy)
     {
-        /* Get current size-combo tool-tip data: */
-        const QString strCurrentComboItemTip = m_pComboPolicy->currentData(Qt::ToolTipRole).toString();
-        m_pComboPolicy->setWhatsThis(strCurrentComboItemTip);
-
         /* Get current size-combo item data: */
         const MaximumGuestScreenSizePolicy enmPolicy = m_pComboPolicy->currentData().value<MaximumGuestScreenSizePolicy>();
         /* Should be combo-level widgets enabled? */
@@ -202,7 +197,7 @@ void UIMaximumGuestScreenSizeEditor::prepare()
         {
             if (m_pLabelPolicy)
                 m_pLabelPolicy->setBuddy(m_pComboPolicy);
-            connect(m_pComboPolicy, static_cast<void(QComboBox::*)(int)>(&QComboBox::activated),
+            connect(m_pComboPolicy, &QComboBox::activated,
                     this, &UIMaximumGuestScreenSizeEditor::sltHandleCurrentPolicyIndexChanged);
 
             m_pLayout->addWidget(m_pComboPolicy, 0, 1);
@@ -251,7 +246,7 @@ void UIMaximumGuestScreenSizeEditor::prepare()
     populateCombo();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIMaximumGuestScreenSizeEditor::populateCombo()
@@ -272,6 +267,6 @@ void UIMaximumGuestScreenSizeEditor::populateCombo()
             m_pComboPolicy->addItem(QString(), QVariant::fromValue(enmType));
 
         /* Retranslate finally: */
-        retranslateUi();
+        sltRetranslateUI();
     }
 }

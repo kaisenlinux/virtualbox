@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -819,7 +819,7 @@ DECLHIDDEN(size_t) rtstrFormatRt(PFNRTSTROUTPUT pfnOutput, void *pvArgOutput, co
                             return rtStrFormatBadPointer(0, pfnOutput, pvArgOutput, cchWidth, fFlags, psz,
                                                          szBuf, RT_STR_TUPLE("!BadFnNm"));
 
-                        while ((ch = *psz) != '\0' && ch != '(')
+                        while ((ch = *psz) != '\0')
                         {
                             if (RT_C_IS_BLANK(ch))
                             {

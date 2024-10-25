@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,16 +26,12 @@
  */
 
 /* Qt includes: */
-#include <qglobal.h>
-#ifdef VBOX_IS_QT6_OR_LATER /* fromWildcard is available since 6.0 */
-# include <QRegularExpression>
-#else
-# include <QRegExp>
-#endif
+#include <QRegularExpression>
 
 /* GUI includes: */
 #include "UIChooserAbstractModel.h"
 #include "UIChooserNodeMachine.h"
+#include "UITranslationEventListener.h"
 #include "UIVirtualMachineItemCloud.h"
 #include "UIVirtualMachineItemLocal.h"
 
@@ -51,7 +47,9 @@ UIChooserNodeMachine::UIChooserNodeMachine(UIChooserNode *pParent,
         parentNode()->addNode(this, iPosition);
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIChooserNodeMachine::sltRetranslateUI);
 }
 
 UIChooserNodeMachine::UIChooserNodeMachine(UIChooserNode *pParent,
@@ -73,7 +71,9 @@ UIChooserNodeMachine::UIChooserNodeMachine(UIChooserNode *pParent,
             static_cast<UIChooserAbstractModel*>(model()), &UIChooserAbstractModel::sltHandleCloudMachineRefreshFinished);
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIChooserNodeMachine::sltRetranslateUI);
 }
 
 UIChooserNodeMachine::UIChooserNodeMachine(UIChooserNode *pParent,
@@ -87,7 +87,9 @@ UIChooserNodeMachine::UIChooserNodeMachine(UIChooserNode *pParent,
         parentNode()->addNode(this, iPosition);
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIChooserNodeMachine::sltRetranslateUI);
 }
 
 UIChooserNodeMachine::UIChooserNodeMachine(UIChooserNode *pParent,
@@ -116,7 +118,9 @@ UIChooserNodeMachine::UIChooserNodeMachine(UIChooserNode *pParent,
         parentNode()->addNode(this, iPosition);
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIChooserNodeMachine::sltRetranslateUI);
 }
 
 UIChooserNodeMachine::~UIChooserNodeMachine()
@@ -240,11 +244,8 @@ void UIChooserNodeMachine::searchForNodes(const QString &strSearchTerm, int iSea
         /* Otherwise check if name contains search term, including wildcards: */
         else
         {
-#ifdef VBOX_IS_QT6_OR_LATER /* fromWildcard is available since 6.0 */
-            QRegularExpression searchRegEx = QRegularExpression::fromWildcard(strSearchTerm, Qt::CaseInsensitive);
-#else
-            QRegExp searchRegEx(strSearchTerm, Qt::CaseInsensitive, QRegExp::WildcardUnix);
-#endif
+            QRegularExpression searchRegEx = QRegularExpression::fromWildcard(strSearchTerm, Qt::CaseInsensitive,
+                                                                              QRegularExpression::UnanchoredWildcardConversion);
             if (name().contains(searchRegEx))
                 matchedItems << this;
         }
@@ -276,7 +277,7 @@ bool UIChooserNodeMachine::accessible() const
     return cache() ? cache()->accessible() : false;
 }
 
-void UIChooserNodeMachine::retranslateUi()
+void UIChooserNodeMachine::sltRetranslateUI()
 {
     /* Update internal stuff: */
     m_strDescription = tr("Virtual Machine");

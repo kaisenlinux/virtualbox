@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -376,6 +376,7 @@ static int dbgcProcessCommands(PDBGC pDbgc, bool fNoExecute)
             {
                 AssertMsgFailed(("The buffer contains no commands while cInputLines=%d!\n", pDbgc->cInputLines));
                 pDbgc->cInputLines = 0;
+                pDbgc->iRead = pDbgc->iWrite;
                 return 0;
             }
 
@@ -876,13 +877,17 @@ static int dbgcProcessEvent(PDBGC pDbgc, PCDBGFEVENT pEvent)
                     else
                         rc = pDbgc->CmdHlp.pfnPrintf(&pDbgc->CmdHlp, NULL, "\ndbgf event/%u: %s!",
                                                      pEvent->idCpu, pEvtDesc->pszName);
-                    if (pEvent->u.Generic.cArgs <= 1)
-                        rc = pDbgc->CmdHlp.pfnPrintf(&pDbgc->CmdHlp, NULL, " arg=%#llx\n", pEvent->u.Generic.auArgs[0]);
-                    else
+                    if (RT_SUCCESS(rc))
                     {
-                        for (uint32_t i = 0; i < pEvent->u.Generic.cArgs; i++)
-                            rc = pDbgc->CmdHlp.pfnPrintf(&pDbgc->CmdHlp, NULL, " args[%u]=%#llx", i, pEvent->u.Generic.auArgs[i]);
-                        rc = pDbgc->CmdHlp.pfnPrintf(&pDbgc->CmdHlp, NULL, "\n");
+                        if (pEvent->u.Generic.cArgs <= 1)
+                            rc = pDbgc->CmdHlp.pfnPrintf(&pDbgc->CmdHlp, NULL, " arg=%#llx\n", pEvent->u.Generic.auArgs[0]);
+                        else
+                        {
+                            for (uint32_t i = 0; i < pEvent->u.Generic.cArgs; i++)
+                                rc = pDbgc->CmdHlp.pfnPrintf(&pDbgc->CmdHlp, NULL, " args[%u]=%#llx", i, pEvent->u.Generic.auArgs[i]);
+                            if (RT_SUCCESS(rc))
+                                rc = pDbgc->CmdHlp.pfnPrintf(&pDbgc->CmdHlp, NULL, "\n");
+                        }
                     }
                 }
                 else

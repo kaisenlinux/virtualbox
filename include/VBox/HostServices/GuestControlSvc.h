@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -40,10 +40,12 @@
 # pragma once
 #endif
 
-#include <VBox/VMMDevCoreTypes.h>
-#include <VBox/VBoxGuestCoreTypes.h>
-#include <VBox/hgcmsvc.h>
 #include <iprt/assert.h>
+#include <VBox/hgcmsvc.h>
+
+#include <VBox/VMMDevCoreTypes.h>
+#include <VBox/GuestHost/GuestControl.h>
+#include <VBox/VBoxGuestCoreTypes.h>
 
 /* Everything defined in this file lives in this namespace. */
 namespace guestControl {
@@ -107,7 +109,8 @@ typedef struct VBOXGUESTCTRLHOSTCBCTX
 
 /**
  * Structure for low level HGCM host callback from
- * the guest. No deep copy. */
+ * the guest. No deep copy.
+ */
 typedef struct VBOXGUESTCTRLHOSTCALLBACK
 {
     /** Number of HGCM parameters. */
@@ -199,11 +202,55 @@ enum eHostMsg
     /**
      * Gets the current file position of an opened guest file.
      */
-    HOST_MSG_FILE_TELL,
+    HOST_MSG_FILE_TELL = 271,
     /**
      * Changes the file size.
      */
-    HOST_MSG_FILE_SET_SIZE,
+    HOST_MSG_FILE_SET_SIZE = 272,
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+    /**
+     * Removes a file on the guest.
+     *
+     * @since 7.1
+     */
+    HOST_MSG_FILE_REMOVE = 273,
+    /**
+     * Opens (creates) a directory on the guest.
+     *
+     * @since 7.1
+     */
+    HOST_MSG_DIR_OPEN = 310,
+    /**
+     * Closes a directory on the guest.
+     *
+     * @since 7.1
+     */
+    HOST_MSG_DIR_CLOSE = 311,
+    /**
+     * Reads the next directory entry on the guest.
+     *
+     * @since 7.1
+     */
+    HOST_MSG_DIR_READ = 312,
+    /**
+     * Rewinds and restarts the directory reading on the guest.
+     *
+     * @since 7.1
+     */
+    HOST_MSG_DIR_REWIND = 313,
+    /**
+     * Creates a directory on the guest.
+     *
+     * @since 7.1
+     */
+    HOST_MSG_DIR_CREATE = 314,
+    /**
+     * Lists one or multiple directory entries at once.
+     *
+     * @since 7.1
+     */
+    HOST_MSG_DIR_LIST = 315,
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS */
     /**
      * Removes a directory on the guest.
      */
@@ -215,16 +262,41 @@ enum eHostMsg
     /**
      * Retrieves the user's documents directory.
      */
-    HOST_MSG_PATH_USER_DOCUMENTS,
+    HOST_MSG_PATH_USER_DOCUMENTS = 331,
     /**
      * Retrieves the user's home directory.
      */
-    HOST_MSG_PATH_USER_HOME,
+    HOST_MSG_PATH_USER_HOME = 332,
     /**
      * Issues a shutdown / reboot of the guest OS.
      */
-    HOST_MSG_SHUTDOWN,
-
+    HOST_MSG_SHUTDOWN = 333,
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+    /**
+     * Retrieves information about a file system object.
+     *
+     * @since 7.1
+     */
+    HOST_MSG_FS_OBJ_QUERY_INFO = 334,
+    /**
+     * Creates a temporary file or directory.
+     *
+     * @since 7.1
+     */
+    HOST_MSG_FS_CREATE_TEMP = 335,
+    /**
+     * Retrieves information about a guest file system.
+     *
+     * @since 7.1
+     */
+    HOST_MSG_FS_QUERY_INFO = 336,
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS */
+    /**
+     * Retrieves the currently accessible mount points from the guest.
+     *
+     * @since 7.1
+     */
+    HOST_MSG_MOUNT_POINTS = 337,
     /** Blow the type up to 32-bits. */
     HOST_MSG_32BIT_HACK = 0x7fffffff
 };
@@ -257,11 +329,26 @@ DECLINLINE(const char *) GstCtrlHostMsgtoStr(enum eHostMsg enmMsg)
         RT_CASE_RET_STR(HOST_MSG_FILE_SEEK);
         RT_CASE_RET_STR(HOST_MSG_FILE_TELL);
         RT_CASE_RET_STR(HOST_MSG_FILE_SET_SIZE);
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+        RT_CASE_RET_STR(HOST_MSG_FILE_REMOVE);
+        RT_CASE_RET_STR(HOST_MSG_DIR_OPEN);
+        RT_CASE_RET_STR(HOST_MSG_DIR_CLOSE);
+        RT_CASE_RET_STR(HOST_MSG_DIR_READ);
+        RT_CASE_RET_STR(HOST_MSG_DIR_REWIND);
+        RT_CASE_RET_STR(HOST_MSG_DIR_CREATE);
+        RT_CASE_RET_STR(HOST_MSG_DIR_LIST);
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS */
         RT_CASE_RET_STR(HOST_MSG_DIR_REMOVE);
         RT_CASE_RET_STR(HOST_MSG_PATH_RENAME);
         RT_CASE_RET_STR(HOST_MSG_PATH_USER_DOCUMENTS);
         RT_CASE_RET_STR(HOST_MSG_PATH_USER_HOME);
         RT_CASE_RET_STR(HOST_MSG_SHUTDOWN);
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+        RT_CASE_RET_STR(HOST_MSG_FS_OBJ_QUERY_INFO);
+        RT_CASE_RET_STR(HOST_MSG_FS_CREATE_TEMP);
+        RT_CASE_RET_STR(HOST_MSG_FS_QUERY_INFO);
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS */
+        RT_CASE_RET_STR(HOST_MSG_MOUNT_POINTS);
         RT_CASE_RET_STR(HOST_MSG_32BIT_HACK);
     }
     return "Unknown";
@@ -579,6 +666,18 @@ enum eGuestMsg
      * @todo proper docs.
      */
     GUEST_MSG_FILE_NOTIFY = 240
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+    /**
+     *  Guest notifies the host about some file system event.
+     *
+     * @retval  VINF_SUCCESS on success.
+     * @retval  VERR_INVALID_CLIENT_ID
+     * @retval  VERR_WRONG_PARAMETER_COUNT
+     * @retval  VERR_WRONG_PARAMETER_TYPE
+     * @since   7.1
+     */
+    , GUEST_MSG_FS_NOTIFY  = 241
+#endif
 };
 
 /**
@@ -617,10 +716,12 @@ DECLINLINE(const char *) GstCtrlGuestMsgToStr(enum eGuestMsg enmMsg)
         RT_CASE_RET_STR(GUEST_MSG_EXEC_IO_NOTIFY);
         RT_CASE_RET_STR(GUEST_MSG_DIR_NOTIFY);
         RT_CASE_RET_STR(GUEST_MSG_FILE_NOTIFY);
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+        RT_CASE_RET_STR(GUEST_MSG_FS_NOTIFY);
+#endif
     }
     return "Unknown";
 }
-
 
 /**
  * Guest session notification types.
@@ -649,7 +750,7 @@ enum GUEST_SESSION_NOTIFYTYPE
 
 /**
  * Guest directory notification types.
- * @sa HGCMMsgDirNotify.
+ * @sa HGCMMsgReplyDirNotify.
  */
 enum GUEST_DIR_NOTIFYTYPE
 {
@@ -660,6 +761,14 @@ enum GUEST_DIR_NOTIFYTYPE
     GUEST_DIR_NOTIFYTYPE_OPEN = 10,
     /** Guest directory closed. */
     GUEST_DIR_NOTIFYTYPE_CLOSE = 20,
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+    /** Guest directory read. */
+    GUEST_DIR_NOTIFYTYPE_READ = 21,
+    /** Guest directory was rewind. */
+    GUEST_DIR_NOTIFYTYPE_REWIND = 22,
+    /** Guest directory listing. */
+    GUEST_DIR_NOTIFYTYPE_LIST = 23,
+#endif
     /** Information about an open guest directory. */
     GUEST_DIR_NOTIFYTYPE_INFO = 40,
     /** Guest directory created. */
@@ -685,6 +794,24 @@ enum GUEST_FILE_NOTIFYTYPE
     GUEST_FILE_NOTIFYTYPE_SEEK = 50,
     GUEST_FILE_NOTIFYTYPE_TELL = 60,
     GUEST_FILE_NOTIFYTYPE_SET_SIZE
+};
+
+/**
+ * Guest file system notification types.
+ */
+enum GUEST_FS_NOTIFYTYPE
+{
+    /** Unknown fs notification type; do not use. */
+    GUEST_FS_NOTIFYTYPE_UNKNOWN        = 0,
+    /** Temporary directory creation notification from the guest.
+     *  @since 7.1 */
+    GUEST_FS_NOTIFYTYPE_CREATE_TEMP    = 1,
+    /** File system object query information notification from the guest.
+     *  @since 7.1 */
+    GUEST_FS_NOTIFYTYPE_QUERY_OBJ_INFO = 2,
+    /** File system query information notification from the guest.
+     *  @since 7.1 */
+    GUEST_FS_NOTIFYTYPE_QUERY_INFO     = 3
 };
 
 /**
@@ -715,6 +842,17 @@ enum GUEST_FILE_SEEKTYPE
 #define VBOX_GUESTCTRL_GF_0_PROCESS_DYNAMIC_SIZES   RT_BIT_64(2)
 /** Supports shutting down / rebooting the guest. */
 #define VBOX_GUESTCTRL_GF_0_SHUTDOWN                RT_BIT_64(3)
+/** VBoxService' toolbox commands (vbox_rm, vbox_stat, ++) are supported by
+ * dedicated built-in HGCM commands.
+ *
+ * The toolbox commands now are being marked as deprecated.
+ * @since 7.1 */
+#define VBOX_GUESTCTRL_GF_0_TOOLBOX_AS_CMDS         RT_BIT_64(4)
+/** Supports specifying the working directory for run / start. */
+#define VBOX_GUESTCTRL_GF_0_PROCESS_CWD             RT_BIT_64(5)
+/** Supports enumerating the guest mount points / drive letters.
+ *  @since 7.1 */
+#define VBOX_GUESTCTRL_GF_0_MOUNT_POINTS_ENUM       RT_BIT_64(6)
 /** Bit that must be set in the 2nd parameter, will be cleared if the host reponds
  * correctly (old hosts might not). */
 #define VBOX_GUESTCTRL_GF_1_MUST_BE_ONE             RT_BIT_64(63)
@@ -728,8 +866,12 @@ enum GUEST_FILE_SEEKTYPE
 #define VBOX_GUESTCTRL_HF_0_NOTIFY_RDWR_OFFSET      RT_BIT_64(0)
 /** Host supports process passing arguments starting at argv[0] rather than
  * argv[1], when the guest additions reports VBOX_GUESTCTRL_GF_0_PROCESS_ARGV0.
- * @since 6.1.6  */
+ * @since 6.1.6 */
 #define VBOX_GUESTCTRL_HF_0_PROCESS_ARGV0           RT_BIT_64(1)
+/** Host sends the working directory for run / start, if guest
+ * reports VBOX_GUESTCTRL_GF_0_PROCESS_CWD.
+ * @since 7.1 */
+#define VBOX_GUESTCTRL_HF_0_PROCESS_CWD             RT_BIT_64(2)
 /** @} */
 
 
@@ -803,6 +945,29 @@ typedef struct HGCMMsgCancelPendingWaits
     VBGLIOCHGCMCALL hdr;
 } HGCMMsgCancelPendingWaits;
 
+/**
+ * Generic reply header for reply-based messages.
+ *
+ * @note Be careful when changing this, as older Guest Additions might depend on this
+ *       and other stuff can break, too. So better leave this alone.
+ */
+typedef struct HGCMReplyHdr
+{
+    VBGLIOCHGCMCALL hdr;
+    /** Context ID. */
+    HGCMFunctionParameter context;
+    /** Message type. */
+    HGCMFunctionParameter type;
+    /** IPRT result of overall operation. */
+    HGCMFunctionParameter rc;
+} HGCMReplyHdr;
+
+/** Number of HGCM parameters the HGCMReplyHdr has. */
+#define GSTCTL_HGCM_REPLY_HDR_PARMS     3
+
+/**
+ * Generic reply message from guest to the host.
+ */
 typedef struct HGCMMsgReply
 {
     VBGLIOCHGCMCALL hdr;
@@ -812,9 +977,62 @@ typedef struct HGCMMsgReply
     HGCMFunctionParameter type;
     /** IPRT result of overall operation. */
     HGCMFunctionParameter rc;
-    /** Optional payload to this reply. */
+    /** Optional payload to this reply
+     *  Uses the REPLY_PAYLOAD_XXX structs. */
     HGCMFunctionParameter payload;
 } HGCMMsgReply;
+
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+/**
+ * Creates a temporary directory / file on the guest.
+ */
+typedef struct HGCMMsgFsCreateTemp
+{
+    VBGLIOCHGCMCALL hdr;
+    /** Context ID. */
+    HGCMFunctionParameter context;
+    /** Template name to use for file/directory creation.
+     *  If \a tmpdir is set, this path will be relative to \a tmpdir and  must not be an absolute path. */
+    HGCMFunctionParameter template_name;
+    /** Temporary directory to use.
+     *  If empty, the guest OS' temporary directory will be determined via IPRT on the guest side. */
+    HGCMFunctionParameter tmpdir;
+    /** Creation flags.
+     *  See GSTCTL_CREATETEMP_F_XXX. */
+    HGCMFunctionParameter flags;
+    /** File mode to use for creation (ignored if GSTCTL_CREATETEMP_F_SECURE is defined).
+     *  See GSTCTL_CREATETEMP_F_XXX. */
+    HGCMFunctionParameter mode;
+} HGCMMsgFsCreateTemp;
+
+/**
+ * Queries information of a file system on the guest.
+ */
+typedef struct HGCMMsgFsQueryInfo
+{
+    VBGLIOCHGCMCALL hdr;
+    /** Context ID. */
+    HGCMFunctionParameter context;
+    /** Path to query file system information for. */
+    HGCMFunctionParameter path;
+} HGCMMsgFsQueryInfo;
+
+/**
+ * Queries information for a file system object on the guest.
+ */
+typedef struct HGCMMsgFsObjQueryInfo
+{
+    VBGLIOCHGCMCALL hdr;
+    /** Context ID. */
+    HGCMFunctionParameter context;
+    /** Path to query information for. */
+    HGCMFunctionParameter path;
+    /** Additional file system attributes to lookup (GSTCTLFSOBJATTRADD). */
+    HGCMFunctionParameter add_attributes;
+    /** Flags (GSTCTL_PATH_F_XXX). */
+    HGCMFunctionParameter flags;
+} HGCMMsgFsObjQueryInfo;
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS */
 
 /**
  * Creates a guest session.
@@ -863,6 +1081,102 @@ typedef struct HGCMMsgSessionNotify
     HGCMFunctionParameter result;
 } HGCMMsgSessionNotify;
 
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+/**
+ * Opens a guest directory.
+ */
+typedef struct HGCMMsgDirOpen
+{
+    VBGLIOCHGCMCALL hdr;
+    /** Context ID. */
+    HGCMFunctionParameter context;
+    /** Path of directory to open. */
+    HGCMFunctionParameter path;
+    /** Filter type to use when walking the directory (GSTCTLDIRFILTER). */
+    HGCMFunctionParameter filter;
+    /** Directory open flags (GSTCTLDIR_F_XXX). */
+    HGCMFunctionParameter flags;
+    /** Additional directory attributes to use
+     *  (GSTCTLFSOBJATTRADD, for subsequent directory entry read calls). */
+    HGCMFunctionParameter read_attr_add;
+    /** Directory reading flags (for subsequent directory entry read calls).
+     *  GSTCTL_PATH_F_ON_LINK or GSTCTL_PATH_F_FOLLOW_LINK. */
+    HGCMFunctionParameter read_flags;
+} HGCMMsgDirOpen;
+
+/**
+ * Closes a guest directory.
+ */
+typedef struct HGCMMsgDirClose
+{
+    VBGLIOCHGCMCALL hdr;
+    /** Context ID. */
+    HGCMFunctionParameter context;
+    /** Directory handle to close. */
+    HGCMFunctionParameter handle;
+} HGCMMsgDirClose;
+
+/**
+ * Reads the next entry of a guest directory.
+ */
+typedef struct HGCMMsgDirRead
+{
+    VBGLIOCHGCMCALL hdr;
+    /** Context ID. */
+    HGCMFunctionParameter context;
+    /** Handle of directory listing to read the next entry for. */
+    HGCMFunctionParameter handle;
+} HGCMMsgDirRead;
+
+/**
+ * Rewinds the listing of a guest directory.
+ */
+typedef struct HGCMMsgDirRewind
+{
+    VBGLIOCHGCMCALL hdr;
+    /** Context ID. */
+    HGCMFunctionParameter context;
+    /** Handle of directory listing to rewind. */
+    HGCMFunctionParameter handle;
+} HGCMMsgDirRewind;
+
+/**
+ * Creates a directory on the guest.
+ */
+typedef struct HGCMMsgDirCreate
+{
+    VBGLIOCHGCMCALL hdr;
+    /** Context ID. */
+    HGCMFunctionParameter context;
+    /** Path of directory to create. */
+    HGCMFunctionParameter path;
+    /** Creation mode. */
+    HGCMFunctionParameter mode;
+    /** Creation flags (GSTCTL_CREATEDIRECTORY_F_XXX). */
+    HGCMFunctionParameter flags;
+} HGCMMsgDirCreate;
+
+/**
+ * Lists the entries of a directory on the guest.
+ */
+typedef struct HGCMMsgDirList
+{
+    VBGLIOCHGCMCALL hdr;
+    /** Context ID. */
+    HGCMFunctionParameter context;
+    /** Handle of directory listing to list. */
+    HGCMFunctionParameter handle;
+    /** Number of entries to read at once.
+     *  Specify UINT32_MAX to read as much as possible. 0 is not allowed. */
+    HGCMFunctionParameter num_entries;
+    /** Listing flags (GSTCTL_DIRLIST_F_XXX). */
+    HGCMFunctionParameter flags;
+} HGCMMsgDirList;
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS */
+
+/**
+ * Renames a path on the guest.
+ */
 typedef struct HGCMMsgPathRename
 {
     VBGLIOCHGCMCALL hdr;
@@ -876,6 +1190,9 @@ typedef struct HGCMMsgPathRename
     HGCMFunctionParameter flags;
 } HGCMMsgPathRename;
 
+/**
+ * Retrieves the user's personal documents directory from the guest.
+ */
 typedef struct HGCMMsgPathUserDocuments
 {
     VBGLIOCHGCMCALL hdr;
@@ -883,6 +1200,9 @@ typedef struct HGCMMsgPathUserDocuments
     HGCMFunctionParameter context;
 } HGCMMsgPathUserDocuments;
 
+/**
+ * Retrieves the user's home directory from the guest.
+ */
 typedef struct HGCMMsgPathUserHome
 {
     VBGLIOCHGCMCALL hdr;
@@ -891,7 +1211,23 @@ typedef struct HGCMMsgPathUserHome
 } HGCMMsgPathUserHome;
 
 /**
+ * Retrieves mount points / drive letters from the guest.
+ *
+ * @since 7.1
+ */
+typedef struct HGCMMsgMountPoints
+{
+    VBGLIOCHGCMCALL hdr;
+    /** UInt32: Context ID. */
+    HGCMFunctionParameter context;
+    /** UInt32: Flags; currently unused. */
+    HGCMFunctionParameter flags;
+} HGCMMsgMountPoints;
+
+/**
  * Shuts down / reboots the guest.
+ *
+ * @since 7.0
  */
 typedef struct HGCMMsgShutdown
 {
@@ -955,6 +1291,10 @@ typedef struct HGCMMsgProcExec
             HGCMFunctionParameter affinity;
         } v2;
     } u;
+    /** Working directory request, filled if guest
+     *  reports VBOX_GUESTCTRL_GF_0_PROCESS_CWD.
+     *  @since 7.1 */
+    HGCMFunctionParameter cwd;
 } HGCMMsgProcExec;
 
 /**
@@ -1213,12 +1553,29 @@ typedef struct HGCMMsgFileSetSize
     HGCMFunctionParameter   cb64NewSize;
 } HGCMMsgFileSetSize;
 
+/**
+ * Removes (deletes) a guest file.
+ *
+ * @since 7.1
+ */
+typedef struct HGCMMsgFileRemove
+{
+    VBGLIOCHGCMCALL       hdr;
+    /** UInt32: Context ID. */
+    HGCMFunctionParameter context;
+    /** File to open. */
+    HGCMFunctionParameter filename;
+} HGCMMsgFileRemove;
+
 
 /******************************************************************************
 * HGCM replies from the guest. These are handled in Main's low-level HGCM     *
 * callbacks and dispatched to the appropriate guest object.                   *
 ******************************************************************************/
 
+/**
+ * Reply from a guest file operation.
+ */
 typedef struct HGCMReplyFileNotify
 {
     VBGLIOCHGCMCALL hdr;
@@ -1275,226 +1632,112 @@ typedef struct HGCMReplyFileNotify
     } u;
 } HGCMReplyFileNotify;
 
+/**
+ * Reply from a guest directory operation.
+ */
 typedef struct HGCMReplyDirNotify
 {
-    VBGLIOCHGCMCALL hdr;
-    /** Context ID. */
-    HGCMFunctionParameter context;
-    /** Notification type. */
-    HGCMFunctionParameter type;
-    /** IPRT result of overall operation. */
-    HGCMFunctionParameter rc;
+    /** The generic reply header. */
+    HGCMReplyHdr reply_hdr;
+    /** Union based on \a reply_hdr.type. */
     union
     {
-        struct
-        {
-            /** Directory information. */
-            HGCMFunctionParameter objInfo;
-        } info;
+        /**
+         * Parameters used for \a reply_hdr.type GUEST_DIR_NOTIFYTYPE_OPEN.
+         *
+         * @since 7.1
+         */
         struct
         {
             /** Guest directory handle. */
             HGCMFunctionParameter handle;
         } open;
+        /**
+         * Parameters used for \a reply_hdr.type GUEST_DIR_NOTIFYTYPE_READ.
+         *
+         * @since 7.1
+         */
         struct
         {
-            /** Current read directory entry. */
+            /** Current read directory entry (GSTCTLDIRENTRYEX). */
             HGCMFunctionParameter entry;
-            /** Extended entry object information. Optional. */
-            HGCMFunctionParameter objInfo;
+            /** Resolved user ID as a string (uid). */
+            HGCMFunctionParameter user;
+            /** Resolved group IDs as a string.
+             *
+             *  Multiple groups are delimited by GSTCTL_DIRENTRY_GROUPS_DELIMITER_STR, whereas
+             *  the first group always is the primary group. */
+            HGCMFunctionParameter groups;
         } read;
+        /**
+         * Parameters used for \a reply_hdr.type GUEST_DIR_NOTIFYTYPE_LIST.
+         *
+         * @since 7.1
+         */
+        struct
+        {
+            /** Number of entries in \a buffer. */
+            HGCMFunctionParameter num_entries;
+            /** Buffer containing the GSTCTLDIRENTRYEX entries, immediately followed
+             *  by resolved user + groups as a string (empty strings if not resolved). */
+            HGCMFunctionParameter buffer;
+        } list;
     } u;
 } HGCMReplyDirNotify;
 
+/**
+ * Reply to a HOST_MSG_FS_QUERY_INFO or HOST_MSG_FS_CREATE_TEMP message.
+ *
+ * @since 7.1
+ */
+typedef struct HGCMReplyFsNotify
+{
+    /** The generic reply header. */
+    HGCMReplyHdr reply_hdr;
+    /** Union based on \a reply_hdr.type. */
+    union
+    {
+        /**
+         * Parameters used for \a type GUEST_FS_NOTIFYTYPE_CREATE_TEMP.
+         *
+         * @since 7.1
+         */
+        struct
+        {
+            /** The create temporary file / directory when \a rc
+             *  indicates success. */
+            HGCMFunctionParameter path;
+        } createtemp;
+        /**
+         * Parameters used for \a type GUEST_FS_NOTIFYTYPE_QUERY_OBJ_INFO.
+         *
+         * @since 7.1
+         */
+        struct
+        {
+            /** File system object information (GSTCTLFSOBJINFO). */
+            HGCMFunctionParameter obj_info;
+            /** Resolved user ID as a string (uid). */
+            HGCMFunctionParameter user;
+            /** Resolved group IDs as a string.
+             *
+             *  Multiple groups are delimited by GSTCTL_DIRENTRY_GROUPS_DELIMITER_STR, whereas
+             *  the first group always is the primary group. */
+            HGCMFunctionParameter groups;
+        } queryobjinfo;
+        /**
+         * Parameters used for \a type GUEST_FS_NOTIFYTYPE_QUERY_INFO.
+         *
+         * @since 7.1
+         */
+        struct
+        {
+            /** File system object information (GSTCTLFSINFO). */
+            HGCMFunctionParameter fs_info;
+        } queryinfo;
+    } u;
+} HGCMReplyFsNotify;
 #pragma pack ()
-
-/******************************************************************************
-* Callback data structures.                                                   *
-******************************************************************************/
-
-/**
- * The guest control callback data header. Must come first
- * on each callback structure defined below this struct.
- */
-typedef struct CALLBACKDATA_HEADER
-{
-    /** Context ID to identify callback data. This is
-     *  and *must* be the very first parameter in this
-     *  structure to still be backwards compatible. */
-    uint32_t uContextID;
-} CALLBACKDATA_HEADER, *PCALLBACKDATA_HEADER;
-
-/*
- * These structures make up the actual low level HGCM callback data sent from
- * the guest back to the host.
- */
-
-typedef struct CALLBACKDATA_CLIENT_DISCONNECTED
-{
-    /** Callback data header. */
-    CALLBACKDATA_HEADER hdr;
-} CALLBACKDATA_CLIENT_DISCONNECTED, *PCALLBACKDATA_CLIENT_DISCONNECTED;
-
-typedef struct CALLBACKDATA_MSG_REPLY
-{
-    /** Callback data header. */
-    CALLBACKDATA_HEADER hdr;
-    /** Notification type. */
-    uint32_t uType;
-    /** Notification result. Note: int vs. uint32! */
-    uint32_t rc;
-    /** Pointer to optional payload. */
-    void *pvPayload;
-    /** Payload size (in bytes). */
-    uint32_t cbPayload;
-} CALLBACKDATA_MSG_REPLY, *PCALLBACKDATA_MSG_REPLY;
-
-typedef struct CALLBACKDATA_SESSION_NOTIFY
-{
-    /** Callback data header. */
-    CALLBACKDATA_HEADER hdr;
-    /** Notification type. */
-    uint32_t uType;
-    /** Notification result. Note: int vs. uint32! */
-    uint32_t uResult;
-} CALLBACKDATA_SESSION_NOTIFY, *PCALLBACKDATA_SESSION_NOTIFY;
-
-typedef struct CALLBACKDATA_PROC_STATUS
-{
-    /** Callback data header. */
-    CALLBACKDATA_HEADER hdr;
-    /** The process ID (PID). */
-    uint32_t uPID;
-    /** The process status. */
-    uint32_t uStatus;
-    /** Optional flags, varies, based on u32Status. */
-    uint32_t uFlags;
-    /** Optional data buffer (not used atm). */
-    void *pvData;
-    /** Size of optional data buffer (not used atm). */
-    uint32_t cbData;
-} CALLBACKDATA_PROC_STATUS, *PCALLBACKDATA_PROC_STATUS;
-
-typedef struct CALLBACKDATA_PROC_OUTPUT
-{
-    /** Callback data header. */
-    CALLBACKDATA_HEADER hdr;
-    /** The process ID (PID). */
-    uint32_t uPID;
-    /** The handle ID (stdout/stderr). */
-    uint32_t uHandle;
-    /** Optional flags (not used atm). */
-    uint32_t uFlags;
-    /** Optional data buffer. */
-    void *pvData;
-    /** Size (in bytes) of optional data buffer. */
-    uint32_t cbData;
-} CALLBACKDATA_PROC_OUTPUT, *PCALLBACKDATA_PROC_OUTPUT;
-
-typedef struct CALLBACKDATA_PROC_INPUT
-{
-    /** Callback data header. */
-    CALLBACKDATA_HEADER hdr;
-    /** The process ID (PID). */
-    uint32_t uPID;
-    /** Current input status. */
-    uint32_t uStatus;
-    /** Optional flags. */
-    uint32_t uFlags;
-    /** Size (in bytes) of processed input data. */
-    uint32_t uProcessed;
-} CALLBACKDATA_PROC_INPUT, *PCALLBACKDATA_PROC_INPUT;
-
-/**
- * General guest directory notification callback.
- */
-typedef struct CALLBACKDATA_DIR_NOTIFY
-{
-    /** Callback data header. */
-    CALLBACKDATA_HEADER hdr;
-    /** Notification type. */
-    uint32_t uType;
-    /** IPRT result of overall operation. */
-    uint32_t rc;
-    union
-    {
-        struct
-        {
-            /** Size (in bytes) of directory information. */
-            uint32_t cbObjInfo;
-            /** Pointer to directory information. */
-            void *pvObjInfo;
-        } info;
-        struct
-        {
-            /** Guest directory handle. */
-            uint32_t uHandle;
-        } open;
-        /** Note: Close does not have any additional data (yet). */
-        struct
-        {
-            /** Size (in bytes) of directory entry information. */
-            uint32_t cbEntry;
-            /** Pointer to directory entry information. */
-            void *pvEntry;
-            /** Size (in bytes) of directory entry object information. */
-            uint32_t cbObjInfo;
-            /** Pointer to directory entry object information. */
-            void *pvObjInfo;
-        } read;
-    } u;
-} CALLBACKDATA_DIR_NOTIFY, *PCALLBACKDATA_DIR_NOTIFY;
-
-/**
- * General guest file notification callback.
- */
-typedef struct CALLBACKDATA_FILE_NOTIFY
-{
-    /** Callback data header. */
-    CALLBACKDATA_HEADER hdr;
-    /** Notification type. */
-    uint32_t uType;
-    /** IPRT result of overall operation. */
-    uint32_t rc;
-    union
-    {
-        struct
-        {
-            /** Guest file handle. */
-            uint32_t uHandle;
-        } open;
-        /** Note: Close does not have any additional data (yet). */
-        struct
-        {
-            /** How much data (in bytes) have been read. */
-            uint32_t cbData;
-            /** Actual data read (if any). */
-            void *pvData;
-        } read;
-        struct
-        {
-            /** How much data (in bytes) have been successfully written. */
-            uint32_t cbWritten;
-        } write;
-        struct
-        {
-            /** New file offset after successful seek. */
-            uint64_t uOffActual;
-        } seek;
-        struct
-        {
-            /** New file offset after successful tell. */
-            uint64_t uOffActual;
-        } tell;
-        struct
-        {
-            /** The new file siz.e */
-            uint64_t cbSize;
-        } SetSize;
-    } u;
-} CALLBACKDATA_FILE_NOTIFY, *PCALLBACKDATA_FILE_NOTIFY;
-
 } /* namespace guestControl */
 
 #endif /* !VBOX_INCLUDED_HostServices_GuestControlSvc_h */
-

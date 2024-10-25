@@ -428,6 +428,17 @@
     </message>
 </context>
 <context>
+    <name>UIAcquireCloudMachineCloneNameDialog</name>
+    <message>
+        <source>Clone Virtual Machine</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enter machine name...</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>UIAcquirePublicKeyDialog</name>
     <message>
         <source>Choose a public key file</source>
@@ -1621,7 +1632,7 @@
     </message>
     <message>
         <source>Show log files of selected virtual machines</source>
-        <translation>選択した仮想マシンのログファイルを参照する</translation>
+        <translation type="vanished">選択した仮想マシンのログファイルを参照する</translation>
     </message>
     <message>
         <source>Re&amp;fresh</source>
@@ -1865,11 +1876,11 @@
     </message>
     <message>
         <source>&amp;Options</source>
-        <translation>オプション(&amp;O)</translation>
+        <translation type="vanished">オプション(&amp;O)</translation>
     </message>
     <message>
         <source>Open pane with log viewer options</source>
-        <translation>ログ表示オプション付きでペインを開く</translation>
+        <translation type="vanished">ログ表示オプション付きでペインを開く</translation>
     </message>
     <message>
         <source>Open Options Pane (%1)</source>
@@ -2428,11 +2439,11 @@
     </message>
     <message>
         <source>Options</source>
-        <translation>オプション</translation>
+        <translation type="vanished">オプション</translation>
     </message>
     <message>
         <source>Open panel with file manager options</source>
-        <translation>ファイルマネージャーオプション付きでペインを開く</translation>
+        <translation type="vanished">ファイルマネージャーオプション付きでペインを開く</translation>
     </message>
     <message>
         <source>Open the file manager</source>
@@ -2452,7 +2463,7 @@
     </message>
     <message>
         <source>Open panel with file manager log</source>
-        <translation>ファイルマネージャーログ付きでペインを開く</translation>
+        <translation type="vanished">ファイルマネージャーログ付きでペインを開く</translation>
     </message>
     <message>
         <source>Open File Manager Log</source>
@@ -2464,7 +2475,7 @@
     </message>
     <message>
         <source>Open panel with file manager operations</source>
-        <translation>ファイルマネージャー操作パネルを開く</translation>
+        <translation type="vanished">ファイルマネージャー操作パネルを開く</translation>
     </message>
     <message>
         <source>Open File Manager Operations</source>
@@ -2528,7 +2539,7 @@
     </message>
     <message>
         <source>Open Options Pane</source>
-        <translation>オプションペインを表示</translation>
+        <translation type="vanished">オプションペインを表示</translation>
     </message>
     <message>
         <source>Refresh Virtual Machine Log</source>
@@ -2821,23 +2832,23 @@
     </message>
     <message>
         <source>Configuration</source>
-        <translation>構成</translation>
+        <translation type="vanished">構成</translation>
     </message>
     <message>
         <source>Open panel for VISO Creator configuration</source>
-        <translation>VISO作成設定パネルを開く</translation>
+        <translation type="vanished">VISO作成設定パネルを開く</translation>
     </message>
     <message>
         <source>Open Configuration Panel</source>
-        <translation>設定パネルを開く</translation>
+        <translation type="vanished">設定パネルを開く</translation>
     </message>
     <message>
         <source>Open panel for VISO Creator options</source>
-        <translation>VISO作成オプションパネルを開く</translation>
+        <translation type="vanished">VISO作成オプションパネルを開く</translation>
     </message>
     <message>
         <source>Open Options Panel</source>
-        <translation>オプションパネルを開く</translation>
+        <translation type="vanished">オプションパネルを開く</translation>
     </message>
     <message>
         <source>&amp;Add</source>
@@ -2877,7 +2888,7 @@
     </message>
     <message>
         <source>Reset the VISO content.</source>
-        <translation>VISOの中身をリセットします。</translation>
+        <translation type="vanished">VISOの中身をリセットします。</translation>
     </message>
     <message>
         <source>&amp;Medium Selector</source>
@@ -3198,11 +3209,11 @@
     </message>
     <message>
         <source>Remove Item(s) from VISO</source>
-        <translation>VISOからアイテムを削除</translation>
+        <translation type="vanished">VISOからアイテムを削除</translation>
     </message>
     <message>
         <source>Rename Object</source>
-        <translation>オブジェクトの名前を変更</translation>
+        <translation type="vanished">オブジェクトの名前を変更</translation>
     </message>
     <message>
         <source>Add Disk Image File</source>
@@ -3226,7 +3237,7 @@
     </message>
     <message>
         <source>Open the browser and go to the VirtualBox user manual</source>
-        <translation>ブラウザーを開き、VirtualBoxユーザーマニュアルへ行く</translation>
+        <translation type="vanished">ブラウザーを開き、VirtualBoxユーザーマニュアルへ行く</translation>
     </message>
     <message>
         <source>Remove all inaccessible media</source>
@@ -3238,7 +3249,7 @@
     </message>
     <message>
         <source>&amp;Stop</source>
-        <translation>停止(&amp;S)</translation>
+        <translation type="vanished">停止(&amp;S)</translation>
     </message>
     <message>
         <source>&amp;Upgrade Guest Additions...</source>
@@ -3246,7 +3257,7 @@
     </message>
     <message>
         <source>Upgrade Guest Additions</source>
-        <translation>Guest Additionsのアップグレード</translation>
+        <translation type="vanished">Guest Additionsのアップグレード</translation>
     </message>
     <message>
         <source>Virtual Screen %1</source>
@@ -3255,6 +3266,150 @@
     <message>
         <source>Use Host Screen %1</source>
         <translation>ホストスクリーン %1 を使う</translation>
+    </message>
+    <message>
+        <source>Enable Clipboard File Transfers</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open the browser and go to the VirtualBox user guide</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Preferences</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open pane with log viewer preferences</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open Preferences Pane</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Preferences</source>
+        <translation type="obsolete">環境設定</translation>
+    </message>
+    <message>
+        <source>Go Forward</source>
+        <translation type="unfinished">次へ</translation>
+    </message>
+    <message>
+        <source>Go forward</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Go Backward</source>
+        <translation type="unfinished">戻る</translation>
+    </message>
+    <message>
+        <source>&amp;Restore</source>
+        <translation type="unfinished">復元(&amp;R)</translation>
+    </message>
+    <message>
+        <source>Restore selected item(s)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Restore Selected Item(s)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Rename Selected VISO File Object</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation type="unfinished">オープン</translation>
+    </message>
+    <message>
+        <source>Save As</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open pane with activity monitor preferences</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open pane with file manager preferences</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open pane with file manager log</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open pane with file manager operations</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Go backward</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open pane with VISO Creator preferences</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove Selected Item(s) From VISO</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Reset the VISO content</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Reset the VISO Content</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open the VISO content</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open the VISO Content</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Save the VISO content</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Save the VISO Content</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Import ISO</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Import ISO into the VISO content</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Import Selected ISO Into the VISO Content</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove ISO</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove the imported ISO from the VISO content</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove the Imported ISO From the VISO Content</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Stop</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Upgrade guest additions</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -3316,6 +3471,133 @@
         <translation>
             <numerusform>&lt;nobr&gt;以下の %n ハードディスクで使用中:&lt;/nobr&gt;&lt;br&gt;%1</numerusform>
         </translation>
+    </message>
+</context>
+<context>
+    <name>UIAdvancedSettingsDialog</name>
+    <message>
+        <source>Basic</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Expert</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Search settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Invalid settings detected</source>
+        <translation type="unfinished">無効な設定が見つかりました</translation>
+    </message>
+</context>
+<context>
+    <name>UIAdvancedSettingsDialogGlobal</name>
+    <message>
+        <source>Allows to navigate through Global Property categories</source>
+        <translation type="unfinished">全体のプロパティのカテゴリー間の操作を許可する</translation>
+    </message>
+    <message>
+        <source>General</source>
+        <translation type="unfinished">一般</translation>
+    </message>
+    <message>
+        <source>Input</source>
+        <translation type="unfinished">入力</translation>
+    </message>
+    <message>
+        <source>Update</source>
+        <translation type="unfinished">アップデート</translation>
+    </message>
+    <message>
+        <source>Language</source>
+        <translation type="unfinished">言語</translation>
+    </message>
+    <message>
+        <source>Display</source>
+        <translation type="unfinished">ディスプレイ</translation>
+    </message>
+    <message>
+        <source>Proxy</source>
+        <translation type="unfinished">プロキシー</translation>
+    </message>
+    <message>
+        <source>Interface</source>
+        <translation type="unfinished">インターフェース</translation>
+    </message>
+    <message>
+        <source>Preferences</source>
+        <translation type="obsolete">環境設定</translation>
+    </message>
+    <message>
+        <source>VirtualBox - %1</source>
+        <translation type="obsolete">VirtualBox - %1</translation>
+    </message>
+    <message>
+        <source>VirtualBox - Preferences</source>
+        <comment>global preferences dialog name</comment>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIAdvancedSettingsDialogMachine</name>
+    <message>
+        <source>Allows to navigate through VM Settings categories</source>
+        <translation type="unfinished">VM設定カテゴリ間の操作を許可する</translation>
+    </message>
+    <message>
+        <source>General</source>
+        <translation type="unfinished">一般</translation>
+    </message>
+    <message>
+        <source>System</source>
+        <translation type="unfinished">システム</translation>
+    </message>
+    <message>
+        <source>Display</source>
+        <translation type="unfinished">ディスプレイ</translation>
+    </message>
+    <message>
+        <source>Storage</source>
+        <translation type="unfinished">ストレージ</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation type="unfinished">オーディオ</translation>
+    </message>
+    <message>
+        <source>Network</source>
+        <translation type="unfinished">ネットワーク</translation>
+    </message>
+    <message>
+        <source>Serial Ports</source>
+        <translation type="unfinished">シリアルポート</translation>
+    </message>
+    <message>
+        <source>USB</source>
+        <translation type="unfinished">USB</translation>
+    </message>
+    <message>
+        <source>Shared Folders</source>
+        <translation type="unfinished">共有フォルダー</translation>
+    </message>
+    <message>
+        <source>User Interface</source>
+        <translation type="unfinished">ユーザーインターフェース</translation>
+    </message>
+    <message>
+        <source>Settings</source>
+        <translation type="obsolete">設定</translation>
+    </message>
+    <message>
+        <source>%1 - %2</source>
+        <translation type="obsolete">%1 - %2</translation>
+    </message>
+    <message>
+        <source>%1 - Settings</source>
+        <comment>machine settings dialog name, starts from machine name</comment>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -3482,6 +3764,10 @@
         <source>Storage Controller (VirtioSCSI)</source>
         <translation>ストレージコントローラー (VirtioSCSI)</translation>
     </message>
+    <message>
+        <source>Storage Controller (NVMe)</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UIApplianceImportEditorWidget</name>
@@ -3555,12 +3841,12 @@
     <message>
         <source>%1</source>
         <comment>col.1 text</comment>
-        <translation>%1</translation>
+        <translation type="vanished">%1</translation>
     </message>
     <message>
         <source>%1: %2</source>
         <comment>col.1 text: col.2 text</comment>
-        <translation>%1: %2</translation>
+        <translation type="vanished">%1: %2</translation>
     </message>
 </context>
 <context>
@@ -3774,7 +4060,15 @@
     </message>
     <message>
         <source>The selected path is invalid.</source>
-        <translation>選択したパスは無効です。</translation>
+        <translation type="vanished">選択したパスは無効です。</translation>
+    </message>
+    <message>
+        <source>The path is invalid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>The path is valid</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -3793,7 +4087,7 @@
     </message>
     <message>
         <source>Defines the boot device order. Use the checkboxes on the left to enable or disable individual boot devices.Move items up and down to change the device order.</source>
-        <translation>起動デバイスの優先順序を指定します。チェックボックスを使い各デバイスを有効または無効にできます。項目を上または下に移動してデバイスの順序を変更してください。</translation>
+        <translation type="vanished">起動デバイスの優先順序を指定します。チェックボックスを使い各デバイスを有効または無効にできます。項目を上または下に移動してデバイスの順序を変更してください。</translation>
     </message>
     <message>
         <source>Moves selected boot item up.</source>
@@ -3802,6 +4096,10 @@
     <message>
         <source>Moves selected boot item down.</source>
         <translation>選択した起動デバイスを下に移動します。</translation>
+    </message>
+    <message>
+        <source>Defines the boot device order. Use the checkboxes on the left to enable or disable individual boot devices. Move items up and down to change the device order. Note: only supported for BIOS firmware type, i.e. when below EFI option is off.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -4352,75 +4650,75 @@
     <message>
         <source>MB</source>
         <comment>size suffix MBytes=1024 KBytes</comment>
-        <translation>MB</translation>
+        <translation type="vanished">MB</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;%1 MB&lt;/nobr&gt;</source>
         <comment>details report</comment>
-        <translation>&lt;nobr&gt;%1 MB&lt;/nobr&gt;</translation>
+        <translation type="vanished">&lt;nobr&gt;%1 MB&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>Enabled</source>
         <comment>details report (3D Acceleration)</comment>
-        <translation>有効</translation>
+        <translation type="vanished">有効</translation>
     </message>
     <message>
         <source>Disabled</source>
         <comment>details report (3D Acceleration)</comment>
-        <translation>無効</translation>
+        <translation type="vanished">無効</translation>
     </message>
     <message>
         <source>not set</source>
         <comment>details report (execution engine)</comment>
-        <translation>未設定</translation>
+        <translation type="vanished">未設定</translation>
     </message>
     <message>
         <source>Active</source>
         <comment>details report (Nested Paging)</comment>
-        <translation>有効</translation>
+        <translation type="vanished">有効</translation>
     </message>
     <message>
         <source>Inactive</source>
         <comment>details report (Nested Paging)</comment>
-        <translation>無効</translation>
+        <translation type="vanished">無効</translation>
     </message>
     <message>
         <source>Active</source>
         <comment>details report (Unrestricted Execution)</comment>
-        <translation>有効</translation>
+        <translation type="vanished">有効</translation>
     </message>
     <message>
         <source>Inactive</source>
         <comment>details report (Unrestricted Execution)</comment>
-        <translation>無効</translation>
+        <translation type="vanished">無効</translation>
     </message>
     <message>
         <source>Execution engine</source>
         <comment>details report</comment>
-        <translation>実行エンジン</translation>
+        <translation type="vanished">実行エンジン</translation>
     </message>
     <message>
         <source>Nested Paging</source>
-        <translation>ネステッドページング</translation>
+        <translation type="vanished">ネステッドページング</translation>
     </message>
     <message>
         <source>Unrestricted Execution</source>
-        <translation>Unrestricted Execution</translation>
+        <translation type="vanished">Unrestricted Execution</translation>
     </message>
     <message>
         <source>Execution Cap</source>
         <comment>details report</comment>
-        <translation>使用率制限</translation>
+        <translation type="vanished">使用率制限</translation>
     </message>
     <message>
         <source>Paravirtualization Interface</source>
         <comment>details report</comment>
-        <translation>準仮想化インターフェース</translation>
+        <translation type="vanished">準仮想化インターフェース</translation>
     </message>
     <message>
         <source>Processors</source>
         <comment>details report</comment>
-        <translation>プロセッサー</translation>
+        <translation type="vanished">プロセッサー</translation>
     </message>
     <message>
         <source>Powered Off</source>
@@ -5140,27 +5438,27 @@
     <message>
         <source>B</source>
         <comment>size suffix Bytes</comment>
-        <translation>B</translation>
+        <translation type="vanished">B</translation>
     </message>
     <message>
         <source>KB</source>
         <comment>size suffix KBytes=1024 Bytes</comment>
-        <translation>KB</translation>
+        <translation type="vanished">KB</translation>
     </message>
     <message>
         <source>GB</source>
         <comment>size suffix GBytes=1024 MBytes</comment>
-        <translation>GB</translation>
+        <translation type="vanished">GB</translation>
     </message>
     <message>
         <source>TB</source>
         <comment>size suffix TBytes=1024 GBytes</comment>
-        <translation>TB</translation>
+        <translation type="vanished">TB</translation>
     </message>
     <message>
         <source>PB</source>
         <comment>size suffix PBytes=1024 TBytes</comment>
-        <translation>PB</translation>
+        <translation type="vanished">PB</translation>
     </message>
     <message>
         <source>IDE Primary Device 0</source>
@@ -5219,104 +5517,104 @@
     </message>
     <message>
         <source>Name</source>
-        <translation>名前</translation>
+        <translation type="vanished">名前</translation>
     </message>
     <message>
         <source>OS</source>
-        <translation>OS</translation>
+        <translation type="vanished">OS</translation>
     </message>
     <message>
         <source>Location</source>
-        <translation>場所</translation>
+        <translation type="vanished">場所</translation>
     </message>
     <message>
         <source>Groups</source>
-        <translation>グループ</translation>
+        <translation type="vanished">グループ</translation>
     </message>
     <message>
         <source>RAM</source>
-        <translation>RAM</translation>
+        <translation type="vanished">RAM</translation>
     </message>
     <message>
         <source>CPU Count</source>
-        <translation>CPU数</translation>
+        <translation type="vanished">CPU数</translation>
     </message>
     <message>
         <source>CPU Execution Cap</source>
-        <translation>CPU使用率制限</translation>
+        <translation type="vanished">CPU使用率制限</translation>
     </message>
     <message>
         <source>Boot Order</source>
-        <translation>起動順序</translation>
+        <translation type="vanished">起動順序</translation>
     </message>
     <message>
         <source>Chipset Type</source>
-        <translation>チップセットのタイプ</translation>
+        <translation type="vanished">チップセットのタイプ</translation>
     </message>
     <message>
         <source>Firmware</source>
-        <translation>ファームウェア</translation>
+        <translation type="vanished">ファームウェア</translation>
     </message>
     <message>
         <source>Acceleration</source>
-        <translation>アクセラレーション</translation>
+        <translation type="vanished">アクセラレーション</translation>
     </message>
     <message>
         <source>VRAM</source>
-        <translation>VRAM</translation>
+        <translation type="vanished">VRAM</translation>
     </message>
     <message>
         <source>Screen Count</source>
-        <translation>スクリーン数</translation>
+        <translation type="vanished">スクリーン数</translation>
     </message>
     <message>
         <source>Scale Factor</source>
-        <translation>表示倍率</translation>
+        <translation type="vanished">表示倍率</translation>
     </message>
     <message>
         <source>Graphics Controller</source>
-        <translation>グラフィックスコントローラー</translation>
+        <translation type="vanished">グラフィックスコントローラー</translation>
     </message>
     <message>
         <source>VRDE</source>
-        <translation>VRDE</translation>
+        <translation type="vanished">VRDE</translation>
     </message>
     <message>
         <source>Recording</source>
-        <translation>レコーディング</translation>
+        <translation type="vanished">レコーディング</translation>
     </message>
     <message>
         <source>Hard Disks</source>
-        <translation>ハードディスク</translation>
+        <translation type="vanished">ハードディスク</translation>
     </message>
     <message>
         <source>Optical Devices</source>
-        <translation>光学デバイス</translation>
+        <translation type="vanished">光学デバイス</translation>
     </message>
     <message>
         <source>Floppy Devices</source>
-        <translation>フロッピーデバイス</translation>
+        <translation type="vanished">フロッピーデバイス</translation>
     </message>
     <message>
         <source>Driver</source>
-        <translation>ドライバー</translation>
+        <translation type="vanished">ドライバー</translation>
     </message>
     <message>
         <source>Controller</source>
-        <translation>コントローラー</translation>
+        <translation type="vanished">コントローラー</translation>
     </message>
     <message>
         <source>Input/Output</source>
-        <translation>入出力</translation>
+        <translation type="vanished">入出力</translation>
     </message>
     <message>
         <source>Not Attached</source>
         <comment>network adapter</comment>
-        <translation>未割り当て</translation>
+        <translation type="vanished">未割り当て</translation>
     </message>
     <message>
         <source>NAT</source>
-        <translation>NAT</translation>
+        <translation type="vanished">NAT</translation>
     </message>
     <message>
         <source>Bridget Adapter</source>
@@ -5324,56 +5622,56 @@
     </message>
     <message>
         <source>Internal Network</source>
-        <translation>内部ネットワーク</translation>
+        <translation type="vanished">内部ネットワーク</translation>
     </message>
     <message>
         <source>Host Only Adapter</source>
-        <translation>ホストオンリーアダプター</translation>
+        <translation type="vanished">ホストオンリーアダプター</translation>
     </message>
     <message>
         <source>Generic Driver</source>
-        <translation>汎用ドライバー</translation>
+        <translation type="vanished">汎用ドライバー</translation>
     </message>
     <message>
         <source>NAT Network</source>
-        <translation>NATネットワーク</translation>
+        <translation type="vanished">NATネットワーク</translation>
     </message>
     <message>
         <source>Disconnected</source>
         <comment>serial port</comment>
-        <translation>切断</translation>
+        <translation type="vanished">切断</translation>
     </message>
     <message>
         <source>Host Pipe</source>
-        <translation>ホストにパイプ</translation>
+        <translation type="vanished">ホストにパイプ</translation>
     </message>
     <message>
         <source>Host Device</source>
-        <translation>ホストデバイス</translation>
+        <translation type="vanished">ホストデバイス</translation>
     </message>
     <message>
         <source>Raw File</source>
-        <translation>Rawファイル</translation>
+        <translation type="vanished">Rawファイル</translation>
     </message>
     <message>
         <source>TCP</source>
-        <translation>TCP</translation>
+        <translation type="vanished">TCP</translation>
     </message>
     <message>
         <source>Device Filters</source>
-        <translation>デバイスフィルター</translation>
+        <translation type="vanished">デバイスフィルター</translation>
     </message>
     <message>
         <source>Menu Bar</source>
-        <translation>メニューバー</translation>
+        <translation type="vanished">メニューバー</translation>
     </message>
     <message>
         <source>Status Bar</source>
-        <translation>ステータスバー</translation>
+        <translation type="vanished">ステータスバー</translation>
     </message>
     <message>
         <source>Mini Toolbar</source>
-        <translation>ミニツールバー</translation>
+        <translation type="vanished">ミニツールバー</translation>
     </message>
     <message>
         <source>General</source>
@@ -5653,96 +5951,96 @@
     </message>
     <message>
         <source>Please choose a virtual hard disk file</source>
-        <translation>仮想ハードディスクファイルを選択してください</translation>
+        <translation type="vanished">仮想ハードディスクファイルを選択してください</translation>
     </message>
     <message>
         <source>All virtual hard disk files (%1)</source>
-        <translation>すべての仮想ハードディスクファイル (%1)</translation>
+        <translation type="vanished">すべての仮想ハードディスクファイル (%1)</translation>
     </message>
     <message>
         <source>Please choose a virtual optical disk file</source>
-        <translation>仮想光学ディスクファイルを選択してください</translation>
+        <translation type="vanished">仮想光学ディスクファイルを選択してください</translation>
     </message>
     <message>
         <source>All virtual optical disk files (%1)</source>
-        <translation>すべての仮想光学ディスクファイル (%1)</translation>
+        <translation type="vanished">すべての仮想光学ディスクファイル (%1)</translation>
     </message>
     <message>
         <source>Please choose a virtual floppy disk file</source>
-        <translation>仮想フロッピーディスクファイルを選択してください</translation>
+        <translation type="vanished">仮想フロッピーディスクファイルを選択してください</translation>
     </message>
     <message>
         <source>All virtual floppy disk files (%1)</source>
-        <translation>すべての仮想フロッピーディスクファイル (%1)</translation>
+        <translation type="vanished">すべての仮想フロッピーディスクファイル (%1)</translation>
     </message>
     <message>
         <source>All files (*)</source>
-        <translation>すべてのファイル(*)</translation>
+        <translation type="vanished">すべてのファイル(*)</translation>
     </message>
     <message>
         <source>Unknown device</source>
         <comment>USB device details</comment>
-        <translation>不明なデバイス</translation>
+        <translation type="vanished">不明なデバイス</translation>
     </message>
     <message>
         <source>Unknown device %1:%2</source>
         <comment>USB device details</comment>
-        <translation>不明なデバイス %1:%2</translation>
+        <translation type="vanished">不明なデバイス %1:%2</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;Vendor ID: %1&lt;/nobr&gt;&lt;br&gt;&lt;nobr&gt;Product ID: %2&lt;/nobr&gt;&lt;br&gt;&lt;nobr&gt;Revision: %3&lt;/nobr&gt;</source>
         <comment>USB device tooltip</comment>
-        <translation>&lt;nobr&gt;ベンダーID: %1&lt;/nobr&gt;&lt;br&gt;&lt;nobr&gt;プロダクトID: %2&lt;/nobr&gt;&lt;br&gt;&lt;nobr&gt;リビジョン: %3&lt;/nobr&gt;</translation>
+        <translation type="vanished">&lt;nobr&gt;ベンダーID: %1&lt;/nobr&gt;&lt;br&gt;&lt;nobr&gt;プロダクトID: %2&lt;/nobr&gt;&lt;br&gt;&lt;nobr&gt;リビジョン: %3&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;br&gt;&lt;nobr&gt;Serial No. %1&lt;/nobr&gt;</source>
         <comment>USB device tooltip</comment>
-        <translation>&lt;br&gt;&lt;nobr&gt;シリアルNo. %1&lt;/nobr&gt;</translation>
+        <translation type="vanished">&lt;br&gt;&lt;nobr&gt;シリアルNo. %1&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;br&gt;&lt;nobr&gt;State: %1&lt;/nobr&gt;</source>
         <comment>USB device tooltip</comment>
-        <translation>&lt;br&gt;&lt;nobr&gt;状態: %1&lt;/nobr&gt;</translation>
+        <translation type="vanished">&lt;br&gt;&lt;nobr&gt;状態: %1&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;Vendor ID: %1&lt;/nobr&gt;</source>
         <comment>USB filter tooltip</comment>
-        <translation>&lt;nobr&gt;ベンダーID: %1&lt;/nobr&gt;</translation>
+        <translation type="vanished">&lt;nobr&gt;ベンダーID: %1&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;Product ID: %2&lt;/nobr&gt;</source>
         <comment>USB filter tooltip</comment>
-        <translation>&lt;nobr&gt;プロダクトID: %2&lt;/nobr&gt;</translation>
+        <translation type="vanished">&lt;nobr&gt;プロダクトID: %2&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;Revision: %3&lt;/nobr&gt;</source>
         <comment>USB filter tooltip</comment>
-        <translation>&lt;nobr&gt;リビジョン: %3&lt;/nobr&gt;</translation>
+        <translation type="vanished">&lt;nobr&gt;リビジョン: %3&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;Product: %4&lt;/nobr&gt;</source>
         <comment>USB filter tooltip</comment>
-        <translation>&lt;nobr&gt;製品: %4&lt;/nobr&gt;</translation>
+        <translation type="vanished">&lt;nobr&gt;製品: %4&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;Manufacturer: %5&lt;/nobr&gt;</source>
         <comment>USB filter tooltip</comment>
-        <translation>&lt;nobr&gt;メーカー: %5&lt;/nobr&gt;</translation>
+        <translation type="vanished">&lt;nobr&gt;メーカー: %5&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;Serial No.: %1&lt;/nobr&gt;</source>
         <comment>USB filter tooltip</comment>
-        <translation>&lt;nobr&gt;シリアルNo.: %1&lt;/nobr&gt;</translation>
+        <translation type="vanished">&lt;nobr&gt;シリアルNo.: %1&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;Port: %1&lt;/nobr&gt;</source>
         <comment>USB filter tooltip</comment>
-        <translation>&lt;nobr&gt;ポート: %1&lt;/nobr&gt;</translation>
+        <translation type="vanished">&lt;nobr&gt;ポート: %1&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>&lt;nobr&gt;State: %1&lt;/nobr&gt;</source>
         <comment>USB filter tooltip</comment>
-        <translation>&lt;nobr&gt;状態: %1&lt;/nobr&gt;</translation>
+        <translation type="vanished">&lt;nobr&gt;状態: %1&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>User-defined</source>
@@ -5752,95 +6050,95 @@
     <message>
         <source>Inaccessible</source>
         <comment>medium</comment>
-        <translation>アクセスできません</translation>
+        <translation type="vanished">アクセスできません</translation>
     </message>
     <message>
         <source>Empty</source>
         <comment>medium</comment>
-        <translation>空</translation>
+        <translation type="vanished">空</translation>
     </message>
     <message>
         <source>Host Drive &apos;%1&apos;</source>
         <comment>medium</comment>
-        <translation>ホストドライブ &apos;%1&apos;</translation>
+        <translation type="vanished">ホストドライブ &apos;%1&apos;</translation>
     </message>
     <message>
         <source>Host Drive %1 (%2)</source>
         <comment>medium</comment>
-        <translation>ホストドライブ %1 (%2)</translation>
+        <translation type="vanished">ホストドライブ %1 (%2)</translation>
     </message>
     <message>
         <source>&lt;p style=white-space:pre&gt;Type (Format):  %1 (%2)&lt;/p&gt;</source>
         <comment>medium</comment>
-        <translation>&lt;p style=white-space:pre&gt;タイプ (形式):  %1 (%2)&lt;/p&gt;</translation>
+        <translation type="vanished">&lt;p style=white-space:pre&gt;タイプ (形式):  %1 (%2)&lt;/p&gt;</translation>
     </message>
     <message>
         <source>&lt;p&gt;Attached to:  %1&lt;/p&gt;</source>
         <comment>image</comment>
-        <translation>&lt;p&gt;割り当て:  %1&lt;/p&gt;</translation>
+        <translation type="vanished">&lt;p&gt;割り当て:  %1&lt;/p&gt;</translation>
     </message>
     <message>
         <source>&lt;i&gt;Not Attached&lt;/i&gt;</source>
         <comment>image</comment>
-        <translation>&lt;i&gt;未割り当て&lt;/i&gt;</translation>
+        <translation type="vanished">&lt;i&gt;未割り当て&lt;/i&gt;</translation>
     </message>
     <message>
         <source>&lt;i&gt;Checking accessibility...&lt;/i&gt;</source>
         <comment>medium</comment>
-        <translation>&lt;i&gt;アクセス可否を確認中...&lt;/i&gt;</translation>
+        <translation type="vanished">&lt;i&gt;アクセス可否を確認中...&lt;/i&gt;</translation>
     </message>
     <message>
         <source>Failed to check accessibility of disk image files.</source>
         <comment>medium</comment>
-        <translation>メディアのアクセス可否の確認に失敗しました。</translation>
+        <translation type="vanished">メディアのアクセス可否の確認に失敗しました。</translation>
     </message>
     <message>
         <source>&lt;b&gt;No disk image file selected&lt;/b&gt;</source>
         <comment>medium</comment>
-        <translation>&lt;b&gt;メディア 未選択&lt;/b&gt;</translation>
+        <translation type="vanished">&lt;b&gt;メディア 未選択&lt;/b&gt;</translation>
     </message>
     <message>
         <source>You can also change this while the machine is running.</source>
-        <translation>仮想マシンの動作中、これを変更することができます。</translation>
+        <translation type="vanished">仮想マシンの動作中、これを変更することができます。</translation>
     </message>
     <message>
         <source>&lt;b&gt;No disk image files available&lt;/b&gt;</source>
         <comment>medium</comment>
-        <translation>&lt;b&gt;メディア 利用不可&lt;/b&gt;</translation>
+        <translation type="vanished">&lt;b&gt;メディア 利用不可&lt;/b&gt;</translation>
     </message>
     <message>
         <source>You can create or add disk image files in the virtual machine settings.</source>
-        <translation>仮想マシン設定でディスクイメージファイルを作成ないし追加できます。</translation>
+        <translation type="vanished">仮想マシン設定でディスクイメージファイルを作成ないし追加できます。</translation>
     </message>
     <message>
         <source>Attaching this hard disk will be performed indirectly using a newly created differencing hard disk.</source>
         <comment>medium</comment>
-        <translation>このハードディスクの割り当ては、新規作成された差分ハードディスクの使用により、間接的に実行されます。</translation>
+        <translation type="vanished">このハードディスクの割り当ては、新規作成された差分ハードディスクの使用により、間接的に実行されます。</translation>
     </message>
     <message>
         <source>Encrypted</source>
         <comment>medium</comment>
-        <translation>暗号化</translation>
+        <translation type="vanished">暗号化</translation>
     </message>
     <message>
         <source>Checking...</source>
         <comment>medium</comment>
-        <translation>確認中...</translation>
+        <translation type="vanished">確認中...</translation>
     </message>
     <message>
         <source>Some of the files in this hard disk chain are inaccessible. Please use the Virtual Medium Manager to inspect these files.</source>
         <comment>medium</comment>
-        <translation>ハードディスクチェーン中のいくつかのメディアにアクセスできません。仮想メディアマネージャーを使用して、これらのメディアを確認してください。</translation>
+        <translation type="vanished">ハードディスクチェーン中のいくつかのメディアにアクセスできません。仮想メディアマネージャーを使用して、これらのメディアを確認してください。</translation>
     </message>
     <message>
         <source>This base hard disk is indirectly attached using the following differencing hard disk:</source>
         <comment>medium</comment>
-        <translation>このベースハードディスクは以下の差分ハードディスクを使用して間接的に割り当てられます:</translation>
+        <translation type="vanished">このベースハードディスクは以下の差分ハードディスクを使用して間接的に割り当てられます:</translation>
     </message>
     <message>
         <source>Differencing</source>
         <comment>MediumType</comment>
-        <translation>差分</translation>
+        <translation type="vanished">差分</translation>
     </message>
     <message>
         <source>Adapter %1</source>
@@ -5848,7 +6146,7 @@
     </message>
     <message>
         <source>Please choose a location for new virtual hard disk file</source>
-        <translation>新しい仮想ハードディスクファイルの場所を選択</translation>
+        <translation type="vanished">新しい仮想ハードディスクファイルの場所を選択</translation>
     </message>
     <message>
         <source>Paravirtualized Network (virtio-net 1.0)</source>
@@ -6123,15 +6421,15 @@
     </message>
     <message>
         <source>Cloud Network</source>
-        <translation>クラウドネットワーク</translation>
+        <translation type="vanished">クラウドネットワーク</translation>
     </message>
     <message>
         <source>Host Only Network</source>
-        <translation>ホストオンリーネットワーク</translation>
+        <translation type="vanished">ホストオンリーネットワーク</translation>
     </message>
     <message>
         <source>Visual State</source>
-        <translation>表示状態</translation>
+        <translation type="vanished">表示状態</translation>
     </message>
     <message>
         <source>Follow System Settings</source>
@@ -6210,7 +6508,7 @@
     </message>
     <message>
         <source>Bridged Adapter</source>
-        <translation>ブリッジアダプター</translation>
+        <translation type="vanished">ブリッジアダプター</translation>
     </message>
     <message>
         <source>None</source>
@@ -6239,34 +6537,66 @@
     </message>
     <message>
         <source>TPM Type</source>
-        <translation>TPMタイプ</translation>
+        <translation type="vanished">TPMタイプ</translation>
     </message>
     <message>
         <source>Secure Boot</source>
-        <translation>セキュアブート</translation>
+        <translation type="vanished">セキュアブート</translation>
+    </message>
+    <message>
+        <source>QemuRamFB</source>
+        <comment>GraphicsControllerType</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Virtio-Sound</source>
+        <comment>AudioControllerType</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>ARMv8Virtual</source>
+        <comment>ChipsetType</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard Extension</source>
+        <comment>IndicatorType</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>TLS</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>RDP</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>NEGOTIATE</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>UICustomFileSystemModel</name>
     <message>
         <source>Name</source>
-        <translation>名前</translation>
+        <translation type="vanished">名前</translation>
     </message>
     <message>
         <source>Size</source>
-        <translation>サイズ</translation>
+        <translation type="vanished">サイズ</translation>
     </message>
     <message>
         <source>Change Time</source>
-        <translation>変更日時</translation>
+        <translation type="vanished">変更日時</translation>
     </message>
     <message>
         <source>Owner</source>
-        <translation>所有者</translation>
+        <translation type="vanished">所有者</translation>
     </message>
     <message>
         <source>Permissions</source>
-        <translation>パーミッション</translation>
+        <translation type="vanished">パーミッション</translation>
     </message>
     <message>
         <source>LocalPath</source>
@@ -6274,15 +6604,15 @@
     </message>
     <message>
         <source>Path</source>
-        <translation>パス</translation>
+        <translation type="vanished">パス</translation>
     </message>
     <message>
         <source>New Directory</source>
-        <translation>新規ディレクトリ</translation>
+        <translation type="vanished">新規ディレクトリ</translation>
     </message>
     <message>
         <source>Local Path</source>
-        <translation>ローカルパス</translation>
+        <translation type="vanished">ローカルパス</translation>
     </message>
     <message>
         <source>NewDirectory</source>
@@ -6397,7 +6727,7 @@
     <message>
         <source>Disabled</source>
         <comment>details (system/EFI)</comment>
-        <translation>無効</translation>
+        <translation type="vanished">無効</translation>
     </message>
     <message>
         <source>VT-x/AMD-V</source>
@@ -6457,7 +6787,7 @@
     <message>
         <source>3D</source>
         <comment>details (display)</comment>
-        <translation>3D</translation>
+        <translation type="vanished">3D</translation>
     </message>
     <message>
         <source>Acceleration</source>
@@ -6786,6 +7116,111 @@
         <source>Nested VT-x/AMD-V</source>
         <comment>details (system)</comment>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Enabled</source>
+        <comment>details (display/3D Acceleration)</comment>
+        <translation type="unfinished">有効</translation>
+    </message>
+    <message>
+        <source>3D Acceleration</source>
+        <comment>details (display)</comment>
+        <translation type="unfinished">3D アクセラレーション</translation>
+    </message>
+    <message>
+        <source>Cloud Network, &apos;%1&apos;</source>
+        <comment>details (network)</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Hard Disks</source>
+        <comment>details (storage)</comment>
+        <translation type="unfinished">ハードディスク</translation>
+    </message>
+    <message>
+        <source>Optical Devices</source>
+        <comment>details (storage)</comment>
+        <translation type="unfinished">光学デバイス</translation>
+    </message>
+    <message>
+        <source>Floppy Devices</source>
+        <comment>details (storage)</comment>
+        <translation type="unfinished">フロッピーデバイス</translation>
+    </message>
+    <message>
+        <source>Input/Output</source>
+        <comment>details (audio)</comment>
+        <translation type="unfinished">入出力</translation>
+    </message>
+    <message>
+        <source>Not Attached</source>
+        <comment>details (network adapter)</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>NAT</source>
+        <comment>details (network)</comment>
+        <translation type="unfinished">NAT</translation>
+    </message>
+    <message>
+        <source>Bridged Adapter</source>
+        <comment>details (network)</comment>
+        <translation type="unfinished">ブリッジアダプター</translation>
+    </message>
+    <message>
+        <source>Internal Network</source>
+        <comment>details (network)</comment>
+        <translation type="unfinished">内部ネットワーク</translation>
+    </message>
+    <message>
+        <source>Host-only Adapter</source>
+        <comment>details (network)</comment>
+        <translation type="unfinished">ホストオンリーアダプター</translation>
+    </message>
+    <message>
+        <source>Generic Driver</source>
+        <comment>details (network)</comment>
+        <translation type="unfinished">汎用ドライバー</translation>
+    </message>
+    <message>
+        <source>NAT Network</source>
+        <comment>details (network)</comment>
+        <translation type="unfinished">NATネットワーク</translation>
+    </message>
+    <message>
+        <source>Cloud Network</source>
+        <comment>details (network)</comment>
+        <translation type="unfinished">クラウドネットワーク</translation>
+    </message>
+    <message>
+        <source>Host-only Network</source>
+        <comment>details (network)</comment>
+        <translation type="unfinished">ホストオンリーネットワーク</translation>
+    </message>
+    <message>
+        <source>Disconnected</source>
+        <comment>details (serial port)</comment>
+        <translation type="unfinished">切断</translation>
+    </message>
+    <message>
+        <source>Host Pipe</source>
+        <comment>details (serial)</comment>
+        <translation type="unfinished">ホストにパイプ</translation>
+    </message>
+    <message>
+        <source>Host Device</source>
+        <comment>details (serial)</comment>
+        <translation type="unfinished">ホストデバイス</translation>
+    </message>
+    <message>
+        <source>Raw File</source>
+        <comment>details (serial)</comment>
+        <translation type="unfinished">Rawファイル</translation>
+    </message>
+    <message>
+        <source>TCP</source>
+        <comment>details (serial)</comment>
+        <translation type="unfinished">TCP</translation>
     </message>
 </context>
 <context>
@@ -7511,7 +7946,7 @@
     <name>UIDialogPanel</name>
     <message>
         <source>Close the pane</source>
-        <translation>ペインを閉じる</translation>
+        <translation type="vanished">ペインを閉じる</translation>
     </message>
 </context>
 <context>
@@ -7566,11 +8001,15 @@
     </message>
     <message>
         <source>&amp;Split into 2GB parts</source>
-        <translation>2GBで分割(&amp;S)</translation>
+        <translation type="vanished">2GBで分割(&amp;S)</translation>
     </message>
     <message>
         <source>When checked, the virtual hard disk file is split into 2GB parts.</source>
         <translation>仮想ハードディスクファイルを2GBごとのパーツに分割します。</translation>
+    </message>
+    <message>
+        <source>&amp;Split Into 2GB Parts</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -7740,11 +8179,19 @@
     <name>UIDownloaderUserManual</name>
     <message>
         <source>VirtualBox User Manual</source>
-        <translation>VirtualBox ユーザーマニュアル</translation>
+        <translation type="vanished">VirtualBox ユーザーマニュアル</translation>
     </message>
     <message>
         <source>Select folder to save User Manual to</source>
-        <translation>ユーザーマニュアルを保存するフォルダーを選択</translation>
+        <translation type="vanished">ユーザーマニュアルを保存するフォルダーを選択</translation>
+    </message>
+    <message>
+        <source>VirtualBox User Guide</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select folder to save User Guide to</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -7763,6 +8210,10 @@
     <message>
         <source>Choose...</source>
         <translation>選択...</translation>
+    </message>
+    <message>
+        <source>Contains selected file path.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -7848,6 +8299,11 @@
         <source>Callee&amp;nbsp;RC:</source>
         <comment>error info</comment>
         <translation>呼び出し先&amp;nbsp;RC:</translation>
+    </message>
+    <message>
+        <source>Result&amp;nbsp;Detail:</source>
+        <comment>error info</comment>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -8390,6 +8846,10 @@ p, li { white-space: pre-wrap; }
         <source>File already exists</source>
         <translation>ファイルはすでに存在しています</translation>
     </message>
+    <message>
+        <source>File path is valid</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UIFileManager</name>
@@ -8809,6 +9269,22 @@ a guest session</source>
         <source>File manager cannot work. The guest additions need to be updated.</source>
         <translation type="unfinished"></translation>
     </message>
+    <message>
+        <source>Preferences</source>
+        <translation type="unfinished">環境設定</translation>
+    </message>
+    <message>
+        <source>Log</source>
+        <translation type="unfinished">ログ</translation>
+    </message>
+    <message>
+        <source>Operations</source>
+        <translation type="unfinished">操作</translation>
+    </message>
+    <message>
+        <source>NewDirectory</source>
+        <translation type="unfinished">新規ディレクトリ</translation>
+    </message>
 </context>
 <context>
     <name>UIFilePathSelector</name>
@@ -8863,6 +9339,13 @@ a guest session</source>
     <message>
         <source>Holds the file path.</source>
         <translation type="vanished">ファイルのパスを指定します。</translation>
+    </message>
+</context>
+<context>
+    <name>UIFileSystemModel</name>
+    <message>
+        <source>NewDirectory</source>
+        <translation type="obsolete">新規ディレクトリ</translation>
     </message>
 </context>
 <context>
@@ -10189,6 +10672,10 @@ p, li { white-space: pre-wrap; }
         <source>&amp;Disable When Running Virtual Machines</source>
         <translation type="vanished">仮想マシンの動作時に無効(&amp;D)</translation>
     </message>
+    <message>
+        <source>Default machine folder is missing.</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UIGlobalSettingsInput</name>
@@ -10226,7 +10713,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Host Key Combination</source>
-        <translation>ホストキーの組み合わせ</translation>
+        <translation type="vanished">ホストキーの組み合わせ</translation>
     </message>
     <message>
         <source>Some items have the same shortcuts assigned.</source>
@@ -10255,6 +10742,10 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>Holds a sequence to filter the shortcut list.</source>
         <translation type="vanished">検索語を指定してショートカットリストを絞り込みます。</translation>
+    </message>
+    <message>
+        <source>Host Key Combo</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -11124,7 +11615,7 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>%1: %2</source>
         <comment>&apos;key: value&apos;, like &apos;Name: MyVM&apos;</comment>
-        <translation>%1: %2</translation>
+        <translation type="vanished">%1: %2</translation>
     </message>
 </context>
 <context>
@@ -11264,7 +11755,7 @@ p, li { white-space: pre-wrap; }
     <name>UIHelpBrowserWidget</name>
     <message>
         <source>Oracle VM VirtualBox User Manual</source>
-        <translation>Oracle VM VirtualBox ユーザーマニュアル</translation>
+        <translation type="vanished">Oracle VM VirtualBox ユーザーマニュアル</translation>
     </message>
     <message>
         <source>Copy Selected Text</source>
@@ -11392,7 +11883,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Click to open this link in an external browser</source>
-        <translation>クリックしてリンクを外部のブラウザーで開く</translation>
+        <translation type="vanished">クリックしてリンクを外部のブラウザーで開く</translation>
     </message>
     <message>
         <source>Click to enlarge the image</source>
@@ -11436,7 +11927,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>&lt;div&gt;&lt;p&gt;&lt;h3&gt;404. Not found.&lt;/h3&gt;The page &lt;b&gt;%1&lt;/b&gt; could not be found.&lt;/p&gt;&lt;/div&gt;</source>
-        <translation>&lt;div&gt;&lt;p&gt;&lt;h3&gt;404. Not found.&lt;/h3&gt;次のページ &lt;b&gt;%1&lt;/b&gt; は見つかりません。&lt;/p&gt;&lt;/div&gt;</translation>
+        <translation type="vanished">&lt;div&gt;&lt;p&gt;&lt;h3&gt;404. Not found.&lt;/h3&gt;次のページ &lt;b&gt;%1&lt;/b&gt; は見つかりません。&lt;/p&gt;&lt;/div&gt;</translation>
     </message>
     <message>
         <source>Home</source>
@@ -11461,6 +11952,27 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>Bookmark added:</source>
         <translation>ブックマークを追加:</translation>
+    </message>
+    <message>
+        <source>%1 User Guide</source>
+        <comment>[Product Name] User Guide</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;div&gt;&lt;p&gt;&lt;h3&gt;Not found.&lt;/h3&gt;The page &lt;b&gt;%1&lt;/b&gt; could not be found.&lt;/p&gt;&lt;/div&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Not Found</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Click to open the following URL with an external browser</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Click to navigate to internal URL</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -11957,6 +12469,14 @@ p, li { white-space: pre-wrap; }
         <source>Holds the domain name.</source>
         <translation>ドメイン名を入力してください。</translation>
     </message>
+    <message>
+        <source>Hostname is valid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Domain name is valid</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UIHotKeyEditor</name>
@@ -12288,6 +12808,309 @@ p, li { white-space: pre-wrap; }
     </message>
 </context>
 <context>
+    <name>UIIndicatorAudio</name>
+    <message>
+        <source>Output enabled</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Output disabled</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Input enabled</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Input disabled</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIIndicatorDisplay</name>
+    <message>
+        <source>%1 MB</source>
+        <translation type="unfinished">%1 MB</translation>
+    </message>
+    <message>
+        <source>%1 monitors connected</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>3D acceleration enabled</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIIndicatorFeatures</name>
+    <message>
+        <source>not set</source>
+        <comment>Execution engine</comment>
+        <translation type="unfinished">未設定</translation>
+    </message>
+    <message>
+        <source>Active</source>
+        <comment>Nested paging</comment>
+        <translation type="unfinished">有効</translation>
+    </message>
+    <message>
+        <source>Inactive</source>
+        <comment>Nested paging</comment>
+        <translation type="unfinished">無効</translation>
+    </message>
+    <message>
+        <source>Active</source>
+        <comment>Unrestricted execution</comment>
+        <translation type="unfinished">有効</translation>
+    </message>
+    <message>
+        <source>Inactive</source>
+        <comment>Unrestricted execution</comment>
+        <translation type="unfinished">無効</translation>
+    </message>
+    <message>
+        <source>Execution Engine</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Unrestricted Execution</source>
+        <translation type="unfinished">Unrestricted Execution</translation>
+    </message>
+    <message>
+        <source>Paravirtualization Interface</source>
+        <translation type="unfinished">準仮想化インターフェース</translation>
+    </message>
+    <message>
+        <source>Processors</source>
+        <comment>details report</comment>
+        <translation type="obsolete">プロセッサー</translation>
+    </message>
+</context>
+<context>
+    <name>UIIndicatorFloppyDisks</name>
+    <message>
+        <source>%1 drives attached</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 images mounted</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIIndicatorHardDrive</name>
+    <message>
+        <source>%1 disks attached</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIIndicatorKeyboard</name>
+    <message>
+        <source>Indicates whether the host keyboard is captured by the guest OS:%1</source>
+        <comment>Keyboard tooltip</comment>
+        <translation type="unfinished">ホストのキーボードをゲストOS (%1) でキャプチャーしているかどうかを示します</translation>
+    </message>
+    <message>
+        <source>Keyboard is not captured</source>
+        <comment>Keyboard tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard is captured</source>
+        <comment>Keyboard tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard is not captured, host-combo being pressed</source>
+        <comment>Keyboard tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard is captured, host-combo being pressed</source>
+        <comment>Keyboard tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard is not captured, host-combo to be inserted</source>
+        <comment>Keyboard tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard is captured, host-combo to be inserted</source>
+        <comment>Keyboard tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard is not captured, host-combo being pressed and to be inserted</source>
+        <comment>Keyboard tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard is captured, host-combo being pressed and to be inserted</source>
+        <comment>Keyboard tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIIndicatorKeyboardExtension</name>
+    <message>
+        <source>Shows the currently assigned Host Key Combo.&lt;br&gt;This key combo, when pressed alone, toggles the keyboard and mouse capture state. It can also be used in combination with other keys to quickly perform actions from the main menu.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Host Key Combo: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIIndicatorMouse</name>
+    <message>
+        <source>Indicates whether the host mouse pointer is captured by the guest OS:%1</source>
+        <comment>Mouse tooltip</comment>
+        <translation type="unfinished">ホストのマウスポインターをゲストOS (%1) でキャプチャーしているかどうかを示します</translation>
+    </message>
+    <message>
+        <source>Pointer is not captured</source>
+        <comment>Mouse tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Pointer is captured</source>
+        <comment>Mouse tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Mouse integration is Off, pointer is not captured</source>
+        <comment>Mouse tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Mouse integration is Off, pointer is captured</source>
+        <comment>Mouse tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Mouse integration is On</source>
+        <comment>Mouse tooltip</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Note that the mouse integration feature requires Guest Additions to be installed in the guest OS.</source>
+        <comment>Mouse tooltip</comment>
+        <translation type="unfinished">マウス統合機能はインストールしたゲストOSにGuest Additionsが必要です。</translation>
+    </message>
+</context>
+<context>
+    <name>UIIndicatorNetwork</name>
+    <message>
+        <source>Adapters present</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No network adapters</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>All cables disconnected</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Adapter %1 (%2)</source>
+        <translation type="unfinished">アダプター %1 (%2)</translation>
+    </message>
+    <message>
+        <source>IP</source>
+        <translation type="unfinished">IP</translation>
+    </message>
+    <message>
+        <source>Cable</source>
+        <translation type="unfinished">ケーブル</translation>
+    </message>
+    <message>
+        <source>Connected</source>
+        <comment>cable</comment>
+        <translation type="unfinished">接続</translation>
+    </message>
+    <message>
+        <source>Disconnected</source>
+        <comment>cable</comment>
+        <translation type="unfinished">切断</translation>
+    </message>
+</context>
+<context>
+    <name>UIIndicatorOpticalDisks</name>
+    <message>
+        <source>%1 drives attached</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 images mounted</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIIndicatorRecording</name>
+    <message>
+        <source>Recording stopped</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Recording started</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Recording paused</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Video/audio recording file</source>
+        <translation type="unfinished">ビデオ/オーディオレコーディングファイル</translation>
+    </message>
+    <message>
+        <source>Audio recording file</source>
+        <translation type="unfinished">オーディオレコーディングファイル</translation>
+    </message>
+    <message>
+        <source>Video recording file</source>
+        <translation type="unfinished">ビデオレコーディングファイル</translation>
+    </message>
+    <message>
+        <source>Recording disabled</source>
+        <translation type="unfinished">レコーディングを無効化</translation>
+    </message>
+</context>
+<context>
+    <name>UIIndicatorSharedFolders</name>
+    <message>
+        <source>%1 shared folders</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No shared folders</source>
+        <translation type="unfinished">共有フォルダーなし</translation>
+    </message>
+</context>
+<context>
+    <name>UIIndicatorUSB</name>
+    <message>
+        <source>USB enabled</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>USB disabled</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>%1 USB devices attached</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>No USB devices attached</source>
+        <translation type="unfinished">USBデバイス未割り当て</translation>
+    </message>
+</context>
+<context>
     <name>UIIndicatorsPool</name>
     <message>
         <source>&lt;p style=&apos;white-space:pre&apos;&gt;&lt;nobr&gt;Indicates the activity of the virtual hard disks:&lt;/nobr&gt;%1&lt;/p&gt;</source>
@@ -12432,52 +13255,52 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>Adapter %1 (%2)</source>
         <comment>Network tooltip</comment>
-        <translation>アダプター %1 (%2)</translation>
+        <translation type="vanished">アダプター %1 (%2)</translation>
     </message>
     <message>
         <source>IP</source>
         <comment>Network tooltip</comment>
-        <translation>IP</translation>
+        <translation type="vanished">IP</translation>
     </message>
     <message>
         <source>Cable</source>
         <comment>Network tooltip</comment>
-        <translation>ケーブル</translation>
+        <translation type="vanished">ケーブル</translation>
     </message>
     <message>
         <source>Connected</source>
         <comment>cable (Network tooltip)</comment>
-        <translation>接続</translation>
+        <translation type="vanished">接続</translation>
     </message>
     <message>
         <source>Disconnected</source>
         <comment>cable (Network tooltip)</comment>
-        <translation>切断</translation>
+        <translation type="vanished">切断</translation>
     </message>
     <message>
         <source>No USB devices attached</source>
         <comment>USB tooltip</comment>
-        <translation>USBデバイス未割り当て</translation>
+        <translation type="vanished">USBデバイス未割り当て</translation>
     </message>
     <message>
         <source>No shared folders</source>
         <comment>Shared folders tooltip</comment>
-        <translation>共有フォルダーなし</translation>
+        <translation type="vanished">共有フォルダーなし</translation>
     </message>
     <message>
         <source>Video memory</source>
         <comment>Display tooltip</comment>
-        <translation>ビデオメモリー</translation>
+        <translation type="vanished">ビデオメモリー</translation>
     </message>
     <message>
         <source>Screens</source>
         <comment>Display tooltip</comment>
-        <translation>スクリーン</translation>
+        <translation type="vanished">スクリーン</translation>
     </message>
     <message>
         <source>3D acceleration</source>
         <comment>Display tooltip</comment>
-        <translation>3D アクセラレーション</translation>
+        <translation type="vanished">3D アクセラレーション</translation>
     </message>
     <message>
         <source>Video capture disabled</source>
@@ -12492,72 +13315,72 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>Indicates whether the host mouse pointer is captured by the guest OS:%1</source>
         <comment>Mouse tooltip</comment>
-        <translation>ホストのマウスポインターをゲストOS (%1) でキャプチャーしているかどうかを示します</translation>
+        <translation type="vanished">ホストのマウスポインターをゲストOS (%1) でキャプチャーしているかどうかを示します</translation>
     </message>
     <message>
         <source>pointer is not captured</source>
         <comment>Mouse tooltip</comment>
-        <translation>ポインターがキャプチャーされていません</translation>
+        <translation type="vanished">ポインターがキャプチャーされていません</translation>
     </message>
     <message>
         <source>pointer is captured</source>
         <comment>Mouse tooltip</comment>
-        <translation>ポインターがキャプチャーされています</translation>
+        <translation type="vanished">ポインターがキャプチャーされています</translation>
     </message>
     <message>
         <source>mouse integration (MI) is On</source>
         <comment>Mouse tooltip</comment>
-        <translation>マウス統合 (MI) が有効です</translation>
+        <translation type="vanished">マウス統合 (MI) が有効です</translation>
     </message>
     <message>
         <source>MI is Off, pointer is captured</source>
         <comment>Mouse tooltip</comment>
-        <translation>MIがオンです。ポインターはキャプチャーされています</translation>
+        <translation type="vanished">MIがオンです。ポインターはキャプチャーされています</translation>
     </message>
     <message>
         <source>MI is Off, pointer is not captured</source>
         <comment>Mouse tooltip</comment>
-        <translation>MIがオフです。ポインターはキャプチャーされていません</translation>
+        <translation type="vanished">MIがオフです。ポインターはキャプチャーされていません</translation>
     </message>
     <message>
         <source>Note that the mouse integration feature requires Guest Additions to be installed in the guest OS.</source>
         <comment>Mouse tooltip</comment>
-        <translation>マウス統合機能はインストールしたゲストOSにGuest Additionsが必要です。</translation>
+        <translation type="vanished">マウス統合機能はインストールしたゲストOSにGuest Additionsが必要です。</translation>
     </message>
     <message>
         <source>Indicates whether the host keyboard is captured by the guest OS:%1</source>
         <comment>Keyboard tooltip</comment>
-        <translation>ホストのキーボードをゲストOS (%1) でキャプチャーしているかどうかを示します</translation>
+        <translation type="vanished">ホストのキーボードをゲストOS (%1) でキャプチャーしているかどうかを示します</translation>
     </message>
     <message>
         <source>keyboard is not captured</source>
         <comment>Keyboard tooltip</comment>
-        <translation>キーボードがキャプチャーされていません</translation>
+        <translation type="vanished">キーボードがキャプチャーされていません</translation>
     </message>
     <message>
         <source>keyboard is captured</source>
         <comment>Keyboard tooltip</comment>
-        <translation>キーボードがギャプチャーされています</translation>
+        <translation type="vanished">キーボードがギャプチャーされています</translation>
     </message>
     <message>
         <source>Recording disabled</source>
         <comment>Recording tooltip</comment>
-        <translation>レコーディングを無効化</translation>
+        <translation type="vanished">レコーディングを無効化</translation>
     </message>
     <message>
         <source>Video/audio recording file</source>
         <comment>Recording tooltip</comment>
-        <translation>ビデオ/オーディオレコーディングファイル</translation>
+        <translation type="vanished">ビデオ/オーディオレコーディングファイル</translation>
     </message>
     <message>
         <source>Audio recording file</source>
         <comment>Recording tooltip</comment>
-        <translation>オーディオレコーディングファイル</translation>
+        <translation type="vanished">オーディオレコーディングファイル</translation>
     </message>
     <message>
         <source>Video recording file</source>
         <comment>Recording tooltip</comment>
-        <translation>ビデオレコーディングファイル</translation>
+        <translation type="vanished">ビデオレコーディングファイル</translation>
     </message>
 </context>
 <context>
@@ -13287,7 +14110,7 @@ p, li { white-space: pre-wrap; }
     <name>UILanguageSettingsEditor</name>
     <message>
         <source>&amp;Interface Languages</source>
-        <translation>インターフェース言語(&amp;I)</translation>
+        <translation type="vanished">インターフェース言語(&amp;I)</translation>
     </message>
     <message>
         <source>Lists all available user interface languages. The effective language is written in bold. Select Default to reset to the system default language.</source>
@@ -15144,15 +15967,15 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>When checked, enables the given serial port of the virtual machine.</source>
-        <translation>仮想マシンのシリアルポートを有効にします。</translation>
+        <translation type="vanished">仮想マシンのシリアルポートを有効にします。</translation>
     </message>
     <message>
         <source>&amp;Enable Serial Port</source>
-        <translation>シリアルポートを有効化(&amp;E)</translation>
+        <translation type="vanished">シリアルポートを有効化(&amp;E)</translation>
     </message>
     <message>
         <source>Port &amp;Number:</source>
-        <translation>ポート番号(&amp;N):</translation>
+        <translation type="vanished">ポート番号(&amp;N):</translation>
     </message>
     <message>
         <source>Selects the serial port number. You can choose one of the standard serial ports or select &lt;b&gt;User-defined&lt;/b&gt; and specify port parameters manually.</source>
@@ -15160,7 +15983,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>&amp;IRQ:</source>
-        <translation>IRQ(&amp;I):</translation>
+        <translation type="vanished">IRQ(&amp;I):</translation>
     </message>
     <message>
         <source>Holds the IRQ number of this serial port. Valid values are integer numbers in range from &lt;tt&gt;0&lt;/tt&gt; to &lt;tt&gt;255&lt;/tt&gt;. Values greater than &lt;tt&gt;15&lt;/tt&gt; may only be used if the &lt;b&gt;I/O APIC&lt;/b&gt; is enabled for this virtual machine.</source>
@@ -15168,7 +15991,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>I/O Po&amp;rt:</source>
-        <translation>I/Oポート(&amp;R):</translation>
+        <translation type="vanished">I/Oポート(&amp;R):</translation>
     </message>
     <message>
         <source>Holds the base I/O port address of this serial port. This should be a whole number between &lt;tt&gt;0&lt;/tt&gt; and &lt;tt&gt;0xFFFF&lt;/tt&gt;.</source>
@@ -15176,7 +15999,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Port &amp;Mode:</source>
-        <translation>ポートモード(&amp;M):</translation>
+        <translation type="vanished">ポートモード(&amp;M):</translation>
     </message>
     <message>
         <source>Controls the working mode of this serial port. If you select &lt;b&gt;Disconnected&lt;/b&gt;, the guest OS will detect the serial port but will not be able to operate it.</source>
@@ -15208,7 +16031,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Holds the base I/O port address of this serial port. Valid values are integer numbers in range from &lt;tt&gt;0&lt;/tt&gt; to &lt;tt&gt;0xFFFF&lt;/tt&gt;.</source>
-        <translation>このシリアルポートのベースI/Oポートアドレスを指定します。 有効値は&lt;tt&gt;0&lt;/tt&gt;から&lt;tt&gt;0xFFFF&lt;/tt&gt;の範囲の整数です。</translation>
+        <translation type="vanished">このシリアルポートのベースI/Oポートアドレスを指定します。 有効値は&lt;tt&gt;0&lt;/tt&gt;から&lt;tt&gt;0xFFFF&lt;/tt&gt;の範囲の整数です。</translation>
     </message>
     <message>
         <source>If checked, the virtual machine will assume that the pipe or socket specified in the &lt;b&gt;Path/Address&lt;/b&gt; field exists and try to use it. Otherwise, the pipe or socket will be created by the virtual machine when it starts.</source>
@@ -15216,11 +16039,11 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>&amp;Connect to existing pipe/socket</source>
-        <translation>存在するパイプ/ソケットに接続(&amp;C)</translation>
+        <translation type="vanished">存在するパイプ/ソケットに接続(&amp;C)</translation>
     </message>
     <message>
         <source>&amp;Path/Address:</source>
-        <translation>パス/アドレス(&amp;P):</translation>
+        <translation type="vanished">パス/アドレス(&amp;P):</translation>
     </message>
     <message>
         <source>&lt;p&gt;In &lt;b&gt;Host Pipe&lt;/b&gt; mode: Holds the path to the serial port&apos;s pipe on the host. Examples: &quot;\\.\pipe\myvbox&quot; or &quot;/tmp/myvbox&quot;, for Windows and UNIX-like systems respectively.&lt;/p&gt;&lt;p&gt;In &lt;b&gt;Host Device&lt;/b&gt; mode: Holds the host serial device name. Examples: &quot;COM1&quot; or &quot;/dev/ttyS0&quot;.&lt;/p&gt;&lt;p&gt;In &lt;b&gt;Raw File&lt;/b&gt; mode: Holds the file-path on the host system, where the serial output will be dumped.&lt;/p&gt;&lt;p&gt;In &lt;b&gt;TCP&lt;/b&gt; mode: Holds the TCP &quot;port&quot; when in server mode, or &quot;hostname:port&quot; when in client mode.</source>
@@ -15256,23 +16079,23 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Selects the serial port number. You can choose one of the standard serial ports or select User-defined and specify port parameters manually.</source>
-        <translation>シリアルポート番号を表示します。 標準のシリアルポートか[ユーザー定義]を選択し、手動でポートパラメタを指定することができます。</translation>
+        <translation type="vanished">シリアルポート番号を表示します。 標準のシリアルポートか[ユーザー定義]を選択し、手動でポートパラメタを指定することができます。</translation>
     </message>
     <message>
         <source>Holds the IRQ number of this serial port. This should be a whole number between &lt;tt&gt;0&lt;/tt&gt; and &lt;tt&gt;255&lt;/tt&gt;. Values greater than &lt;tt&gt;15&lt;/tt&gt; may only be used if the I/O APIC setting is enabled for this virtual machine.</source>
-        <translation>このシリアルポートのIRQ番号を指定します。この値は&lt;tt&gt;0&lt;/tt&gt;から&lt;tt&gt;255&lt;/tt&gt;の範囲の整数でなければなりません。&lt;tt&gt;15&lt;/tt&gt;以上の値はこの仮想マシンでI/O APICが有効なとき使用されます。</translation>
+        <translation type="vanished">このシリアルポートのIRQ番号を指定します。この値は&lt;tt&gt;0&lt;/tt&gt;から&lt;tt&gt;255&lt;/tt&gt;の範囲の整数でなければなりません。&lt;tt&gt;15&lt;/tt&gt;以上の値はこの仮想マシンでI/O APICが有効なとき使用されます。</translation>
     </message>
     <message>
         <source>Selects the working mode of this serial port. If you select Disconnected, the guest OS will detect the serial port but will not be able to operate it.</source>
-        <translation>このシリアルポートの動作モードを選択します。[切断]を選択すると、ゲストOSはシリアルポートを検出しますが、それを操作することはできません。</translation>
+        <translation type="vanished">このシリアルポートの動作モードを選択します。[切断]を選択すると、ゲストOSはシリアルポートを検出しますが、それを操作することはできません。</translation>
     </message>
     <message>
         <source>When checked, the virtual machine will assume that the pipe or socket specified in the Path/Address field exists and try to use it. Otherwise, the pipe or socket will be created by the virtual machine when it starts.</source>
-        <translation>仮想マシンはパス/アドレスフィールドで指定したパイプまたはソケットが存在するものと想定し、これを使おうとします。チェックを入れない場合、パイプまたはソケットは仮想マシンの開始時に作成されます。</translation>
+        <translation type="vanished">仮想マシンはパス/アドレスフィールドで指定したパイプまたはソケットが存在するものと想定し、これを使おうとします。チェックを入れない場合、パイプまたはソケットは仮想マシンの開始時に作成されます。</translation>
     </message>
     <message>
         <source>In Host Pipe mode: Holds the path to the serial port&apos;s pipe on the host. Examples: &quot;\\.\pipe\myvbox&quot; or &quot;/tmp/myvbox&quot;, for Windows and UNIX-like systems respectively. In Host Device mode: Holds the host serial device name. Examples: &quot;COM1&quot; or &quot;/dev/ttyS0&quot;. In Raw File mode: Holds the file-path on the host system, where the serial output will be dumped. In TCP mode: Holds the TCP &quot;port&quot; when in server mode, or &quot;hostname:port&quot; when in client mode.</source>
-        <translation>ホストにパイプモード: ホストのシリアルポートのパスに設定します。 例: Windows と Unixライクなシステムでは &quot;\\.\pipe\myvbox&quot; または &quot;/tmp/myvbox&quot;です。ホストデバイスモード: ホストのシリアルデバイス名に設定します。 例: &quot;COM1&quot; または &quot;/dev/ttyS0&quot;Rawファイルモード: シリアル出力がダンプされるホストのファイルパスを設定します。TCPモード: TCP サーバーの場合は&quot;ポート&quot;、クライアントモードの場合は &quot;ホスト名:ポート&quot; を設定します。</translation>
+        <translation type="vanished">ホストにパイプモード: ホストのシリアルポートのパスに設定します。 例: Windows と Unixライクなシステムでは &quot;\\.\pipe\myvbox&quot; または &quot;/tmp/myvbox&quot;です。ホストデバイスモード: ホストのシリアルデバイス名に設定します。 例: &quot;COM1&quot; または &quot;/dev/ttyS0&quot;Rawファイルモード: シリアル出力がダンプされるホストのファイルパスを設定します。TCPモード: TCP サーバーの場合は&quot;ポート&quot;、クライアントモードの場合は &quot;ホスト名:ポート&quot; を設定します。</translation>
     </message>
 </context>
 <context>
@@ -15604,7 +16427,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Remove disk from virtual drive</source>
-        <translation>仮想ドライブからディスクを除去</translation>
+        <translation type="vanished">仮想ドライブからディスクを除去</translation>
     </message>
     <message>
         <source>Choose a virtual floppy disk file...</source>
@@ -15760,7 +16583,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Controller: %1</source>
-        <translation>コントローラー: %1</translation>
+        <translation type="vanished">コントローラー: %1</translation>
     </message>
     <message>
         <source>When checked the guest system will see the virtual disk as a hot-pluggable device.</source>
@@ -15976,7 +16799,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Choose a disk file...</source>
-        <translation>ディスクファイルを選択...</translation>
+        <translation type="vanished">ディスクファイルを選択...</translation>
     </message>
     <message>
         <source>Choose/Create a Virtual Optical Disk...</source>
@@ -15988,7 +16811,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Choose/Create a disk image...</source>
-        <translation>ディスクイメージを選択/作成...</translation>
+        <translation type="vanished">ディスクイメージを選択/作成...</translation>
     </message>
     <message>
         <source>Choose/Create a disk image...</source>
@@ -16726,6 +17549,13 @@ p, li { white-space: pre-wrap; }
     </message>
 </context>
 <context>
+    <name>UIMachineView</name>
+    <message>
+        <source>Holds the graphical canvas containing guest screen contents.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>UIMachineWindow</name>
     <message>
         <source> EXPERIMENTAL build %1r%2 - %3</source>
@@ -16736,7 +17566,7 @@ p, li { white-space: pre-wrap; }
     <name>UIMachineWindowNormal</name>
     <message>
         <source>Shows the currently assigned Host key.&lt;br&gt;This key, when pressed alone, toggles the keyboard and mouse capture state. It can also be used in combination with other keys to quickly perform actions from the main menu.</source>
-        <translation>現在割り当てられているホストキーを表示します。&lt;br&gt;ホストキーを単独で押すと、キーボードとマウスの制御が切り替わります。また、他のキーと合わせてメインメニューからキーボード ショートカットの操作に使用することもできます。</translation>
+        <translation type="vanished">現在割り当てられているホストキーを表示します。&lt;br&gt;ホストキーを単独で押すと、キーボードとマウスの制御が切り替わります。また、他のキーと合わせてメインメニューからキーボード ショートカットの操作に使用することもできます。</translation>
     </message>
 </context>
 <context>
@@ -16764,6 +17594,94 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>Selects maximum guest screen size policy.</source>
         <translation>ゲストスクリーンサイズの方針を選択します。</translation>
+    </message>
+</context>
+<context>
+    <name>UIMedium</name>
+    <message>
+        <source>Inaccessible</source>
+        <comment>medium</comment>
+        <translation type="unfinished">アクセスできません</translation>
+    </message>
+    <message>
+        <source>Empty</source>
+        <comment>medium</comment>
+        <translation type="unfinished">空</translation>
+    </message>
+    <message>
+        <source>Host Drive &apos;%1&apos;</source>
+        <translation type="unfinished">ホストドライブ &apos;%1&apos;</translation>
+    </message>
+    <message>
+        <source>Host Drive %1 (%2)</source>
+        <translation type="unfinished">ホストドライブ %1 (%2)</translation>
+    </message>
+    <message>
+        <source>&lt;p style=white-space:pre&gt;Type (Format):  %1 (%2)&lt;/p&gt;</source>
+        <comment>medium</comment>
+        <translation type="unfinished">&lt;p style=white-space:pre&gt;タイプ (形式):  %1 (%2)&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Attached to:  %1&lt;/p&gt;</source>
+        <comment>to machines</comment>
+        <translation type="unfinished">&lt;p&gt;割り当て:  %1&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;i&gt;Not Attached&lt;/i&gt;</source>
+        <comment>to machines</comment>
+        <translation type="unfinished">&lt;i&gt;未割り当て&lt;/i&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;i&gt;Checking accessibility...&lt;/i&gt;</source>
+        <comment>medium</comment>
+        <translation type="unfinished">&lt;i&gt;アクセス可否を確認中...&lt;/i&gt;</translation>
+    </message>
+    <message>
+        <source>Failed to check accessibility of disk image files.</source>
+        <translation type="unfinished">メディアのアクセス可否の確認に失敗しました。</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;No disk image file selected&lt;/b&gt;</source>
+        <translation type="unfinished">&lt;b&gt;メディア 未選択&lt;/b&gt;</translation>
+    </message>
+    <message>
+        <source>You can also change this while the machine is running.</source>
+        <translation type="unfinished">仮想マシンの動作中、これを変更することができます。</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;No disk image files available&lt;/b&gt;</source>
+        <translation type="unfinished">&lt;b&gt;メディア 利用不可&lt;/b&gt;</translation>
+    </message>
+    <message>
+        <source>You can create or add disk image files in the virtual machine settings.</source>
+        <translation type="unfinished">仮想マシン設定でディスクイメージファイルを作成ないし追加できます。</translation>
+    </message>
+    <message>
+        <source>Attaching this hard disk will be performed indirectly using a newly created differencing hard disk.</source>
+        <translation type="unfinished">このハードディスクの割り当ては、新規作成された差分ハードディスクの使用により、間接的に実行されます。</translation>
+    </message>
+    <message>
+        <source>Encrypted</source>
+        <comment>medium</comment>
+        <translation type="unfinished">暗号化</translation>
+    </message>
+    <message>
+        <source>Checking...</source>
+        <comment>medium</comment>
+        <translation type="unfinished">確認中...</translation>
+    </message>
+    <message>
+        <source>Some of the files in this hard disk chain are inaccessible. Please use the Virtual Medium Manager to inspect these files.</source>
+        <translation type="unfinished">ハードディスクチェーン中のいくつかのメディアにアクセスできません。仮想メディアマネージャーを使用して、これらのメディアを確認してください。</translation>
+    </message>
+    <message>
+        <source>This base hard disk is indirectly attached using the following differencing hard disk:</source>
+        <translation type="unfinished">このベースハードディスクは以下の差分ハードディスクを使用して間接的に割り当てられます:</translation>
+    </message>
+    <message>
+        <source>Differencing</source>
+        <comment>medium</comment>
+        <translation type="unfinished">差分</translation>
     </message>
 </context>
 <context>
@@ -16902,7 +17820,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Encrypted with key:</source>
-        <translation>暗号化の鍵:</translation>
+        <translation type="vanished">暗号化の鍵:</translation>
     </message>
     <message>
         <source>UUID:</source>
@@ -16932,6 +17850,10 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>Removing medium ...</source>
         <translation type="vanished">メディアを除去中 ...</translation>
+    </message>
+    <message>
+        <source>Encryption key:</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -17303,15 +18225,31 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Show the previous item matching the search term</source>
-        <translation>前のマッチした検索結果を表示する</translation>
+        <translation type="vanished">前のマッチした検索結果を表示する</translation>
     </message>
     <message>
         <source>Show the next item matching the search term</source>
-        <translation>次のマッチした検索結果を表示する</translation>
+        <translation type="vanished">次のマッチした検索結果を表示する</translation>
     </message>
     <message>
         <source>Enter the search term and press Enter/Return</source>
         <translation>検索したい語を入力してエンター/リターンキーを押す</translation>
+    </message>
+    <message>
+        <source>Navigates to the previous item matching the search term</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Previous Match</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Navigates to the next item matching the search term</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Next Match</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -17424,6 +18362,10 @@ p, li { white-space: pre-wrap; }
         <source>Attach the selected medium to the drive</source>
         <translation>ドライブに選択したメディアをあタッチする</translation>
     </message>
+    <message>
+        <source>Shows a list of all registered media</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UIMediumSizeAndPathGroupBox</name>
@@ -17455,6 +18397,18 @@ p, li { white-space: pre-wrap; }
         <source>Select the size of the virtual hard disk in megabytes. This size is the limit on the amount of file data that a virtual machine will be able to store on the hard disk.</source>
         <translation>仮想ハードディスクのサイズをメガバイト単位で指定してください。このサイズは仮想マシンがハードディスクに置くことができるファイルデータの上限です。</translation>
     </message>
+    <message>
+        <source>Disk file path does not exists</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disk file path is valid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disk file name is valid</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UIMediumSizeEditor</name>
@@ -17464,7 +18418,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>&lt;nobr&gt;%1 (%2 B)&lt;/nobr&gt;</source>
-        <translation>&lt;nobr&gt;%1 (%2 B)&lt;/nobr&gt;</translation>
+        <translation type="vanished">&lt;nobr&gt;%1 (%2 B)&lt;/nobr&gt;</translation>
     </message>
     <message>
         <source>Minimum size for this medium.</source>
@@ -17473,6 +18427,57 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>Maximum size for this medium.</source>
         <translation>このメディアの最大サイズです。</translation>
+    </message>
+    <message>
+        <source>%1 (%2 B)</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIMediumTools</name>
+    <message>
+        <source>Please choose a virtual hard disk file</source>
+        <translation type="unfinished">仮想ハードディスクファイルを選択してください</translation>
+    </message>
+    <message>
+        <source>All virtual hard disk files (%1)</source>
+        <translation type="unfinished">すべての仮想ハードディスクファイル (%1)</translation>
+    </message>
+    <message>
+        <source>Please choose a virtual optical disk file</source>
+        <translation type="unfinished">仮想光学ディスクファイルを選択してください</translation>
+    </message>
+    <message>
+        <source>All virtual optical disk files (%1)</source>
+        <translation type="unfinished">すべての仮想光学ディスクファイル (%1)</translation>
+    </message>
+    <message>
+        <source>Please choose a virtual floppy disk file</source>
+        <translation type="unfinished">仮想フロッピーディスクファイルを選択してください</translation>
+    </message>
+    <message>
+        <source>All virtual floppy disk files (%1)</source>
+        <translation type="unfinished">すべての仮想フロッピーディスクファイル (%1)</translation>
+    </message>
+    <message>
+        <source>All files (*)</source>
+        <translation type="unfinished">すべてのファイル(*)</translation>
+    </message>
+    <message>
+        <source>Choose/Create a disk image...</source>
+        <translation type="obsolete">ディスクイメージを選択/作成...</translation>
+    </message>
+    <message>
+        <source>Choose/Create a Disk Image...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Choose a Disk File...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove Disk From Virtual Drive</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -17640,7 +18645,7 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>Insert</source>
         <comment>additions</comment>
-        <translation>挿入</translation>
+        <translation type="vanished">挿入</translation>
     </message>
     <message>
         <source>&lt;p&gt;Could not insert the &lt;b&gt;VirtualBox Guest Additions&lt;/b&gt; disk image file into the virtual machine &lt;b&gt;%1&lt;/b&gt;, as the machine has no CD/DVD drives. Please add a drive using the storage page of the virtual machine settings window.&lt;/p&gt;</source>
@@ -17648,19 +18653,19 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>&lt;p&gt;Could not find the &lt;b&gt;VirtualBox User Manual&lt;/b&gt; &lt;nobr&gt;&lt;b&gt;%1&lt;/b&gt;.&lt;/nobr&gt;&lt;/p&gt;&lt;p&gt;Do you wish to download this file from the Internet?&lt;/p&gt;</source>
-        <translation>&lt;p&gt;&lt;b&gt;VirtualBox ユーザーマニュアル&lt;/b&gt; &lt;nobr&gt;&lt;b&gt;%1&lt;/b&gt;&lt;/nobr&gt;が見つかりません。&lt;/p&gt;&lt;p&gt;ダウンロードしますか？&lt;/p&gt;</translation>
+        <translation type="vanished">&lt;p&gt;&lt;b&gt;VirtualBox ユーザーマニュアル&lt;/b&gt; &lt;nobr&gt;&lt;b&gt;%1&lt;/b&gt;&lt;/nobr&gt;が見つかりません。&lt;/p&gt;&lt;p&gt;ダウンロードしますか？&lt;/p&gt;</translation>
     </message>
     <message>
         <source>&lt;p&gt;Are you sure you want to download the &lt;b&gt;VirtualBox User Manual&lt;/b&gt; from &lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;&lt;/nobr&gt; (size %2 bytes)?&lt;/p&gt;</source>
-        <translation>&lt;p&gt;&lt;b&gt;VirtualBox ユーザーマニュアル&lt;/b&gt;を&lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;&lt;/nobr&gt; からダウンロードしますか？ (サイズ %2バイト)&lt;/p&gt;</translation>
+        <translation type="vanished">&lt;p&gt;&lt;b&gt;VirtualBox ユーザーマニュアル&lt;/b&gt;を&lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;&lt;/nobr&gt; からダウンロードしますか？ (サイズ %2バイト)&lt;/p&gt;</translation>
     </message>
     <message>
         <source>&lt;p&gt;The VirtualBox User Manual has been successfully downloaded from &lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;&lt;/nobr&gt; but can&apos;t be saved locally as &lt;nobr&gt;&lt;b&gt;%2&lt;/b&gt;.&lt;/nobr&gt;&lt;/p&gt;&lt;p&gt;Please choose another location for that file.&lt;/p&gt;</source>
-        <translation>&lt;p&gt;VirtualBox ユーザーマニュアルを&lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;&lt;/nobr&gt;からダウンロードしましたが、&lt;nobr&gt;&lt;b&gt;%2&lt;/b&gt;&lt;/nobr&gt;に保存できません。&lt;/p&gt;&lt;p&gt;他の保存場所を選択してください。&lt;/p&gt;</translation>
+        <translation type="vanished">&lt;p&gt;VirtualBox ユーザーマニュアルを&lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;&lt;/nobr&gt;からダウンロードしましたが、&lt;nobr&gt;&lt;b&gt;%2&lt;/b&gt;&lt;/nobr&gt;に保存できません。&lt;/p&gt;&lt;p&gt;他の保存場所を選択してください。&lt;/p&gt;</translation>
     </message>
     <message>
         <source>&lt;p&gt;The VirtualBox User Manual has been successfully downloaded from &lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;&lt;/nobr&gt; and saved locally as &lt;nobr&gt;&lt;b&gt;%2&lt;/b&gt;.&lt;/nobr&gt;&lt;/p&gt;</source>
-        <translation>&lt;p&gt;VirtualBox ユーザーマニュアルを&lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;&lt;/nobr&gt;からダウンロードし、&lt;nobr&gt;&lt;b&gt;%2&lt;/b&gt;&lt;/nobr&gt;に保存しました。&lt;/p&gt;</translation>
+        <translation type="vanished">&lt;p&gt;VirtualBox ユーザーマニュアルを&lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;&lt;/nobr&gt;からダウンロードし、&lt;nobr&gt;&lt;b&gt;%2&lt;/b&gt;&lt;/nobr&gt;に保存しました。&lt;/p&gt;</translation>
     </message>
     <message>
         <source>Do not show this message again</source>
@@ -17919,7 +18924,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>&amp;Remove</source>
-        <translation>除去(&amp;R)</translation>
+        <translation type="vanished">除去(&amp;R)</translation>
     </message>
     <message>
         <source>The current port forwarding rules are not valid. None of the host or guest port values may be set to zero.</source>
@@ -18324,7 +19329,7 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>&lt;p&gt;The host key is currently defined as &lt;b&gt;%1&lt;/b&gt;.&lt;/p&gt;</source>
         <comment>additional message box paragraph</comment>
-        <translation>&lt;p&gt;現在ホストキーは&lt;b&gt;%1&lt;/b&gt;に割り当てられています。&lt;/p&gt;</translation>
+        <translation type="vanished">&lt;p&gt;現在ホストキーは&lt;b&gt;%1&lt;/b&gt;に割り当てられています。&lt;/p&gt;</translation>
     </message>
     <message>
         <source>Capture</source>
@@ -18387,12 +19392,12 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>Continue</source>
         <comment>no hard disk attached</comment>
-        <translation>続ける</translation>
+        <translation type="vanished">続ける</translation>
     </message>
     <message>
         <source>Go Back</source>
         <comment>no hard disk attached</comment>
-        <translation>戻る</translation>
+        <translation type="vanished">戻る</translation>
     </message>
     <message>
         <source>Failed to copy file &lt;b&gt;&lt;nobr&gt;%1&lt;/nobr&gt;&lt;/b&gt; to &lt;b&gt;&lt;nobr&gt;%2&lt;/nobr&gt;&lt;/b&gt; (%3).</source>
@@ -18431,7 +19436,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>&lt;p&gt;You have &lt;b&gt;clicked the mouse&lt;/b&gt; inside the Virtual Machine display or pressed the &lt;b&gt;host key&lt;/b&gt;. This will cause the Virtual Machine to &lt;b&gt;capture&lt;/b&gt; the host mouse pointer (only if the mouse pointer integration is not currently supported by the guest OS) and the keyboard, which will make them unavailable to other applications running on your host machine.&lt;/p&gt;&lt;p&gt;You can press the &lt;b&gt;host key&lt;/b&gt; at any time to &lt;b&gt;uncapture&lt;/b&gt; the keyboard and mouse (if it is captured) and return them to normal operation. The currently assigned host key is shown on the status bar at the bottom of the Virtual Machine window, next to the&amp;nbsp;&lt;img src=:/hostkey_16px.png/&gt;&amp;nbsp;icon. This icon, together with the mouse icon placed nearby, indicate the current keyboard and mouse capture state.&lt;/p&gt;</source>
-        <translation>&lt;p&gt;仮想マシンの画面を&lt;b&gt;マウスでクリック&lt;/b&gt;するか、または&lt;b&gt;ホストキー&lt;/b&gt;を押すと、仮想マシンはマウスポインター(マウス統合機能がゲストOSでサポートされていないときのみ)とキーボードを&lt;b&gt;キャプチャー&lt;/b&gt;します。仮想マシンにキーボードとマウスがキャプチャーされるとホストマシンで動作する他のアプリケーションは利用できません。&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;&lt;b&gt;ホストキー&lt;/b&gt;を押すと、キーボードとマウス(キャプチャーされているとき)は&lt;b&gt;キャプチャー解除&lt;/b&gt;され、通常の操作に戻ることができます。現在割り当てられているホストキーは仮想マシンのウィンドウ下部のステータスバーに&amp;nbsp;&lt;img src=:/hostkey_16px.png/&gt;&amp;nbsp;アイコンで表示されます。このアイコンはマウスアイコンと共に現在のキーボードとマウスのキャプチャー状態を表示します。&lt;/p&gt;</translation>
+        <translation type="vanished">&lt;p&gt;仮想マシンの画面を&lt;b&gt;マウスでクリック&lt;/b&gt;するか、または&lt;b&gt;ホストキー&lt;/b&gt;を押すと、仮想マシンはマウスポインター(マウス統合機能がゲストOSでサポートされていないときのみ)とキーボードを&lt;b&gt;キャプチャー&lt;/b&gt;します。仮想マシンにキーボードとマウスがキャプチャーされるとホストマシンで動作する他のアプリケーションは利用できません。&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;p&gt;&lt;b&gt;ホストキー&lt;/b&gt;を押すと、キーボードとマウス(キャプチャーされているとき)は&lt;b&gt;キャプチャー解除&lt;/b&gt;され、通常の操作に戻ることができます。現在割り当てられているホストキーは仮想マシンのウィンドウ下部のステータスバーに&amp;nbsp;&lt;img src=:/hostkey_16px.png/&gt;&amp;nbsp;アイコンで表示されます。このアイコンはマウスアイコンと共に現在のキーボードとマウスのキャプチャー状態を表示します。&lt;/p&gt;</translation>
     </message>
     <message>
         <source>&lt;p&gt;You have the &lt;b&gt;Auto capture keyboard&lt;/b&gt; option turned on. This will cause the Virtual Machine to automatically &lt;b&gt;capture&lt;/b&gt; the keyboard every time the VM window is activated and make it unavailable to other applications running on your host machine: when the keyboard is captured, all keystrokes (including system ones like Alt-Tab) will be directed to the VM.&lt;/p&gt;&lt;p&gt;You can press the &lt;b&gt;host key&lt;/b&gt; at any time to &lt;b&gt;uncapture&lt;/b&gt; the keyboard and mouse (if it is captured) and return them to normal operation. The currently assigned host key is shown on the status bar at the bottom of the Virtual Machine window, next to the&amp;nbsp;&lt;img src=:/hostkey_16px.png/&gt;&amp;nbsp;icon. This icon, together with the mouse icon placed nearby, indicate the current keyboard and mouse capture state.&lt;/p&gt;</source>
@@ -18705,7 +19710,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Continue</source>
-        <translation>続ける</translation>
+        <translation type="vanished">続ける</translation>
     </message>
     <message>
         <source>&lt;p&gt;Are you sure you wish to delete the selected snapshot and saved state?&lt;/p&gt;</source>
@@ -18713,7 +19718,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Discard</source>
-        <translation type="obsolete">破棄</translation>
+        <translation type="unfinished">破棄</translation>
     </message>
     <message>
         <source>Cancel</source>
@@ -19047,7 +20052,7 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>&amp;Remove</source>
         <comment>medium</comment>
-        <translation>除去(&amp;R)</translation>
+        <translation type="vanished">除去(&amp;R)</translation>
     </message>
     <message>
         <source>Failed to attach the %1 to slot &lt;i&gt;%2&lt;/i&gt; of the machine &lt;b&gt;%3&lt;/b&gt;.</source>
@@ -19290,11 +20295,11 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>VirtualBox is not currently allowed to access USB devices.  You can change this by adding your user to the &apos;vboxusers&apos; group.  Please see the user manual for a more detailed explanation</source>
-        <translation>VirtualBoxは現在USBデバイスへのアクセスが許可されていません。ユーザーを&apos;vboxusers&apos;グループに追加してください。詳細な説明はユーザーマニュアルをお読みください</translation>
+        <translation type="vanished">VirtualBoxは現在USBデバイスへのアクセスが許可されていません。ユーザーを&apos;vboxusers&apos;グループに追加してください。詳細な説明はユーザーマニュアルをお読みください</translation>
     </message>
     <message>
         <source>VirtualBox is not currently allowed to access USB devices.  You can change this by allowing your user to access the &apos;usbfs&apos; folder and files.  Please see the user manual for a more detailed explanation</source>
-        <translation>VirtualBoxは現在USBデバイスへのアクセスが許可されていません。ユーザーを&apos;usbfs&apos;フォルダーとファイルに追加してください。詳細な説明はユーザーマニュアルをお読みください</translation>
+        <translation type="vanished">VirtualBoxは現在USBデバイスへのアクセスが許可されていません。ユーザーを&apos;usbfs&apos;フォルダーとファイルに追加してください。詳細な説明はユーザーマニュアルをお読みください</translation>
     </message>
     <message>
         <source>The USB Proxy Service has not yet been ported to this host</source>
@@ -19389,7 +20394,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>&lt;p&gt;The &lt;b&gt;VirtualBox Guest Additions&lt;/b&gt; disk image file has been successfully downloaded from &lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;&lt;/nobr&gt; and saved locally as &lt;nobr&gt;&lt;b&gt;%2&lt;/b&gt;.&lt;/nobr&gt;&lt;/p&gt;&lt;p&gt;Do you wish to register this disk image file and insert it into the virtual optical drive?&lt;/p&gt;</source>
-        <translation>&lt;p&gt;&lt;b&gt;VirtualBox Guest Additions&lt;/b&gt; ディスクイメージを&lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;&lt;/nobr&gt;からダウンロードし、&lt;nobr&gt;&lt;b&gt;%2&lt;/b&gt;に保存しました。&lt;/nobr&gt;&lt;/p&gt;&lt;p&gt;ディスクイメージファイルを登録し、仮想光学ドライブに挿入しますか？&lt;/p&gt;</translation>
+        <translation type="vanished">&lt;p&gt;&lt;b&gt;VirtualBox Guest Additions&lt;/b&gt; ディスクイメージを&lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;&lt;/nobr&gt;からダウンロードし、&lt;nobr&gt;&lt;b&gt;%2&lt;/b&gt;に保存しました。&lt;/nobr&gt;&lt;/p&gt;&lt;p&gt;ディスクイメージファイルを登録し、仮想光学ドライブに挿入しますか？&lt;/p&gt;</translation>
     </message>
     <message>
         <source>Bad password or authentication failure.</source>
@@ -19675,7 +20680,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Failed to assign cloud profile parameter.</source>
-        <translation>クラウドプロファイルパラメーターの付与に失敗しました。</translation>
+        <translation type="vanished">クラウドプロファイルパラメーターの付与に失敗しました。</translation>
     </message>
     <message>
         <source>Failed to create cloud client.</source>
@@ -19890,7 +20895,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>User manual downloaded ...</source>
-        <translation>ユーザーマニュアルのダウンロード...</translation>
+        <translation type="vanished">ユーザーマニュアルのダウンロード...</translation>
     </message>
     <message>
         <source>Can&apos;t create machine folder ...</source>
@@ -20098,7 +21103,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>&lt;p&gt;You have the &lt;b&gt;Auto capture keyboard&lt;/b&gt; option turned on. This will cause the Virtual Machine to automatically &lt;b&gt;capture&lt;/b&gt; the keyboard every time the VM window is activated and make it unavailable to other applications running on your host machine: when the keyboard is captured, all keystrokes (including system ones like Alt-Tab) will be directed to the VM.&lt;/p&gt;&lt;p&gt;You can press the &lt;b&gt;host key&lt;/b&gt; at any time to &lt;b&gt;uncapture&lt;/b&gt; the keyboard and mouse (if it is captured) and return them to normal operation. The currently assigned host key is shown on the status bar at the bottom of the Virtual Machine window. This icon, together with the mouse icon placed nearby, indicate the current keyboard and mouse capture state.&lt;/p&gt;</source>
-        <translation>&lt;p&gt;&lt;b&gt;キーボードの自動キャプチャー&lt;/b&gt;機能が有効です。仮想マシンのウィンドウがアクティブのとき、仮想マシンはキーボードを自動的に&lt;b&gt;キャプチャー&lt;/b&gt;します。キーボードがキャプチャーされると、すべてのキーストローク(Alt-Tabなどを含む)が仮想マシンに送られるため、ホストマシンで動作する他のアプリケーションは利用できません。&lt;/p&gt;&lt;p&gt;&lt;b&gt;ホストキー&lt;/b&gt;を押すと、キーボードとマウス(キャプチャーされているとき)は&lt;b&gt;キャプチャー解除&lt;/b&gt;され、通常の操作に戻ることができます。現在割り当てられているホストキーは仮想マシンのウィンドウ下部のステータスバーに表示されます。このアイコンはマウスアイコンと共に現在のキーボードとマウスのキャプチャー状態を表示します。&lt;/p&gt;</translation>
+        <translation type="vanished">&lt;p&gt;&lt;b&gt;キーボードの自動キャプチャー&lt;/b&gt;機能が有効です。仮想マシンのウィンドウがアクティブのとき、仮想マシンはキーボードを自動的に&lt;b&gt;キャプチャー&lt;/b&gt;します。キーボードがキャプチャーされると、すべてのキーストローク(Alt-Tabなどを含む)が仮想マシンに送られるため、ホストマシンで動作する他のアプリケーションは利用できません。&lt;/p&gt;&lt;p&gt;&lt;b&gt;ホストキー&lt;/b&gt;を押すと、キーボードとマウス(キャプチャーされているとき)は&lt;b&gt;キャプチャー解除&lt;/b&gt;され、通常の操作に戻ることができます。現在割り当てられているホストキーは仮想マシンのウィンドウ下部のステータスバーに表示されます。このアイコンはマウスアイコンと共に現在のキーボードとマウスのキャプチャー状態を表示します。&lt;/p&gt;</translation>
     </message>
     <message>
         <source>Mouse integration ...</source>
@@ -20278,7 +21283,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Failed to assign update agent parameter.</source>
-        <translation>アップデートエージェントのパラメーター作成に失敗しました。</translation>
+        <translation type="vanished">アップデートエージェントのパラメーター作成に失敗しました。</translation>
     </message>
     <message>
         <source>Can&apos;t enumerate USB devices ...</source>
@@ -20608,7 +21613,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Failed to assign VSD parameter.</source>
-        <translation>VSDのパラメーター作成に失敗しました。</translation>
+        <translation type="vanished">VSDのパラメーター作成に失敗しました。</translation>
     </message>
     <message>
         <source>Can&apos;t get Extension Pack Manager ...</source>
@@ -20651,8 +21656,258 @@ p, li { white-space: pre-wrap; }
         <translation>編集を保持</translation>
     </message>
     <message>
-        <source>&lt;p&gt;Are you going to restore default secure boot keys.&lt;/p&gt;&lt;p&gt;If you proceed your current keys will be rewritten. You may not be able to boot affected VM anymore.&lt;/p&gt;</source>
+        <source>&lt;p&gt;You are going to restore default secure boot keys.&lt;/p&gt;&lt;p&gt;If you proceed your current keys will be rewritten. You may not be able to boot affected VM anymore.&lt;/p&gt;</source>
         <translation>&lt;p&gt;デフォルトのセキュアブートキーをリストアしようとしています。&lt;/p&gt;&lt;p&gt;このまま進めると現在のキーを上書きします。影響するVMはもう起動しなくなるでしょう。&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;To open a VISO file you will have to discard the current content.&lt;/p&gt;&lt;p&gt;Are you sure you want to proceed?&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;The &lt;b&gt;VirtualBox Guest Additions&lt;/b&gt; disk image file has been successfully downloaded from &lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;&lt;/nobr&gt; and saved locally as &lt;nobr&gt;&lt;b&gt;%2&lt;/b&gt;.&lt;/nobr&gt;&lt;/p&gt;&lt;p&gt;Do you wish to continue with Guest Additions installation?&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Continue</source>
+        <comment>additions</comment>
+        <translation type="obsolete">続ける</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Could not find the &lt;b&gt;VirtualBox User Guide&lt;/b&gt; &lt;nobr&gt;&lt;b&gt;%1&lt;/b&gt;.&lt;/nobr&gt;&lt;/p&gt;&lt;p&gt;Do you wish to download this file from the Internet?&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Are you sure you want to download the &lt;b&gt;VirtualBox User Guide&lt;/b&gt; from &lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;&lt;/nobr&gt; (size %2 bytes)?&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;The VirtualBox User Guide has been successfully downloaded from &lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;&lt;/nobr&gt; but can&apos;t be saved locally as &lt;nobr&gt;&lt;b&gt;%2&lt;/b&gt;.&lt;/nobr&gt;&lt;/p&gt;&lt;p&gt;Please choose another location for that file.&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>VirtualBox is not currently allowed to access USB devices.  You can change this by adding your user to the &apos;vboxusers&apos; group.  Please see the user guide for a more detailed explanation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>VirtualBox is not currently allowed to access USB devices.  You can change this by allowing your user to access the &apos;usbfs&apos; folder and files.  Please see the user guide for a more detailed explanation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>User guide downloaded ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;The VirtualBox User Guide has been successfully downloaded from &lt;nobr&gt;&lt;a href=&quot;%1&quot;&gt;%1&lt;/a&gt;&lt;/nobr&gt; and saved locally as &lt;nobr&gt;&lt;b&gt;%2&lt;/b&gt;.&lt;/nobr&gt;&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Platform failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire platform parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Platform properties failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire platform properties parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>System properties failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire system properties parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Storage controller failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire storage controller parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Medium attachment failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire medium attachment parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Debugger failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire machine debugger parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire graphics adapter parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Audio settings failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire audio settings parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire audio adapter parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire network adapter parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Console failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire console parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Guest failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire guest parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Guest OS type failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire guest OS type parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Mouse failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire mouse parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Emulated USB failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire emulated USB parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Recording settings failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire recording settings parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>VRDE server failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire VRDE server parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>VRDE server info failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to acquire VRDE server info parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to change display parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard failure ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Can&apos;t reset machine ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to reset the virtual machine &lt;b&gt;%1&lt;/b&gt;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Continue</source>
+        <comment>agree with additions installation</comment>
+        <translation type="unfinished">続ける</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;You have &lt;b&gt;clicked the mouse&lt;/b&gt; inside the Virtual Machine display or pressed the &lt;b&gt;host key combo&lt;/b&gt;. This will cause the Virtual Machine to &lt;b&gt;capture&lt;/b&gt; the host mouse pointer (only if the mouse pointer integration is not currently supported by the guest OS) and the keyboard, which will make them unavailable to other applications running on your host machine.&lt;/p&gt;&lt;p&gt;You can press the &lt;b&gt;host key combo&lt;/b&gt; at any time to &lt;b&gt;uncapture&lt;/b&gt; the keyboard and mouse (if it is captured) and return them to normal operation. The currently assigned host key combo is shown on the status bar at the bottom of the Virtual Machine window, next to the&amp;nbsp;&lt;img src=:/hostkey_16px.png/&gt;&amp;nbsp;icon. This icon, together with the mouse icon placed nearby, indicate the current keyboard and mouse capture state.&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;The host key combo is currently defined as &lt;b&gt;%1&lt;/b&gt;.&lt;/p&gt;</source>
+        <comment>additional message box paragraph</comment>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Continue</source>
+        <comment>agree to create VM with no hard disk attached</comment>
+        <translation type="unfinished">続ける</translation>
+    </message>
+    <message>
+        <source>Go Back</source>
+        <comment>reject to create VM with no hard disk attached</comment>
+        <translation type="unfinished">戻る</translation>
+    </message>
+    <message>
+        <source>Continue</source>
+        <comment>agree to export VMs without saved-state</comment>
+        <translation type="unfinished">続ける</translation>
+    </message>
+    <message>
+        <source>Shared clipboard error ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;You have the &lt;b&gt;Auto capture keyboard&lt;/b&gt; option turned on. This will cause the Virtual Machine to automatically &lt;b&gt;capture&lt;/b&gt; the keyboard every time the VM window is activated and make it unavailable to other applications running on your host machine: when the keyboard is captured, all keystrokes (including system ones like Alt-Tab) will be directed to the VM.&lt;/p&gt;&lt;p&gt;You can press the &lt;b&gt;host key combo&lt;/b&gt; at any time to &lt;b&gt;uncapture&lt;/b&gt; the keyboard and mouse (if it is captured) and return them to normal operation. The currently assigned host key combo is shown on the status bar at the bottom of the Virtual Machine window. This icon, together with the mouse icon placed nearby, indicate the current keyboard and mouse capture state.&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to change machine debugger parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to change cloud profile parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to change update agent parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to change keyboard parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to change mouse parameter.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Failed to change VSD parameter.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -20839,7 +22094,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Selects the operating system family that you plan to install into this virtual machine.</source>
-        <translation>仮想マシンにインストールしようとしているOSファミリーを選択します。</translation>
+        <translation type="vanished">仮想マシンにインストールしようとしているOSファミリーを選択します。</translation>
     </message>
     <message>
         <source>&amp;Version:</source>
@@ -20847,7 +22102,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Selects the operating system type that you plan to install into this virtual machine (called a guest operating system).</source>
-        <translation>仮想マシンで実行するOS(ゲストOSと呼びます)のタイプを選択します。</translation>
+        <translation type="vanished">仮想マシンで実行するOS(ゲストOSと呼びます)のタイプを選択します。</translation>
     </message>
     <message>
         <source>Holds the location of the virtual machine.</source>
@@ -20863,7 +22118,7 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>Invalid name</source>
-        <translation>無効な名前</translation>
+        <translation type="vanished">無効な名前</translation>
     </message>
     <message>
         <source>&amp;Name:</source>
@@ -20893,6 +22148,34 @@ p, li { white-space: pre-wrap; }
         <source>Selects an ISO image to be attached to the virtual machine or used in unattended install.</source>
         <translation>仮想マシンにアタッチするか、自動インストールで使用するISOイメージを指定します。</translation>
     </message>
+    <message>
+        <source>Invalid guest machine name</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Guest machine name is valid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Subtype:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selects the operating system edition when possible.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selects the operating system type that you plan to install into this virtual machine.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selects the operating system subtype that you plan to install into this virtual machine.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selects the operating system version that you plan to install into this virtual machine (called a guest operating system).</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UINativeWizard</name>
@@ -20906,19 +22189,19 @@ p, li { white-space: pre-wrap; }
     </message>
     <message>
         <source>&amp;Expert Mode</source>
-        <translation>エキスパートモード(&amp;E)</translation>
+        <translation type="vanished">エキスパートモード(&amp;E)</translation>
     </message>
     <message>
         <source>Switch to the Expert Mode, a one-page dialog for experienced users.</source>
-        <translation>経験豊富なユーザーのために1ページダイアログのエキスパートモードに切り替えます。</translation>
+        <translation type="vanished">経験豊富なユーザーのために1ページダイアログのエキスパートモードに切り替えます。</translation>
     </message>
     <message>
         <source>&amp;Guided Mode</source>
-        <translation>ガイド付きモード(&amp;G)</translation>
+        <translation type="vanished">ガイド付きモード(&amp;G)</translation>
     </message>
     <message>
         <source>Switch to the Guided Mode, a step-by-step dialog with detailed explanations.</source>
-        <translation>ステップごとに詳細な説明のあるガイドモードに切り替えます。</translation>
+        <translation type="vanished">ステップごとに詳細な説明のあるガイドモードに切り替えます。</translation>
     </message>
     <message>
         <source>&amp;Back</source>
@@ -21025,11 +22308,11 @@ p, li { white-space: pre-wrap; }
     <name>UINetworkFeaturesEditor</name>
     <message>
         <source>A&amp;dvanced</source>
-        <translation>高度(&amp;D)</translation>
+        <translation type="vanished">高度(&amp;D)</translation>
     </message>
     <message>
         <source>Shows additional network adapter options.</source>
-        <translation>追加のネットワークアダプターのオプションを表示します。</translation>
+        <translation type="vanished">追加のネットワークアダプターのオプションを表示します。</translation>
     </message>
     <message>
         <source>Adapter &amp;Type:</source>
@@ -21536,6 +22819,10 @@ p, li { white-space: pre-wrap; }
         <source>Registered host-only networks</source>
         <translation>登録されたホストオンリーネットワーク</translation>
     </message>
+    <message>
+        <source>Select Network ID</source>
+        <translation type="unfinished"></translation>
+    </message>
 </context>
 <context>
     <name>UINetworkManagerDialog</name>
@@ -21625,7 +22912,7 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>%1: %2</source>
         <comment>Context description: Error description</comment>
-        <translation>%1: %2</translation>
+        <translation type="vanished">%1: %2</translation>
     </message>
     <message>
         <source>Unable to initialize HTTP library</source>
@@ -22406,7 +23693,11 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Downloading User Manual ...</source>
-        <translation>ユーザーマニュアルをダウンロード中...</translation>
+        <translation type="vanished">ユーザーマニュアルをダウンロード中...</translation>
+    </message>
+    <message>
+        <source>Downloading User Guide ...</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -22645,11 +23936,11 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Creating Host-only Network Interface ...</source>
-        <translation>ホストオンリーネットワークインターフェイスを作成中...</translation>
+        <translation type="vanished">ホストオンリーネットワークインターフェイスを作成中...</translation>
     </message>
     <message>
         <source>Removing Host-only Network Interface ...</source>
-        <translation>ホストオンリーネットワークインターフェイスを除去中...</translation>
+        <translation type="vanished">ホストオンリーネットワークインターフェイスを除去中...</translation>
     </message>
     <message>
         <source>Set VSD form value ...</source>
@@ -22666,6 +23957,37 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     <message>
         <source>Checking for new version ...</source>
         <translation>新しいバージョンを確認中...</translation>
+    </message>
+    <message>
+        <source>Cloning cloud VM ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Resetting cloud VM ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Creating host-only network interface ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Removing host-only network interface ...</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIPaneContainer</name>
+    <message>
+        <source>Detach</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open the tool in separate window</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Open in Separate Window</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -23150,6 +24472,65 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
 </context>
 <context>
+    <name>UISerialSettingsEditor</name>
+    <message>
+        <source>&amp;Enable Serial Port</source>
+        <translation type="unfinished">シリアルポートを有効化(&amp;E)</translation>
+    </message>
+    <message>
+        <source>When checked, enables the given serial port of the virtual machine.</source>
+        <translation type="unfinished">仮想マシンのシリアルポートを有効にします。</translation>
+    </message>
+    <message>
+        <source>Port &amp;Number:</source>
+        <translation type="unfinished">ポート番号(&amp;N):</translation>
+    </message>
+    <message>
+        <source>Selects the serial port number. You can choose one of the standard serial ports or select User-defined and specify port parameters manually.</source>
+        <translation type="unfinished">シリアルポート番号を表示します。 標準のシリアルポートか[ユーザー定義]を選択し、手動でポートパラメタを指定することができます。</translation>
+    </message>
+    <message>
+        <source>&amp;IRQ:</source>
+        <translation type="unfinished">IRQ(&amp;I):</translation>
+    </message>
+    <message>
+        <source>Holds the IRQ number of this serial port. This should be a whole number between &apos;0&apos; and &apos;255&apos;. Values greater than &apos;15&apos; may only be used if the I/O APIC setting is enabled for this virtual machine.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>I/O Po&amp;rt:</source>
+        <translation type="unfinished">I/Oポート(&amp;R):</translation>
+    </message>
+    <message>
+        <source>Holds the base I/O port address of this serial port. Valid values are integer numbers in range from &apos;0&apos; to &apos;0xFFFF&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Port &amp;Mode:</source>
+        <translation type="unfinished">ポートモード(&amp;M):</translation>
+    </message>
+    <message>
+        <source>Selects the working mode of this serial port. If you select Disconnected, the guest OS will detect the serial port but will not be able to operate it.</source>
+        <translation type="unfinished">このシリアルポートの動作モードを選択します。[切断]を選択すると、ゲストOSはシリアルポートを検出しますが、それを操作することはできません。</translation>
+    </message>
+    <message>
+        <source>&amp;Connect to existing pipe/socket</source>
+        <translation type="unfinished">存在するパイプ/ソケットに接続(&amp;C)</translation>
+    </message>
+    <message>
+        <source>When checked, the virtual machine will assume that the pipe or socket specified in the Path/Address field exists and try to use it. Otherwise, the pipe or socket will be created by the virtual machine when it starts.</source>
+        <translation type="unfinished">仮想マシンはパス/アドレスフィールドで指定したパイプまたはソケットが存在するものと想定し、これを使おうとします。チェックを入れない場合、パイプまたはソケットは仮想マシンの開始時に作成されます。</translation>
+    </message>
+    <message>
+        <source>&amp;Path/Address:</source>
+        <translation type="unfinished">パス/アドレス(&amp;P):</translation>
+    </message>
+    <message>
+        <source>In Host Pipe mode: Holds the path to the serial port&apos;s pipe on the host. Examples: &quot;\\.\pipe\myvbox&quot; or &quot;/tmp/myvbox&quot;, for Windows and UNIX-like systems respectively. In Host Device mode: Holds the host serial device name. Examples: &quot;COM1&quot; or &quot;/dev/ttyS0&quot;. In Raw File mode: Holds the file-path on the host system, where the serial output will be dumped. In TCP mode: Holds the TCP &quot;port&quot; when in server mode, or &quot;hostname:port&quot; when in client mode.</source>
+        <translation type="unfinished">ホストにパイプモード: ホストのシリアルポートのパスに設定します。 例: Windows と Unixライクなシステムでは &quot;\\.\pipe\myvbox&quot; または &quot;/tmp/myvbox&quot;です。ホストデバイスモード: ホストのシリアルデバイス名に設定します。 例: &quot;COM1&quot; または &quot;/dev/ttyS0&quot;Rawファイルモード: シリアル出力がダンプされるホストのファイルパスを設定します。TCPモード: TCP サーバーの場合は&quot;ポート&quot;、クライアントモードの場合は &quot;ホスト名:ポート&quot; を設定します。</translation>
+    </message>
+</context>
+<context>
     <name>UISession</name>
     <message>
         <source>Install</source>
@@ -23169,10 +24550,18 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
 </context>
 <context>
+    <name>UISessionTextStatusBarIndicator</name>
+    <message>
+        <source>%1 status-bar indicator</source>
+        <comment>like &apos;hard-disk status-bar indicator&apos;</comment>
+        <translation type="unfinished">%1 ステータスバーインジケーター</translation>
+    </message>
+</context>
+<context>
     <name>UISettingsDialog</name>
     <message>
         <source>&lt;i&gt;Select a settings category from the list on the left-hand side and move the mouse over a settings item to get more information.&lt;/i&gt;</source>
-        <translation>&lt;i&gt;左側のリストから設定のカテゴリーを選択し、設定項目をマウスオーバーして詳細な情報を参照してください。&lt;/i&gt;</translation>
+        <translation type="vanished">&lt;i&gt;左側のリストから設定のカテゴリーを選択し、設定項目をマウスオーバーして詳細な情報を参照してください。&lt;/i&gt;</translation>
     </message>
     <message>
         <source>On the &lt;b&gt;%1&lt;/b&gt; page, %2</source>
@@ -23180,15 +24569,15 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Invalid settings detected</source>
-        <translation>無効な設定が見つかりました</translation>
+        <translation type="vanished">無効な設定が見つかりました</translation>
     </message>
     <message>
         <source>&lt;b&gt;%1&lt;/b&gt; page:</source>
-        <translation>&lt;b&gt;%1&lt;/b&gt; ページ:</translation>
+        <translation type="vanished">&lt;b&gt;%1&lt;/b&gt; ページ:</translation>
     </message>
     <message>
         <source>&lt;b&gt;%1: %2&lt;/b&gt; page:</source>
-        <translation>&lt;b&gt;%1: %2&lt;/b&gt; ページ:</translation>
+        <translation type="vanished">&lt;b&gt;%1: %2&lt;/b&gt; ページ:</translation>
     </message>
     <message>
         <source>Non-optimal settings detected</source>
@@ -23203,23 +24592,23 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     <name>UISettingsDialogGlobal</name>
     <message>
         <source>General</source>
-        <translation>一般</translation>
+        <translation type="vanished">一般</translation>
     </message>
     <message>
         <source>Input</source>
-        <translation>入力</translation>
+        <translation type="vanished">入力</translation>
     </message>
     <message>
         <source>Update</source>
-        <translation>アップデート</translation>
+        <translation type="vanished">アップデート</translation>
     </message>
     <message>
         <source>Language</source>
-        <translation>言語</translation>
+        <translation type="vanished">言語</translation>
     </message>
     <message>
         <source>Display</source>
-        <translation>ディスプレイ</translation>
+        <translation type="vanished">ディスプレイ</translation>
     </message>
     <message>
         <source>USB</source>
@@ -23235,58 +24624,58 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Proxy</source>
-        <translation>プロキシー</translation>
+        <translation type="vanished">プロキシー</translation>
     </message>
     <message>
         <source>VirtualBox - %1</source>
-        <translation>VirtualBox - %1</translation>
+        <translation type="vanished">VirtualBox - %1</translation>
     </message>
     <message>
         <source>Preferences</source>
-        <translation>環境設定</translation>
+        <translation type="vanished">環境設定</translation>
     </message>
     <message>
         <source>Allows to navigate through Global Property categories</source>
-        <translation>全体のプロパティのカテゴリー間の操作を許可する</translation>
+        <translation type="vanished">全体のプロパティのカテゴリー間の操作を許可する</translation>
     </message>
     <message>
         <source>Interface</source>
-        <translation>インターフェース</translation>
+        <translation type="vanished">インターフェース</translation>
     </message>
 </context>
 <context>
     <name>UISettingsDialogMachine</name>
     <message>
         <source>General</source>
-        <translation>一般</translation>
+        <translation type="vanished">一般</translation>
     </message>
     <message>
         <source>System</source>
-        <translation>システム</translation>
+        <translation type="vanished">システム</translation>
     </message>
     <message>
         <source>Display</source>
-        <translation>ディスプレイ</translation>
+        <translation type="vanished">ディスプレイ</translation>
     </message>
     <message>
         <source>Storage</source>
-        <translation>ストレージ</translation>
+        <translation type="vanished">ストレージ</translation>
     </message>
     <message>
         <source>Audio</source>
-        <translation>オーディオ</translation>
+        <translation type="vanished">オーディオ</translation>
     </message>
     <message>
         <source>Network</source>
-        <translation>ネットワーク</translation>
+        <translation type="vanished">ネットワーク</translation>
     </message>
     <message>
         <source>Ports</source>
-        <translation>ポート</translation>
+        <translation type="vanished">ポート</translation>
     </message>
     <message>
         <source>Serial Ports</source>
-        <translation>シリアルポート</translation>
+        <translation type="vanished">シリアルポート</translation>
     </message>
     <message>
         <source>Parallel Ports</source>
@@ -23294,15 +24683,15 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>USB</source>
-        <translation>USB</translation>
+        <translation type="vanished">USB</translation>
     </message>
     <message>
         <source>Shared Folders</source>
-        <translation>共有フォルダー</translation>
+        <translation type="vanished">共有フォルダー</translation>
     </message>
     <message>
         <source>%1 - %2</source>
-        <translation>%1 - %2</translation>
+        <translation type="vanished">%1 - %2</translation>
     </message>
     <message>
         <source>you have selected a 64-bit guest OS type for this VM. As such guests require hardware virtualization (VT-x/AMD-V), this feature will be enabled automatically.</source>
@@ -23330,16 +24719,27 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>User Interface</source>
-        <translation>ユーザーインターフェース</translation>
+        <translation type="vanished">ユーザーインターフェース</translation>
     </message>
     <message>
         <source>Settings</source>
-        <translation>設定</translation>
+        <translation type="vanished">設定</translation>
     </message>
     <message>
         <source>Allows to navigate through VM Settings categories</source>
         <translatorcomment>要確認</translatorcomment>
-        <translation>VM設定カテゴリ間の操作を許可する</translation>
+        <translation type="vanished">VM設定カテゴリ間の操作を許可する</translation>
+    </message>
+</context>
+<context>
+    <name>UISettingsPageValidator</name>
+    <message>
+        <source>&lt;b&gt;%1&lt;/b&gt; page:</source>
+        <translation type="unfinished">&lt;b&gt;%1&lt;/b&gt; ページ:</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;%1: %2&lt;/b&gt; page:</source>
+        <translation type="unfinished">&lt;b&gt;%1: %2&lt;/b&gt; ページ:</translation>
     </message>
 </context>
 <context>
@@ -23435,7 +24835,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     <name>UISharedFoldersEditor</name>
     <message>
         <source>Shared &amp;Folders</source>
-        <translation>共有フォルダー(&amp;F)</translation>
+        <translation type="vanished">共有フォルダー(&amp;F)</translation>
     </message>
     <message>
         <source>Lists all shared folders accessible to this machine. Use &apos;net use x: \\vboxsvr\share&apos; to access a shared folder named &apos;share&apos; from a DOS-like OS, or &apos;mount -t vboxsf share mount_point&apos; to access it from a Linux OS. This feature requires Guest Additions.</source>
@@ -24121,6 +25521,10 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
         <source>Deleting the file %1 has failed</source>
         <translation>ファイル %1 の削除に失敗しました</translation>
     </message>
+    <message>
+        <source>Close</source>
+        <translation type="unfinished">閉じる</translation>
+    </message>
 </context>
 <context>
     <name>UIStatusBarEditorButton</name>
@@ -24185,7 +25589,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>&amp;Storage Devices</source>
-        <translation>ストレージデバイス(&amp;S)</translation>
+        <translation type="vanished">ストレージデバイス(&amp;S)</translation>
     </message>
     <message>
         <source>Information</source>
@@ -24277,11 +25681,11 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Virtual Size:</source>
-        <translation>仮想的なサイズ:</translation>
+        <translation type="vanished">仮想的なサイズ:</translation>
     </message>
     <message>
         <source>Actual Size:</source>
-        <translation>実際のサイズ:</translation>
+        <translation type="vanished">実際のサイズ:</translation>
     </message>
     <message>
         <source>Size:</source>
@@ -24289,7 +25693,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Details:</source>
-        <translation>詳細:</translation>
+        <translation type="vanished">詳細:</translation>
     </message>
     <message>
         <source>Location:</source>
@@ -24301,7 +25705,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Encrypted with key:</source>
-        <translation>暗号化の鍵:</translation>
+        <translation type="vanished">暗号化の鍵:</translation>
     </message>
     <message>
         <source>Lists all storage controllers for this machine and the virtual images and host drives attached to them.</source>
@@ -24425,7 +25829,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Choose a disk file...</source>
-        <translation>ディスクファイルを選択...</translation>
+        <translation type="vanished">ディスクファイルを選択...</translation>
     </message>
     <message>
         <source>Choose/Create a Virtual Optical Disk...</source>
@@ -24433,11 +25837,43 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Remove Disk from Virtual Drive</source>
-        <translation>仮想ドライブからディスクを除去</translation>
+        <translation type="vanished">仮想ドライブからディスクを除去</translation>
     </message>
     <message>
         <source>Choose/Create a Virtual Floppy Disk...</source>
         <translation>仮想フロッピーディスクの選択/作成...</translation>
+    </message>
+    <message>
+        <source>Remove disk from virtual drive</source>
+        <translation type="obsolete">仮想ドライブからディスクを除去</translation>
+    </message>
+    <message>
+        <source>&amp;Devices</source>
+        <translation type="unfinished">デバイス(&amp;D)</translation>
+    </message>
+    <message>
+        <source>Encryption key:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Virtual size:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Actual size:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Storage details:</source>
+        <translation type="unfinished">ストレージの詳細:</translation>
+    </message>
+    <message>
+        <source>Choose a Disk File...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Remove Disk From Virtual Drive</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -24803,7 +26239,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Holds the vendor ID filter. The &lt;i&gt;exact match&lt;/i&gt; string format is &lt;tt&gt;XXXX&lt;/tt&gt; where &lt;tt&gt;X&lt;/tt&gt; is a hexadecimal digit. An empty string will match any value.</source>
-        <translation>ベンダーIDフィルターを指定します。&lt;i&gt;完全一致&lt;/i&gt;する文字列の形式は&lt;tt&gt;XXXX&lt;/tt&gt;で、&lt;tt&gt;X&lt;/tt&gt;は16進数です。空の文字列はすべての値と一致します。</translation>
+        <translation type="vanished">ベンダーIDフィルターを指定します。&lt;i&gt;完全一致&lt;/i&gt;する文字列の形式は&lt;tt&gt;XXXX&lt;/tt&gt;で、&lt;tt&gt;X&lt;/tt&gt;は16進数です。空の文字列はすべての値と一致します。</translation>
     </message>
     <message>
         <source>&amp;Product ID:</source>
@@ -24811,7 +26247,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Holds the product ID filter. The &lt;i&gt;exact match&lt;/i&gt; string format is &lt;tt&gt;XXXX&lt;/tt&gt; where &lt;tt&gt;X&lt;/tt&gt; is a hexadecimal digit. An empty string will match any value.</source>
-        <translation>プロダクトIDフィルターを指定します。&lt;i&gt;完全一致&lt;/i&gt;する文字列の形式は&lt;tt&gt;XXXX&lt;/tt&gt;で、&lt;tt&gt;X&lt;/tt&gt;は16進数です。空の文字列はすべての値と一致します。</translation>
+        <translation type="vanished">プロダクトIDフィルターを指定します。&lt;i&gt;完全一致&lt;/i&gt;する文字列の形式は&lt;tt&gt;XXXX&lt;/tt&gt;で、&lt;tt&gt;X&lt;/tt&gt;は16進数です。空の文字列はすべての値と一致します。</translation>
     </message>
     <message>
         <source>&amp;Revision:</source>
@@ -24819,7 +26255,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Holds the revision number filter. The &lt;i&gt;exact match&lt;/i&gt; string format is &lt;tt&gt;IIFF&lt;/tt&gt; where &lt;tt&gt;I&lt;/tt&gt; is a decimal digit of the integer part and &lt;tt&gt;F&lt;/tt&gt; is a decimal digit of the fractional part. An empty string will match any value.</source>
-        <translation>リビジョン番号フィルターを指定します。&lt;i&gt;完全一致&lt;/i&gt;する文字列の形式は&lt;tt&gt;IIFF&lt;/tt&gt;で、&lt;tt&gt;I&lt;/tt&gt;は10進数で整数部、&lt;tt&gt;F&lt;/tt&gt;は10進数で小数部です。空の文字列はすべての値と一致します。</translation>
+        <translation type="vanished">リビジョン番号フィルターを指定します。&lt;i&gt;完全一致&lt;/i&gt;する文字列の形式は&lt;tt&gt;IIFF&lt;/tt&gt;で、&lt;tt&gt;I&lt;/tt&gt;は10進数で整数部、&lt;tt&gt;F&lt;/tt&gt;は10進数で小数部です。空の文字列はすべての値と一致します。</translation>
     </message>
     <message>
         <source>&amp;Manufacturer:</source>
@@ -24827,7 +26263,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Holds the manufacturer filter as an &lt;i&gt;exact match&lt;/i&gt; string. An empty string will match any value.</source>
-        <translation>&lt;i&gt;完全一致&lt;/i&gt;するメーカー フィルターを指定します。空の文字列はすべての値と一致します。</translation>
+        <translation type="vanished">&lt;i&gt;完全一致&lt;/i&gt;するメーカー フィルターを指定します。空の文字列はすべての値と一致します。</translation>
     </message>
     <message>
         <source>Pro&amp;duct:</source>
@@ -24835,7 +26271,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Holds the product name filter as an &lt;i&gt;exact match&lt;/i&gt; string. An empty string will match any value.</source>
-        <translation>&lt;i&gt;完全一致&lt;/i&gt;する製品名フィルターを指定します。空の文字列はすべての値と一致します。</translation>
+        <translation type="vanished">&lt;i&gt;完全一致&lt;/i&gt;する製品名フィルターを指定します。空の文字列はすべての値と一致します。</translation>
     </message>
     <message>
         <source>&amp;Serial No.:</source>
@@ -24843,7 +26279,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Holds the serial number filter as an &lt;i&gt;exact match&lt;/i&gt; string. An empty string will match any value.</source>
-        <translation>&lt;i&gt;完全一致&lt;/i&gt;するシリアル番号フィルターを指定します。空の文字列はすべての値と一致します。</translation>
+        <translation type="vanished">&lt;i&gt;完全一致&lt;/i&gt;するシリアル番号フィルターを指定します。空の文字列はすべての値と一致します。</translation>
     </message>
     <message>
         <source>Por&amp;t:</source>
@@ -24851,7 +26287,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Holds the host USB port filter as an &lt;i&gt;exact match&lt;/i&gt; string. An empty string will match any value.</source>
-        <translation>&lt;i&gt;完全一致&lt;/i&gt;するホストUSBポートフィルターを指定します。空の文字列はすべての値と一致します。</translation>
+        <translation type="vanished">&lt;i&gt;完全一致&lt;/i&gt;するホストUSBポートフィルターを指定します。空の文字列はすべての値と一致します。</translation>
     </message>
     <message>
         <source>R&amp;emote:</source>
@@ -24860,6 +26296,34 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     <message>
         <source>Holds whether this filter applies to USB devices attached locally to the host computer (No), to a VRDP client&apos;s computer (Yes), or both (Any).</source>
         <translation>ローカルに接続されたUSB デバイスにこのフィルターを適用するかどうかを指定します。ホストマシン(&lt;i&gt;いいえ&lt;/i&gt;)、VRDP クライアントのコンピューター(&lt;i&gt;はい&lt;/i&gt;)、両方((&lt;i&gt;任意&lt;/i&gt;))。</translation>
+    </message>
+    <message>
+        <source>Holds the vendor ID filter. The exact match string format is &apos;XXXX&apos; where &apos;X&apos; is a hexadecimal digit. An empty string will match any value.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Holds the product ID filter. The exact match string format is &apos;XXXX&apos; where &apos;X&apos; is a hexadecimal digit. An empty string will match any value.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Holds the revision number filter. The exact match string format is &apos;IIFF&apos; where &apos;I&apos; is a decimal digit of the integer part and &apos;F&apos; is a decimal digit of the fractional part. An empty string will match any value.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Holds the manufacturer filter as an exact match string. An empty string will match any value.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Holds the product name filter as an exact match string. An empty string will match any value.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Holds the serial number filter as an exact match string. An empty string will match any value.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Holds the host USB port filter as an exact match string. An empty string will match any value.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -25006,6 +26470,74 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     <message>
         <source>When checked, enables the virtual USB controller of this machine.</source>
         <translation>この仮想マシンの仮想USB コントローラーを有効にします。</translation>
+    </message>
+</context>
+<context>
+    <name>UIUSBTools</name>
+    <message>
+        <source>Unknown device</source>
+        <comment>USB device details</comment>
+        <translation type="unfinished">不明なデバイス</translation>
+    </message>
+    <message>
+        <source>Unknown device %1:%2</source>
+        <comment>USB device details</comment>
+        <translation type="unfinished">不明なデバイス %1:%2</translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;Vendor ID: %1&lt;/nobr&gt;&lt;br&gt;&lt;nobr&gt;Product ID: %2&lt;/nobr&gt;&lt;br&gt;&lt;nobr&gt;Revision: %3&lt;/nobr&gt;</source>
+        <comment>USB device tooltip</comment>
+        <translation type="unfinished">&lt;nobr&gt;ベンダーID: %1&lt;/nobr&gt;&lt;br&gt;&lt;nobr&gt;プロダクトID: %2&lt;/nobr&gt;&lt;br&gt;&lt;nobr&gt;リビジョン: %3&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;br&gt;&lt;nobr&gt;Serial No. %1&lt;/nobr&gt;</source>
+        <comment>USB device tooltip</comment>
+        <translation type="unfinished">&lt;br&gt;&lt;nobr&gt;シリアルNo. %1&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;br&gt;&lt;nobr&gt;State: %1&lt;/nobr&gt;</source>
+        <comment>USB device tooltip</comment>
+        <translation type="unfinished">&lt;br&gt;&lt;nobr&gt;状態: %1&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;Vendor ID: %1&lt;/nobr&gt;</source>
+        <comment>USB filter tooltip</comment>
+        <translation type="unfinished">&lt;nobr&gt;ベンダーID: %1&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;Product ID: %2&lt;/nobr&gt;</source>
+        <comment>USB filter tooltip</comment>
+        <translation type="unfinished">&lt;nobr&gt;プロダクトID: %2&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;Revision: %3&lt;/nobr&gt;</source>
+        <comment>USB filter tooltip</comment>
+        <translation type="unfinished">&lt;nobr&gt;リビジョン: %3&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;Product: %4&lt;/nobr&gt;</source>
+        <comment>USB filter tooltip</comment>
+        <translation type="unfinished">&lt;nobr&gt;製品: %4&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;Manufacturer: %5&lt;/nobr&gt;</source>
+        <comment>USB filter tooltip</comment>
+        <translation type="unfinished">&lt;nobr&gt;メーカー: %5&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;Serial No.: %1&lt;/nobr&gt;</source>
+        <comment>USB filter tooltip</comment>
+        <translation type="unfinished">&lt;nobr&gt;シリアルNo.: %1&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;Port: %1&lt;/nobr&gt;</source>
+        <comment>USB filter tooltip</comment>
+        <translation type="unfinished">&lt;nobr&gt;ポート: %1&lt;/nobr&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;nobr&gt;State: %1&lt;/nobr&gt;</source>
+        <comment>USB filter tooltip</comment>
+        <translation type="unfinished">&lt;nobr&gt;状態: %1&lt;/nobr&gt;</translation>
     </message>
 </context>
 <context>
@@ -25179,7 +26711,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     <name>UIUserNamePasswordEditor</name>
     <message>
         <source>Invalid username</source>
-        <translation>無効なユーザー名</translation>
+        <translation type="vanished">無効なユーザー名</translation>
     </message>
     <message>
         <source>Pass&amp;word</source>
@@ -25208,6 +26740,33 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     <message>
         <source>Invalid password pair</source>
         <translation>パスワードが一致しません</translation>
+    </message>
+    <message>
+        <source>Username is valid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Username cannot be an empty string</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIVMActivityMonitorPaneContainer</name>
+    <message>
+        <source>Preferences</source>
+        <translation type="unfinished">環境設定</translation>
+    </message>
+    <message>
+        <source>Data Series 1 Color</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Data Series 2 Color</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Reset to Defaults</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -25306,7 +26865,19 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>List all virtual machines</source>
-        <translation>すべての仮想マシンのリスト</translation>
+        <translation type="vanished">すべての仮想マシンのリスト</translation>
+    </message>
+    <message>
+        <source>Lists all currently active virtual machines.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>List All Virtual Machines</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Show Cloud Virtual Machines</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -25675,7 +27246,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Disk IO Rate</source>
-        <translation>ディスクIO使用率</translation>
+        <translation type="vanished">ディスクIO使用率</translation>
     </message>
     <message>
         <source>Write Rate</source>
@@ -25870,11 +27441,41 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Sec.</source>
-        <translation>秒.</translation>
+        <translation type="vanished">秒.</translation>
     </message>
     <message>
         <source>Export activity data of the machine &quot;%1&quot;</source>
         <translation>仮想マシン &quot;%1&quot; のアクティビティデータをエクスポート</translation>
+    </message>
+    <message>
+        <source>Displays the configuration details of the guest system</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Displays the runtime information of the guest system</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Change 1st Dataseries&apos; Color</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Change 2nd Dataseries&apos; Color</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Disk IO</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Sec.</source>
+        <comment>short from seconds</comment>
+        <translation type="unfinished">秒.</translation>
+    </message>
+    <message>
+        <source>Min.</source>
+        <comment>short from minutes</comment>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -26158,7 +27759,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Close this machine&apos;s logs</source>
-        <translation>マシンのログを閉じる</translation>
+        <translation type="vanished">マシンのログを閉じる</translation>
     </message>
     <message>
         <source>Select machines to show their log</source>
@@ -26171,6 +27772,34 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     <message>
         <source>%1 - Log Viewer</source>
         <translation>%1 - ログビューアー</translation>
+    </message>
+    <message>
+        <source>Embed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Embed to manager window</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Embed to Manager Window</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Find</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Filter</source>
+        <translation type="unfinished">フィルター</translation>
+    </message>
+    <message>
+        <source>Bookmarks</source>
+        <translation type="unfinished">ブックマーク</translation>
+    </message>
+    <message>
+        <source>Preferences</source>
+        <translation type="unfinished">環境設定</translation>
     </message>
 </context>
 <context>
@@ -26260,6 +27889,14 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     <message>
         <source>When checked, multiple simultaneous connections to the VM are permitted.</source>
         <translation>仮想マシンへの複数の同時接続を許可します。</translation>
+    </message>
+    <message>
+        <source>&amp;Security Method:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selects the VRDP security method.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -26598,11 +28235,11 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     <name>UIVisoCreatorWidget</name>
     <message>
         <source>Click to show/hide the tree view.</source>
-        <translation>クリックしてツリー表示を切り替えてください。</translation>
+        <translation type="vanished">クリックしてツリー表示を切り替えてください。</translation>
     </message>
     <message>
         <source>Shows the current location.</source>
-        <translation>現在の場所を表示します。</translation>
+        <translation type="vanished">現在の場所を表示します。</translation>
     </message>
     <message>
         <source>Name</source>
@@ -26630,11 +28267,11 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>ISO Path</source>
-        <translation>ISOパス</translation>
+        <translation type="vanished">ISOパス</translation>
     </message>
     <message>
         <source>Host File System</source>
-        <translation>ホストファイルシステム</translation>
+        <translation type="vanished">ホストファイルシステム</translation>
     </message>
     <message>
         <source>VISO Content</source>
@@ -26642,7 +28279,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>C&amp;reate</source>
-        <translation>作成(&amp;R)</translation>
+        <translation type="vanished">作成(&amp;R)</translation>
     </message>
     <message>
         <source>Creates VISO file with the selected content</source>
@@ -26662,7 +28299,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Remove current option.</source>
-        <translation>現在のオプションを削除します。</translation>
+        <translation type="vanished">現在のオプションを削除します。</translation>
     </message>
     <message>
         <source>Holds the name of the VISO medium.</source>
@@ -26670,7 +28307,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Holds options for VISO creation.</source>
-        <translation>VISO作成のオプションを指定してください。</translation>
+        <translation type="vanished">VISO作成のオプションを指定してください。</translation>
     </message>
     <message>
         <source>Show Hidden Objects</source>
@@ -26683,6 +28320,54 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     <message>
         <source>VISO Creator</source>
         <translation>VISOクリエイター</translation>
+    </message>
+    <message>
+        <source>Yes</source>
+        <translation type="obsolete">はい</translation>
+    </message>
+    <message>
+        <source>No</source>
+        <translation type="obsolete">いいえ</translation>
+    </message>
+    <message>
+        <source>Has Removed Child</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>VISO Browser</source>
+        <translation type="unfinished">VISOブラウザー</translation>
+    </message>
+    <message>
+        <source>Child/children removed</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Host Browser</source>
+        <translation type="unfinished">ホストブラウザー</translation>
+    </message>
+    <message>
+        <source>The list of custom options delimited with &apos;;&apos;.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Dialog Settings</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select a VISO file to load</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Select a file to save VISO content to</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Save and Close</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>VISO Options</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -26702,6 +28387,18 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
         <source>&lt;h3&gt;Welcome to VirtualBox!&lt;/h3&gt;&lt;p&gt;The left part of application window contains global tools and lists all virtual machines and virtual machine groups on your computer. You can import, add and create new VMs using corresponding toolbar buttons. You can popup a tools of currently selected element using corresponding element button.&lt;/p&gt;&lt;p&gt;You can press the &lt;b&gt;%1&lt;/b&gt; key to get instant help, or visit &lt;a href=https://www.virtualbox.org&gt;www.virtualbox.org&lt;/a&gt; for more information and latest news.&lt;/p&gt;</source>
         <translatorcomment>要確認</translatorcomment>
         <translation>&lt;h3&gt;ようこそVirtualBoxへ！&lt;/h3&gt;&lt;p&gt;このアプリケーションウィンドウの左側にはグローバルツールと、コンピューター上にあるすべての仮想マシンと仮想マシングループがリスト表示されます。該当するツールバーのボタンを使用するとインポート・追加・新規仮想マシンの作成を行うことができます。リストの右側にある要素ボタンをクリックすると、使用できるツールをポップアップすることができます。&lt;/p&gt;&lt;p&gt;&lt;b&gt;%1&lt;/b&gt; ボタンを押すとヘルプが表示できます。&lt;a href=https://www.virtualbox.org&gt;www.virtualbox.org&lt;/a&gt;には最新情報とニュースがあります。&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <source>&lt;h3&gt;Please choose Experience Mode!&lt;/h3&gt;By default, the VirtualBox GUI is hiding some options, tools and wizards. &lt;p&gt;The &lt;b&gt;Basic Mode&lt;/b&gt; is intended for those users who are not interested in advanced functionality and prefer a simpler, cleaner interface.&lt;/p&gt;&lt;p&gt;The &lt;b&gt;Expert Mode&lt;/b&gt; is intended for experienced users who wish to utilize all VirtualBox functionality.&lt;/p&gt;&lt;p&gt;You can choose whether you are a beginner or experienced user by selecting required option at the right. This choice can always be changed in Global Preferences or Machine Settings windows.&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Basic Mode</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Expert Mode</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -26739,19 +28436,19 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Location</source>
-        <translation>場所</translation>
+        <translation type="vanished">場所</translation>
     </message>
     <message>
         <source>Source</source>
-        <translation>ソース</translation>
+        <translation type="vanished">ソース</translation>
     </message>
     <message>
         <source>Open Cloud Profile Manager...</source>
-        <translation>クラウドプロファイルマネージャーを開く...</translation>
+        <translation type="vanished">クラウドプロファイルマネージャーを開く...</translation>
     </message>
     <message>
         <source>Add VM from cloud service provider.</source>
-        <translation>クラウドサービスプロバイダーからVMを追加します。</translation>
+        <translation type="vanished">クラウドサービスプロバイダーからVMを追加します。</translation>
     </message>
     <message>
         <source>Source to add from</source>
@@ -26763,11 +28460,11 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>&amp;Source:</source>
-        <translation>ソース(&amp;S):</translation>
+        <translation type="vanished">ソース(&amp;S):</translation>
     </message>
     <message>
         <source>&amp;Profile:</source>
-        <translation>プロファイル(&amp;P):</translation>
+        <translation type="vanished">プロファイル(&amp;P):</translation>
     </message>
     <message>
         <source>&amp;Instances:</source>
@@ -26776,6 +28473,34 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     <message>
         <source>Please choose one of cloud service profiles you have registered to add virtual machine from.  Existing instance list will be updated.  To continue, select at least one instance to add virtual machine on the basis of it.</source>
         <translation>仮想マシンを作成するため、登録したいクラウドサービスプロファイルを選択してください。存在するインスタンスのリストはアップデートできます。継続するには、土台となる作成したい仮想マシンのインスタンスを選択してください。</translation>
+    </message>
+    <message>
+        <source>&amp;Provider:</source>
+        <translation type="unfinished">プロバイダー(&amp;P):</translation>
+    </message>
+    <message>
+        <source>Selects cloud service provider.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>P&amp;rofile:</source>
+        <translation type="unfinished">プロファイル(&amp;R):</translation>
+    </message>
+    <message>
+        <source>Selects cloud profile.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cloud Profile Manager</source>
+        <translation type="unfinished">クラウドプロファイルマネージャー</translation>
+    </message>
+    <message>
+        <source>Opens cloud profile manager...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Lists all the cloud VM instances.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -26899,7 +28624,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Storage on physical hard disk</source>
-        <translation>物理ハードディスクにあるストレージ</translation>
+        <translation type="vanished">物理ハードディスクにあるストレージ</translation>
     </message>
     <message>
         <source>Please choose whether the new virtual hard disk file should grow as it is used (dynamically allocated) or if it should be created at its maximum size (fixed size).</source>
@@ -26971,19 +28696,19 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Please choose whether the new virtual disk image file should grow as it is used (dynamically allocated) or if it should be created at its maximum size (fixed size).</source>
-        <translation>新しい仮想ディスクイメージファイルは使用したぶんだけ大きくなるか（可変サイズ）、または最大サイズで作成するか（固定サイズ）を選択してください。</translation>
+        <translation type="vanished">新しい仮想ディスクイメージファイルは使用したぶんだけ大きくなるか（可変サイズ）、または最大サイズで作成するか（固定サイズ）を選択してください。</translation>
     </message>
     <message>
         <source>&lt;p&gt;A &lt;b&gt;dynamically allocated&lt;/b&gt; disk image file will only use space on your physical hard disk as it fills up (up to a maximum &lt;b&gt;fixed size&lt;/b&gt;), although it will not shrink again automatically when space on it is freed.&lt;/p&gt;</source>
-        <translation>&lt;p&gt;&lt;b&gt;可変サイズ&lt;/b&gt;のディスクイメージファイルは使用した分だけ（&lt;b&gt;固定サイズ&lt;/b&gt;を上限として）物理ハードディスクの領域を消費しますが、スペースを開放しても自動的に縮小はしません。&lt;/p&gt;</translation>
+        <translation type="vanished">&lt;p&gt;&lt;b&gt;可変サイズ&lt;/b&gt;のディスクイメージファイルは使用した分だけ（&lt;b&gt;固定サイズ&lt;/b&gt;を上限として）物理ハードディスクの領域を消費しますが、スペースを開放しても自動的に縮小はしません。&lt;/p&gt;</translation>
     </message>
     <message>
         <source>&lt;p&gt;A &lt;b&gt;fixed size&lt;/b&gt; disk image file may take longer to create on some systems but is often faster to use.&lt;/p&gt;</source>
-        <translation>&lt;p&gt;&lt;b&gt;固定サイズ&lt;/b&gt;のディスクイメージファイルはシステムによっては作成に時間がかかるかもしれませんが、使用すると高速です&lt;/p&gt;</translation>
+        <translation type="vanished">&lt;p&gt;&lt;b&gt;固定サイズ&lt;/b&gt;のディスクイメージファイルはシステムによっては作成に時間がかかるかもしれませんが、使用すると高速です&lt;/p&gt;</translation>
     </message>
     <message>
         <source>&lt;p&gt;You can also choose to &lt;b&gt;split&lt;/b&gt; the disk image file into several files of up to two gigabytes each. This is mainly useful if you wish to store the virtual machine on removable USB devices or old systems, some of which cannot handle very large files.</source>
-        <translation>&lt;p&gt;ディスクイメージファイルを2ＧＢごとに&lt;b&gt;分割&lt;/b&gt;することもできます。仮想マシンをリムーバブルUSBデバイスに作成したい場合や、非常に大きなファイルを扱うことができない古いシステムで便利でしょう。</translation>
+        <translation type="vanished">&lt;p&gt;ディスクイメージファイルを2ＧＢごとに&lt;b&gt;分割&lt;/b&gt;することもできます。仮想マシンをリムーバブルUSBデバイスに作成したい場合や、非常に大きなファイルを扱うことができない古いシステムで便利でしょう。</translation>
     </message>
     <message>
         <source>Please choose a location for new virtual disk image file</source>
@@ -27020,27 +28745,27 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Copy Virtual Disk</source>
-        <translation>仮想ディスクをコピー</translation>
+        <translation type="vanished">仮想ディスクをコピー</translation>
     </message>
     <message>
         <source>Virtual Hard disk file type</source>
-        <translation>仮想ハードディスクのファイルタイプ</translation>
+        <translation type="vanished">仮想ハードディスクのファイルタイプ</translation>
     </message>
     <message>
         <source>Please choose the type of file that you would like to use for the destination virtual disk image. If you do not need to use it with other virtualization software you can leave this setting unchanged.</source>
-        <translation>使用したい仮想マシンイメージの保存先のファイルタイプを選択してください。もしほかの仮想ソフトウェアで使用する必要がなければ、設定はそのままにしておいてください。</translation>
+        <translation type="vanished">使用したい仮想マシンイメージの保存先のファイルタイプを選択してください。もしほかの仮想ソフトウェアで使用する必要がなければ、設定はそのままにしておいてください。</translation>
     </message>
     <message>
         <source>Location and size of the disk image</source>
-        <translation>ディスクイメージの場所とサイズ</translation>
+        <translation type="vanished">ディスクイメージの場所とサイズ</translation>
     </message>
     <message>
         <source>Hard Disk File &amp;Type and Variant</source>
-        <translation>ハードディスクのファイルタイプと種類(&amp;T)</translation>
+        <translation type="vanished">ハードディスクのファイルタイプと種類(&amp;T)</translation>
     </message>
     <message>
         <source>copy</source>
-        <translation>コピー</translation>
+        <translation type="vanished">コピー</translation>
     </message>
 </context>
 <context>
@@ -27087,15 +28812,15 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>&lt;p&gt;If you create a &lt;b&gt;Linked clone&lt;/b&gt; then a new snapshot will be created in the original virtual machine as part of the cloning process.&lt;/p&gt;</source>
-        <translation>&lt;p&gt;&lt;b&gt;リンクしたクローン&lt;/b&gt;にすると、新しいスナップショットはクローンプロセスの一部分として元の仮想マシンに作成されます。&lt;/p&gt;</translation>
+        <translation type="vanished">&lt;p&gt;&lt;b&gt;リンクしたクローン&lt;/b&gt;にすると、新しいスナップショットはクローンプロセスの一部分として元の仮想マシンに作成されます。&lt;/p&gt;</translation>
     </message>
     <message>
         <source>&amp;Full clone</source>
-        <translation>すべてをクローン(&amp;F)</translation>
+        <translation type="vanished">すべてをクローン(&amp;F)</translation>
     </message>
     <message>
         <source>&amp;Linked clone</source>
-        <translation>リンクしたクローン(&amp;L)</translation>
+        <translation type="vanished">リンクしたクローン(&amp;L)</translation>
     </message>
     <message>
         <source>Snapshots</source>
@@ -27107,11 +28832,11 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>&lt;p&gt;If you choose &lt;b&gt;Current machine state&lt;/b&gt;, the new machine will reflect the current state of the original machine and will have no snapshots.&lt;/p&gt;</source>
-        <translation>&lt;p&gt;&lt;b&gt;現在のマシンの状態&lt;/b&gt;を選択すると、元のマシンの現在の状態かつスナップショットがない状態が反映されます。&lt;/p&gt;</translation>
+        <translation type="vanished">&lt;p&gt;&lt;b&gt;現在のマシンの状態&lt;/b&gt;を選択すると、元のマシンの現在の状態かつスナップショットがない状態が反映されます。&lt;/p&gt;</translation>
     </message>
     <message>
         <source>&lt;p&gt;If you choose &lt;b&gt;Current snapshot tree branch&lt;/b&gt;, the new machine will reflect the current state of the original machine and will have matching snapshots for all snapshots in the tree branch starting at the current state in the original machine.&lt;/p&gt;</source>
-        <translation>&lt;p&gt;&lt;b&gt;現在のスナップショットツリーのブランチ&lt;/b&gt;を選択すると、&lt;/p&gt;新しいマシンは元のマシンの現在の状態と、元のマシンの現在の状態から開始するすべてのスナップショットのツリーブランチを反映します。&lt;/p&gt;</translation>
+        <translation type="vanished">&lt;p&gt;&lt;b&gt;現在のスナップショットツリーのブランチ&lt;/b&gt;を選択すると、&lt;/p&gt;新しいマシンは元のマシンの現在の状態と、元のマシンの現在の状態から開始するすべてのスナップショットのツリーブランチを反映します。&lt;/p&gt;</translation>
     </message>
     <message>
         <source>&lt;p&gt;If you choose &lt;b&gt;Everything&lt;/b&gt;, the new machine will reflect the current state of the original machine and will have matching snapshots for all snapshots in the original machine.&lt;/p&gt;</source>
@@ -27119,11 +28844,11 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Current &amp;machine state</source>
-        <translation>現在のマシンの状態(&amp;M)</translation>
+        <translation type="vanished">現在のマシンの状態(&amp;M)</translation>
     </message>
     <message>
         <source>Current &amp;snapshot tree branch</source>
-        <translation>現在のスナップショットのツリーブランチ(&amp;S)</translation>
+        <translation type="vanished">現在のスナップショットのツリーブランチ(&amp;S)</translation>
     </message>
     <message>
         <source>&amp;Everything</source>
@@ -27135,15 +28860,15 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>&amp;Full Clone</source>
-        <translation type="vanished">すべてをクローン(&amp;F)</translation>
+        <translation>すべてをクローン(&amp;F)</translation>
     </message>
     <message>
         <source>&amp;Linked Clone</source>
-        <translation type="vanished">リンクしたクローン(&amp;L)</translation>
+        <translation>リンクしたクローン(&amp;L)</translation>
     </message>
     <message>
         <source>&lt;p&gt;Please choose the type of clone you wish to create.&lt;/p&gt;&lt;p&gt;If you choose &lt;b&gt;Full clone&lt;/b&gt;, an exact copy (including all virtual hard disk files) of the original virtual machine will be created.&lt;/p&gt;&lt;p&gt;If you choose &lt;b&gt;Linked clone&lt;/b&gt;, a new machine will be created, but the virtual hard disk files will be tied to the virtual hard disk files of original machine and you will not be able to move the new virtual machine to a different computer without moving the original as well.&lt;/p&gt;</source>
-        <translation>&lt;p&gt;作成したいクローンのタイプを選択してください。&lt;/p&gt;&lt;p&gt;&lt;b&gt;すべてをクローン&lt;/b&gt;を選択すると、元の仮想マシンのコピー（すべての仮想ハードディスクファイルを含む）を抽出して作成します。&lt;/p&gt;&lt;p&gt;&lt;b&gt;リンクしたクローン&lt;/b&gt;を選択すると、新しいマシンを作成しますが、仮想ハードディスクファイルは元のマシンに紐づき、元のファイルも同様に移動しないと新しい仮想マシンから異なったコンピューターに移動することができません。&lt;/p&gt;</translation>
+        <translation type="vanished">&lt;p&gt;作成したいクローンのタイプを選択してください。&lt;/p&gt;&lt;p&gt;&lt;b&gt;すべてをクローン&lt;/b&gt;を選択すると、元の仮想マシンのコピー（すべての仮想ハードディスクファイルを含む）を抽出して作成します。&lt;/p&gt;&lt;p&gt;&lt;b&gt;リンクしたクローン&lt;/b&gt;を選択すると、新しいマシンを作成しますが、仮想ハードディスクファイルは元のマシンに紐づき、元のファイルも同様に移動しないと新しい仮想マシンから異なったコンピューターに移動することができません。&lt;/p&gt;</translation>
     </message>
     <message>
         <source>&lt;p&gt;Please choose a name and optionally a folder for the new virtual machine. The new machine will be a clone of the machine &lt;b&gt;%1&lt;/b&gt;.&lt;/p&gt;</source>
@@ -27203,7 +28928,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>New machine &amp;name and path</source>
-        <translation>新しいマシンの名前とパス(&amp;N)</translation>
+        <translation type="vanished">新しいマシンの名前とパス(&amp;N)</translation>
     </message>
     <message>
         <source>New machine name and path</source>
@@ -27215,7 +28940,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Additional options</source>
-        <translation>追加オプション</translation>
+        <translation type="vanished">追加オプション</translation>
     </message>
     <message>
         <source>Clone name cannot be empty</source>
@@ -27227,7 +28952,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>The clone name is not unique</source>
-        <translation>クローン名が一意ではありません</translation>
+        <translation type="vanished">クローン名が一意ではありません</translation>
     </message>
     <message>
         <source>&amp;Name:</source>
@@ -27280,6 +29005,54 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     <message>
         <source>When checked, hardware UUIDs will be preserved during cloning.</source>
         <translation>クローン中ハードウェアUUIDを変更しません。</translation>
+    </message>
+    <message>
+        <source>Clone name is valid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Path is valid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Clone name is not unique</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Current &amp;Machine State</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Current &amp;Snapshot Tree Branch</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;Please choose the type of clone you wish to create.&lt;/p&gt;&lt;p&gt;If you choose &lt;b&gt;Full Clone&lt;/b&gt;, an exact copy (including all virtual hard disk files) of the original virtual machine will be created.&lt;/p&gt;&lt;p&gt;If you choose &lt;b&gt;Linked Clone&lt;/b&gt;, a new machine will be created, but the virtual hard disk files will be tied to the virtual hard disk files of original machine and you will not be able to move the new virtual machine to a different computer without moving the original as well.&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;If you create a &lt;b&gt;Linked Clone&lt;/b&gt; then a new snapshot will be created in the original virtual machine as part of the cloning process.&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;If you choose &lt;b&gt;Current Machine State&lt;/b&gt;, the new machine will reflect the current state of the original machine and will have no snapshots.&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;If you choose &lt;b&gt;Current Snapshot Tree Branch&lt;/b&gt;, the new machine will reflect the current state of the original machine and will have matching snapshots for all snapshots in the tree branch starting at the current state in the original machine.&lt;/p&gt;</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>New Machine Name and Path</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Clone Type</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Additional Options</source>
+        <translation type="unfinished">追加オプション</translation>
     </message>
 </context>
 <context>
@@ -27602,7 +29375,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Open Cloud Profile Manager...</source>
-        <translation>クラウドプロファイルマネージャーを開く...</translation>
+        <translation type="vanished">クラウドプロファイルマネージャーを開く...</translation>
     </message>
     <message>
         <source>Do not ask me about it, leave custom &amp;image for future usage</source>
@@ -27627,6 +29400,22 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     <message>
         <source>Please choose a filename to export the virtual appliance to. Besides that you can specify a certain amount of options which affects the size and content of resulting archive.</source>
         <translation>エクスポートする仮想アプライアンスの名前を入力してください。加えて作成するアーカイブに影響するサイズや内容に関するいくつかのオプションを指定してください。</translation>
+    </message>
+    <message>
+        <source>Contains a list of Virtual Machines</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Selects cloud profile.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cloud Profile Manager</source>
+        <translation type="unfinished">クラウドプロファイルマネージャー</translation>
+    </message>
+    <message>
+        <source>Opens cloud profile manager...</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -27854,7 +29643,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Open Cloud Profile Manager...</source>
-        <translation>クラウドプロファイルマネージャーを開く...</translation>
+        <translation type="vanished">クラウドプロファイルマネージャーを開く...</translation>
     </message>
     <message>
         <source>Holds the path of the file selected for import.</source>
@@ -27915,6 +29704,22 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     <message>
         <source>Please choose a file to import the virtual appliance from.  VirtualBox currently supports importing appliances saved in the Open Virtualization Format (OVF).  To continue, select the file to import below.</source>
         <translation>インポートする仮想アプライアンスを選択してください。VirtualBoxは現在Open Virtualization Format (OVF)で保存されたアプライアンスのみインポートに対応しています。継続するには、以下の欄でインポートするファイルを選択してください。</translation>
+    </message>
+    <message>
+        <source>Selects cloud profile.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cloud Profile Manager</source>
+        <translation type="unfinished">クラウドプロファイルマネージャー</translation>
+    </message>
+    <message>
+        <source>Opens cloud profile manager...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Holds the path to the base virtual machine folder. This folder is used when creating new virtual machine.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -27986,7 +29791,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Create VM for cloud service provider.</source>
-        <translation>クラウドサービスプロバイダー向けに仮想マシンを作成します。</translation>
+        <translation type="vanished">クラウドサービスプロバイダー向けに仮想マシンを作成します。</translation>
     </message>
     <message>
         <source>&lt;p&gt;Please choose one of cloud service accounts you have registered to create virtual machine for.  Existing custom images list will be updated.  To continue, select one of custom images to create virtual machine on the basis of it.&lt;/p&gt;</source>
@@ -28014,7 +29819,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Settings</source>
-        <translation>設定</translation>
+        <translation type="vanished">設定</translation>
     </message>
     <message>
         <source>Acquire launch form ...</source>
@@ -28039,11 +29844,11 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Location</source>
-        <translation>場所</translation>
+        <translation type="vanished">場所</translation>
     </message>
     <message>
         <source>Source</source>
-        <translation>ソース</translation>
+        <translation type="vanished">ソース</translation>
     </message>
     <message>
         <source>&amp;Images</source>
@@ -28055,7 +29860,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Open Cloud Profile Manager...</source>
-        <translation>クラウドプロファイルマネージャーを開く...</translation>
+        <translation type="vanished">クラウドプロファイルマネージャーを開く...</translation>
     </message>
     <message>
         <source>Location to create</source>
@@ -28067,11 +29872,11 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>&amp;Location:</source>
-        <translation>場所(&amp;L):</translation>
+        <translation type="vanished">場所(&amp;L):</translation>
     </message>
     <message>
         <source>&amp;Profile:</source>
-        <translation>プロファイル(&amp;P):</translation>
+        <translation type="vanished">プロファイル(&amp;P):</translation>
     </message>
     <message>
         <source>&amp;Source:</source>
@@ -28080,6 +29885,42 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     <message>
         <source>Please choose one of cloud service profiles you have registered to create virtual machine for.  Existing images list will be updated.  To continue, select one of images to create virtual machine on the basis of it.</source>
         <translation>仮想マシンを作成するため、登録したいクラウドサービスプロファイルを選択してください。存在するイメージのリストはアップデートできます。継続するには、土台となる作成したい仮想マシンのイメージを選択してください。</translation>
+    </message>
+    <message>
+        <source>&amp;Provider:</source>
+        <translation type="unfinished">プロバイダー(&amp;P):</translation>
+    </message>
+    <message>
+        <source>Selects cloud service provider.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>P&amp;rofile:</source>
+        <translation type="unfinished">プロファイル(&amp;R):</translation>
+    </message>
+    <message>
+        <source>Selects cloud profile.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Cloud Profile Manager</source>
+        <translation type="unfinished">クラウドプロファイルマネージャー</translation>
+    </message>
+    <message>
+        <source>Opens cloud profile manager...</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Lists all the source images or boot volumes.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>&amp;Options:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Lists all the cloud VM properties.</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -28145,7 +29986,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>File location and size</source>
-        <translation>ファイルの場所とサイズ</translation>
+        <translation type="vanished">ファイルの場所とサイズ</translation>
     </message>
     <message>
         <source>Please type the name of the new virtual hard drive file into the box below or click on the folder icon to select a different folder to create the file in.</source>
@@ -28221,11 +30062,31 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Virtual Hard disk file type</source>
-        <translation>仮想ハードディスクのファイルタイプ</translation>
+        <translation type="vanished">仮想ハードディスクのファイルタイプ</translation>
     </message>
     <message>
         <source>Hard Disk File &amp;Type and Variant</source>
         <translation>ハードディスクのファイルタイプと種類(&amp;T)</translation>
+    </message>
+    <message>
+        <source>copy</source>
+        <translation type="unfinished">コピー</translation>
+    </message>
+    <message>
+        <source>Copy Virtual Disk</source>
+        <translation type="obsolete">仮想ディスクをコピー</translation>
+    </message>
+    <message>
+        <source>Virtual hard disk file type</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Location and size of the disk image</source>
+        <translation type="unfinished">ディスクイメージの場所とサイズ</translation>
+    </message>
+    <message>
+        <source>Copy Virtual Hard Disk</source>
+        <translation type="unfinished">仮想ハードディスクをコピー</translation>
     </message>
 </context>
 <context>
@@ -28612,7 +30473,7 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     </message>
     <message>
         <source>Invalid Guest Additions installation media</source>
-        <translation>無効なGuest Additionsインストールメディア</translation>
+        <translation type="vanished">無効なGuest Additionsインストールメディア</translation>
     </message>
     <message>
         <source>Holds the product key.</source>
@@ -28649,6 +30510,39 @@ step and attach hard disks later using the VM Settings dialog.&lt;/p&gt;</source
     <message>
         <source>Guest &amp;Additions ISO:</source>
         <translation>Guest &amp;Additions ISO:</translation>
+    </message>
+    <message>
+        <source>Invalid guest additions installation media</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Guest additions installation media is valid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>File path is valid</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Choose a Virtual Hard Fisk File</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Lists chosen configuration of the guest system.</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>UIWizardNewVMSummaryItem</name>
+    <message>
+        <source>%1: %2</source>
+        <comment>col.1 text: col.2 text</comment>
+        <translation type="obsolete">%1: %2</translation>
+    </message>
+    <message>
+        <source>%1</source>
+        <comment>col.1 text</comment>
+        <translation type="obsolete">%1</translation>
     </message>
 </context>
 <context>

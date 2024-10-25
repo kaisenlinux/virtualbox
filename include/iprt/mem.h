@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -506,8 +506,11 @@ RTDECL(void *) RTMemPageAllocExTag(size_t cb, uint32_t fFlags, const char *pszTa
 #define RTMEMPAGEALLOC_F_ADVISE_LOCKED  RT_BIT_32(1)
 /** Try prevent the memory from ending up in a dump/core. */
 #define RTMEMPAGEALLOC_F_ADVISE_NO_DUMP RT_BIT_32(2)
+/** Allocate pages that are readable, writeable and executable.
+ * @note This may fail on some platforms for security policy reasons. */
+#define RTMEMPAGEALLOC_F_EXECUTABLE     RT_BIT_32(3)
 /** Valid bit mask. */
-#define RTMEMPAGEALLOC_F_VALID_MASK     UINT32_C(0x00000007)
+#define RTMEMPAGEALLOC_F_VALID_MASK     UINT32_C(0x0000000f)
 /** @} */
 
 /**

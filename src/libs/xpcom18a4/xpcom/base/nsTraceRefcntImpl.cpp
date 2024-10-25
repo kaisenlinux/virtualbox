@@ -36,13 +36,12 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
+#include <iprt/string.h>
+
 #include "nsTraceRefcntImpl.h"
 #include "nscore.h"
 #include "nsISupports.h"
 #include "nsVoidArray.h"
-#include "prprf.h"
-#include "prlog.h"
-#include "plstr.h"
 #include <stdlib.h>
 #include "nsCOMPtr.h"
 #include "nsCRT.h"
@@ -100,12 +99,14 @@ NS_MeanAndStdDev(double n, double sumOfValues, double sumOfSquaredValues,
 #include "plhash.h"
 #include "prmem.h"
 
-#include "prlock.h"
+#include <iprt/assert.h>
+#include <iprt/errcore.h>
+#include <iprt/semaphore.h>
 
-static PRLock* gTraceLock;
+static RTSEMFASTMUTEX gTraceLock = NIL_RTSEMFASTMUTEX;
 
-#define LOCK_TRACELOG()   PR_Lock(gTraceLock)
-#define UNLOCK_TRACELOG() PR_Unlock(gTraceLock)
+#define LOCK_TRACELOG()   RTSemFastMutexRequest(gTraceLock)
+#define UNLOCK_TRACELOG() RTSemFastMutexRelease(gTraceLock)
 
 static PLHashTable* gBloatView;
 static PLHashTable* gTypesToLog;
@@ -232,14 +233,14 @@ class BloatEntry {
 public:
   BloatEntry(const char* className, PRUint32 classSize)
     : mClassSize(classSize) { 
-    mClassName = PL_strdup(className);
+    mClassName = RTStrDup(className);
     Clear(&mNewStats);
     Clear(&mAllStats);
     mTotalLeaked = 0;
   }
 
   ~BloatEntry() {
-    PL_strfree(mClassName);
+    RTStrFree(mClassName);
   }
 
   PRUint32 GetClassSize() { return (PRUint32)mClassSize; }
@@ -317,7 +318,7 @@ public:
 
   static PRIntn PR_CALLBACK TotalEntries(PLHashEntry *he, PRIntn i, void *arg) {
     BloatEntry* entry = (BloatEntry*)he->value;
-    if (entry && nsCRT::strcmp(entry->mClassName, "TOTAL") != 0) {
+    if (entry && RTStrCmp(entry->mClassName, "TOTAL") != 0) {
       entry->Total((BloatEntry*)arg);
     }
     return HT_ENUMERATE_NEXT;
@@ -387,7 +388,7 @@ public:
       fprintf(out, "%4d %-40.40s %8d %8d %8d %8d (%8.2f +/- %8.2f) %8d %8d (%8.2f +/- %8.2f)\n",
               i+1, mClassName,
               (PRInt32)mClassSize,
-              (nsCRT::strcmp(mClassName, "TOTAL"))
+              (RTStrCmp(mClassName, "TOTAL"))
                   ?(PRInt32)((stats->mCreates - stats->mDestroys) * mClassSize)
                   :mTotalLeaked,
               stats->mCreates,
@@ -535,7 +536,7 @@ nsTraceRefcntImpl::DumpStatistics(StatisticsType type, FILE* out)
         BloatEntry* left  = NS_STATIC_CAST(BloatEntry*, entries[i]);
         BloatEntry* right = NS_STATIC_CAST(BloatEntry*, entries[j]);
 
-        if (PL_strcmp(left->GetClassName(), right->GetClassName()) < 0) {
+        if (RTStrCmp(left->GetClassName(), right->GetClassName()) < 0) {
           entries.ReplaceElementAt(right, i);
           entries.ReplaceElementAt(left, j);
         }
@@ -583,10 +584,6 @@ static PRBool LogThisType(const char* aTypeName)
 
 static PRInt32 GetSerialNumber(void* aPtr, PRBool aCreate)
 {
-#ifdef GC_LEAK_DETECTOR
-  // need to disguise this pointer, so the table won't keep the object alive.
-  aPtr = (void*) ~PLHashNumber(aPtr);
-#endif
   PLHashEntry** hep = PL_HashTableRawLookup(gSerialNumbers, PLHashNumber(NS_PTR_TO_INT32(aPtr)), aPtr);
   if (hep && *hep) {
     return PRInt32((NS_REINTERPRET_CAST(serialNumberRecord*,(*hep)->value))->serialNumber);
@@ -606,10 +603,6 @@ static PRInt32 GetSerialNumber(void* aPtr, PRBool aCreate)
 
 static PRInt32* GetRefCount(void* aPtr)
 {
-#ifdef GC_LEAK_DETECTOR
-  // need to disguise this pointer, so the table won't keep the object alive.
-  aPtr = (void*) ~PLHashNumber(aPtr);
-#endif
   PLHashEntry** hep = PL_HashTableRawLookup(gSerialNumbers, PLHashNumber(NS_PTR_TO_INT32(aPtr)), aPtr);
   if (hep && *hep) {
     return &((NS_REINTERPRET_CAST(serialNumberRecord*,(*hep)->value))->refCount);
@@ -620,10 +613,6 @@ static PRInt32* GetRefCount(void* aPtr)
 
 static PRInt32* GetCOMPtrCount(void* aPtr)
 {
-#ifdef GC_LEAK_DETECTOR
-  // need to disguise this pointer, so the table won't keep the object alive.
-  aPtr = (void*) ~PLHashNumber(aPtr);
-#endif
   PLHashEntry** hep = PL_HashTableRawLookup(gSerialNumbers, PLHashNumber(NS_PTR_TO_INT32(aPtr)), aPtr);
   if (hep && *hep) {
     return &((NS_REINTERPRET_CAST(serialNumberRecord*,(*hep)->value))->COMPtrCount);
@@ -634,10 +623,6 @@ static PRInt32* GetCOMPtrCount(void* aPtr)
 
 static void RecycleSerialNumberPtr(void* aPtr)
 {
-#ifdef GC_LEAK_DETECTOR
-  // need to disguise this pointer, so the table won't keep the object alive.
-  aPtr = (void*) ~PLHashNumber(aPtr);
-#endif
   PL_HashTableRemove(gSerialNumbers, aPtr);
 }
 
@@ -650,13 +635,13 @@ static PRBool InitLog(const char* envVar, const char* msg, FILE* *result)
 {
   const char* value = getenv(envVar);
   if (value) {
-    if (nsCRT::strcmp(value, "1") == 0) {
+    if (RTStrCmp(value, "1") == 0) {
       *result = stdout;
       fprintf(stdout, "### %s defined -- logging %s to stdout\n", 
               envVar, msg);
       return PR_TRUE;
     }
-    else if (nsCRT::strcmp(value, "2") == 0) {
+    else if (RTStrCmp(value, "2") == 0) {
       *result = stderr;
       fprintf(stdout, "### %s defined -- logging %s to stderr\n", 
               envVar, msg);
@@ -843,130 +828,17 @@ static void InitTraceLog(void)
     gLogging = PR_TRUE;
   }
 
-  gTraceLock = PR_NewLock();
+  int vrc = RTSemFastMutexCreate(&gTraceLock);
+  AssertRC(vrc); RT_NOREF(vrc);
 }
 
 #endif
-
-#if defined(_WIN32) && defined(_M_IX86) // WIN32 x86 stack walking code
-#include "nsStackFrameWin.h"
-void
-nsTraceRefcntImpl::WalkTheStack(FILE* aStream)
-{
-  DumpStackToFile(aStream);
-}
-
-// WIN32 x86 stack walking code
-// i386 or PPC Linux stackwalking code or Solaris
-#elif (defined(linux) && !defined(VBOX) && defined(__GLIBC__) && (defined(__i386) || defined(PPC))) || (defined(__sun) && (defined(__sparc) || defined(sparc) || defined(__i386) || defined(i386)))
-#include "nsStackFrameUnix.h"
-void
-nsTraceRefcntImpl::WalkTheStack(FILE* aStream)
-{
-  DumpStackToFile(aStream);
-}
-
-#elif defined(XP_MAC)
-
-/**
- * Stack walking code for the Mac OS.
- */
-
-#include "gc_fragments.h"
-
-#include <typeinfo>
-
-extern "C" {
-void MWUnmangle(const char *mangled_name, char *unmangled_name, size_t buffersize);
-}
-
-struct traceback_table {
-	long zero;
-	long magic;
-	long reserved;
-	long codeSize;
-	short nameLength;
-	char name[2];
-};
-
-static char* pc2name(long* pc, char name[], long size)
-{
-	name[0] = '\0';
-	
-	// make sure pc is instruction aligned (at least).
-	if (UInt32(pc) == (UInt32(pc) & 0xFFFFFFFC)) {
-		long instructionsToLook = 4096;
-		long* instruction = (long*)pc;
-		
-		// look for the traceback table.
-		while (instructionsToLook--) {
-			if (instruction[0] == 0x4E800020 && instruction[1] == 0x00000000) {
-				traceback_table* tb = (traceback_table*)&instruction[1];
-				memcpy(name, tb->name + 1, --nameLength);
-				name[nameLength] = '\0';
-				break;
-			}
-			++instruction;
-		}
-	}
-	
-	return name;
-}
-
-struct stack_frame {
-	stack_frame*	next;				// savedSP
-	void*			savedCR;
-	void*			savedLR;
-	void*			reserved0;
-	void*			reserved1;
-	void*			savedTOC;
-};
-
-static asm stack_frame* getStackFrame() 
-{
-	mr		r3, sp
-	blr
-}
-
-NS_COM void
-nsTraceRefcntImpl::WalkTheStack(FILE* aStream)
-{
-  stack_frame* currentFrame = getStackFrame();    // WalkTheStack's frame.
-	currentFrame = currentFrame->next;	            // WalkTheStack's caller's frame.
-	currentFrame = currentFrame->next;              // WalkTheStack's caller's caller's frame.
-    
-	while (true) {
-		// LR saved at 8(SP) in each frame. subtract 4 to get address of calling instruction.
-		void* pc = currentFrame->savedLR;
-
-		// convert PC to name, unmangle it, and generate source location, if possible.
-		static char symbol_name[1024], unmangled_name[1024], file_name[256]; UInt32 file_offset;
-		
-     	if (GC_address_to_source((char*)pc, symbol_name, file_name, &file_offset)) {
-			MWUnmangle(symbol_name, unmangled_name, sizeof(unmangled_name));
-     		fprintf(aStream, "%s[%s,%ld]\n", unmangled_name, file_name, file_offset);
-     	} else {
- 		    pc2name((long*)pc, symbol_name, sizeof(symbol_name));
-			MWUnmangle(symbol_name, unmangled_name, sizeof(unmangled_name));
-    		fprintf(aStream, "%s(0x%08X)\n", unmangled_name, pc);
-     	}
-
-		currentFrame = currentFrame->next;
-		// the bottom-most frame is marked as pointing to NULL, or is ODD if a 68K transition frame.
-		if (currentFrame == NULL || UInt32(currentFrame) & 0x1)
-			break;
-	}
-}
-
-#else // unsupported platform.
 
 void
 nsTraceRefcntImpl::WalkTheStack(FILE* aStream)
 {
 	fprintf(aStream, "write me, dammit!\n");
 }
-
-#endif
 
 //----------------------------------------------------------------------
 

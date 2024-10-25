@@ -1,9 +1,8 @@
-<?xml version="1.0"?>
-<!--
+﻿<!--
     VirtualBox Windows Installation Script (WiX)
 -->
 <!--
-    Copyright (C) 2014-2023 Oracle and/or its affiliates.
+    Copyright (C) 2014-2024 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.
@@ -24,7 +23,6 @@
     SPDX-License-Identifier: GPL-3.0-only
 -->
 
-<Include xmlns="http://schemas.microsoft.com/wix/2006/wi"
-         xmlns:difxapp="http://schemas.microsoft.com/wix/DifxAppExtension">
+<Include xmlns="http://wixtoolset.org/schemas/v4/wxs">
 
 </Include>

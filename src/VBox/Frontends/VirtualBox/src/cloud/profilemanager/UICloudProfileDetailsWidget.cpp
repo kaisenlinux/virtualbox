@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,6 +26,7 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QGridLayout>
 #include <QHeaderView>
 #include <QLabel>
@@ -39,13 +40,14 @@
 #include "UICommon.h"
 #include "UICloudProfileDetailsWidget.h"
 #include "UICloudProfileManager.h"
+#include "UITranslationEventListener.h"
 
 /* Other VBox includes: */
 #include "iprt/assert.h"
 
 
 UICloudProfileDetailsWidget::UICloudProfileDetailsWidget(EmbedTo enmEmbedding, QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_enmEmbedding(enmEmbedding)
     , m_pLabelName(0)
     , m_pEditorName(0)
@@ -70,7 +72,7 @@ void UICloudProfileDetailsWidget::setData(const UIDataCloudProfile &data)
     retranslateButtons();
 }
 
-void UICloudProfileDetailsWidget::retranslateUi()
+void UICloudProfileDetailsWidget::sltRetranslateUI()
 {
     /// @todo add description tool-tips
 
@@ -194,7 +196,9 @@ void UICloudProfileDetailsWidget::prepare()
     prepareWidgets();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+        this, &UICloudProfileDetailsWidget::sltRetranslateUI);
 
     /* Update button states finally: */
     updateButtonStates();

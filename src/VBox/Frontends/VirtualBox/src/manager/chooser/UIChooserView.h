@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -33,14 +33,13 @@
 
 /* GUI includes: */
 #include "QIGraphicsView.h"
-#include "QIWithRetranslateUI.h"
 
 /* Forward declarations: */
 class UIChooserModel;
 class UIChooserSearchWidget;
 
 /** QIGraphicsView extension used as VM chooser pane view. */
-class UIChooserView : public QIWithRetranslateUI<QIGraphicsView>
+class UIChooserView : public QIGraphicsView
 {
     Q_OBJECT;
 
@@ -95,14 +94,17 @@ protected:
 
     /** @name Event handling stuff.
       * @{ */
-        /** Handles translation event. */
-        virtual void retranslateUi() RT_OVERRIDE;
-
         /** Handles resize @a pEvent. */
         virtual void resizeEvent(QResizeEvent *pEvent) RT_OVERRIDE;
     /** @} */
 
 private slots:
+
+    /** @name Theme stuff stuff.
+      * @{ */
+        /** Updates palette. */
+        void sltUpdatePalette() { preparePalette(); }
+    /** @} */
 
     /** @name Search stuff.
       * @{ */
@@ -116,6 +118,12 @@ private slots:
         void sltHandleSearchWidgetVisibilityToggle(bool fVisible);
     /** @} */
 
+    /** @name Event handling stuff.
+     * @{ */
+       /** Handles translation event. */
+       void sltRetranslateUI();
+    /** @} */
+
 private:
 
     /** @name Prepare/Cleanup cascade.
@@ -124,6 +132,8 @@ private:
         void prepare();
         /** Prepares this. */
         void prepareThis();
+        /** Prepares palette. */
+        void preparePalette();
         /** Prepares widgets. */
         void prepareWidget();
     /** @} */

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -37,6 +37,7 @@
 
 /* Forward declarations: */
 class QITabWidget;
+class UINetworkSettingsEditor;
 struct UIDataSettingsMachineNetwork;
 struct UIDataSettingsMachineNetworkAdapter;
 typedef UISettingsCache<UIDataPortForwardingRule> UISettingsCachePortForwardingRule;
@@ -44,16 +45,16 @@ typedef UISettingsCachePool<UIDataSettingsMachineNetworkAdapter, UISettingsCache
 typedef UISettingsCachePool<UIDataSettingsMachineNetwork, UISettingsCacheMachineNetworkAdapter> UISettingsCacheMachineNetwork;
 
 /** Machine settings: Network page. */
-class SHARED_LIBRARY_STUFF UIMachineSettingsNetworkPage : public UISettingsPageMachine
+class SHARED_LIBRARY_STUFF UIMachineSettingsNetwork : public UISettingsPageMachine
 {
     Q_OBJECT;
 
 public:
 
     /** Constructs Network settings page. */
-    UIMachineSettingsNetworkPage();
+    UIMachineSettingsNetwork();
     /** Destructs Network settings page. */
-    virtual ~UIMachineSettingsNetworkPage() RT_OVERRIDE;
+    virtual ~UIMachineSettingsNetwork() RT_OVERRIDE;
 
     /** Returns the bridged adapter list. */
     const QStringList &bridgedAdapterList() const { return m_bridgedAdapterList; }
@@ -96,8 +97,8 @@ protected:
     /** Performs validation, updates @a messages list if something is wrong. */
     virtual bool validate(QList<UIValidationMessage> &messages) RT_OVERRIDE;
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
+    /** Handles filter change. */
+    virtual void handleFilterChange() RT_OVERRIDE;
 
     /** Performs final page polishing. */
     virtual void polishPage() RT_OVERRIDE;
@@ -106,15 +107,41 @@ private slots:
 
     /** Handles adapter alternative name change. */
     void sltHandleAlternativeNameChange();
-    /** Handles whether the advanced button is @a fExpanded. */
-    void sltHandleAdvancedButtonStateChange(bool fExpanded);
+
+    /** Handles translation event. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 
     /** Prepares all. */
     void prepare();
+    /** Prepares widgets. */
+    void prepareWidgets();
+    /** Prepare tab. */
+    void prepareTab();
+    /** Prepares connections. */
+    void prepareConnections(UINetworkSettingsEditor *pTabEditor);
     /** Cleanups all. */
     void cleanup();
+
+    /** Performs tab polishing for specified @a iSlot. */
+    void polishTab(int iSlot);
+
+    /** Loads adapter data for specified @a iSlot from @a adapterCache to corresponding widgets. */
+    void getFromCache(int iSlot, const UISettingsCacheMachineNetworkAdapter &adapterCache);
+    /** Saves adapter data for specified @a iSlot from corresponding widgets to @a adapterCache. */
+    void putToCache(int iSlot, UISettingsCacheMachineNetworkAdapter &adapterCache);
+
+    /** Reloads tab alternatives for specified @a iSlot. */
+    void reloadAlternatives(int iSlot);
+
+    /** Returns tab attachment type for specified @a iSlot. */
+    KNetworkAttachmentType attachmentType(int iSlot) const;
+    /** Returne tab alternative name for specified @a iSlot and @a enmType. */
+    QString alternativeName(int iSlot, KNetworkAttachmentType enmType = KNetworkAttachmentType_Null) const;
+
+    /** Performs validation for specified @a iSlot, updates @a messages list if something is wrong. */
+    bool validate(int iSlot, QList<UIValidationMessage> &messages);
 
     /** Repopulates bridged adapter list. */
     void refreshBridgedAdapterList();
@@ -134,6 +161,9 @@ private:
     /** Repopulates host-only network list. */
     void refreshHostOnlyNetworkList();
 #endif
+
+    /** Returns tab title for specified @a iSlot. */
+    static QString tabTitle(int iSlot);
 
     /** Loads generic properties from passed @a adapter. */
     static QString loadGenericProperties(const CNetworkAdapter &adapter);
@@ -173,6 +203,9 @@ private:
 
     /** Holds the tab-widget instance. */
     QITabWidget *m_pTabWidget;
+
+    /** Holds the list of tab-editors. */
+    QList<UINetworkSettingsEditor*>  m_tabEditors;
 };
 
 #endif /* !FEQT_INCLUDED_SRC_settings_machine_UIMachineSettingsNetwork_h */

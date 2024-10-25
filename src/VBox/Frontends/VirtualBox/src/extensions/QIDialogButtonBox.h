@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -36,7 +36,6 @@
 #include <QPointer>
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
 #include "UILibraryDefs.h"
 
 /* Forward declarations: */
@@ -45,7 +44,7 @@ class QPushButton;
 class UIHelpButton;
 
 /** QDialogButtonBox subclass extending standard functionality. */
-class SHARED_LIBRARY_STUFF QIDialogButtonBox : public QIWithRetranslateUI<QDialogButtonBox>
+class SHARED_LIBRARY_STUFF QIDialogButtonBox : public QDialogButtonBox
 {
     Q_OBJECT;
 
@@ -80,10 +79,12 @@ public:
     /** Defines whether button-box should avoid picking default button. */
     void setDoNotPickDefaultButton(bool fDoNotPickDefaultButton);
 
-protected:
+public slots:
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
+    /** Handles help request. */
+    void sltHandleHelpRequest();
+
+protected:
 
     /** Handles show @a pEvent. */
     virtual void showEvent(QShowEvent *pEvent) RT_OVERRIDE;
@@ -93,6 +94,11 @@ protected:
 
     /** Searchs for empty @a pLayout space. */
     int findEmptySpace(QBoxLayout *pLayout) const;
+
+private slots:
+
+    /** Handles translation event. */
+    void sltRetranslateUI();
 
 private:
 

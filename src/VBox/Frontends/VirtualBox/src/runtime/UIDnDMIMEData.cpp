@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -82,7 +82,7 @@ bool UIDnDMIMEData::hasFormat(const QString &strMIMEType) const
 #endif
 
     LogFlowFunc(("%s: %RTbool (QtMimeData: %RTbool, curAction=0x%x)\n",
-                 strMIMEType.toStdString().c_str(), fRc, QMimeData::hasFormat(strMIMEType), m_curAction));
+                 strMIMEType.toUtf8().constData(), fRc, QMimeData::hasFormat(strMIMEType), m_curAction));
 
     return fRc;
 }
@@ -96,10 +96,13 @@ bool UIDnDMIMEData::hasFormat(const QString &strMIMEType) const
  *
  * @return QVariant
  */
-QVariant UIDnDMIMEData::retrieveData(const QString &strMIMEType, QVariant::Type vaType) const
+QVariant UIDnDMIMEData::retrieveData(const QString &strMIMEType, QMetaType metaType) const
 {
+    /* Acquire QMetaType::Type: */
+    const QMetaType::Type vaType = (QMetaType::Type)metaType.id();
+
     LogFlowFunc(("state=%RU32, curAction=0x%x, defAction=0x%x, mimeType=%s, type=%d (%s)\n",
-                 m_enmState, m_curAction, m_defAction, strMIMEType.toStdString().c_str(), vaType, QVariant::typeToName(vaType)));
+                 m_enmState, m_curAction, m_defAction, strMIMEType.toUtf8().constData(), vaType, metaType.name()));
 
     int rc = VINF_SUCCESS;
 
@@ -143,21 +146,21 @@ QVariant UIDnDMIMEData::retrieveData(const QString &strMIMEType, QVariant::Type 
         /* Do we support the requested MIME type? */
         else if (!m_lstFormats.contains(strMIMEType))
         {
-            LogRel(("DnD: Unsupported MIME type '%s'\n", strMIMEType.toStdString().c_str()));
+            LogRel(("DnD: Unsupported MIME type '%s'\n", strMIMEType.toUtf8().constData()));
             rc = VERR_NOT_SUPPORTED;
         }
-#ifndef RT_OS_DARWIN /* On OS X QVariant::Invalid can happen for drag and drop "promises" for "lazy requests".  */
+#ifndef RT_OS_DARWIN /* On OS X QMetaType::UnknownType can happen for drag and drop "promises" for "lazy requests".  */
         /* Check supported variant types. */
         else if (!(
                    /* Plain text. */
-                      vaType == QVariant::String
+                      vaType == QMetaType::QString
                    /* Binary data. */
-                   || vaType == QVariant::ByteArray
+                   || vaType == QMetaType::QByteArray
                    /* URI list. */
-                   || vaType == QVariant::List
-                   || vaType == QVariant::StringList))
+                   || vaType == QMetaType::QVariantList
+                   || vaType == QMetaType::QStringList))
         {
-            LogRel(("DnD: Unsupported data type '%s'\n", QVariant::typeToName(vaType)));
+            LogRel(("DnD: Unsupported data type '%s'\n", metaType.name()));
             rc = VERR_NOT_SUPPORTED;
         }
 #endif
@@ -172,7 +175,7 @@ QVariant UIDnDMIMEData::retrieveData(const QString &strMIMEType, QVariant::Type 
         if (RT_SUCCESS(rc))
         {
             LogRel3(("DnD: Returning data for MIME type=%s, variant type=%s, rc=%Rrc\n",
-                     strMIMEType.toStdString().c_str(), QVariant::typeToName(vaData.type()), rc));
+                     strMIMEType.toUtf8().constData(), metaType.name(), rc));
 
             return vaData;
         }
@@ -183,13 +186,13 @@ QVariant UIDnDMIMEData::retrieveData(const QString &strMIMEType, QVariant::Type 
     if (RT_FAILURE(rc))
         LogRel2(("DnD: Retrieving data failed with %Rrc\n", rc));
 
-    return QVariant(QVariant::Invalid);
+    return QVariant();
 }
 
 /* static */
-QVariant::Type UIDnDMIMEData::getVariantType(const QString &strMIMEType)
+QMetaType::Type UIDnDMIMEData::getMetaType(const QString &strMIMEType)
 {
-    QVariant::Type vaType;
+    QMetaType::Type vaType;
 
     if (   !strMIMEType.compare("text/html")
         || !strMIMEType.compare("text/plain;charset=utf-8")
@@ -200,79 +203,71 @@ QVariant::Type UIDnDMIMEData::getVariantType(const QString &strMIMEType)
         || !strMIMEType.compare("TEXT")
         || !strMIMEType.compare("STRING"))
     {
-        vaType = QVariant::String;
+        vaType = QMetaType::QString;
     }
     else if (!strMIMEType.compare("text/uri-list", Qt::CaseInsensitive))
-        vaType = QVariant::List;
+        vaType = QMetaType::QVariantList;
     else
-        vaType = QVariant::Invalid;
+        vaType = QMetaType::UnknownType;
 
-    LogFlowFunc(("strMIMEType=%s -> vaType=%s\n", qPrintable(strMIMEType), QVariant::typeToName(vaType)));
+    LogFlowFunc(("strMIMEType=%s -> vaType=%s\n", qPrintable(strMIMEType), QMetaType(vaType).name()));
     return vaType;
 }
 
 /* static */
 int UIDnDMIMEData::getDataAsVariant(const QVector<uint8_t> &vecData,
                                     const QString          &strMIMEType,
-                                          QVariant::Type    vaType,
+                                          QMetaType::Type   vaType,
                                           QVariant         &vaData)
 {
     RT_NOREF(strMIMEType);
     LogFlowFunc(("vecDataSize=%d, strMIMEType=%s vaType=%s\n",
-                 vecData.size(), qPrintable(strMIMEType), QVariant::typeToName(vaType)));
+                 vecData.size(), qPrintable(strMIMEType), QMetaType(vaType).name()));
 
     int rc = VINF_SUCCESS;
 
     switch (vaType)
     {
-        case QVariant::String:
+        case QMetaType::QString:
         {
             vaData = QVariant::fromValue(QString(reinterpret_cast<const char *>(vecData.constData())));
-            Assert(vaData.type() == QVariant::String);
+            Assert(vaData.typeId() == QMetaType::QString);
+
             break;
         }
 
-        case QVariant::ByteArray:
+        case QMetaType::QByteArray:
         {
             QByteArray ba(reinterpret_cast<const char*>(vecData.constData()), vecData.size());
 
             vaData = QVariant::fromValue(ba);
-            Assert(vaData.type() == QVariant::ByteArray);
+            Assert(vaData.typeId() == QMetaType::QByteArray);
             break;
         }
 
         /* See: https://developer.apple.com/library/ios/documentation/Miscellaneous/Reference/UTIRef/Articles/System-DeclaredUniformTypeIdentifiers.html */
-        case QVariant::List: /* Used on OS X for representing URI lists. */
+        case QMetaType::QVariantList: /* Used on OS X for representing URI lists. */
         {
-            QString strData = QString(reinterpret_cast<const char*>(vecData.constData()));
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
-            QStringList lstString = strData.split(DND_PATH_SEPARATOR_STR, Qt::SkipEmptyParts);
-#else
-            QStringList lstString = strData.split(DND_PATH_SEPARATOR_STR, QString::SkipEmptyParts);
-#endif
+            const QString strData = QString(reinterpret_cast<const char*>(vecData.constData()));
 
             QVariantList lstVariant;
 
-            Q_FOREACH(const QString& strCur, lstString)
+            Q_FOREACH(const QString& strCur, strData.split(DND_PATH_SEPARATOR_STR, Qt::SkipEmptyParts))
             {
                 QVariant vaURL = QVariant::fromValue(QUrl(strCur));
-                Assert(vaURL.type() == QVariant::Url);
+                Assert(vaURL.typeId() == QMetaType::QUrl);
                 lstVariant.append(vaURL);
             }
 
             vaData = QVariant::fromValue(lstVariant);
-            Assert(vaData.type() == QVariant::List);
+            Assert(vaData.typeId() == QMetaType::QVariantList);
             break;
         }
 
-        case QVariant::StringList:
+        case QMetaType::QStringList:
         {
-            QString strData = QString(reinterpret_cast<const char*>(vecData.constData()));
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
-            QStringList lstString = strData.split(DND_PATH_SEPARATOR_STR, Qt::SkipEmptyParts);
-#else
-            QStringList lstString = strData.split(DND_PATH_SEPARATOR_STR, QString::SkipEmptyParts);
-#endif
+            const QString strData = QString(reinterpret_cast<const char*>(vecData.constData()));
+            const QStringList lstString = strData.split(DND_PATH_SEPARATOR_STR, Qt::SkipEmptyParts);
 
             LogFlowFunc(("\tStringList has %d entries\n", lstString.size()));
 #ifdef DEBUG
@@ -280,14 +275,14 @@ int UIDnDMIMEData::getDataAsVariant(const QVector<uint8_t> &vecData,
                 LogFlowFunc(("\t\tString: %s\n", qPrintable(strCur)));
 #endif
             vaData = QVariant::fromValue(lstString);
-            Assert(vaData.type() == QVariant::StringList);
+            Assert(vaData.typeId() == QMetaType::QStringList);
             break;
         }
 
         default:
         {
             LogRel2(("DnD: Converting data (%d bytes) from guest to variant type '%s' not supported\n",
-                     vecData.size(), QVariant::typeToName(vaType) ? QVariant::typeToName(vaType) : "<Invalid>"));
+                     vecData.size(), QMetaType(vaType).name() ? QMetaType(vaType).name() : "<Invalid>"));
 
             rc = VERR_NOT_SUPPORTED;
             break;

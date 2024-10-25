@@ -2,7 +2,7 @@ Source: virtualbox
 Section: contrib/misc
 Priority: optional
 XSBC-Original-Maintainer: Debian Virtualbox Team <team+debian-virtualbox@tracker.debian.org>
-Maintainer: Kevin Chevreuil - Kaisen <kaisen@kaisenlinux.org>
+Maintainer: Kevin Chevreuil - Kaisen <kaisen@kaisenlinux.org> 
 Build-Depends: bzip2,
                debhelper-compat (= 13),
                default-jdk,
@@ -35,9 +35,9 @@ Build-Depends: bzip2,
                libpixman-1-dev,
                libpng-dev,
                libpulse-dev,
-               libqt5x11extras5-dev,
-               libqt5opengl5-dev,
-               qttools5-dev,
+               libqt6opengl6-dev,
+               qt6-scxml-dev,
+               qt6-tools-dev,
                libsdl1.2-dev,
                libsdl2-dev,
                libssl-dev,
@@ -75,6 +75,7 @@ Build-Depends: bzip2,
                xserver-xorg-dev,
                xsltproc,
                yasm,
+	       ant,
                zlib1g-dev
 Standards-Version: 4.7.0
 Rules-Requires-Root: binary-targets
@@ -100,13 +101,13 @@ Architecture: amd64
 Depends: adduser,
          iproute2,
          procps,
-         virtualbox-qt (= ${binary:Version}),
-         virtualbox-dkms (= ${binary:Version}),
-         virtualbox-source (= ${binary:Version}),
-         virtualbox-ext-pack (>= ${virtualbox-ext-pack:Version}),
-         virtualbox-ext-pack (<< ${virtualbox-ext-pack:nextVersion}),
-         virtualbox-guest-additions-iso (>= ${virtualbox-guest-additions-iso:Version}),
-         virtualbox-guest-additions-iso (<< ${virtualbox-guest-additions-iso:nextVersion}),
+	 virtualbox-qt (= ${binary:Version}),
+	 virtualbox-dkms (= ${binary:Version}),
+	 virtualbox-source (= ${binary:Version}),
+	 virtualbox-ext-pack (>= ${virtualbox-ext-pack:Version}),
+	 virtualbox-ext-pack (<< ${virtualbox-ext-pack:nextVersion}),
+	 virtualbox-guest-additions-iso (>= ${virtualbox-guest-additions-iso:Version}),
+	 virtualbox-guest-additions-iso (<< ${virtualbox-guest-additions-iso:nextVersion}),
          ${misc:Depends},
          ${python3:Depends},
          ${shlibs:Depends}
@@ -179,7 +180,7 @@ Package: virtualbox-guest-x11
 Section: contrib/x11
 Replaces: virtualbox-guest-x11-hwe (<< 7.0.16-dfsg-5)
 Breaks: virtualbox-guest-x11-hwe (<< 7.0.16-dfsg-5)
-Architecture: amd64 i386
+Architecture: amd64 arm64
 Depends: libnotify-bin,
          x11-xserver-utils,
          virtualbox-guest-utils (= ${binary:Version}),
@@ -198,7 +199,7 @@ Description: x86 virtualization solution - X11 guest utilities
  They provide closer integration and improve the interactive performance.
 
 Package: virtualbox-guest-utils
-Architecture: amd64 i386
+Architecture: amd64
 Replaces: virtualbox-guest-utils-hwe (<< 7.0.16-dfsg-5)
 Breaks: virtualbox-guest-utils-hwe (<< 7.0.16-dfsg-5)
 Depends: adduser,
@@ -221,7 +222,7 @@ Description: x86 virtualization solution - non-X11 guest utilities
 
 Package: virtualbox-guest-x11-hwe
 Section: contrib/oldlibs
-Architecture: amd64 i386
+Architecture: amd64
 Depends: virtualbox-guest-x11,
          ${misc:Depends}
 Description: transitional package for virtualbox-guest-x11
@@ -230,7 +231,7 @@ Description: transitional package for virtualbox-guest-x11
 
 Package: virtualbox-guest-utils-hwe
 Section: contrib/oldlibs
-Architecture: amd64 i386
+Architecture: amd64
 Depends: virtualbox-guest-utils,
          ${misc:Depends}
 Description: transitional package for virtualbox-guest-utils

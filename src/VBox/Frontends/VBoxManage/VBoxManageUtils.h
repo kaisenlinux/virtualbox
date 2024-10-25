@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,8 +35,7 @@
 #include <VBox/com/ptr.h>
 #include <VBox/com/VirtualBox.h>
 
-unsigned int getMaxNics(const ComPtr<IVirtualBox> &pVirtualBox,
-                        const ComPtr<IMachine> &pMachine);
+ULONG getMaxNics(const ComPtr<IMachine> &pMachine);
 
 void verifyHostNetworkInterfaceName(const ComPtr<IVirtualBox> &pVirtualBox,
                                     const char *pszTargetName,

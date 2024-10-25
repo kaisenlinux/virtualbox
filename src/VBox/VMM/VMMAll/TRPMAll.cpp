@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -225,6 +225,9 @@ VMMDECL(int) TRPMAssertTrap(PVMCPUCC pVCpu, uint8_t u8TrapNo, TRPMEVENT enmType)
         AssertMsgFailed(("CPU%d: Active trap %#x\n", pVCpu->idCpu, pVCpu->trpm.s.uActiveVector));
         return VERR_TRPM_ACTIVE_TRAP;
     }
+
+    /* NMI TRPM type must specify the vector as 2 (NMI). */
+    Assert(enmType != TRPM_NMI || u8TrapNo == X86_XCPT_NMI);
 
     pVCpu->trpm.s.uActiveVector               = u8TrapNo;
     pVCpu->trpm.s.enmActiveType               = enmType;

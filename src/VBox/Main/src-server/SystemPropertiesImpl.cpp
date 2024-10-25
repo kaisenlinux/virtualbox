@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -56,8 +56,6 @@
 #include <VBox/vd.h>
 #include <VBox/vmm/cpum.h>
 
-// defines
-/////////////////////////////////////////////////////////////////////////////
 
 // constructor / destructor
 /////////////////////////////////////////////////////////////////////////////
@@ -116,18 +114,6 @@ HRESULT SystemProperties::init(VirtualBox *aParent)
 
     m->uLogHistoryCount = 3;
 
-
-    /* On Windows, OS X and Solaris, HW virtualization use isn't exclusive
-     * by default so that VT-x or AMD-V can be shared with other
-     * hypervisors without requiring user intervention.
-     * NB: See also SystemProperties constructor in settings.h
-     */
-#if defined(RT_OS_DARWIN) || defined(RT_OS_WINDOWS) || defined(RT_OS_SOLARIS)
-    m->fExclusiveHwVirt = false;
-#else
-    m->fExclusiveHwVirt = true;
-#endif
-
     HRESULT hrc = S_OK;
 
     /* Fetch info of all available hd backends. */
@@ -151,6 +137,17 @@ HRESULT SystemProperties::init(VirtualBox *aParent)
             if (FAILED(hrc)) break;
 
             m_llMediumFormats.push_back(hdf);
+        }
+    }
+
+    if (SUCCEEDED(hrc))
+    {
+        hrc = unconst(m_platformProperties).createObject();
+        if (SUCCEEDED(hrc))
+        {
+            hrc = m_platformProperties->init(mParent);
+            if (SUCCEEDED(hrc))
+                hrc = m_platformProperties->i_setArchitecture(PlatformProperties::s_getHostPlatformArchitecture());
         }
     }
 
@@ -267,383 +264,6 @@ HRESULT SystemProperties::getInfoVDSize(LONG64 *infoVDSize)
 }
 
 
-HRESULT SystemProperties::getSerialPortCount(ULONG *count)
-{
-    /* no need to lock, this is const */
-    *count = SchemaDefs::SerialPortCount;
-
-    return S_OK;
-}
-
-
-HRESULT SystemProperties::getParallelPortCount(ULONG *count)
-{
-    /* no need to lock, this is const */
-    *count = SchemaDefs::ParallelPortCount;
-
-    return S_OK;
-}
-
-
-HRESULT SystemProperties::getMaxBootPosition(ULONG *aMaxBootPosition)
-{
-    /* no need to lock, this is const */
-    *aMaxBootPosition = SchemaDefs::MaxBootPosition;
-
-    return S_OK;
-}
-
-
-HRESULT SystemProperties::getRawModeSupported(BOOL *aRawModeSupported)
-{
-    *aRawModeSupported = FALSE;
-    return S_OK;
-}
-
-
-HRESULT SystemProperties::getExclusiveHwVirt(BOOL *aExclusiveHwVirt)
-{
-    AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
-
-    *aExclusiveHwVirt = m->fExclusiveHwVirt;
-
-    return S_OK;
-}
-
-HRESULT SystemProperties::setExclusiveHwVirt(BOOL aExclusiveHwVirt)
-{
-    AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
-    m->fExclusiveHwVirt = !!aExclusiveHwVirt;
-    alock.release();
-
-    // VirtualBox::i_saveSettings() needs vbox write lock
-    AutoWriteLock vboxLock(mParent COMMA_LOCKVAL_SRC_POS);
-    return mParent->i_saveSettings();
-}
-
-HRESULT SystemProperties::getMaxNetworkAdapters(ChipsetType_T aChipset, ULONG *aMaxNetworkAdapters)
-{
-    /* no need for locking, no state */
-    uint32_t uResult = Global::getMaxNetworkAdapters(aChipset);
-    if (uResult == 0)
-        AssertMsgFailed(("Invalid chipset type %d\n", aChipset));
-    *aMaxNetworkAdapters = uResult;
-    return S_OK;
-}
-
-HRESULT SystemProperties::getMaxNetworkAdaptersOfType(ChipsetType_T aChipset, NetworkAttachmentType_T aType, ULONG *count)
-{
-    /* no need for locking, no state */
-    uint32_t uResult = Global::getMaxNetworkAdapters(aChipset);
-    if (uResult == 0)
-        AssertMsgFailed(("Invalid chipset type %d\n", aChipset));
-
-    switch (aType)
-    {
-        case NetworkAttachmentType_NAT:
-        case NetworkAttachmentType_Internal:
-        case NetworkAttachmentType_NATNetwork:
-            /* chipset default is OK */
-            break;
-        case NetworkAttachmentType_Bridged:
-            /* Maybe use current host interface count here? */
-            break;
-        case NetworkAttachmentType_HostOnly:
-            uResult = RT_MIN(uResult, 8);
-            break;
-        default:
-            AssertMsgFailed(("Unhandled attachment type %d\n", aType));
-    }
-
-    *count = uResult;
-
-    return S_OK;
-}
-
-
-HRESULT SystemProperties::getMaxDevicesPerPortForStorageBus(StorageBus_T aBus,
-                                                            ULONG *aMaxDevicesPerPort)
-{
-    /* no need to lock, this is const */
-    switch (aBus)
-    {
-        case StorageBus_SATA:
-        case StorageBus_SCSI:
-        case StorageBus_SAS:
-        case StorageBus_USB:
-        case StorageBus_PCIe:
-        case StorageBus_VirtioSCSI:
-        {
-            /* SATA and both SCSI controllers only support one device per port. */
-            *aMaxDevicesPerPort = 1;
-            break;
-        }
-        case StorageBus_IDE:
-        case StorageBus_Floppy:
-        {
-            /* The IDE and Floppy controllers support 2 devices. One as master
-             * and one as slave (or floppy drive 0 and 1). */
-            *aMaxDevicesPerPort = 2;
-            break;
-        }
-        default:
-            AssertMsgFailed(("Invalid bus type %d\n", aBus));
-    }
-
-    return S_OK;
-}
-
-HRESULT SystemProperties::getMinPortCountForStorageBus(StorageBus_T aBus,
-                                                       ULONG *aMinPortCount)
-{
-    /* no need to lock, this is const */
-    switch (aBus)
-    {
-        case StorageBus_SATA:
-        case StorageBus_SAS:
-        case StorageBus_PCIe:
-        case StorageBus_VirtioSCSI:
-        {
-            *aMinPortCount = 1;
-            break;
-        }
-        case StorageBus_SCSI:
-        {
-            *aMinPortCount = 16;
-            break;
-        }
-        case StorageBus_IDE:
-        {
-            *aMinPortCount = 2;
-            break;
-        }
-        case StorageBus_Floppy:
-        {
-            *aMinPortCount = 1;
-            break;
-        }
-        case StorageBus_USB:
-        {
-            *aMinPortCount = 8;
-            break;
-        }
-        default:
-            AssertMsgFailed(("Invalid bus type %d\n", aBus));
-    }
-
-    return S_OK;
-}
-
-HRESULT SystemProperties::getMaxPortCountForStorageBus(StorageBus_T aBus,
-                                                       ULONG *aMaxPortCount)
-{
-    /* no need to lock, this is const */
-    switch (aBus)
-    {
-        case StorageBus_SATA:
-        {
-            *aMaxPortCount = 30;
-            break;
-        }
-        case StorageBus_SCSI:
-        {
-            *aMaxPortCount = 16;
-            break;
-        }
-        case StorageBus_IDE:
-        {
-            *aMaxPortCount = 2;
-            break;
-        }
-        case StorageBus_Floppy:
-        {
-            *aMaxPortCount = 1;
-            break;
-        }
-        case StorageBus_SAS:
-        case StorageBus_PCIe:
-        {
-            *aMaxPortCount = 255;
-            break;
-        }
-        case StorageBus_USB:
-        {
-            *aMaxPortCount = 8;
-            break;
-        }
-        case StorageBus_VirtioSCSI:
-        {
-            *aMaxPortCount = 256;
-            break;
-        }
-        default:
-            AssertMsgFailed(("Invalid bus type %d\n", aBus));
-    }
-
-    return S_OK;
-}
-
-HRESULT SystemProperties::getMaxInstancesOfStorageBus(ChipsetType_T aChipset,
-                                                      StorageBus_T  aBus,
-                                                      ULONG *aMaxInstances)
-{
-    ULONG cCtrs = 0;
-
-    /* no need to lock, this is const */
-    switch (aBus)
-    {
-        case StorageBus_SATA:
-        case StorageBus_SCSI:
-        case StorageBus_SAS:
-        case StorageBus_PCIe:
-        case StorageBus_VirtioSCSI:
-            cCtrs = aChipset == ChipsetType_ICH9 ? 8 : 1;
-            break;
-        case StorageBus_USB:
-        case StorageBus_IDE:
-        case StorageBus_Floppy:
-        {
-            cCtrs = 1;
-            break;
-        }
-        default:
-            AssertMsgFailed(("Invalid bus type %d\n", aBus));
-    }
-
-    *aMaxInstances = cCtrs;
-
-    return S_OK;
-}
-
-HRESULT SystemProperties::getDeviceTypesForStorageBus(StorageBus_T aBus,
-                                                      std::vector<DeviceType_T> &aDeviceTypes)
-{
-    aDeviceTypes.resize(0);
-
-    /* no need to lock, this is const */
-    switch (aBus)
-    {
-        case StorageBus_IDE:
-        case StorageBus_SATA:
-        case StorageBus_SCSI:
-        case StorageBus_SAS:
-        case StorageBus_USB:
-        case StorageBus_VirtioSCSI:
-        {
-            aDeviceTypes.resize(2);
-            aDeviceTypes[0] = DeviceType_DVD;
-            aDeviceTypes[1] = DeviceType_HardDisk;
-            break;
-        }
-        case StorageBus_Floppy:
-        {
-            aDeviceTypes.resize(1);
-            aDeviceTypes[0] = DeviceType_Floppy;
-            break;
-        }
-        case StorageBus_PCIe:
-        {
-            aDeviceTypes.resize(1);
-            aDeviceTypes[0] = DeviceType_HardDisk;
-            break;
-        }
-        default:
-            AssertMsgFailed(("Invalid bus type %d\n", aBus));
-    }
-
-    return S_OK;
-}
-
-HRESULT SystemProperties::getStorageBusForStorageControllerType(StorageControllerType_T aStorageControllerType,
-                                                                StorageBus_T *aStorageBus)
-{
-    /* no need to lock, this is const */
-    switch (aStorageControllerType)
-    {
-        case StorageControllerType_LsiLogic:
-        case StorageControllerType_BusLogic:
-            *aStorageBus = StorageBus_SCSI;
-            break;
-        case StorageControllerType_IntelAhci:
-            *aStorageBus = StorageBus_SATA;
-            break;
-        case StorageControllerType_PIIX3:
-        case StorageControllerType_PIIX4:
-        case StorageControllerType_ICH6:
-            *aStorageBus = StorageBus_IDE;
-            break;
-        case StorageControllerType_I82078:
-            *aStorageBus = StorageBus_Floppy;
-            break;
-        case StorageControllerType_LsiLogicSas:
-            *aStorageBus = StorageBus_SAS;
-            break;
-        case StorageControllerType_USB:
-            *aStorageBus = StorageBus_USB;
-            break;
-        case StorageControllerType_NVMe:
-            *aStorageBus = StorageBus_PCIe;
-            break;
-        case StorageControllerType_VirtioSCSI:
-            *aStorageBus = StorageBus_VirtioSCSI;
-            break;
-        default:
-            return setError(E_FAIL, tr("Invalid storage controller type %d\n"), aStorageBus);
-    }
-
-    return S_OK;
-}
-
-HRESULT SystemProperties::getStorageControllerTypesForStorageBus(StorageBus_T aStorageBus,
-                                                                 std::vector<StorageControllerType_T> &aStorageControllerTypes)
-{
-    aStorageControllerTypes.resize(0);
-
-    /* no need to lock, this is const */
-    switch (aStorageBus)
-    {
-        case StorageBus_IDE:
-            aStorageControllerTypes.resize(3);
-            aStorageControllerTypes[0] = StorageControllerType_PIIX4;
-            aStorageControllerTypes[1] = StorageControllerType_PIIX3;
-            aStorageControllerTypes[2] = StorageControllerType_ICH6;
-            break;
-        case StorageBus_SATA:
-            aStorageControllerTypes.resize(1);
-            aStorageControllerTypes[0] = StorageControllerType_IntelAhci;
-            break;
-        case StorageBus_SCSI:
-            aStorageControllerTypes.resize(2);
-            aStorageControllerTypes[0] = StorageControllerType_LsiLogic;
-            aStorageControllerTypes[1] = StorageControllerType_BusLogic;
-            break;
-        case StorageBus_Floppy:
-            aStorageControllerTypes.resize(1);
-            aStorageControllerTypes[0] = StorageControllerType_I82078;
-            break;
-        case StorageBus_SAS:
-            aStorageControllerTypes.resize(1);
-            aStorageControllerTypes[0] = StorageControllerType_LsiLogicSas;
-            break;
-        case StorageBus_USB:
-            aStorageControllerTypes.resize(1);
-            aStorageControllerTypes[0] = StorageControllerType_USB;
-            break;
-        case StorageBus_PCIe:
-            aStorageControllerTypes.resize(1);
-            aStorageControllerTypes[0] = StorageControllerType_NVMe;
-            break;
-        case StorageBus_VirtioSCSI:
-            aStorageControllerTypes.resize(1);
-            aStorageControllerTypes[0] = StorageControllerType_VirtioSCSI;
-            break;
-        default:
-            return setError(E_FAIL, tr("Invalid storage bus %d\n"), aStorageBus);
-    }
-
-    return S_OK;
-}
-
 HRESULT SystemProperties::getDefaultIoCacheSettingForStorageController(StorageControllerType_T aControllerType,
                                                                        BOOL *aEnabled)
 {
@@ -668,59 +288,6 @@ HRESULT SystemProperties::getDefaultIoCacheSettingForStorageController(StorageCo
         default:
             AssertMsgFailed(("Invalid controller type %d\n", aControllerType));
     }
-    return S_OK;
-}
-
-HRESULT SystemProperties::getStorageControllerHotplugCapable(StorageControllerType_T aControllerType,
-                                                             BOOL *aHotplugCapable)
-{
-    switch (aControllerType)
-    {
-        case StorageControllerType_IntelAhci:
-        case StorageControllerType_USB:
-            *aHotplugCapable = true;
-            break;
-        case StorageControllerType_LsiLogic:
-        case StorageControllerType_LsiLogicSas:
-        case StorageControllerType_BusLogic:
-        case StorageControllerType_NVMe:
-        case StorageControllerType_VirtioSCSI:
-        case StorageControllerType_PIIX3:
-        case StorageControllerType_PIIX4:
-        case StorageControllerType_ICH6:
-        case StorageControllerType_I82078:
-            *aHotplugCapable = false;
-            break;
-        default:
-            AssertMsgFailedReturn(("Invalid controller type %d\n", aControllerType), E_FAIL);
-    }
-
-    return S_OK;
-}
-
-HRESULT SystemProperties::getMaxInstancesOfUSBControllerType(ChipsetType_T aChipset,
-                                                             USBControllerType_T aType,
-                                                             ULONG *aMaxInstances)
-{
-    NOREF(aChipset);
-    ULONG cCtrs = 0;
-
-    /* no need to lock, this is const */
-    switch (aType)
-    {
-        case USBControllerType_OHCI:
-        case USBControllerType_EHCI:
-        case USBControllerType_XHCI:
-        {
-            cCtrs = 1;
-            break;
-        }
-        default:
-            AssertMsgFailed(("Invalid bus type %d\n", aType));
-    }
-
-    *aMaxInstances = cCtrs;
-
     return S_OK;
 }
 
@@ -1359,6 +926,13 @@ HRESULT SystemProperties::getScreenShotFormats(std::vector<BitmapFormat_T> &aBit
     return S_OK;
 }
 
+HRESULT SystemProperties::getPlatform(ComPtr<IPlatformProperties> &aPlatformProperties)
+{
+    /* No need to lock, as m_platformProperties is const. */
+
+    return m_platformProperties.queryInterfaceTo(aPlatformProperties.asOutParam());
+}
+
 HRESULT SystemProperties::getProxyMode(ProxyMode_T *pProxyMode)
 {
     AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
@@ -1444,68 +1018,68 @@ HRESULT SystemProperties::setProxyURL(const com::Utf8Str &aProxyURL)
     return mParent->i_saveSettings();
 }
 
-HRESULT SystemProperties::getSupportedParavirtProviders(std::vector<ParavirtProvider_T> &aSupportedParavirtProviders)
+HRESULT SystemProperties::getSupportedPlatformArchitectures(std::vector<PlatformArchitecture_T> &aSupportedPlatformArchitectures)
 {
-    static const ParavirtProvider_T aParavirtProviders[] =
+    static const PlatformArchitecture_T s_aPlatformArchitectures[] =
     {
-        ParavirtProvider_None,
-        ParavirtProvider_Default,
-        ParavirtProvider_Legacy,
-        ParavirtProvider_Minimal,
-        ParavirtProvider_HyperV,
-        ParavirtProvider_KVM,
+#if   defined(RT_ARCH_X86)   || defined(RT_ARCH_AMD64)
+        /* Currently x86 can run x86 VMs only. */
+        PlatformArchitecture_x86
+#elif defined(RT_ARCH_ARM32) || defined(RT_ARCH_ARM64)
+        /* Currently ARM can run x86 emulation and if enabled ARM VMs. */
+        PlatformArchitecture_x86
+# ifdef VBOX_WITH_VIRT_ARMV8
+        , PlatformArchitecture_ARM
+# endif
+#else
+# error "Port me!"
+        PlatformArchitecture_None
+#endif
     };
-    aSupportedParavirtProviders.assign(aParavirtProviders,
-                                       aParavirtProviders + RT_ELEMENTS(aParavirtProviders));
+    RT_CPP_VECTOR_ASSIGN_ARRAY(aSupportedPlatformArchitectures, s_aPlatformArchitectures);
+
+#ifdef VBOX_WITH_VIRT_ARMV8
+    Bstr bstrEnableX86OnArm;
+    HRESULT hrc = mParent->GetExtraData(Bstr("VBoxInternal2/EnableX86OnArm").raw(), bstrEnableX86OnArm.asOutParam());
+    if (FAILED(hrc) || !bstrEnableX86OnArm.equals("1"))
+    {
+        Assert(aSupportedPlatformArchitectures[0] == PlatformArchitecture_x86);
+        if (aSupportedPlatformArchitectures[0] == PlatformArchitecture_x86)
+            aSupportedPlatformArchitectures.erase(aSupportedPlatformArchitectures.begin());
+    }
+#endif
     return S_OK;
 }
 
 HRESULT SystemProperties::getSupportedClipboardModes(std::vector<ClipboardMode_T> &aSupportedClipboardModes)
 {
-    static const ClipboardMode_T aClipboardModes[] =
+    static const ClipboardMode_T s_aClipboardModes[] =
     {
         ClipboardMode_Disabled,
         ClipboardMode_HostToGuest,
         ClipboardMode_GuestToHost,
         ClipboardMode_Bidirectional,
     };
-    aSupportedClipboardModes.assign(aClipboardModes,
-                                    aClipboardModes + RT_ELEMENTS(aClipboardModes));
+    RT_CPP_VECTOR_ASSIGN_ARRAY(aSupportedClipboardModes, s_aClipboardModes);
     return S_OK;
 }
 
 HRESULT SystemProperties::getSupportedDnDModes(std::vector<DnDMode_T> &aSupportedDnDModes)
 {
-    static const DnDMode_T aDnDModes[] =
+    static const DnDMode_T s_aDnDModes[] =
     {
         DnDMode_Disabled,
         DnDMode_HostToGuest,
         DnDMode_GuestToHost,
         DnDMode_Bidirectional,
     };
-    aSupportedDnDModes.assign(aDnDModes,
-                              aDnDModes + RT_ELEMENTS(aDnDModes));
-    return S_OK;
-}
-
-HRESULT SystemProperties::getSupportedFirmwareTypes(std::vector<FirmwareType_T> &aSupportedFirmwareTypes)
-{
-    static const FirmwareType_T aFirmwareTypes[] =
-    {
-        FirmwareType_BIOS,
-        FirmwareType_EFI,
-        FirmwareType_EFI32,
-        FirmwareType_EFI64,
-        FirmwareType_EFIDUAL,
-    };
-    aSupportedFirmwareTypes.assign(aFirmwareTypes,
-                                   aFirmwareTypes + RT_ELEMENTS(aFirmwareTypes));
+    RT_CPP_VECTOR_ASSIGN_ARRAY(aSupportedDnDModes, s_aDnDModes);
     return S_OK;
 }
 
 HRESULT SystemProperties::getSupportedPointingHIDTypes(std::vector<PointingHIDType_T> &aSupportedPointingHIDTypes)
 {
-    static const PointingHIDType_T aPointingHIDTypes[] =
+    static const PointingHIDType_T s_aPointingHIDTypes[] =
     {
         PointingHIDType_PS2Mouse,
 #ifdef DEBUG
@@ -1518,14 +1092,13 @@ HRESULT SystemProperties::getSupportedPointingHIDTypes(std::vector<PointingHIDTy
         PointingHIDType_USBMultiTouch,
         PointingHIDType_USBMultiTouchScreenPlusPad,
     };
-    aSupportedPointingHIDTypes.assign(aPointingHIDTypes,
-                                      aPointingHIDTypes + RT_ELEMENTS(aPointingHIDTypes));
+    RT_CPP_VECTOR_ASSIGN_ARRAY(aSupportedPointingHIDTypes, s_aPointingHIDTypes);
     return S_OK;
 }
 
 HRESULT SystemProperties::getSupportedKeyboardHIDTypes(std::vector<KeyboardHIDType_T> &aSupportedKeyboardHIDTypes)
 {
-    static const KeyboardHIDType_T aKeyboardHIDTypes[] =
+    static const KeyboardHIDType_T s_aKeyboardHIDTypes[] =
     {
         KeyboardHIDType_PS2Keyboard,
         KeyboardHIDType_USBKeyboard,
@@ -1533,14 +1106,13 @@ HRESULT SystemProperties::getSupportedKeyboardHIDTypes(std::vector<KeyboardHIDTy
         KeyboardHIDType_ComboKeyboard,
 #endif
     };
-    aSupportedKeyboardHIDTypes.assign(aKeyboardHIDTypes,
-                                      aKeyboardHIDTypes + RT_ELEMENTS(aKeyboardHIDTypes));
+    RT_CPP_VECTOR_ASSIGN_ARRAY(aSupportedKeyboardHIDTypes, s_aKeyboardHIDTypes);
     return S_OK;
 }
 
 HRESULT SystemProperties::getSupportedVFSTypes(std::vector<VFSType_T> &aSupportedVFSTypes)
 {
-    static const VFSType_T aVFSTypes[] =
+    static const VFSType_T s_aVFSTypes[] =
     {
         VFSType_File,
         VFSType_Cloud,
@@ -1549,50 +1121,67 @@ HRESULT SystemProperties::getSupportedVFSTypes(std::vector<VFSType_T> &aSupporte
         VFSType_WebDav,
 #endif
     };
-    aSupportedVFSTypes.assign(aVFSTypes,
-                              aVFSTypes + RT_ELEMENTS(aVFSTypes));
+    RT_CPP_VECTOR_ASSIGN_ARRAY(aSupportedVFSTypes, s_aVFSTypes);
     return S_OK;
 }
 
 HRESULT SystemProperties::getSupportedImportOptions(std::vector<ImportOptions_T> &aSupportedImportOptions)
 {
-    static const ImportOptions_T aImportOptions[] =
+    static const ImportOptions_T s_aImportOptions[] =
     {
         ImportOptions_KeepAllMACs,
         ImportOptions_KeepNATMACs,
         ImportOptions_ImportToVDI,
     };
-    aSupportedImportOptions.assign(aImportOptions,
-                                   aImportOptions + RT_ELEMENTS(aImportOptions));
+    RT_CPP_VECTOR_ASSIGN_ARRAY(aSupportedImportOptions, s_aImportOptions);
     return S_OK;
 }
 
 HRESULT SystemProperties::getSupportedExportOptions(std::vector<ExportOptions_T> &aSupportedExportOptions)
 {
-    static const ExportOptions_T aExportOptions[] =
+    static const ExportOptions_T s_aExportOptions[] =
     {
         ExportOptions_CreateManifest,
         ExportOptions_ExportDVDImages,
         ExportOptions_StripAllMACs,
         ExportOptions_StripAllNonNATMACs,
     };
-    aSupportedExportOptions.assign(aExportOptions,
-                                   aExportOptions + RT_ELEMENTS(aExportOptions));
+    RT_CPP_VECTOR_ASSIGN_ARRAY(aSupportedExportOptions, s_aExportOptions);
+    return S_OK;
+}
+
+HRESULT SystemProperties::getSupportedGraphicsFeatures(std::vector<GraphicsFeature_T> &aSupportedGraphicsFeatures)
+{
+#if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64)
+    static const GraphicsFeature_T s_aGraphicsFeatures[] =
+    {
+# ifdef VBOX_WITH_VIDEOHWACCEL
+        GraphicsFeature_Acceleration2DVideo,
+# endif
+# ifdef VBOX_WITH_3D_ACCELERATION
+        GraphicsFeature_Acceleration3D
+# endif
+    };
+    RT_CPP_VECTOR_ASSIGN_ARRAY(aSupportedGraphicsFeatures, s_aGraphicsFeatures);
+#else
+    /* On ARM-based hosts we don't support any 2D/3D acceleration for now.*/
+    aSupportedGraphicsFeatures.clear();
+#endif
+
     return S_OK;
 }
 
 HRESULT SystemProperties::getSupportedRecordingFeatures(std::vector<RecordingFeature_T> &aSupportedRecordingFeatures)
 {
 #ifdef VBOX_WITH_RECORDING
-    static const RecordingFeature_T aRecordingFeatures[] =
+    static const RecordingFeature_T s_aRecordingFeatures[] =
     {
 # ifdef VBOX_WITH_AUDIO_RECORDING
         RecordingFeature_Audio,
 # endif
         RecordingFeature_Video,
     };
-    aSupportedRecordingFeatures.assign(aRecordingFeatures,
-                                       aRecordingFeatures + RT_ELEMENTS(aRecordingFeatures));
+    RT_CPP_VECTOR_ASSIGN_ARRAY(aSupportedRecordingFeatures, s_aRecordingFeatures);
 #else  /* !VBOX_WITH_RECORDING */
     aSupportedRecordingFeatures.clear();
 #endif /* VBOX_WITH_RECORDING */
@@ -1601,7 +1190,7 @@ HRESULT SystemProperties::getSupportedRecordingFeatures(std::vector<RecordingFea
 
 HRESULT SystemProperties::getSupportedRecordingAudioCodecs(std::vector<RecordingAudioCodec_T> &aSupportedRecordingAudioCodecs)
 {
-    static const RecordingAudioCodec_T aRecordingAudioCodecs[] =
+    static const RecordingAudioCodec_T s_aRecordingAudioCodecs[] =
     {
         RecordingAudioCodec_None,
 #ifdef DEBUG
@@ -1611,14 +1200,13 @@ HRESULT SystemProperties::getSupportedRecordingAudioCodecs(std::vector<Recording
         RecordingAudioCodec_OggVorbis,
 #endif
     };
-    aSupportedRecordingAudioCodecs.assign(aRecordingAudioCodecs,
-                                          aRecordingAudioCodecs + RT_ELEMENTS(aRecordingAudioCodecs));
+    RT_CPP_VECTOR_ASSIGN_ARRAY(aSupportedRecordingAudioCodecs, s_aRecordingAudioCodecs);
     return S_OK;
 }
 
 HRESULT SystemProperties::getSupportedRecordingVideoCodecs(std::vector<RecordingVideoCodec_T> &aSupportedRecordingVideoCodecs)
 {
-    static const RecordingVideoCodec_T aRecordingVideoCodecs[] =
+    static const RecordingVideoCodec_T s_aRecordingVideoCodecs[] =
     {
         RecordingVideoCodec_None,
 #ifdef VBOX_WITH_LIBVPX
@@ -1629,14 +1217,13 @@ HRESULT SystemProperties::getSupportedRecordingVideoCodecs(std::vector<Recording
         RecordingVideoCodec_AV1,
 #endif
     };
-    aSupportedRecordingVideoCodecs.assign(aRecordingVideoCodecs,
-                                          aRecordingVideoCodecs + RT_ELEMENTS(aRecordingVideoCodecs));
+    RT_CPP_VECTOR_ASSIGN_ARRAY(aSupportedRecordingVideoCodecs, s_aRecordingVideoCodecs);
     return S_OK;
 }
 
 HRESULT SystemProperties::getSupportedRecordingVSModes(std::vector<RecordingVideoScalingMode_T> &aSupportedRecordingVideoScalingModes)
 {
-    static const RecordingVideoScalingMode_T aRecordingVideoScalingModes[] =
+    static const RecordingVideoScalingMode_T s_aRecordingVideoScalingModes[] =
     {
         RecordingVideoScalingMode_None,
 #ifdef DEBUG
@@ -1645,14 +1232,13 @@ HRESULT SystemProperties::getSupportedRecordingVSModes(std::vector<RecordingVide
         RecordingVideoScalingMode_Bicubic,
 #endif
     };
-    aSupportedRecordingVideoScalingModes.assign(aRecordingVideoScalingModes,
-                                                aRecordingVideoScalingModes + RT_ELEMENTS(aRecordingVideoScalingModes));
+    RT_CPP_VECTOR_ASSIGN_ARRAY(aSupportedRecordingVideoScalingModes, s_aRecordingVideoScalingModes);
     return S_OK;
 }
 
 HRESULT SystemProperties::getSupportedRecordingARCModes(std::vector<RecordingRateControlMode_T> &aSupportedRecordingAudioRateControlModes)
 {
-    static const RecordingRateControlMode_T aRecordingAudioRateControlModes[] =
+    static const RecordingRateControlMode_T s_aRecordingAudioRateControlModes[] =
     {
 #ifdef DEBUG
         RecordingRateControlMode_ABR,
@@ -1660,14 +1246,13 @@ HRESULT SystemProperties::getSupportedRecordingARCModes(std::vector<RecordingRat
 #endif
         RecordingRateControlMode_VBR
     };
-    aSupportedRecordingAudioRateControlModes.assign(aRecordingAudioRateControlModes,
-                                                    aRecordingAudioRateControlModes + RT_ELEMENTS(aRecordingAudioRateControlModes));
+    RT_CPP_VECTOR_ASSIGN_ARRAY(aSupportedRecordingAudioRateControlModes, s_aRecordingAudioRateControlModes);
     return S_OK;
 }
 
 HRESULT SystemProperties::getSupportedRecordingVRCModes(std::vector<RecordingRateControlMode_T> &aSupportedRecordingVideoRateControlModes)
 {
-    static const RecordingRateControlMode_T aRecordingVideoRateControlModes[] =
+    static const RecordingRateControlMode_T s_aRecordingVideoRateControlModes[] =
     {
 #ifdef DEBUG
         RecordingRateControlMode_ABR,
@@ -1675,28 +1260,13 @@ HRESULT SystemProperties::getSupportedRecordingVRCModes(std::vector<RecordingRat
 #endif
         RecordingRateControlMode_VBR
     };
-    aSupportedRecordingVideoRateControlModes.assign(aRecordingVideoRateControlModes,
-                                                    aRecordingVideoRateControlModes + RT_ELEMENTS(aRecordingVideoRateControlModes));
-    return S_OK;
-}
-
-HRESULT SystemProperties::getSupportedGraphicsControllerTypes(std::vector<GraphicsControllerType_T> &aSupportedGraphicsControllerTypes)
-{
-    static const GraphicsControllerType_T aGraphicsControllerTypes[] =
-    {
-        GraphicsControllerType_VBoxVGA,
-        GraphicsControllerType_VMSVGA,
-        GraphicsControllerType_VBoxSVGA,
-        GraphicsControllerType_Null,
-    };
-    aSupportedGraphicsControllerTypes.assign(aGraphicsControllerTypes,
-                                             aGraphicsControllerTypes + RT_ELEMENTS(aGraphicsControllerTypes));
+    RT_CPP_VECTOR_ASSIGN_ARRAY(aSupportedRecordingVideoRateControlModes, s_aRecordingVideoRateControlModes);
     return S_OK;
 }
 
 HRESULT SystemProperties::getSupportedCloneOptions(std::vector<CloneOptions_T> &aSupportedCloneOptions)
 {
-    static const CloneOptions_T aCloneOptions[] =
+    static const CloneOptions_T s_aCloneOptions[] =
     {
         CloneOptions_Link,
         CloneOptions_KeepAllMACs,
@@ -1704,28 +1274,26 @@ HRESULT SystemProperties::getSupportedCloneOptions(std::vector<CloneOptions_T> &
         CloneOptions_KeepDiskNames,
         CloneOptions_KeepHwUUIDs,
     };
-    aSupportedCloneOptions.assign(aCloneOptions,
-                                  aCloneOptions + RT_ELEMENTS(aCloneOptions));
+    RT_CPP_VECTOR_ASSIGN_ARRAY(aSupportedCloneOptions, s_aCloneOptions);
     return S_OK;
 }
 
 HRESULT SystemProperties::getSupportedAutostopTypes(std::vector<AutostopType_T> &aSupportedAutostopTypes)
 {
-    static const AutostopType_T aAutostopTypes[] =
+    static const AutostopType_T s_aAutostopTypes[] =
     {
         AutostopType_Disabled,
         AutostopType_SaveState,
         AutostopType_PowerOff,
         AutostopType_AcpiShutdown,
     };
-    aSupportedAutostopTypes.assign(aAutostopTypes,
-                                   aAutostopTypes + RT_ELEMENTS(aAutostopTypes));
+    RT_CPP_VECTOR_ASSIGN_ARRAY(aSupportedAutostopTypes, s_aAutostopTypes);
     return S_OK;
 }
 
 HRESULT SystemProperties::getSupportedVMProcPriorities(std::vector<VMProcPriority_T> &aSupportedVMProcPriorities)
 {
-    static const VMProcPriority_T aVMProcPriorities[] =
+    static const VMProcPriority_T s_aVMProcPriorities[] =
     {
         VMProcPriority_Default,
         VMProcPriority_Flat,
@@ -1733,14 +1301,13 @@ HRESULT SystemProperties::getSupportedVMProcPriorities(std::vector<VMProcPriorit
         VMProcPriority_Normal,
         VMProcPriority_High,
     };
-    aSupportedVMProcPriorities.assign(aVMProcPriorities,
-                                      aVMProcPriorities + RT_ELEMENTS(aVMProcPriorities));
+    RT_CPP_VECTOR_ASSIGN_ARRAY(aSupportedVMProcPriorities, s_aVMProcPriorities);
     return S_OK;
 }
 
 HRESULT SystemProperties::getSupportedNetworkAttachmentTypes(std::vector<NetworkAttachmentType_T> &aSupportedNetworkAttachmentTypes)
 {
-    static const NetworkAttachmentType_T aNetworkAttachmentTypes[] =
+    static const NetworkAttachmentType_T s_aNetworkAttachmentTypes[] =
     {
         NetworkAttachmentType_NAT,
         NetworkAttachmentType_Bridged,
@@ -1756,30 +1323,13 @@ HRESULT SystemProperties::getSupportedNetworkAttachmentTypes(std::vector<Network
 #endif
         NetworkAttachmentType_Null,
     };
-    aSupportedNetworkAttachmentTypes.assign(aNetworkAttachmentTypes,
-                                            aNetworkAttachmentTypes + RT_ELEMENTS(aNetworkAttachmentTypes));
-    return S_OK;
-}
-
-HRESULT SystemProperties::getSupportedNetworkAdapterTypes(std::vector<NetworkAdapterType_T> &aSupportedNetworkAdapterTypes)
-{
-    static const NetworkAdapterType_T aNetworkAdapterTypes[] =
-    {
-        NetworkAdapterType_Am79C970A,
-        NetworkAdapterType_Am79C973,
-        NetworkAdapterType_I82540EM,
-        NetworkAdapterType_I82543GC,
-        NetworkAdapterType_I82545EM,
-        NetworkAdapterType_Virtio,
-    };
-    aSupportedNetworkAdapterTypes.assign(aNetworkAdapterTypes,
-                                         aNetworkAdapterTypes + RT_ELEMENTS(aNetworkAdapterTypes));
+    RT_CPP_VECTOR_ASSIGN_ARRAY(aSupportedNetworkAttachmentTypes, s_aNetworkAttachmentTypes);
     return S_OK;
 }
 
 HRESULT SystemProperties::getSupportedPortModes(std::vector<PortMode_T> &aSupportedPortModes)
 {
-    static const PortMode_T aPortModes[] =
+    static const PortMode_T s_aPortModes[] =
     {
         PortMode_Disconnected,
         PortMode_HostPipe,
@@ -1787,40 +1337,13 @@ HRESULT SystemProperties::getSupportedPortModes(std::vector<PortMode_T> &aSuppor
         PortMode_RawFile,
         PortMode_TCP,
     };
-    aSupportedPortModes.assign(aPortModes,
-                               aPortModes + RT_ELEMENTS(aPortModes));
-    return S_OK;
-}
-
-HRESULT SystemProperties::getSupportedUartTypes(std::vector<UartType_T> &aSupportedUartTypes)
-{
-    static const UartType_T aUartTypes[] =
-    {
-        UartType_U16450,
-        UartType_U16550A,
-        UartType_U16750,
-    };
-    aSupportedUartTypes.assign(aUartTypes,
-                               aUartTypes + RT_ELEMENTS(aUartTypes));
-    return S_OK;
-}
-
-HRESULT SystemProperties::getSupportedUSBControllerTypes(std::vector<USBControllerType_T> &aSupportedUSBControllerTypes)
-{
-    static const USBControllerType_T aUSBControllerTypes[] =
-    {
-        USBControllerType_OHCI,
-        USBControllerType_EHCI,
-        USBControllerType_XHCI,
-    };
-    aSupportedUSBControllerTypes.assign(aUSBControllerTypes,
-                                        aUSBControllerTypes + RT_ELEMENTS(aUSBControllerTypes));
+    RT_CPP_VECTOR_ASSIGN_ARRAY(aSupportedPortModes, s_aPortModes);
     return S_OK;
 }
 
 HRESULT SystemProperties::getSupportedAudioDriverTypes(std::vector<AudioDriverType_T> &aSupportedAudioDriverTypes)
 {
-    static const AudioDriverType_T aAudioDriverTypes[] =
+    static const AudioDriverType_T s_aAudioDriverTypes[] =
     {
         AudioDriverType_Default,
 #ifdef RT_OS_WINDOWS
@@ -1852,99 +1375,64 @@ HRESULT SystemProperties::getSupportedAudioDriverTypes(std::vector<AudioDriverTy
 #endif
         AudioDriverType_Null,
     };
-    aSupportedAudioDriverTypes.assign(aAudioDriverTypes,
-                                      aAudioDriverTypes + RT_ELEMENTS(aAudioDriverTypes));
+    RT_CPP_VECTOR_ASSIGN_ARRAY(aSupportedAudioDriverTypes, s_aAudioDriverTypes);
     return S_OK;
 }
 
-HRESULT SystemProperties::getSupportedAudioControllerTypes(std::vector<AudioControllerType_T> &aSupportedAudioControllerTypes)
+HRESULT SystemProperties::getExecutionEnginesForVmCpuArchitecture(CPUArchitecture_T aCpuArchitecture,
+                                                                  std::vector<VMExecutionEngine_T> &aExecutionEngines)
 {
-    static const AudioControllerType_T aAudioControllerTypes[] =
+    switch (aCpuArchitecture)
     {
-        AudioControllerType_AC97,
-        AudioControllerType_SB16,
-        AudioControllerType_HDA,
-    };
-    aSupportedAudioControllerTypes.assign(aAudioControllerTypes,
-                                          aAudioControllerTypes + RT_ELEMENTS(aAudioControllerTypes));
-    return S_OK;
-}
+        case CPUArchitecture_x86:
+        case CPUArchitecture_AMD64:
+        {
+            static const VMExecutionEngine_T s_aExecEngines[] =
+            {
+                VMExecutionEngine_Default,
+#ifdef RT_ARCH_AMD64
+# ifndef VBOX_WITH_DRIVERLESS_FORCED
+                VMExecutionEngine_HwVirt,
+# endif
+# ifdef VBOX_WITH_NATIVE_NEM
+                VMExecutionEngine_NativeApi,
+# endif
+#endif
+                VMExecutionEngine_Interpreter,
+#ifdef VBOX_WITH_IEM_NATIVE_RECOMPILER
+                VMExecutionEngine_Recompiler,
+#endif
+            };
+            RT_CPP_VECTOR_ASSIGN_ARRAY(aExecutionEngines, s_aExecEngines);
+            break;
+        }
 
-HRESULT SystemProperties::getSupportedStorageBuses(std::vector<StorageBus_T> &aSupportedStorageBuses)
-{
-    static const StorageBus_T aStorageBuses[] =
-    {
-        StorageBus_SATA,
-        StorageBus_IDE,
-        StorageBus_SCSI,
-        StorageBus_Floppy,
-        StorageBus_SAS,
-        StorageBus_USB,
-        StorageBus_PCIe,
-        StorageBus_VirtioSCSI,
-    };
-    aSupportedStorageBuses.assign(aStorageBuses,
-                                  aStorageBuses + RT_ELEMENTS(aStorageBuses));
-    return S_OK;
-}
+        case CPUArchitecture_ARMv8_32:
+            aExecutionEngines.clear(); /* Currently not supported at all. */
+            break;
 
-HRESULT SystemProperties::getSupportedStorageControllerTypes(std::vector<StorageControllerType_T> &aSupportedStorageControllerTypes)
-{
-    static const StorageControllerType_T aStorageControllerTypes[] =
-    {
-        StorageControllerType_IntelAhci,
-        StorageControllerType_PIIX4,
-        StorageControllerType_PIIX3,
-        StorageControllerType_ICH6,
-        StorageControllerType_LsiLogic,
-        StorageControllerType_BusLogic,
-        StorageControllerType_I82078,
-        StorageControllerType_LsiLogicSas,
-        StorageControllerType_USB,
-        StorageControllerType_NVMe,
-        StorageControllerType_VirtioSCSI,
-    };
-    aSupportedStorageControllerTypes.assign(aStorageControllerTypes,
-                                            aStorageControllerTypes + RT_ELEMENTS(aStorageControllerTypes));
-    return S_OK;
-}
+        case CPUArchitecture_ARMv8_64:
+        {
+#ifdef VBOX_WITH_VIRT_ARMV8
+            static const VMExecutionEngine_T s_aExecEngines[] =
+            {
+                VMExecutionEngine_Default,
+# ifdef VBOX_WITH_NATIVE_NEM
+                VMExecutionEngine_NativeApi,
+# endif
+            };
+            RT_CPP_VECTOR_ASSIGN_ARRAY(aExecutionEngines, s_aExecEngines);
+#else
+            aExecutionEngines.clear();
+#endif
+            break;
+        }
 
-HRESULT SystemProperties::getSupportedChipsetTypes(std::vector<ChipsetType_T> &aSupportedChipsetTypes)
-{
-    static const ChipsetType_T aChipsetTypes[] =
-    {
-        ChipsetType_PIIX3,
-        ChipsetType_ICH9,
-    };
-    aSupportedChipsetTypes.assign(aChipsetTypes,
-                                  aChipsetTypes + RT_ELEMENTS(aChipsetTypes));
-    return S_OK;
-}
+        default:
+            AssertFailedStmt(aExecutionEngines.clear());
+            break;
+    }
 
-HRESULT SystemProperties::getSupportedIommuTypes(std::vector<IommuType_T> &aSupportedIommuTypes)
-{
-    static const IommuType_T aIommuTypes[] =
-    {
-        IommuType_None,
-        IommuType_Automatic,
-        IommuType_AMD,
-        /** @todo Add Intel when it's supported. */
-    };
-    aSupportedIommuTypes.assign(aIommuTypes,
-                                aIommuTypes + RT_ELEMENTS(aIommuTypes));
-    return S_OK;
-}
-
-HRESULT SystemProperties::getSupportedTpmTypes(std::vector<TpmType_T> &aSupportedTpmTypes)
-{
-    static const TpmType_T aTpmTypes[] =
-    {
-        TpmType_None,
-        TpmType_v1_2,
-        TpmType_v2_0
-    };
-    aSupportedTpmTypes.assign(aTpmTypes,
-                              aTpmTypes + RT_ELEMENTS(aTpmTypes));
     return S_OK;
 }
 
@@ -1958,10 +1446,10 @@ HRESULT SystemProperties::i_loadSettings(const settings::SystemProperties &data)
     if (FAILED(autoCaller.hrc())) return autoCaller.hrc();
 
     AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
-    HRESULT hrc = i_setDefaultMachineFolder(data.strDefaultMachineFolder);
-    if (FAILED(hrc)) return hrc;
 
-    hrc = i_setLoggingLevel(data.strLoggingLevel);
+    i_setLoggingLevel(data.strLoggingLevel); /* ignore errors here! */
+
+    HRESULT hrc = i_setDefaultMachineFolder(data.strDefaultMachineFolder);
     if (FAILED(hrc)) return hrc;
 
     hrc = i_setDefaultHardDiskFormat(data.strDefaultHardDiskFormat);
@@ -1980,7 +1468,6 @@ HRESULT SystemProperties::i_loadSettings(const settings::SystemProperties &data)
     if (FAILED(hrc)) return hrc;
 
     m->uLogHistoryCount  = data.uLogHistoryCount;
-    m->fExclusiveHwVirt  = data.fExclusiveHwVirt;
     m->uProxyMode        = data.uProxyMode;
     m->strProxyUrl       = data.strProxyUrl;
 
@@ -2186,29 +1673,37 @@ HRESULT SystemProperties::i_setDefaultMachineFolder(const Utf8Str &strPath)
 
 HRESULT SystemProperties::i_setLoggingLevel(const com::Utf8Str &aLoggingLevel)
 {
-    Utf8Str useLoggingLevel(aLoggingLevel);
-    if (useLoggingLevel.isEmpty())
-        useLoggingLevel = VBOXSVC_LOG_DEFAULT;
-    int vrc = RTLogGroupSettings(RTLogRelGetDefaultInstance(), useLoggingLevel.c_str());
-    //  If failed and not the default logging level - try to use the default logging level.
-    if (RT_FAILURE(vrc))
+    static const char s_szDefaultLevel[] = VBOXSVC_LOG_DEFAULT;
+    const char       *pszUseLoggingLevel = aLoggingLevel.isEmpty() || aLoggingLevel.equalsIgnoreCase(s_szDefaultLevel)
+                                         ? s_szDefaultLevel : aLoggingLevel.c_str();
+    HRESULT           hrc                = S_OK;
+    PRTLOGGER const   pRelLog            = RTLogRelGetDefaultInstance();
+    if (pRelLog)
     {
-        // If failed write message to the release log.
-        LogRel(("Cannot set passed logging level=%s Error=%Rrc \n", useLoggingLevel.c_str(), vrc));
-        //  If attempted logging level not the default one then try the default one.
-        if (!useLoggingLevel.equals(VBOXSVC_LOG_DEFAULT))
+        int vrc = RTLogGroupSettings(pRelLog, pszUseLoggingLevel);
+        if (RT_FAILURE(vrc))
         {
-            vrc = RTLogGroupSettings(RTLogRelGetDefaultInstance(), VBOXSVC_LOG_DEFAULT);
-            // If failed report this to the release log.
-            if (RT_FAILURE(vrc))
-                LogRel(("Cannot set default logging level Error=%Rrc \n", vrc));
+            LogRel(("Failed to set release logging level to '%s': %Rrc\n", pszUseLoggingLevel, vrc));
+            hrc = setErrorVrc(vrc, tr("RTLogGroupSettings failed: %Rrc (input: %s)"), vrc, pszUseLoggingLevel);
+
+            // If attempted logging level not the default one then use the default one.
+            if (pszUseLoggingLevel != s_szDefaultLevel)
+            {
+                pszUseLoggingLevel = s_szDefaultLevel;
+                vrc = RTLogGroupSettings(pRelLog, s_szDefaultLevel);
+                if (RT_FAILURE(vrc))
+                    LogRel(("Failed to set default release logging level: %Rrc\n", vrc));
+            }
         }
-        // On any failure - set default level as the one to be stored.
-        useLoggingLevel = VBOXSVC_LOG_DEFAULT;
     }
-    //  Set to passed value or if default used/attempted (even if error condition) use empty string.
-    m->strLoggingLevel = (useLoggingLevel.equals(VBOXSVC_LOG_DEFAULT) ? "" : useLoggingLevel);
-    return RT_SUCCESS(vrc) ? S_OK : E_FAIL;
+
+    // Set to passed value or if default used/attempted (even if error condition) use empty string.
+    if (pszUseLoggingLevel == s_szDefaultLevel)
+        m->strLoggingLevel.setNull();
+    else
+        m->strLoggingLevel = aLoggingLevel;
+
+    return hrc;
 }
 
 HRESULT SystemProperties::i_setDefaultHardDiskFormat(const com::Utf8Str &aFormat)

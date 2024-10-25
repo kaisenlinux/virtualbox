@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2007-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2007-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -44,6 +44,8 @@
 #include <VBox/HostServices/VBoxClipboardSvc.h>
 #include <VBox/GuestHost/clipboard-helper.h>
 #include "VBoxClientInternal.h"
+
+RT_GCC_NO_WARN_DEPRECATED_BEGIN /* Much here is deprecated since 12.0 */
 
 /**
  * Allocate memory for host buffer and receive it.
@@ -313,3 +315,5 @@ int vbclClipboardForwardToGuest(uint32_t u32ClientId, PasteboardRef pPasteboard,
 
     return rc;
 }
+
+RT_GCC_NO_WARN_DEPRECATED_END

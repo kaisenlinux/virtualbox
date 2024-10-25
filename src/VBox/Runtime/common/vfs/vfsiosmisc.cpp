@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -117,6 +117,9 @@ RTDECL(int) RTVfsIoStrmValidateUtf8Encoding(RTVFSIOSTREAM hVfsIos, uint32_t fFla
             }
         }
 
+        if (RT_FAILURE(rc))
+            break;
+
         if (off < cbUsed)
         {
             cbUsed -= off;
@@ -129,6 +132,7 @@ RTDECL(int) RTVfsIoStrmValidateUtf8Encoding(RTVFSIOSTREAM hVfsIos, uint32_t fFla
      */
     if (poffError && RT_FAILURE(rc))
     {
+        /** @todo r=andy Implement this? */
     }
 
     return rc == VINF_EOF ? VINF_SUCCESS : rc;
@@ -193,7 +197,7 @@ RTDECL(int) RTVfsIoStrmReadAll(RTVFSIOSTREAM hVfsIos, void **ppvBuf, size_t *pcb
                                  true /*fBlocking*/, &cbActual);
             if (RT_FAILURE(rc))
                 break;
-            Assert(cbActual > 0);
+            Assert(cbActual > 0 || (cbActual == 0 && rc == VINF_EOF));
             Assert(cbActual <= cbToRead);
             off += cbActual;
             if (rc == VINF_EOF)
@@ -234,5 +238,20 @@ RTDECL(void) RTVfsIoStrmReadAllFree(void *pvBuf, size_t cbBuf)
 
     /* Free it. */
     RTMemFree(pvBuf);
+}
+
+
+RTDECL(int) RTVfsFileReadAll(RTVFSFILE hVfsFile, void **ppvBuf, size_t *pcbBuf)
+{
+    RTVFSIOSTREAM hVfsIos = RTVfsFileToIoStream(hVfsFile);
+    int rc = RTVfsIoStrmReadAll(hVfsIos, ppvBuf, pcbBuf);
+    RTVfsIoStrmRelease(hVfsIos);
+    return rc;
+}
+
+
+RTDECL(void) RTVfsFileReadAllFree(void *pvBuf, size_t cbBuf)
+{
+    RTVfsIoStrmReadAllFree(pvBuf, cbBuf);
 }
 

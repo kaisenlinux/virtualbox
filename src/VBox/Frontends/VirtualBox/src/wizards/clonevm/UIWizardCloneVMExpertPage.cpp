@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,7 +35,6 @@
 
 /* GUI includes: */
 #include "QILineEdit.h"
-#include "UICommon.h"
 #include "UIFilePathSelector.h"
 #include "UIWizardCloneVMExpertPage.h"
 #include "UIWizardCloneVM.h"
@@ -93,20 +92,20 @@ void UIWizardCloneVMExpertPage::prepare(const QString &strOriginalName, const QS
         connect(m_pCloneTypeGroupBox, &UICloneVMCloneTypeGroupBox::sigFullCloneSelected,
                 this, &UIWizardCloneVMExpertPage::sltCloneTypeChanged);
 
-    retranslateUi();
+    sltRetranslateUI();
 }
 
-void UIWizardCloneVMExpertPage::retranslateUi()
+void UIWizardCloneVMExpertPage::sltRetranslateUI()
 {
     /* Translate widgets: */
     if (m_pNamePathGroupBox)
-        m_pNamePathGroupBox->setTitle(UIWizardCloneVM::tr("New machine &name and path"));
+        m_pNamePathGroupBox->setTitle(UIWizardCloneVM::tr("New Machine Name and Path"));
     if (m_pCloneTypeGroupBox)
-        m_pCloneTypeGroupBox->setTitle(UIWizardCloneVM::tr("Clone type"));
+        m_pCloneTypeGroupBox->setTitle(UIWizardCloneVM::tr("Clone Type"));
     if (m_pCloneModeGroupBox)
         m_pCloneModeGroupBox->setTitle(UIWizardCloneVM::tr("Snapshots"));
     if (m_pAdditionalOptionsGroupBox)
-        m_pAdditionalOptionsGroupBox->setTitle(UIWizardCloneVM::tr("Additional options"));
+        m_pAdditionalOptionsGroupBox->setTitle(UIWizardCloneVM::tr("Additional Options"));
 }
 
 void UIWizardCloneVMExpertPage::initializePage()
@@ -133,7 +132,7 @@ void UIWizardCloneVMExpertPage::initializePage()
 
     setCloneModeGroupBoxEnabled();
 
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIWizardCloneVMExpertPage::setCloneModeGroupBoxEnabled()

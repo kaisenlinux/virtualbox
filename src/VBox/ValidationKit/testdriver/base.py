@@ -8,7 +8,7 @@ Base testdriver module.
 
 __copyright__ = \
 """
-Copyright (C) 2010-2023 Oracle and/or its affiliates.
+Copyright (C) 2010-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -37,7 +37,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 
 # Standard Python imports.
@@ -46,7 +46,6 @@ import os.path
 import signal
 import socket
 import stat
-import subprocess
 import sys
 import time
 if sys.version_info[0] < 3: import thread;            # pylint: disable=import-error
@@ -64,7 +63,7 @@ if sys.platform == 'win32':
     from testdriver         import winbase;
 
 # Figure where we are.
-try:    __file__
+try:    __file__                            # pylint: disable=used-before-assignment
 except: __file__ = sys.argv[0];
 g_ksValidationKitDir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)));
 
@@ -198,7 +197,7 @@ def __processSudoKill(uPid, iSignal, fSudo):
         os.kill(uPid, iSignal);
         return True;
     except:
-        reporter.logXcpt('uPid=%s' % (uPid,));
+        reporter.logXcpt('uPid=%s, iSignal=%d, fSudo=%s' % (uPid, iSignal, fSudo));
     return False;
 
 def processInterrupt(uPid, fSudo = False):
@@ -280,47 +279,7 @@ def processCheckPidAndName(uPid, sName):
     """
     Checks if a process PID and NAME matches.
     """
-    if sys.platform == 'win32':
-        fRc = winbase.processCheckPidAndName(uPid, sName);
-    else:
-        sOs = utils.getHostOs();
-        if sOs == 'linux':
-            asPsCmd = ['/bin/ps',     '-p', '%u' % (uPid,), '-o', 'fname='];
-        elif sOs == 'solaris':
-            asPsCmd = ['/usr/bin/ps', '-p', '%u' % (uPid,), '-o', 'fname='];
-        elif sOs == 'darwin':
-            asPsCmd = ['/bin/ps',     '-p', '%u' % (uPid,), '-o', 'ucomm='];
-        else:
-            asPsCmd = None;
-
-        if asPsCmd is not None:
-            try:
-                oPs = subprocess.Popen(asPsCmd, stdout=subprocess.PIPE); # pylint: disable=consider-using-with
-                sCurName = oPs.communicate()[0];
-                iExitCode = oPs.wait();
-            except:
-                reporter.logXcpt();
-                return False;
-
-            # ps fails with non-zero exit code if the pid wasn't found.
-            if iExitCode != 0:
-                return False;
-            if sCurName is None:
-                return False;
-            sCurName = sCurName.strip();
-            if sCurName == '':
-                return False;
-
-            if os.path.basename(sName) == sName:
-                sCurName = os.path.basename(sCurName);
-            elif os.path.basename(sCurName) == sCurName:
-                sName = os.path.basename(sName);
-
-            if sCurName != sName:
-                return False;
-
-            fRc = True;
-    return fRc;
+    return utils.processCheckPidAndName(uPid, sName);
 
 def wipeDirectory(sDir):
     """
@@ -436,7 +395,8 @@ class TdTaskBase(object):
 
     def lockTask(self):
         """ Wrapper around oCv.acquire(). """
-        if True is True: # change to False for debugging deadlocks. # pylint: disable=comparison-with-itself
+        # Change this to False for debugging deadlocks.
+        if True is True: # pylint: disable=comparison-with-itself,comparison-of-constants
             self.oCv.acquire();
         else:
             msStartWait = timestampMilli();
@@ -653,7 +613,7 @@ class Process(TdTaskBase):
                 if winbase.processPollByHandle(self.hWin):
                     try:
                         if hasattr(self.hWin, '__int__'): # Needed for newer pywin32 versions.
-                            (uPid, uStatus) = os.waitpid(self.hWin.__int__(), 0);
+                            (uPid, uStatus) = os.waitpid(self.hWin.__int__(), 0); # pylint: disable=unnecessary-dunder-call
                         else:
                             (uPid, uStatus) = os.waitpid(self.hWin, 0);
                         if uPid in (self.hWin, self.uPid,):
@@ -715,26 +675,56 @@ class Process(TdTaskBase):
         self.sKindCrashReport = sKindCrashReport;
         self.sKindCrashDump   = sKindCrashDump;
 
-        sCorePath = None;
         sOs       = utils.getHostOs();
         if sOs == 'solaris':
-            if sKindCrashDump is not None: # Enable.
-                sCorePath = getDirEnv('TESTBOX_PATH_SCRATCH', sAlternative = '/var/cores', fTryCreate = False);
-                (iExitCode, _, sErr) = utils.processOutputUnchecked([ 'coreadm', '-e', 'global', '-e', 'global-setid', \
-                                                                      '-e', 'process', '-e', 'proc-setid', \
-                                                                      '-g', os.path.join(sCorePath, '%f.%p.core')]);
-            else: # Disable.
-                (iExitCode, _, sErr) = utils.processOutputUnchecked([ 'coreadm', \
-                                                                      '-d', 'global', '-d', 'global-setid', \
-                                                                      '-d', 'process', '-d', 'proc-setid' ]);
-            if iExitCode != 0: # Don't report an actual error, just log this.
-                reporter.log('%s coreadm failed: %s' % ('Enabling' if sKindCrashDump else 'Disabling', sErr));
+            # Both 'coreadm -e ...' and 'svccfg apply' only work if running with all privileges.
+            fIsRoot = os.geteuid() == 0; # pylint: disable=no-member
+            if fIsRoot is False:
+                return True;
 
-        if sKindCrashDump is not None:
-            if sCorePath is not None:
-                reporter.log('Crash dumps enabled -- path is "%s"' % (sCorePath,));
-        else:
-            reporter.log('Crash dumps disabled');
+            sScratchPath = os.environ.get('TESTBOX_PATH_SCRATCH', '/var/tmp');
+            sCoreadmXmlFile = os.path.join(sScratchPath, 'coreadm.xml');
+            if sKindCrashDump is not None:
+                # If the current core file configuration has been modified from the system default
+                # then save the configuration to coreadm.xml so it can be restored afterwards.
+                (iExitCode, sStdOut, sStdErr) = utils.processOutputUnchecked([ 'svcprop', '-p', 'config_params', \
+                                                                               '-l', 'admin', 'svc:/system/coreadm:default' ]);
+                if iExitCode == 0 and sStdOut != '':
+                    (iExitCode, _, sStdErr) = utils.processOutputUnchecked([ 'svccfg', 'extract', '-l', 'admin', \
+                                                                             'svc:/system/coreadm:default', '>', \
+                                                                             sCoreadmXmlFile ]);
+                # Annoyingly svccfg(1M) returns zero for both success and failure but if the
+                # command fails errors are written to stderr.
+                if iExitCode != 0 or sStdErr != '':
+                    reporter.error('Failed to backup current system-wide core dump configuration: %s' % sStdErr);
+                    return False;
+
+                # Configure all core dumps, including those of setuid and setgid binaries, to be
+                # written to /var/cores using the naming pattern of core.argv0.process-ID, e.g.
+                # core.VBoxSVC.12345.
+                (iExitCode, _, sStdErr) = utils.processOutputUnchecked([ 'coreadm', '-e', 'global', '-e', 'global-setid', \
+                                                                         '-e', 'log', '-G', 'all', \
+                                                                         '-g', '/var/cores/core.%f.%p' ]);
+                if iExitCode != 0:
+                    reporter.error('Failed to update system-wide core dump configuration: %s' % sStdErr);
+                    return False;
+
+                reporter.log('Core file configuration successfully updated: All core files will be written to /var/cores.');
+            else:
+                # Restore the core file configuration to what it was before making the
+                # changes above.
+                (iExitCode, _, sStdErr) = utils.processOutputUnchecked([ 'svccfg', '-s', 'svc:/system/coreadm:default', \
+                                                                         'delcust' ]);
+                # Annoyingly svccfg(1M) returns zero for both success and failure but if the
+                # command fails errors are written to stderr.
+                if sStdErr == '' and os.path.exists(sCoreadmXmlFile):
+                    (iExitCode, _, sStdErr) = utils.processOutputUnchecked([ 'svccfg', 'apply', sCoreadmXmlFile ]);
+
+                if sStdErr != '':
+                    reporter.error('Failed to restore system-wide core dump configuration: %s' % sStdErr);
+                    return False;
+
+                reporter.log('Core file configuration successfully restored to previous state.');
 
         return True;
 
@@ -1078,8 +1068,7 @@ class TestDriverBase(object): # pylint: disable=too-many-instance-attributes
             self.aoTasks.remove(oTask);
         except:
             return None;
-        else:
-            oTask.setTaskOwner(None);
+        oTask.setTaskOwner(None);
         #reporter.log2('tasks left: %d - %s' % (len(self.aoTasks), self.aoTasks));
         return oTask;
 
@@ -1312,7 +1301,7 @@ class TestDriverBase(object): # pylint: disable=too-many-instance-attributes
                 if cMsTimeout > cMsToDeadline:
                     reporter.log('adjusting timeout: %s ms -> %s ms (deadline)\n' % (cMsTimeout, cMsToDeadline,));
                     return cMsToDeadline;
-                reporter.log('adjustTimeoutMs: cMsTimeout (%s) > cMsToDeadline (%s)' % (cMsTimeout, cMsToDeadline,));
+                reporter.log('adjustTimeoutMs: cMsTimeout (%s) <= cMsToDeadline (%s)' % (cMsTimeout, cMsToDeadline,));
             else:
                 # Don't bother, we've passed the deadline.
                 reporter.log('adjustTimeoutMs: ooops! cMsToDeadline=%s (%s), timestampMilli()=%s, timestampSecond()=%s'

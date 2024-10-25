@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -712,8 +712,9 @@ void tmTimerQueuesSanityChecks(PVMCC pVM, const char *pszWhere)
 
 # ifdef IN_RING3
                 /* Go thru all the timers and check that the active ones all are in the active lists. */
-                uint32_t idxTimer = pQueue->cTimersAlloc;
-                uint32_t cFree    = 0;
+                int const rcAllocLock = PDMCritSectRwTryEnterShared(pVM, &pQueue->AllocLock);
+                uint32_t  idxTimer    = pQueue->cTimersAlloc;
+                uint32_t  cFree       = 0;
                 while (idxTimer-- > 0)
                 {
                     PTMTIMER const     pTimer   = &pQueue->paTimers[idxTimer];
@@ -778,7 +779,14 @@ void tmTimerQueuesSanityChecks(PVMCC pVM, const char *pszWhere)
                         Assert(((pTimer->hSelf >> TMTIMERHANDLE_QUEUE_IDX_SHIFT) & TMTIMERHANDLE_QUEUE_IDX_SMASK) == idxQueue);
                     }
                 }
-                Assert(cFree == pQueue->cTimersFree);
+                if (RT_SUCCESS(rcAllocLock))
+                {
+                    Assert(cFree == pQueue->cTimersFree);
+                    PDMCritSectRwLeaveShared(pVM, &pQueue->AllocLock);
+                }
+                else
+                    Assert(cFree >= pQueue->cTimersFree); /* Can be lower as the tmr3TimerCreate may run concurrent. */
+
 # endif /* IN_RING3 */
 
                 if (pQueue->enmClock == TMCLOCK_VIRTUAL_SYNC)
@@ -889,12 +897,13 @@ DECL_FORCE_INLINE(uint64_t) tmTimerPollReturnHit(PVM pVM, PVMCPU pVCpu, PVMCPU p
  * @param   pVM         The cross context VM structure.
  * @param   pVCpu       The cross context virtual CPU structure of the calling EMT.
  * @param   pu64Delta   Where to store the delta.
+ * @param   pu64Now     Where to store the current time. Optional.
  *
  * @thread  The emulation thread.
  *
  * @remarks GIP uses ns ticks.
  */
-DECL_FORCE_INLINE(uint64_t) tmTimerPollInternal(PVMCC pVM, PVMCPUCC pVCpu, uint64_t *pu64Delta)
+DECL_FORCE_INLINE(uint64_t) tmTimerPollInternal(PVMCC pVM, PVMCPUCC pVCpu, uint64_t *pu64Delta, uint64_t *pu64Now)
 {
     VMCPUID idCpu = pVM->tm.s.idTimerCpu;
     AssertReturn(idCpu < pVM->cCpus, 0);
@@ -902,6 +911,8 @@ DECL_FORCE_INLINE(uint64_t) tmTimerPollInternal(PVMCC pVM, PVMCPUCC pVCpu, uint6
 
     const uint64_t u64Now = TMVirtualGetNoCheck(pVM);
     STAM_COUNTER_INC(&pVM->tm.s.StatPoll);
+    if (pu64Now)
+        *pu64Now = u64Now;
 
     /*
      * Return straight away if the timer FF is already set ...
@@ -1103,8 +1114,32 @@ VMMDECL(bool) TMTimerPollBool(PVMCC pVM, PVMCPUCC pVCpu)
 {
     AssertCompile(TMCLOCK_FREQ_VIRTUAL == 1000000000);
     uint64_t off = 0;
-    tmTimerPollInternal(pVM, pVCpu, &off);
+    tmTimerPollInternal(pVM, pVCpu, &off, NULL);
     return off == 0;
+}
+
+
+/**
+ * Set FF if we've passed the next virtual event and return virtual time as MS.
+ *
+ * This function is called before FFs are checked in the inner execution EM loops.
+ *
+ * This is used by the IEM recompiler for polling timers while also providing a
+ * free time source for recent use tracking and such.
+ *
+ * @returns Nanoseconds till the next event, 0 if event already pending.
+ *
+ * @param   pVM         The cross context VM structure.
+ * @param   pVCpu       The cross context virtual CPU structure of the calling EMT.
+ * @param   pnsNow      Where to return the current virtual time in nanoseconds.
+ * @thread  The emulation thread.
+ */
+VMM_INT_DECL(uint64_t) TMTimerPollBoolWithNanoTS(PVMCC pVM, PVMCPUCC pVCpu, uint64_t *pnsNow)
+{
+    AssertCompile(TMCLOCK_FREQ_VIRTUAL == 1000000000);
+    uint64_t offDelta = 0;
+    tmTimerPollInternal(pVM, pVCpu, &offDelta, pnsNow);
+    return offDelta;
 }
 
 
@@ -1120,7 +1155,7 @@ VMMDECL(bool) TMTimerPollBool(PVMCC pVM, PVMCPUCC pVCpu)
 VMM_INT_DECL(void) TMTimerPollVoid(PVMCC pVM, PVMCPUCC pVCpu)
 {
     uint64_t off;
-    tmTimerPollInternal(pVM, pVCpu, &off);
+    tmTimerPollInternal(pVM, pVCpu, &off, NULL);
 }
 
 
@@ -1138,7 +1173,7 @@ VMM_INT_DECL(void) TMTimerPollVoid(PVMCC pVM, PVMCPUCC pVCpu)
  */
 VMM_INT_DECL(uint64_t) TMTimerPollGIP(PVMCC pVM, PVMCPUCC pVCpu, uint64_t *pu64Delta)
 {
-    return tmTimerPollInternal(pVM, pVCpu, pu64Delta);
+    return tmTimerPollInternal(pVM, pVCpu, pu64Delta, NULL);
 }
 
 #endif /* VBOX_HIGH_RES_TIMERS_HACK */

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -341,7 +341,8 @@ protected:
      * Adds files to the .viso-file vectors.
      *
      * The base class implementation adds the script from mAlg, additions ISO
-     * content to '/vboxadditions', and validation kit ISO to '/vboxvalidationkit'.
+     * content to '/vboxadditions', validation kit ISO to '/vboxvalidationkit',
+     * and user payload ISO to '/vboxuserpayload'.
      *
      * @returns COM status code.
      * @param   rVecArgs        The ISO maker argument list that will be turned into
@@ -552,6 +553,14 @@ protected:
      * @param   pEditor         Editor with the isolinux.cfg file loaded and parsed.
      */
     virtual HRESULT editIsoLinuxCommon(GeneralTextScript *pEditor);
+
+    /**
+     * Performs basic edits on grub configuration file (grub.cfg).
+     *
+     * @returns COM status code
+     * @param   pEditor                 Editor with the grub.cfg file loaded and parsed.
+     */
+    virtual HRESULT editGrubCfg(GeneralTextScript *pEditor);
 };
 
 
@@ -604,13 +613,6 @@ protected:
      * @param   pEditor                  Editor with the menu config. file loaded and parsed.
      */
     HRESULT editDebianMenuCfg(GeneralTextScript *pEditor);
-    /**
-     * Performs basic edits on grub configuration file (grub.cfg).
-     *
-     * @returns COM status code
-     * @param   pEditor                 Editor with the grub.cfg file loaded and parsed.
-     */
-    HRESULT editDebianGrubCfg(GeneralTextScript *pEditor);
 
     /**
      * Performs basic edits on a isolinux.cfg file.
@@ -639,17 +641,63 @@ private:
 
 
 /**
- * Ubuntu installer (same as debian, except for the template).
+ * Ubuntu preseed installer (same as Debian, except for the template).
+ *
+ * Only for older Ubuntu desktop versions (<= 22.04).
  */
-class UnattendedUbuntuInstaller : public UnattendedDebianInstaller
+class UnattendedUbuntuPreseedInstaller : public UnattendedDebianInstaller
 {
 public:
-    DECLARE_TRANSLATE_METHODS(UnattendedUbuntuInstaller)
+    DECLARE_TRANSLATE_METHODS(UnattendedUbuntuPreseedInstaller)
 
-    UnattendedUbuntuInstaller(Unattended *pParent)
+    UnattendedUbuntuPreseedInstaller(Unattended *pParent)
         : UnattendedDebianInstaller(pParent, "ubuntu_preseed.cfg")
     { Assert(!isOriginalIsoNeeded()); Assert(isAuxiliaryIsoNeeded()); Assert(!isAuxiliaryFloppyNeeded()); Assert(isAuxiliaryIsoIsVISO()); }
-    ~UnattendedUbuntuInstaller() {}
+    ~UnattendedUbuntuPreseedInstaller() {}
+};
+
+/**
+ * Ubuntu autoinstall installer.
+ *
+ * Newer Ubuntu desktop versions (>= 22.10) as well as newer Ubuntu server versions(>= 20.04) use a different installer ("subiquity")
+ * which in turn uses the autoinstall / cloud-init installer. This is substantially different from the old preseed files,
+ * as this is now YAML-based along with a different scheme.
+ */
+class UnattendedUbuntuAutoInstallInstaller : public UnattendedDebianInstaller
+{
+public:
+    DECLARE_TRANSLATE_METHODS(UnattendedUbuntuAutoInstall)
+
+    UnattendedUbuntuAutoInstallInstaller(Unattended *pParent)
+        : UnattendedDebianInstaller(pParent,
+                                    /* pszMainScriptTemplateName = */ "ubuntu_autoinstall_user_data",
+                                    /* pszPostScriptTemplateName = */ "debian_postinstall.sh",
+                                    /* pszMainScriptFilename     = */ "user-data")
+    {
+        Assert(!isOriginalIsoNeeded()); Assert(isAuxiliaryIsoNeeded());
+        Assert(!isAuxiliaryFloppyNeeded()); Assert(isAuxiliaryIsoIsVISO());
+        mStrDefaultExtraInstallKernelParameters.setNull();
+        mStrDefaultExtraInstallKernelParameters += " autoinstall";
+        mStrDefaultExtraInstallKernelParameters += " ds=nocloud\\;s=/cdrom/";
+        mStrDefaultExtraInstallKernelParameters += " ---";
+        mStrDefaultExtraInstallKernelParameters += " quiet";
+        mStrDefaultExtraInstallKernelParameters += " splash";
+        mStrDefaultExtraInstallKernelParameters += " noprompt";  /* no questions about things like CD/DVD ejections */
+        mStrDefaultExtraInstallKernelParameters += " noshell";   /* No shells on VT1-3 (debian, not ubuntu). */
+        mStrDefaultExtraInstallKernelParameters += " automatic-ubiquity";   // ubiquity
+        // the following can probably go into the preseed.cfg:
+        mStrDefaultExtraInstallKernelParameters.append(" debian-installer/locale=").append(pParent->i_getLocale());
+        mStrDefaultExtraInstallKernelParameters += " keyboard-configuration/layoutcode=us";
+        mStrDefaultExtraInstallKernelParameters += " languagechooser/language-name=English"; /** @todo fixme */
+        mStrDefaultExtraInstallKernelParameters.append(" localechooser/supported-locales=").append(pParent->i_getLocale()).append(".UTF-8");
+        mStrDefaultExtraInstallKernelParameters.append(" countrychooser/shortlist=").append(pParent->i_getCountry()); // ubiquity?
+        mStrDefaultExtraInstallKernelParameters += " --";
+    }
+    ~UnattendedUbuntuAutoInstallInstaller() {}
+
+protected:
+    HRESULT addFilesToAuxVisoVectors(RTCList<RTCString> &rVecArgs, RTCList<RTCString> &rVecFiles,
+                                     RTVFS hVfsOrgIso, bool fOverwrite);
 };
 
 /**

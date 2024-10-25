@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,38 +35,30 @@
 #include <QWidget>
 
 /* COM includes: */
-#include "COMEnums.h"
-#include "CConsole.h"
-#include "CGuest.h"
-#include "CMachine.h"
-
-/* GUI includes: */
-#include "QIWithRetranslateUI.h"
+#include "KClipboardMode.h"
+#include "KDnDMode.h"
+#include "KGuestMonitorChangedEventType.h"
 
 /* Forward declarations: */
 class QAction;
 class QVBoxLayout;
-class UISession;
+class UIMachine;
 class UIRuntimeInfoWidget;
 
 /** UIInformationRuntime class displays a table including some
   * run time attributes. */
-class UIInformationRuntime : public QIWithRetranslateUI<QWidget>
+class UIInformationRuntime : public QWidget
 {
     Q_OBJECT;
 
 public:
 
-    /** Constructs information-tab passing @a pParent to the QWidget base-class constructor.
-      * @param machine is machine reference.
-      * @param console is machine console reference. */
-    UIInformationRuntime(QWidget *pParent, const CMachine &machine, const CConsole &console, const UISession *pSession);
-
-protected:
-
-    void retranslateUi();
+    /** Constructs information-tab passing @a pParent to the base-class. */
+    UIInformationRuntime(QWidget *pParent);
 
 private slots:
+
+    virtual void sltRetranslateUI();
 
     /** @name These functions are connected to API events and implement necessary updates on the table.
       * @{ */
@@ -82,10 +74,6 @@ private slots:
 private:
 
     void prepareObjects();
-
-    CMachine m_machine;
-    CConsole m_console;
-    CGuest m_comGuest;
 
     /** Holds the instance of layout we create. */
     QVBoxLayout *m_pMainLayout;

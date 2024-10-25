@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,7 +35,7 @@
 #include <QTextBrowser>
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
+#include "UILibraryDefs.h"
 
 /* Forward declarations: */
 class QHelpEngine;
@@ -43,14 +43,12 @@ class QGraphicsBlurEffect;
 class QLabel;
 class UIFindInPageWidget;
 
-#ifdef VBOX_WITH_QHELP_VIEWER
-
 /** A QTextBrowser extension used as poor man's html viewer. Since we were not happy with the quality of QTextBrowser's image
   * rendering and didn't want to use WebKit module, this extension redraws the document images as overlays with improved QPainter
   * parameters. There is also a small hack to render clicked image 1:1 (and the rest of the document blurred)
-  * for a zoom-in-image functionality. This extension can also scale the images while scaling the document. In contrast
+  * for a zoom-in-image functionality. This extension can also scale the images while scaling the document. In contrast,
   * QTextBrowser scales only fonts. */
-class UIHelpViewer : public QIWithRetranslateUI<QTextBrowser>
+class UIHelpViewer : public QTextBrowser
 {
 
     Q_OBJECT;
@@ -82,9 +80,6 @@ public:
     UIHelpViewer(const QHelpEngine *pHelpEngine, QWidget *pParent = 0);
     virtual QVariant loadResource(int type, const QUrl &name) RT_OVERRIDE;
     void emitHistoryChangedSignal();
-#ifndef VBOX_IS_QT6_OR_LATER /* must override doSetSource since 6.0 */
-    virtual void setSource(const QUrl &url) RT_OVERRIDE;
-#endif
     void setFont(const QFont &);
     bool isFindInPageWidgetVisible() const;
     void setZoomPercentage(int iZoomPercentage);
@@ -97,7 +92,7 @@ public slots:
 
     void sltSelectPreviousMatch();
     void sltSelectNextMatch();
-    virtual void reload() /* overload */;
+    virtual void reload() RT_OVERRIDE;
 
 protected:
 
@@ -111,9 +106,7 @@ protected:
     virtual void paintEvent(QPaintEvent *pEvent) RT_OVERRIDE;
     virtual bool eventFilter(QObject *pObject, QEvent *pEvent) RT_OVERRIDE;
     virtual void keyPressEvent(QKeyEvent *pEvent) RT_OVERRIDE;
-#ifdef VBOX_IS_QT6_OR_LATER /* it was setSource before 6.0 */
     virtual void doSetSource(const QUrl &url, QTextDocument::ResourceType type = QTextDocument::UnknownResource) RT_OVERRIDE;
-#endif
 
 private slots:
 
@@ -124,6 +117,7 @@ private slots:
     void sltFindInPageSearchTextChange(const QString &strSearchText);
     void sltToggleFindInPageWidget(bool fVisible);
     void sltCloseFindInPageWidget();
+    void sltUpdateHighlightedURL(const QUrl &url);
 
 private:
 
@@ -136,7 +130,6 @@ private:
         QString m_strName;
     };
 
-    void retranslateUi();
     bool isRectInside(const QRect &rect, int iMargin) const;
     void moveFindWidgetIn(int iMargin);
     void findAllMatches(const QString &searchString);
@@ -146,11 +139,10 @@ private:
     void iterateDocumentImages();
     void scaleFont();
     void scaleImages();
-    /** If there is image at @p globalPosition then its data is loaded to m_overlayPixmap. */
-    void loadImageAtPosition(const QPoint &globalPosition);
+    void loadImage(const QUrl &imageFileUrl);
     void clearOverlay();
     void enableOverlay();
-    void setImageOverCursor(QPoint globalPosition);
+    bool isImage(const QString &strLink);
 
     const QHelpEngine* m_pHelpEngine;
     UIFindInPageWidget *m_pFindInPageWidget;
@@ -164,18 +156,14 @@ private:
     int m_iInitialFontPointSize;
     /** A container to store the original image sizes/positions in the document. key is image name value is DocumentImage. */
     QHash<QString, DocumentImage> m_imageMap;
-    /** Used to change th document cursor back from m_handCursor. */
-    QCursor m_defaultCursor;
-    QCursor m_handCursor;
     /** We need this list from th QHelp system to obtain information of images. */
     QList<QUrl> m_helpFileList;
     QPixmap m_overlayPixmap;
     bool m_fOverlayMode;
-    bool m_fCursorChanged;
     QLabel *m_pOverlayLabel;
     QGraphicsBlurEffect *m_pOverlayBlurEffect;
     int m_iZoomPercentage;
+    QUrl m_highlightedUrl;
 };
 
-#endif /* #ifdef VBOX_WITH_QHELP_VIEWER */
 #endif /* !FEQT_INCLUDED_SRC_helpbrowser_UIHelpViewer_h */

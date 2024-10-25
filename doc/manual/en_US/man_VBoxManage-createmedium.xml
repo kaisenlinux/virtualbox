@@ -3,7 +3,7 @@
     manpage, user manual, usage: VBoxManage createmedium
 -->
 <!--
-    Copyright (C) 2006-2023 Oracle and/or its affiliates.
+    Copyright (C) 2006-2024 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.
@@ -30,7 +30,7 @@
 ]>
 <refentry id="vboxmanage-createmedium" lang="en">
   <refentryinfo>
-    <pubdate>$Date: 2023-01-17 15:15:46 +0100 (Tue, 17 Jan 2023) $</pubdate>
+    <pubdate>$Date: 2024-09-16 16:03:52 +0200 (Mon, 16 Sep 2024) $</pubdate>
     <title>VBoxManage createmedium</title>
   </refentryinfo>
 
@@ -68,15 +68,21 @@
           <arg choice="plain"><replaceable>VMDK</replaceable></arg>
           <arg choice="plain"><replaceable>VHD</replaceable></arg>
         </group></arg>
-      <arg>--variant Standard,Fixed,Split2G,Stream,ESX,Formatted,RawDisk</arg>
-      <arg choice="plain" rep="repeat">--property
-          <replaceable>name</replaceable>=<replaceable>value</replaceable></arg>
-      <arg choice="plain" rep="repeat">--property-file
-          <replaceable>name</replaceable>=<replaceable>/path/to/file/with/value</replaceable></arg>
+      <arg rep="repeat" role="compact">--variant=<group choice="plain">
+          <arg choice="plain">Standard</arg>
+          <arg choice="plain">Fixed</arg>
+          <arg choice="plain">Split2G</arg>
+          <arg choice="plain">Stream</arg>
+          <arg choice="plain">ESX</arg>
+          <arg choice="plain">Formatted</arg>
+          <arg choice="plain">RawDisk</arg>
+      </group></arg> <!-- Value can be repated with comma separator. Difficult to express with docbook. -->
+      <arg rep="repeat">--property=<replaceable>name</replaceable>=<replaceable>value</replaceable></arg>
+      <arg rep="repeat">--property-file=<replaceable>name</replaceable>=<replaceable>/path/to/file/with/value</replaceable></arg>
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-createmedium-description">
     <title>Description</title>
     <para>
       The <command>VBoxManage createmedium</command> command creates a
@@ -137,7 +143,7 @@
           </para></listitem>
       </varlistentry>
       <varlistentry>
-        <term><option>--variant=Standard,Fixed,Split2G,Stream,ESX,Formatted,RawDisk</option></term>
+        <term><option>--variant=Standard | Fixed | Split2G | Stream | ESX | Formatted | RawDisk [,...]</option></term>
         <listitem><para>
             Specifies the file format variant for the target medium,
             which is a comma-separated list of variants. Following are
@@ -183,7 +189,7 @@
           </para></listitem>
       </varlistentry>
       <varlistentry>
-        <term><option>--property <replaceable>name</replaceable>=<replaceable>value</replaceable></option></term>
+        <term><option>--property=<replaceable>name</replaceable>=<replaceable>value</replaceable></option></term>
         <listitem><para>
             Specifies any required file format dependent parameters in
             <literal>key=value</literal> form. Optional.
@@ -191,8 +197,7 @@
         </listitem>
       </varlistentry>
       <varlistentry>
-        <term><option>--property-file <replaceable>name
-          </replaceable>=<replaceable>/path/to/file/with/value</replaceable></option></term>
+        <term><option>--property-file=<replaceable>name</replaceable>=<replaceable>/path/to/file/with/value</replaceable></option></term>
         <listitem><para>
             Specifies any required file format dependent parameters in
             <literal>key=file/with/value</literal> form. The value is
@@ -202,7 +207,7 @@
     </variablelist>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-createmedium-examples">
     <title>Examples</title>
     <remark role="help-scope" condition="GLOBAL" />
     <para>

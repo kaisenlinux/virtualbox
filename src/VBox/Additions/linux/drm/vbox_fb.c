@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2024 Oracle and/or its affiliates.
  * This file is based on ast_fb.c
  * Copyright 2012 Red Hat Inc.
  *
@@ -196,7 +196,7 @@ static struct fb_ops vboxfb_ops = {
 	.owner = THIS_MODULE,
 	.fb_check_var = drm_fb_helper_check_var,
 	.fb_set_par = drm_fb_helper_set_par,
-#if RTLNX_VER_MIN(6,5,0) || RTLNX_RHEL_RANGE(9,4, 9,99)
+#if RTLNX_VER_MIN(6,5,0) || RTLNX_RHEL_RANGE(9,4, 9,99) || RTLNX_SUSE_MAJ_PREREQ(15, 6)
 	.fb_read    = fb_sys_read,
 	.fb_write   = fb_sys_write,
 	.fb_fillrect = sys_fillrect,
@@ -351,7 +351,7 @@ static int vboxfb_create(struct drm_fb_helper *helper,
 	 * The last flag forces a mode set on VT switches even if the kernel
 	 * does not think it is needed.
 	 */
-#if RTLNX_VER_MIN(6,6,0)
+#if RTLNX_VER_MIN(6,6,0) || RTLNX_SUSE_MAJ_PREREQ(15, 6) || RTLNX_RHEL_RANGE(9,5, 9,99)
 	info->flags = FBINFO_MISC_ALWAYS_SETPAR;
 #else
 	info->flags = FBINFO_DEFAULT | FBINFO_MISC_ALWAYS_SETPAR;

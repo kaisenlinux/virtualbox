@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,10 +26,10 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QFontDatabase>
 #include <QMetaEnum>
 #include <QMutex>
-#include <QRegExp>
 #include <QRegularExpression>
 #include <QRegularExpressionValidator>
 #ifdef VBOX_GUI_WITH_EXTRADATA_MANAGER_UI
@@ -53,11 +53,13 @@
 
 /* GUI includes: */
 #include "UICommon.h"
-#include "UIActionPool.h"
 #include "UIConverter.h"
 #include "UIDesktopWidgetWatchdog.h"
 #include "UIExtraDataManager.h"
+#include "UIGlobalSession.h"
 #include "UIHostComboEditor.h"
+#include "UILocalMachineStuff.h"
+#include "UILoggingDefs.h"
 #include "UIMainEventListener.h"
 #include "UIMessageCenter.h"
 #include "UISettingsDefs.h"
@@ -75,7 +77,6 @@
 #endif /* VBOX_GUI_WITH_EXTRADATA_MANAGER_UI */
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CEventListener.h"
 #include "CEventSource.h"
 #include "CMachine.h"
@@ -175,11 +176,10 @@ void UIExtraDataEventHandler::prepareListener()
     m_comEventListener = CEventListener(m_pQtListener);
 
     /* Get VirtualBox: */
-    const CVirtualBox comVBox = uiCommon().virtualBox();
-    AssertWrapperOk(comVBox);
+    const CVirtualBox comVBox = gpGlobalSession->virtualBox();
     /* Get VirtualBox event source: */
     CEventSource comEventSourceVBox = comVBox.GetEventSource();
-    AssertWrapperOk(comEventSourceVBox);
+    Assert(comVBox.isOk());
 
     /* Enumerate all the required event-types: */
     QVector<KVBoxEventType> eventTypes;
@@ -189,7 +189,7 @@ void UIExtraDataEventHandler::prepareListener()
 
     /* Register event listener for VirtualBox event source: */
     comEventSourceVBox.RegisterListener(m_comEventListener, eventTypes, FALSE /* active? */);
-    AssertWrapperOk(comEventSourceVBox);
+    Assert(comEventSourceVBox.isOk());
 
     /* Register event sources in their listeners as well: */
     m_pQtListener->getWrapped()->registerSource(comEventSourceVBox, m_comEventListener);
@@ -217,15 +217,14 @@ void UIExtraDataEventHandler::cleanupListener()
     m_pQtListener->getWrapped()->unregisterSources();
 
     /* Make sure VBoxSVC is available: */
-    if (!uiCommon().isVBoxSVCAvailable())
+    if (!gpGlobalSession->isVBoxSVCAvailable())
         return;
 
     /* Get VirtualBox: */
-    const CVirtualBox comVBox = uiCommon().virtualBox();
-    AssertWrapperOk(comVBox);
+    const CVirtualBox comVBox = gpGlobalSession->virtualBox();
     /* Get VirtualBox event source: */
     CEventSource comEventSourceVBox = comVBox.GetEventSource();
-    AssertWrapperOk(comEventSourceVBox);
+    Assert(comVBox.isOk());
 
     /* Unregister event listener for VirtualBox event source: */
     comEventSourceVBox.UnregisterListener(m_comEventListener);
@@ -299,10 +298,10 @@ public:
 private:
 
     /** Size-hint calculation routine. */
-    QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const;
+    QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const  RT_OVERRIDE RT_FINAL;
 
     /** Paint routine. */
-    void paint(QPainter *pPainter, const QStyleOptionViewItem &option, const QModelIndex &index) const;
+    void paint(QPainter *pPainter, const QStyleOptionViewItem &option, const QModelIndex &index) const RT_OVERRIDE RT_FINAL;
 
     /** Fetch pixmap info for passed QModelIndex. */
     static void fetchPixmapInfo(const QModelIndex &index, QPixmap &pixmap, QSize &pixmapSize);
@@ -335,22 +334,17 @@ QSize UIChooserPaneDelegate::sizeHint(const QStyleOptionViewItem &option, const 
     fetchPixmapInfo(index, pixmap, pixmapSize);
 
     /* Calculate width: */
-    const int iWidth = m_iMargin +
-                       pixmapSize.width() +
-                       2 * m_iSpacing +
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
-                       qMax(fm.horizontalAdvance(index.data(Field_Name).toString()),
-                            fm.horizontalAdvance(index.data(Field_ID).toString())) +
-#else
-                       qMax(fm.width(index.data(Field_Name).toString()),
-                            fm.width(index.data(Field_ID).toString())) +
-#endif
-                       m_iMargin;
+    const int iWidth = m_iMargin
+                     + pixmapSize.width()
+                     + 2 * m_iSpacing
+                     + qMax(fm.horizontalAdvance(index.data(Field_Name).toString()),
+                            fm.horizontalAdvance(index.data(Field_ID).toString()))
+                     + m_iMargin;
     /* Calculate height: */
-    const int iHeight = m_iMargin +
-                        qMax(pixmapSize.height(),
-                             fm.height() + m_iSpacing + fm.height()) +
-                        m_iMargin;
+    const int iHeight = m_iMargin
+                      + qMax(pixmapSize.height(),
+                             fm.height() + m_iSpacing + fm.height())
+                      + m_iMargin;
 
     /* Return result: */
     return QSize(iWidth, iHeight);
@@ -451,7 +445,7 @@ protected:
     /** Returns true if the value of the item referred to by the given index left
       * is less than the value of the item referred to by the given index right,
       * otherwise returns false. */
-    bool lessThan(const QModelIndex &leftIdx, const QModelIndex &rightIdx) const
+    bool lessThan(const QModelIndex &leftIdx, const QModelIndex &rightIdx) const RT_OVERRIDE RT_FINAL
     {
         /* Compare by ID first: */
         const QUuid strID1 = leftIdx.data(Field_ID).toUuid();
@@ -763,7 +757,7 @@ void UIExtraDataManagerWindow::sltMachineRegistered(const QUuid &uID, bool fRegi
             knownIDs.append(chooserID(iRow));
 
         /* Get machine items: */
-        const CMachineVector machines = uiCommon().virtualBox().GetMachines();
+        const CMachineVector machines = gpGlobalSession->virtualBox().GetMachines();
         /* Look for the proper place to insert new machine item: */
         QUuid uPositionID = UIExtraDataManager::GlobalID;
         foreach (const CMachine &machine, machines)
@@ -1184,7 +1178,7 @@ void UIExtraDataManagerWindow::sltSave()
     AssertReturnVoid(pSenderAction && m_pActionSave);
 
     /* Compose initial file-name: */
-    const QString strInitialFileName = QDir(uiCommon().homeFolder()).absoluteFilePath(QString("%1_ExtraData.xml").arg(currentChooserName()));
+    const QString strInitialFileName = QDir(gpGlobalSession->homeFolder()).absoluteFilePath(QString("%1_ExtraData.xml").arg(currentChooserName()));
     /* Open file-save dialog to choose file to save extra-data into: */
     const QString strFileName = QIFileDialog::getSaveFileName(strInitialFileName, "XML files (*.xml)", this,
                                                               "Choose file to save extra-data into..", 0, true, true);
@@ -1271,7 +1265,7 @@ void UIExtraDataManagerWindow::sltLoad()
     AssertReturnVoid(pSenderAction && m_pActionLoad);
 
     /* Compose initial file-name: */
-    const QString strInitialFileName = QDir(uiCommon().homeFolder()).absoluteFilePath(QString("%1_ExtraData.xml").arg(currentChooserName()));
+    const QString strInitialFileName = QDir(gpGlobalSession->homeFolder()).absoluteFilePath(QString("%1_ExtraData.xml").arg(currentChooserName()));
     /* Open file-open dialog to choose file to open extra-data into: */
     const QString strFileName = QIFileDialog::getOpenFileName(strInitialFileName, "XML files (*.xml)", this,
                                                               "Choose file to load extra-data from..");
@@ -1595,7 +1589,7 @@ void UIExtraDataManagerWindow::preparePaneChooser()
                     /* Add global chooser item into source-model: */
                     addChooserItemByID(UIExtraDataManager::GlobalID);
                     /* Add machine chooser items into source-model: */
-                    CMachineVector machines = uiCommon().virtualBox().GetMachines();
+                    CMachineVector machines = gpGlobalSession->virtualBox().GetMachines();
                     foreach (const CMachine &machine, machines)
                         addChooserItemByMachine(machine);
                     /* And sort proxy-model: */
@@ -1687,7 +1681,7 @@ void UIExtraDataManagerWindow::prepareButtonBox()
         /* Configure button-box: */
         m_pButtonBox->setStandardButtons(QDialogButtonBox::Help | QDialogButtonBox::Close);
         m_pButtonBox->button(QDialogButtonBox::Close)->setShortcut(Qt::Key_Escape);
-        connect(m_pButtonBox, &QIDialogButtonBox::helpRequested, &msgCenter(), &UIMessageCenter::sltShowHelpHelpDialog);
+        connect(m_pButtonBox, &QIDialogButtonBox::helpRequested, m_pButtonBox, &QIDialogButtonBox::sltHandleHelpRequest);
         connect(m_pButtonBox, &QIDialogButtonBox::rejected,      this, &UIExtraDataManagerWindow::close);
         /* Add button-box into main layout: */
         m_pMainLayout->addWidget(m_pButtonBox);
@@ -1826,7 +1820,7 @@ void UIExtraDataManagerWindow::addChooserItemByID(const QUuid &uID,
         return addChooserItem(uID, QString("Global"), QString(), iPosition);
 
     /* Search for the corresponding machine by ID: */
-    CVirtualBox vbox = uiCommon().virtualBox();
+    CVirtualBox vbox = gpGlobalSession->virtualBox();
     const CMachine machine = vbox.FindMachine(uID.toString());
     /* Make sure VM is accessible: */
     if (vbox.isOk() && !machine.isNull() && machine.GetAccessible())
@@ -1936,7 +1930,7 @@ QStringList UIExtraDataManagerWindow::knownExtraDataKeys()
            << GUI_LastSelectorWindowPosition << GUI_SplitterSizes
            << GUI_Toolbar << GUI_Toolbar_Text
            << GUI_Toolbar_MachineTools_Order << GUI_Toolbar_GlobalTools_Order
-           << GUI_Tools_LastItemsSelected
+           << GUI_Tools_LastItemsSelected << GUI_Tools_Detached
            << GUI_Statusbar
            << GUI_GroupDefinitions << GUI_LastItemSelected
            << GUI_Details_Elements
@@ -1949,7 +1943,6 @@ QStringList UIExtraDataManagerWindow::knownExtraDataKeys()
            << GUI_CloudConsoleManager_Restrictions
            << GUI_CloudConsoleManager_Details_Expanded
            << GUI_CloudConsole_PublicKey_Path
-           << GUI_HideDescriptionForWizards
            << GUI_HideFromManager << GUI_HideDetails
            << GUI_PreventReconfiguration << GUI_PreventSnapshotOperations
 #ifndef VBOX_WS_MAC
@@ -1975,7 +1968,7 @@ QStringList UIExtraDataManagerWindow::knownExtraDataKeys()
            << GUI_RestrictedRuntimeHelpMenuActions
            << GUI_RestrictedVisualStates
            << GUI_Fullscreen << GUI_Seamless << GUI_Scale
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
            << GUI_Fullscreen_LegacyMode
            << GUI_DistinguishMachineWindowGroups
 #endif
@@ -2023,27 +2016,30 @@ UIExtraDataManager *UIExtraDataManager::s_pInstance = 0;
 const QUuid UIExtraDataManager::GlobalID;
 
 /* static */
-UIExtraDataManager* UIExtraDataManager::instance()
+void UIExtraDataManager::create()
 {
-    /* Create/prepare instance if not yet exists: */
-    if (!s_pInstance)
-    {
-        new UIExtraDataManager;
-        s_pInstance->prepare();
-    }
-    /* Return instance: */
-    return s_pInstance;
+    AssertReturnVoid(!s_pInstance);
+    new UIExtraDataManager;
+    s_pInstance->prepare();
 }
 
 /* static */
 void UIExtraDataManager::destroy()
 {
-    /* Destroy/cleanup instance if still exists: */
-    if (s_pInstance)
-    {
-        s_pInstance->cleanup();
-        delete s_pInstance;
-    }
+    AssertPtrReturnVoid(s_pInstance);
+    s_pInstance->cleanup();
+    delete s_pInstance;
+}
+
+/* static */
+UIExtraDataManager *UIExtraDataManager::instance()
+{
+    /* This is the fallback behavior, we need the lazy-init here
+     * only to make sure gEDataManager is never NULL. */
+    AssertPtr(s_pInstance);
+    if (!s_pInstance)
+        create();
+    return s_pInstance;
 }
 
 #ifdef VBOX_GUI_WITH_EXTRADATA_MANAGER_UI
@@ -2064,7 +2060,7 @@ void UIExtraDataManager::hotloadMachineExtraDataMap(const QUuid &uID)
     AssertReturnVoid(!m_data.contains(uID));
 
     /* Search for corresponding machine: */
-    CVirtualBox vbox = uiCommon().virtualBox();
+    CVirtualBox vbox = gpGlobalSession->virtualBox();
     CMachine machine = vbox.FindMachine(uID.toString());
     if (machine.isNull())
         return;
@@ -2109,7 +2105,7 @@ QString UIExtraDataManager::extraDataString(const QString &strKey, const QUuid &
 void UIExtraDataManager::setExtraDataString(const QString &strKey, const QString &strValue, const QUuid &uID /* = GlobalID */)
 {
     /* Make sure VBoxSVC is available: */
-    if (!uiCommon().isVBoxSVCAvailable())
+    if (!gpGlobalSession->isVBoxSVCAvailable())
         return;
 
     /* Hot-load machine extra-data map if necessary: */
@@ -2126,7 +2122,7 @@ void UIExtraDataManager::setExtraDataString(const QString &strKey, const QString
     if (uID == GlobalID)
     {
         /* Get global object: */
-        CVirtualBox comVBox = uiCommon().virtualBox();
+        CVirtualBox comVBox = gpGlobalSession->virtualBox();
         /* Update global extra-data: */
         comVBox.SetExtraData(strKey, strValue);
         if (!comVBox.isOk())
@@ -2146,7 +2142,7 @@ void UIExtraDataManager::setExtraDataString(const QString &strKey, const QString
     else
     {
         /* Search for corresponding machine: */
-        CVirtualBox comVBox = uiCommon().virtualBox();
+        CVirtualBox comVBox = gpGlobalSession->virtualBox();
         const CMachine comMachine = comVBox.FindMachine(uID.toString());
         AssertReturnVoid(comVBox.isOk() && !comMachine.isNull());
         /* Check the configuration access-level: */
@@ -2156,9 +2152,9 @@ void UIExtraDataManager::setExtraDataString(const QString &strKey, const QString
         /* Prepare machine session: */
         CSession comSession;
         if (enmLevel == ConfigurationAccessLevel_Full)
-            comSession = uiCommon().openSession(uID);
+            comSession = openSession(uID);
         else
-            comSession = uiCommon().openExistingSession(uID);
+            comSession = openExistingSession(uID);
         AssertReturnVoid(!comSession.isNull());
         /* Get machine from that session: */
         CMachine comSessionMachine = comSession.GetMachine();
@@ -2200,17 +2196,13 @@ QStringList UIExtraDataManager::extraDataStringList(const QString &strKey, const
 
     /* Few old extra-data string-lists were separated with 'semicolon' symbol.
      * All new separated by 'comma'. We have to take that into account. */
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
     return strValue.split(QRegularExpression("[;,]"), Qt::SkipEmptyParts);
-#else
-    return strValue.split(QRegularExpression("[;,]"), QString::SkipEmptyParts);
-#endif
 }
 
 void UIExtraDataManager::setExtraDataStringList(const QString &strKey, const QStringList &value, const QUuid &uID /* = GlobalID */)
 {
     /* Make sure VBoxSVC is available: */
-    if (!uiCommon().isVBoxSVCAvailable())
+    if (!gpGlobalSession->isVBoxSVCAvailable())
         return;
 
     /* Hot-load machine extra-data map if necessary: */
@@ -2227,7 +2219,7 @@ void UIExtraDataManager::setExtraDataStringList(const QString &strKey, const QSt
     if (uID == GlobalID)
     {
         /* Get global object: */
-        CVirtualBox comVBox = uiCommon().virtualBox();
+        CVirtualBox comVBox = gpGlobalSession->virtualBox();
         /* Update global extra-data: */
         comVBox.SetExtraDataStringList(strKey, value);
         if (!comVBox.isOk())
@@ -2247,7 +2239,7 @@ void UIExtraDataManager::setExtraDataStringList(const QString &strKey, const QSt
     else
     {
         /* Search for corresponding machine: */
-        CVirtualBox comVBox = uiCommon().virtualBox();
+        CVirtualBox comVBox = gpGlobalSession->virtualBox();
         const CMachine comMachine = comVBox.FindMachine(uID.toString());
         AssertReturnVoid(comVBox.isOk() && !comMachine.isNull());
         /* Check the configuration access-level: */
@@ -2257,9 +2249,9 @@ void UIExtraDataManager::setExtraDataStringList(const QString &strKey, const QSt
         /* Prepare machine session: */
         CSession comSession;
         if (enmLevel == ConfigurationAccessLevel_Full)
-            comSession = uiCommon().openSession(uID);
+            comSession = openSession(uID);
         else
-            comSession = uiCommon().openExistingSession(uID);
+            comSession = openExistingSession(uID);
         AssertReturnVoid(!comSession.isNull());
         /* Get machine from that session: */
         CMachine comSessionMachine = comSession.GetMachine();
@@ -2404,7 +2396,7 @@ void UIExtraDataManager::setNotificationCenterOrder(Qt::SortOrder enmOrder)
     setExtraDataString(GUI_NotificationCenter_Order, strValue);
 }
 
-bool UIExtraDataManager::preventBetaBuildLavel()
+bool UIExtraDataManager::preventBetaBuildLabel()
 {
     return isFeatureAllowed(GUI_PreventBetaLabel);
 }
@@ -2499,6 +2491,25 @@ QList<MachineSettingsPageType> UIExtraDataManager::restrictedMachineSettingsPage
     }
     /* Return result: */
     return result;
+}
+
+bool UIExtraDataManager::isSettingsInExpertMode()
+{
+#ifdef DEBUG
+    /* For debug build return true by default: */
+    if (extraDataString(GUI_Settings_ExpertMode).isEmpty())
+        return true;
+#endif
+
+    /* 'False' unless feature allowed: */
+    return isFeatureAllowed(GUI_Settings_ExpertMode);
+}
+
+void UIExtraDataManager::setSettingsInExpertMode(bool fExpertMode)
+{
+    /* Store actual feature state, whether it is "true" or "false",
+     * because absent state means default, depending on defines: */
+    setExtraDataString(GUI_Settings_ExpertMode, toFeatureState(fExpertMode));
 }
 
 QString UIExtraDataManager::languageId()
@@ -2598,7 +2609,7 @@ QString UIExtraDataManager::hostKeyCombination()
         strHostCombo = "55"; // QZ_LMETA
 #elif defined (VBOX_WS_WIN)
         strHostCombo = "163"; // VK_RCONTROL
-#elif defined (VBOX_WS_X11)
+#elif defined (VBOX_WS_NIX)
         strHostCombo = "65508"; // XK_Control_R
 #else
 # warning "port me!"
@@ -2653,7 +2664,7 @@ bool UIExtraDataManager::autoCaptureEnabled()
     /* Invent some sane default if it's empty: */
     if (strAutoCapture.isEmpty())
     {
-#if defined(VBOX_WS_X11) && defined(DEBUG)
+#if defined(VBOX_WS_NIX) && defined(DEBUG)
         fAutoCapture = false;
 #else
         fAutoCapture = true;
@@ -2897,6 +2908,32 @@ void UIExtraDataManager::setToolsPaneLastItemsChosen(const QList<UIToolType> &se
     setExtraDataStringList(GUI_Tools_LastItemsSelected, data);
 }
 
+QList<UIToolType> UIExtraDataManager::detachedTools()
+{
+    /* Parse loaded data: */
+    QList<UIToolType> result;
+    foreach (const QString &strValue, extraDataStringList(GUI_Tools_Detached))
+    {
+        const UIToolType enmType = gpConverter->fromInternalString<UIToolType>(strValue);
+        if (enmType != UIToolType_Invalid)
+            result << enmType;
+    }
+
+    /* Return result: */
+    return result;
+}
+
+void UIExtraDataManager::setDetachedTools(const QList<UIToolType> &tools)
+{
+    /* Serialize passed values: */
+    QStringList data;
+    foreach (const UIToolType &enmType, tools)
+        data << gpConverter->toInternalString(enmType);
+
+    /* Re-cache corresponding extra-data: */
+    setExtraDataStringList(GUI_Tools_Detached, data);
+}
+
 bool UIExtraDataManager::selectorWindowStatusBarVisible()
 {
     /* 'True' unless feature restricted: */
@@ -3111,10 +3148,13 @@ QStringList UIExtraDataManager::cloudConsoleManagerApplications()
 {
     /* Gather a list of keys matching required expression: */
     QStringList result;
-    QRegExp re(QString("^%1/([^/]+)$").arg(GUI_CloudConsoleManager_Application));
+    const QRegularExpression re(QString("^%1/([^/]+)$").arg(GUI_CloudConsoleManager_Application));
     foreach (const QString &strKey, m_data.value(GlobalID).keys())
-        if (re.indexIn(strKey) != -1)
-            result << re.cap(1);
+    {
+        const QRegularExpressionMatch mt = re.match(strKey);
+        if (mt.hasMatch())
+            result << mt.captured(1);
+    }
     return result;
 }
 
@@ -3122,10 +3162,13 @@ QStringList UIExtraDataManager::cloudConsoleManagerProfiles(const QString &strId
 {
     /* Gather a list of keys matching required expression: */
     QStringList result;
-    QRegExp re(QString("^%1/%2/([^/]+)$").arg(GUI_CloudConsoleManager_Application, strId));
+    const QRegularExpression re(QString("^%1/%2/([^/]+)$").arg(GUI_CloudConsoleManager_Application, strId));
     foreach (const QString &strKey, m_data.value(GlobalID).keys())
-        if (re.indexIn(strKey) != -1)
-            result << re.cap(1);
+    {
+        const QRegularExpressionMatch mt = re.match(strKey);
+        if (mt.hasMatch())
+            result << mt.captured(1);
+    }
     return result;
 }
 
@@ -3179,31 +3222,6 @@ QString UIExtraDataManager::cloudConsolePublicKeyPath()
 void UIExtraDataManager::setCloudConsolePublicKeyPath(const QString &strPath)
 {
     setExtraDataString(GUI_CloudConsole_PublicKey_Path, strPath);
-}
-
-WizardMode UIExtraDataManager::modeForWizardType(WizardType type)
-{
-    /* Otherwise get mode from cached extra-data: */
-    return extraDataStringList(GUI_HideDescriptionForWizards).contains(gpConverter->toInternalString(type))
-           ? WizardMode_Expert : WizardMode_Basic;
-}
-
-void UIExtraDataManager::setModeForWizardType(WizardType type, WizardMode mode)
-{
-    /* Get wizard name: */
-    const QString strWizardName = gpConverter->toInternalString(type);
-    /* Get current value: */
-    const QStringList oldValue = extraDataStringList(GUI_HideDescriptionForWizards);
-    QStringList newValue = oldValue;
-    /* Include wizard-name into expert-mode wizard list if necessary: */
-    if (mode == WizardMode_Expert && !newValue.contains(strWizardName))
-        newValue << strWizardName;
-    /* Exclude wizard-name from expert-mode wizard list if necessary: */
-    else if (mode == WizardMode_Basic && newValue.contains(strWizardName))
-        newValue.removeAll(strWizardName);
-    /* Update extra-data if necessary: */
-    if (newValue != oldValue)
-        setExtraDataStringList(GUI_HideDescriptionForWizards, newValue);
 }
 
 bool UIExtraDataManager::showMachineInVirtualBoxManagerChooser(const QUuid &uID)
@@ -3832,7 +3850,7 @@ void UIExtraDataManager::setRequestedVisualState(UIVisualStateType visualState, 
     setExtraDataString(GUI_Scale, toFeatureAllowed(visualState == UIVisualStateType_Scale), uID);
 }
 
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
 bool UIExtraDataManager::legacyFullscreenModeRequested()
 {
     /* 'False' unless feature allowed: */
@@ -3850,7 +3868,7 @@ void UIExtraDataManager::setDistinguishMachineWindowGroups(const QUuid &uID, boo
     /* 'True' if feature allowed, null-string otherwise: */
     setExtraDataString(GUI_DistinguishMachineWindowGroups, toFeatureAllowed(fEnabled), uID);
 }
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
 
 bool UIExtraDataManager::guestScreenAutoResizeEnabled(const QUuid &uID)
 {
@@ -4678,18 +4696,7 @@ QFont UIExtraDataManager::logViewerFont()
     int iFontSize = data[2].toInt(&fOk);
     if (!fOk)
         iFontSize = 9;
-    QFontDatabase dataBase;
-    return dataBase.font(strFamily, strStyleName, iFontSize);
-}
-
-void UIExtraDataManager::setLogViewerVisiblePanels(const QStringList &panelNameList)
-{
-    setExtraDataStringList(GUI_GuestControl_LogViewerVisiblePanels, panelNameList);
-}
-
-QStringList UIExtraDataManager::logViewerVisiblePanels()
-{
-    return extraDataStringList(GUI_GuestControl_LogViewerVisiblePanels);
+    return QFontDatabase::font(strFamily, strStyleName, iFontSize);
 }
 
 void UIExtraDataManager::setHelpBrowserLastUrlList(const QStringList &urlList)
@@ -4767,6 +4774,26 @@ void UIExtraDataManager::setVMActivityOverviewShowAllMachines(bool fShow)
     setExtraDataString(GUI_VMActivityOverview_ShowAllMachines, toFeatureAllowed(fShow));
 }
 
+void UIExtraDataManager::setVMActivityMonitorDataSeriesColors(const QStringList &colorList)
+{
+    setExtraDataStringList(GUI_VMActivityMonitor_DataSeriesColors, colorList);
+}
+
+QStringList UIExtraDataManager::VMActivityMonitorDataSeriesColors()
+{
+    return extraDataStringList(GUI_VMActivityMonitor_DataSeriesColors);
+}
+
+bool UIExtraDataManager::VMActivityMonitorShowVMExits()
+{
+    return isFeatureAllowed(GUI_VMActivityMonitor_ShowVMExits);
+}
+
+void UIExtraDataManager::setVMActivityMonitorShowVMExits(bool fShow)
+{
+    setExtraDataString(GUI_VMActivityMonitor_ShowVMExits, toFeatureAllowed(fShow));
+}
+
 QRect UIExtraDataManager::mediumSelectorDialogGeometry(QWidget *pWidget, QWidget *pParentWidget, const QRect &defaultGeometry)
 {
     return dialogGeometry(GUI_MediumSelector_DialogGeometry, pWidget, pParentWidget, defaultGeometry);
@@ -4804,6 +4831,9 @@ void UIExtraDataManager::sltExtraDataChange(const QUuid &uMachineID, const QStri
             /* Notification-center order? */
             if (strKey == GUI_NotificationCenter_Order)
                 emit sigNotificationCenterOrderChange();
+            /* Settings expert mode? */
+            if (strKey == GUI_Settings_ExpertMode)
+                emit sigSettingsExpertModeChange();
             /* Language changed? */
             if (strKey == GUI_LanguageID)
                 emit sigLanguageChange(extraDataString(strKey));
@@ -4825,7 +4855,7 @@ void UIExtraDataManager::sltExtraDataChange(const QUuid &uMachineID, const QStri
             /* Cloud Console Manager restrictions changed: */
             else if (strKey == GUI_CloudConsoleManager_Restrictions)
                 emit sigCloudConsoleManagerRestrictionChange();
-#if defined(VBOX_WS_X11) || defined(VBOX_WS_WIN)
+#if defined(VBOX_WS_NIX) || defined(VBOX_WS_WIN)
             else if (strKey == GUI_DisableHostScreenSaver)
                 emit sigDisableHostScreenSaverStateChange(isFeatureAllowed(GUI_DisableHostScreenSaver));
 #endif
@@ -4850,7 +4880,7 @@ void UIExtraDataManager::sltExtraDataChange(const QUuid &uMachineID, const QStri
     else
     {
         /* Current VM only: */
-        if (   uiCommon().uiType() == UICommon::UIType_RuntimeUI
+        if (   uiCommon().uiType() == UIType_RuntimeUI
             && uMachineID == uiCommon().managedVMUuid())
         {
             /* HID LEDs sync state changed (allowed if not restricted)? */
@@ -4914,12 +4944,14 @@ void UIExtraDataManager::prepare()
     prepareGlobalExtraDataMap();
     /* Prepare extra-data event-handler: */
     prepareExtraDataEventHandler();
+    /* Prepare extra-data settings: */
+    prepareExtraDataSettings();
 }
 
 void UIExtraDataManager::prepareGlobalExtraDataMap()
 {
     /* Get CVirtualBox: */
-    CVirtualBox vbox = uiCommon().virtualBox();
+    CVirtualBox vbox = gpGlobalSession->virtualBox();
 
     /* Make sure at least empty map is created: */
     m_data[GlobalID] = ExtraDataMap();
@@ -4940,6 +4972,18 @@ void UIExtraDataManager::prepareExtraDataEventHandler()
         connect(m_pHandler, &UIExtraDataEventHandler::sigExtraDataChange,
                 this, &UIExtraDataManager::sltExtraDataChange,
                 Qt::QueuedConnection);
+    }
+}
+
+void UIExtraDataManager::prepareExtraDataSettings()
+{
+    /* For the case when Expert mode is undecided yet: */
+    if (extraDataString(UIExtraDataDefs::GUI_Settings_ExpertMode).isNull())
+    {
+        /* If there are VMs already, mark the mode as Expert one, we've decided
+         * that forcing all users to Basic mode by default is overkill a bit. */
+        if (!gpGlobalSession->virtualBox().GetMachines().isEmpty())
+            setSettingsInExpertMode(true);
     }
 }
 

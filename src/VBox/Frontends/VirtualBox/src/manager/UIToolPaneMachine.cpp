@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2017-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2017-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,6 +26,7 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QStackedLayout>
 #ifndef VBOX_WS_MAC
 # include <QStyle>
@@ -34,9 +35,11 @@
 
 /* GUI includes */
 #include "UIActionPoolManager.h"
+#include "UICommon.h"
 #include "UIDetails.h"
 #include "UIErrorPane.h"
 #include "UIFileManager.h"
+#include "UIGlobalSession.h"
 #include "UIIconPool.h"
 #include "UISnapshotPane.h"
 #include "UIToolPaneMachine.h"
@@ -52,7 +55,6 @@
 UIToolPaneMachine::UIToolPaneMachine(UIActionPool *pActionPool, QWidget *pParent /* = 0 */)
     : QWidget(pParent)
     , m_pActionPool(pActionPool)
-    , m_pItem(0)
     , m_pLayout(0)
     , m_pPaneError(0)
     , m_pPaneDetails(0)
@@ -195,6 +197,8 @@ void UIToolPaneMachine::openTool(UIToolType enmType)
 
                     /* Configure pane: */
                     m_pPaneLogViewer->setProperty("ToolType", QVariant::fromValue(UIToolType_Logs));
+                    connect(m_pPaneLogViewer, &UIVMLogViewerWidget::sigDetach,
+                            this, &UIToolPaneMachine::sltDetachToolPane);
                     m_pPaneLogViewer->setSelectedVMListItems(m_items);
 
                     /* Add into layout: */
@@ -228,7 +232,7 @@ void UIToolPaneMachine::openTool(UIToolType enmType)
             {
                 if (!m_items.isEmpty())
                     m_pPaneFileManager = new UIFileManager(EmbedTo_Stack, m_pActionPool,
-                                                           uiCommon().virtualBox().FindMachine(m_items[0]->id().toString()),
+                                                           gpGlobalSession->virtualBox().FindMachine(m_items[0]->id().toString()),
                                                            0, false /* fShowToolbar */);
                 else
                     m_pPaneFileManager = new UIFileManager(EmbedTo_Stack, m_pActionPool, CMachine(),
@@ -293,21 +297,12 @@ void UIToolPaneMachine::setErrorDetails(const QString &strDetails)
         m_pPaneError->setErrorDetails(strDetails);
 }
 
-void UIToolPaneMachine::setCurrentItem(UIVirtualMachineItem *pItem)
-{
-    if (m_pItem == pItem)
-        return;
-
-    /* Remember new item: */
-    m_pItem = pItem;
-}
-
 void UIToolPaneMachine::setItems(const QList<UIVirtualMachineItem*> &items)
 {
     /* Cache passed value: */
     m_items = items;
 
-    /* Update details pane is open: */
+    /* Update details pane if it is open: */
     if (isToolOpened(UIToolType_Details))
     {
         AssertPtrReturnVoid(m_pPaneDetails);
@@ -331,6 +326,7 @@ void UIToolPaneMachine::setItems(const QList<UIVirtualMachineItem*> &items)
         AssertPtrReturnVoid(m_pPaneVMActivityMonitor);
         m_pPaneVMActivityMonitor->setSelectedVMListItems(m_items);
     }
+    /* Update file manager pane if it is open: */
     if (isToolOpened(UIToolType_FileManager))
     {
         AssertPtrReturnVoid(m_pPaneFileManager);
@@ -341,9 +337,12 @@ void UIToolPaneMachine::setItems(const QList<UIVirtualMachineItem*> &items)
 
 bool UIToolPaneMachine::isCurrentStateItemSelected() const
 {
-    if (!m_pPaneSnapshots)
-        return false;
-    return m_pPaneSnapshots->isCurrentStateItemSelected();
+    return m_pPaneSnapshots ? m_pPaneSnapshots->isCurrentStateItemSelected() : false;
+}
+
+QUuid UIToolPaneMachine::currentSnapshotId()
+{
+    return m_pPaneSnapshots ? m_pPaneSnapshots->currentSnapshotId() : QUuid();
 }
 
 QString UIToolPaneMachine::currentHelpKeyword() const
@@ -365,6 +364,9 @@ QString UIToolPaneMachine::currentHelpKeyword() const
             break;
         case UIToolType_VMActivity:
             pCurrentToolWidget = m_pPaneVMActivityMonitor;
+            break;
+        case UIToolType_FileManager:
+            pCurrentToolWidget = m_pPaneFileManager;
             break;
         default:
             break;
@@ -395,4 +397,15 @@ void UIToolPaneMachine::cleanup()
 void UIToolPaneMachine::handleTokenChange()
 {
     // printf("UIToolPaneMachine::handleTokenChange: Active = %d, current tool = %d\n", m_fActive, currentTool());
+}
+
+void UIToolPaneMachine::sltDetachToolPane()
+{
+    AssertPtrReturnVoid(sender());
+    UIToolType enmToolType = UIToolType_Invalid;
+    if (sender() == m_pPaneLogViewer)
+        enmToolType = UIToolType_Logs;
+
+    if (enmToolType != UIToolType_Invalid)
+        emit sigDetachToolPane(enmToolType);
 }

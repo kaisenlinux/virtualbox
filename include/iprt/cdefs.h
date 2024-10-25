@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -101,6 +101,7 @@
 # define RT_GCC_SUPPORTS_VISIBILITY_HIDDEN
 # define RT_COMPILER_SUPPORTS_VA_ARGS
 # define RT_COMPILER_SUPPORTS_LAMBDA
+# define RT_IN_ASSEMBLER
 #endif /* DOXYGEN_RUNNING */
 
 /** @def RT_ARCH_X86
@@ -196,6 +197,50 @@
      + (defined(RT_ARCH_ARM64) != 0) \
   != 1
 # error "Exactly one RT_ARCH_XXX macro shall be defined"
+#endif
+
+/** @name RT_ARCH_VAL_XXX - Architectures.
+ *
+ * These are values used by RT_ARCH_VAL among others as an alternative to
+ * RT_ARCH_X86, RT_ARCH_AMD64 and friends for identifying the compiler target
+ * architecture.  Each value is a power of two (single bit), so they can be
+ * combined together to form an architecture mask if desirable.
+ *
+ * @{ */
+/**  */
+#define RT_ARCH_VAL_X86_16        0x00000001
+#define RT_ARCH_VAL_X86           0x00000002
+#define RT_ARCH_VAL_AMD64         0x00000004
+#define RT_ARCH_VAL_ARM32         0x00000010
+#define RT_ARCH_VAL_ARM64         0x00000020
+#define RT_ARCH_VAL_SPARC32       0x00000100
+#define RT_ARCH_VAL_SPARC64       0x00000200
+/** @} */
+
+
+/** @def RT_ARCH_VAL
+ * The RT_ARCH_VAL_XXX for the compiler target architecture. */
+#if defined(RT_ARCH_AMD64)
+# define RT_ARCH_VAL                    RT_ARCH_VAL_AMD64
+#elif defined(RT_ARCH_ARM64)
+# define RT_ARCH_VAL                    RT_ARCH_VAL_ARM64
+#elif defined(RT_ARCH_X86)
+# define RT_ARCH_VAL                    RT_ARCH_VAL_X86
+#elif defined(RT_ARCH_ARM32)
+# define RT_ARCH_VAL                    RT_ARCH_VAL_ARM32
+#elif defined(RT_ARCH_SPARC)
+# define RT_ARCH_VAL                    RT_ARCH_VAL_SPARC32
+#elif defined(RT_ARCH_SPARC64)
+# define RT_ARCH_VAL                    RT_ARCH_VAL_SPARC64
+#else
+# error "RT_ARCH_VAL: port me"
+#endif
+
+/** @def RT_IN_ASSEMBLER
+ * Define when the source is being preprocessed for the assembler rather than
+ * the C, C++, Objective-C, or Objective-C++ compilers. */
+#ifdef __ASSEMBLER__
+# define RT_IN_ASSEMBLER
 #endif
 
 /** @def RT_CPLUSPLUS_PREREQ
@@ -1170,6 +1215,18 @@
 # error "Port me!"
 #endif
 
+
+/*
+ * The cl.exe frontend emulation of parfait is incorrect and
+ * it still defines __SIZEOF_INT128__ despite msvc not supporting this
+ * type and our code relying on the uint18_t type being a struct
+ * in inline assembler code.
+ */
+#if defined(_MSC_VER) && defined(VBOX_WITH_PARFAIT)
+# undef __SIZEOF_INT128__
+#endif
+
+
 /** @def RT_COMPILER_WITH_128BIT_INT_TYPES
  * Defined when uint128_t and int128_t are native integer types.  If
  * undefined, they are structure with Hi & Lo members. */
@@ -1295,9 +1352,9 @@
  *          when used without officially enabling the C++11 features.
  */
 #ifdef __cplusplus
-# if RT_MSC_PREREQ_EX(RT_MSC_VER_VS2012, 0)
+# if RT_MSC_PREREQ_EX(RT_MSC_VER_VS2012, 0) || RT_CLANG_HAS_FEATURE(cxx_override_control)
 #  define RT_OVERRIDE           override
-# elif RT_GNUC_PREREQ(4, 7)
+# elif RT_GNUC_PREREQ(4, 7) || RT_CLANG_PREREQ(7, 1) /** @todo possibly clang supports this earlier. found no __has_feature check. */
 #  if __cplusplus >= 201100
 #   define RT_OVERRIDE          override
 #  else
@@ -1310,9 +1367,30 @@
 # define RT_OVERRIDE
 #endif
 
+/** @def RT_FINAL
+ * Wrapper for the C++11 final keyword.
+ *
+ * @remarks Recognized by g++ starting 4.7. Assumes it triggers warnings just
+ *          like override does when C++11 isn't officially enabled.
+ */
+#ifdef __cplusplus
+# if RT_MSC_PREREQ_EX(RT_MSC_VER_VS2015, 0) /** @todo not sure since when this is supported, probably 2012 like override. */
+#  define RT_FINAL              final
+# elif RT_GNUC_PREREQ(4, 7) /** @todo clang and final */
+#  if __cplusplus >= 201100
+#   define RT_FINAL             final
+#  else
+#   define RT_FINAL
+#  endif
+# else
+#  define RT_FINAL
+# endif
+#else
+# define RT_FINAL
+#endif
+
 /** @def RT_NOEXCEPT
  * Wrapper for the C++11 noexcept keyword (only true form).
- * @note use RT_NOTHROW instead.
  */
 /** @def RT_NOEXCEPT_EX
  * Wrapper for the C++11 noexcept keyword with expression.
@@ -1383,6 +1461,7 @@
 /** @def RT_CACHELINE_SIZE
  * The typical cache line size for the target architecture.
  * @see RT_ALIGNAS_VAR, RT_ALIGNAS_TYPE, RT_ALIGNAS_MEMB
+ * @todo This is not correct for M1,M2,M3,M4,++, they have 128 byte cache lines.
  */
 #if  defined(RT_ARCH_X86)     || defined(RT_ARCH_AMD64) \
   || defined(RT_ARCH_ARM32)   || defined(RT_ARCH_ARM64) \
@@ -1392,6 +1471,26 @@
 #else
 # define RT_CACHELINE_SIZE  128     /* better overdo it */
 #endif
+
+
+/** @def RT_CONSTEXPR
+ * Wrapper for the C++11 constexpr keyword for use as per C++11.
+ */
+#if RT_CPLUSPLUS_PREREQ(201100)
+# define RT_CONSTEXPR                   constexpr
+#else
+# define RT_CONSTEXPR
+#endif
+
+/** @def RT_CONSTEXPR_IF
+ * Wrapper for the C++17 use of constexpr in combination with if statements.
+ */
+#if RT_CPLUSPLUS_PREREQ(201700)
+# define RT_CONSTEXPR_IF(a_CondExpr)    constexpr(a_CondExpr)
+#else
+# define RT_CONSTEXPR_IF(a_CondExpr)    (a_CondExpr)
+#endif
+
 
 /** @def RT_FALL_THROUGH
  * Tell the compiler that we're falling through to the next case in a switch.
@@ -1431,6 +1530,20 @@
 # define RT_IPRT_FORMAT_ATTR_MAYBE_NULL(a_iFmt, a_iArgs)   __attribute__((__iprt_format_maybe_null__(a_iFmt, a_iArgs)))
 #else
 # define RT_IPRT_FORMAT_ATTR_MAYBE_NULL(a_iFmt, a_iArgs)
+#endif
+
+/** @def RT_IPRT_CALLREQ_ATTR
+ * Identifies a function taking a function call request with parameter list and
+ * everything for asynchronous execution.
+ * @param   a_iFn   The index (1-based) of the function pointer argument.
+ * @param   a_iArgc The index (1-based) of the argument count.
+ * @param   a_iArgs The index (1-based) of the first argument, use 0 for
+ *                  va_list.
+ */
+#if defined(__GNUC__) && defined(WITH_IPRT_CALLREQ_ATTRIBUTE)
+# define RT_IPRT_CALLREQ_ATTR(a_iFn, a_iArgc, a_iArgs)   __attribute__((__iprt_callreq__(a_iFn, a_iArgc, a_iArgs)))
+#else
+# define RT_IPRT_CALLREQ_ATTR(a_iFn, a_iArgc, a_iArgs)
 #endif
 
 
@@ -1551,7 +1664,7 @@
  * How to declare a non-exported function that may throw C++ exceptions.
  * @param   a_RetType   The return type of the function.
  */
-#define DECL_HIDDEN_THROW(a_RetType)    DECL_HIDDEN_ONLY(a_Type)
+#define DECL_HIDDEN_THROW(a_RetType)    DECL_HIDDEN_ONLY(a_RetType)
 
 /** @def DECL_HIDDEN_DATA
  * How to declare a non-exported variable.
@@ -3221,7 +3334,9 @@
 #define RT_MAKE_U64(Lo, Hi)                     ( (uint64_t)((uint32_t)(Hi)) << 32 | (uint32_t)(Lo) )
 
 /** @def RT_MAKE_U64_FROM_U16
- * Constructs a uint64_t value from four uint16_t values.
+ * Constructs a uint64_t value from four uint16_t values, with parameters in
+ * least significant word first order.
+ * @see RT_MAKE_U64_FROM_MSW_U16
  */
 #define RT_MAKE_U64_FROM_U16(w0, w1, w2, w3) \
     ((uint64_t)(  (uint64_t)((uint16_t)(w3)) << 48 \
@@ -3229,8 +3344,17 @@
                 | (uint32_t)((uint16_t)(w1)) << 16 \
                 |            (uint16_t)(w0) ))
 
+/** @def RT_MAKE_U64_FROM_U16
+ * Constructs a uint64_t value from four uint16_t values, with parameters in
+ * most significant word first order.
+ * @see RT_MAKE_U64_FROM_U16
+ */
+#define RT_MAKE_U64_FROM_MSW_U16(w3, w2, w1, w0) RT_MAKE_U64_FROM_U16(w0, w1, w2, w3)
+
 /** @def RT_MAKE_U64_FROM_U8
- * Constructs a uint64_t value from eight uint8_t values.
+ * Constructs a uint64_t value from eight uint8_t values, with parameters in
+ * least significant byte first order.
+ * @see RT_MAKE_U64_FROM_MSB_U8
  */
 #define RT_MAKE_U64_FROM_U8(b0, b1, b2, b3, b4, b5, b6, b7) \
     ((uint64_t)(  (uint64_t)((uint8_t)(b7)) << 56 \
@@ -3242,6 +3366,13 @@
                 | (uint64_t)((uint8_t)(b1)) << 8 \
                 | (uint64_t) (uint8_t)(b0) ))
 
+/** @def RT_MAKE_U64_FROM_MSB_U8
+ * Constructs a uint64_t value from eight uint8_t values, with parameters in
+ * most significant byte first order.
+ * @see RT_MAKE_U64_FROM_U8
+ */
+#define RT_MAKE_U64_FROM_MSB_U8(b7, b6, b5, b4, b3, b2, b1, b0) RT_MAKE_U64_FROM_U8(b0, b1, b2, b3, b4, b5, b6, b7)
+
 /** @def RT_MAKE_U32
  * Constructs a uint32_t value from two uint16_t values.
  */
@@ -3250,13 +3381,22 @@
                 |            (uint16_t)(Lo) ))
 
 /** @def RT_MAKE_U32_FROM_U8
- * Constructs a uint32_t value from four uint8_t values.
+ * Constructs a uint32_t value from four uint8_t values, with parameters in
+ * least significant byte first order.
+ * @see RT_MAKE_U32_FROM_MSB_U8
  */
 #define RT_MAKE_U32_FROM_U8(b0, b1, b2, b3) \
     ((uint32_t)(  (uint32_t)((uint8_t)(b3)) << 24 \
                 | (uint32_t)((uint8_t)(b2)) << 16 \
                 | (uint32_t)((uint8_t)(b1)) << 8 \
                 |            (uint8_t)(b0) ))
+
+/** @def RT_MAKE_U32_FROM_MSB_U8
+ * Constructs a uint32_t value from four uint8_t values, with parameters in most
+ * significant byte first order.
+ * @see RT_MAKE_U32_FROM_8
+ */
+#define RT_MAKE_U32_FROM_MSB_U8(b3, b2, b1, b0) RT_MAKE_U32_FROM_U8(b0, b1, b2, b3)
 
 /** @def RT_MAKE_U16
  * Constructs a uint16_t value from two uint8_t values.
@@ -4005,7 +4145,7 @@
 # elif defined(RT_ARCH_SPARC)
 #  define RT_BREAKPOINT()       __asm__ __volatile__("unimp 0\n\t")     /** @todo Sparc: this is just a wild guess (same as Sparc64, just different name). */
 # elif defined(RT_ARCH_ARM32) || defined(RT_ARCH_ARM64)
-#  define RT_BREAKPOINT()       __asm__ __volatile__("brk #0x1\n\t")
+#  define RT_BREAKPOINT()       __asm__ __volatile__("brk #0xf000\n\t")
 # endif
 #endif
 #ifdef _MSC_VER
@@ -4443,86 +4583,95 @@
  * Pointer validation macro.
  * @param   ptr         The pointer.
  */
+#ifdef VBOX_WITH_PARFAIT
+/*
+ * Parfait will report memory leaks when something returns after a memory allocation
+ * using a check containing RT_VALID_PTR() (AssertPtrReturn and friends for example).
+ * To avoid those false positives the macro will just check for the pointer being != NULL.
+ */
+# define RT_VALID_PTR(ptr)       (ptr != NULL)
+#else
 #if defined(RT_ARCH_AMD64)
-# ifdef IN_RING3
-#  if defined(RT_OS_DARWIN) /* first 4GB is reserved for legacy kernel. */
-#   define RT_VALID_PTR(ptr)    (   (uintptr_t)(ptr) >= _4G \
+#  ifdef IN_RING3
+#   if defined(RT_OS_DARWIN) /* first 4GB is reserved for legacy kernel. */
+#    define RT_VALID_PTR(ptr)    (   (uintptr_t)(ptr) >= _4G \
                                  && !((uintptr_t)(ptr) & 0xffff800000000000ULL) )
-#  elif defined(RT_OS_SOLARIS) /* The kernel only used the top 2TB, but keep it simple. */
-#   define RT_VALID_PTR(ptr)    (   (uintptr_t)(ptr) + 0x1000U >= 0x2000U \
-                                 && (   ((uintptr_t)(ptr) & 0xffff800000000000ULL) == 0xffff800000000000ULL \
-                                     || ((uintptr_t)(ptr) & 0xffff800000000000ULL) == 0) )
-#  elif defined(RT_OS_LINUX) /* May use 5-level paging  (see Documentation/x86/x86_64/mm.rst). */
-#   define RT_VALID_PTR(ptr)    (   (uintptr_t)(ptr) >= 0x1000U /* one invalid page at the bottom */ \
-                                 && !((uintptr_t)(ptr) & 0xff00000000000000ULL) )
-#  else
-#   define RT_VALID_PTR(ptr)    (   (uintptr_t)(ptr) >= 0x1000U \
-                                 && !((uintptr_t)(ptr) & 0xffff800000000000ULL) )
-#  endif
-# else /* !IN_RING3 */
-#  if defined(RT_OS_LINUX) /* May use 5-level paging (see Documentation/x86/x86_64/mm.rst). */
-#   if 1 /* User address are no longer considered valid in kernel mode (SMAP, etc). */
-#    define RT_VALID_PTR(ptr)   ((uintptr_t)(ptr) - 0xff00000000000000ULL < 0x00ffffffffe00000ULL) /* 2MB invalid space at the top */
+#   elif defined(RT_OS_SOLARIS) /* The kernel only used the top 2TB, but keep it simple. */
+#    define RT_VALID_PTR(ptr)    (   (uintptr_t)(ptr) + 0x1000U >= 0x2000U \
+                                  && (   ((uintptr_t)(ptr) & 0xffff800000000000ULL) == 0xffff800000000000ULL \
+                                      || ((uintptr_t)(ptr) & 0xffff800000000000ULL) == 0) )
+#   elif defined(RT_OS_LINUX) /* May use 5-level paging  (see Documentation/x86/x86_64/mm.rst). */
+#    define RT_VALID_PTR(ptr)    (   (uintptr_t)(ptr) >= 0x1000U /* one invalid page at the bottom */ \
+                                  && !((uintptr_t)(ptr) & 0xff00000000000000ULL) )
 #   else
-#    define RT_VALID_PTR(ptr)   (   (uintptr_t)(ptr) + 0x200000 >= 0x201000U /* one invalid page at the bottom and 2MB at the top */ \
-                                 && (   ((uintptr_t)(ptr) & 0xff00000000000000ULL) == 0xff00000000000000ULL \
-                                     || ((uintptr_t)(ptr) & 0xff00000000000000ULL) == 0) )
+#    define RT_VALID_PTR(ptr)    (   (uintptr_t)(ptr) >= 0x1000U \
+                                  && !((uintptr_t)(ptr) & 0xffff800000000000ULL) )
 #   endif
-#  else
-#   define RT_VALID_PTR(ptr)    (   (uintptr_t)(ptr) + 0x1000U >= 0x2000U \
-                                 && (   ((uintptr_t)(ptr) & 0xffff800000000000ULL) == 0xffff800000000000ULL \
-                                     || ((uintptr_t)(ptr) & 0xffff800000000000ULL) == 0) )
-#  endif
-# endif /* !IN_RING3 */
+#  else /* !IN_RING3 */
+#   if defined(RT_OS_LINUX) /* May use 5-level paging (see Documentation/x86/x86_64/mm.rst). */
+#    if 1 /* User address are no longer considered valid in kernel mode (SMAP, etc). */
+#     define RT_VALID_PTR(ptr)   ((uintptr_t)(ptr) - 0xff00000000000000ULL < 0x00ffffffffe00000ULL) /* 2MB invalid space at the top */
+#    else
+#     define RT_VALID_PTR(ptr)   (   (uintptr_t)(ptr) + 0x200000 >= 0x201000U /* one invalid page at the bottom and 2MB at the top */ \
+                                  && (   ((uintptr_t)(ptr) & 0xff00000000000000ULL) == 0xff00000000000000ULL \
+                                      || ((uintptr_t)(ptr) & 0xff00000000000000ULL) == 0) )
+#    endif
+#   else
+#    define RT_VALID_PTR(ptr)    (   (uintptr_t)(ptr) + 0x1000U >= 0x2000U \
+                                  && (   ((uintptr_t)(ptr) & 0xffff800000000000ULL) == 0xffff800000000000ULL \
+                                      || ((uintptr_t)(ptr) & 0xffff800000000000ULL) == 0) )
+#   endif
+#  endif /* !IN_RING3 */
 
-#elif defined(RT_ARCH_X86)
-# define RT_VALID_PTR(ptr)      ( (uintptr_t)(ptr) + 0x1000U >= 0x2000U )
+# elif defined(RT_ARCH_X86)
+#  define RT_VALID_PTR(ptr)      ( (uintptr_t)(ptr) + 0x1000U >= 0x2000U )
 
-#elif defined(RT_ARCH_SPARC64)
-# ifdef IN_RING3
-#  if defined(RT_OS_SOLARIS)
+# elif defined(RT_ARCH_SPARC64)
+#  ifdef IN_RING3
+#   if defined(RT_OS_SOLARIS)
 /** Sparc64 user mode: According to Figure 9.4 in solaris internals */
 /** @todo #   define RT_VALID_PTR(ptr)    ( (uintptr_t)(ptr) + 0x80004000U >= 0x80004000U + 0x100000000ULL ) - figure this. */
-#   define RT_VALID_PTR(ptr)    ( (uintptr_t)(ptr) + 0x80000000U >= 0x80000000U + 0x100000000ULL )
-#  else
-#   error "Port me"
-#  endif
-# else  /* !IN_RING3 */
-#  if defined(RT_OS_SOLARIS)
+#    define RT_VALID_PTR(ptr)    ( (uintptr_t)(ptr) + 0x80000000U >= 0x80000000U + 0x100000000ULL )
+#   else
+#    error "Port me"
+#   endif
+#  else  /* !IN_RING3 */
+#   if defined(RT_OS_SOLARIS)
 /** @todo Sparc64 kernel mode: This is according to Figure 11.1 in solaris
  *        internals. Verify in sources. */
-#   define RT_VALID_PTR(ptr)    ( (uintptr_t)(ptr) >= 0x01000000U )
-#  else
-#   error "Port me"
-#  endif
-# endif /* !IN_RING3 */
+#    define RT_VALID_PTR(ptr)    ( (uintptr_t)(ptr) >= 0x01000000U )
+#   else
+#    error "Port me"
+#   endif
+#  endif /* !IN_RING3 */
 
-#elif defined(RT_ARCH_SPARC)
-# ifdef IN_RING3
-#  ifdef RT_OS_SOLARIS
+# elif defined(RT_ARCH_SPARC)
+#  ifdef IN_RING3
+#   ifdef RT_OS_SOLARIS
 /** Sparc user mode: According to
  * http://cvs.opensolaris.org/source/xref/onnv/onnv-gate/usr/src/uts/sun4/os/startup.c#510 */
-#   define RT_VALID_PTR(ptr)    ( (uintptr_t)(ptr) + 0x400000U >= 0x400000U + 0x2000U )
+#    define RT_VALID_PTR(ptr)    ( (uintptr_t)(ptr) + 0x400000U >= 0x400000U + 0x2000U )
 
-#  else
-#   error "Port me"
-#  endif
-# else  /* !IN_RING3 */
-#  ifdef RT_OS_SOLARIS
+#   else
+#    error "Port me"
+#   endif
+#  else  /* !IN_RING3 */
+#   ifdef RT_OS_SOLARIS
 /** @todo Sparc kernel mode: Check the sources! */
-#   define RT_VALID_PTR(ptr)    ( (uintptr_t)(ptr) + 0x1000U >= 0x2000U )
-#  else
-#   error "Port me"
-#  endif
-# endif /* !IN_RING3 */
+#    define RT_VALID_PTR(ptr)    ( (uintptr_t)(ptr) + 0x1000U >= 0x2000U )
+#   else
+#    error "Port me"
+#   endif
+#  endif /* !IN_RING3 */
 
-#elif defined(RT_ARCH_ARM32) || defined(RT_ARCH_ARM64)
+# elif defined(RT_ARCH_ARM32) || defined(RT_ARCH_ARM64)
 /* ASSUMES that at least the last and first 4K are out of bounds. */
-# define RT_VALID_PTR(ptr)      ( (uintptr_t)(ptr) + 0x1000U >= 0x2000U )
+#  define RT_VALID_PTR(ptr)      ( (uintptr_t)(ptr) + 0x1000U >= 0x2000U )
 
-#else
-# error "Architecture identifier missing / not implemented."
-#endif
+# else
+#  error "Architecture identifier missing / not implemented."
+# endif
+#endif /*!VBOX_WITH_PARFAIT*/
 
 /** @def RT_VALID_ALIGNED_PTR
  * Pointer validation macro that also checks the alignment.
@@ -4645,6 +4794,14 @@
 # define RT_INLINE_ASM_EXTERNAL 1
 #else
 # define RT_INLINE_ASM_EXTERNAL 0
+#endif
+
+/** @def RT_INLINE_ASM_EXTERNAL_TMP_ARM
+ * Temporary version of RT_INLINE_ASM_EXTERNAL that excludes ARM. */
+#if RT_INLINE_ASM_EXTERNAL && !(defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32))
+# define RT_INLINE_ASM_EXTERNAL_TMP_ARM 1
+#else
+# define RT_INLINE_ASM_EXTERNAL_TMP_ARM 0
 #endif
 
 /** @def RT_INLINE_ASM_GNU_STYLE

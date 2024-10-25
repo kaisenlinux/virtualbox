@@ -36,6 +36,8 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
+#include <iprt/cdefs.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "nsISupportsArray.h"
@@ -93,7 +95,7 @@ Foo::~Foo()
 
 NS_IMPL_ISUPPORTS1(Foo, IFoo)
 
-const char* AssertEqual(PRInt32 aValue1, PRInt32 aValue2)
+static const char* AssertEqual(PRInt32 aValue1, PRInt32 aValue2)
 {
   if (aValue1 == aValue2) {
     return "OK";
@@ -104,11 +106,11 @@ const char* AssertEqual(PRInt32 aValue1, PRInt32 aValue2)
   return "ERROR";
 }
 
-void DumpArray(nsISupportsArray* aArray, PRInt32 aExpectedCount, PRInt32 aElementIDs[], PRInt32 aExpectedTotal)
+static void DumpArray(nsISupportsArray* aArray, PRInt32 aExpectedCount, PRInt32 aElementIDs[], PRInt32 aExpectedTotal)
 {
   PRUint32 cnt = 0;
   nsresult rv = aArray->Count(&cnt);
-  NS_ASSERTION(NS_SUCCEEDED(rv), "Count failed");
+  NS_ASSERTION(NS_SUCCEEDED(rv), "Count failed"); RT_NOREF(rv);
   PRInt32 count = cnt;
   PRInt32 index;
 
@@ -126,7 +128,7 @@ void DumpArray(nsISupportsArray* aArray, PRInt32 aExpectedCount, PRInt32 aElemen
   }
 }
 
-void FillArray(nsISupportsArray* aArray, PRInt32 aCount)
+static void FillArray(nsISupportsArray* aArray, PRInt32 aCount)
 {
   PRInt32 index;
   for (index = 0; index < aCount; index++) {

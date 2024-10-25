@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,16 +31,16 @@
 
 /* GUI includes: */
 #include "QIRichTextLabel.h"
+#include "UIGlobalSession.h"
 #include "UIWizardCloneVM.h"
 #include "UIWizardCloneVMNamePathPage.h"
-#include "UICommon.h"
 
 /* COM includes: */
 #include "CVirtualBox.h"
 
 QString UIWizardCloneVMNamePathCommon::composeCloneFilePath(const QString &strCloneName, const QString &strGroup, const QString &strFolderPath)
 {
-    CVirtualBox vbox = uiCommon().virtualBox();
+    CVirtualBox vbox = gpGlobalSession->virtualBox();
     return QDir::toNativeSeparators(vbox.ComposeMachineFilename(strCloneName, strGroup, QString(), strFolderPath));
 }
 
@@ -53,7 +53,7 @@ UIWizardCloneVMNamePathPage::UIWizardCloneVMNamePathPage(const QString &strOrigi
     prepare(strDefaultPath);
 }
 
-void UIWizardCloneVMNamePathPage::retranslateUi()
+void UIWizardCloneVMNamePathPage::sltRetranslateUI()
 {
     setTitle(UIWizardCloneVM::tr("New machine name and path"));
 
@@ -78,7 +78,7 @@ void UIWizardCloneVMNamePathPage::initializePage()
 {
     UIWizardCloneVM *pWizard = wizardWindow<UIWizardCloneVM>();
     AssertReturnVoid(pWizard);
-    retranslateUi();
+    sltRetranslateUI();
     if (m_pNamePathEditor)
     {
         m_pNamePathEditor->setFocus();
@@ -137,7 +137,7 @@ void UIWizardCloneVMNamePathPage::prepare(const QString &strDefaultClonePath)
 
     pMainLayout->addStretch();
 
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 bool UIWizardCloneVMNamePathPage::isComplete() const

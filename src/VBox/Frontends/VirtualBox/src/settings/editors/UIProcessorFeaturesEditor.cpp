@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,7 +35,7 @@
 
 
 UIProcessorFeaturesEditor::UIProcessorFeaturesEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent)
     , m_fEnablePae(false)
     , m_fEnableNestedVirtualization(false)
     , m_pLabel(0)
@@ -104,7 +104,7 @@ void UIProcessorFeaturesEditor::setMinimumLayoutIndent(int iIndent)
         m_pLayout->setColumnMinimumWidth(0, iIndent);
 }
 
-void UIProcessorFeaturesEditor::retranslateUi()
+void UIProcessorFeaturesEditor::sltRetranslateUI()
 {
     if (m_pLabel)
         m_pLabel->setText(tr("Extended Features:"));
@@ -157,5 +157,5 @@ void UIProcessorFeaturesEditor::prepare()
     }
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }

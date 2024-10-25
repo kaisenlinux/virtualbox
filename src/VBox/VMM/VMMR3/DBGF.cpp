@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -285,7 +285,7 @@ VMMR3_INT_DECL(void) DBGFR3Relocate(PVM pVM, RTGCINTPTR offDelta)
  *
  * @thread  EMT(pVCpu)
  */
-bool dbgfR3WaitForAttach(PVM pVM, PVMCPU pVCpu, DBGFEVENTTYPE enmEvent)
+static bool dbgfR3WaitForAttach(PVM pVM, PVMCPU pVCpu, DBGFEVENTTYPE enmEvent)
 {
     /*
      * First a message.
@@ -431,15 +431,13 @@ static DBGFEVENTCTX dbgfR3FigureEventCtx(PVMCPU pVCpu)
             return DBGFEVENTCTX_HM;
 
         case EMSTATE_IEM:
-        case EMSTATE_RAW:
-        case EMSTATE_IEM_THEN_REM:
         case EMSTATE_DEBUG_GUEST_IEM:
         case EMSTATE_DEBUG_GUEST_RAW:
             return DBGFEVENTCTX_RAW;
 
 
-        case EMSTATE_REM:
-        case EMSTATE_DEBUG_GUEST_REM:
+        case EMSTATE_RECOMPILER:
+        case EMSTATE_DEBUG_GUEST_RECOMPILER:
             return DBGFEVENTCTX_REM;
 
         case EMSTATE_DEBUG_HYPER:
@@ -719,6 +717,23 @@ VMMR3DECL(int) DBGFR3EventSrcV(PVM pVM, DBGFEVENTTYPE enmEvent, const char *pszF
     int rc = dbgfR3EventPrologue(pVM, pVCpu, enmEvent);
     if (RT_FAILURE(rc))
         return rc;
+
+    /*
+     * Stop other CPUs for some messages so we can inspect the state accross
+     * all CPUs as best as possible.
+     */
+    /** @todo This isn't entirely sane as we'd need a wait to back out of this
+     *        if the debugger goes fishing and such. */
+    switch (enmEvent)
+    {
+        default:
+            break;
+        case DBGFEVENT_DEV_STOP:
+            rc = dbgfR3EventHaltAllVCpus(pVM, pVCpu);
+            if (RT_SUCCESS(rc))
+                break;
+            return rc;
+    }
 
     /*
      * Format the message.
@@ -1013,7 +1028,6 @@ static int dbgfR3CpuWait(PVMCPU pVCpu)
                         case VINF_EM_RESUME:
                         case VINF_EM_RESCHEDULE:
                         case VINF_EM_RESCHEDULE_REM:
-                        case VINF_EM_RESCHEDULE_RAW:
                             if (rc < rcRet || rcRet == VINF_SUCCESS)
                                 rcRet = rc;
                             break;

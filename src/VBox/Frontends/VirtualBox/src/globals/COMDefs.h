@@ -8,7 +8,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -87,6 +87,7 @@
 #undef ASSERT
 
 /* Qt includes */
+#include <QMetaType>
 #include <QString>
 #include <QUuid>
 #include <QVector>
@@ -124,6 +125,7 @@ public:
           mIsBasicAvailable(false),
           mIsFullAvailable(false),
           mResultCode(S_OK),
+          mResultDetail(0),
           m_pNext(NULL)
     {}
 
@@ -149,12 +151,13 @@ public:
         return *this;
     }
 
-    bool isNull() const { return mIsNull; }
+    bool isNull() const RT_NOEXCEPT { return mIsNull; }
 
-    bool isBasicAvailable() const { return mIsBasicAvailable; }
-    bool isFullAvailable() const { return mIsFullAvailable; }
+    bool isBasicAvailable() const RT_NOEXCEPT { return mIsBasicAvailable; }
+    bool isFullAvailable() const RT_NOEXCEPT { return mIsFullAvailable; }
 
-    HRESULT resultCode() const { return mResultCode; }
+    HRESULT resultCode() const RT_NOEXCEPT { return mResultCode; }
+    ULONG resultDetail() const RT_NOEXCEPT { return mResultDetail; }
     QUuid interfaceID() const { return mInterfaceID; }
     QString component() const { return mComponent; }
     QString text() const { return mText; }
@@ -179,6 +182,7 @@ private:
     bool mIsFullAvailable : 1;
 
     HRESULT mResultCode;
+    ULONG mResultDetail;
     QUuid mInterfaceID;
     QString mComponent;
     QString mText;
@@ -282,7 +286,8 @@ public:
     static void FromSafeArray(const com::SafeArray<T> &aArr, QVector<T> &aVec)
     {
         aVec.resize(static_cast<int>(aArr.size()));
-        memcpy(&aVec[0], aArr.raw(), aArr.size() * sizeof(T));
+        if (aArr.size())
+            memcpy(&aVec[0], aArr.raw(), aArr.size() * sizeof(T));
     }
 
     /* Arrays of strings */
@@ -397,7 +402,7 @@ protected:
         ~BSTROut()
         {
             if (bstr) {
-                str = QString::fromUtf16(bstr);
+                str = QString::fromUtf16((const char16_t *)bstr);
                 SysFreeString(bstr);
             }
         }
@@ -441,7 +446,7 @@ protected:
         ~GuidAsBStrOut()
         {
             if (bstr) {
-                uuid = QUuid(QString::fromUtf16(bstr));
+                uuid = QUuid(QString::fromUtf16((const char16_t *)bstr));
                 SysFreeString(bstr);
             }
         }
@@ -819,6 +824,11 @@ public:
      */
     bool isReallyOk() const { return !isNull() && B::mRC == S_OK; }
 
+    /**
+     * Returns the last result code of this interface.
+     */
+    HRESULT rc() const { return B::mRC; }
+
     // utility operators
 
     CInterface &operator=(const CInterface &that)
@@ -1154,4 +1164,3 @@ public:
 /** @} */
 
 #endif /* !FEQT_INCLUDED_SRC_globals_COMDefs_h */
-

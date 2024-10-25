@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2021-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2021-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -47,6 +47,7 @@
 #include "UINotificationCenter.h"
 #include "UINotificationObjectItem.h"
 #include "UINotificationModel.h"
+#include "UITranslationEventListener.h"
 
 /* Other VBox includes: */
 #include "iprt/assert.h"
@@ -63,7 +64,7 @@ public:
     UINotificationScrollArea(QWidget *pParent = 0);
 
     /** Returns minimum size-hint. */
-    virtual QSize minimumSizeHint() const /* override final */;
+    virtual QSize minimumSizeHint() const RT_OVERRIDE RT_FINAL;
 
     /** Assigns scrollable @a pWidget.
       * @note  Keep in mind that's an override, but NOT a virtual method. */
@@ -72,7 +73,7 @@ public:
 protected:
 
     /** Preprocesses @a pEvent for registered @a pWatched object. */
-    virtual bool eventFilter(QObject *pWatched, QEvent *pEvent) /* override final */;
+    virtual bool eventFilter(QObject *pWatched, QEvent *pEvent) RT_OVERRIDE RT_FINAL;
 };
 
 
@@ -156,7 +157,7 @@ UINotificationCenter *UINotificationCenter::instance()
 }
 
 UINotificationCenter::UINotificationCenter(QWidget *pParent)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_pModel(0)
     , m_enmAlignment(Qt::AlignTop)
     , m_enmOrder(Qt::AscendingOrder)
@@ -193,7 +194,7 @@ void UINotificationCenter::setParent(QWidget *pParent)
         parent()->removeEventFilter(this);
 
     /* Reparent: */
-    QIWithRetranslateUI<QWidget>::setParent(pParent);
+    QWidget::setParent(pParent);
 
     /* Install filter to new parent: */
     if (parent())
@@ -289,7 +290,18 @@ bool UINotificationCenter::handleNow(UINotificationProgress *pProgress)
     return m_fLastResult;
 }
 
-void UINotificationCenter::retranslateUi()
+bool UINotificationCenter::hasOperationsPending() const
+{
+    return m_pEventLoop;
+}
+
+void UINotificationCenter::abortOperations()
+{
+    m_pEventLoop->exit();
+    emit sigOperationsAborted();
+}
+
+void UINotificationCenter::sltRetranslateUI()
 {
     if (m_pButtonOpen)
         m_pButtonOpen->setToolTip(tr("Open notification center"));
@@ -324,7 +336,7 @@ bool UINotificationCenter::eventFilter(QObject *pObject, QEvent *pEvent)
     }
 
     /* Call to base-class: */
-    return QIWithRetranslateUI<QWidget>::eventFilter(pObject, pEvent);
+    return QWidget::eventFilter(pObject, pEvent);
 }
 
 bool UINotificationCenter::event(QEvent *pEvent)
@@ -352,7 +364,7 @@ bool UINotificationCenter::event(QEvent *pEvent)
     }
 
     /* Call to base-class: */
-    return QIWithRetranslateUI<QWidget>::event(pEvent);
+    return QWidget::event(pEvent);
 }
 
 void UINotificationCenter::paintEvent(QPaintEvent *pEvent)
@@ -399,8 +411,7 @@ void UINotificationCenter::sltHandleOrderChange()
     m_enmOrder = gEDataManager->notificationCenterOrder();
 
     /* Cleanup items first: */
-    qDeleteAll(m_items);
-    m_items.clear();
+    cleanupItems();
 
     /* Populate model contents again: */
     foreach (const QUuid &uId, m_pModel->ids())
@@ -495,9 +506,9 @@ void UINotificationCenter::sltHandleModelItemAdded(const QUuid &uId)
 
 void UINotificationCenter::sltHandleModelItemRemoved(const QUuid &uId)
 {
-    /* Remove corresponding model item representation: */
-    AssertReturnVoid(m_items.contains(uId));
-    delete m_items.take(uId);
+    /* Remove corresponding model item representation if present: */
+    if (m_items.contains(uId))
+        delete m_items.take(uId);
 
     /* Hide and slide away if there are no notifications to show: */
     setHidden(m_pModel->ids().isEmpty());
@@ -528,23 +539,28 @@ void UINotificationCenter::prepare()
     if (parent())
         parent()->installEventFilter(this);
 
-    /* Prepare alignment: */
-    m_enmAlignment = gEDataManager->notificationCenterAlignment();
-    connect(gEDataManager, &UIExtraDataManager::sigNotificationCenterAlignmentChange,
-            this, &UINotificationCenter::sltHandleAlignmentChange);
-    /* Prepare order: */
-    m_enmOrder = gEDataManager->notificationCenterOrder();
-    connect(gEDataManager, &UIExtraDataManager::sigNotificationCenterOrderChange,
-            this, &UINotificationCenter::sltHandleOrderChange);
-
     /* Prepare the rest of stuff: */
     prepareModel();
     prepareWidgets();
     prepareStateMachineSliding();
     prepareOpenTimer();
 
+    /* Prepare alignment: */
+    m_enmAlignment = gEDataManager->notificationCenterAlignment();
+    connect(gEDataManager, &UIExtraDataManager::sigNotificationCenterAlignmentChange,
+            this, &UINotificationCenter::sltHandleAlignmentChange);
+    sltHandleAlignmentChange();
+    /* Prepare order: */
+    m_enmOrder = gEDataManager->notificationCenterOrder();
+    connect(gEDataManager, &UIExtraDataManager::sigNotificationCenterOrderChange,
+            this, &UINotificationCenter::sltHandleOrderChange);
+    sltHandleOrderChange();
+
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UINotificationCenter::sltRetranslateUI);
 }
 
 void UINotificationCenter::prepareModel()
@@ -740,11 +756,22 @@ void UINotificationCenter::prepareOpenTimer()
                 this, &UINotificationCenter::sltHandleOpenTimerTimeout);
 }
 
-void UINotificationCenter::cleanup()
+void UINotificationCenter::cleanupModel()
 {
-    /* Cleanup items: */
+    delete m_pModel;
+    m_pModel = 0;
+}
+
+void UINotificationCenter::cleanupItems()
+{
     qDeleteAll(m_items);
     m_items.clear();
+}
+
+void UINotificationCenter::cleanup()
+{
+    cleanupModel();
+    cleanupItems();
 }
 
 void UINotificationCenter::paintBackground(QPainter *pPainter)

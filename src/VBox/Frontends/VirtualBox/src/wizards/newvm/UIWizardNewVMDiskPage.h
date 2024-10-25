@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -39,7 +39,6 @@
 #include "UINativeWizardPage.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CMedium.h"
 
 /* Forward declarations: */
@@ -79,6 +78,7 @@ private slots:
     void sltGetWithFileOpenDialog();
     void sltHandleSizeEditorChange(qulonglong uSize);
     void sltFixedCheckBoxToggled(bool fChecked);
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -89,9 +89,8 @@ private:
     QWidget *createDiskWidgets();
     QWidget *createMediumVariantWidgets(bool fWithLabels);
 
-    virtual void retranslateUi() /* override final */;
-    virtual void initializePage() /* override final */;
-    virtual bool isComplete() const /* override final */;
+    virtual void initializePage() RT_OVERRIDE RT_FINAL;
+    virtual bool isComplete() const RT_OVERRIDE RT_FINAL;
 
     void setEnableDiskSelectionWidgets(bool fEnabled);
     void setWidgetVisibility(const CMediumFormat &mediumFormat);

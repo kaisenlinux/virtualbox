@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -284,10 +284,7 @@ static int hmR0VmxLoadVmcs(PVMXVMCSINFO pVmcsInfo)
     Assert(pVmcsInfo->HCPhysVmcs != 0 && pVmcsInfo->HCPhysVmcs != NIL_RTHCPHYS);
     Assert(!RTThreadPreemptIsEnabled(NIL_RTTHREAD));
 
-    int rc = VMXLoadVmcs(pVmcsInfo->HCPhysVmcs);
-    if (RT_SUCCESS(rc))
-        pVmcsInfo->fVmcsState |= VMX_V_VMCS_LAUNCH_STATE_CURRENT;
-    return rc;
+    return VMXLoadVmcs(pVmcsInfo->HCPhysVmcs);
 }
 
 
@@ -432,7 +429,7 @@ static bool hmR0VmxIsAutoLoadGuestMsr(PCVMXVMCSINFO pVmcsInfo, uint32_t idMsr)
  *
  * @remarks No-long-jump zone!!!
  * @remarks The guest MSRs should have been saved back into the guest-CPU
- *          context by hmR0VmxImportGuestState()!!!
+ *          context by vmxHCImportGuestState()!!!
  */
 static void hmR0VmxLazyRestoreHostMsrs(PVMCPUCC pVCpu)
 {
@@ -3019,7 +3016,7 @@ static int hmR0VmxSetupVmcs(PVMCPUCC pVCpu, PVMXVMCSINFO pVmcsInfo, bool fIsNstG
             }
         }
         else
-            LogRelFunc(("Failed to load the %s. rc=%Rrc\n", rc, pszVmcs));
+            LogRelFunc(("Failed to load the %s. rc=%Rrc\n", pszVmcs, rc));
     }
     else
         LogRelFunc(("Failed to clear the %s. rc=%Rrc\n", rc, pszVmcs));
@@ -3625,7 +3622,7 @@ static void hmR0VmxExportHostMsrs(PVMCPUCC pVCpu)
     }
 
     /** @todo IA32_PERF_GLOBALCTRL, IA32_PAT also see
-     *        hmR0VmxExportGuestEntryExitCtls(). */
+     *        vmxHCExportGuestEntryExitCtls(). */
 }
 
 
@@ -3633,7 +3630,7 @@ static void hmR0VmxExportHostMsrs(PVMCPUCC pVCpu)
  * Figures out if we need to swap the EFER MSR which is particularly expensive.
  *
  * We check all relevant bits. For now, that's everything besides LMA/LME, as
- * these two bits are handled by VM-entry, see hmR0VMxExportGuestEntryExitCtls().
+ * these two bits are handled by VM-entry, see vmxHCExportGuestEntryExitCtls().
  *
  * @returns true if we need to load guest EFER, false otherwise.
  * @param   pVCpu           The cross context virtual CPU structure.
@@ -4178,7 +4175,7 @@ DECLINLINE(int) hmR0VmxRunGuest(PVMCPUCC pVCpu, PCVMXTRANSIENT pVmxTransient)
     pVCpu->cpum.GstCtx.fExtrn |= HMVMX_CPUMCTX_EXTRN_ALL | CPUMCTX_EXTRN_KEEPER_HM;
 
     PVMXVMCSINFO pVmcsInfo = pVmxTransient->pVmcsInfo;
-    bool const   fResumeVM = RT_BOOL(pVmcsInfo->fVmcsState & VMX_V_VMCS_LAUNCH_STATE_LAUNCHED);
+    bool const   fResumeVM = RT_BOOL(pVmcsInfo->fVmcsState == VMX_V_VMCS_LAUNCH_STATE_LAUNCHED);
 #ifdef VBOX_WITH_STATISTICS
     if (fResumeVM)
         STAM_COUNTER_INC(&pVCpu->hm.s.StatVmxVmResume);
@@ -4407,8 +4404,7 @@ static void hmR0VmxUpdateTscOffsettingAndPreemptTimer(PVMCPUCC pVCpu, PVMXTRANSI
     bool         fOffsettedTsc;
     bool         fParavirtTsc;
     uint64_t     uTscOffset;
-    PVMCC        pVM       = pVCpu->CTX_SUFF(pVM);
-    PVMXVMCSINFO pVmcsInfo = hmGetVmxActiveVmcsInfo(pVCpu);
+    PVMCC        pVM = pVCpu->CTX_SUFF(pVM);
 
     if (pVM->hmr0.s.vmx.fUsePreemptTimer)
     {
@@ -4474,7 +4470,7 @@ static void hmR0VmxUpdateTscOffsettingAndPreemptTimer(PVMCPUCC pVCpu, PVMXTRANSI
     {
         if (pVmxTransient->fIsNestedGuest)
             uTscOffset = CPUMApplyNestedGuestTscOffset(pVCpu, uTscOffset);
-        hmR0VmxSetTscOffsetVmcs(pVmcsInfo, uTscOffset);
+        hmR0VmxSetTscOffsetVmcs(pVmxTransient->pVmcsInfo, uTscOffset);
         hmR0VmxRemoveProcCtlsVmcs(pVCpu, pVmxTransient, VMX_PROC_CTLS_RDTSC_EXIT);
     }
     else
@@ -4870,6 +4866,7 @@ static int hmR0VmxExitToRing3(PVMCPUCC pVCpu, VBOXSTRICTRC rcExit)
      */
     if (!CPUMIsGuestInVmxNonRootMode(&pVCpu->cpum.GstCtx))
     {
+        Assert(!pVCpu->hmr0.s.vmx.fSwitchedToNstGstVmcs);
         vmxHCClearIntWindowExitVmcs(pVCpu, pVmcsInfo);
         vmxHCClearNmiWindowExitVmcs(pVCpu, pVmcsInfo);
     }
@@ -5019,7 +5016,7 @@ VMMR0DECL(int) VMXR0Enter(PVMCPUCC pVCpu)
         pVCpu->hmr0.s.vmx.fSwitchedToNstGstVmcs           = fInNestedGuestMode;
         pVCpu->hm.s.vmx.fSwitchedToNstGstVmcsCopyForRing3 = fInNestedGuestMode;
         pVCpu->hmr0.s.fLeaveDone = false;
-        Log4Func(("Loaded Vmcs. HostCpuId=%u\n", RTMpCpuId()));
+        Log4Func(("Loaded %s Vmcs. HostCpuId=%u\n", fInNestedGuestMode ? "nested-guest" : "guest", RTMpCpuId()));
     }
     return rc;
 }
@@ -5058,7 +5055,7 @@ VMMR0DECL(void) VMXR0ThreadCtxCallback(RTTHREADCTXEVENT enmEvent, PVMCPUCC pVCpu
             {
                 /*
                  * Do -not- import the guest-state here as we might already be in the middle of importing
-                 * it, esp. bad if we're holding the PGM lock, see comment in hmR0VmxImportGuestState().
+                 * it, esp. bad if we're holding the PGM lock, see comment at the end of vmxHCImportGuestStateEx().
                  */
                 hmR0VmxLeave(pVCpu, false /* fImportState */);
                 pVCpu->hmr0.s.fLeaveDone = true;
@@ -5926,10 +5923,12 @@ static VBOXSTRICTRC hmR0VmxPreRunGuest(PVMCPUCC pVCpu, PVMXTRANSIENT pVmxTransie
         vmxHCTrpmTrapToPendingEvent(pVCpu);
 
     uint32_t fIntrState;
-    rcStrict = vmxHCEvaluatePendingEvent(pVCpu, pVmxTransient->pVmcsInfo, pVmxTransient->fIsNestedGuest,
-                                         &fIntrState);
-
 #ifdef VBOX_WITH_NESTED_HWVIRT_VMX
+    if (!pVmxTransient->fIsNestedGuest)
+        rcStrict = vmxHCEvaluatePendingEvent(pVCpu, pVmxTransient->pVmcsInfo, &fIntrState);
+    else
+        rcStrict = vmxHCEvaluatePendingEventNested(pVCpu, pVmxTransient->pVmcsInfo, &fIntrState);
+
     /*
      * While evaluating pending events if something failed (unlikely) or if we were
      * preparing to run a nested-guest but performed a nested-guest VM-exit, we should bail.
@@ -5943,6 +5942,7 @@ static VBOXSTRICTRC hmR0VmxPreRunGuest(PVMCPUCC pVCpu, PVMXTRANSIENT pVmxTransie
         return VINF_VMX_VMEXIT;
     }
 #else
+    rcStrict = vmxHCEvaluatePendingEvent(pVCpu, pVmxTransient->pVmcsInfo, &fIntrState);
     Assert(rcStrict == VINF_SUCCESS);
 #endif
 
@@ -5954,8 +5954,7 @@ static VBOXSTRICTRC hmR0VmxPreRunGuest(PVMCPUCC pVCpu, PVMXTRANSIENT pVmxTransie
      * With nested-guests, the above does not apply since unrestricted guest execution is a
      * requirement. Regardless, we do this here to avoid duplicating code elsewhere.
      */
-    rcStrict = vmxHCInjectPendingEvent(pVCpu, pVmxTransient->pVmcsInfo, pVmxTransient->fIsNestedGuest,
-                                       fIntrState, fStepping);
+    rcStrict = vmxHCInjectPendingEvent(pVCpu, pVmxTransient->pVmcsInfo, pVmxTransient->fIsNestedGuest, fIntrState, fStepping);
     if (RT_LIKELY(rcStrict == VINF_SUCCESS))
     { /* likely */ }
     else
@@ -6269,7 +6268,7 @@ static void hmR0VmxPostRunGuest(PVMCPUCC pVCpu, PVMXTRANSIENT pVmxTransient, int
     VMCPU_SET_STATE(pVCpu, VMCPUSTATE_STARTED_HM);
 
     pVCpu->hmr0.s.vmx.fRestoreHostFlags |= VMX_RESTORE_HOST_REQUIRED;   /* Some host state messed up by VMX needs restoring. */
-    pVmcsInfo->fVmcsState |= VMX_V_VMCS_LAUNCH_STATE_LAUNCHED;          /* Use VMRESUME instead of VMLAUNCH in the next run. */
+    pVmcsInfo->fVmcsState = VMX_V_VMCS_LAUNCH_STATE_LAUNCHED;           /* Use VMRESUME instead of VMLAUNCH in the next run. */
 #ifdef VBOX_STRICT
     hmR0VmxCheckHostEferMsr(pVmcsInfo);                                 /* Verify that the host EFER MSR wasn't modified. */
 #endif
@@ -6451,6 +6450,7 @@ static VBOXSTRICTRC hmR0VmxRunGuestCodeNormal(PVMCPUCC pVCpu, uint32_t *pcLoops)
     VMXTRANSIENT VmxTransient;
     RT_ZERO(VmxTransient);
     VmxTransient.pVmcsInfo = hmGetVmxActiveVmcsInfo(pVCpu);
+    Assert(!pVCpu->hmr0.s.vmx.fSwitchedToNstGstVmcs);
 
     /* Paranoia. */
     Assert(VmxTransient.pVmcsInfo == &pVCpu->hmr0.s.vmx.VmcsInfo);
@@ -6563,6 +6563,7 @@ static VBOXSTRICTRC hmR0VmxRunGuestCodeNested(PVMCPUCC pVCpu, uint32_t *pcLoops)
     RT_ZERO(VmxTransient);
     VmxTransient.pVmcsInfo      = hmGetVmxActiveVmcsInfo(pVCpu);
     VmxTransient.fIsNestedGuest = true;
+    Assert(pVCpu->hmr0.s.vmx.fSwitchedToNstGstVmcs);
 
     /* Paranoia. */
     Assert(VmxTransient.pVmcsInfo == &pVCpu->hmr0.s.vmx.VmcsInfoNstGst);

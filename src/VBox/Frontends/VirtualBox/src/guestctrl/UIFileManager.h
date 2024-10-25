@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -39,7 +39,6 @@
 
 /* GUI includes: */
 #include "QIManagerDialog.h"
-#include "QIWithRetranslateUI.h"
 #include "UIGuestControlDefs.h"
 
 
@@ -53,8 +52,8 @@ class QVBoxLayout;
 class UIActionPool;
 class UIDialogPanel;
 class UIFileManagerLogPanel;
+class UIFileManagerPaneContainer;
 class UIFileManagerOperationsPanel;
-class UIFileManagerOptionsPanel;
 class UIFileManagerGuestTable;
 class UIFileManagerHostTable;
 class UIVirtualMachineItem;
@@ -87,7 +86,7 @@ private:
 /** A QWidget extension. it includes a QWidget extension for initiating a guest session
  *  one host and one guest file table views, a log viewer
  *  and some other file manager related widgets. */
-class SHARED_LIBRARY_STUFF UIFileManager : public QIWithRetranslateUI<QWidget>
+class SHARED_LIBRARY_STUFF UIFileManager : public QWidget
 {
     Q_OBJECT;
 
@@ -109,10 +108,6 @@ public:
 
     void setSelectedVMListItems(const QList<UIVirtualMachineItem*> &items);
 
-protected:
-
-    void retranslateUi();
-
 private slots:
 
     void sltReceieveLogOutput(QString strOutput, const QString &strMachineName, FileManagerLogType eLogType);
@@ -121,14 +116,15 @@ private slots:
     void sltPanelActionToggled(bool fChecked);
     void sltReceieveNewFileOperation(const CProgress &comProgress, const QString &strTableName);
     void sltFileOperationComplete(QUuid progressId);
-    /** Performs whatever necessary when some signal about option change has been receieved. */
-    void sltHandleOptionsUpdated();
     void sltHandleHidePanel(UIDialogPanel *pPanel);
     void sltHandleShowPanel(UIDialogPanel *pPanel);
     void sltCommitDataSignalReceived();
     void sltFileTableSelectionChanged(bool fHasSelection);
     void sltCurrentTabChanged(int iIndex);
     void sltGuestFileTableStateChanged(bool fIsRunning);
+    void sltHandleOptionsUpdated();
+    void sltPanelCurrentTabChanged(int iIndex);
+    void sltPanelContainerHidden();
 
 private:
 
@@ -136,9 +132,6 @@ private:
     void prepareConnections();
     void prepareVerticalToolBar(QHBoxLayout *layout);
     void prepareToolBar();
-    /** Creates options and sessions panels and adds them to @p pLayout.  */
-    void prepareOptionsAndSessionPanels(QVBoxLayout *pLayout);
-    void prepareOperationsAndLogPanels(QSplitter *pSplitter);
 
     /** Saves list of panels and file manager options to the extra data. */
     void saveOptions();
@@ -181,17 +174,15 @@ private:
     const EmbedTo  m_enmEmbedding;
     QPointer<UIActionPool>  m_pActionPool;
     const bool     m_fShowToolbar;
-    QMap<UIDialogPanel*, QAction*> m_panelActionMap;
+    QSet<QAction*> m_panelActions;
     QList<UIDialogPanel*>          m_visiblePanelsList;
-    UIFileManagerOptionsPanel          *m_pOptionsPanel;
-    UIFileManagerLogPanel              *m_pLogPanel;
-    UIFileManagerOperationsPanel       *m_pOperationsPanel;
-
+    UIFileManagerLogPanel         *m_pLogPanel;
+    UIFileManagerOperationsPanel  *m_pOperationsPanel;
+    UIFileManagerPaneContainer    *m_pPanel;
     bool m_fCommitDataSignalReceived;
 
     QVector<QUuid> m_machineIds;
 
-    friend class UIFileManagerOptionsPanel;
     friend class UIFileManagerDialog;
 };
 

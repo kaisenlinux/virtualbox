@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -367,7 +367,7 @@ int GuestFile::i_callbackDispatcher(PVBOXGUESTCTRLHOSTCBCTX pCbCtx, PVBOXGUESTCT
             break;
 
         case GUEST_MSG_FILE_NOTIFY:
-            vrc = i_onFileNotify(pCbCtx, pSvcCb);
+            vrc = i_onNotify(pCbCtx, pSvcCb);
             break;
 
         default:
@@ -390,7 +390,7 @@ int GuestFile::i_callbackDispatcher(PVBOXGUESTCTRLHOSTCBCTX pCbCtx, PVBOXGUESTCT
  * @param   prcGuest            Where to return the guest error when VERR_GSTCTL_GUEST_ERROR
  *                              was returned.
  */
-int GuestFile::i_closeFile(int *prcGuest)
+int GuestFile::i_close(int *prcGuest)
 {
     LogFlowThisFunc(("strFile=%s\n", mData.mOpenInfo.mFilename.c_str()));
 
@@ -420,8 +420,7 @@ int GuestFile::i_closeFile(int *prcGuest)
 
     vrc = sendMessage(HOST_MSG_FILE_CLOSE, i, paParms);
     if (RT_SUCCESS(vrc))
-        vrc = i_waitForStatusChange(pEvent, 30 * 1000 /* Timeout in ms */,
-                                    NULL /* FileStatus */, prcGuest);
+        vrc = i_waitForStatusChange(pEvent, GSTCTL_DEFAULT_TIMEOUT_MS, NULL /* FileStatus */, prcGuest);
     unregisterWaitEvent(pEvent);
 
     /* Unregister the file object from the guest session. */
@@ -472,7 +471,7 @@ Utf8Str GuestFile::i_guestErrorToString(int rcGuest, const char *pcszWhat)
  * @param   pCbCtx              Host callback context.
  * @param   pSvcCbData          Host callback data.
  */
-int GuestFile::i_onFileNotify(PVBOXGUESTCTRLHOSTCBCTX pCbCtx, PVBOXGUESTCTRLHOSTCALLBACK pSvcCbData)
+int GuestFile::i_onNotify(PVBOXGUESTCTRLHOSTCBCTX pCbCtx, PVBOXGUESTCTRLHOSTCALLBACK pSvcCbData)
 {
     AssertPtrReturn(pCbCtx, VERR_INVALID_POINTER);
     AssertPtrReturn(pSvcCbData, VERR_INVALID_POINTER);
@@ -791,7 +790,7 @@ int GuestFile::i_onSessionStatusChange(GuestSessionStatus_T enmSessionStatus)
  * @param   prcGuest            Where to return the guest error when VERR_GSTCTL_GUEST_ERROR
  *                              was returned. Optional.
  */
-int GuestFile::i_openFile(uint32_t uTimeoutMS, int *prcGuest)
+int GuestFile::i_open(uint32_t uTimeoutMS, int *prcGuest)
 {
     AssertReturn(mData.mOpenInfo.mFilename.isNotEmpty(), VERR_INVALID_PARAMETER);
 
@@ -899,8 +898,8 @@ int GuestFile::i_openFile(uint32_t uTimeoutMS, int *prcGuest)
  */
 int GuestFile::i_queryInfo(GuestFsObjData &objData, int *prcGuest)
 {
-    AssertPtr(mSession);
-    return mSession->i_fsQueryInfo(mData.mOpenInfo.mFilename, FALSE /* fFollowSymlinks */, objData, prcGuest);
+    AssertPtrReturn(mSession, VERR_OBJECT_DESTROYED);
+    return mSession->i_fsObjQueryInfo(mData.mOpenInfo.mFilename, FALSE /* fFollowSymlinks */, objData, prcGuest);
 }
 
 /**
@@ -966,7 +965,7 @@ int GuestFile::i_readData(uint32_t uSize, uint32_t uTimeoutMS,
                 *pcbRead = cbRead;
         }
         else if (pEvent->HasGuestError()) /* Return guest vrc if available. */
-            vrc = pEvent->GetGuestError();
+            vrc = pEvent->GuestResult();
     }
 
     unregisterWaitEvent(pEvent);
@@ -1038,7 +1037,7 @@ int GuestFile::i_readDataAt(uint64_t uOffset, uint32_t uSize, uint32_t uTimeoutM
                 *pcbRead = cbRead;
         }
         else if (pEvent->HasGuestError()) /* Return guest vrc if available. */
-            vrc = pEvent->GetGuestError();
+            vrc = pEvent->GuestResult();
     }
 
     unregisterWaitEvent(pEvent);
@@ -1108,7 +1107,7 @@ int GuestFile::i_seekAt(int64_t iOffset, GUEST_FILE_SEEKTYPE eSeekType,
                 *puOffset = uOffset;
         }
         else if (pEvent->HasGuestError()) /* Return guest vrc if available. */
-            vrc = pEvent->GetGuestError();
+            vrc = pEvent->GuestResult();
     }
 
     unregisterWaitEvent(pEvent);
@@ -1432,7 +1431,7 @@ int GuestFile::i_writeData(uint32_t uTimeoutMS, const void *pvData, uint32_t cbD
                 *pcbWritten = cbWritten;
         }
         else if (pEvent->HasGuestError()) /* Return guest vrc if available. */
-            vrc = pEvent->GetGuestError();
+            vrc = pEvent->GuestResult();
     }
 
     unregisterWaitEvent(pEvent);
@@ -1507,7 +1506,7 @@ int GuestFile::i_writeDataAt(uint64_t uOffset, uint32_t uTimeoutMS,
                 *pcbWritten = cbWritten;
         }
         else if (pEvent->HasGuestError()) /* Return guest vrc if available. */
-            vrc = pEvent->GetGuestError();
+            vrc = pEvent->GuestResult();
     }
 
     unregisterWaitEvent(pEvent);
@@ -1527,7 +1526,7 @@ HRESULT GuestFile::close()
 
     /* Close file on guest. */
     int vrcGuest = VERR_IPE_UNINITIALIZED_STATUS;
-    int vrc = i_closeFile(&vrcGuest);
+    int vrc = i_close(&vrcGuest);
     if (RT_FAILURE(vrc))
     {
         if (vrc == VERR_GSTCTL_GUEST_ERROR)
@@ -1575,7 +1574,13 @@ HRESULT GuestFile::queryInfo(ComPtr<IFsObjInfo> &aObjInfo)
     {
         if (GuestProcess::i_isGuestError(vrc))
         {
-            GuestErrorInfo ge(GuestErrorInfo::Type_ToolStat, vrcGuest, mData.mOpenInfo.mFilename.c_str());
+            GuestErrorInfo ge(
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT
+                              GuestErrorInfo::Type_ToolStat,
+#else
+                              GuestErrorInfo::Type_File,
+#endif
+                              vrcGuest, mData.mOpenInfo.mFilename.c_str());
             hrc = setErrorBoth(VBOX_E_IPRT_ERROR, vrcGuest, tr("Querying guest file information failed: %s"),
                                GuestBase::getErrorAsString(ge).c_str());
         }
@@ -1608,7 +1613,13 @@ HRESULT GuestFile::querySize(LONG64 *aSize)
     {
         if (GuestProcess::i_isGuestError(vrc))
         {
-            GuestErrorInfo ge(GuestErrorInfo::Type_ToolStat, vrcGuest, mData.mOpenInfo.mFilename.c_str());
+            GuestErrorInfo ge(
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT
+                              GuestErrorInfo::Type_ToolStat,
+#else
+                              GuestErrorInfo::Type_File,
+#endif
+                              vrcGuest, mData.mOpenInfo.mFilename.c_str());
             hrc = setErrorBoth(VBOX_E_IPRT_ERROR, vrcGuest, tr("Querying guest file size failed: %s"),
                                GuestBase::getErrorAsString(ge).c_str());
         }
@@ -1745,8 +1756,7 @@ HRESULT GuestFile::seek(LONG64 aOffset, FileSeekOrigin_T aWhence, LONG64 *aNewOf
     LogFlowThisFuncEnter();
 
     uint64_t uNewOffset;
-    int vrc = i_seekAt(aOffset, eSeekType,
-                       30 * 1000 /* 30s timeout */, &uNewOffset);
+    int vrc = i_seekAt(aOffset, eSeekType, GSTCTL_DEFAULT_TIMEOUT_MS, &uNewOffset);
     if (RT_SUCCESS(vrc))
         *aNewOffset = RT_MIN(uNewOffset, (uint64_t)INT64_MAX);
     else
@@ -1821,8 +1831,9 @@ HRESULT GuestFile::setSize(LONG64 aSize)
                 else
                     vrc = VWRN_GSTCTL_OBJECTSTATE_CHANGED;
             }
-            if (RT_FAILURE(vrc) && pWaitEvent->HasGuestError()) /* Return guest vrc if available. */
-                vrc = pWaitEvent->GetGuestError();
+
+            if (pWaitEvent->HasGuestError()) /* Return guest vrc if available. */
+                vrc = pWaitEvent->GuestResult();
         }
 
         /*

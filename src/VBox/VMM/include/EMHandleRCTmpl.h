@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -62,8 +62,7 @@ int emR3NemHandleRC(PVM pVM, PVMCPU pVCpu, int rc)
          */
         case VINF_SUCCESS:
             break;
-        case VINF_EM_RESCHEDULE_RAW:
-        case VINF_EM_RESCHEDULE_HM:
+        case VINF_EM_RESCHEDULE_EXEC_ENGINE:
         case VINF_EM_RAW_INTERRUPT:
         case VINF_EM_RAW_TO_R3:
         case VINF_EM_RAW_TIMER_PENDING:
@@ -112,6 +111,7 @@ int emR3NemHandleRC(PVM pVM, PVMCPU pVCpu, int rc)
             rc = emR3ExecuteIOInstruction(pVM, pVCpu);
             break;
 
+#if !defined(VBOX_VMM_TARGET_ARMV8)
         /*
          * Execute pending I/O Port access.
          */
@@ -121,6 +121,7 @@ int emR3NemHandleRC(PVM pVM, PVMCPU pVCpu, int rc)
         case VINF_EM_PENDING_R3_IOPORT_READ:
             rc = VBOXSTRICTRC_TODO(emR3ExecutePendingIoPortRead(pVM, pVCpu));
             break;
+#endif
 
         /*
          * Memory mapped I/O access - emulate the instruction.
@@ -166,9 +167,11 @@ int emR3NemHandleRC(PVM pVM, PVMCPU pVCpu, int rc)
                 rc = emR3ExecuteInstruction(pVM, pVCpu, "EVENT: ");
             break;
 
+#if !defined(VBOX_VMM_TARGET_ARMV8)
         case VINF_EM_EMULATE_SPLIT_LOCK:
             rc = VBOXSTRICTRC_TODO(emR3ExecuteSplitLockInstruction(pVM, pVCpu));
             break;
+#endif
 
 
         /*

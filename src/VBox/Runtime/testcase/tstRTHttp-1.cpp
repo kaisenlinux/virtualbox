@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2018-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2018-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -57,7 +57,7 @@
  * {"hello": "world"}
  */
 
-void testHeaderSigning()
+static void testHeaderSigning()
 {
     static const char s_szPublicKey1[] =
         "-----BEGIN PUBLIC KEY-----\n"

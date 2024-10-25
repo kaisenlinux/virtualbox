@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -453,7 +453,7 @@ static SUPFUNC g_aFunctions[] =
     SUPEXP_STK_BACK(    3,  RTR0MemKernelCopyTo),
     SUPEXP_STK_OKAY(    1,  RTR0MemObjAddress),
     SUPEXP_STK_OKAY(    1,  RTR0MemObjAddressR3),
-    SUPEXP_STK_BACK(    4,  RTR0MemObjAllocContTag),
+    SUPEXP_STK_BACK(    5,  RTR0MemObjAllocContTag),
     SUPEXP_STK_BACK(    5,  RTR0MemObjAllocLargeTag),
     SUPEXP_STK_BACK(    4,  RTR0MemObjAllocLowTag),
     SUPEXP_STK_BACK(    4,  RTR0MemObjAllocPageTag),
@@ -473,6 +473,7 @@ static SUPFUNC g_aFunctions[] =
     SUPEXP_STK_BACK(    4,  RTR0MemObjProtect),
     SUPEXP_STK_OKAY(    1,  RTR0MemObjSize),
     SUPEXP_STK_OKAY(    1,  RTR0MemObjWasZeroInitialized),
+    SUPEXP_STK_OKAY(    2,  RTR0MemObjZeroInitialize),
     SUPEXP_STK_BACK(    3,  RTR0MemUserCopyFrom),
     SUPEXP_STK_BACK(    3,  RTR0MemUserCopyTo),
     SUPEXP_STK_BACK(    1,  RTR0MemUserIsValidAddr),
@@ -3504,7 +3505,8 @@ SUPR0DECL(int) SUPR0ContAlloc(PSUPDRVSESSION pSession, uint32_t cPages, PRTR0PTR
     /*
      * Let IPRT do the job.
      */
-    rc = RTR0MemObjAllocCont(&Mem.MemObj, cPages << PAGE_SHIFT, true /* executable R0 mapping */);
+    /** @todo Is the 4GiB requirement actually necessray? */
+    rc = RTR0MemObjAllocCont(&Mem.MemObj, cPages << PAGE_SHIFT, _4G-1 /*PhysHighest*/, true /* executable R0 mapping */);
     if (RT_SUCCESS(rc))
     {
         int rc2;

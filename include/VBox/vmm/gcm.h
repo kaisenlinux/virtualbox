@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2022-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2022-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -39,12 +39,7 @@
 # pragma once
 #endif
 
-#include <VBox/cdefs.h>
 #include <VBox/types.h>
-#include <VBox/param.h>
-
-#include <VBox/vmm/cpum.h>
-#include <VBox/vmm/pdmifs.h>
 
 RT_C_DECLS_BEGIN
 
@@ -53,40 +48,60 @@ RT_C_DECLS_BEGIN
  * @{
  */
 
-/**
- * GCM Fixer Identifiers.
- * @remarks Part of saved state!
- */
-typedef enum GCMFIXERID
-{
-    /** None. */
-    GCMFIXER_NONE       = 0,
-    /** DOS division by zero, the worst. Includes Windows 3.x. */
-    GCMFIXER_DBZ_DOS    = RT_BIT(0),
-    /** OS/2 (any version) division by zero. */
-    GCMFIXER_DBZ_OS2    = RT_BIT(1),
-    /** Windows 9x division by zero. */
-    GCMFIXER_DBZ_WIN9X  = RT_BIT(2),
-    /** 32-bit hack. */
-    GCMFIXER_32BIT_HACK = 0x7fffffff
-} GCMFIXERID;
-AssertCompileSize(GCMFIXERID, sizeof(uint32_t));
-
-
 #ifdef IN_RING3
 /** @defgroup grp_gcm_r3  The GCM Host Context Ring-3 API
  * @{
  */
 VMMR3_INT_DECL(int)         GCMR3Init(PVM pVM);
-VMMR3_INT_DECL(void)        GCMR3Relocate(PVM pVM, RTGCINTPTR offDelta);
 VMMR3_INT_DECL(int)         GCMR3Term(PVM pVM);
 VMMR3_INT_DECL(void)        GCMR3Reset(PVM pVM);
 /** @} */
 #endif /* IN_RING3 */
 
-VMMDECL(bool)               GCMIsEnabled(PVM pVM);
-VMM_INT_DECL(bool)          GCMShouldTrapXcptDE(PVMCPUCC pVCpu);
-VMM_INT_DECL(VBOXSTRICTRC)  GCMXcptDE(PVMCPUCC pVCpu, PCPUMCTX pCtx, PDISCPUSTATE pDis, uint8_t *pcbInstr);
+VMM_INT_DECL(bool)          GCMIsInterceptingXcptDE(PVMCPUCC pVCpu);
+VMM_INT_DECL(int)           GCMXcptDE(PVMCPUCC pVCpu, PCPUMCTX pCtx);
+
+VMM_INT_DECL(bool)          GCMIsInterceptingXcptGP(PVMCPUCC pVCpu);
+VMM_INT_DECL(int)           GCMXcptGP(PVMCPUCC pVCpu, PCPUMCTX pCtx);
+
+VMM_INT_DECL(VBOXSTRICTRC)  GCMInterceptedIOPortRead(PVMCPUCC pVCpu, PCPUMCTX pCtx, uint16_t u16Port, uint8_t cbReg);
+VMM_INT_DECL(bool)          GCMIsInterceptingIOPortReadSlow(PVMCPUCC pVCpu, uint16_t u16Port, uint8_t cbReg);
+
+/**
+ * Checks if the given IN instruction is intercepted.
+ */
+DECLINLINE(bool) GCMIsInterceptingIOPortRead(PVMCPUCC pVCpu, uint16_t u16Port, uint8_t cbReg)
+{
+    return u16Port == 0x5658 /* vmware hypervisor port */
+        && cbReg == 4
+        && GCMIsInterceptingIOPortReadSlow(pVCpu, u16Port, cbReg);
+}
+
+#if 0 /* If we need to deal with high speed vmware hypervisor calls */
+VMM_INT_DECL(bool)          GCMIsInterceptingIOPortReadStringSlow(PVMCPUCC pVCpu, uint16_t u16Port, uint8_t cbReg);
+VMM_INT_DECL(bool)          GCMIsInterceptingIOPortWriteStringSlow(PVMCPUCC pVCpu, uint16_t u16Port, uint8_t cbReg);
+
+/**
+ * Checks if the given INS instruction is intercepted.
+ */
+DECLINLINE(bool) GCMIsInterceptingIOPortReadString(PVMCPUCC pVCpu, uint16_t u16Port, uint8_t cbReg)
+{
+    return u16Port == 0x5659 /* new vmware hypervisor port */
+        && cbReg == 1
+        && GCMIsInterceptingIOPortReadStringSlow(pVCpu, u16Port, cbReg);
+}
+
+/**
+ * Checks if the given OUTS instruction is intercepted.
+ */
+DECLINLINE(bool) GCMIsInterceptingIOPortWriteString(PVMCPUCC pVCpu, uint16_t u16Port, uint8_t cbReg)
+{
+    return u16Port == 0x5659 /* new vmware hypervisor port */
+        && cbReg == 1
+        && GCMIsInterceptingIOPortWriteStringSlow(pVCpu, u16Port, cbReg);
+}
+#endif
+
 /** @} */
 
 RT_C_DECLS_END

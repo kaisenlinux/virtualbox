@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -234,7 +234,8 @@ static DECLCALLBACK(int) vscsiLunSbcReqProcess(PVSCSILUNINT pVScsiLun, PVSCSIREQ
                 {
                     SCSIINQUIRYDATA ScsiInquiryReply;
 
-                    vscsiReqSetXferSize(pVScsiReq, RT_MIN(sizeof(SCSIINQUIRYDATA), scsiBE2H_U16(&pVScsiReq->pbCDB[3])));
+                    uint16_t cbDataReq = scsiBE2H_U16(&pVScsiReq->pbCDB[3]);
+                    vscsiReqSetXferSize(pVScsiReq, RT_MIN(sizeof(SCSIINQUIRYDATA), cbDataReq));
                     memset(&ScsiInquiryReply, 0, sizeof(ScsiInquiryReply));
 
                     ScsiInquiryReply.cbAdditional           = 31;
@@ -362,6 +363,7 @@ static DECLCALLBACK(int) vscsiLunSbcReqProcess(PVSCSILUNINT pVScsiLun, PVSCSIREQ
                                         |  (pVScsiReq->pbCDB[2] <<  8)
                                         | ((pVScsiReq->pbCDB[1] & 0x1f) << 16));
             cSectorTransfer = pVScsiReq->pbCDB[4];
+            cSectorTransfer = cSectorTransfer ? cSectorTransfer : 256;  /* Zero blocks means 256 */
             break;
         }
         case SCSI_READ_10:
@@ -392,6 +394,7 @@ static DECLCALLBACK(int) vscsiLunSbcReqProcess(PVSCSILUNINT pVScsiLun, PVSCSIREQ
                                         | (pVScsiReq->pbCDB[2] <<  8)
                                         | ((pVScsiReq->pbCDB[1] & 0x1f) << 16));
             cSectorTransfer = pVScsiReq->pbCDB[4];
+            cSectorTransfer = cSectorTransfer ? cSectorTransfer : 256;  /* Zero blocks means 256 */
             break;
         }
         case SCSI_WRITE_10:
@@ -555,7 +558,7 @@ static DECLCALLBACK(int) vscsiLunSbcReqProcess(PVSCSILUNINT pVScsiLun, PVSCSIREQ
                                 }
 
                                 paRanges[i].offStart = scsiBE2H_U64(&abBlkDesc[0]) * 512;
-                                paRanges[i].cbRange = scsiBE2H_U32(&abBlkDesc[8]) * 512;
+                                paRanges[i].cbRange = (size_t)scsiBE2H_U32(&abBlkDesc[8]) * 512;
                             }
 
                             if (rcReq == SCSI_STATUS_OK)
@@ -610,7 +613,10 @@ static DECLCALLBACK(int) vscsiLunSbcReqProcess(PVSCSILUNINT pVScsiLun, PVSCSIREQ
             if (   (   enmTxDir == VSCSIIOREQTXDIR_WRITE
                     || enmTxDir == VSCSIIOREQTXDIR_FLUSH)
                 && (pVScsiLun->fFeatures & VSCSI_LUN_FEATURE_READONLY))
+            {
                 rcReq = vscsiLunReqSenseErrorSet(pVScsiLun, pVScsiReq, SCSI_SENSE_DATA_PROTECT, SCSI_ASC_WRITE_PROTECTED, 0x00);
+                vscsiDeviceReqComplete(pVScsiLun->pVScsiDevice, pVScsiReq, rcReq, false, VINF_SUCCESS);
+            }
             else
             {
                 vscsiReqSetXferDir(pVScsiReq, enmTxDir == VSCSIIOREQTXDIR_WRITE ? VSCSIXFERDIR_I2T : VSCSIXFERDIR_T2I);

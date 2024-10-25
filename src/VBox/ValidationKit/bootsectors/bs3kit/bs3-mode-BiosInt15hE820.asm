@@ -4,7 +4,7 @@
 ;
 
 ;
-; Copyright (C) 2021-2023 Oracle and/or its affiliates.
+; Copyright (C) 2021-2024 Oracle and/or its affiliates.
 ;
 ; This file is part of VirtualBox base platform packages, as
 ; available from https://www.virtualbox.org.
@@ -171,7 +171,7 @@ TMPL_BEGIN_TEXT
         ;
         jc      .failed
         cmp     eax, INT15_E820_SIGNATURE
-        jc      .failed
+        jne     .failed
         cmp     ecx, 20
         jb      .failed
 

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2007-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2007-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -45,17 +45,26 @@
 /*********************************************************************************************************************************
 *   Internal Functions                                                                                                           *
 *********************************************************************************************************************************/
-FNBS3TESTDOMODE bs3CpuWeird1_DbgInhibitRingXfer_f16;
-FNBS3TESTDOMODE bs3CpuWeird1_PcWrapping_f16;
+FNBS3TESTDOMODE BS3_CMN_FAR_NM(bs3CpuWeird1_DbgInhibitRingXfer);
+FNBS3TESTDOMODE BS3_CMN_FAR_NM(bs3CpuWeird1_PcWrapping);
+FNBS3TESTDOMODE BS3_CMN_FAR_NM(bs3CpuWeird1_PushPop);
+FNBS3TESTDOMODE BS3_CMN_FAR_NM(bs3CpuWeird1_PushPopSReg);
+FNBS3TESTDOMODE BS3_CMN_FAR_NM(bs3CpuWeird1_Popf);
 
 
 /*********************************************************************************************************************************
 *   Global Variables                                                                                                             *
 *********************************************************************************************************************************/
+/**
+ * All tests in r163755 passed running directly on an Intel 6700k.
+ */
 static const BS3TESTMODEBYONEENTRY g_aModeByOneTests[] =
 {
-    { "dbg+inhibit+ringxfer", bs3CpuWeird1_DbgInhibitRingXfer_f16, 0 },
-    { "pc wrapping", bs3CpuWeird1_PcWrapping_f16, 0 },
+    { "dbg+inhibit+ringxfer",   BS3_CMN_FAR_NM(bs3CpuWeird1_DbgInhibitRingXfer),    0 },
+    { "pc wrapping",            BS3_CMN_FAR_NM(bs3CpuWeird1_PcWrapping),            0 },
+    { "push/pop",               BS3_CMN_FAR_NM(bs3CpuWeird1_PushPop),               0 },
+    { "push/pop sreg",          BS3_CMN_FAR_NM(bs3CpuWeird1_PushPopSReg),           0 },
+    { "popf",                   BS3_CMN_FAR_NM(bs3CpuWeird1_Popf),                  0 },
 };
 
 

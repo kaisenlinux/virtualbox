@@ -3,7 +3,7 @@
     manpage, user manual, usage: VBoxManage setproperty
 -->
 <!--
-    Copyright (C) 2006-2023 Oracle and/or its affiliates.
+    Copyright (C) 2006-2024 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.
@@ -30,7 +30,7 @@
 ]>
 <refentry id="vboxmanage-setproperty" lang="en">
   <refentryinfo>
-    <pubdate>$Date: 2023-01-17 15:15:46 +0100 (Tue, 17 Jan 2023) $</pubdate>
+    <pubdate>$Date: 2024-09-16 16:03:52 +0200 (Mon, 16 Sep 2024) $</pubdate>
     <title>VBoxManage setproperty</title>
   </refentryinfo>
 
@@ -54,7 +54,7 @@
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-setproperty-description">
     <title>Description</title>
     <para>
       The <command>VBoxManage setproperty</command> command enables you
@@ -101,7 +101,7 @@
             <listitem><para>
                 <literal>off</literal> shares these extensions with
                 other hypervisors that run simultaneously. Note that
-                disabling this setting has negative performance
+                sharing these extensions has negative performance
                 implications.
               </para></listitem>
           </itemizedlist></listitem>
@@ -111,10 +111,12 @@
         <listitem><para>
             Specifies the user language used to translate API messages.
             Valid values are <literal>C</literal>, which means no
-            translation or language code in form either <literal>ll</literal>
-            or <literal>ll_CC</literal>, where <literal>ll</literal> is
-            language 2 letters code in lower case and
-            <literal>CC</literal> is country 2 letter code in upper case.
+            translation or a language code in the form of either
+            <literal>ll</literal> or <literal>ll_CC</literal>, where
+            <literal>ll</literal> is an ISO 639 two-letter language code and
+            <literal>CC</literal> an ISO 3166 two-letter country code.  For
+            example, for Greek in Greece, <literal>ll</literal> is <literal>el</literal>,
+            and <literal>CC</literal> is <literal>GR</literal>.
           </para></listitem>
       </varlistentry>
       <varlistentry>
@@ -210,7 +212,7 @@
     </variablelist>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-setproperty-examples">
     <title>Examples</title>
     <remark role="help-scope" condition="GLOBAL" />
     <para>
@@ -221,7 +223,7 @@
 $ VBoxManage setproperty proxyurl "http://myproxy.com:8080"</screen>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-setproperty-see-also">
     <title>See Also</title>
     <para>
       <xref linkend="vboxmanage-startvm" />

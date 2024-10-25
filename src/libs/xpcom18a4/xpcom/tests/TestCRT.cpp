@@ -34,15 +34,16 @@
  * the terms of any one of the MPL, the GPL or the LGPL.
  *
  * ***** END LICENSE BLOCK ***** */
+#include <iprt/string.h>
 
 #include "nsCRT.h"
 #include "nsString.h"
-#include "plstr.h"
 #include <stdlib.h>
 
+#ifdef DEBUG
 // The return from strcmp etc is only defined to be postive, zero or
 // negative. The magnitude of a non-zero return is irrelevant.
-PRIntn sign(PRIntn val) {
+static PRIntn sign(PRIntn val) {
     if (val == 0)
 	return 0;
     else {
@@ -52,17 +53,17 @@ PRIntn sign(PRIntn val) {
 	    return -1;
     }
 }
-
+#endif
 
 // Verify that nsCRT versions of string comparison routines get the
 // same answers as the native non-unicode versions. We only pass in
 // iso-latin-1 strings, so the comparison must be valid.
 static void Check(const char* s1, const char* s2, PRIntn n)
 {
-  PRIntn clib = PL_strcmp(s1, s2);
-  PRIntn clib_n = PL_strncmp(s1, s2, n);
-  PRIntn clib_case = PL_strcasecmp(s1, s2);
-  PRIntn clib_case_n = PL_strncasecmp(s1, s2, n);
+  /** @todo r=aeichner This test is pretty useless with release builds but do we really care? */
+#ifdef DEBUG
+  PRIntn clib = RTStrCmp(s1, s2);
+  PRIntn clib_n = RTStrNCmp(s1, s2, n);
 
   nsAutoString t1,t2; 
   t1.AssignWithConversion(s1);
@@ -72,6 +73,7 @@ static void Check(const char* s1, const char* s2, PRIntn n)
 
   PRIntn u2 = nsCRT::strcmp(us1, us2);
   PRIntn u2_n = nsCRT::strncmp(us1, us2, n);
+#endif
 
   NS_ASSERTION(sign(clib) == sign(u2), "strcmp");
   NS_ASSERTION(sign(clib_n) == sign(u2_n), "strncmp");

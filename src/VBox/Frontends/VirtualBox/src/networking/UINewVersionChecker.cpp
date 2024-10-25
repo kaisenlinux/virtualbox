@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -30,12 +30,13 @@
 #include <QUrlQuery>
 
 /* GUI includes: */
-#include "UICommon.h"
 #include "UIExtraDataManager.h"
+#include "UIGlobalSession.h"
 #include "UINetworkReply.h"
 #include "UINewVersionChecker.h"
 #include "UINotificationCenter.h"
 #include "UIUpdateDefs.h"
+#include "UIVersion.h"
 #ifdef Q_OS_LINUX
 # include "QIProcess.h"
 #endif
@@ -57,25 +58,25 @@ void UINewVersionChecker::start()
 {
     /* Compose query: */
     QUrlQuery url;
-    url.addQueryItem("platform", uiCommon().virtualBox().GetPackageType());
+    url.addQueryItem("platform", gpGlobalSession->virtualBox().GetPackageType());
     /* Check if branding is active: */
-    if (uiCommon().brandingIsActive())
+    if (UIVersionInfo::brandingIsActive())
     {
         /* Branding: Check whether we have a local branding file which tells us our version suffix "FOO"
                      (e.g. 3.06.54321_FOO) to identify this installation: */
-        url.addQueryItem("version", QString("%1_%2_%3").arg(uiCommon().virtualBox().GetVersion())
-                                                       .arg(uiCommon().virtualBox().GetRevision())
-                                                       .arg(uiCommon().brandingGetKey("VerSuffix")));
+        url.addQueryItem("version", QString("%1_%2_%3").arg(gpGlobalSession->virtualBox().GetVersion())
+                                                       .arg(gpGlobalSession->virtualBox().GetRevision())
+                                                       .arg(UIVersionInfo::brandingGetKey("VerSuffix")));
     }
     else
     {
         /* Use hard coded version set by VBOX_VERSION_STRING: */
-        url.addQueryItem("version", QString("%1_%2").arg(uiCommon().virtualBox().GetVersion())
-                                                    .arg(uiCommon().virtualBox().GetRevision()));
+        url.addQueryItem("version", QString("%1_%2").arg(gpGlobalSession->virtualBox().GetVersion())
+                                                    .arg(gpGlobalSession->virtualBox().GetRevision()));
     }
     url.addQueryItem("count", QString::number(gEDataManager->applicationUpdateCheckCounter()));
     url.addQueryItem("branch", VBoxUpdateData(gEDataManager->applicationUpdateData()).updateChannelName());
-    const QString strUserAgent(QString("VirtualBox %1 <%2>").arg(uiCommon().virtualBox().GetVersion()).arg(platformInfo()));
+    const QString strUserAgent(QString("VirtualBox %1 <%2>").arg(gpGlobalSession->virtualBox().GetVersion()).arg(platformInfo()));
 
     /* Send GET request: */
     UserDictionary headers;
@@ -115,11 +116,7 @@ void UINewVersionChecker::processNetworkReplyFinished(UINetworkReply *pReply)
     /* Newer version of necessary package found: */
     if (strResponseData.indexOf(QRegularExpression("^\\d+\\.\\d+\\.\\d+(_[0-9A-Z]+)? \\S+$")) == 0)
     {
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
         const QStringList response = strResponseData.split(" ", Qt::SkipEmptyParts);
-#else
-        const QStringList response = strResponseData.split(" ", QString::SkipEmptyParts);
-#endif
         UINotificationMessage::showUpdateSuccess(response[0], response[1]);
     }
     /* No newer version of necessary package found: */

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -59,13 +59,15 @@ DECLINLINE(bool) vscsiDeviceLunIsPresent(PVSCSIDEVICEINT pVScsiDevice, uint32_t 
  *
  * @returns Flag whether we could handle the request.
  * @param   pVScsiDevice    The virtual SCSI device instance.
- * @param   pVScsiReq       The SCSi request.
+ * @param   pVScsiReq       The SCSI request.
  * @param   prcReq          The final return value if the request was handled.
  */
 static bool vscsiDeviceReqProcess(PVSCSIDEVICEINT pVScsiDevice, PVSCSIREQINT pVScsiReq,
                                   int *prcReq)
 {
     bool fProcessed = true;
+
+    LogFlowFunc(("CDB: %.*Rhxs Cmd: %s\n", pVScsiReq->cbCDB, pVScsiReq->pbCDB, SCSICmdText(pVScsiReq->pbCDB[0])));
 
     if (!pVScsiReq->cbCDB)
     {
@@ -80,16 +82,16 @@ static bool vscsiDeviceReqProcess(PVSCSIDEVICEINT pVScsiDevice, PVSCSIREQINT pVS
         {
             if (!vscsiDeviceLunIsPresent(pVScsiDevice, pVScsiReq->iLun))
             {
-                size_t cbData;
                 SCSIINQUIRYDATA ScsiInquiryReply;
 
+                uint16_t cbDataReq = scsiBE2H_U16(&pVScsiReq->pbCDB[3]);
                 vscsiReqSetXferDir(pVScsiReq, VSCSIXFERDIR_T2I);
-                vscsiReqSetXferSize(pVScsiReq, RT_MIN(sizeof(SCSIINQUIRYDATA), scsiBE2H_U16(&pVScsiReq->pbCDB[3])));
+                vscsiReqSetXferSize(pVScsiReq, RT_MIN(sizeof(SCSIINQUIRYDATA), cbDataReq));
                 memset(&ScsiInquiryReply, 0, sizeof(ScsiInquiryReply));
                 ScsiInquiryReply.cbAdditional = 31;
                 ScsiInquiryReply.u5PeripheralDeviceType = SCSI_INQUIRY_DATA_PERIPHERAL_DEVICE_TYPE_UNKNOWN;
                 ScsiInquiryReply.u3PeripheralQualifier = SCSI_INQUIRY_DATA_PERIPHERAL_QUALIFIER_NOT_CONNECTED_NOT_SUPPORTED;
-                cbData = RTSgBufCopyFromBuf(&pVScsiReq->SgBuf, (uint8_t *)&ScsiInquiryReply, sizeof(SCSIINQUIRYDATA));
+                RTSgBufCopyFromBuf(&pVScsiReq->SgBuf, (uint8_t *)&ScsiInquiryReply, sizeof(SCSIINQUIRYDATA));
                 *prcReq = vscsiReqSenseOkSet(&pVScsiDevice->VScsiSense, pVScsiReq);
             }
             else

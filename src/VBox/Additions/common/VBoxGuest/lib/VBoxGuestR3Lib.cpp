@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2007-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2007-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -231,7 +231,9 @@ static int vbglR3Init(const char *pszDeviceName)
      */
    /* IOKit */
     mach_port_t MasterPort;
-    kern_return_t kr = IOMasterPort(MACH_PORT_NULL, &MasterPort);
+    RT_GCC_NO_WARN_DEPRECATED_BEGIN
+    kern_return_t kr = IOMasterPort(MACH_PORT_NULL, &MasterPort); /* Deprecated since 12.0. */
+    RT_GCC_NO_WARN_DEPRECATED_END
     if (kr != kIOReturnSuccess)
     {
         LogRel(("IOMasterPort -> %d\n", kr));
@@ -245,7 +247,9 @@ static int vbglR3Init(const char *pszDeviceName)
         return VERR_GENERAL_FAILURE;
     }
 
-    io_service_t ServiceObject = IOServiceGetMatchingService(kIOMasterPortDefault, ClassToMatch);
+    RT_GCC_NO_WARN_DEPRECATED_BEGIN
+    io_service_t ServiceObject = IOServiceGetMatchingService(kIOMasterPortDefault, ClassToMatch); /* kIOMasterPortDefault: Deprecated since 12.0. */
+    RT_GCC_NO_WARN_DEPRECATED_END
     if (!ServiceObject)
     {
         LogRel(("IOServiceGetMatchingService returned NULL\n"));
@@ -295,6 +299,9 @@ static int vbglR3Init(const char *pszDeviceName)
      */
     {
         VBGLIOCDRIVERVERSIONINFO VerInfo;
+
+        RT_ZERO(VerInfo);
+
         VBGLREQHDR_INIT(&VerInfo.Hdr, DRIVER_VERSION_INFO);
         VerInfo.u.In.uMinVersion    = VBGL_IOC_VERSION & UINT32_C(0xffff0000);
         VerInfo.u.In.uReqVersion    = VBGL_IOC_VERSION;

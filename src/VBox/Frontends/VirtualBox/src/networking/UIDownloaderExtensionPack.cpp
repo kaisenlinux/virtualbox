@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -33,8 +33,8 @@
 
 /* GUI includes: */
 #include "QIFileDialog.h"
-#include "UICommon.h"
 #include "UIDownloaderExtensionPack.h"
+#include "UIGlobalSession.h"
 #include "UIMessageCenter.h"
 #include "UIModalWindowManager.h"
 #include "UINetworkReply.h"
@@ -48,7 +48,7 @@
 UIDownloaderExtensionPack::UIDownloaderExtensionPack()
 {
     /* Get version number and adjust it for test and trunk builds. The server only has official releases. */
-    const QString strVersion = UIVersion(uiCommon().vboxVersionStringNormalized()).effectiveReleasedVersion().toString();
+    const QString strVersion = UIVersion(UIVersionInfo::vboxVersionStringNormalized()).effectiveReleasedVersion().toString();
 
     /* Prepare source/target: */
     const QString strUnderscoredName = QString(GUI_ExtPackName).replace(' ', '_');
@@ -56,7 +56,7 @@ UIDownloaderExtensionPack::UIDownloaderExtensionPack()
     const QString strSourcePath = QString("https://download.virtualbox.org/virtualbox/%1/").arg(strVersion);
     const QString strSource = strSourcePath + strSourceName;
     const QString strPathSHA256SumsFile = QString("https://www.virtualbox.org/download/hashes/%1/SHA256SUMS").arg(strVersion);
-    const QString strTarget = QDir(uiCommon().homeFolder()).absoluteFilePath(strSourceName);
+    const QString strTarget = QDir(gpGlobalSession->homeFolder()).absoluteFilePath(strSourceName);
 
     /* Set source/target: */
     setSource(strSource);
@@ -93,11 +93,7 @@ void UIDownloaderExtensionPack::handleVerifiedObject(UINetworkReply *pReply)
             break;
 
         /* Parse buffer contents to dictionary: */
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
         const QStringList dictionary(QString(receivedData).split("\n", Qt::SkipEmptyParts));
-#else
-        const QStringList dictionary(QString(receivedData).split("\n", QString::SkipEmptyParts));
-#endif
         /* Make sure it's not empty: */
         if (dictionary.isEmpty())
             break;

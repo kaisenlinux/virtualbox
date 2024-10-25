@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -36,11 +36,14 @@
 #include <QRect>
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CMediumAttachment.h"
 #include "CNetworkAdapter.h"
 #include "CUSBDevice.h"
 #include "CVirtualBoxErrorInfo.h"
+#include "KClipboardMode.h"
+#include "KDnDMode.h"
+#include "KGuestMonitorChangedEventType.h"
+#include "KMachineState.h"
 
 /* Forward declarations: */
 class UIConsoleEventHandlerProxy;
@@ -48,7 +51,7 @@ class UIMousePointerShapeData;
 class UISession;
 
 
-/** Singleton QObject extension
+/** QObject subclass
   * providing GUI with the CConsole event-source. */
 class UIConsoleEventHandler : public QObject
 {
@@ -59,7 +62,7 @@ signals:
     /** Notifies about mouse pointer @a shapeData change. */
     void sigMousePointerShapeChange(const UIMousePointerShapeData &shapeData);
     /** Notifies about mouse capability change to @a fSupportsAbsolute, @a fSupportsRelative,
-     * @a fSupportsTouchScreen, @a fSupportsTouchPad and @a fNeedsHostCursor. */
+      * @a fSupportsTouchScreen, @a fSupportsTouchPad and @a fNeedsHostCursor. */
     void sigMouseCapabilityChange(bool fSupportsAbsolute, bool fSupportsRelative,
                                   bool fSupportsTouchScreen, bool fSupportsTouchPad,
                                   bool fNeedsHostCursor);
@@ -67,7 +70,7 @@ signals:
       * @param  fContainsData  Brings whether the @a uX and @a uY values are valid and could be used by the GUI now. */
     void sigCursorPositionChange(bool fContainsData, unsigned long uX, unsigned long uY);
     /** Notifies about keyboard LEDs change for @a fNumLock, @a fCapsLock and @a fScrollLock. */
-    void sigKeyboardLedsChangeEvent(bool fNumLock, bool fCapsLock, bool fScrollLock);
+    void sigKeyboardLedsChange(bool fNumLock, bool fCapsLock, bool fScrollLock);
     /** Notifies about machine @a state change. */
     void sigStateChange(KMachineState state);
     /** Notifies about guest additions state change. */
@@ -94,46 +97,31 @@ signals:
     void sigGuestMonitorChange(KGuestMonitorChangedEventType type, ulong uScreenId, QRect screenGeo);
     /** Notifies about Runtime error with @a strErrorId which is @a fFatal and have @a strMessage. */
     void sigRuntimeError(bool fFatal, QString strErrorId, QString strMessage);
-#ifdef RT_OS_DARWIN
+#ifdef VBOX_WS_MAC
     /** Notifies about VM window should be shown. */
     void sigShowWindow();
-#endif /* RT_OS_DARWIN */
+#endif /* VBOX_WS_MAC */
     /** Notifies about audio adapter state change. */
     void sigAudioAdapterChange();
     /** Notifies clipboard mode change. */
     void sigClipboardModeChange(KClipboardMode enmMode);
+    /** Notifies about a clipboard error. */
+    void sigClipboardError(const QString &strMsg);
     /** Notifies drag and drop mode change. */
     void sigDnDModeChange(KDnDMode enmMode);
 
 public:
 
-    /** Returns singleton instance created by the factory. */
-    static UIConsoleEventHandler *instance() { return s_pInstance; }
-    /** Creates singleton instance created by the factory. */
-    static void create(UISession *pSession);
-    /** Destroys singleton instance created by the factory. */
-    static void destroy();
-
-protected:
-
     /** Constructs console event handler for passed @a pSession. */
     UIConsoleEventHandler(UISession *pSession);
 
-    /** Prepares all. */
-    void prepare();
-    /** Prepares connections. */
-    void prepareConnections();
-
 private:
 
-    /** Holds the singleton static console event handler instance. */
-    static UIConsoleEventHandler *s_pInstance;
+    /** Prepares all. */
+    void prepare();
 
     /** Holds the console event proxy instance. */
     UIConsoleEventHandlerProxy *m_pProxy;
 };
-
-/** Defines the globally known name for the console event handler instance. */
-#define gConsoleEvents UIConsoleEventHandler::instance()
 
 #endif /* !FEQT_INCLUDED_SRC_runtime_UIConsoleEventHandler_h */

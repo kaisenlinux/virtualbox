@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -105,6 +105,7 @@ public:
         : HGCM::AbstractService<DragAndDropService>(pHelpers)
         , m_pManager(NULL)
         , m_u32Mode(VBOX_DRAG_AND_DROP_MODE_OFF)
+        , m_fHostFeatures0(VBOX_DND_HF_NONE)
     {}
 
 protected:

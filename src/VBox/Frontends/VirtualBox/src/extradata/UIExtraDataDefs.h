@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -39,9 +39,6 @@
 /* GUI includes: */
 #include "UILibraryDefs.h"
 
-/* Other VBox includes: */
-#include <iprt/cdefs.h>
-
 
 /** Typedef for QPair of QStrings. */
 typedef QPair<QString, QString> QIStringPair;
@@ -62,7 +59,7 @@ namespace UIExtraDataDefs
 
     /** @name Messaging
       * @{ */
-        /** Holds the list of supressed messages for the Message/Popup center frameworks. */
+        /** Holds the list of suppressed messages for the Message/Popup center frameworks. */
         SHARED_LIBRARY_STUFF extern const char *GUI_SuppressMessages;
         /** Holds the list of messages for the Message/Popup center frameworks with inverted check-box state. */
         SHARED_LIBRARY_STUFF extern const char *GUI_InvertMessageOption;
@@ -108,6 +105,8 @@ namespace UIExtraDataDefs
         SHARED_LIBRARY_STUFF extern const char *GUI_RestrictedGlobalSettingsPages;
         /** Holds restricted Machine Settings pages. */
         SHARED_LIBRARY_STUFF extern const char *GUI_RestrictedMachineSettingsPages;
+        /** Holds whether settings are in expert mode. */
+        SHARED_LIBRARY_STUFF extern const char *GUI_Settings_ExpertMode;
     /** @} */
 
     /** @name Settings: Language
@@ -191,6 +190,8 @@ namespace UIExtraDataDefs
         SHARED_LIBRARY_STUFF extern const char *GUI_Toolbar_GlobalTools_Order;
         /** Holds the last selected tool set of VirtualBox Manager. */
         SHARED_LIBRARY_STUFF extern const char *GUI_Tools_LastItemsSelected;
+        /** Holds the list of detached tools of VirtualBox Manager. */
+        SHARED_LIBRARY_STUFF extern const char *GUI_Tools_Detached;
         /** Holds whether selector-window status-bar visible. */
         SHARED_LIBRARY_STUFF extern const char *GUI_Statusbar;
         /** Prefix used by composite extra-data keys,
@@ -264,12 +265,6 @@ namespace UIExtraDataDefs
     /** @} */
 #endif /* VBOX_GUI_WITH_EXTRADATA_MANAGER_UI */
 
-    /** @name Wizards
-      * @{ */
-        /** Holds wizard types for which descriptions should be hidden. */
-        SHARED_LIBRARY_STUFF extern const char *GUI_HideDescriptionForWizards;
-    /** @} */
-
     /** @name Virtual Machine
       * @{ */
         /** Holds whether machine shouldn't be shown in selector-window chooser-pane. */
@@ -330,12 +325,12 @@ namespace UIExtraDataDefs
         SHARED_LIBRARY_STUFF extern const char *GUI_Seamless;
         /** Holds whether scaled visual-state is requested. */
         SHARED_LIBRARY_STUFF extern const char *GUI_Scale;
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
         /** Holds whether legacy full-screen mode is requested. */
         SHARED_LIBRARY_STUFF extern const char *GUI_Fullscreen_LegacyMode;
         /** Holds whether internal machine-window names should be unique. */
         SHARED_LIBRARY_STUFF extern const char *GUI_DistinguishMachineWindowGroups;
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
         /** Holds whether guest-screen auto-resize according machine-window size is enabled. */
         SHARED_LIBRARY_STUFF extern const char *GUI_AutoresizeGuest;
         /** Prefix used by composite extra-data keys,
@@ -460,7 +455,6 @@ namespace UIExtraDataDefs
         SHARED_LIBRARY_STUFF extern const char *GUI_LogViewerWrapLinesEnabled;
         SHARED_LIBRARY_STUFF extern const char *GUI_LogViewerShowLineNumbersDisabled;
         SHARED_LIBRARY_STUFF extern const char *GUI_LogViewerNoFontStyleName;
-        SHARED_LIBRARY_STUFF extern const char *GUI_GuestControl_LogViewerVisiblePanels;
     /** @} */
 
     /** @name Help Browser
@@ -471,10 +465,12 @@ namespace UIExtraDataDefs
         SHARED_LIBRARY_STUFF extern const char *GUI_HelpBrowser_ZoomPercentage;
     /** @} */
 
-    /** @name Manager UI: VM Activity Overview Related stuff
+    /** @name Manager UI: VM Activity Monitor and Overview Related stuff
       * @{ */
         SHARED_LIBRARY_STUFF extern const char *GUI_VMActivityOverview_HiddenColumns;
         SHARED_LIBRARY_STUFF extern const char *GUI_VMActivityOverview_ShowAllMachines;
+        SHARED_LIBRARY_STUFF extern const char *GUI_VMActivityMonitor_DataSeriesColors;
+        SHARED_LIBRARY_STUFF extern const char *GUI_VMActivityMonitor_ShowVMExits;
     /** @} */
 
     /** @name Medium Selector stuff
@@ -642,7 +638,7 @@ public:
         RuntimeMenuInputActionType_KeyboardSettings   = RT_BIT(1),
         RuntimeMenuInputActionType_SoftKeyboard       = RT_BIT(2),
         RuntimeMenuInputActionType_TypeCAD            = RT_BIT(3),
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
         RuntimeMenuInputActionType_TypeCABS           = RT_BIT(4),
 #endif
         RuntimeMenuInputActionType_TypeCtrlBreak      = RT_BIT(5),
@@ -891,7 +887,6 @@ enum MachineSettingsPageType
     MachineSettingsPageType_Storage,
     MachineSettingsPageType_Audio,
     MachineSettingsPageType_Network,
-    MachineSettingsPageType_Ports,
     MachineSettingsPageType_Serial,
     MachineSettingsPageType_USB,
     MachineSettingsPageType_SF,
@@ -937,7 +932,6 @@ enum WizardType
 /** Common UI: Wizard modes. */
 enum WizardMode
 {
-    WizardMode_Auto,
     WizardMode_Basic,
     WizardMode_Expert
 };

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -95,16 +95,21 @@ UIWizardNewCloudVM *UIWizardNewCloudVMPageProperties::wizard() const
     return qobject_cast<UIWizardNewCloudVM*>(UINativeWizardPage::wizard());
 }
 
-void UIWizardNewCloudVMPageProperties::retranslateUi()
+void UIWizardNewCloudVMPageProperties::sltRetranslateUI()
 {
     /* Translate page: */
     setTitle(UIWizardNewCloudVM::tr("Cloud Virtual Machine settings"));
 
     /* Translate description label: */
-    m_pLabel->setText(UIWizardNewCloudVM::tr("These are the the suggested settings of the cloud VM creation procedure, they are "
-                                             "influencing the resulting cloud VM instance.  You can change many of the "
-                                             "properties shown by double-clicking on the items and disable others using the "
-                                             "check boxes below."));
+    if (m_pLabel)
+        m_pLabel->setText(UIWizardNewCloudVM::tr("These are the the suggested settings of the cloud VM creation procedure, they "
+                                                 "are influencing the resulting cloud VM instance.  You can change many of the "
+                                                 "properties shown by double-clicking on the items and disable others using the "
+                                                 "check boxes below."));
+
+    /* Translate cloud VM properties table: */
+    if (m_pFormEditor)
+        m_pFormEditor->setWhatsThis(UIWizardNewCloudVM::tr("Lists all the cloud VM properties."));
 }
 
 void UIWizardNewCloudVMPageProperties::initializePage()

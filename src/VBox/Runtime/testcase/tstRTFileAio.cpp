@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -61,8 +61,8 @@
 static RTTEST g_hTest = NIL_RTTEST;
 
 
-void tstFileAioTestReadWriteBasic(RTFILE File, bool fWrite, void *pvTestBuf,
-                                  size_t cbTestBuf, size_t cbTestFile, uint32_t cMaxReqsInFlight)
+static void tstFileAioTestReadWriteBasic(RTFILE File, bool fWrite, void *pvTestBuf,
+                                         size_t cbTestBuf, size_t cbTestFile, uint32_t cMaxReqsInFlight)
 {
     /* Allocate request array. */
     RTFILEAIOREQ *paReqs;

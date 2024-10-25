@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -70,7 +70,7 @@ public:
     void setText(const QString &strText);
 
     /** Returns the message minimum size-hint. */
-    QSize minimumSizeHint() const;
+    QSize minimumSizeHint() const RT_OVERRIDE RT_FINAL;
     /** Defines the message @a minimumSizeHint. */
     void setMinimumSizeHint(const QSize &minimumSizeHint);
     /** Lays the content out. */

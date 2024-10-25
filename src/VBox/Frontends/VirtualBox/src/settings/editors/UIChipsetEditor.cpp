@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,16 +32,16 @@
 #include <QLabel>
 
 /* GUI includes: */
-#include "UICommon.h"
 #include "UIConverter.h"
 #include "UIChipsetEditor.h"
+#include "UIGlobalSession.h"
 
 /* COM includes: */
-#include "CSystemProperties.h"
+#include "CPlatformProperties.h"
 
 
 UIChipsetEditor::UIChipsetEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent)
     , m_enmValue(KChipsetType_Max)
     , m_pLabel(0)
     , m_pCombo(0)
@@ -76,7 +76,7 @@ void UIChipsetEditor::setMinimumLayoutIndent(int iIndent)
         m_pLayout->setColumnMinimumWidth(0, iIndent);
 }
 
-void UIChipsetEditor::retranslateUi()
+void UIChipsetEditor::sltRetranslateUI()
 {
     if (m_pLabel)
         m_pLabel->setText(tr("&Chipset:"));
@@ -91,6 +91,11 @@ void UIChipsetEditor::retranslateUi()
                                 "emulation is experimental and not recommended except for guest systems (such as Mac OS X) "
                                 "which require it."));
     }
+}
+
+void UIChipsetEditor::handleFilterChange()
+{
+    populateCombo();
 }
 
 void UIChipsetEditor::prepare()
@@ -121,7 +126,7 @@ void UIChipsetEditor::prepare()
                 m_pCombo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
                 if (m_pLabel)
                     m_pLabel->setBuddy(m_pCombo);
-                connect(m_pCombo, static_cast<void(QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+                connect(m_pCombo, &QComboBox::currentIndexChanged,
                         this, &UIChipsetEditor::sigValueChanged);
                 pComboLayout->addWidget(m_pCombo);
             }
@@ -138,7 +143,7 @@ void UIChipsetEditor::prepare()
     populateCombo();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIChipsetEditor::populateCombo()
@@ -149,7 +154,10 @@ void UIChipsetEditor::populateCombo()
         m_pCombo->clear();
 
         /* Load currently supported values: */
-        CSystemProperties comProperties = uiCommon().virtualBox().GetSystemProperties();
+        const KPlatformArchitecture enmArch = optionalFlags().contains("arch")
+                                            ? optionalFlags().value("arch").value<KPlatformArchitecture>()
+                                            : KPlatformArchitecture_x86;
+        CPlatformProperties comProperties = gpGlobalSession->virtualBox().GetPlatformProperties(enmArch);
         m_supportedValues = comProperties.GetSupportedChipsetTypes();
 
         /* Make sure requested value if sane is present as well: */
@@ -167,6 +175,6 @@ void UIChipsetEditor::populateCombo()
             m_pCombo->setCurrentIndex(iIndex);
 
         /* Retranslate finally: */
-        retranslateUi();
+        sltRetranslateUI();
     }
 }

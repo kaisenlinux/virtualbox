@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,16 +32,16 @@
 #include <QLabel>
 
 /* GUI includes: */
-#include "UICommon.h"
 #include "UIConverter.h"
+#include "UIGlobalSession.h"
 #include "UIGraphicsControllerEditor.h"
 
 /* COM includes: */
-#include "CSystemProperties.h"
+#include "CPlatformProperties.h"
 
 
 UIGraphicsControllerEditor::UIGraphicsControllerEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent)
     , m_enmValue(KGraphicsControllerType_Max)
     , m_pLayout(0)
     , m_pLabel(0)
@@ -77,7 +77,7 @@ void UIGraphicsControllerEditor::setMinimumLayoutIndent(int iIndent)
         m_pLayout->setColumnMinimumWidth(0, iIndent);
 }
 
-void UIGraphicsControllerEditor::retranslateUi()
+void UIGraphicsControllerEditor::sltRetranslateUI()
 {
     if (m_pLabel)
         m_pLabel->setText(tr("&Graphics Controller:"));
@@ -90,6 +90,11 @@ void UIGraphicsControllerEditor::retranslateUi()
         }
         m_pCombo->setToolTip(tr("Selects the graphics adapter type the virtual machine will use."));
     }
+}
+
+void UIGraphicsControllerEditor::handleFilterChange()
+{
+    populateCombo();
 }
 
 void UIGraphicsControllerEditor::sltHandleCurrentIndexChanged()
@@ -126,9 +131,8 @@ void UIGraphicsControllerEditor::prepare()
                 if (m_pLabel)
                     m_pLabel->setBuddy(m_pCombo);
                 m_pCombo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
-                connect(m_pCombo, static_cast<void(QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+                connect(m_pCombo, &QComboBox::currentIndexChanged,
                         this, &UIGraphicsControllerEditor::sltHandleCurrentIndexChanged);
-
                 pLayoutCombo->addWidget(m_pCombo);
             }
 
@@ -144,7 +148,7 @@ void UIGraphicsControllerEditor::prepare()
     populateCombo();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIGraphicsControllerEditor::populateCombo()
@@ -155,8 +159,11 @@ void UIGraphicsControllerEditor::populateCombo()
         m_pCombo->clear();
 
         /* Load currently supported graphics controller types: */
-        CSystemProperties comProperties = uiCommon().virtualBox().GetSystemProperties();
-        m_supportedValues = comProperties.GetSupportedGraphicsControllerTypes();
+        const KPlatformArchitecture enmArch = optionalFlags().contains("arch")
+                                            ? optionalFlags().value("arch").value<KPlatformArchitecture>()
+                                            : KPlatformArchitecture_x86;
+        CPlatformProperties comProperties = gpGlobalSession->virtualBox().GetPlatformProperties(enmArch);
+        m_supportedValues = comProperties.GetSupportedGfxControllerTypes();
 
         /* Make sure requested value if sane is present as well: */
         if (   m_enmValue != KGraphicsControllerType_Max
@@ -173,6 +180,6 @@ void UIGraphicsControllerEditor::populateCombo()
             m_pCombo->setCurrentIndex(iIndex);
 
         /* Retranslate finally: */
-        retranslateUi();
+        sltRetranslateUI();
     }
 }

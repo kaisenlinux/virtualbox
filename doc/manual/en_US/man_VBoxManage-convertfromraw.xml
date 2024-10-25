@@ -3,7 +3,7 @@
     manpage, user manual, usage: VBoxManage convertfromraw
 -->
 <!--
-    Copyright (C) 2006-2023 Oracle and/or its affiliates.
+    Copyright (C) 2006-2024 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.
@@ -30,7 +30,7 @@
 ]>
 <refentry id="vboxmanage-convertfromraw" lang="en">
   <refentryinfo>
-    <pubdate>$Date: 2023-05-30 22:24:41 +0200 (Tue, 30 May 2023) $</pubdate>
+    <pubdate>$Date: 2024-09-16 16:03:52 +0200 (Mon, 16 Sep 2024) $</pubdate>
     <title>VBoxManage convertfromraw</title>
   </refentryinfo>
 
@@ -57,7 +57,13 @@
           <arg choice="plain">VHD</arg>
         </group></arg>
       <arg>--uuid=<replaceable>uuid</replaceable></arg>
-      <arg>--variant=Standard,Fixed,Split2G,Stream,ESX</arg>
+      <arg rep="repeat" role="compact">--variant=<group choice="plain">
+          <arg choice="plain">Standard</arg>
+          <arg choice="plain">Fixed</arg>
+          <arg choice="plain">Split2G</arg>
+          <arg choice="plain">Stream</arg>
+          <arg choice="plain">ESX</arg>
+      </group></arg> <!-- Value can be repated with comma separator. Difficult to express with docbook. -->
     </cmdsynopsis>
 
     <cmdsynopsis id="synopsis-vboxmanage-convertfromraw-stdin">
@@ -70,11 +76,17 @@
           <arg choice="plain">VHD</arg>
         </group></arg>
       <arg>--uuid=<replaceable>uuid</replaceable></arg>
-      <arg>--variant=Standard,Fixed,Split2G,Stream,ESX</arg>
+      <arg rep="repeat" role="compact">--variant=<group choice="plain">
+          <arg choice="plain">Standard</arg>
+          <arg choice="plain">Fixed</arg>
+          <arg choice="plain">Split2G</arg>
+          <arg choice="plain">Stream</arg>
+          <arg choice="plain">ESX</arg>
+      </group></arg> <!-- Value can be repated with comma separator. Difficult to express with docbook. -->
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-convertfromraw-description">
     <title>Description</title>
     <para>
       The <command>VBoxManage convertfromraw</command> command enables
@@ -128,7 +140,7 @@
             </para></listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--variant=Standard,Fixed,Split2G,Stream,ESX</option></term>
+          <term><option>--variant=Standard | Fixed | Split2G | Stream | ESX[,...]</option></term>
           <listitem><para>
               Specifies any required file format variants for the output
               file. This is a comma-separated list of variant values.
@@ -182,7 +194,7 @@
         <varlistentry>
           <term><replaceable>bytes</replaceable></term>
           <listitem><para>
-              Specifies the capacity of the targe image name. Needs to be
+              Specifies the capacity of the target image name. This needs to be
               given explicitly, because generally pipes do not support
               querying the overall size of the data stream.
             </para></listitem>
@@ -207,7 +219,7 @@
           <listitem><para>
               Specifies any required file format variants for the output
               file. This is a comma-separated list of variant values.
-              Following are the valid values:
+              The list of valid values is:
             </para><itemizedlist>
               <listitem><para>
                   <literal>Standard</literal> is the default disk image
@@ -240,7 +252,7 @@
     </refsect2>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-convertfromraw-examples">
     <title>Examples</title>
     <remark role="help-scope" condition="GLOBAL" />
     <para>

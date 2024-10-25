@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,8 +26,8 @@
  */
 
 /* GUI includes: */
-#include "UICommon.h"
 #include "UIExtension.h"
+#include "UIGlobalSession.h"
 #include "UINotificationCenter.h"
 #include "UIMessageCenter.h"
 #include "VBoxLicenseViewer.h"
@@ -36,13 +36,13 @@
 #include "CExtPack.h"
 
 
-void UIExtension::install(QString const &strFilePath,
-                          QString const &strDigest,
+void UIExtension::install(const QString &strFilePath,
+                          const QString &strDigest,
                           QWidget *pParent,
                           QString *pstrExtPackName)
 {
     /* If the extension pack manager isn't available, skip any attempts to install: */
-    CExtPackManager comExtPackManager = uiCommon().virtualBox().GetExtensionPackManager();
+    CExtPackManager comExtPackManager = gpGlobalSession->virtualBox().GetExtensionPackManager();
     if (comExtPackManager.isNull())
         return;
     /* Open the extpack tarball via IExtPackManager: */
@@ -102,7 +102,7 @@ void UIExtension::install(QString const &strFilePath,
     QString strDisplayInfo;
 #ifdef VBOX_WS_WIN
     if (pParent)
-        strDisplayInfo.sprintf("hwnd=%#llx", (uint64_t)(uintptr_t)pParent->winId());
+        strDisplayInfo = QString::asprintf("hwnd=%#llx", (uint64_t)(uintptr_t)pParent->winId());
 #endif
 
     /* Install extension pack: */
@@ -111,11 +111,36 @@ void UIExtension::install(QString const &strFilePath,
                                                            fReplaceIt,
                                                            strPackName,
                                                            strDisplayInfo);
-    QObject::connect(pNotification, &UINotificationProgressExtensionPackInstall::sigExtensionPackInstalled,
-                     &uiCommon(), &UICommon::sigExtensionPackInstalled);
     gpNotificationCenter->append(pNotification);
 
     /* Store the name: */
     if (pstrExtPackName)
         *pstrExtPackName = strPackName;
+}
+
+bool UIExtension::isExtentionPackInstalled()
+{
+    /* Acquire extension pack manager: */
+    const CVirtualBox comVBox = gpGlobalSession->virtualBox();
+    const CExtPackManager comEPManager = comVBox.GetExtensionPackManager();
+    if (!comVBox.isOk())
+        return false;
+
+    /* Acquire a list of extension packs: */
+    const QVector<CExtPack> extensionPacks = comEPManager.GetInstalledExtPacks();
+    if (!comEPManager.isOk())
+        return false;
+
+    /* Make sure at least one installed ext pack is usable: */
+    foreach (const CExtPack &comExtensionPack, extensionPacks)
+    {
+        if (!comExtensionPack.isOk())
+            continue;
+        const bool fUsable = comExtensionPack.GetUsable();
+        if (comExtensionPack.isOk() && fUsable)
+            return true;
+    }
+
+    /* False by default: */
+    return false;
 }

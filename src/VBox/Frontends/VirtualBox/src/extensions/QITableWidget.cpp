@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -220,7 +220,10 @@ int QIAccessibilityInterfaceForQITableWidget::childCount() const
     AssertPtrReturn(table(), 0);
 
     /* Return the number of children: */
-    return table()->rowCount() * table()->columnCount();
+    // Since Qt6 both horizontal and vertical table headers
+    // are treated as items as well, so we have to take them
+    // into account while calculating overall child count.
+    return (table()->rowCount() + 1) * (table()->columnCount() + 1);
 }
 
 QAccessibleInterface *QIAccessibilityInterfaceForQITableWidget::child(int iIndex) const
@@ -231,8 +234,11 @@ QAccessibleInterface *QIAccessibilityInterfaceForQITableWidget::child(int iIndex
     AssertReturn(iIndex >= 0 && iIndex < childCount(), 0);
 
     /* Return the child with the passed iIndex: */
-    const int iRow = iIndex / table()->columnCount();
-    const int iColumn = iIndex % table()->columnCount();
+    // Since Qt6 both horizontal and vertical table headers
+    // are treated as items as well, so we have to take them
+    // into account while addressing actual table children.
+    const int iRow = iIndex / (table()->columnCount() + 1) - 1;
+    const int iColumn = iIndex % (table()->columnCount() + 1) - 1;
     return QAccessible::queryAccessibleInterface(table()->childItem(iRow, iColumn));
 }
 
@@ -336,6 +342,9 @@ QModelIndex QITableWidget::itemIndex(QTableWidgetItem *pItem)
 
 void QITableWidget::paintEvent(QPaintEvent *pEvent)
 {
+    /* Call to base-class: */
+    QTableWidget::paintEvent(pEvent);
+
     /* Create item painter: */
     QPainter painter;
     painter.begin(viewport());
@@ -347,9 +356,6 @@ void QITableWidget::paintEvent(QPaintEvent *pEvent)
 
     /* Close item painter: */
     painter.end();
-
-    /* Call to base-class: */
-    QTableWidget::paintEvent(pEvent);
 }
 
 void QITableWidget::resizeEvent(QResizeEvent *pEvent)

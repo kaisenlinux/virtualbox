@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -326,8 +326,8 @@ static int rtProcProcessOutput(int rc, PRTPIPE phPipeR, size_t *pcbAllocated, si
  *                      to the standard error handle of the process.
  *                      Free with RTStrFree, regardless of return status.
  */
-int RTProcExecToString(const char *pszExec, const char * const *papszArgs, RTENV hEnv, uint32_t fFlags,
-                       PRTPROCSTATUS pStatus, char **ppszStdOut, char **ppszStdErr)
+static int RTProcExecToString(const char *pszExec, const char * const *papszArgs, RTENV hEnv, uint32_t fFlags,
+                              PRTPROCSTATUS pStatus, char **ppszStdOut, char **ppszStdErr)
 {
     int rc2;
 
@@ -508,8 +508,8 @@ int RTProcExecToString(const char *pszExec, const char * const *papszArgs, RTENV
  * @param   fFlags      A combination of RTPROCEXEC_FLAGS_XXX.
  * @param   pStatus     Where to return the status on success.
  */
-int RTProcExec(const char *pszExec, const char * const *papszArgs, RTENV hEnv, uint32_t fFlags,
-               PRTPROCSTATUS pStatus)
+static int RTProcExec(const char *pszExec, const char * const *papszArgs, RTENV hEnv, uint32_t fFlags,
+                      PRTPROCSTATUS pStatus)
 {
     int rc;
 

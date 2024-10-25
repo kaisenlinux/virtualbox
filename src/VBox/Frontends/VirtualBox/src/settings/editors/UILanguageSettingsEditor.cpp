@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -29,12 +29,11 @@
 #include <QDir>
 #include <QHeaderView>
 #include <QPainter>
-#include <QRegExp>
+#include <QRegularExpression>
 #include <QTranslator>
 #include <QVBoxLayout>
 
 /* GUI includes: */
-#include "QILabelSeparator.h"
 #include "QIRichTextLabel.h"
 #include "QITreeWidget.h"
 #include "UILanguageSettingsEditor.h"
@@ -73,7 +72,7 @@ public:
     bool isBuiltIn() const { return m_fBuiltIn; }
 
     /** Returns whether this item is less than @a another one. */
-    bool operator<(const QTreeWidgetItem &another) const;
+    bool operator<(const QTreeWidgetItem &another) const RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -210,9 +209,8 @@ QString UILanguageItem::tratra(const QTranslator &translator, const char *pConte
 *********************************************************************************************************************************/
 
 UILanguageSettingsEditor::UILanguageSettingsEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent, true /* show in basic mode? */)
     , m_fPolished(false)
-    , m_pLabelSeparator(0)
     , m_pTreeWidget(0)
     , m_pLabelInfo(0)
 {
@@ -237,12 +235,8 @@ QString UILanguageSettingsEditor::value() const
     return pCurrentItem ? pCurrentItem->text(1) : m_strValue;
 }
 
-void UILanguageSettingsEditor::retranslateUi()
+void UILanguageSettingsEditor::sltRetranslateUI()
 {
-    /* Translate separator label: */
-    if (m_pLabelSeparator)
-        m_pLabelSeparator->setText(tr("&Interface Languages"));
-
     /* Translate tree-widget: */
     if (m_pTreeWidget)
     {
@@ -267,7 +261,7 @@ void UILanguageSettingsEditor::retranslateUi()
 void UILanguageSettingsEditor::showEvent(QShowEvent *pEvent)
 {
     /* Call to base-class: */
-    QIWithRetranslateUI<QWidget>::showEvent(pEvent);
+    UIEditor::showEvent(pEvent);
 
     /* Polish if necessary: */
     if (!m_fPolished)
@@ -335,17 +329,10 @@ void UILanguageSettingsEditor::prepare()
     {
         pLayoutMain->setContentsMargins(0, 0, 0, 0);
 
-        /* Prepare separator: */
-        m_pLabelSeparator = new QILabelSeparator(this);
-        if (m_pLabelSeparator)
-            pLayoutMain->addWidget(m_pLabelSeparator);
-
         /* Prepare tree-widget: */
         m_pTreeWidget = new QITreeWidget(this);
         if (m_pTreeWidget)
         {
-            if (m_pLabelSeparator)
-                m_pLabelSeparator->setBuddy(m_pTreeWidget);
             m_pTreeWidget->header()->hide();
             m_pTreeWidget->setColumnCount(4);
             m_pTreeWidget->hideColumn(1);
@@ -372,7 +359,7 @@ void UILanguageSettingsEditor::prepare()
     connect(m_pTreeWidget, &QITreeWidget::currentItemChanged, this, &UILanguageSettingsEditor::sltHandleCurrentItemChange);
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UILanguageSettingsEditor::reloadLanguageTree(const QString &strLanguageId)
@@ -399,13 +386,13 @@ void UILanguageSettingsEditor::reloadLanguageTree(const QString &strLanguageId)
     for (QStringList::Iterator it = files.begin(); it != files.end(); ++it)
     {
         QString strFileName = *it;
-        QRegExp regExp(UITranslator::vboxLanguageFileBase() + UITranslator::vboxLanguageIdRegExp());
-        int iPos = regExp.indexIn(strFileName);
-        if (iPos == -1)
+        const QRegularExpression re(UITranslator::vboxLanguageFileBase() + UITranslator::vboxLanguageIdRegExp());
+        const QRegularExpressionMatch mt = re.match(strFileName);
+        if (!mt.hasMatch())
             continue;
 
         /* Skip any English version, cause this is extra handled: */
-        QString strLanguage = regExp.cap(2);
+        QString strLanguage = mt.captured(2);
         if (strLanguage.toLower() == "en")
             continue;
 
@@ -413,7 +400,7 @@ void UILanguageSettingsEditor::reloadLanguageTree(const QString &strLanguageId)
         if (!fLoadOk)
             continue;
 
-        new UILanguageItem(m_pTreeWidget, translator, regExp.cap(1));
+        new UILanguageItem(m_pTreeWidget, translator, mt.captured(1));
     }
 
     /* Adjust selector list: */

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,11 +32,12 @@
 #endif
 
 
-extern int VGSvcUserUpdateF(PVBOXSERVICEVEPROPCACHE pCache, const char *pszUser, const char *pszDomain,
-                            const char *pszKey, const char *pszValueFormat, ...);
+DECLHIDDEN(int) VGSvcUserUpdateF(PVBOXSERVICEVEPROPCACHE pCache, const char *pszUser, const char *pszDomain,
+                                 const char *pszKey, const char *pszValueFormat, ...);
+DECLHIDDEN(int) VGSvcUserUpdateV(PVBOXSERVICEVEPROPCACHE pCache, const char *pszUser, const char *pszDomain,
+                                 const char *pszKey, const char *pszFormat, va_list va);
 
-
-extern uint32_t g_uVMInfoUserIdleThresholdMS;
+extern DECL_HIDDEN_DATA(uint32_t) g_uVMInfoUserIdleThresholdMS;
 
 #endif /* !GA_INCLUDED_SRC_common_VBoxService_VBoxServiceVMInfo_h */
 

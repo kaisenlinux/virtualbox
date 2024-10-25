@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -920,8 +920,9 @@ static DECLCALLBACK(uint32_t) drvHostValKitAudioHA_StreamGetReadable(PPDMIHOSTAU
                     break;
             }
 
-            LogRel2(("ValKit: Test #%RU32: Reporting %RU32 bytes readable (state is '%s')\n",
-                     pTst->idxTest, cbReadable, AudioTestStateToStr(pTst->enmState)));
+            LogRel2(("ValKit: Test #%RU32: Reporting %RU32 readable (%zu/%zu, state '%s')\n",
+                     pThis->pTestCurRec->idxTest, cbReadable, pTst->t.TestTone.u.Rec.cbWritten, pTst->t.TestTone.u.Rec.cbToWrite,
+                     AudioTestStateToStr(pTst->enmState)));
 
             if (cbReadable == 0)
                 LogRel2(("ValKit: Test #%RU32: Warning: Not readable anymore (state is '%s'), returning 0\n",
@@ -1405,7 +1406,7 @@ static DECLCALLBACK(int) drvHostValKitAudioHA_StreamCapture(PPDMIHOSTAUDIO pInte
                 bool const fStarted = AudioTestBeaconGetRemaining(pBeacon) == AudioTestBeaconGetSize(pBeacon);
 
                 uint32_t const cbBeaconRemaining = AudioTestBeaconGetRemaining(pBeacon);
-                AssertBreakStmt(cbBeaconRemaining, VERR_WRONG_ORDER);
+                AssertBreakStmt(cbBeaconRemaining, rc = VERR_WRONG_ORDER);
 
                 /* Limit to exactly one beacon (pre or post). */
                 uint32_t const cbToWrite = RT_MIN(cbBuf, cbBeaconRemaining);

@@ -11,7 +11,7 @@ from __future__ import print_function;
 
 __copyright__ = \
 """
-Copyright (C) 2017-2023 Oracle and/or its affiliates.
+Copyright (C) 2017-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -40,7 +40,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155250 $"
+__version__ = "$Revision: 164827 $"
 
 # Standard python imports.
 import datetime;
@@ -52,7 +52,7 @@ g_ksValidationKitDir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 g_ksVmmAllDir = os.path.join(os.path.dirname(g_ksValidationKitDir), 'VMM', 'VMMAll')
 sys.path.append(g_ksVmmAllDir);
 
-import IEMAllInstructionsPython as iai; # pylint: disable=import-error
+import IEMAllInstPython as iai; # pylint: disable=import-error
 
 
 # Python 3 hacks:
@@ -334,7 +334,7 @@ class Bs3Cg1Instruction(object):
                 self.sEncoding = 'BS3CG1ENC_VEX_MODRM';
 
         self.asFlags            = [];
-        if 'invalid_64' in oInstr.dHints:
+        if 'x86_invalid_64' in oInstr.dHints:
             self.asFlags.append('BS3CG1INSTR_F_INVALID_64BIT');
         if oInstr.fUnused:
             self.asFlags.append('BS3CG1INSTR_F_UNUSED');
@@ -451,6 +451,15 @@ class Bs3CpuGenerated1Generator(object):
         Processes the IEM specified instructions.
         Returns success indicator.
         """
+
+        #
+        # Do the parsing.
+        #
+        try:
+            iai.parseAll();
+        except Exception as oXcpt:
+            print('error: parseAll failed: %s' % (oXcpt,), file = sys.stderr);
+            return False;
 
         #
         # Group instructions by mnemonic to reduce the number of sub-tests.

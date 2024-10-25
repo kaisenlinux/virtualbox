@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -231,8 +231,7 @@ private:
     void unlockConsoleVRDPServer (void);
 
     int mcClipboardRefs;
-    HGCMSVCEXTHANDLE mhClipboard;
-    PFNVRDPCLIPBOARDEXTCALLBACK mpfnClipboardCallback;
+    PFNSHCLEXTCALLBACK mpfnClipboardCallback;
 
     static DECLCALLBACK(int) ClipboardCallback (void *pvCallback, uint32_t u32ClientId, uint32_t u32Function, uint32_t u32Format, const void *pvData, uint32_t cbData);
     static DECLCALLBACK(int) ClipboardServiceExtension(void *pvExtension, uint32_t u32Function, void *pvParms, uint32_t cbParms);

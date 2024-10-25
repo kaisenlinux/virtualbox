@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -360,10 +360,13 @@ DECLHIDDEN(int) rtR0MemObjNativeAllocLow(PPRTR0MEMOBJINTERNAL ppMem, size_t cb, 
  * @returns IPRT status code.
  * @param   ppMem           Where to store the ring-0 memory object handle.
  * @param   cb              Number of bytes to allocate, page aligned.
+ * @param   PhysHighest     The highest permitable address (inclusive).
+ *                          Pass NIL_RTHCPHYS if any address is acceptable.
  * @param   fExecutable     Flag indicating whether it should be permitted to executed code in the memory object.
  * @param   pszTag          Allocation tag used for statistics and such.
  */
-DECLHIDDEN(int) rtR0MemObjNativeAllocCont(PPRTR0MEMOBJINTERNAL ppMem, size_t cb, bool fExecutable, const char *pszTag);
+DECLHIDDEN(int) rtR0MemObjNativeAllocCont(PPRTR0MEMOBJINTERNAL ppMem, size_t cb, RTHCPHYS PhysHighest,
+                                          bool fExecutable, const char *pszTag);
 
 /**
  * Locks a range of user virtual memory.
@@ -533,6 +536,14 @@ DECLHIDDEN(int) rtR0MemObjNativeProtect(PRTR0MEMOBJINTERNAL pMem, size_t offSub,
  * @param   iPage           The page number within the object (valid).
  */
 DECLHIDDEN(RTHCPHYS) rtR0MemObjNativeGetPagePhysAddr(PRTR0MEMOBJINTERNAL pMem, size_t iPage);
+
+/**
+ * Zero initialize an object without a ring-0 mapping.
+ *
+ * @returns IPRT status code.
+ * @param   pMem            The ring-0 memory object handle.
+ */
+DECLHIDDEN(int) rtR0MemObjNativeZeroInitWithoutMapping(PRTR0MEMOBJINTERNAL pMem);
 
 DECLHIDDEN(PRTR0MEMOBJINTERNAL) rtR0MemObjNew(size_t cbSelf, RTR0MEMOBJTYPE enmType, void *pv, size_t cb, const char *pszTag);
 DECLHIDDEN(void) rtR0MemObjDelete(PRTR0MEMOBJINTERNAL pMem);

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -297,8 +297,8 @@ SUPR3DECL(int) SUPR3InitEx(uint32_t fFlags, PSUPDRVSESSION *ppSession)
         CookieReq.Hdr.rc = VERR_INTERNAL_ERROR;
         strcpy(CookieReq.u.In.szMagic, SUPCOOKIE_MAGIC);
         CookieReq.u.In.u32ReqVersion = SUPDRV_IOC_VERSION;
-        const uint32_t uMinVersion = (SUPDRV_IOC_VERSION & 0xffff0000) == 0x00330000
-                                   ? 0x00330004
+        const uint32_t uMinVersion = (SUPDRV_IOC_VERSION & 0xffff0000) == 0x00340000
+                                   ? 0x00340001
                                    : SUPDRV_IOC_VERSION & 0xffff0000;
         CookieReq.u.In.u32MinVersion = uMinVersion;
         rc = suplibOsIOCtl(&g_supLibData, SUP_IOCTL_COOKIE, &CookieReq, SUP_IOCTL_COOKIE_SIZE);
@@ -1776,7 +1776,7 @@ SUPR3DECL(int) SUPR3QueryVTCaps(uint32_t *pfCaps)
 
 SUPR3DECL(bool) SUPR3IsNemSupportedWhenNoVtxOrAmdV(void)
 {
-#ifdef RT_OS_WINDOWS
+#if defined(RT_OS_WINDOWS) || defined(RT_OS_DARWIN)
     return suplibOsIsNemSupportedWhenNoVtxOrAmdV();
 #else
     return false;

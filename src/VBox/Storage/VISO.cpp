@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2017-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2017-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -673,8 +673,9 @@ static DECLCALLBACK(int) visoClose(void *pBackendData, bool fDelete)
     {
         if (fDelete)
         {
-                PVDINTERFACECONFIG pImgCfg = VDIfConfigGet(&pThis->pIfIo->Core);
-
+            PVDINTERFACECONFIG pImgCfg = VDIfConfigGet(&pThis->pIfIo->Core);
+            if (pImgCfg)
+            {
                 bool fUnattendedInstall = false;
                 int vrc = VDCFGQueryBool(pImgCfg, "UnattendedInstall", &fUnattendedInstall);
 
@@ -685,6 +686,8 @@ static DECLCALLBACK(int) visoClose(void *pBackendData, bool fDelete)
                 */
                 if (RT_SUCCESS(vrc) && fUnattendedInstall)
                     deleteReferences(pThis);
+            }
+
             vdIfIoIntFileDelete(pThis->pIfIo, pThis->pszFilename);
         }
 

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -65,6 +65,7 @@
 #include <iprt/mem.h>
 #include <iprt/path.h>
 #include <iprt/process.h>
+#include <iprt/rand.h>
 #include <iprt/semaphore.h>
 #include <iprt/thread.h>
 #include <VBox/err.h>
@@ -245,7 +246,16 @@ static int vgsvcGstCtrlInvalidate(void)
 
     g_fControlSupportsOptimizations = VbglR3GuestCtrlSupportsOptimizations(g_idControlSvcClient);
     if (g_fControlSupportsOptimizations)
-        rc = VbglR3GuestCtrlMakeMeMaster(g_idControlSvcClient);
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            rc = VbglR3GuestCtrlMakeMeMaster(g_idControlSvcClient);
+            if (RT_SUCCESS(rc))
+                break;
+            RTThreadSleep(RTRandU32Ex(RT_MS_1SEC, RT_MS_5SEC));
+            VGSvcError("Failed to become guest control master (#%d): %Rrc\n", i, rc);
+        }
+    }
     if (RT_SUCCESS(rc))
     {
         VGSvcVerbose(3, "Guest control service client ID=%RU32%s\n",
@@ -257,17 +267,21 @@ static int vgsvcGstCtrlInvalidate(void)
         const uint64_t fGuestFeatures = VBOX_GUESTCTRL_GF_0_SET_SIZE
                                       | VBOX_GUESTCTRL_GF_0_PROCESS_ARGV0
                                       | VBOX_GUESTCTRL_GF_0_PROCESS_DYNAMIC_SIZES
-                                      | VBOX_GUESTCTRL_GF_0_SHUTDOWN;
-
+                                      | VBOX_GUESTCTRL_GF_0_PROCESS_CWD
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+                                      | VBOX_GUESTCTRL_GF_0_TOOLBOX_AS_CMDS
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS */
+                                      | VBOX_GUESTCTRL_GF_0_SHUTDOWN
+                                      | VBOX_GUESTCTRL_GF_0_MOUNT_POINTS_ENUM;
         rc = VbglR3GuestCtrlReportFeatures(g_idControlSvcClient, fGuestFeatures, &g_fControlHostFeatures0);
         if (RT_SUCCESS(rc))
             VGSvcVerbose(3, "Host features: %#RX64\n", g_fControlHostFeatures0);
         else
-            VGSvcVerbose(1, "Warning! Feature reporing failed: %Rrc\n", rc);
+            VGSvcVerbose(1, "Warning! Feature reporting failed: %Rrc\n", rc);
 
         return VINF_SUCCESS;
     }
-    VGSvcError("Failed to become guest control master: %Rrc\n", rc);
+    VGSvcError("Giving up to become guest control master, disconnecting\n");
     VbglR3GuestCtrlDisconnect(g_idControlSvcClient);
 
     return rc;

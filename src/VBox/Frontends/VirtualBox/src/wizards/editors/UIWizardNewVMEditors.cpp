@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -33,9 +33,10 @@
 /* GUI includes: */
 #include "QILineEdit.h"
 #include "UIBaseMemoryEditor.h"
-#include "UICommon.h"
-#include "UIHostnameDomainNameEditor.h"
 #include "UIFilePathSelector.h"
+#include "UIHostnameDomainNameEditor.h"
+#include "UIMediumTools.h"
+#include "UITranslationEventListener.h"
 #include "UIUserNamePasswordEditor.h"
 #include "UIVirtualCPUEditor.h"
 #include "UIWizardNewVM.h"
@@ -51,7 +52,7 @@
 *********************************************************************************************************************************/
 
 UIUserNamePasswordGroupBox::UIUserNamePasswordGroupBox(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QGroupBox>(pParent)
+    : QGroupBox(pParent)
     , m_pUserNamePasswordEditor(0)
 {
     prepare();
@@ -60,20 +61,23 @@ UIUserNamePasswordGroupBox::UIUserNamePasswordGroupBox(QWidget *pParent /* = 0 *
 void UIUserNamePasswordGroupBox::prepare()
 {
     QVBoxLayout *pUserNameContainerLayout = new QVBoxLayout(this);
+    pUserNameContainerLayout->setContentsMargins(0, 0, 0, 0);
     m_pUserNamePasswordEditor = new UIUserNamePasswordEditor;
     AssertReturnVoid(m_pUserNamePasswordEditor);
     m_pUserNamePasswordEditor->setLabelsVisible(true);
-    m_pUserNamePasswordEditor->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
-    pUserNameContainerLayout->addWidget(m_pUserNamePasswordEditor);
-
+    pUserNameContainerLayout->addWidget(m_pUserNamePasswordEditor, Qt::AlignTop);
+    pUserNameContainerLayout->setStretch(0, 0);
     connect(m_pUserNamePasswordEditor, &UIUserNamePasswordEditor::sigPasswordChanged,
             this, &UIUserNamePasswordGroupBox::sigPasswordChanged);
     connect(m_pUserNamePasswordEditor, &UIUserNamePasswordEditor::sigUserNameChanged,
             this, &UIUserNamePasswordGroupBox::sigUserNameChanged);
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIUserNamePasswordGroupBox::sltRetranslateUI);
+    pUserNameContainerLayout->addStretch(1);
 }
 
-void UIUserNamePasswordGroupBox::retranslateUi()
+void UIUserNamePasswordGroupBox::sltRetranslateUI()
 {
     setTitle(UIWizardNewVM::tr("Username and Password"));
 }
@@ -123,7 +127,7 @@ void UIUserNamePasswordGroupBox::setLabelsVisible(bool fVisible)
 *********************************************************************************************************************************/
 
 UIGAInstallationGroupBox::UIGAInstallationGroupBox(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QGroupBox>(pParent)
+    : QGroupBox(pParent)
     , m_pGAISOPathLabel(0)
     , m_pGAISOFilePathSelector(0)
 
@@ -151,7 +155,7 @@ void UIGAInstallationGroupBox::prepare()
     m_pGAISOFilePathSelector->setMode(UIFilePathSelector::Mode_File_Open);
     m_pGAISOFilePathSelector->setFileDialogFilters("ISO Images(*.iso *.ISO)");
     m_pGAISOFilePathSelector->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
-    m_pGAISOFilePathSelector->setInitialPath(uiCommon().defaultFolderPathForType(UIMediumDeviceType_DVD));
+    m_pGAISOFilePathSelector->setInitialPath(UIMediumTools::defaultFolderPathForType(UIMediumDeviceType_DVD));
     m_pGAISOFilePathSelector->setRecentMediaListType(UIMediumDeviceType_DVD);
     if (m_pGAISOPathLabel)
         m_pGAISOPathLabel->setBuddy(m_pGAISOFilePathSelector);
@@ -162,10 +166,12 @@ void UIGAInstallationGroupBox::prepare()
             this, &UIGAInstallationGroupBox::sigPathChanged);
     connect(this, &UIGAInstallationGroupBox::toggled,
             this, &UIGAInstallationGroupBox::sltToggleWidgetsEnabled);
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIGAInstallationGroupBox::sltRetranslateUI);
 }
 
-void UIGAInstallationGroupBox::retranslateUi()
+void UIGAInstallationGroupBox::sltRetranslateUI()
 {
     if (m_pGAISOFilePathSelector)
         m_pGAISOFilePathSelector->setToolTip(UIWizardNewVM::tr("Selects an installation medium (ISO file) for the Guest Additions."));
@@ -192,7 +198,8 @@ void UIGAInstallationGroupBox::mark()
 {
     bool fError = !UIWizardNewVMUnattendedCommon::checkGAISOFile(path());
     if (m_pGAISOFilePathSelector)
-        m_pGAISOFilePathSelector->mark(fError, UIWizardNewVM::tr("Invalid Guest Additions installation media"));
+        m_pGAISOFilePathSelector->mark(fError, UIWizardNewVM::tr("Invalid guest additions installation media"),
+                                       UIWizardNewVM::tr("Guest additions installation media is valid"));
 }
 
 bool UIGAInstallationGroupBox::isComplete() const
@@ -217,83 +224,38 @@ void UIGAInstallationGroupBox::sltToggleWidgetsEnabled(bool fEnabled)
 *********************************************************************************************************************************/
 
 UIAdditionalUnattendedOptions::UIAdditionalUnattendedOptions(QWidget *pParent /* = 0 */)
-    :QIWithRetranslateUI<QGroupBox>(pParent)
-    , m_pProductKeyLabel(0)
-    , m_pProductKeyLineEdit(0)
+    : QGroupBox(pParent)
     , m_pHostnameDomainNameEditor(0)
-    , m_pStartHeadlessCheckBox(0)
 {
     prepare();
 }
 
 void UIAdditionalUnattendedOptions::prepare()
 {
-    m_pMainLayout = new QGridLayout(this);
-    m_pMainLayout->setColumnStretch(0, 0);
-    m_pMainLayout->setColumnStretch(1, 1);
-    m_pProductKeyLabel = new QLabel;
-    if (m_pProductKeyLabel)
-    {
-        m_pProductKeyLabel->setAlignment(Qt::AlignRight);
-        m_pProductKeyLabel->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
-        m_pMainLayout->addWidget(m_pProductKeyLabel, 0, 0);
-    }
-    m_pProductKeyLineEdit = new QILineEdit;
-    if (m_pProductKeyLineEdit)
-    {
-        m_pProductKeyLineEdit->setInputMask(">NNNNN-NNNNN-NNNNN-NNNNN-NNNNN;#");
-        if (m_pProductKeyLabel)
-            m_pProductKeyLabel->setBuddy(m_pProductKeyLineEdit);
-        m_pMainLayout->addWidget(m_pProductKeyLineEdit, 0, 1, 1, 2);
-    }
-
+    QVBoxLayout *pMainLayout = new QVBoxLayout(this);
     m_pHostnameDomainNameEditor = new UIHostnameDomainNameEditor;
     if (m_pHostnameDomainNameEditor)
-        m_pMainLayout->addWidget(m_pHostnameDomainNameEditor, 1, 0, 2, 3);
-
-    m_pStartHeadlessCheckBox = new QCheckBox;
-    if (m_pStartHeadlessCheckBox)
-        m_pMainLayout->addWidget(m_pStartHeadlessCheckBox, 3, 1);
-
+        pMainLayout->addWidget(m_pHostnameDomainNameEditor, Qt::AlignTop);
+    pMainLayout->setStretch(0, 0);
     if (m_pHostnameDomainNameEditor)
+    {
         connect(m_pHostnameDomainNameEditor, &UIHostnameDomainNameEditor::sigHostnameDomainNameChanged,
                 this, &UIAdditionalUnattendedOptions::sigHostnameDomainNameChanged);
-    if (m_pProductKeyLineEdit)
-        connect(m_pProductKeyLineEdit, &QILineEdit::textChanged,
+        connect(m_pHostnameDomainNameEditor, &UIHostnameDomainNameEditor::sigProductKeyChanged,
                 this, &UIAdditionalUnattendedOptions::sigProductKeyChanged);
-    if (m_pStartHeadlessCheckBox)
-        connect(m_pStartHeadlessCheckBox, &QCheckBox::toggled,
+        connect(m_pHostnameDomainNameEditor, &UIHostnameDomainNameEditor::sigStartHeadlessChanged,
                 this, &UIAdditionalUnattendedOptions::sigStartHeadlessChanged);
+    }
 
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIAdditionalUnattendedOptions::sltRetranslateUI);
+    pMainLayout->addStretch(1);
 }
 
-void UIAdditionalUnattendedOptions::retranslateUi()
+void UIAdditionalUnattendedOptions::sltRetranslateUI()
 {
     setTitle(UIWizardNewVM::tr("Additional Options"));
-
-    if (m_pProductKeyLabel)
-        m_pProductKeyLabel->setText(UIWizardNewVM::tr("&Product Key:"));
-
-    if (m_pStartHeadlessCheckBox)
-    {
-        m_pStartHeadlessCheckBox->setText(UIWizardNewVM::tr("&Install in Background"));
-        m_pStartHeadlessCheckBox->setToolTip(UIWizardNewVM::tr("When checked, headless boot (with no GUI) will be enabled for "
-                                                               "unattended guest OS installation of newly created virtual machine."));
-    }
-
-    int iMaxWidth = 0;
-    if (m_pProductKeyLabel)
-        iMaxWidth = qMax(m_pProductKeyLabel->minimumSizeHint().width(), iMaxWidth);
-    if (m_pHostnameDomainNameEditor)
-        iMaxWidth = qMax(m_pHostnameDomainNameEditor->firstColumnWidth(), iMaxWidth);
-    if (iMaxWidth > 0)
-    {
-        m_pMainLayout->setColumnMinimumWidth(0, iMaxWidth);
-        m_pHostnameDomainNameEditor->setFirstColumnWidth(iMaxWidth);
-    }
-    if (m_pProductKeyLineEdit)
-        m_pProductKeyLineEdit->setToolTip(UIWizardNewVM::tr("Holds the product key."));
 }
 
 QString UIAdditionalUnattendedOptions::hostname() const
@@ -350,10 +312,8 @@ void UIAdditionalUnattendedOptions::mark()
 
 void UIAdditionalUnattendedOptions::disableEnableProductKeyWidgets(bool fEnabled)
 {
-    if (m_pProductKeyLabel)
-        m_pProductKeyLabel->setEnabled(fEnabled);
-    if (m_pProductKeyLineEdit)
-        m_pProductKeyLineEdit->setEnabled(fEnabled);
+    if (m_pHostnameDomainNameEditor)
+        m_pHostnameDomainNameEditor->disableEnableProductKeyWidgets(fEnabled);
 }
 
 /*********************************************************************************************************************************
@@ -361,7 +321,7 @@ void UIAdditionalUnattendedOptions::disableEnableProductKeyWidgets(bool fEnabled
 *********************************************************************************************************************************/
 
 UINewVMHardwareContainer::UINewVMHardwareContainer(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_pBaseMemoryEditor(0)
     , m_pVirtualCPUEditor(0)
     , m_pEFICheckBox(0)
@@ -410,11 +370,26 @@ void UINewVMHardwareContainer::prepare()
         connect(m_pEFICheckBox, &QCheckBox::toggled,
                 this, &UINewVMHardwareContainer::sigEFIEnabledChanged);
 
-
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UINewVMHardwareContainer::sltRetranslateUI);
 }
 
-void UINewVMHardwareContainer::retranslateUi()
+void UINewVMHardwareContainer::updateMinimumLayoutHint()
+{
+    /* These editors have own labels, but we want them to be properly layouted according to each other: */
+    int iMinimumLayoutHint = 0;
+    if (m_pBaseMemoryEditor && !m_pBaseMemoryEditor->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pBaseMemoryEditor->minimumLabelHorizontalHint());
+    if (m_pVirtualCPUEditor && !m_pVirtualCPUEditor->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pVirtualCPUEditor->minimumLabelHorizontalHint());
+    if (m_pBaseMemoryEditor)
+        m_pBaseMemoryEditor->setMinimumLayoutIndent(iMinimumLayoutHint);
+    if (m_pVirtualCPUEditor)
+        m_pVirtualCPUEditor->setMinimumLayoutIndent(iMinimumLayoutHint);
+}
+
+void UINewVMHardwareContainer::sltRetranslateUI()
 {
     if (m_pEFICheckBox)
     {
@@ -423,4 +398,6 @@ void UINewVMHardwareContainer::retranslateUi()
                                                      "which is required to boot certain guest OSes. Non-EFI aware OSes will not "
                                                      "be able to boot if this option is activated."));
     }
+
+    updateMinimumLayoutHint();
 }

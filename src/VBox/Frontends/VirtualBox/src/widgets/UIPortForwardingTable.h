@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -36,16 +36,14 @@
 #include <QWidget>
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
 #include "UILibraryDefs.h"
 
 /* COM includes: */
-#include "COMEnums.h"
+#include "KNATProtocol.h"
 
 /* Forward declarations: */
 class QAction;
 class QHBoxLayout;
-class QItemEditorFactory;
 class QIDialogButtonBox;
 class QITableView;
 class UIPortForwardingModel;
@@ -204,7 +202,7 @@ struct UIPortForwardingDataUnique
 
 
 /** QWidget subclass representig Port Forwarding table. */
-class SHARED_LIBRARY_STUFF UIPortForwardingTable : public QIWithRetranslateUI<QWidget>
+class SHARED_LIBRARY_STUFF UIPortForwardingTable : public QWidget
 {
     Q_OBJECT;
 
@@ -220,8 +218,10 @@ public:
       * @param  fIPv6                Brings whether this table contains IPv6 rules, not IPv4.
       * @param  fAllowEmptyGuestIPs  Brings whether this table allows empty guest IPs. */
     UIPortForwardingTable(const UIPortForwardingDataList &rules, bool fIPv6, bool fAllowEmptyGuestIPs);
-    /** Destructs Port Forwarding table. */
-    virtual ~UIPortForwardingTable() RT_OVERRIDE;
+
+    /** Returns table-view reference. */
+    QITableView *view() const;
+
     /** Returns the list of port forwarding rules. */
     UIPortForwardingDataList rules() const;
     /** Defines the list of port forwarding @a newRules.
@@ -242,16 +242,10 @@ public:
     /** Makes sure current editor data committed. */
     void makeSureEditorDataCommitted();
 
-protected:
-
-    /** Preprocesses any Qt @a pEvent for passed @a pObject. */
-    virtual bool eventFilter(QObject *pObject, QEvent *pEvent) RT_OVERRIDE;
-
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
 private slots:
 
+    /** Handles translation event. */
+    void sltRetranslateUI();
     /** Adds the rule. */
     void sltAddRule();
     /** Copies the rule. */
@@ -262,12 +256,11 @@ private slots:
     /** Marks table data as changed. */
     void sltTableDataChanged();
 
-    /** Handles current item change. */
-    void sltCurrentChanged();
+    /** Updates actions. */
+    void sltUpdateActions();
+
     /** Handles request to show context-menu in certain @a position. */
     void sltShowTableContexMenu(const QPoint &position);
-    /** Adjusts table column sizes. */
-    void sltAdjustTable();
 
 private:
 
@@ -275,16 +268,12 @@ private:
     void prepare();
     /** Prepares layout. */
     void prepareLayout();
-    /** Prepares table-view. */
-    void prepareTableView();
     /** Prepares table-model. */
     void prepareTableModel();
-    /** Prepares table-delegates. */
-    void prepareTableDelegates();
+    /** Prepares table-view. */
+    void prepareTableView();
     /** Prepares toolbar. */
     void prepareToolbar();
-    /** Cleanups all. */
-    void cleanup();
 
     /** Holds the list of port forwarding rules. */
     UIPortForwardingDataList  m_rules;
@@ -305,8 +294,6 @@ private:
     QITableView *m_pTableView;
     /** Holds the tool-bar instance. */
     QIToolBar   *m_pToolBar;
-    /** Holds the item editor factory instance. */
-    QItemEditorFactory *m_pItemEditorFactory;
 
     /** Holds the table-model instance. */
     UIPortForwardingModel *m_pTableModel;

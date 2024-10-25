@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -29,6 +29,7 @@
 #include <QAbstractTableModel>
 #include <QHeaderView>
 #include <QItemEditorFactory>
+#include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
@@ -39,12 +40,12 @@
 /* GUI includes: */
 #include "QIDialogButtonBox.h"
 #include "QIStyledItemDelegate.h"
-#include "QIWithRetranslateUI.h"
-#include "UICommon.h"
 #include "UIAddDiskEncryptionPasswordDialog.h"
 #include "UIIconPool.h"
 #include "UIMedium.h"
+#include "UIMediumEnumerator.h"
 #include "UINotificationCenter.h"
+#include "UITranslationEventListener.h"
 
 /* Other VBox includes: */
 #include <iprt/assert.h>
@@ -127,20 +128,20 @@ public:
     EncryptionPasswordMap encryptionPasswords() const { return m_encryptionPasswords; }
 
     /** Returns the row count, taking optional @a parent instead of root if necessary. */
-    virtual int rowCount(const QModelIndex &parent = QModelIndex()) const;
+    virtual int rowCount(const QModelIndex &parent = QModelIndex()) const RT_OVERRIDE RT_FINAL;
     /** Returns the column count, taking optional @a parent instead of root if necessary. */
-    virtual int columnCount(const QModelIndex &parent = QModelIndex()) const;
+    virtual int columnCount(const QModelIndex &parent = QModelIndex()) const RT_OVERRIDE RT_FINAL;
 
     /** Returns the @a index flags. */
-    virtual Qt::ItemFlags flags(const QModelIndex &index) const;
+    virtual Qt::ItemFlags flags(const QModelIndex &index) const RT_OVERRIDE RT_FINAL;
 
     /** Returns the header data for the @a iSection, @a orientation and @a iRole. */
-    virtual QVariant headerData(int iSection, Qt::Orientation orientation, int iRole) const;
+    virtual QVariant headerData(int iSection, Qt::Orientation orientation, int iRole) const RT_OVERRIDE RT_FINAL;
 
     /** Returns the @a index data for the @a iRole. */
-    virtual QVariant data(const QModelIndex &index, int iRole = Qt::DisplayRole) const;
+    virtual QVariant data(const QModelIndex &index, int iRole = Qt::DisplayRole) const RT_OVERRIDE RT_FINAL;
     /** Defines the @a index data for the @a iRole as @a value. */
-    virtual bool setData(const QModelIndex &index, const QVariant &value, int iRole = Qt::EditRole);
+    virtual bool setData(const QModelIndex &index, const QVariant &value, int iRole = Qt::EditRole) RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -334,7 +335,7 @@ QVariant UIEncryptionDataModel::data(const QModelIndex &index, int iRole /* = Qt
         }
         case Qt::ToolTipRole:
         {
-            /* We are generating tool-tip here and not in retranslateUi() because of the tricky plural form handling,
+            /* We are generating tool-tip here and not in sltRetranslateUI() because of the tricky plural form handling,
              * but be quiet, it's safe enough because the tool-tip being re-acquired every time on mouse-hovering. */
             const QList<QUuid> encryptedMedia = m_encryptedMedia.values(m_encryptionPasswords.keys().at(index.row()));
             return UIAddDiskEncryptionPasswordDialog::tr("<nobr>Used by the following %n hard disk(s):</nobr><br>%1",
@@ -442,7 +443,7 @@ void UIEncryptionDataTable::prepare()
             /* Register UIPasswordEditor as the QString editor: */
             QStandardItemEditorCreator<UIPasswordEditor> *pQStringItemEditorCreator = new QStandardItemEditorCreator<UIPasswordEditor>();
             if (pQStringItemEditorCreator)
-            m_pItemEditorFactory->registerEditor(QVariant::String, pQStringItemEditorCreator);
+            m_pItemEditorFactory->registerEditor(QMetaType::QString, pQStringItemEditorCreator);
 
             /* Assign configured item editor factory to table delegate: */
             pStyledItemDelegate->setItemEditorFactory(m_pItemEditorFactory);
@@ -489,7 +490,7 @@ void UIEncryptionDataTable::cleanup()
 UIAddDiskEncryptionPasswordDialog::UIAddDiskEncryptionPasswordDialog(QWidget *pParent,
                                                                      const QString &strMachineName,
                                                                      const EncryptedMediumMap &encryptedMedia)
-    : QIWithRetranslateUI<QDialog>(pParent)
+    : QDialog(pParent)
     , m_strMachineName(strMachineName)
     , m_encryptedMedia(encryptedMedia)
     , m_pLabelDescription(0)
@@ -499,7 +500,10 @@ UIAddDiskEncryptionPasswordDialog::UIAddDiskEncryptionPasswordDialog(QWidget *pP
     /* Prepare: */
     prepare();
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIAddDiskEncryptionPasswordDialog::sltRetranslateUI);
+
 }
 
 EncryptionPasswordMap UIAddDiskEncryptionPasswordDialog::encryptionPasswords() const
@@ -508,7 +512,7 @@ EncryptionPasswordMap UIAddDiskEncryptionPasswordDialog::encryptionPasswords() c
     return m_pTableEncryptionData->encryptionPasswords();
 }
 
-void UIAddDiskEncryptionPasswordDialog::retranslateUi()
+void UIAddDiskEncryptionPasswordDialog::sltRetranslateUI()
 {
     /* Translate the dialog title: */
     setWindowTitle(tr("%1 - Disk Encryption").arg(m_strMachineName));
@@ -542,7 +546,7 @@ void UIAddDiskEncryptionPasswordDialog::accept()
         }
     }
     /* Call to base-class: */
-    QIWithRetranslateUI<QDialog>::accept();
+    QDialog::accept();
 }
 
 void UIAddDiskEncryptionPasswordDialog::prepare()
@@ -602,7 +606,7 @@ void UIAddDiskEncryptionPasswordDialog::prepare()
 bool UIAddDiskEncryptionPasswordDialog::isPasswordValid(const QUuid &uMediumId, const QString strPassword)
 {
     /* Look for the medium with passed ID: */
-    const UIMedium uimedium = uiCommon().medium(uMediumId);
+    const UIMedium uimedium = gpMediumEnumerator->medium(uMediumId);
     if (!uimedium.isNull())
     {
         /* Check wrapped medium for validity: */

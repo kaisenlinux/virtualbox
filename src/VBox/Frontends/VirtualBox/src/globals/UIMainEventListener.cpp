@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -30,13 +30,14 @@
 #include <QThread>
 
 /* GUI includes: */
-#include "UICommon.h"
+#include "UIGlobalSession.h"
+#include "UILoggingDefs.h"
 #include "UIMainEventListener.h"
 #include "UIMousePointerShapeData.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CCanShowWindowEvent.h"
+#include "CClipboardErrorEvent.h"
 #include "CClipboardModeChangedEvent.h"
 #include "CCloudProfileChangedEvent.h"
 #include "CCloudProfileRegisteredEvent.h"
@@ -49,6 +50,8 @@
 #include "CEventListener.h"
 #include "CExtraDataCanChangeEvent.h"
 #include "CExtraDataChangedEvent.h"
+#include "CExtPackInstalledEvent.h"
+#include "CExtPackUninstalledEvent.h"
 #include "CGuestMonitorChangedEvent.h"
 #include "CGuestProcessIOEvent.h"
 #include "CGuestProcessRegisteredEvent.h"
@@ -271,7 +274,7 @@ void UIMainEventListener::unregisterSources()
 STDMETHODIMP UIMainEventListener::HandleEvent(VBoxEventType_T, IEvent *pEvent)
 {
     /* Try to acquire COM cleanup protection token first: */
-    if (!uiCommon().comTokenTryLockForRead())
+    if (!gpGlobalSession->comTokenTryLockForRead())
         return S_OK;
 
     CEvent comEvent(pEvent);
@@ -449,9 +452,9 @@ STDMETHODIMP UIMainEventListener::HandleEvent(VBoxEventType_T, IEvent *pEvent)
         case KVBoxEventType_OnKeyboardLedsChanged:
         {
             CKeyboardLedsChangedEvent comEventSpecific(pEvent);
-            emit sigKeyboardLedsChangeEvent(comEventSpecific.GetNumLock(),
-                                            comEventSpecific.GetCapsLock(),
-                                            comEventSpecific.GetScrollLock());
+            emit sigKeyboardLedsChange(comEventSpecific.GetNumLock(),
+                                       comEventSpecific.GetCapsLock(),
+                                       comEventSpecific.GetScrollLock());
             break;
         }
         case KVBoxEventType_OnStateChanged:
@@ -477,7 +480,7 @@ STDMETHODIMP UIMainEventListener::HandleEvent(VBoxEventType_T, IEvent *pEvent)
             emit sigVRDEChange();
             break;
         }
-        case KVBoxEventType_OnRecordingChanged:
+        case KVBoxEventType_OnRecordingStateChanged:
         {
             emit sigRecordingChange();
             break;
@@ -612,17 +615,35 @@ STDMETHODIMP UIMainEventListener::HandleEvent(VBoxEventType_T, IEvent *pEvent)
             emit sigClipboardModeChange(comEventSpecific.GetClipboardMode());
             break;
         }
+        case KVBoxEventType_OnClipboardError:
+        {
+            CClipboardErrorEvent comEventSpecific(pEvent);
+            emit sigClipboardError(comEventSpecific.GetMsg());
+            break;
+        }
         case KVBoxEventType_OnDnDModeChanged:
         {
             CDnDModeChangedEvent comEventSpecific(pEvent);
             emit sigDnDModeChange(comEventSpecific.GetDndMode());
             break;
         }
+        case KVBoxEventType_OnExtPackInstalled:
+        {
+            CExtPackInstalledEvent comEventSpecific(pEvent);
+            emit sigExtensionPackInstalled(comEventSpecific.GetName());
+            break;
+        }
+        case KVBoxEventType_OnExtPackUninstalled:
+        {
+            CExtPackInstalledEvent comEventSpecific(pEvent);
+            emit sigExtensionPackUninstalled(comEventSpecific.GetName());
+            break;
+        }
         default: break;
     }
 
     /* Unlock COM cleanup protection token: */
-    uiCommon().comTokenUnlock();
+    gpGlobalSession->comTokenUnlock();
 
     return S_OK;
 }

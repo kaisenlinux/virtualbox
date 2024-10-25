@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,12 +31,8 @@
 # pragma once
 #endif
 
-/* Qt includes: */
-#include <QWidget>
-
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
-#include "UILibraryDefs.h"
+#include "UIEditor.h"
 
 /* Forward declarations: */
 class QGridLayout;
@@ -44,8 +40,8 @@ class QLabel;
 class QSpinBox;
 class QIAdvancedSlider;
 
-/** QWidget subclass used as a monitor count editor. */
-class SHARED_LIBRARY_STUFF UIMonitorCountEditor : public QIWithRetranslateUI<QWidget>
+/** UIEditor sub-class used as a monitor count editor. */
+class SHARED_LIBRARY_STUFF UIMonitorCountEditor : public UIEditor
 {
     Q_OBJECT;
 
@@ -69,13 +65,10 @@ public:
     /** Defines minimum layout @a iIndent. */
     void setMinimumLayoutIndent(int iIndent);
 
-protected:
-
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
 private slots:
 
+    /** Handles translation event. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
     /** Handles slider value changes. */
     void sltHandleSliderChange();
     /** Handles spin-box value changes. */

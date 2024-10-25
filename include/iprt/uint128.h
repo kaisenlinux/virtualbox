@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1401,7 +1401,11 @@ DECLINLINE(PRTUINT128U) RTUInt128DivRem(PRTUINT128U pQuotient, PRTUINT128U pRema
     if (!pValue2->s.Hi)
     {
         if (!pValue2->s.Lo)
+        {
+            RTUInt128SetZero(pRemainder);
+            RTUInt128SetZero(pQuotient);
             return NULL;
+        }
 
         if (pValue2->s.Lo == 1)
         {

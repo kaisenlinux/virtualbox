@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2021-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2021-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -151,10 +151,6 @@ void UefiVariableStore::uninit()
 
 HRESULT UefiVariableStore::getSecureBootEnabled(BOOL *pfEnabled)
 {
-    /* the machine needs to be mutable */
-    AutoMutableStateDependency adep(m->pMachine);
-    if (FAILED(adep.hrc())) return adep.hrc();
-
     HRESULT hrc = i_retainUefiVariableStore(true /*fReadonly*/);
     if (FAILED(hrc)) return hrc;
 
@@ -323,10 +319,6 @@ HRESULT UefiVariableStore::queryVariableByName(const com::Utf8Str &aName, com::G
                                                std::vector<UefiVariableAttributes_T> &aAttributes,
                                                std::vector<BYTE> &aData)
 {
-    /* the machine needs to be mutable */
-    AutoMutableStateDependency adep(m->pMachine);
-    if (FAILED(adep.hrc())) return adep.hrc();
-
     HRESULT hrc = i_retainUefiVariableStore(true /*fReadonly*/);
     if (FAILED(hrc)) return hrc;
 
@@ -369,10 +361,6 @@ HRESULT UefiVariableStore::queryVariableByName(const com::Utf8Str &aName, com::G
 HRESULT UefiVariableStore::queryVariables(std::vector<com::Utf8Str> &aNames,
                                           std::vector<com::Guid> &aOwnerUuids)
 {
-    /* the machine needs to be mutable */
-    AutoMutableStateDependency adep(m->pMachine);
-    if (FAILED(adep.hrc())) return adep.hrc();
-
     HRESULT hrc = i_retainUefiVariableStore(true /*fReadonly*/);
     if (FAILED(hrc)) return hrc;
 
@@ -521,6 +509,7 @@ HRESULT UefiVariableStore::addSignatureToDbx(const std::vector<BYTE> &aData, con
 
 HRESULT UefiVariableStore::enrollDefaultMsSignatures(void)
 {
+    /* the machine needs to be mutable */
     AutoMutableStateDependency adep(m->pMachine);
     if (FAILED(adep.hrc())) return adep.hrc();
 
@@ -543,11 +532,26 @@ HRESULT UefiVariableStore::enrollDefaultMsSignatures(void)
                                          GuidMs, SignatureType_X509);
     if (SUCCEEDED(hrc))
     {
-        hrc = i_uefiVarStoreAddSignatureToDb(&EfiGuidSecurityDb, "db", g_abUefiMicrosoftCa, g_cbUefiMicrosoftCa,
+        hrc = i_uefiVarStoreAddSignatureToDb(&EfiGuidGlobalVar, "KEK", g_abUefiMicrosoftKek2023, g_cbUefiMicrosoftKek2023,
                                              GuidMs, SignatureType_X509);
         if (SUCCEEDED(hrc))
-            hrc = i_uefiVarStoreAddSignatureToDb(&EfiGuidSecurityDb, "db", g_abUefiMicrosoftProPca, g_cbUefiMicrosoftProPca,
+        {
+            hrc = i_uefiVarStoreAddSignatureToDb(&EfiGuidSecurityDb, "db", g_abUefiMicrosoft3rdCa, g_cbUefiMicrosoft3rdCa,
                                                  GuidMs, SignatureType_X509);
+            if (SUCCEEDED(hrc))
+            {
+                hrc = i_uefiVarStoreAddSignatureToDb(&EfiGuidSecurityDb, "db", g_abUefiMicrosoft3rdCa2023, g_cbUefiMicrosoft3rdCa2023,
+                                                     GuidMs, SignatureType_X509);
+                if (SUCCEEDED(hrc))
+                {
+                    hrc = i_uefiVarStoreAddSignatureToDb(&EfiGuidSecurityDb, "db", g_abUefiMicrosoftWinCa, g_cbUefiMicrosoftWinCa,
+                                                         GuidMs, SignatureType_X509);
+                    if (SUCCEEDED(hrc))
+                        hrc = i_uefiVarStoreAddSignatureToDb(&EfiGuidSecurityDb, "db", g_abUefiMicrosoftWinCa2023, g_cbUefiMicrosoftWinCa2023,
+                                                             GuidMs, SignatureType_X509);
+                }
+            }
+        }
     }
 
     i_releaseUefiVariableStore();

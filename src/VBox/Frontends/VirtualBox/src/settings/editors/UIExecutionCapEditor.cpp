@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -38,7 +38,7 @@
 #include "UIExecutionCapEditor.h"
 
 UIExecutionCapEditor::UIExecutionCapEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent)
     , m_uMinExecCap(1)
     , m_uMedExecCap(40)
     , m_uMaxExecCap(100)
@@ -78,7 +78,7 @@ void UIExecutionCapEditor::setMinimumLayoutIndent(int iIndent)
         m_pLayout->setColumnMinimumWidth(0, iIndent);
 }
 
-void UIExecutionCapEditor::retranslateUi()
+void UIExecutionCapEditor::sltRetranslateUI()
 {
     if (m_pLabelExecCap)
         m_pLabelExecCap->setText(tr("&Execution Cap:"));
@@ -210,12 +210,12 @@ void UIExecutionCapEditor::prepare()
             m_pSpinBox->setMinimum(m_uMinExecCap);
             m_pSpinBox->setMaximum(m_uMaxExecCap);
             uiCommon().setMinimumWidthAccordingSymbolCount(m_pSpinBox, 4);
-            connect(m_pSpinBox, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged),
+            connect(m_pSpinBox, &QSpinBox::valueChanged,
                     this, &UIExecutionCapEditor::sltHandleSpinBoxChange);
             m_pLayout->addWidget(m_pSpinBox, 0, 2);
         }
     }
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }

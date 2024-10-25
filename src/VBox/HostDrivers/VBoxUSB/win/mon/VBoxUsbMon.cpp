@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -803,12 +803,13 @@ typedef struct VBOXUSBMONHOOKDRIVERWALKER
  * @param   ReturnedStatus Error that was reported by the driver to the caller.
  * @param   uErrId         Unique error id representing the location in the driver.
  * @param   cbDumpData     Number of bytes at pDumpData.
- * @param   pDumpData      Pointer to data that will be added to the message (see 'details' tab).
+ * @param   pvDumpData     Pointer to data that will be added to the message
+ *                         (see 'details' tab).
  *
  * NB: We only use IoLogMsg.dll as the message file, limiting
  * ErrCode to status codes and messages defined in ntiologc.h
  */
-static void vboxUsbMonLogError(NTSTATUS ErrCode, NTSTATUS ReturnedStatus, ULONG uErrId, USHORT cbDumpData, PVOID pDumpData)
+static void vboxUsbMonLogError(NTSTATUS ErrCode, NTSTATUS ReturnedStatus, ULONG uErrId, USHORT cbDumpData, void const *pvDumpData)
 {
     PIO_ERROR_LOG_PACKET pErrEntry;
 
@@ -823,7 +824,7 @@ static void vboxUsbMonLogError(NTSTATUS ErrCode, NTSTATUS ReturnedStatus, ULONG 
     {
         uint8_t *pDump = (uint8_t *)pErrEntry->DumpData;
         if (cbDumpData)
-            memcpy(pDump, pDumpData, cbDumpData);
+            memcpy(pDump, pvDumpData, cbDumpData);
         pErrEntry->MajorFunctionCode = 0;
         pErrEntry->RetryCount = 0;
         pErrEntry->DumpDataSize = cbDumpData;
@@ -1270,7 +1271,7 @@ static NTSTATUS vboxUsbMonIoctlDispatch(PVBOXUSBMONCTX pContext, ULONG Ctl, PVOI
             if (cbOutBuffer)
             {
                 /* we've validated that already */
-                Assert(cbOutBuffer == (ULONG)*pRc);
+                Assert(cbOutBuffer == sizeof (*pRc));
                 *pRc = rc;
                 Info = sizeof (*pRc);
             }

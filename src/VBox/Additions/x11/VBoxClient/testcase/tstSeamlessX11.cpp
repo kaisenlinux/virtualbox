@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2007-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2007-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,11 +32,18 @@
 #include <iprt/semaphore.h>
 #include <iprt/string.h>
 #include <iprt/stream.h>
+
 #include <VBox/VBoxGuestLib.h>
+#include <VBox/GuestHost/DisplayServerType.h>
 
 #include "../seamless.h"
 
 static RTSEMEVENT eventSem;
+
+VBGHDISPLAYSERVERTYPE VBClGetDisplayServerType(void)
+{
+    return VBGHDISPLAYSERVERTYPE_X11;
+}
 
 void VBClLogError(const char *pszFormat, ...)
 {
@@ -168,7 +175,7 @@ int main( int argc, char **argv)
     RTPrintf("\nType Ctrl-C to exit...\n");
     RTSemEventCreate(&eventSem);
     /** Our instance of the seamless class. */
-    SeamlessMain seamless;
+    VBClX11SeamlessSvc seamless;
     LogRel(("Starting seamless Guest Additions...\n"));
     rc = seamless.init();
     if (rc != VINF_SUCCESS)

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,21 +26,24 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QCheckBox>
 #include <QHBoxLayout>
 #include <QPainter>
+#include <QPainterPath>
 #include <QScrollArea>
-#include <QScrollBar>
-#include <QStyle>
 #include <QVBoxLayout>
+#ifndef VBOX_WS_MAC
+# include <QStyle>
+#endif
 
 /* GUI includes: */
 #include "UIFilmContainer.h"
-
+#include "UITranslationEventListener.h"
 
 /** QWidget subclass providing GUI with UIFilmContainer item prototype.
   * @todo Rename to something more suitable like UIScreenThumbnail. */
-class UIFilm : public QIWithRetranslateUI<QWidget>
+class UIFilm : public QWidget
 {
     Q_OBJECT;
 
@@ -49,21 +52,23 @@ public:
     /** Constructs film widget passing @a pParent to the base-class.
       * @param  iScreenIndex  Brings the guest-screen index this film referencing.
       * @param  fEnabled      Brings whether the guest-screen mentioned above is enabled. */
-    UIFilm(int iScreenIndex, BOOL fEnabled, QWidget *pParent = 0);
+    UIFilm(int iScreenIndex, bool fEnabled, QWidget *pParent = 0);
 
     /** Returns whether guest-screen is enabled. */
     bool checked() const;
 
 protected:
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
     /** Handles paint @a pEvent. */
     virtual void paintEvent(QPaintEvent *pEvent) RT_OVERRIDE;
 
     /** Returns minimum size-hint. */
     virtual QSize minimumSizeHint() const RT_OVERRIDE;
+
+private slots:
+
+    /** Handles translation event. */
+    void sltRetranslateUI();
 
 private:
 
@@ -77,7 +82,7 @@ private:
     /** Holds the guest-screen index. */
     int  m_iScreenIndex;
     /** Holds whether guest-screen was enabled. */
-    BOOL m_fWasEnabled;
+    bool m_fWasEnabled;
 
     /** Holds the main-layout instance. */
     QVBoxLayout *m_pMainLayout;
@@ -90,8 +95,8 @@ private:
 *   Class UIFilm implementation.                                                                                                 *
 *********************************************************************************************************************************/
 
-UIFilm::UIFilm(int iScreenIndex, BOOL fEnabled, QWidget *pParent /* = 0*/)
-    : QIWithRetranslateUI<QWidget>(pParent)
+UIFilm::UIFilm(int iScreenIndex, bool fEnabled, QWidget *pParent /* = 0*/)
+    : QWidget(pParent)
     , m_iScreenIndex(iScreenIndex)
     , m_fWasEnabled(fEnabled)
     , m_pCheckBox(0)
@@ -106,7 +111,7 @@ bool UIFilm::checked() const
     return m_pCheckBox->isChecked();
 }
 
-void UIFilm::retranslateUi()
+void UIFilm::sltRetranslateUI()
 {
     /* Translate check-box: */
     m_pCheckBox->setText(QApplication::translate("UIMachineSettingsDisplay", "Screen %1").arg(m_iScreenIndex + 1));
@@ -169,7 +174,9 @@ void UIFilm::prepare()
     prepareCheckBox();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+        this, &UIFilm::sltRetranslateUI);
 }
 
 void UIFilm::prepareLayout()
@@ -224,18 +231,18 @@ UIFilmContainer::UIFilmContainer(QWidget *pParent /* = 0*/)
     prepare();
 }
 
-QVector<BOOL> UIFilmContainer::value() const
+QVector<bool> UIFilmContainer::value() const
 {
     /* Enumerate all the existing widgets: */
-    QVector<BOOL> value;
+    QVector<bool> value;
     foreach (UIFilm *pWidget, m_widgets)
-        value << static_cast<BOOL>(pWidget->checked());
+        value << static_cast<bool>(pWidget->checked());
 
     /* Return value: */
     return value;
 }
 
-void UIFilmContainer::setValue(const QVector<BOOL> &value)
+void UIFilmContainer::setValue(const QVector<bool> &value)
 {
     /* Cleanup viewport/widget list: */
     delete m_pScroller->takeWidget();
@@ -292,7 +299,7 @@ void UIFilmContainer::prepare()
     prepareScroller();
 
     /* Append with 'default' value: */
-    setValue(QVector<BOOL>() << true);
+    setValue(QVector<bool>() << true);
 }
 
 void UIFilmContainer::prepareLayout()

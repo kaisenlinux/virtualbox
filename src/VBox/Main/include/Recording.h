@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -37,55 +37,138 @@
 #include "RecordingStream.h"
 
 class Console;
+class Progress;
+
+/** No flags specified. */
+#define VBOX_RECORDING_CURSOR_F_NONE       0
+/** Cursor is visible. */
+#define VBOX_RECORDING_CURSOR_F_VISIBLE    RT_BIT(0)
+/** Cursor shape contains an alpha mask. */
+#define VBOX_RECORDING_CURSOR_F_ALPHA      RT_BIT(1)
+/** Cursor state flags valid mask. */
+#define VBOX_RECORDING_CURSOR_F_VALID_MASK 0x3
+
+/**
+ * Class for keeping a recording cursor state.
+ */
+class RecordingCursorState
+{
+public:
+
+    RecordingCursorState();
+    virtual ~RecordingCursorState();
+
+    void Destroy();
+
+    int CreateOrUpdate(bool fAlpha, uint32_t uWidth, uint32_t uHeight, const uint8_t *pu8Shape, size_t cbShape);
+
+    int Move(int32_t iX, int32_t iY);
+
+    /** Cursor state flags. */
+    uint32_t            m_fFlags;
+    /** The current cursor shape. */
+    RECORDINGVIDEOFRAME m_Shape;
+};
+
+/**
+ * Enumeration for a recording context state.
+ */
+enum RECORDINGSTS
+{
+    /** Recording not initialized. */
+    RECORDINGSTS_UNINITIALIZED = 0,
+    /** Recording was created. */
+    RECORDINGSTS_CREATED       = 1,
+    /** Recording was started. */
+    RECORDINGSTS_STARTED       = 2,
+    /** Recording was stopped. */
+    RECORDINGSTS_STOPPED       = 3,
+    /** Limit has been reached. */
+    RECORDINGSTS_LIMIT_REACHED = 4,
+    /** Recording experienced an error. */
+    RECORDINGSTS_FAILURE       = 5,
+    /** The usual 32-bit hack. */
+    RECORDINGSTS_32BIT_HACK    = 0x7fffffff
+};
 
 /**
  * Class for managing a recording context.
  */
 class RecordingContext
 {
+    friend RecordingStream;
+
+public:
+
+    /** Recording context callback table. */
+    struct CALLBACKS
+    {
+       /**
+        * Recording state got changed. Optional.
+        *
+        * @param   pCtx                 Recording context.
+        * @param   enmSts               New status.
+        * @param   uScreen              Screen ID.
+        *                               Set to UINT32_MAX if the limit of all streams was reached.
+        * @param   vrc                  Result code of state change.
+        * @param   pvUser               User-supplied pointer. Might be NULL.
+        */
+        DECLCALLBACKMEMBER(void, pfnStateChanged, (RecordingContext *pCtx, RECORDINGSTS enmSts, uint32_t uScreen, int vrc, void *pvUser));
+
+        /** User-supplied pointer. Might be NULL. */
+        void *pvUser;
+    };
+
 public:
 
     RecordingContext();
-
-    RecordingContext(Console *ptrConsole, const settings::RecordingSettings &Settings);
 
     virtual ~RecordingContext(void);
 
 public:
 
-    const settings::RecordingSettings &GetConfig(void) const;
+    const settings::Recording &GetConfig(void) const;
     RecordingStream *GetStream(unsigned uScreen) const;
     size_t GetStreamCount(void) const;
 #ifdef VBOX_WITH_AUDIO_RECORDING
     PRECORDINGCODEC GetCodecAudio(void) { return &this->m_CodecAudio; }
 #endif
 
-    int Create(Console *pConsole, const settings::RecordingSettings &Settings);
+    int Create(Console *pConsole, const settings::Recording &Settings, ComPtr<IProgress> &pProgress);
     void Destroy(void);
 
     int Start(void);
     int Stop(void);
 
+    int SetError(int rc, const com::Utf8Str &strText);
+
     int SendAudioFrame(const void *pvData, size_t cbData, uint64_t uTimestampMs);
-    int SendVideoFrame(uint32_t uScreen,
-                       uint32_t x, uint32_t y, uint32_t uPixelFormat, uint32_t uBPP,
-                       uint32_t uBytesPerLine, uint32_t uSrcWidth, uint32_t uSrcHeight,
-                       uint8_t *puSrcData, uint64_t msTimestamp);
+    int SendVideoFrame(uint32_t uScreen, PRECORDINGVIDEOFRAME pFrame, uint64_t msTimestamp);
+    int SendCursorPositionChange(uint32_t uScreen, int32_t x, int32_t y, uint64_t msTimestamp);
+    int SendCursorShapeChange(bool fVisible, bool fAlpha, uint32_t xHot, uint32_t yHot, uint32_t uWidth, uint32_t uHeight, const uint8_t *pu8Shape, size_t cbShape, uint64_t msTimestamp);
+    int SendScreenChange(uint32_t uScreen, PRECORDINGSURFACEINFO pInfo, uint64_t uTimestampMs);
+
 public:
 
+    uint64_t GetCurrentPTS(void) const;
     bool IsFeatureEnabled(RecordingFeature_T enmFeature);
+    bool IsFeatureEnabled(uint32_t uScreen, RecordingFeature_T enmFeature);
     bool IsReady(void);
-    bool IsReady(uint32_t uScreen, uint64_t msTimestamp);
     bool IsStarted(void);
     bool IsLimitReached(void);
     bool IsLimitReached(uint32_t uScreen, uint64_t msTimestamp);
     bool NeedsUpdate(uint32_t uScreen, uint64_t msTimestamp);
+    void SetCallbacks(RecordingContext::CALLBACKS *pCallbacks, void *pvUser);
 
-    DECLCALLBACK(int) OnLimitReached(uint32_t uScreen, int vrc);
+    /** The state mouse cursor state.
+     *  We currently only support one mouse cursor at a time. */
+    RecordingCursorState         m_Cursor;
+
 
 protected:
 
-    int createInternal(Console *ptrConsole, const settings::RecordingSettings &Settings);
+    int createInternal(Console *ptrConsole, const settings::Recording &Settings, ComPtr<IProgress> &pProgress);
+    void reset(void);
     int startInternal(void);
     int stopInternal(void);
 
@@ -99,43 +182,52 @@ protected:
     int lock(void);
     int unlock(void);
 
+    int onLimitReached(uint32_t uScreen, int vrc);
+
+    bool progressIsCanceled(void) const;
+    bool progressIsCompleted(void) const;
+    int progressCreate(const settings::Recording &Settings, ComObjPtr<Progress> &pProgress);
+    int progressNotifyComplete(HRESULT hrc = S_OK, IVirtualBoxErrorInfo *pErrorInfo = NULL);
+    int progressSet(uint32_t uOp, const com::Bstr &strDesc);
+    int progressSet(uint64_t msTimestamp);
+
     static DECLCALLBACK(int) threadMain(RTTHREAD hThreadSelf, void *pvUser);
 
     int threadNotify(void);
 
 protected:
 
-    int audioInit(const settings::RecordingScreenSettings &screenSettings);
-
-    static DECLCALLBACK(int) audioCodecWriteDataCallback(PRECORDINGCODEC pCodec, const void *pvData, size_t cbData, uint64_t msAbsPTS, uint32_t uFlags, void *pvUser);
+    int audioInit(const settings::RecordingScreen &screenSettings);
 
 protected:
 
-    /**
-     * Enumeration for a recording context state.
-     */
-    enum RECORDINGSTS
-    {
-        /** Context not initialized. */
-        RECORDINGSTS_UNINITIALIZED = 0,
-        /** Context was created. */
-        RECORDINGSTS_CREATED       = 1,
-        /** Context was started. */
-        RECORDINGSTS_STARTED       = 2,
-        /** The usual 32-bit hack. */
-        RECORDINGSTS_32BIT_HACK    = 0x7fffffff
-    };
+    static void               s_progressCancelCallback(void *pvUser);
+
+    static DECLCALLBACK(void) s_recordingStateChangedCallback(RecordingContext *pCtx, RECORDINGSTS enmSts, uint32_t uScreen, int vrc, void *pvUser);
+
+    static DECLCALLBACK(int)  s_audioCodecWriteDataCallback(PRECORDINGCODEC pCodec, const void *pvData, size_t cbData, uint64_t msAbsPTS, uint32_t uFlags, void *pvUser);
+
+protected:
 
     /** Pointer to the console object. */
     Console                     *m_pConsole;
-    /** Used recording configuration. */
-    settings::RecordingSettings  m_Settings;
+    /** Used recording settings. */
+    settings::Recording          m_Settings;
     /** The current state. */
     RECORDINGSTS                 m_enmState;
+    /** Callback table. */
+    CALLBACKS                    m_Callbacks;
     /** Critical section to serialize access. */
     RTCRITSECT                   m_CritSect;
     /** Semaphore to signal the encoding worker thread. */
     RTSEMEVENT                   m_WaitEvent;
+    /** Current operation of progress. Set to 0 if not started yet, >= 1 if started. */
+    ULONG                        m_ulCurOp;
+    /** Number of progress operations. Always >= 1. */
+    ULONG                        m_cOps;
+    /** The progress object assigned to this context.
+     *  Might be NULL if not being used. */
+    const ComObjPtr<Progress>    m_pProgress;
     /** Shutdown indicator. */
     bool                         m_fShutdown;
     /** Encoding worker thread. */
@@ -145,7 +237,8 @@ protected:
     RecordingStreams             m_vecStreams;
     /** Number of streams in vecStreams which currently are enabled for recording. */
     uint16_t                     m_cStreamsEnabled;
-    /** Timestamp (in ms) of when recording has been started. */
+    /** Timestamp (in ms) of when recording has been started.
+     *  Set to 0 if not started (yet). */
     uint64_t                     m_tsStartMs;
 #ifdef VBOX_WITH_AUDIO_RECORDING
     /** Audio codec to use.
@@ -164,7 +257,7 @@ protected:
      *  the encoded data to all affected recording streams.
      *
      *  This avoids doing the (expensive) encoding + multiplexing work in other
-     *  threads like EMT / audio async I/O..
+     *  threads like EMT / audio async I/O.
      *
      *  For now this only affects audio, e.g. all recording streams
      *  need to have the same audio data at a specific point in time. */

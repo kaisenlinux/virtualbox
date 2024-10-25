@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,13 +32,14 @@
 #endif
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
+#include "UIEditor.h"
 
 /* Forward declartions: */
 class QLineEdit;
 class QTabWidget;
+class QITableView;
 class UIShortcutConfigurationModel;
-class UIShortcutConfigurationTable;
+class UIShortcutConfigurationProxyModel;
 
 /** Shortcut search functor template. */
 template <class BaseClass>
@@ -57,6 +58,45 @@ public:
         {
             const BaseClass &iteratedShortcut = shortcuts.at(i);
             if (iteratedShortcut.key() == shortcut.key())
+                return i;
+        }
+        return -1;
+    }
+
+    /** Returns the position of the 1st occurrence of the
+      * @a shortcut in the @a shortcuts list, or -1 otherwise. */
+    int operator()(const QList<BaseClass*> &shortcuts, const BaseClass &shortcut)
+    {
+        for (int i = 0; i < shortcuts.size(); ++i)
+        {
+            const BaseClass *pIteratedShortcut = shortcuts.at(i);
+            if (pIteratedShortcut->key() == shortcut.key())
+                return i;
+        }
+        return -1;
+    }
+
+    /** Returns the position of the 1st occurrence of the
+      * @a shortcut in the @a shortcuts list, or -1 otherwise. */
+    int operator()(const QList<BaseClass> &shortcuts, const BaseClass *pShortcut)
+    {
+        for (int i = 0; i < shortcuts.size(); ++i)
+        {
+            const BaseClass &iteratedShortcut = shortcuts.at(i);
+            if (iteratedShortcut.key() == pShortcut->key())
+                return i;
+        }
+        return -1;
+    }
+
+    /** Returns the position of the 1st occurrence of the
+      * @a shortcut in the @a shortcuts list, or -1 otherwise. */
+    int operator()(const QList<BaseClass*> &shortcuts, const BaseClass *pShortcut)
+    {
+        for (int i = 0; i < shortcuts.size(); ++i)
+        {
+            const BaseClass *pIteratedShortcut = shortcuts.at(i);
+            if (pIteratedShortcut->key() == pShortcut->key())
                 return i;
         }
         return -1;
@@ -151,8 +191,8 @@ private:
 /** Shortcut configuration list. */
 typedef QList<UIShortcutConfigurationItem> UIShortcutConfigurationList;
 
-/** QWidget subclass used as a shortcut configuration editor. */
-class SHARED_LIBRARY_STUFF UIShortcutConfigurationEditor : public QIWithRetranslateUI<QWidget>
+/** UIEditor sub-class used as a shortcut configuration editor. */
+class SHARED_LIBRARY_STUFF UIShortcutConfigurationEditor : public UIEditor
 {
     Q_OBJECT;
 
@@ -169,6 +209,11 @@ public:
     /** Constructs editor passing @a pParent to the base-class. */
     UIShortcutConfigurationEditor(QWidget *pParent = 0);
 
+    /** Returns manager table-view reference. */
+    QITableView *viewManager();
+    /** Returns runtime table-view reference. */
+    QITableView *viewRuntime();
+
     /** Loads shortcut configuration list from passed @a value. */
     void load(const UIShortcutConfigurationList &value);
     /** Saves shortcut configuration list to passed @a value. */
@@ -184,10 +229,10 @@ public:
     /** Returns runtime tab name. */
     QString tabNameRuntime() const;
 
-protected:
+private slots:
 
     /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -207,16 +252,21 @@ private:
     /** Holds the Runtime UI shortcut configuration model instance. */
     UIShortcutConfigurationModel *m_pModelRuntime;
 
+    /** Holds the proxy Manager UI shortcut configuration model instance. */
+    UIShortcutConfigurationProxyModel *m_pProxyModelManager;
+    /** Holds the proxy Runtime UI shortcut configuration model instance. */
+    UIShortcutConfigurationProxyModel *m_pProxyModelRuntime;
+
     /** Holds the tab-widget instance. */
     QTabWidget                   *m_pTabWidget;
     /** Holds the Manager UI shortcuts filter instance. */
     QLineEdit                    *m_pEditorFilterManager;
     /** Holds the Manager UI shortcuts table instance. */
-    UIShortcutConfigurationTable *m_pTableManager;
+    QITableView                  *m_pTableManager;
     /** Holds the Runtime UI shortcuts filter instance. */
     QLineEdit                    *m_pEditorFilterRuntime;
     /** Holds the Runtime UI shortcuts table instance. */
-    UIShortcutConfigurationTable *m_pTableRuntime;
+    QITableView                  *m_pTableRuntime;
 };
 
 #endif /* !FEQT_INCLUDED_SRC_settings_editors_UIShortcutConfigurationEditor_h */

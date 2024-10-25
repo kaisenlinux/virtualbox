@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2018-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2018-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -745,6 +745,7 @@ VMM_INT_DECL(bool) HMCanExecuteVmxGuest(PVMCC pVM, PVMCPUCC pVCpu, PCCPUMCTX pCt
                         }
                     }
                 }
+                STAM_COUNTER_INC(&pVCpu->hm.s.StatVmxCheckPmOk);
             }
         }
         else
@@ -755,11 +756,17 @@ VMM_INT_DECL(bool) HMCanExecuteVmxGuest(PVMCC pVM, PVMCPUCC pVCpu, PCCPUMCTX pCt
                        !CTX_EXPR(pVM->hm.s.fNestedPagingCfg, pVM->hmr0.s.fNestedPaging, RT_NOTHING)
                     /* Requires a fake TSS for real mode - stored in the VMM device heap: */
                     || CPUMIsGuestInRealModeEx(pCtx))
+                {
+                    STAM_COUNTER_INC(&pVCpu->hm.s.StatVmxCheck1);
                     return false;
+                }
 
                 /* Too early for VT-x; Solaris guests will fail with a guru meditation otherwise; same for XP. */
                 if (pCtx->idtr.pIdt == 0 || pCtx->idtr.cbIdt == 0 || pCtx->tr.Sel == 0)
+                {
+                    STAM_COUNTER_INC(&pVCpu->hm.s.StatVmxCheck1);
                     return false;
+                }
 
                 /*
                  * The guest is about to complete the switch to protected mode. Wait a bit longer.
@@ -768,9 +775,15 @@ VMM_INT_DECL(bool) HMCanExecuteVmxGuest(PVMCC pVM, PVMCPUCC pVCpu, PCCPUMCTX pCt
                  */
                 /** @todo Is this supposed recompiler bug still relevant with IEM? */
                 if (pCtx->cs.Attr.n.u1Present == 0)
+                {
+                    STAM_COUNTER_INC(&pVCpu->hm.s.StatVmxCheck1);
                     return false;
+                }
                 if (pCtx->ss.Attr.n.u1Present == 0)
+                {
+                    STAM_COUNTER_INC(&pVCpu->hm.s.StatVmxCheck1);
                     return false;
+                }
 
                 /*
                  * Windows XP: possible same as above, but new recompiler requires new
@@ -780,7 +793,10 @@ VMM_INT_DECL(bool) HMCanExecuteVmxGuest(PVMCC pVM, PVMCPUCC pVCpu, PCCPUMCTX pCt
                 /** @todo This check is actually wrong, it doesn't take the direction of the
                  *        stack segment into account. But, it does the job for now. */
                 if (pCtx->rsp >= pCtx->ss.u32Limit)
+                {
+                    STAM_COUNTER_INC(&pVCpu->hm.s.StatVmxCheck1);
                     return false;
+                }
             }
         }
     }
@@ -804,28 +820,42 @@ VMM_INT_DECL(bool) HMCanExecuteVmxGuest(PVMCC pVM, PVMCPUCC pVCpu, PCCPUMCTX pCt
             uCr0Mask &= ~X86_CR0_PG;
         }
         if ((pCtx->cr0 & uCr0Mask) != uCr0Mask)
+        {
+            STAM_COUNTER_INC(&pVCpu->hm.s.StatVmxCheck2);
             return false;
+        }
 
         /* If bit N is cleared in cr0_fixed1, then it must be zero in the guest's cr0. */
         uCr0Mask = (uint32_t)~CTX_EXPR(pVM->hm.s.ForR3.vmx.Msrs.u64Cr0Fixed1, g_HmMsrs.u.vmx.u64Cr0Fixed1, RT_NOTHING);
         if ((pCtx->cr0 & uCr0Mask) != 0)
+        {
+            STAM_COUNTER_INC(&pVCpu->hm.s.StatVmxCheck2);
             return false;
+        }
 
         /* If bit N is set in cr4_fixed0, then it must be set in the guest's cr4. */
         uCr0Mask  = (uint32_t)CTX_EXPR(pVM->hm.s.ForR3.vmx.Msrs.u64Cr4Fixed0, g_HmMsrs.u.vmx.u64Cr4Fixed0, RT_NOTHING);
         uCr0Mask &= ~X86_CR4_VMXE;
         if ((pCtx->cr4 & uCr0Mask) != uCr0Mask)
+        {
+            STAM_COUNTER_INC(&pVCpu->hm.s.StatVmxCheck2);
             return false;
+        }
 
         /* If bit N is cleared in cr4_fixed1, then it must be zero in the guest's cr4. */
         uCr0Mask = (uint32_t)~CTX_EXPR(pVM->hm.s.ForR3.vmx.Msrs.u64Cr4Fixed1, g_HmMsrs.u.vmx.u64Cr4Fixed1, RT_NOTHING);
         if ((pCtx->cr4 & uCr0Mask) != 0)
+        {
+            STAM_COUNTER_INC(&pVCpu->hm.s.StatVmxCheck2);
             return false;
+        }
 
         pVCpu->hm.s.fActive = true;
+        STAM_COUNTER_INC(&pVCpu->hm.s.StatVmxCheckOk);
         return true;
     }
 
+    STAM_COUNTER_INC(&pVCpu->hm.s.StatVmxCheckDisabled);
     return false;
 }
 
@@ -1162,6 +1192,10 @@ VMM_INT_DECL(TRPMEVENT) HMVmxEventTypeToTrpmEventType(uint32_t uIntInfo)
            break;
 
         case VMX_IDT_VECTORING_INFO_TYPE_NMI:
+            Assert(uVector == X86_XCPT_NMI); NOREF(uVector);
+            enmTrapType = TRPM_NMI;
+            break;
+
         case VMX_IDT_VECTORING_INFO_TYPE_HW_XCPT:
             enmTrapType = TRPM_TRAP;
             break;
@@ -1207,10 +1241,6 @@ VMM_INT_DECL(uint32_t) HMTrpmEventTypeToVmxEventType(uint8_t uVector, TRPMEVENT 
         Assert(!fIcebp);
         switch (uVector)
         {
-            case X86_XCPT_NMI:
-                uIntInfoType |= (VMX_IDT_VECTORING_INFO_TYPE_NMI << VMX_IDT_VECTORING_INFO_TYPE_SHIFT);
-                break;
-
             case X86_XCPT_BP:
             case X86_XCPT_OF:
                 uIntInfoType |= (VMX_IDT_VECTORING_INFO_TYPE_SW_XCPT << VMX_IDT_VECTORING_INFO_TYPE_SHIFT);
@@ -1258,6 +1288,8 @@ VMM_INT_DECL(uint32_t) HMTrpmEventTypeToVmxEventType(uint8_t uVector, TRPMEVENT 
                 break;
         }
     }
+    else if (enmTrpmEvent == TRPM_NMI)
+        uIntInfoType |= (VMX_IDT_VECTORING_INFO_TYPE_NMI << VMX_IDT_VECTORING_INFO_TYPE_SHIFT);
     else
         AssertMsgFailed(("Invalid TRPM event type %d\n", enmTrpmEvent));
     return uIntInfoType;

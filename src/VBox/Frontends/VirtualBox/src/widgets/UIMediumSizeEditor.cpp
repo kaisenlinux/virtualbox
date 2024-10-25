@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,40 +26,234 @@
  */
 
 /* Qt includes: */
+#include <QAccessibleWidget>
 #include <QGridLayout>
 #include <QLabel>
 #include <QRegularExpressionValidator>
-#include <QSlider>
 
 /* GUI includes: */
 #include "QILineEdit.h"
-#include "UICommon.h"
 #include "UIConverter.h"
+#include "UIGlobalSession.h"
 #include "UIMediumSizeEditor.h"
 #include "UITranslator.h"
+#include "UITranslationEventListener.h"
 
 /* COM includes: */
 #include "CSystemProperties.h"
 
 
-const qulonglong UIMediumSizeEditor::m_uSectorSize = 512;
+/** QAccessibleWidget extension used as an accessibility interface for UIMediumSizeSlider. */
+class UIAccessibilityInterfaceForUIMediumSizeSlider : public QAccessibleWidget
+{
+public:
+
+    /** Returns an accessibility interface for passed @a strClassname and @a pObject. */
+    static QAccessibleInterface *pFactory(const QString &strClassname, QObject *pObject)
+    {
+        /* Creating QIRichTextLabel accessibility interface: */
+        if (pObject && strClassname == QLatin1String("UIMediumSizeSlider"))
+            return new UIAccessibilityInterfaceForUIMediumSizeSlider(qobject_cast<QWidget*>(pObject));
+
+        /* Null by default: */
+        return 0;
+    }
+
+    /** Constructs an accessibility interface passing @a pWidget to the base-class. */
+    UIAccessibilityInterfaceForUIMediumSizeSlider(QWidget *pWidget)
+        : QAccessibleWidget(pWidget, QAccessible::Slider)
+    {}
+
+    /** Returns a text for the passed @a enmTextRole. */
+    virtual QString text(QAccessible::Text enmTextRole) const RT_OVERRIDE
+    {
+        /* Make sure label still alive: */
+        AssertPtrReturn(slider(), QString());
+
+        /* Non-macOS screen-readers using QAccessible::Value for slider: */
+        if (enmTextRole == QAccessible::Value)
+            return slider()->scaledValueToString();
+
+        /* Call to base-class: */
+        return QAccessibleWidget::text(enmTextRole);
+    }
+
+private:
+
+    /** Returns corresponding UIMediumSizeSlider. */
+    UIMediumSizeSlider *slider() const
+    {
+        return qobject_cast<UIMediumSizeSlider*>(widget());
+    }
+};
+
+
+/*********************************************************************************************************************************
+*   Class UIMediumSizeSlider implementation.                                                                                     *
+*********************************************************************************************************************************/
+
+UIMediumSizeSlider::UIMediumSizeSlider(qulonglong uSizeMax, QWidget *pParent /* = 0 */)
+    : QSlider(pParent)
+    , m_iSliderScale(calculateSliderScale(uSizeMax))
+    , m_uScaledMinimum(0)
+    , m_uScaledMaximum(100)
+    , m_uScaledValue(0)
+{
+    /* Install UIMediumSizeSlider accessibility interface factory: */
+    QAccessible::installFactory(UIAccessibilityInterfaceForUIMediumSizeSlider::pFactory);
+
+    /* Configure basic properties: */
+    setFocusPolicy(Qt::StrongFocus);
+    setOrientation(Qt::Horizontal);
+    setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+
+    /* Configure tick look&feel: */
+    setTickPosition(QSlider::TicksBelow);
+    setTickInterval(0);
+
+    /* Configure scaling: */
+    setPageStep(m_iSliderScale);
+    setSingleStep(m_iSliderScale / 8);
+
+    /* Connection converting usual value into scaled one: */
+    connect(this, &UIMediumSizeSlider::valueChanged,
+            this, &UIMediumSizeSlider::sltValueChanged);
+}
+
+void UIMediumSizeSlider::setScaledMinimum(qulonglong uMinimum)
+{
+    /* Make sure something got changed and save the change: */
+    if (m_uScaledMinimum == uMinimum)
+        return;
+    m_uScaledMinimum = uMinimum;
+    /* Call to base-class: */
+    QSlider::setMinimum(sizeMBToSlider(m_uScaledMinimum, m_iSliderScale));
+}
+
+void UIMediumSizeSlider::setScaledMaximum(qulonglong uMaximum)
+{
+    /* Make sure something got changed and save the change: */
+    if (m_uScaledMaximum == uMaximum)
+        return;
+    m_uScaledMaximum = uMaximum;
+    /* Call to base-class: */
+    QSlider::setMaximum(sizeMBToSlider(m_uScaledMaximum, m_iSliderScale));
+}
+
+void UIMediumSizeSlider::setScaledValue(qulonglong uValue)
+{
+    /* Make sure something got changed and save the change: */
+    if (m_uScaledValue == uValue)
+        return;
+    m_uScaledValue = uValue;
+    /* Call to base-class: */
+    QSlider::setValue(sizeMBToSlider(m_uScaledValue, m_iSliderScale));
+}
+
+QString UIMediumSizeSlider::scaledValueToString()
+{
+    return UITranslator::formatSize(m_uScaledValue);
+}
+
+void UIMediumSizeSlider::sltValueChanged(int iValue)
+{
+    /* Convert from usual to scaled value: */
+    emit sigScaledValueChanged(sliderToSizeMB(iValue, m_iSliderScale));
+}
+
+/* static */
+int UIMediumSizeSlider::calculateSliderScale(qulonglong uMaximumMediumSize)
+{
+    /* Detect how many steps to recognize between adjacent powers of 2
+     * to ensure that the last slider step is exactly that we need: */
+    int iSliderScale = 0;
+    const int iPower = log2i(uMaximumMediumSize);
+    qulonglong uTickMB = (qulonglong)1 << iPower;
+    if (uTickMB < uMaximumMediumSize)
+    {
+        qulonglong uTickMBNext = (qulonglong)1 << (iPower + 1);
+        qulonglong uGap = uTickMBNext - uMaximumMediumSize;
+        iSliderScale = (int)((uTickMBNext - uTickMB) / uGap);
+#ifdef VBOX_WS_MAC
+        // WORKAROUND:
+        // There is an issue with Qt5 QSlider under OSX:
+        // Slider tick count (maximum - minimum) is limited with some
+        // "magical number" - 588351, having it more than that brings
+        // unpredictable results like slider token jumping and disappearing,
+        // so we are limiting tick count by lowering slider-scale 128 times.
+        iSliderScale /= 128;
+#endif /* VBOX_WS_MAC */
+    }
+    return qMax(iSliderScale, 8);
+}
+
+/* static */
+int UIMediumSizeSlider::log2i(qulonglong uValue)
+{
+    if (!uValue)
+        return 0;
+    int iPower = -1;
+    while (uValue)
+    {
+        ++iPower;
+        uValue >>= 1;
+    }
+    return iPower;
+}
+
+/* static */
+int UIMediumSizeSlider::sizeMBToSlider(qulonglong uValue, int iSliderScale)
+{
+    /* Make sure *any* slider value is multiple of s_uSectorSize: */
+    uValue /= UIMediumSizeEditor::s_uSectorSize;
+
+    /* Calculate result: */
+    const int iPower = log2i(uValue);
+    const qulonglong uTickMB = qulonglong (1) << iPower;
+    const qulonglong uTickMBNext = qulonglong (1) << (iPower + 1);
+    const int iStep = (uValue - uTickMB) * iSliderScale / (uTickMBNext - uTickMB);
+    const int iResult = iPower * iSliderScale + iStep;
+
+    /* Return result: */
+    return iResult;
+}
+
+/* static */
+qulonglong UIMediumSizeSlider::sliderToSizeMB(int uValue, int iSliderScale)
+{
+    /* Calculate result: */
+    const int iPower = uValue / iSliderScale;
+    const int iStep = uValue % iSliderScale;
+    const qulonglong uTickMB = qulonglong (1) << iPower;
+    const qulonglong uTickMBNext = qulonglong (1) << (iPower + 1);
+    qulonglong uResult = uTickMB + (uTickMBNext - uTickMB) * iStep / iSliderScale;
+
+    /* Make sure *any* slider value is multiple of s_uSectorSize: */
+    uResult *= UIMediumSizeEditor::s_uSectorSize;
+
+    /* Return result: */
+    return uResult;
+}
+
+
+/*********************************************************************************************************************************
+*   Class UIMediumSizeEditor implementation.                                                                                     *
+*********************************************************************************************************************************/
+
+/* static */
+const qulonglong UIMediumSizeEditor::s_uSectorSize = 512;
 
 UIMediumSizeEditor::UIMediumSizeEditor(QWidget *pParent, qulonglong uMinimumSize /* = _4M */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_uSizeMin(uMinimumSize)
-    , m_uSizeMax(uiCommon().virtualBox().GetSystemProperties().GetInfoVDSize())
-    , m_iSliderScale(calculateSliderScale(m_uSizeMax))
+    , m_uSizeMax(gpGlobalSession->virtualBox().GetSystemProperties().GetInfoVDSize())
     , m_uSize(0)
-    , m_enmSizeSuffix(SizeSuffix_Byte)
     , m_pSlider(0)
     , m_pLabelMinSize(0)
     , m_pLabelMaxSize(0)
     , m_pEditor(0)
 {
-    /* Prepare: */
     prepare();
-    QString strRegEx = QString("[^\\d%1]").arg(UITranslator::decimalSep());
-    m_regExNonDigitOrSeparator = QRegularExpression(strRegEx);
 }
 
 void UIMediumSizeEditor::setMediumSize(qulonglong uSize)
@@ -69,15 +263,16 @@ void UIMediumSizeEditor::setMediumSize(qulonglong uSize)
 
     /* And assign it to the slider & editor: */
     m_pSlider->blockSignals(true);
-    m_pSlider->setValue(sizeMBToSlider(m_uSize, m_iSliderScale));
+    m_pSlider->setScaledValue(m_uSize);
     m_pSlider->blockSignals(false);
     m_pEditor->blockSignals(true);
     m_pEditor->setText(UITranslator::formatSize(m_uSize));
-    m_enmSizeSuffix = UITranslator::parseSizeSuffix(m_pEditor->text());
+    m_strSizeSuffix = gpConverter->toString(UITranslator::parseSizeSuffix(m_pEditor->text()));
     m_pEditor->blockSignals(false);
+    updateSizeToolTips(m_uSize);
 }
 
-void UIMediumSizeEditor::retranslateUi()
+void UIMediumSizeEditor::sltRetranslateUI()
 {
     /* Translate labels: */
     m_pLabelMinSize->setText(UITranslator::formatSize(m_uSizeMin));
@@ -90,15 +285,16 @@ void UIMediumSizeEditor::retranslateUi()
     m_pLabelMaxSize->setToolTip(tr("Maximum size for this medium."));
 }
 
-void UIMediumSizeEditor::sltSizeSliderChanged(int iValue)
+void UIMediumSizeEditor::sltSizeSliderChanged(qulonglong uValue)
 {
     /* Update the current size: */
-    m_uSize = sliderToSizeMB(iValue, m_iSliderScale);
+    m_uSize = uValue;
     /* Update the other widget: */
     m_pEditor->blockSignals(true);
     m_pEditor->setText(UITranslator::formatSize(m_uSize));
-    m_enmSizeSuffix = UITranslator::parseSizeSuffix(m_pEditor->text());
+    m_strSizeSuffix = gpConverter->toString(UITranslator::parseSizeSuffix(m_pEditor->text()));
     m_pEditor->blockSignals(false);
+    updateSizeToolTips(m_uSize);
     /* Notify the listeners: */
     emit sigSizeChanged(m_uSize);
 }
@@ -106,7 +302,6 @@ void UIMediumSizeEditor::sltSizeSliderChanged(int iValue)
 void UIMediumSizeEditor::sltSizeEditorTextChanged()
 {
     QString strSizeString = ensureSizeSuffix(m_pEditor->text());
-
 
     m_pEditor->blockSignals(true);
     int iCursorPosition = m_pEditor->cursorPosition();
@@ -119,25 +314,18 @@ void UIMediumSizeEditor::sltSizeEditorTextChanged()
 
     /* Update the other widget: */
     m_pSlider->blockSignals(true);
-    m_pSlider->setValue(sizeMBToSlider(m_uSize, m_iSliderScale));
+    m_pSlider->setScaledValue(m_uSize);
     m_pSlider->blockSignals(false);
+    updateSizeToolTips(m_uSize);
     /* Notify the listeners: */
     emit sigSizeChanged(m_uSize);
 }
 
-QString UIMediumSizeEditor::ensureSizeSuffix(const QString &strSizeString)
-{
-    /* Try to update the m_enmSizeSuffix: */
-    if (UITranslator::hasSizeSuffix(strSizeString))
-        m_enmSizeSuffix = UITranslator::parseSizeSuffix(strSizeString);
-
-    QString strOnlyDigits(strSizeString);
-    /* Remove any chars from the string except digits and decimal separator and then add a space and size suffix: */
-    return QString("%1 %2").arg(strOnlyDigits.remove(m_regExNonDigitOrSeparator)).arg(gpConverter->toString(m_enmSizeSuffix));
-}
-
 void UIMediumSizeEditor::prepare()
 {
+    /* Configure reg-exp: */
+    m_regExNonDigitOrSeparator = QRegularExpression(QString("[^\\d%1]").arg(UITranslator::decimalSep()));
+
     /* Create layout: */
     QGridLayout *pLayout = new QGridLayout(this);
     if (pLayout)
@@ -149,20 +337,13 @@ void UIMediumSizeEditor::prepare()
         pLayout->setColumnStretch(2, 0);
 
         /* Create size slider: */
-        m_pSlider = new QSlider;
+        m_pSlider = new UIMediumSizeSlider(m_uSizeMax, this);
         if (m_pSlider)
         {
             /* Configure slider: */
-            m_pSlider->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
-            m_pSlider->setOrientation(Qt::Horizontal);
-            m_pSlider->setTickPosition(QSlider::TicksBelow);
-            m_pSlider->setFocusPolicy(Qt::StrongFocus);
-            m_pSlider->setPageStep(m_iSliderScale);
-            m_pSlider->setSingleStep(m_iSliderScale / 8);
-            m_pSlider->setTickInterval(0);
-            m_pSlider->setMinimum(sizeMBToSlider(m_uSizeMin, m_iSliderScale));
-            m_pSlider->setMaximum(sizeMBToSlider(m_uSizeMax, m_iSliderScale));
-            connect(m_pSlider, &QSlider::valueChanged,
+            m_pSlider->setScaledMinimum(m_uSizeMin);
+            m_pSlider->setScaledMaximum(m_uSizeMax);
+            connect(m_pSlider, &UIMediumSizeSlider::sigScaledValueChanged,
                     this, &UIMediumSizeEditor::sltSizeSliderChanged);
 
             /* Add into layout: */
@@ -210,94 +391,32 @@ void UIMediumSizeEditor::prepare()
     }
 
     /* Apply language settings: */
-    retranslateUi();
-}
-
-/* static */
-int UIMediumSizeEditor::calculateSliderScale(qulonglong uMaximumMediumSize)
-{
-    /* Detect how many steps to recognize between adjacent powers of 2
-     * to ensure that the last slider step is exactly that we need: */
-    int iSliderScale = 0;
-    int iPower = log2i(uMaximumMediumSize);
-    qulonglong uTickMB = (qulonglong)1 << iPower;
-    if (uTickMB < uMaximumMediumSize)
-    {
-        qulonglong uTickMBNext = (qulonglong)1 << (iPower + 1);
-        qulonglong uGap = uTickMBNext - uMaximumMediumSize;
-        iSliderScale = (int)((uTickMBNext - uTickMB) / uGap);
-#ifdef VBOX_WS_MAC
-        // WORKAROUND:
-        // There is an issue with Qt5 QSlider under OSX:
-        // Slider tick count (maximum - minimum) is limited with some
-        // "magical number" - 588351, having it more than that brings
-        // unpredictable results like slider token jumping and disappearing,
-        // so we are limiting tick count by lowering slider-scale 128 times.
-        iSliderScale /= 128;
-#endif /* VBOX_WS_MAC */
-    }
-    return qMax(iSliderScale, 8);
-}
-
-/* static */
-int UIMediumSizeEditor::log2i(qulonglong uValue)
-{
-    if (!uValue)
-        return 0;
-    int iPower = -1;
-    while (uValue)
-    {
-        ++iPower;
-        uValue >>= 1;
-    }
-    return iPower;
-}
-
-/* static */
-int UIMediumSizeEditor::sizeMBToSlider(qulonglong uValue, int iSliderScale)
-{
-    /* Make sure *any* slider value is multiple of m_uSectorSize: */
-    uValue /= m_uSectorSize;
-
-    /* Calculate result: */
-    int iPower = log2i(uValue);
-    qulonglong uTickMB = qulonglong (1) << iPower;
-    qulonglong uTickMBNext = qulonglong (1) << (iPower + 1);
-    int iStep = (uValue - uTickMB) * iSliderScale / (uTickMBNext - uTickMB);
-    int iResult = iPower * iSliderScale + iStep;
-
-    /* Return result: */
-    return iResult;
-}
-
-/* static */
-qulonglong UIMediumSizeEditor::sliderToSizeMB(int uValue, int iSliderScale)
-{
-    /* Calculate result: */
-    int iPower = uValue / iSliderScale;
-    int iStep = uValue % iSliderScale;
-    qulonglong uTickMB = qulonglong (1) << iPower;
-    qulonglong uTickMBNext = qulonglong (1) << (iPower + 1);
-    qulonglong uResult = uTickMB + (uTickMBNext - uTickMB) * iStep / iSliderScale;
-
-    /* Make sure *any* slider value is multiple of m_uSectorSize: */
-    uResult *= m_uSectorSize;
-
-    /* Return result: */
-    return uResult;
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIMediumSizeEditor::sltRetranslateUI);
 }
 
 void UIMediumSizeEditor::updateSizeToolTips(qulonglong uSize)
 {
-    const QString strToolTip = tr("<nobr>%1 (%2 B)</nobr>").arg(UITranslator::formatSize(uSize)).arg(uSize);
+    const QString strToolTip = tr("%1 (%2 B)").arg(UITranslator::formatSize(uSize)).arg(uSize);
     m_pSlider->setToolTip(strToolTip);
     m_pEditor->setToolTip(strToolTip);
 }
 
 qulonglong UIMediumSizeEditor::checkSectorSizeAlignment(qulonglong uSize)
 {
-    if (m_uSectorSize == 0 || uSize % m_uSectorSize == 0)
+    if (s_uSectorSize == 0 || uSize % s_uSectorSize == 0)
         return uSize;
-    qulonglong uNewSize = (uSize / m_uSectorSize) * m_uSectorSize;
-    return uNewSize;
+    return (uSize / s_uSectorSize) * s_uSectorSize;
+}
+
+QString UIMediumSizeEditor::ensureSizeSuffix(const QString &strSizeString)
+{
+    /* Try to update the m_strSizeSuffix: */
+    if (UITranslator::hasSizeSuffix(strSizeString))
+        m_strSizeSuffix = gpConverter->toString(UITranslator::parseSizeSuffix(strSizeString));
+
+    /* Remove any chars from the string except digits and decimal separator and then add a space and size suffix: */
+    QString strOnlyDigits(strSizeString);
+    return QString("%1 %2").arg(strOnlyDigits.remove(m_regExNonDigitOrSeparator)).arg(m_strSizeSuffix);
 }

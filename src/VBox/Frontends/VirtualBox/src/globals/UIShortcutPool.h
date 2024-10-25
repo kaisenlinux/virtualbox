@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,10 +32,12 @@
 #endif
 
 /* Qt includes: */
+#include <QKeySequence>
+#include <QObject>
 #include <QMap>
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
+#include "UIDefs.h"
 #include "UILibraryDefs.h"
 
 /* Forward declarations: */
@@ -122,7 +124,7 @@ private:
 
 
 /** QObject extension used as shortcut pool singleton. */
-class SHARED_LIBRARY_STUFF UIShortcutPool : public QIWithRetranslateUI3<QObject>
+class SHARED_LIBRARY_STUFF UIShortcutPool : public QObject
 {
     Q_OBJECT;
 
@@ -138,7 +140,7 @@ public:
     /** Returns singleton instance. */
     static UIShortcutPool *instance() { return s_pInstance; }
     /** Creates singleton instance. */
-    static void create();
+    static void create(UIType enmType);
     /** Destroys singleton instance. */
     static void destroy();
 
@@ -154,13 +156,13 @@ public:
     /** Applies shortcuts for specified @a pActionPool. */
     void applyShortcuts(UIActionPool *pActionPool);
 
-protected:
-
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
+    /** Returns standard QKeySequence for passed QKeySequence::StandardKey. */
+    static QKeySequence standardSequence(QKeySequence::StandardKey enmKey);
 
 private slots:
 
+    /** Handles translation event. */
+    void sltRetranslateUI();
     /** Reloads Selector UI shortcuts. */
     void sltReloadSelectorShortcuts();
     /** Reloads Runtime UI shortcuts. */
@@ -169,9 +171,9 @@ private slots:
 private:
 
     /** Constructs shortcut pool. */
-    UIShortcutPool();
+    UIShortcutPool(UIType enmType);
     /** Destructs shortcut pool. */
-    ~UIShortcutPool();
+    virtual ~UIShortcutPool() RT_OVERRIDE RT_FINAL;
 
     /** Prepares all. */
     void prepare();
@@ -204,8 +206,10 @@ private:
     /** Shortcut key template for Runtime UI. */
     static const QString   s_strShortcutKeyTemplateRuntime;
 
+    /** Holds the pool type. */
+    UIType                     m_enmType;
     /** Holds the pool shortcuts. */
-    QMap<QString, UIShortcut> m_shortcuts;
+    QMap<QString, UIShortcut>  m_shortcuts;
 };
 
 /** Singleton Shortcut Pool 'official' name. */
@@ -213,4 +217,3 @@ private:
 
 
 #endif /* !FEQT_INCLUDED_SRC_globals_UIShortcutPool_h */
-

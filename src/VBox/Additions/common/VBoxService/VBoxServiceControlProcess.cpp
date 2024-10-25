@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -69,6 +69,15 @@ static DECLCALLBACK(int)    vgsvcGstCtrlProcessOnInput(PVBOXSERVICECTRLPROCESS p
                                                        bool fPendingClose, void *pvBuf, uint32_t cbBuf);
 static DECLCALLBACK(int)    vgsvcGstCtrlProcessOnOutput(PVBOXSERVICECTRLPROCESS pThis, const PVBGLR3GUESTCTRLCMDCTX pHostCtx,
                                                         uint32_t uHandle, uint32_t cbToRead, uint32_t uFlags);
+static int                  vgsvcGstCtrlProcessRequestExV(PVBOXSERVICECTRLPROCESS pProcess, bool fAsync, RTMSINTERVAL cMsTimeout,
+                                                          PFNRT pfnFunction, unsigned cArgs,
+                                                          va_list Args) RT_IPRT_CALLREQ_ATTR(4, 5, 0); /* attrib req prototype */
+static int                  vgsvcGstCtrlProcessRequestAsync(PVBOXSERVICECTRLPROCESS pProcess, PFNRT pfnFunction,
+                                                            unsigned cArgs, ...) RT_IPRT_CALLREQ_ATTR(2, 3, 4); /* ditto */
+#if 0 /* unused */
+static int                  vgsvcGstCtrlProcessRequestWait(PVBOXSERVICECTRLPROCESS pProcess, RTMSINTERVAL cMsTimeout,
+                                                           PFNRT pfnFunction, unsigned cArgs, ...) RT_IPRT_CALLREQ_ATTR(3, 4, 5);
+#endif
 
 
 
@@ -1253,13 +1262,15 @@ static void vgsvcGstCtrlProcessFreeArgv(char **papszArgv)
  * @param   pszAsUser                   User name (account) to start the process under.
  * @param   pszPassword                 Password of the specified user.
  * @param   pszDomain                   Domain to use for authentication.
+ * @param   pszCwd                      Current working directory to use for the created process.
+ *                                      Set to NULL if not being used.
  * @param   phProcess                   Pointer which will receive the process handle after
  *                                      successful process start.
  */
 static int vgsvcGstCtrlProcessCreateProcess(const char *pszExec, const char * const *papszArgs, RTENV hEnv, uint32_t fFlags,
                                             PCRTHANDLE phStdIn, PCRTHANDLE phStdOut, PCRTHANDLE phStdErr,
                                             const char *pszAsUser, const char *pszPassword, const char *pszDomain,
-                                            PRTPROCESS phProcess)
+                                            const char *pszCwd, PRTPROCESS phProcess)
 {
 #ifndef RT_OS_WINDOWS
     RT_NOREF1(pszDomain);
@@ -1271,6 +1282,7 @@ static int vgsvcGstCtrlProcessCreateProcess(const char *pszExec, const char * co
     /* phStdErr is optional. */
     /* pszPassword is optional. */
     /* pszDomain is optional. */
+    /* pszCwd is optional. */
     AssertPtrReturn(phProcess, VERR_INVALID_PARAMETER);
 
     int  rc = VINF_SUCCESS;
@@ -1410,6 +1422,10 @@ static int vgsvcGstCtrlProcessCreateProcess(const char *pszExec, const char * co
                 if (fFlags & GUEST_PROC_CREATE_FLAG_UNQUOTED_ARGS)
                     fProcCreateFlags |= RTPROC_FLAGS_UNQUOTED_ARGS;
             }
+            if (pszCwd && *pszCwd)
+                fProcCreateFlags |= RTPROC_FLAGS_CWD;
+            else
+                pszCwd = NULL;
 
             /* If no user name specified run with current credentials (e.g.
              * full service/system rights). This is prohibited via official Main API!
@@ -1446,7 +1462,7 @@ static int vgsvcGstCtrlProcessCreateProcess(const char *pszExec, const char * co
                                     phStdIn, phStdOut, phStdErr,
                                     pszAsUser,
                                     pszPassword && *pszPassword ? pszPassword : NULL,
-                                    NULL /*pvExtraData*/,
+                                    (void *)pszCwd /*pvExtraData*/,
                                     phProcess);
 
 #ifdef RT_OS_WINDOWS
@@ -1544,6 +1560,8 @@ static int vgsvcGstCtrlProcessProcessWorker(PVBOXSERVICECTRLPROCESS pProcess)
      */
     VGSvcVerbose(3, "vgsvcGstCtrlProcessProcessWorker: fHostFeatures0       = %#x\n",     g_fControlHostFeatures0);
     VGSvcVerbose(3, "vgsvcGstCtrlProcessProcessWorker: StartupInfo.szCmd    = '%s'\n",    pProcess->pStartupInfo->pszCmd);
+    VGSvcVerbose(3, "vgsvcGstCtrlProcessProcessWorker: StartupInfo.szCwd    = '%s'\n",    pProcess->pStartupInfo->pszCwd
+                                                                                        ? pProcess->pStartupInfo->pszCwd : "<None>");
     VGSvcVerbose(3, "vgsvcGstCtrlProcessProcessWorker: StartupInfo.uNumArgs = '%RU32'\n", pProcess->pStartupInfo->cArgs);
 #ifdef DEBUG /* Never log this stuff in release mode! */
     VGSvcVerbose(3, "vgsvcGstCtrlProcessProcessWorker: StartupInfo.szArgs   = '%s'\n",    pProcess->pStartupInfo->pszArgs);
@@ -1677,7 +1695,7 @@ static int vgsvcGstCtrlProcessProcessWorker(PVBOXSERVICECTRLPROCESS pProcess)
                                                                      fNeedsImpersonation ? pProcess->pStartupInfo->pszUser     : NULL,
                                                                      fNeedsImpersonation ? pProcess->pStartupInfo->pszPassword : NULL,
                                                                      fNeedsImpersonation ? pProcess->pStartupInfo->pszDomain   : NULL,
-                                                                     &pProcess->hProcess);
+                                                                     pProcess->pStartupInfo->pszCwd, &pProcess->hProcess);
                                     if (RT_FAILURE(rc))
                                         VGSvcError("Error starting process, rc=%Rrc\n", rc);
                                     /*
@@ -2072,12 +2090,10 @@ static DECLCALLBACK(int) vgsvcGstCtrlProcessOnTerm(PVBOXSERVICECTRLPROCESS pThis
 }
 
 
-static int vgsvcGstCtrlProcessRequestExV(PVBOXSERVICECTRLPROCESS pProcess, const PVBGLR3GUESTCTRLCMDCTX pHostCtx, bool fAsync,
-                                         RTMSINTERVAL uTimeoutMS, PFNRT pfnFunction, unsigned cArgs, va_list Args)
+static int vgsvcGstCtrlProcessRequestExV(PVBOXSERVICECTRLPROCESS pProcess, bool fAsync, RTMSINTERVAL cMsTimeout,
+                                         PFNRT pfnFunction, unsigned cArgs, va_list Args)
 {
-    RT_NOREF1(pHostCtx);
     AssertPtrReturn(pProcess, VERR_INVALID_POINTER);
-    /* pHostCtx is optional. */
     AssertPtrReturn(pfnFunction, VERR_INVALID_POINTER);
     if (!fAsync)
         AssertPtrReturn(pfnFunction, VERR_INVALID_POINTER);
@@ -2086,18 +2102,18 @@ static int vgsvcGstCtrlProcessRequestExV(PVBOXSERVICECTRLPROCESS pProcess, const
     if (RT_SUCCESS(rc))
     {
 #ifdef DEBUG
-        VGSvcVerbose(3, "[PID %RU32]: vgsvcGstCtrlProcessRequestExV fAsync=%RTbool, uTimeoutMS=%RU32, cArgs=%u\n",
-                     pProcess->uPID, fAsync, uTimeoutMS, cArgs);
+        VGSvcVerbose(3, "[PID %RU32]: vgsvcGstCtrlProcessRequestExV fAsync=%RTbool, cMsTimeout=%RU32, cArgs=%u\n",
+                     pProcess->uPID, fAsync, cMsTimeout, cArgs);
 #endif
         uint32_t fFlags = RTREQFLAGS_IPRT_STATUS;
         if (fAsync)
         {
-            Assert(uTimeoutMS == 0);
+            Assert(cMsTimeout == 0);
             fFlags |= RTREQFLAGS_NO_WAIT;
         }
 
         PRTREQ hReq = NIL_RTREQ;
-        rc = RTReqQueueCallV(pProcess->hReqQueue, &hReq, uTimeoutMS, fFlags, pfnFunction, cArgs, Args);
+        rc = RTReqQueueCallV(pProcess->hReqQueue, &hReq, cMsTimeout, fFlags, pfnFunction, cArgs, Args);
         RTReqRelease(hReq);
         if (RT_SUCCESS(rc))
         {
@@ -2132,16 +2148,14 @@ static int vgsvcGstCtrlProcessRequestExV(PVBOXSERVICECTRLPROCESS pProcess, const
 }
 
 
-static int vgsvcGstCtrlProcessRequestAsync(PVBOXSERVICECTRLPROCESS pProcess, const PVBGLR3GUESTCTRLCMDCTX pHostCtx,
-                                           PFNRT pfnFunction, unsigned cArgs, ...)
+static int vgsvcGstCtrlProcessRequestAsync(PVBOXSERVICECTRLPROCESS pProcess, PFNRT pfnFunction, unsigned cArgs, ...)
 {
     AssertPtrReturn(pProcess, VERR_INVALID_POINTER);
-    /* pHostCtx is optional. */
     AssertPtrReturn(pfnFunction, VERR_INVALID_POINTER);
 
     va_list va;
     va_start(va, cArgs);
-    int rc = vgsvcGstCtrlProcessRequestExV(pProcess, pHostCtx, true /* fAsync */, 0 /* uTimeoutMS */,
+    int rc = vgsvcGstCtrlProcessRequestExV(pProcess, true /* fAsync */, 0 /* cMsTimeout */,
                                            pfnFunction, cArgs, va);
     va_end(va);
 
@@ -2150,8 +2164,8 @@ static int vgsvcGstCtrlProcessRequestAsync(PVBOXSERVICECTRLPROCESS pProcess, con
 
 
 #if 0 /* unused */
-static int vgsvcGstCtrlProcessRequestWait(PVBOXSERVICECTRLPROCESS pProcess, const PVBGLR3GUESTCTRLCMDCTX pHostCtx,
-                                          RTMSINTERVAL uTimeoutMS, PFNRT pfnFunction, unsigned cArgs, ...)
+static int vgsvcGstCtrlProcessRequestWait(PVBOXSERVICECTRLPROCESS pProcess, RTMSINTERVAL cMsTimeout,
+                                          PFNRT pfnFunction, unsigned cArgs, ...)
 {
     AssertPtrReturn(pProcess, VERR_INVALID_POINTER);
     /* pHostCtx is optional. */
@@ -2159,7 +2173,7 @@ static int vgsvcGstCtrlProcessRequestWait(PVBOXSERVICECTRLPROCESS pProcess, cons
 
     va_list va;
     va_start(va, cArgs);
-    int rc = vgsvcGstCtrlProcessRequestExV(pProcess, pHostCtx, false /* fAsync */, uTimeoutMS,
+    int rc = vgsvcGstCtrlProcessRequestExV(pProcess, false /* fAsync */, cMsTimeout,
                                            pfnFunction, cArgs, va);
     va_end(va);
 
@@ -2172,8 +2186,8 @@ int VGSvcGstCtrlProcessHandleInput(PVBOXSERVICECTRLPROCESS pProcess, PVBGLR3GUES
                                    bool fPendingClose, void *pvBuf, uint32_t cbBuf)
 {
     if (!ASMAtomicReadBool(&pProcess->fShutdown) && !ASMAtomicReadBool(&pProcess->fStopped))
-        return vgsvcGstCtrlProcessRequestAsync(pProcess, pHostCtx, (PFNRT)vgsvcGstCtrlProcessOnInput,
-                                               5 /* cArgs */, pProcess, pHostCtx, fPendingClose, pvBuf, cbBuf);
+        return vgsvcGstCtrlProcessRequestAsync(pProcess, (PFNRT)vgsvcGstCtrlProcessOnInput, 5 /*cArgs*/,
+                                               pProcess, pHostCtx, fPendingClose, pvBuf, cbBuf);
 
     return vgsvcGstCtrlProcessOnInput(pProcess, pHostCtx, fPendingClose, pvBuf, cbBuf);
 }
@@ -2183,8 +2197,8 @@ int VGSvcGstCtrlProcessHandleOutput(PVBOXSERVICECTRLPROCESS pProcess, PVBGLR3GUE
                                     uint32_t uHandle, uint32_t cbToRead, uint32_t fFlags)
 {
     if (!ASMAtomicReadBool(&pProcess->fShutdown) && !ASMAtomicReadBool(&pProcess->fStopped))
-        return vgsvcGstCtrlProcessRequestAsync(pProcess, pHostCtx, (PFNRT)vgsvcGstCtrlProcessOnOutput,
-                                               5 /* cArgs */, pProcess, pHostCtx, uHandle, cbToRead, fFlags);
+        return vgsvcGstCtrlProcessRequestAsync(pProcess, (PFNRT)vgsvcGstCtrlProcessOnOutput, 5 /*cArgs*/,
+                                               pProcess, pHostCtx, uHandle, cbToRead, fFlags);
 
     return vgsvcGstCtrlProcessOnOutput(pProcess, pHostCtx, uHandle, cbToRead, fFlags);
 }
@@ -2193,8 +2207,7 @@ int VGSvcGstCtrlProcessHandleOutput(PVBOXSERVICECTRLPROCESS pProcess, PVBGLR3GUE
 int VGSvcGstCtrlProcessHandleTerm(PVBOXSERVICECTRLPROCESS pProcess)
 {
     if (!ASMAtomicReadBool(&pProcess->fShutdown) && !ASMAtomicReadBool(&pProcess->fStopped))
-        return vgsvcGstCtrlProcessRequestAsync(pProcess, NULL /* pHostCtx */, (PFNRT)vgsvcGstCtrlProcessOnTerm,
-                                               1 /* cArgs */, pProcess);
+        return vgsvcGstCtrlProcessRequestAsync(pProcess, (PFNRT)vgsvcGstCtrlProcessOnTerm, 1 /*cArgs*/, pProcess);
 
     return vgsvcGstCtrlProcessOnTerm(pProcess);
 }

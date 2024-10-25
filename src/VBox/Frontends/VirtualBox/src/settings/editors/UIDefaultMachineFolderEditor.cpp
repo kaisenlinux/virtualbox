@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -30,13 +30,13 @@
 #include <QLabel>
 
 /* GUI includes: */
-#include "UICommon.h"
 #include "UIDefaultMachineFolderEditor.h"
 #include "UIFilePathSelector.h"
+#include "UIGlobalSession.h"
 
 
 UIDefaultMachineFolderEditor::UIDefaultMachineFolderEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent, true /* show in basic mode? */)
     , m_strValue(QString())
     , m_pLayout(0)
     , m_pLabel(0)
@@ -73,7 +73,7 @@ void UIDefaultMachineFolderEditor::setMinimumLayoutIndent(int iIndent)
         m_pLayout->setColumnMinimumWidth(0, iIndent);
 }
 
-void UIDefaultMachineFolderEditor::retranslateUi()
+void UIDefaultMachineFolderEditor::sltRetranslateUI()
 {
     if (m_pLabel)
         m_pLabel->setText(tr("Default &Machine Folder:"));
@@ -105,12 +105,14 @@ void UIDefaultMachineFolderEditor::prepare()
         {
             if (m_pLabel)
                 m_pLabel->setBuddy(m_pSelector);
-            m_pSelector->setInitialPath(uiCommon().homeFolder());
+            m_pSelector->setInitialPath(gpGlobalSession->homeFolder());
+            connect(m_pSelector, &UIFilePathSelector::pathChanged,
+                    this, &UIDefaultMachineFolderEditor::sigPathChanged);
 
             m_pLayout->addWidget(m_pSelector, 0, 1);
         }
     }
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }

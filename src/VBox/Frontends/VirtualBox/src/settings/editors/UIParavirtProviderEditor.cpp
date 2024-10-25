@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,16 +32,16 @@
 #include <QLabel>
 
 /* GUI includes: */
-#include "UICommon.h"
 #include "UIConverter.h"
+#include "UIGlobalSession.h"
 #include "UIParavirtProviderEditor.h"
 
 /* COM includes: */
-#include "CSystemProperties.h"
+#include "CPlatformProperties.h"
 
 
 UIParavirtProviderEditor::UIParavirtProviderEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent)
     , m_enmValue(KParavirtProvider_Max)
     , m_pLabel(0)
     , m_pCombo(0)
@@ -76,7 +76,7 @@ void UIParavirtProviderEditor::setMinimumLayoutIndent(int iIndent)
         m_pLayout->setColumnMinimumWidth(0, iIndent);
 }
 
-void UIParavirtProviderEditor::retranslateUi()
+void UIParavirtProviderEditor::sltRetranslateUI()
 {
     if (m_pLabel)
         m_pLabel->setText(tr("&Paravirtualization Interface:"));
@@ -90,6 +90,11 @@ void UIParavirtProviderEditor::retranslateUi()
         m_pCombo->setToolTip(tr("Selects the paravirtualization guest interface "
                                 "provider to be used by this virtual machine."));
     }
+}
+
+void UIParavirtProviderEditor::handleFilterChange()
+{
+    populateCombo();
 }
 
 void UIParavirtProviderEditor::prepare()
@@ -135,7 +140,7 @@ void UIParavirtProviderEditor::prepare()
     populateCombo();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIParavirtProviderEditor::populateCombo()
@@ -146,7 +151,10 @@ void UIParavirtProviderEditor::populateCombo()
         m_pCombo->clear();
 
         /* Load currently supported paravirt provider types: */
-        CSystemProperties comProperties = uiCommon().virtualBox().GetSystemProperties();
+        const KPlatformArchitecture enmArch = optionalFlags().contains("arch")
+                                            ? optionalFlags().value("arch").value<KPlatformArchitecture>()
+                                            : KPlatformArchitecture_x86;
+        CPlatformProperties comProperties = gpGlobalSession->virtualBox().GetPlatformProperties(enmArch);
         m_supportedValues = comProperties.GetSupportedParavirtProviders();
 
         /* Make sure requested value if sane is present as well: */
@@ -164,6 +172,6 @@ void UIParavirtProviderEditor::populateCombo()
             m_pCombo->setCurrentIndex(iIndex);
 
         /* Retranslate finally: */
-        retranslateUi();
+        sltRetranslateUI();
     }
 }

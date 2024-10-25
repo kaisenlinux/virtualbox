@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,12 +32,13 @@
 /* GUI includes: */
 #include "QITabWidget.h"
 #include "UIAddDiskEncryptionPasswordDialog.h"
-#include "UICommon.h"
 #include "UIConverter.h"
+#include "UIDefs.h"
 #include "UIDescriptionEditor.h"
 #include "UIDiskEncryptionSettingsEditor.h"
 #include "UIDragAndDropEditor.h"
 #include "UIErrorString.h"
+#include "UIGlobalSession.h"
 #include "UIMachineSettingsGeneral.h"
 #include "UIModalWindowManager.h"
 #include "UINameAndSystemEditor.h"
@@ -51,6 +52,8 @@
 #include "CExtPackManager.h"
 #include "CMedium.h"
 #include "CMediumAttachment.h"
+#include "CPlatform.h"
+#include "CPlatformX86.h"
 #include "CProgress.h"
 
 
@@ -152,10 +155,10 @@ UIMachineSettingsGeneral::~UIMachineSettingsGeneral()
     cleanup();
 }
 
-CGuestOSType UIMachineSettingsGeneral::guestOSType() const
+QString UIMachineSettingsGeneral::guestOSTypeId() const
 {
-    AssertPtrReturn(m_pEditorNameAndSystem, CGuestOSType());
-    return m_pEditorNameAndSystem->type();
+    AssertPtrReturn(m_pEditorNameAndSystem, QString());
+    return m_pEditorNameAndSystem->typeId();
 }
 
 bool UIMachineSettingsGeneral::changed() const
@@ -246,7 +249,7 @@ void UIMachineSettingsGeneral::getFromCache()
     if (m_pEditorNameAndSystem)
     {
         m_pEditorNameAndSystem->setName(oldGeneralData.m_strName);
-        m_pEditorNameAndSystem->setTypeId(oldGeneralData.m_strGuestOsTypeId);
+        m_pEditorNameAndSystem->setGuestOSTypeByTypeId(oldGeneralData.m_strGuestOsTypeId);
     }
 
     /* Load old 'Advanced' data from cache: */
@@ -309,7 +312,7 @@ void UIMachineSettingsGeneral::putToCache()
     /* Gather new 'Description' data: */
     if (m_pEditorDescription)
         newGeneralData.m_strDescription = m_pEditorDescription->value().isEmpty()
-                                 ? QString() : m_pEditorDescription->value();
+                                        ? QString() : m_pEditorDescription->value();
 
     /* Gather new 'Encryption' data: */
     if (m_pEditorDiskEncryptionSettings)
@@ -393,7 +396,7 @@ bool UIMachineSettingsGeneral::validate(QList<UIValidationMessage> &messages)
     if (m_pEditorDiskEncryptionSettings->isFeatureEnabled())
     {
         /* Encryption Extension Pack presence test: */
-        CExtPackManager extPackManager = uiCommon().virtualBox().GetExtensionPackManager();
+        CExtPackManager extPackManager = gpGlobalSession->virtualBox().GetExtensionPackManager();
         if (!extPackManager.isNull() && !extPackManager.IsExtPackUsable(GUI_ExtPackName))
         {
             message.second << tr("You are trying to enable disk encryption for this virtual machine. "
@@ -437,66 +440,64 @@ bool UIMachineSettingsGeneral::validate(QList<UIValidationMessage> &messages)
 void UIMachineSettingsGeneral::setOrderAfter(QWidget *pWidget)
 {
     /* 'Basic' tab: */
-    AssertPtrReturnVoid(pWidget);
-    AssertPtrReturnVoid(m_pTabWidget);
-    AssertPtrReturnVoid(m_pTabWidget->focusProxy());
-    AssertPtrReturnVoid(m_pEditorNameAndSystem);
-    setTabOrder(pWidget, m_pTabWidget->focusProxy());
-    setTabOrder(m_pTabWidget->focusProxy(), m_pEditorNameAndSystem);
+    if (pWidget && m_pTabWidget && m_pTabWidget->focusProxy())
+        setTabOrder(pWidget, m_pTabWidget->focusProxy());
+    if (m_pTabWidget && m_pTabWidget->focusProxy() && m_pEditorNameAndSystem)
+        setTabOrder(m_pTabWidget->focusProxy(), m_pEditorNameAndSystem);
 
     /* 'Advanced' tab: */
-    AssertPtrReturnVoid(m_pEditorSnapshotFolder);
-    AssertPtrReturnVoid(m_pEditorClipboard);
-    AssertPtrReturnVoid(m_pEditorDragAndDrop);
-    setTabOrder(m_pEditorNameAndSystem, m_pEditorSnapshotFolder);
-    setTabOrder(m_pEditorSnapshotFolder, m_pEditorClipboard);
-    setTabOrder(m_pEditorClipboard, m_pEditorDragAndDrop);
+    if (m_pEditorNameAndSystem && m_pEditorSnapshotFolder)
+        setTabOrder(m_pEditorNameAndSystem, m_pEditorSnapshotFolder);
+    if (m_pEditorSnapshotFolder && m_pEditorClipboard)
+        setTabOrder(m_pEditorSnapshotFolder, m_pEditorClipboard);
+    if (m_pEditorClipboard && m_pEditorDragAndDrop)
+        setTabOrder(m_pEditorClipboard, m_pEditorDragAndDrop);
 
     /* 'Description' tab: */
-    AssertPtrReturnVoid(m_pEditorDescription);
-    setTabOrder(m_pEditorDragAndDrop, m_pEditorDescription);
+    if (m_pEditorDragAndDrop && m_pEditorDescription)
+        setTabOrder(m_pEditorDragAndDrop, m_pEditorDescription);
 }
 
-void UIMachineSettingsGeneral::retranslateUi()
+void UIMachineSettingsGeneral::sltRetranslateUI()
 {
     m_pTabWidget->setTabText(m_pTabWidget->indexOf(m_pTabBasic), tr("Basi&c"));
     m_pTabWidget->setTabText(m_pTabWidget->indexOf(m_pTabAdvanced), tr("A&dvanced"));
     m_pTabWidget->setTabText(m_pTabWidget->indexOf(m_pTabDescription), tr("D&escription"));
     m_pTabWidget->setTabText(m_pTabWidget->indexOf(m_pTabEncryption), tr("Disk Enc&ryption"));
 
-    /* These editors have own labels, but we want them to be properly layouted according to each other: */
-    int iMinimumLayoutHint = 0;
-    iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorSnapshotFolder->minimumLabelHorizontalHint());
-    iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorClipboard->minimumLabelHorizontalHint());
-    iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorDragAndDrop->minimumLabelHorizontalHint());
-    m_pEditorSnapshotFolder->setMinimumLayoutIndent(iMinimumLayoutHint);
-    m_pEditorClipboard->setMinimumLayoutIndent(iMinimumLayoutHint);
-    m_pEditorDragAndDrop->setMinimumLayoutIndent(iMinimumLayoutHint);
+    updateMinimumLayoutHint();
+}
+
+void UIMachineSettingsGeneral::handleFilterChange()
+{
+    updateMinimumLayoutHint();
 }
 
 void UIMachineSettingsGeneral::polishPage()
 {
     /* Polish 'Basic' availability: */
-    AssertPtrReturnVoid(m_pEditorNameAndSystem);
-    m_pEditorNameAndSystem->setNameStuffEnabled(isMachineOffline() || isMachineSaved());
-    m_pEditorNameAndSystem->setPathStuffEnabled(isMachineOffline());
-    m_pEditorNameAndSystem->setOSTypeStuffEnabled(isMachineOffline());
+    if (m_pEditorNameAndSystem)
+    {
+        m_pEditorNameAndSystem->setNameStuffEnabled(isMachineOffline() || isMachineSaved());
+        m_pEditorNameAndSystem->setPathStuffEnabled(isMachineOffline());
+        m_pEditorNameAndSystem->setOSTypeStuffEnabled(isMachineOffline());
+    }
 
     /* Polish 'Advanced' availability: */
-    AssertPtrReturnVoid(m_pEditorSnapshotFolder);
-    AssertPtrReturnVoid(m_pEditorClipboard);
-    AssertPtrReturnVoid(m_pEditorDragAndDrop);
-    m_pEditorSnapshotFolder->setEnabled(isMachineOffline());
-    m_pEditorClipboard->setEnabled(isMachineInValidMode());
-    m_pEditorDragAndDrop->setEnabled(isMachineInValidMode());
+    if (m_pEditorSnapshotFolder)
+        m_pEditorSnapshotFolder->setEnabled(isMachineOffline());
+    if (m_pEditorClipboard)
+        m_pEditorClipboard->setEnabled(isMachineInValidMode());
+    if (m_pEditorDragAndDrop)
+        m_pEditorDragAndDrop->setEnabled(isMachineInValidMode());
 
     /* Polish 'Description' availability: */
-    AssertPtrReturnVoid(m_pEditorDescription);
-    m_pEditorDescription->setEnabled(isMachineInValidMode());
+    if (m_pEditorDescription)
+        m_pEditorDescription->setEnabled(isMachineInValidMode());
 
     /* Polish 'Encryption' availability: */
-    AssertPtrReturnVoid(m_pEditorDiskEncryptionSettings);
-    m_pEditorDiskEncryptionSettings->setEnabled(isMachineOffline());
+    if (m_pEditorDiskEncryptionSettings)
+        m_pEditorDiskEncryptionSettings->setEnabled(isMachineOffline());
 }
 
 void UIMachineSettingsGeneral::sltHandleEncryptionCipherChanged()
@@ -523,7 +524,7 @@ void UIMachineSettingsGeneral::prepare()
     prepareConnections();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIMachineSettingsGeneral::prepareWidgets()
@@ -550,21 +551,32 @@ void UIMachineSettingsGeneral::prepareWidgets()
 void UIMachineSettingsGeneral::prepareTabBasic()
 {
     /* Prepare 'Basic' tab: */
-    m_pTabBasic = new QWidget;
+    m_pTabBasic = new UIEditor(m_pTabWidget);
     if (m_pTabBasic)
     {
         /* Prepare 'Basic' tab layout: */
         QVBoxLayout *pLayoutBasic = new QVBoxLayout(m_pTabBasic);
         if (pLayoutBasic)
         {
+#ifdef VBOX_WS_MAC
+            /* On Mac OS X we can do a bit of smoothness: */
+            int iLeft, iTop, iRight, iBottom;
+            pLayoutBasic->getContentsMargins(&iLeft, &iTop, &iRight, &iBottom);
+            pLayoutBasic->setContentsMargins(iLeft / 2, iTop / 2, iRight / 2, iBottom / 2);
+#endif
+
             /* Prepare name and system editor: */
             m_pEditorNameAndSystem = new UINameAndSystemEditor(m_pTabBasic);
             if (m_pEditorNameAndSystem)
+            {
+                m_pTabBasic->addEditor(m_pEditorNameAndSystem);
                 pLayoutBasic->addWidget(m_pEditorNameAndSystem);
+            }
 
             pLayoutBasic->addStretch();
         }
 
+        addEditor(m_pTabBasic);
         m_pTabWidget->addTab(m_pTabBasic, QString());
     }
 }
@@ -572,31 +584,48 @@ void UIMachineSettingsGeneral::prepareTabBasic()
 void UIMachineSettingsGeneral::prepareTabAdvanced()
 {
     /* Prepare 'Advanced' tab: */
-    m_pTabAdvanced = new QWidget;
+    m_pTabAdvanced = new UIEditor(m_pTabWidget);
     if (m_pTabAdvanced)
     {
         /* Prepare 'Advanced' tab layout: */
         QVBoxLayout *pLayoutAdvanced = new QVBoxLayout(m_pTabAdvanced);
         if (pLayoutAdvanced)
         {
+#ifdef VBOX_WS_MAC
+            /* On Mac OS X we can do a bit of smoothness: */
+            int iLeft, iTop, iRight, iBottom;
+            pLayoutAdvanced->getContentsMargins(&iLeft, &iTop, &iRight, &iBottom);
+            pLayoutAdvanced->setContentsMargins(iLeft / 2, iTop / 2, iRight / 2, iBottom / 2);
+#endif
+
             /* Prepare snapshot folder editor: */
             m_pEditorSnapshotFolder = new UISnapshotFolderEditor(m_pTabAdvanced);
             if (m_pEditorSnapshotFolder)
+            {
+                m_pTabAdvanced->addEditor(m_pEditorSnapshotFolder);
                 pLayoutAdvanced->addWidget(m_pEditorSnapshotFolder);
+            }
 
             /* Prepare clipboard editor: */
             m_pEditorClipboard = new UISharedClipboardEditor(m_pTabAdvanced);
             if (m_pEditorClipboard)
+            {
+                m_pTabAdvanced->addEditor(m_pEditorClipboard);
                 pLayoutAdvanced->addWidget(m_pEditorClipboard);
+            }
 
             /* Prepare drag&drop editor: */
             m_pEditorDragAndDrop = new UIDragAndDropEditor(m_pTabAdvanced);
             if (m_pEditorDragAndDrop)
+            {
+                m_pTabAdvanced->addEditor(m_pEditorDragAndDrop);
                 pLayoutAdvanced->addWidget(m_pEditorDragAndDrop);
+            }
 
             pLayoutAdvanced->addStretch();
         }
 
+        addEditor(m_pTabAdvanced);
         m_pTabWidget->addTab(m_pTabAdvanced, QString());
     }
 }
@@ -604,22 +633,31 @@ void UIMachineSettingsGeneral::prepareTabAdvanced()
 void UIMachineSettingsGeneral::prepareTabDescription()
 {
     /* Prepare 'Description' tab: */
-    m_pTabDescription = new QWidget;
+    m_pTabDescription = new UIEditor(m_pTabWidget);
     if (m_pTabDescription)
     {
         /* Prepare 'Description' tab layout: */
         QVBoxLayout *pLayoutDescription = new QVBoxLayout(m_pTabDescription);
         if (pLayoutDescription)
         {
+#ifdef VBOX_WS_MAC
+            /* On Mac OS X we can do a bit of smoothness: */
+            int iLeft, iTop, iRight, iBottom;
+            pLayoutDescription->getContentsMargins(&iLeft, &iTop, &iRight, &iBottom);
+            pLayoutDescription->setContentsMargins(iLeft / 2, iTop / 2, iRight / 2, iBottom / 2);
+#endif
+
             /* Prepare description editor: */
             m_pEditorDescription = new UIDescriptionEditor(m_pTabDescription);
             if (m_pEditorDescription)
             {
                 m_pEditorDescription->setObjectName(QStringLiteral("m_pEditorDescription"));
+                m_pTabDescription->addEditor(m_pEditorDescription);
                 pLayoutDescription->addWidget(m_pEditorDescription);
             }
         }
 
+        addEditor(m_pTabDescription);
         m_pTabWidget->addTab(m_pTabDescription, QString());
     }
 }
@@ -627,21 +665,32 @@ void UIMachineSettingsGeneral::prepareTabDescription()
 void UIMachineSettingsGeneral::prepareTabEncryption()
 {
     /* Prepare 'Encryption' tab: */
-    m_pTabEncryption = new QWidget;
+    m_pTabEncryption = new UIEditor(m_pTabWidget);
     if (m_pTabEncryption)
     {
         /* Prepare 'Encryption' tab layout: */
         QVBoxLayout *pLayoutEncryption = new QVBoxLayout(m_pTabEncryption);
         if (pLayoutEncryption)
         {
+#ifdef VBOX_WS_MAC
+            /* On Mac OS X we can do a bit of smoothness: */
+            int iLeft, iTop, iRight, iBottom;
+            pLayoutEncryption->getContentsMargins(&iLeft, &iTop, &iRight, &iBottom);
+            pLayoutEncryption->setContentsMargins(iLeft / 2, iTop / 2, iRight / 2, iBottom / 2);
+#endif
+
             /* Prepare disk encryption settings editor: */
             m_pEditorDiskEncryptionSettings = new UIDiskEncryptionSettingsEditor(m_pTabEncryption);
             if (m_pEditorDiskEncryptionSettings)
+            {
+                m_pTabEncryption->addEditor(m_pEditorDiskEncryptionSettings);
                 pLayoutEncryption->addWidget(m_pEditorDiskEncryptionSettings);
+            }
 
             pLayoutEncryption->addStretch();
         }
 
+        addEditor(m_pTabEncryption);
         m_pTabWidget->addTab(m_pTabEncryption, QString());
     }
 }
@@ -724,12 +773,25 @@ bool UIMachineSettingsGeneral::saveBasicData()
             }
             if (fSuccess)
             {
-                // Must update long mode CPU feature bit when os type changed:
-                CVirtualBox vbox = uiCommon().virtualBox();
-                // Should we check global object getters?
-                const CGuestOSType &comNewType = vbox.GetGuestOSType(newGeneralData.m_strGuestOsTypeId);
-                m_machine.SetCPUProperty(KCPUPropertyType_LongMode, comNewType.GetIs64Bit());
-                fSuccess = m_machine.isOk();
+                /* Update long mode CPU feature bit when OS type changed: */
+                const KPlatformArchitecture enmArch = optionalFlags().contains("arch")
+                                                    ? optionalFlags().value("arch").value<KPlatformArchitecture>()
+                                                    : KPlatformArchitecture_x86;
+                switch (enmArch)
+                {
+                    case KPlatformArchitecture_x86:
+                    {
+                        const CPlatform comPlatform = m_machine.GetPlatform();
+                        CPlatformX86 comPlatformX86 = comPlatform.GetX86();
+                        const CGuestOSType comNewType = gpGlobalSession->virtualBox().GetGuestOSType(newGeneralData.m_strGuestOsTypeId);
+                        comPlatformX86.SetCPUProperty(KCPUPropertyTypeX86_LongMode, comNewType.GetIs64Bit());
+                        fSuccess = comPlatformX86.isOk();
+                        /// @todo convey error info ..
+                        break;
+                    }
+                    default:
+                        break;
+                }
             }
         }
 
@@ -975,4 +1037,22 @@ bool UIMachineSettingsGeneral::saveEncryptionData()
     }
     /* Return result: */
     return fSuccess;
+}
+
+void UIMachineSettingsGeneral::updateMinimumLayoutHint()
+{
+    /* These editors have own labels, but we want them to be properly layouted according to each other: */
+    int iMinimumLayoutHint = 0;
+    if (m_pEditorSnapshotFolder && !m_pEditorSnapshotFolder->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorSnapshotFolder->minimumLabelHorizontalHint());
+    if (m_pEditorClipboard && !m_pEditorClipboard->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorClipboard->minimumLabelHorizontalHint());
+    if (m_pEditorDragAndDrop && !m_pEditorDragAndDrop->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorDragAndDrop->minimumLabelHorizontalHint());
+    if (m_pEditorSnapshotFolder)
+        m_pEditorSnapshotFolder->setMinimumLayoutIndent(iMinimumLayoutHint);
+    if (m_pEditorClipboard)
+        m_pEditorClipboard->setMinimumLayoutIndent(iMinimumLayoutHint);
+    if (m_pEditorDragAndDrop)
+        m_pEditorDragAndDrop->setMinimumLayoutIndent(iMinimumLayoutHint);
 }

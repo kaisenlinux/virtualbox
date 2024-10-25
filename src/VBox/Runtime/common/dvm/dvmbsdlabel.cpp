@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -640,7 +640,7 @@ static DECLCALLBACK(int) rtDvmFmtBsdLblVolumeRead(RTDVMVOLUMEFMT hVolFmt, uint64
     PRTDVMVOLUMEFMTINTERNAL pVol = hVolFmt;
     AssertReturn(off + cbRead <= pVol->cbVolume, VERR_INVALID_PARAMETER);
 
-    return rtDvmDiskRead(pVol->pVolMgr->pDisk, pVol->offStart + off, pvBuf, cbRead);
+    return rtDvmDiskReadUnaligned(pVol->pVolMgr->pDisk, pVol->offStart + off, pvBuf, cbRead);
 }
 
 static DECLCALLBACK(int) rtDvmFmtBsdLblVolumeWrite(RTDVMVOLUMEFMT hVolFmt, uint64_t off, const void *pvBuf, size_t cbWrite)

@@ -4,7 +4,7 @@
 #
 
 #
-# Copyright (C) 2006-2023 Oracle and/or its affiliates.
+# Copyright (C) 2006-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -46,11 +46,7 @@ else
 endif
 VBOX_PATH_DIST_OTHER = $(error VBOX_PATH_DIST_OTHER used in a non-combined package deal)
 
-ifdef VBOX_WITH_QT6
- VBOX_QT_VERSION_MAJOR = A
-else
- VBOX_QT_VERSION_MAJOR = 5
-endif
+VBOX_QT_VERSION_MAJOR = A
 
 ifeq ($(KBUILD_TARGET_ARCH),arm64)
  VBOX_DI_TARGET_ARCH = arm64
@@ -96,7 +92,7 @@ darwin-docs_SOURCES = \
 # The packing.
 #
 PACKING += $(VBOX_PATH_DIST)/VirtualBox-$(VBOX_VERSION_STRING)-r$(VBOX_SVN_REV).dmg
-#OTHER_CLEAN = TODO
+OTHER_CLEAN = $(VBOX_DMG_SHADOW_STORAGE)
 
 
 include $(FILE_KBUILD_SUB_FOOTER)
@@ -183,13 +179,18 @@ endif
 	@# Change (back) the owner so it can be deleted by the user.
 	sudo chown "$(shell whoami)" "$@"
 	sudo chown -R "$(shell whoami)" $(VBOX_PATH_PACK_TMP)/DiskImage
+	@# Make sure to delete any old shadow storage for the disk image to prevent mounting the newly build disk image
+	@# due to a mismatch.
+	sudo kmk_rm -f $(VBOX_DMG_SHADOW_STORAGE)
 ifdef VBOX_SIGNING_MODE
  ifndef VBOX_WITHOUT_SIGNED_DMG
 	@# Sign the created dmg.
 	$(call VBOX_SIGN_DMG_FN,$@,org.virtualbox.dmg)
   if $(intersects darwin darwin_notarize all 1,$(VBOX_WITH_CORP_CODE_SIGNING))
 	@# Notarize the signed dmg (includes stapling).
-	$(call VBOX_NOTARIZE_FILE_FN,$@,org.virtualbox.VirtualBox.$(VBOX_VERSION_MAJOR).$(VBOX_VERSION_MINOR).$(VBOX_VERSION_BUILD).$(VBOX_SVN_REV))
+	$(call VBOX_NOTARIZE_FILE_FN,$@,org.virtualbox.VirtualBox.$(VBOX_VERSION_MAJOR).$(VBOX_VERSION_MINOR).$(VBOX_VERSION_BUILD).$(VBOX_SVN_REV),$(call VBOX_DIRX,$@).tmp)
+	$(MV) -f $(call VBOX_DIRX,$@).tmp/$(call VBOX_NOTDIRX,$@) $@
+	$(RMDIR) $(call VBOX_DIRX,$@).tmp
   endif
  endif
 endif
@@ -414,12 +415,11 @@ endif
 VBOX_DI_VBAPP_PROGS = \
 	MacOS/VBoxManage \
 	MacOS/VBoxSVC \
-	MacOS/VBoxXPCOMIPCD \
 	MacOS/VBoxNetAdpCtl \
 	MacOS/VBoxExtPackHelperApp \
-	MacOS/VBoxBugReport \
-	MacOS/VBoxBalloonCtrl \
-	MacOS/VBoxAutostart \
+	$(if $(VBOX_WITH_FE_BUGREPORT),MacOS/VBoxBugReport) \
+	$(if $(VBOX_WITH_FE_BALLOONCTRL),MacOS/VBoxBalloonCtrl) \
+	$(if $(VBOX_WITH_FE_AUTOSTART),MacOS/VBoxAutostart) \
 	$(if $(VBOX_WITH_WEBSERVICES),MacOS/vboxwebsrv) \
 	$(if $(VBOX_WITH_DTRACE),MacOS/VBoxDTrace,) \
 	$(if $(VBOX_WITH_HOST_SHIPPING_AUDIO_TEST),MacOS/VBoxAudioTest,)
@@ -440,8 +440,10 @@ VBOX_DI_VBAPP_DYLIBS = \
 	$(if $(VBOX_WITH_GUEST_PROPS),MacOS/VBoxGuestPropSvc.dylib,) \
 	MacOS/VBoxHostChannel.dylib \
 	MacOS/VBoxVMM.dylib \
+	$(if $(VBOX_WITH_VIRT_ARMV8),MacOS/VBoxVMMArm.dylib,) \
 	MacOS/VBoxXPCOM.dylib \
 	MacOS/VBoxXPCOMC.dylib \
+	MacOS/VBoxXPCOMIPCD.dylib \
 	MacOS/components/VBoxC.dylib \
 	MacOS/components/VBoxSVCM.dylib \
 	MacOS/components/VBoxXPCOMIPCC.dylib \
@@ -471,21 +473,17 @@ endif
 ifdef VBOX_WITH_HARDENING
  VBOX_DI_VBAPP_DYLIBS += $(addprefix MacOS/,$(addsuffix .dylib,$(notdir $(VBOX_DI_VBAPP_PROGS_HARDENED))))
 endif
-ifdef VBOX_WITH_HDDPARALLELS_INSTALL
- VBOX_DI_VBAPP_DYLIBS += \
- 	MacOS/VBoxHDDParallels.dylib
-endif
-if defined(VBOX_WITH_PYTHON) && !defined(VBOX_WITHOUT_VBOXPYTHON_FOR_OSX_10_6) && "$(VBOX_DEF_MACOSX_VERSION_MIN)" vlt "10.13"
+if defined(VBOX_WITH_PYTHON) && "$(VBOX_DEF_MACOSX_VERSION_MIN)" vlt "10.13"
  VBOX_DI_VBAPP_DYLIBS += \
  	MacOS/VBoxPython2_6.so
 endif
-if defined(VBOX_WITH_PYTHON) && !defined(VBOX_WITHOUT_VBOXPYTHON_FOR_OSX_10_7)
+if defined(VBOX_WITH_PYTHON) && "$(VBOX_DEF_MACOSX_VERSION_MIN)" vlt "11.0"
  VBOX_DI_VBAPP_DYLIBS += \
  	MacOS/VBoxPython2_7.so
 endif
-if    defined(VBOX_WITH_PYTHON) \
-   && !defined(VBOX_WITHOUT_PYTHON_LIMITED_API) \
-   && exists "$(VBOX_PATH_DIST)/VirtualBox.app/Contents/MacOS/VBoxPython3.so"
+if   defined(VBOX_WITH_PYTHON) \
+  && !defined(VBOX_WITHOUT_PYTHON_LIMITED_API) \
+  && exists "$(VBOX_PATH_DIST)/VirtualBox.app/Contents/MacOS/VBoxPython3.so"
  VBOX_DI_VBAPP_DYLIBS += \
  	MacOS/VBoxPython3.so
 endif
@@ -494,17 +492,10 @@ ifdef VBOX_WITH_VMSVGA3D
  	MacOS/VBoxSVGA3D.dylib \
  	MacOS/VBoxSVGA3DObjC.dylib
 endif
-
-ifdef VBOX_WITH_PYTHON
- VBOX_DI_VBAPP_DYLIBS.x86 += \
- 	MacOS/VBoxPython2_5.so \
- 	$(if-expr defined(VBOX_WITH_MAC_OS_X_10_4_SUPPORT),MacOS/VBoxPython2_3.so,)
-endif
-
-VBOX_DI_VBAPP_DYLIBS.amd64 :=
-if defined(VBOX_WITH_PYTHON) && defined(VBOX_WITHOUT_VBOXPYTHON_FOR_OSX_10_6) && "$(VBOX_DEF_MACOSX_VERSION_MIN)" vlt "10.13"
- VBOX_DI_VBAPP_DYLIBS.amd64 += \
- 	MacOS/VBoxPython2_6.so
+ifdef VBOX_WITH_DXVK
+ VBOX_DI_VBAPP_DYLIBS += \
+ 	MacOS/VBoxDxVk.dylib \
+ 	MacOS/libMoltenVK.dylib
 endif
 
 if defined(VBOX_WITH_JXPCOM)
@@ -604,7 +595,7 @@ ifdef VBOX_WITH_QTGUI
  VBOX_DI_VBAPP_SYMLINKS += \
  	Resources/vmstarter.app/Contents/MacOS=>../../../MacOS/ \
  	$(foreach qtmod, $(VBOX_QT_MOD_NAMES) \
- 	,Frameworks/$(qtmod).framework/Versions/Current=>$(VBOX_QT_VERSION_MAJOR) )
+ 		,Frameworks/$(qtmod).framework/Versions/Current=>$(VBOX_QT_VERSION_MAJOR) )
 endif
 ifdef VBOX_WITH_PYTHON
  # Python XPCOM glue
@@ -623,8 +614,8 @@ ifdef VBOX_WITH_INTNET_SERVICE_IN_R3
  endif
 endif
 
-VBOX_VIRTUALBOX_APP_ENTITLEMENTS := $(PATH_ROOT)/src/VBox/HostDrivers/Support/darwin/SUPR3HardenedEntitlements.plist
-VBOX_VIRTUALBOXVM_APP_ENTITLEMENTS := $(PATH_ROOT)/src/VBox/HostDrivers/Support/darwin/SUPR3HardenedEntitlementsVM.plist
+VBOX_VIRTUALBOX_APP_ENTITLEMENTS := $(VBOX_DARWIN_ENTITLEMENTS_FILE)
+VBOX_VIRTUALBOXVM_APP_ENTITLEMENTS := $(VBOX_DARWIN_ENTITLEMENTS_FILE_VM)
 
 ##
 # Add application and team ID into entitlement file
@@ -643,12 +634,12 @@ endef
 if defined(VBOX_WITH_MACOS_HARDENED_RUNTIME) && defined(VBOX_SIGNING_MODE) && defined(VBOX_PROVISIONPROFILE_TEAM_ID)
  ifdef VBOX_VIRTUALBOX_APP_ID
   VBOX_VIRTUALBOX_APP_ENTITLEMENTS := $(VBOX_PATH_PACK_TMP)/SUPR3HardenedEntitlements.plist
-  $(evalcall2 def_vbox_entitlement_add_app_and_team_id,$(PATH_ROOT)/src/VBox/HostDrivers/Support/darwin/SUPR3HardenedEntitlements.plist,$(VBOX_VIRTUALBOX_APP_ENTITLEMENTS),$(VBOX_VIRTUALBOX_APP_ID),$(VBOX_PROVISIONPROFILE_TEAM_ID))
+  $(evalcall2 def_vbox_entitlement_add_app_and_team_id,$(VBOX_DARWIN_ENTITLEMENTS_FILE),$(VBOX_VIRTUALBOX_APP_ENTITLEMENTS),$(VBOX_VIRTUALBOX_APP_ID),$(VBOX_PROVISIONPROFILE_TEAM_ID))
  endif
 
  ifdef VBOX_VIRTUALBOXVM_APP_ID
   VBOX_VIRTUALBOXVM_APP_ENTITLEMENTS := $(VBOX_PATH_PACK_TMP)/SUPR3HardenedEntitlementsVM.plist
-  $(evalcall2 def_vbox_entitlement_add_app_and_team_id,$(PATH_ROOT)/src/VBox/HostDrivers/Support/darwin/SUPR3HardenedEntitlementsVM.plist,$(VBOX_VIRTUALBOXVM_APP_ENTITLEMENTS),$(VBOX_VIRTUALBOXVM_APP_ID),$(VBOX_PROVISIONPROFILE_TEAM_ID))
+  $(evalcall2 def_vbox_entitlement_add_app_and_team_id,$(VBOX_DARWIN_ENTITLEMENTS_FILE_VM),$(VBOX_VIRTUALBOXVM_APP_ENTITLEMENTS),$(VBOX_VIRTUALBOXVM_APP_ID),$(VBOX_PROVISIONPROFILE_TEAM_ID))
  endif
 endif
 
@@ -689,9 +680,9 @@ $(VBOX_PATH_PACK_TMP)/Packages/VirtualBox.pkg: \
 		$(if-expr defined(VBOX_WITH_JXPCOM), $(addprefix $(VBOX_PATH_DIST)/, sdk/bindings/xpcom/java/vboxjxpcom.jar),) \
 		$(if-expr defined(VBOX_PROVISIONPROFILE_TEAM_ID),$(VBOX_PATH_DI_SRC)/VirtualBox/$(VBOX_PROVISIONPROFILE_TEAM_ID).provisionprofile,) \
 		$(if $(VBOX_WITH_WEBSERVICES),$(VBOX_PATH_DI_SRC)/VirtualBox/org.virtualbox.vboxwebsrv.plist,) \
-		$(VBOX_PATH_DI_SRC)/VirtualBox/org.virtualbox.vboxballoonctrl.plist \
-		$(VBOX_PATH_DI_SRC)/VirtualBox/org.virtualbox.vboxautostart.plist \
-		$(VBOX_PATH_DI_SRC)/VirtualBox/VBoxAutostartDarwin.sh \
+		$(if $(VBOX_WITH_FE_BALLOONCTRL),$(VBOX_PATH_DI_SRC)/VirtualBox/org.virtualbox.vboxballoonctrl.plist) \
+		$(if $(VBOX_WITH_FE_AUTOSTART),$(VBOX_PATH_DI_SRC)/VirtualBox/org.virtualbox.vboxautostart.plist) \
+		$(if $(VBOX_WITH_FE_AUTOSTART),$(VBOX_PATH_DI_SRC)/VirtualBox/VBoxAutostartDarwin.sh) \
 		$(if-expr defined(VBOX_WITH_DTRACE), \
 			$(foreach f, $(VBOXINST_DTRACE_LIB_ARCH_FILES), \
 				$(call VBOX_DI_FN_DEP_32,VirtualBox.app/Contents/MacOS/dtrace/lib/x86/$f) \
@@ -734,7 +725,10 @@ $(VBOX_PATH_PACK_TMP)/Packages/VirtualBox.pkg: \
 		$(if-expr defined(VBOX_WITH_PYTHON), \
 			$(VBOX_PATH_VBOX_APP_TMP)/Contents/MacOS/sdk \
 			$(VBOX_PATH_VBOX_APP_TMP)/Contents/MacOS/sdk/installer \
-			$(VBOX_PATH_VBOX_APP_TMP)/Contents/MacOS/sdk/installer/vboxapi \
+			$(VBOX_PATH_VBOX_APP_TMP)/Contents/MacOS/sdk/installer/python \
+			$(VBOX_PATH_VBOX_APP_TMP)/Contents/MacOS/sdk/installer/python/vboxapi \
+			$(VBOX_PATH_VBOX_APP_TMP)/Contents/MacOS/sdk/installer/python/vboxapi/src \
+			$(VBOX_PATH_VBOX_APP_TMP)/Contents/MacOS/sdk/installer/python/vboxapi/src/vboxapi \
 			$(VBOX_PATH_VBOX_APP_TMP)/Contents/MacOS/sdk/bindings/ \
 			$(VBOX_PATH_VBOX_APP_TMP)/Contents/MacOS/sdk/bindings/xpcom \
 			$(VBOX_PATH_VBOX_APP_TMP)/Contents/MacOS/sdk/bindings/xpcom/python \
@@ -767,9 +761,13 @@ endif
 ifdef VBOX_WITH_WEBSERVICES
 	$(INSTALL) -m 0644 $(VBOX_PATH_DI_SRC)/VirtualBox/org.virtualbox.vboxwebsrv.plist       $(VBOX_PATH_VBOX_APP_TMP)/Contents/MacOS/
 endif
+ifdef VBOX_WITH_FE_BALLOONCTRL
 	$(INSTALL) -m 0644 $(VBOX_PATH_DI_SRC)/VirtualBox/org.virtualbox.vboxballoonctrl.plist  $(VBOX_PATH_VBOX_APP_TMP)/Contents/MacOS/
+endif
+ifdef VBOX_WITH_FE_AUTOSTART
 	$(INSTALL) -m 0644 $(VBOX_PATH_DI_SRC)/VirtualBox/org.virtualbox.vboxautostart.plist    $(VBOX_PATH_VBOX_APP_TMP)/Contents/MacOS/
 	$(INSTALL) -m 0755 $(VBOX_PATH_DI_SRC)/VirtualBox/VBoxAutostartDarwin.sh                $(VBOX_PATH_VBOX_APP_TMP)/Contents/MacOS/
+endif
 # Install the python bridge stuff
 ifdef VBOX_WITH_PYTHON
 	$(foreach f,$(VBOX_DI_VBAPP_PYTHON_FILES) \
@@ -862,9 +860,9 @@ ifdef VBOX_SIGNING_MODE
 	$(foreach bin, $(filter-out MacOS/VirtualBox,$(VBOX_DI_VBAPP_PROGS) $(if-expr !defined(VBOX_WITH_MACOS_HARDENED_RUNTIME),$(VBOX_DI_VBAPP_PROGS_HARDENED),)) \
 		, $(NLTAB)$(call VBOX_SIGN_MACHO_FN,$(VBOX_PATH_VBOX_APP_TMP)/Contents/$(bin),org.virtualbox.app.macos.$(notdir $(bin))) )
 	$(foreach file, $(if-expr defined(VBOX_WITH_WEBSERVICES),MacOS/org.virtualbox.vboxwebsrv.plist,) \
-			MacOS/org.virtualbox.vboxballoonctrl.plist \
-			MacOS/org.virtualbox.vboxautostart.plist \
-			MacOS/VBoxAutostartDarwin.sh \
+			$(if-expr defined(VBOX_WITH_FE_BALLOONCTRL),MacOS/org.virtualbox.vboxballoonctrl.plist,) \
+			$(if-expr defined(VBOX_WITH_FE_AUTOSTART),MacOS/org.virtualbox.vboxautostart.plist,) \
+			$(if-expr defined(VBOX_WITH_FE_AUTOSTART),MacOS/VBoxAutostartDarwin.sh,) \
 			$(if-expr defined(VBOX_WITH_PYTHON),$(addprefix MacOS/, $(VBOX_DI_VBAPP_PYTHON_FILES) vboxshell.py),) \
 			$(if-expr defined(VBOX_WITH_JXPCOM),MacOS/sdk/bindings/xpcom/java/vboxjxpcom.jar,) \
 			$(filter MacOS/%,$(VBOX_DI_VBAPP_MISC_FILES)) \
@@ -1005,16 +1003,22 @@ if defined(VBOX_WITH_VBOX_IMG) || defined(VBOX_WITH_TESTCASES)
 	$(APPEND) -tn $(VBOX_PATH_PACK_TMP)/VirtualBoxCLI.pkg.root/usr/local/bin/vbox-img \
 		'#!/bin/bash' 'exec /Applications/VirtualBox.app/Contents/MacOS/vbox-img "$$@"'
 endif
-if defined(VBOX_WITH_VBOXIMGMOUNT)
+ifdef VBOX_WITH_VBOXIMGMOUNT
 	$(APPEND) -tn $(VBOX_PATH_PACK_TMP)/VirtualBoxCLI.pkg.root/usr/local/bin/vboximg-mount \
 		'#!/bin/bash' 'exec /Applications/VirtualBox.app/Contents/MacOS/vboximg-mount "$$@"'
 endif
+ifdef VBOX_WITH_FE_BUGREPORT
 	$(APPEND) -tn $(VBOX_PATH_PACK_TMP)/VirtualBoxCLI.pkg.root/usr/local/bin/VBoxBugReport \
 		'#!/bin/bash' 'exec /Applications/VirtualBox.app/Contents/MacOS/VBoxBugReport "$$@"'
+endif
+ifdef VBOX_WITH_FE_BALLOONCTRL
 	$(APPEND) -tn $(VBOX_PATH_PACK_TMP)/VirtualBoxCLI.pkg.root/usr/local/bin/VBoxBalloonCtrl \
 		'#!/bin/bash' 'exec /Applications/VirtualBox.app/Contents/MacOS/VBoxBalloonCtrl "$$@"'
+endif
+ifdef VBOX_WITH_FE_AUTOSTART
 	$(APPEND) -tn $(VBOX_PATH_PACK_TMP)/VirtualBoxCLI.pkg.root/usr/local/bin/VBoxAutostart \
 		'#!/bin/bash' 'exec /Applications/VirtualBox.app/Contents/MacOS/VBoxAutostart "$$@"'
+endif
 ifdef VBOX_WITH_DTRACE
 	$(APPEND) -tn $(VBOX_PATH_PACK_TMP)/VirtualBoxCLI.pkg.root/usr/local/bin/VBoxDTrace \
 		'#!/bin/bash' 'exec /Applications/VirtualBox.app/Contents/MacOS/VBoxDTrace "$$@"'
@@ -1073,3 +1077,39 @@ VirtualBoxCLI.pkg: $(VBOX_PATH_PACK_TMP)/Packages/VirtualBoxCLI.pkg
 VirtualBox.pkg: $(VBOX_PATH_PACK_TMP)/Packages/VirtualBox.pkg
 VirtualBox.mpkg: $(VBOX_PATH_PACK_TMP)/DiskImage/VirtualBox.pkg
 VirtualBox.dmg: $(VBOX_PATH_DIST)/VirtualBox-$(VBOX_VERSION_STRING)-r$(VBOX_SVN_REV).dmg
+
+# Path specifying the .dmg mount point being used with 'kmk mount_dmg' and 'kmk unmount_dmg'.
+VBOX_PATH_DMG_MOUNTPOINT := /Volumes/VirtualBox-$(VBOX_VERSION_STRING)-r$(VBOX_SVN_REV)
+
+# Path to the (temporary) shadow storage, required for editing the .dmg file.
+VBOX_DMG_SHADOW_STORAGE := $(VBOX_PATH_PACK_TMP)/VirtualBox-$(VBOX_VERSION_STRING)-r$(VBOX_SVN_REV)-shadow.dmg
+
+#
+# Mounts the created .dmg file within Finder in read-write mode using a shadow storage
+# which holds the modififed content.
+#
+# This is needed in order to modify the styling of the .dmg's DS_Store file (which is a
+# proprietary file format known by Finder). Needs root.
+#
+mount_dmg:
+	@kmk_builtin_echo "Mounting .dmg file in R/W mode (using shadow storage) ..."
+	@sudo hdiutil attach -quiet -readwrite \
+		-mountpoint $(VBOX_PATH_DMG_MOUNTPOINT) \
+		-shadow $(VBOX_DMG_SHADOW_STORAGE) \
+		$(VBOX_PATH_DIST)/VirtualBox-$(VBOX_VERSION_STRING)-r$(VBOX_SVN_REV).dmg
+	@kmk_builtin_echo ""
+	@kmk_builtin_echo "Successfully mounted within Finder."
+	@kmk_builtin_echo "You may now alter the .dmg image as needed.
+	@kmk_builtin_echo "To save your changes, unmount via 'kmk unmount_dmg'."
+	@kmk_builtin_echo "To discard your changes, unmount directly via Finder (eject icon)."
+
+#
+# Unmounts the formerly mounted .dmg file and saves the (eventually) altered .DS_Store file from the
+# shadow storage back into the SVN repo tree. Needs root.
+#
+unmount_dmg:
+	@kmk_builtin_echo "Unmounting .dmg file ..."
+	@kmk_cp $(VBOX_PATH_DMG_MOUNTPOINT)/.DS_Store $(PATH_SUB_CURRENT)/DiskImage/DS_Store
+	@sudo hdiutil detach -quiet $(VBOX_PATH_DMG_MOUNTPOINT)
+	@kmk_builtin_echo ""
+	@kmk_builtin_echo "Files have been updated within SVN tree. Check what the changes are."

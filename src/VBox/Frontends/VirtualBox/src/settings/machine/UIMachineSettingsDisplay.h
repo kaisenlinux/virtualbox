@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,11 +31,11 @@
 # pragma once
 #endif
 
+/* COM includes: */
+#include "KGraphicsControllerType.h"
+
 /* GUI includes: */
 #include "UISettingsPage.h"
-
-/* COM includes: */
-#include "CGuestOSType.h"
 
 /* Forward declarations: */
 class QITabWidget;
@@ -64,7 +64,7 @@ public:
     virtual ~UIMachineSettingsDisplay() RT_OVERRIDE;
 
     /** Defines @a comGuestOSType. */
-    void setGuestOSType(CGuestOSType comGuestOSType);
+    void setGuestOSTypeId(const QString &strGuestOSTypeId);
 
 #ifdef VBOX_WITH_3D_ACCELERATION
     /** Returns whether 3D Acceleration is enabled. */
@@ -101,8 +101,8 @@ protected:
     /** Defines TAB order for passed @a pWidget. */
     virtual void setOrderAfter(QWidget *pWidget) RT_OVERRIDE;
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
+    /** Handles filter change. */
+    virtual void handleFilterChange() RT_OVERRIDE;
 
     /** Performs final page polishing. */
     virtual void polishPage() RT_OVERRIDE;
@@ -117,6 +117,8 @@ private slots:
     /** Handles 3D Acceleration feature state change. */
     void sltHandle3DAccelerationFeatureStateChange();
 #endif
+    /** Handles translation event. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -149,8 +151,11 @@ private:
     /** Saves existing 'Recording' data from cache. */
     bool saveRecordingData();
 
-    /** Holds the guest OS type ID. */
-    CGuestOSType  m_comGuestOSType;
+    /** Updates minimum layout hint. */
+    void updateMinimumLayoutHint();
+
+    /** Holds the guest OS type. */
+    QString m_strGuestOSTypeId;
 #ifdef VBOX_WITH_3D_ACCELERATION
     /** Holds whether the guest OS supports WDDM. */
     bool          m_fWddmModeSupported;
@@ -167,27 +172,27 @@ private:
         QITabWidget *m_pTabWidget;
 
         /** Holds the 'Screen' tab instance. */
-        QWidget                              *m_pTabScreen;
+        UIEditor                      *m_pTabScreen;
         /** Holds the video memory size editor instance. */
-        UIVideoMemoryEditor                  *m_pEditorVideoMemorySize;
+        UIVideoMemoryEditor           *m_pEditorVideoMemorySize;
         /** Holds the monitor count spinbox instance. */
-        UIMonitorCountEditor                 *m_pEditorMonitorCount;
+        UIMonitorCountEditor          *m_pEditorMonitorCount;
         /** Holds the scale factor editor instance. */
-        UIScaleFactorEditor                  *m_pEditorScaleFactor;
+        UIScaleFactorEditor           *m_pEditorScaleFactor;
         /** Holds the graphics controller editor instance. */
-        UIGraphicsControllerEditor           *m_pEditorGraphicsController;
+        UIGraphicsControllerEditor    *m_pEditorGraphicsController;
 #ifdef VBOX_WITH_3D_ACCELERATION
         /** Holds the display screen features editor instance. */
-        UIDisplayScreenFeaturesEditor        *m_pEditorDisplayScreenFeatures;
+        UIDisplayScreenFeaturesEditor *m_pEditorDisplayScreenFeatures;
 #endif
 
         /** Holds the 'Remote Display' tab instance. */
-        QWidget              *m_pTabRemoteDisplay;
+        UIEditor             *m_pTabRemoteDisplay;
         /** Holds the VRDE settings editor instance. */
         UIVRDESettingsEditor *m_pEditorVRDESettings;
 
         /** Holds the 'Recording' tab instance. */
-        QWidget                   *m_pTabRecording;
+        UIEditor                  *m_pTabRecording;
         /** Holds the Recording settings editor instance. */
         UIRecordingSettingsEditor *m_pEditorRecordingSettings;
    /** @} */

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -29,26 +29,24 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QContextMenuEvent>
-#include <QHBoxLayout>
 #include <QLabel>
 #include <QMenu>
-#include <QPalette>
 #include <QStyleOptionFrame>
 
 /* GUI includes: */
 #include "QILineEdit.h"
+#include "UIDesktopWidgetWatchdog.h"
 #include "UIIconPool.h"
-
-/* Other VBox includes: */
-#include "iprt/assert.h"
 
 
 QILineEdit::QILineEdit(QWidget *pParent /* = 0 */)
     : QLineEdit(pParent)
     , m_fAllowToCopyContentsWhenDisabled(false)
     , m_pCopyAction(0)
-    , m_pIconLabel(0)
+    , m_fMarkable(false)
     , m_fMarkForError(false)
+    , m_pLabelIcon(0)
+    , m_iIconMargin(0)
 {
     prepare();
 }
@@ -57,8 +55,10 @@ QILineEdit::QILineEdit(const QString &strText, QWidget *pParent /* = 0 */)
     : QLineEdit(strText, pParent)
     , m_fAllowToCopyContentsWhenDisabled(false)
     , m_pCopyAction(0)
-    , m_pIconLabel(0)
+    , m_fMarkable(false)
     , m_fMarkForError(false)
+    , m_pLabelIcon(0)
+    , m_iIconMargin(0)
 {
     prepare();
 }
@@ -78,41 +78,46 @@ void QILineEdit::setFixedWidthByText(const QString &strText)
     setFixedWidth(fitTextWidth(strText).width());
 }
 
-void QILineEdit::mark(bool fError, const QString &strErrorMessage /* = QString() */)
+void QILineEdit::setMarkable(bool fMarkable)
 {
-    /* Check if something really changed: */
-    if (fError == m_fMarkForError && m_strErrorMessage == strErrorMessage)
+    /* Sanity check: */
+    if (m_fMarkable == fMarkable)
         return;
 
-    /* Save new values: */
-    m_fMarkForError = fError;
-    m_strErrorMessage = strErrorMessage;
+    /* Save new value, show/hide label accordingly: */
+    m_fMarkable = fMarkable;
+    if (m_pLabelIcon)
+        m_pLabelIcon->setVisible(fMarkable);
 
-    /* Update accordingly: */
-    if (m_fMarkForError)
-    {
-        /* Create label if absent: */
-        if (!m_pIconLabel)
-            m_pIconLabel = new QLabel(this);
+    /* Update label position on visibility changes: */
+    moveIconLabel();
+}
 
-        /* Update label content, visibility & position: */
-        const int iIconMetric = QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * .625;
-        const int iShift = height() > iIconMetric ? (height() - iIconMetric) / 2 : 0;
-        m_pIconLabel->setPixmap(m_markIcon.pixmap(windowHandle(), QSize(iIconMetric, iIconMetric)));
-        m_pIconLabel->setToolTip(m_strErrorMessage);
-        m_pIconLabel->move(width() - iIconMetric - iShift, iShift);
-        m_pIconLabel->show();
-    }
-    else
-    {
-        /* Hide label: */
-        if (m_pIconLabel)
-            m_pIconLabel->hide();
-    }
+void QILineEdit::mark(bool fError, const QString &strErrorMessage, const QString &strNoErrorMessage)
+{
+    /* Sanity check: */
+    if (   !m_pLabelIcon
+        || !m_fMarkable)
+        return;
+
+    /* Assign corresponding icon: */
+    const QIcon icon = fError ? UIIconPool::iconSet(":/status_error_16px.png") : UIIconPool::iconSet(":/status_check_16px.png");
+    const int iIconMetric = qMin((int)(QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * .625), height());
+    const qreal fDevicePixelRatio = gpDesktop->devicePixelRatio(m_pLabelIcon);
+    const QString strToolTip = fError ? strErrorMessage : strNoErrorMessage;
+    const QPixmap iconPixmap = icon.pixmap(QSize(iIconMetric, iIconMetric), fDevicePixelRatio);
+    m_pLabelIcon->setPixmap(iconPixmap);
+    m_pLabelIcon->resize(m_pLabelIcon->minimumSizeHint());
+    m_pLabelIcon->setToolTip(strToolTip);
+    m_iIconMargin = (height() - m_pLabelIcon->height()) / 2;
+
+    /* Update label position on icon changes: */
+    moveIconLabel();
 }
 
 bool QILineEdit::event(QEvent *pEvent)
 {
+    /* Depending on event type: */
     switch (pEvent->type())
     {
         case QEvent::ContextMenu:
@@ -130,24 +135,19 @@ bool QILineEdit::event(QEvent *pEvent)
             }
             break;
         }
+        case QEvent::Move:
+        case QEvent::Resize:
+        {
+            /* Update label position on each move/resize: */
+            moveIconLabel();
+            break;
+        }
         default:
             break;
     }
-    return QLineEdit::event(pEvent);
-}
 
-void QILineEdit::resizeEvent(QResizeEvent *pResizeEvent)
-{
     /* Call to base-class: */
-    QLineEdit::resizeEvent(pResizeEvent);
-
-    /* Update error label position: */
-    if (m_pIconLabel)
-    {
-        const int iIconMetric = QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * .625;
-        const int iShift = height() > iIconMetric ? (height() - iIconMetric) / 2 : 0;
-        m_pIconLabel->move(width() - iIconMetric - iShift, iShift);
-    }
+    return QLineEdit::event(pEvent);
 }
 
 void QILineEdit::copy()
@@ -169,8 +169,10 @@ void QILineEdit::prepare()
         addAction(m_pCopyAction);
     }
 
-    /* Prepare warning icon: */
-    m_markIcon = UIIconPool::iconSet(":/status_error_16px.png");
+    /* Prepare icon label: */
+    m_pLabelIcon = new QLabel(this);
+    if (m_pLabelIcon)
+        m_pLabelIcon->hide();
 }
 
 QSize QILineEdit::fitTextWidth(const QString &strText) const
@@ -186,84 +188,21 @@ QSize QILineEdit::fitTextWidth(const QString &strText) const
     // WORKAROUND:
     // The margins are based on qlineedit.cpp of Qt.
     // Maybe they where changed at some time in the future.
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
     QSize sc(fontMetrics().horizontalAdvance(strText) + 2 * 2,
              fontMetrics().xHeight()                  + 2 * 1);
-#else
-    QSize sc(fontMetrics().width(strText) + 2 * 2,
-             fontMetrics().xHeight()     + 2 * 1);
-#endif
     const QSize sa = style()->sizeFromContents(QStyle::CT_LineEdit, &sof, sc, this);
 
     return sa;
 }
 
-UIMarkableLineEdit::UIMarkableLineEdit(QWidget *pParent /* = 0 */)
-    :QWidget(pParent)
-    , m_pLineEdit(0)
-    , m_pIconLabel(0)
+void QILineEdit::moveIconLabel()
 {
-    prepare();
-}
+    /* Sanity check: */
+    if (   !m_pLabelIcon
+        || !m_fMarkable)
+        return;
 
-void UIMarkableLineEdit::setText(const QString &strText)
-{
-    if (m_pLineEdit)
-        m_pLineEdit->setText(strText);
-}
-
-QString UIMarkableLineEdit::text() const
-{
-    if (!m_pLineEdit)
-        return QString();
-    return m_pLineEdit->text();
-}
-
-void UIMarkableLineEdit::setValidator(const QValidator *pValidator)
-{
-    if (m_pLineEdit)
-        m_pLineEdit->setValidator(pValidator);
-}
-
-bool UIMarkableLineEdit::hasAcceptableInput() const
-{
-    if (!m_pLineEdit)
-        return false;
-    return m_pLineEdit->hasAcceptableInput();
-}
-
-void UIMarkableLineEdit::setPlaceholderText(const QString &strText)
-{
-    if (m_pLineEdit)
-        m_pLineEdit->setPlaceholderText(strText);
-}
-
-void UIMarkableLineEdit::mark(bool fError, const QString &strErrorMessage /* = QString() */)
-{
-    m_pIconLabel->setVisible(true);
-    AssertReturnVoid(m_pIconLabel);
-    const int iIconMetric = QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize);
-
-    if (fError)
-        m_pIconLabel->setPixmap(UIIconPool::iconSet(":/status_error_16px.png").pixmap(windowHandle(), QSize(iIconMetric, iIconMetric)));
-    else
-        m_pIconLabel->setPixmap(UIIconPool::iconSet(":/status_check_16px.png").pixmap(windowHandle(), QSize(iIconMetric, iIconMetric)));
-    m_pIconLabel->setToolTip(strErrorMessage);
-}
-
-void UIMarkableLineEdit::prepare()
-{
-    QHBoxLayout *pMainLayout = new QHBoxLayout(this);
-    AssertReturnVoid(pMainLayout);
-    pMainLayout->setContentsMargins(0, 0, 0, 0);
-    m_pLineEdit = new QILineEdit;
-    AssertReturnVoid(m_pLineEdit);
-    m_pIconLabel = new QLabel;
-    AssertReturnVoid(m_pIconLabel);
-    /* Show the icon label only if line edit is marked for error/no error.*/
-    m_pIconLabel->hide();
-    pMainLayout->addWidget(m_pLineEdit);
-    pMainLayout->addWidget(m_pIconLabel);
-    setFocusProxy(m_pLineEdit);
-    connect(m_pLineEdit, &QILineEdit::textChanged, this, &UIMarkableLineEdit::textChanged);
+    /* We do it cause we have manual layout for the label: */
+    m_pLabelIcon->move(width() - m_pLabelIcon->width() - m_iIconMargin, m_iIconMargin);
+    update();
 }

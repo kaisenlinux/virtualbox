@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -110,7 +110,7 @@ int main(int argc, char **argv)
                     }
 
                     case 'V':
-                        printf("%s\n", "$Revision: 155244 $");
+                        printf("%s\n", "$Revision: 164827 $");
                         free(papszInputs);
                         return 0;
 
@@ -158,7 +158,6 @@ int main(int argc, char **argv)
 
     /* Copy the input files to the output file, with sector padding applied. */
     int rcExit = 0;
-    size_t off = 0;
     for (unsigned i = 0; i < cInputs && rcExit == 0; i++)
     {
 #if defined(RT_OS_OS2) || defined(RT_OS_WINDOWS)
@@ -191,9 +190,7 @@ int main(int argc, char **argv)
                 }
 
                 /* Write the block to the output file. */
-                if (fwrite(abBuf, sizeof(uint8_t), cbRead, pOutput) == cbRead)
-                    off += cbRead;
-                else
+                if (fwrite(abBuf, sizeof(uint8_t), cbRead, pOutput) != cbRead)
                 {
                     fprintf(stderr, "error: fwrite failed\n");
                     rcExit = 1;

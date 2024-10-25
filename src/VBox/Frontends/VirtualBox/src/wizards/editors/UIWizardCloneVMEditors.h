@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -34,12 +34,8 @@
 /* Qt includes: */
 #include <QGroupBox>
 
-/* Local includes: */
-#include "QIWithRetranslateUI.h"
-
 /* Other VBox includes: */
-#include "COMEnums.h"
-
+#include "KCloneMode.h"
 
 /* Forward declarations: */
 class QAbstractButton;
@@ -51,7 +47,6 @@ class QLabel;
 class QRadioButton;
 class QILineEdit;
 class UIFilePathSelector;
-class UIMarkableLineEdit;
 
 /** MAC address policies. */
 enum MACAddressClonePolicy
@@ -63,7 +58,7 @@ enum MACAddressClonePolicy
 };
 Q_DECLARE_METATYPE(MACAddressClonePolicy);
 
-class UICloneVMNamePathEditor : public QIWithRetranslateUI<QGroupBox>
+class UICloneVMNamePathEditor : public QGroupBox
 {
     Q_OBJECT;
 
@@ -89,13 +84,16 @@ public:
 
     bool isComplete(const QString &strMachineGroup);
 
+private slots:
+
+    void sltRetranslateUI();
+
 private:
 
     void prepare();
-    virtual void retranslateUi() /* override final */;
 
     QGridLayout *m_pContainerLayout;
-    UIMarkableLineEdit  *m_pNameLineEdit;
+    QILineEdit  *m_pNameLineEdit;
     UIFilePathSelector  *m_pPathSelector;
     QLabel      *m_pNameLabel;
     QLabel      *m_pPathLabel;
@@ -105,7 +103,7 @@ private:
 };
 
 
-class UICloneVMAdditionalOptionsEditor : public QIWithRetranslateUI<QGroupBox>
+class UICloneVMAdditionalOptionsEditor : public QGroupBox
 {
     Q_OBJECT;
 
@@ -135,11 +133,11 @@ public:
 private slots:
 
     void sltMACAddressClonePolicyChanged();
+    void sltRetranslateUI();
 
 private:
 
     void prepare();
-    virtual void retranslateUi() /* override final */;
     void populateMACAddressClonePolicies();
     void updateMACAddressClonePolicyComboToolTip();
 
@@ -151,7 +149,7 @@ private:
     QCheckBox   *m_pKeepHWUUIDsCheckBox;
 };
 
-class UICloneVMCloneTypeGroupBox : public QIWithRetranslateUI<QGroupBox>
+class UICloneVMCloneTypeGroupBox : public QGroupBox
 {
     Q_OBJECT;
 
@@ -167,11 +165,11 @@ public:
 private slots:
 
     void sltButtonClicked(QAbstractButton *);
+    void sltRetranslateUI();
 
 private:
 
     void prepare();
-    virtual void retranslateUi() /* override final */;
 
     QButtonGroup *m_pButtonGroup;
     QRadioButton *m_pFullCloneRadio;
@@ -179,7 +177,7 @@ private:
 };
 
 
-class UICloneVMCloneModeGroupBox : public QIWithRetranslateUI<QGroupBox>
+class UICloneVMCloneModeGroupBox : public QGroupBox
 {
     Q_OBJECT;
 
@@ -195,11 +193,11 @@ public:
 private slots:
 
     void sltButtonClicked();
+    void sltRetranslateUI();
 
 private:
 
     void prepare();
-    virtual void retranslateUi() /* override final */;
 
     bool m_fShowChildsOption;
     QRadioButton *m_pMachineRadio;

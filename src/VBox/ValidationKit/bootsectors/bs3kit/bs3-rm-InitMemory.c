@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2007-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2007-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -41,6 +41,7 @@
 #define BS3_USE_RM_TEXT_SEG 1
 #define BS3_BIOS_INLINE_RM
 #include "bs3kit-template-header.h"
+#include <iprt/asm-mem.h> /* This sucks */
 #include "bs3-cmn-memory.h"
 #include <iprt/asm.h>
 #include <VBox/VMMDevTesting.h>

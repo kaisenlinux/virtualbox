@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,8 +35,9 @@
 #include <QDialog>
 #include <QUuid>
 
-/* GUI Includes */
-#include "QIWithRetranslateUI.h"
+/* COM includes: */
+#include "CMedium.h"
+#include "CMediumFormat.h"
 
 /* Forward declarations: */
 class QCheckBox;
@@ -44,10 +45,9 @@ class QComboBox;
 class QIDialogButtonBox;
 class QLabel;
 class UIFilePathSelector;
-class CMedium;
 
 /* A QDialog extension to get necessary setting from the user for floppy disk creation. */
-class SHARED_LIBRARY_STUFF UIFDCreationDialog : public QIWithRetranslateUI<QDialog>
+class SHARED_LIBRARY_STUFF UIFDCreationDialog : public QDialog
 {
     Q_OBJECT;
 
@@ -69,24 +69,20 @@ public:
       * @param  strMachineName    Passes the name of the machine,
       * returns the UUID of the newly created medium if successful, a null QUuid otherwise.*/
     static QUuid createFloppyDisk(QWidget *pParent, const QString &strDefaultFolder = QString(),
-                           const QString &strMachineName = QString());
-
+                                  const QString &strMachineName = QString());
 
 public slots:
 
     /** Creates the floppy disc image, asynchronously. */
-    virtual void accept() /* override final */;
-
-protected:
-
-    /** Handles translation event. */
-    virtual void retranslateUi() /* override final */;
+    virtual void accept() RT_OVERRIDE;
 
 private slots:
 
     /** Handles signal about @a comMedium was created. */
     void sltHandleMediumCreated(const CMedium &comMedium);
     void sltPathChanged(const QString &strPath);
+    /** Handles translation event. */
+    void sltRetranslateUI();
 
 private:
 
@@ -107,6 +103,9 @@ private:
     QString getDefaultFilePath() const;
     /** Returns false if the file is already exists. */
     bool checkFilePath(const QString &strPath) const;
+
+    /** Returns a list of formats for certain @a enmDeviceType. */
+    static QVector<CMediumFormat> getFormatsForDeviceType(KDeviceType enmDeviceType);
 
     /** Holds the default folder. */
     QString  m_strDefaultFolder;

@@ -1,8 +1,10 @@
 ## @file
 #  Security Module Package for All Architectures.
 #
-# Copyright (c) 2009 - 2021, Intel Corporation. All rights reserved.<BR>
+# Copyright (c) 2009 - 2024, Intel Corporation. All rights reserved.<BR>
 # (C) Copyright 2015-2020 Hewlett Packard Enterprise Development LP<BR>
+# Copyright (c) 2022, Loongson Technology Corporation Limited. All rights reserved.<BR>
+# Copyright (c) 2021 - 2022, Arm Limited. All rights reserved.<BR>
 # SPDX-License-Identifier: BSD-2-Clause-Patent
 #
 ##
@@ -13,7 +15,7 @@
   PLATFORM_VERSION               = 0.98
   DSC_SPECIFICATION              = 0x00010005
   OUTPUT_DIRECTORY               = Build/SecurityPkg
-  SUPPORTED_ARCHITECTURES        = IA32|X64|EBC|ARM|AARCH64|RISCV64
+  SUPPORTED_ARCHITECTURES        = IA32|X64|EBC|ARM|AARCH64|RISCV64|LOONGARCH64
   BUILD_TARGETS                  = DEBUG|RELEASE|NOOPT
   SKUID_IDENTIFIER               = DEFAULT
 
@@ -66,12 +68,28 @@
   TcgStorageCoreLib|SecurityPkg/Library/TcgStorageCoreLib/TcgStorageCoreLib.inf
   TcgStorageOpalLib|SecurityPkg/Library/TcgStorageOpalLib/TcgStorageOpalLib.inf
   ResetSystemLib|MdeModulePkg/Library/BaseResetSystemLibNull/BaseResetSystemLibNull.inf
-  VariableKeyLib|SecurityPkg/Library/VariableKeyLibNull/VariableKeyLibNull.inf
-  RpmcLib|SecurityPkg/Library/RpmcLibNull/RpmcLibNull.inf
   TcgEventLogRecordLib|SecurityPkg/Library/TcgEventLogRecordLib/TcgEventLogRecordLib.inf
   MmUnblockMemoryLib|MdePkg/Library/MmUnblockMemoryLib/MmUnblockMemoryLibNull.inf
+  SecureBootVariableLib|SecurityPkg/Library/SecureBootVariableLib/SecureBootVariableLib.inf
+  PlatformPKProtectionLib|SecurityPkg/Library/PlatformPKProtectionLibVarPolicy/PlatformPKProtectionLibVarPolicy.inf
+  SecureBootVariableProvisionLib|SecurityPkg/Library/SecureBootVariableProvisionLib/SecureBootVariableProvisionLib.inf
+  TdxLib|MdePkg/Library/TdxLib/TdxLib.inf
+  VariablePolicyHelperLib|MdeModulePkg/Library/VariablePolicyHelperLib/VariablePolicyHelperLib.inf
 
-[LibraryClasses.ARM]
+  SpdmSecurityLib|SecurityPkg/DeviceSecurity/SpdmSecurityLib/SpdmSecurityLib.inf
+  SpdmDeviceSecretLib|SecurityPkg/DeviceSecurity/SpdmLib/SpdmDeviceSecretLibNull.inf
+  SpdmCryptLib|SecurityPkg/DeviceSecurity/SpdmLib/SpdmCryptLib.inf
+  SpdmCommonLib|SecurityPkg/DeviceSecurity/SpdmLib/SpdmCommonLib.inf
+  SpdmRequesterLib|SecurityPkg/DeviceSecurity/SpdmLib/SpdmRequesterLib.inf
+  SpdmResponderLib|SecurityPkg/DeviceSecurity/SpdmLib/SpdmResponderLib.inf
+  SpdmSecuredMessageLib|SecurityPkg/DeviceSecurity/SpdmLib/SpdmSecuredMessageLib.inf
+  SpdmTransportMctpLib|SecurityPkg/DeviceSecurity/SpdmLib/SpdmTransportMctpLib.inf
+  SpdmTransportPciDoeLib|SecurityPkg/DeviceSecurity/SpdmLib/SpdmTransportPciDoeLib.inf
+  CryptlibWrapper|SecurityPkg/DeviceSecurity/OsStub/CryptlibWrapper/CryptlibWrapper.inf
+  PlatformLibWrapper|SecurityPkg/DeviceSecurity/OsStub/PlatformLibWrapper/PlatformLibWrapper.inf
+  MemLibWrapper|SecurityPkg/DeviceSecurity/OsStub/MemLibWrapper/MemLibWrapper.inf
+
+[LibraryClasses.ARM, LibraryClasses.AARCH64]
   #
   # It is not possible to prevent the ARM compiler for generic intrinsic functions.
   # This library provides the intrinsic functions generate by a given compiler.
@@ -81,6 +99,16 @@
 
   # Add support for GCC stack protector
   NULL|MdePkg/Library/BaseStackCheckLib/BaseStackCheckLib.inf
+
+  ArmSoftFloatLib|ArmPkg/Library/ArmSoftFloatLib/ArmSoftFloatLib.inf
+
+  ArmTrngLib|MdePkg/Library/BaseArmTrngLibNull/BaseArmTrngLibNull.inf
+
+[LibraryClasses.ARM]
+  RngLib|MdeModulePkg/Library/BaseRngLibTimerLib/BaseRngLibTimerLib.inf
+
+[LibraryClasses.RISCV64]
+  RngLib|MdeModulePkg/Library/BaseRngLibTimerLib/BaseRngLibTimerLib.inf
 
 [LibraryClasses.common.PEIM]
   PeimEntryPoint|MdePkg/Library/PeimEntryPoint/PeimEntryPoint.inf
@@ -147,6 +175,7 @@
   BaseCryptLib|CryptoPkg/Library/BaseCryptLib/BaseCryptLib.inf
 !endif
   HashLib|SecurityPkg/Library/HashLibBaseCryptoRouter/HashLibBaseCryptoRouterDxe.inf
+  HobLib|MdePkg/Library/DxeHobLib/DxeHobLib.inf
   Tpm12DeviceLib|SecurityPkg/Library/Tpm12DeviceLibTcg/Tpm12DeviceLibTcg.inf
   Tpm2DeviceLib|SecurityPkg/Library/Tpm2DeviceLibTcg2/Tpm2DeviceLibTcg2.inf
 
@@ -228,6 +257,9 @@
 
   SecurityPkg/Library/HashLibTpm2/HashLibTpm2.inf
 
+  SecurityPkg/Library/PeiDxeTpmPlatformHierarchyLib/PeiDxeTpmPlatformHierarchyLib.inf
+  SecurityPkg/Library/PeiDxeTpmPlatformHierarchyLibNull/PeiDxeTpmPlatformHierarchyLib.inf
+
   #
   # TCG Storage.
   #
@@ -237,8 +269,7 @@
   #
   # Variable Confidentiality & Integrity
   #
-  SecurityPkg/Library/VariableKeyLibNull/VariableKeyLibNull.inf
-  SecurityPkg/Library/RpmcLibNull/RpmcLibNull.inf
+  SecurityPkg/Library/PlatformPKProtectionLibVarPolicy/PlatformPKProtectionLibVarPolicy.inf
 
   #
   # Other
@@ -258,12 +289,32 @@
 
 [Components.IA32, Components.X64, Components.ARM, Components.AARCH64]
   SecurityPkg/Library/AuthVariableLib/AuthVariableLib.inf
+  SecurityPkg/Library/SecureBootVariableLib/SecureBootVariableLib.inf
+  SecurityPkg/Library/SecureBootVariableProvisionLib/SecureBootVariableProvisionLib.inf
+  SecurityPkg/EnrollFromDefaultKeysApp/EnrollFromDefaultKeysApp.inf
+  SecurityPkg/VariableAuthenticated/SecureBootDefaultKeysDxe/SecureBootDefaultKeysDxe.inf
 
-[Components.IA32, Components.X64, Components.AARCH64]
+[Components.IA32, Components.X64, Components.AARCH64, Components.ARM]
   #
   # Random Number Generator
   #
   SecurityPkg/RandomNumberGenerator/RngDxe/RngDxe.inf
+
+  #
+  # SPDM
+  #
+  SecurityPkg/DeviceSecurity/SpdmSecurityLib/SpdmSecurityLib.inf
+  SecurityPkg/DeviceSecurity/SpdmLib/SpdmDeviceSecretLibNull.inf
+  SecurityPkg/DeviceSecurity/SpdmLib/SpdmCryptLib.inf
+  SecurityPkg/DeviceSecurity/SpdmLib/SpdmCommonLib.inf
+  SecurityPkg/DeviceSecurity/SpdmLib/SpdmRequesterLib.inf
+  SecurityPkg/DeviceSecurity/SpdmLib/SpdmResponderLib.inf
+  SecurityPkg/DeviceSecurity/SpdmLib/SpdmSecuredMessageLib.inf
+  SecurityPkg/DeviceSecurity/SpdmLib/SpdmTransportMctpLib.inf
+  SecurityPkg/DeviceSecurity/SpdmLib/SpdmTransportPciDoeLib.inf
+  SecurityPkg/DeviceSecurity/OsStub/CryptlibWrapper/CryptlibWrapper.inf
+  SecurityPkg/DeviceSecurity/OsStub/PlatformLibWrapper/PlatformLibWrapper.inf
+  SecurityPkg/DeviceSecurity/OsStub/MemLibWrapper/MemLibWrapper.inf
 
 [Components.IA32, Components.X64]
   SecurityPkg/VariableAuthenticated/SecureBootConfigDxe/SecureBootConfigDxe.inf
@@ -303,6 +354,11 @@
       NULL|SecurityPkg/Library/HashInstanceLibSm3/HashInstanceLibSm3.inf
   }
 
+  SecurityPkg/Tcg/Tcg2PlatformPei/Tcg2PlatformPei.inf {
+    <LibraryClasses>
+      TpmPlatformHierarchyLib|SecurityPkg/Library/PeiDxeTpmPlatformHierarchyLib/PeiDxeTpmPlatformHierarchyLib.inf
+  }
+
   SecurityPkg/Tcg/Tcg2Dxe/Tcg2Dxe.inf {
     <LibraryClasses>
       Tpm2DeviceLib|SecurityPkg/Library/Tpm2DeviceLibRouter/Tpm2DeviceLibRouterDxe.inf
@@ -317,6 +373,11 @@
   SecurityPkg/Tcg/Tcg2Config/Tcg2ConfigDxe.inf {
     <LibraryClasses>
       Tpm2DeviceLib|SecurityPkg/Library/Tpm2DeviceLibTcg2/Tpm2DeviceLibTcg2.inf
+  }
+
+  SecurityPkg/Tcg/Tcg2PlatformDxe/Tcg2PlatformDxe.inf {
+    <LibraryClasses>
+      TpmPlatformHierarchyLib|SecurityPkg/Library/PeiDxeTpmPlatformHierarchyLib/PeiDxeTpmPlatformHierarchyLib.inf
   }
 
   #
@@ -361,4 +422,3 @@
    MSFT:*_*_IA32_DLINK_FLAGS = /ALIGN:256
   INTEL:*_*_IA32_DLINK_FLAGS = /ALIGN:256
         *_*_*_CC_FLAGS       = -D DISABLE_NEW_DEPRECATED_INTERFACES
-

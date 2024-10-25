@@ -35,30 +35,25 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
+#include <iprt/initterm.h>
+#include <iprt/time.h>
+
 #include "nsXPCOM.h"
 #include "nsXPCOMPrivate.h"
 #include "nscore.h"
-#include "prlink.h"
 #include "nsCOMPtr.h"
 #include "nsObserverList.h"
 #include "nsObserverService.h"
 #include "nsProperties.h"
 #include "nsIProperties.h"
-#include "nsPersistentProperties.h"
-#include "nsScriptableInputStream.h"
-#include "nsBinaryStream.h"
-#include "nsStorageStream.h"
 
-#include "nsMemoryImpl.h"
 #include "nsDebugImpl.h"
 #include "nsTraceRefcntImpl.h"
 #include "nsErrorService.h"
-#include "nsByteBuffer.h"
 
 #include "nsSupportsArray.h"
 #include "nsArray.h"
 #include "nsSupportsPrimitives.h"
-#include "nsConsoleService.h"
 #include "nsExceptionService.h"
 
 #include "nsComponentManager.h"
@@ -79,13 +74,6 @@
 #include "xptinfo.h"
 #include "nsIInterfaceInfoManager.h"
 
-#include "nsTimerImpl.h"
-#include "TimerThread.h"
-
-#include "nsThread.h"
-#include "nsProcess.h"
-#include "nsEnvironment.h"
-
 #include "nsEmptyEnumerator.h"
 
 #include "nsILocalFile.h"
@@ -97,22 +85,12 @@
 #include "nsDirectoryServiceDefs.h"
 #include "nsCategoryManager.h"
 #include "nsICategoryManager.h"
-#include "nsStringStream.h"
-#include "nsMultiplexInputStream.h"
-
-#include "nsFastLoadService.h"
 
 #include "nsAtomService.h"
 #include "nsAtomTable.h"
 #include "nsTraceRefcnt.h"
-#include "nsTimelineService.h"
 
 #include "nsVariant.h"
-
-#ifdef GC_LEAK_DETECTOR
-#include "nsLeakDetector.h"
-#endif
-#include "nsRecyclingAllocator.h"
 
 #include "SpecialSystemDirectory.h"
 
@@ -120,9 +98,6 @@
 #include "ipcService.h"
 #include "ipcConfig.h"
 #include "ipcCID.h"
-#include "ipcLockService.h"
-#include "ipcLockCID.h"
-#include "tmTransactionService.h"
 #include "ipcDConnectService.h"
 
 #include <locale.h>
@@ -135,16 +110,12 @@
 extern nsresult NS_RegistryGetFactory(nsIFactory** aFactory);
 extern nsresult NS_CategoryManagerGetFactory( nsIFactory** );
 
-#ifdef DEBUG
-extern void _FreeAutoLockStatics();
-#endif
-
 static NS_DEFINE_CID(kComponentManagerCID, NS_COMPONENTMANAGER_CID);
-static NS_DEFINE_CID(kMemoryCID, NS_MEMORY_CID);
 static NS_DEFINE_CID(kEventQueueServiceCID, NS_EVENTQUEUESERVICE_CID);
 
-NS_GENERIC_FACTORY_CONSTRUCTOR(nsProcess)
 NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(nsEventQueueServiceImpl, Init)
+
+static RTTHREAD g_hMainThread = 0;
 
 #define NS_ENVIRONMENT_CLASSNAME "Environment Service"
 
@@ -187,22 +158,10 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(nsSupportsVoidImpl)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsSupportsInterfacePointerImpl)
 
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsArray)
-NS_GENERIC_FACTORY_CONSTRUCTOR(nsConsoleService)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsAtomService)
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsExceptionService)
-NS_GENERIC_FACTORY_CONSTRUCTOR(nsTimerImpl)
-NS_GENERIC_FACTORY_CONSTRUCTOR(nsTimerManager)
-NS_GENERIC_FACTORY_CONSTRUCTOR(nsBinaryOutputStream)
-NS_GENERIC_FACTORY_CONSTRUCTOR(nsBinaryInputStream)
-NS_GENERIC_FACTORY_CONSTRUCTOR(nsStorageStream)
 
 NS_GENERIC_FACTORY_CONSTRUCTOR(nsVariant)
-
-NS_GENERIC_FACTORY_CONSTRUCTOR(nsRecyclingAllocatorImpl)
-
-#ifdef MOZ_TIMELINE
-NS_GENERIC_FACTORY_CONSTRUCTOR(nsTimelineService)
-#endif
 
 static NS_METHOD
 nsXPTIInterfaceInfoManagerGetSingleton(nsISupports* outer,
@@ -292,50 +251,12 @@ static PRBool CheckUpdateFile()
     return LL_CMP(autoregModTime, >, compregModTime);
 }
 
-#if 0 /// @todo later
-NS_GENERIC_FACTORY_CONSTRUCTOR(ipcService)
-NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(ipcLockService, Init)
-NS_GENERIC_FACTORY_CONSTRUCTOR(tmTransactionService)
-NS_GENERIC_FACTORY_CONSTRUCTOR_INIT(ipcDConnectService, Init)
-
-// enable this code to make the IPC DCONNECT service auto-start.
-NS_METHOD
-ipcDConnectServiceRegisterProc(nsIComponentManager *aCompMgr,
-                               nsIFile *aPath,
-                               const char *registryLocation,
-                               const char *componentType,
-                               const nsModuleComponentInfo *info)
-{
-    //
-    // add ipcService to the XPCOM startup category
-    //
-    nsCOMPtr<nsICategoryManager> catman(do_GetService(NS_CATEGORYMANAGER_CONTRACTID));
-    if (catman) {
-        nsXPIDLCString prevEntry;
-        catman->AddCategoryEntry(NS_XPCOM_STARTUP_OBSERVER_ID, "ipcDConnectService",
-                                 IPC_DCONNECTSERVICE_CONTRACTID, PR_TRUE, PR_TRUE,
-                                 getter_Copies(prevEntry));
-    }
-    return NS_OK;
-}
-
-NS_METHOD
-ipcDConnectServiceUnregisterProc(nsIComponentManager *aCompMgr,
-                                 nsIFile *aPath,
-                                 const char *registryLocation,
-                                 const nsModuleComponentInfo *info)
-{
-    nsCOMPtr<nsICategoryManager> catman(do_GetService(NS_CATEGORYMANAGER_CONTRACTID));
-    if (catman)
-        catman->DeleteCategoryEntry(NS_XPCOM_STARTUP_OBSERVER_ID,
-                                    IPC_DCONNECTSERVICE_CONTRACTID, PR_TRUE);
-    return NS_OK;
-}
-#endif
-
 nsComponentManagerImpl* nsComponentManagerImpl::gComponentManager = NULL;
 nsIProperties     *gDirectoryService = NULL;
 PRBool gXPCOMShuttingDown = PR_FALSE;
+#ifdef VBOX
+static PRBool gXPCOMInitialized = PR_FALSE;
+#endif
 
 // For each class that wishes to support nsIClassInfo, add a line like this
 // NS_DECL_CLASSINFO(nsMyClass)
@@ -349,42 +270,24 @@ PRBool gXPCOMShuttingDown = PR_FALSE;
    &NS_CLASSINFO_NAME(Class) }
 
 static const nsModuleComponentInfo components[] = {
-    COMPONENT(MEMORY, nsMemoryImpl::Create),
     COMPONENT(DEBUG,  nsDebugImpl::Create),
 #define NS_ERRORSERVICE_CLASSNAME NS_ERRORSERVICE_NAME
     COMPONENT(ERRORSERVICE, nsErrorService::Create),
 
-    COMPONENT(BYTEBUFFER, ByteBufferImpl::Create),
-    COMPONENT(SCRIPTABLEINPUTSTREAM, nsScriptableInputStream::Create),
-    COMPONENT(BINARYINPUTSTREAM, nsBinaryInputStreamConstructor),
-    COMPONENT(BINARYOUTPUTSTREAM, nsBinaryOutputStreamConstructor),
-    COMPONENT(STORAGESTREAM, nsStorageStreamConstructor),
-
 #define NS_PROPERTIES_CLASSNAME  "Properties"
     COMPONENT(PROPERTIES, nsProperties::Create),
 
-#define NS_PERSISTENTPROPERTIES_CID NS_IPERSISTENTPROPERTIES_CID /* sigh */
-    COMPONENT(PERSISTENTPROPERTIES, nsPersistentProperties::Create),
-
     COMPONENT(SUPPORTSARRAY, nsSupportsArray::Create),
     COMPONENT(ARRAY, nsArrayConstructor),
-    COMPONENT(CONSOLESERVICE, nsConsoleServiceConstructor),
     COMPONENT(EXCEPTIONSERVICE, nsExceptionServiceConstructor),
     COMPONENT(ATOMSERVICE, nsAtomServiceConstructor),
-#ifdef MOZ_TIMELINE
-    COMPONENT(TIMELINESERVICE, nsTimelineServiceConstructor),
-#endif
     COMPONENT(OBSERVERSERVICE, nsObserverService::Create),
     COMPONENT(GENERICFACTORY, nsGenericFactory::Create),
     COMPONENT(EVENTQUEUESERVICE, nsEventQueueServiceImplConstructor),
     COMPONENT(EVENTQUEUE, nsEventQueueImpl::Create),
-    COMPONENT(THREAD, nsThread::Create),
 
 #define NS_XPCOMPROXY_CID NS_PROXYEVENT_MANAGER_CID
     COMPONENT(XPCOMPROXY, nsProxyObjectManager::Create),
-
-    COMPONENT(TIMER, nsTimerImplConstructor),
-    COMPONENT(TIMERMANAGER, nsTimerManagerConstructor),
 
 #define COMPONENT_SUPPORTS(TYPE, Type)                                         \
   COMPONENT(SUPPORTS_##TYPE, nsSupports##Type##ImplConstructor)
@@ -412,68 +315,14 @@ static const nsModuleComponentInfo components[] = {
     COMPONENT(LOCAL_FILE, nsLocalFile::nsLocalFileConstructor),
 #define NS_DIRECTORY_SERVICE_CLASSNAME  "nsIFile Directory Service"
     COMPONENT(DIRECTORY_SERVICE, nsDirectoryService::Create),
-    COMPONENT(PROCESS, nsProcessConstructor),
-    COMPONENT(ENVIRONMENT, nsEnvironment::Create),
 
-    COMPONENT(STRINGINPUTSTREAM, nsStringInputStreamConstructor),
-    COMPONENT(MULTIPLEXINPUTSTREAM, nsMultiplexInputStreamConstructor),
-
-    COMPONENT(FASTLOADSERVICE, nsFastLoadService::Create),
     COMPONENT(VARIANT, nsVariantConstructor),
     COMPONENT(INTERFACEINFOMANAGER_SERVICE, nsXPTIInterfaceInfoManagerGetSingleton),
-
-    COMPONENT(RECYCLINGALLOCATOR, nsRecyclingAllocatorImplConstructor),
-
-#if 0 /// @todo later
-  { IPC_SERVICE_CLASSNAME,
-    IPC_SERVICE_CID,
-    IPC_SERVICE_CONTRACTID,
-    ipcServiceConstructor },
-    /*
-    ipcServiceRegisterProc,
-    ipcServiceUnregisterProc },
-    */
-  //
-  // extensions go here:
-  //
-  { IPC_LOCKSERVICE_CLASSNAME,
-    IPC_LOCKSERVICE_CID,
-    IPC_LOCKSERVICE_CONTRACTID,
-    ipcLockServiceConstructor },
-  { IPC_TRANSACTIONSERVICE_CLASSNAME,
-    IPC_TRANSACTIONSERVICE_CID,
-    IPC_TRANSACTIONSERVICE_CONTRACTID,
-    tmTransactionServiceConstructor },
-
-#ifdef BUILD_DCONNECT
-  { IPC_DCONNECTSERVICE_CLASSNAME,
-    IPC_DCONNECTSERVICE_CID,
-    IPC_DCONNECTSERVICE_CONTRACTID,
-    ipcDConnectServiceConstructor,
-    ipcDConnectServiceRegisterProc,
-    ipcDConnectServiceUnregisterProc },
-#endif
-#endif
 };
 
 #undef COMPONENT
 
 const int components_length = sizeof(components) / sizeof(components[0]);
-
-// gMemory will be freed during shutdown.
-static nsIMemory* gMemory = nsnull;
-nsresult NS_COM NS_GetMemoryManager(nsIMemory* *result)
-{
-    nsresult rv = NS_OK;
-    if (!gMemory)
-    {
-        rv = nsMemoryImpl::Create(nsnull,
-                                  NS_GET_IID(nsIMemory),
-                                  (void**)&gMemory);
-    }
-    NS_IF_ADDREF(*result = gMemory);
-    return rv;
-}
 
 // gDebug will be freed during shutdown.
 static nsIDebug* gDebug = nsnull;
@@ -512,10 +361,21 @@ nsresult NS_COM NS_GetTraceRefcnt(nsITraceRefcnt** result)
 #endif
 }
 
-nsresult NS_COM NS_InitXPCOM(nsIServiceManager* *result,
-                             nsIFile* binDirectory)
+#ifdef VBOX
+PRBool NS_COM NS_IsXPCOMInitialized(void)
 {
-    return NS_InitXPCOM2(result, binDirectory, nsnull);
+    return gXPCOMInitialized;
+}
+#endif
+
+nsresult NS_COM
+NS_GetMainThread(RTTHREAD *phThreadMain)
+{
+    NS_ASSERTION(phThreadMain, "bad result pointer");
+    if (g_hMainThread == NIL_RTTHREAD)
+        return NS_ERROR_FAILURE;
+    *phThreadMain = g_hMainThread;
+    return NS_OK;
 }
 
 nsresult NS_COM NS_InitXPCOM2(nsIServiceManager* *result,
@@ -523,6 +383,9 @@ nsresult NS_COM NS_InitXPCOM2(nsIServiceManager* *result,
                               nsIDirectoryServiceProvider* appFileLocationProvider)
 {
     nsresult rv = NS_OK;
+
+    /* Make sure IPRT is initialized. */
+    RTR3InitDll(RTR3INIT_FLAGS_UNOBTRUSIVE);
 
      // We are not shutting down
     gXPCOMShuttingDown = PR_FALSE;
@@ -532,16 +395,7 @@ nsresult NS_COM NS_InitXPCOM2(nsIServiceManager* *result,
 #endif
 
     // Establish the main thread here.
-    rv = nsIThread::SetMainThread();
-    if (NS_FAILED(rv)) return rv;
-
-    // Set up the timer globals/timer thread
-    rv = nsTimerImpl::Startup();
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    // Startup the memory manager
-    rv = nsMemoryImpl::Startup();
-    if (NS_FAILED(rv)) return rv;
+    g_hMainThread = RTThreadSelf();
 
     // If the locale hasn't already been setup by our embedder,
     // get us out of the "C" locale and into the system
@@ -624,19 +478,8 @@ nsresult NS_COM NS_InitXPCOM2(nsIServiceManager* *result,
         }
     }
 
-    nsCOMPtr<nsIMemory> memory;
-    NS_GetMemoryManager(getter_AddRefs(memory));
-    // dougt - these calls will be moved into a new interface when nsIComponentManager is frozen.
-    rv = compMgr->RegisterService(kMemoryCID, memory);
-    if (NS_FAILED(rv)) return rv;
-
     rv = compMgr->RegisterService(kComponentManagerCID, NS_STATIC_CAST(nsIComponentManager*, compMgr));
     if (NS_FAILED(rv)) return rv;
-
-#ifdef GC_LEAK_DETECTOR
-  rv = NS_InitLeakDetector();
-    if (NS_FAILED(rv)) return rv;
-#endif
 
     // 2. Register the global services with the component manager so that
     //    clients can create new objects.
@@ -758,7 +601,9 @@ nsresult NS_COM NS_InitXPCOM2(nsIServiceManager* *result,
         rv = gDirectoryService->Get(NS_XPCOM_COMPONENT_REGISTRY_FILE,
                                     NS_GET_IID(nsIFile),
                                     getter_AddRefs(compregFile));
-        compregFile->SetLastModifiedTime(PR_Now() / 1000);
+        RTTIMESPEC Time;
+        RTTimeNow(&Time);
+        compregFile->SetLastModifiedTime(RTTimeSpecGetMilli(&Time));
     }
 
     // Pay the cost at startup time of starting this singleton.
@@ -784,6 +629,9 @@ nsresult NS_COM NS_InitXPCOM2(nsIServiceManager* *result,
                                   nsnull,
                                   NS_XPCOM_STARTUP_OBSERVER_ID);
 
+#ifdef VBOX
+    gXPCOMInitialized = PR_TRUE;
+#endif
     return NS_OK;
 }
 
@@ -921,10 +769,6 @@ nsresult NS_COM NS_ShutdownXPCOM(nsIServiceManager* servMgr)
     NS_ShutdownNativeCharsetUtils();
 #endif
 
-    // Shutdown the timer thread and all timers that might still be alive before
-    // shutting down the component manager
-    nsTimerImpl::Shutdown();
-
     CallExitRoutines();
 
     // Shutdown xpcom. This will release all loaders and cause others holding
@@ -950,17 +794,10 @@ nsresult NS_COM NS_ShutdownXPCOM(nsIServiceManager* servMgr)
     }
     nsComponentManagerImpl::gComponentManager = nsnull;
 
-#ifdef DEBUG
-    _FreeAutoLockStatics();
-#endif
-
     ShutdownSpecialSystemDirectory();
 
     EmptyEnumeratorImpl::Shutdown();
-    nsMemoryImpl::Shutdown();
-    NS_IF_RELEASE(gMemory);
 
-    nsThread::Shutdown();
     NS_PurgeAtomTable();
 
     NS_IF_RELEASE(gDebug);
@@ -971,109 +808,9 @@ nsresult NS_COM NS_ShutdownXPCOM(nsIServiceManager* servMgr)
     nsTraceRefcntImpl::Shutdown();
 #endif
 
-#ifdef GC_LEAK_DETECTOR
-    // Shutdown the Leak detector.
-    NS_ShutdownLeakDetector();
+#ifdef VBOX
+    gXPCOMInitialized = PR_FALSE;
 #endif
-
     return NS_OK;
 }
 
-#define GET_FUNC(_tag, _decl, _name)                        \
-  functions->_tag = (_decl) PR_FindSymbol(xpcomLib, _name); \
-  if (!functions->_tag) goto end
-
-nsresult NS_COM PR_CALLBACK
-NS_GetFrozenFunctions(XPCOMFunctions *functions, const char* libraryPath)
-{
-    if (!functions)
-        return NS_ERROR_OUT_OF_MEMORY;
-
-    if (functions->version != XPCOM_GLUE_VERSION)
-        return NS_ERROR_FAILURE;
-
-    PRLibrary *xpcomLib = PR_LoadLibrary(libraryPath);
-    if (!xpcomLib)
-        return NS_ERROR_FAILURE;
-
-    nsresult rv = NS_ERROR_FAILURE;
-
-#ifdef VBOX_WITH_XPCOM_NAMESPACE_CLEANUP
-    GET_FUNC(init,                  InitFunc,                       "VBoxNsxpNS_InitXPCOM2");
-    GET_FUNC(shutdown,              ShutdownFunc,                   "VBoxNsxpNS_ShutdownXPCOM");
-    GET_FUNC(getServiceManager,     GetServiceManagerFunc,          "VBoxNsxpNS_GetServiceManager");
-    GET_FUNC(getComponentManager,   GetComponentManagerFunc,        "VBoxNsxpNS_GetComponentManager");
-    GET_FUNC(getComponentRegistrar, GetComponentRegistrarFunc,      "VBoxNsxpNS_GetComponentRegistrar");
-    GET_FUNC(getMemoryManager,      GetMemoryManagerFunc,           "VBoxNsxpNS_GetMemoryManager");
-    GET_FUNC(newLocalFile,          NewLocalFileFunc,               "VBoxNsxpNS_NewLocalFile");
-    GET_FUNC(newNativeLocalFile,    NewNativeLocalFileFunc,         "VBoxNsxpNS_NewNativeLocalFile");
-    GET_FUNC(registerExitRoutine,   RegisterXPCOMExitRoutineFunc,   "VBoxNsxpNS_RegisterXPCOMExitRoutine");
-    GET_FUNC(unregisterExitRoutine, UnregisterXPCOMExitRoutineFunc, "VBoxNsxpNS_UnregisterXPCOMExitRoutine");
-#else /* !VBOX_WITH_XPCOM_NAMESPACE_CLEANUP */
-    GET_FUNC(init,                  InitFunc,                       "NS_InitXPCOM2");
-    GET_FUNC(shutdown,              ShutdownFunc,                   "NS_ShutdownXPCOM");
-    GET_FUNC(getServiceManager,     GetServiceManagerFunc,          "NS_GetServiceManager");
-    GET_FUNC(getComponentManager,   GetComponentManagerFunc,        "NS_GetComponentManager");
-    GET_FUNC(getComponentRegistrar, GetComponentRegistrarFunc,      "NS_GetComponentRegistrar");
-    GET_FUNC(getMemoryManager,      GetMemoryManagerFunc,           "NS_GetMemoryManager");
-    GET_FUNC(newLocalFile,          NewLocalFileFunc,               "NS_NewLocalFile");
-    GET_FUNC(newNativeLocalFile,    NewNativeLocalFileFunc,         "NS_NewNativeLocalFile");
-    GET_FUNC(registerExitRoutine,   RegisterXPCOMExitRoutineFunc,   "NS_RegisterXPCOMExitRoutine");
-    GET_FUNC(unregisterExitRoutine, UnregisterXPCOMExitRoutineFunc, "NS_UnregisterXPCOMExitRoutine");
-#endif /* !VBOX_WITH_XPCOM_NAMESPACE_CLEANUP */
-
-    // these functions were added post 1.4 (need to check size of |functions|)
-    if (functions->size > offsetof(XPCOMFunctions, getTraceRefcnt)) {
-#ifdef VBOX_WITH_XPCOM_NAMESPACE_CLEANUP
-        GET_FUNC(getDebug,          GetDebugFunc,                   "VBoxNsxpNS_GetDebug");
-        GET_FUNC(getTraceRefcnt,    GetTraceRefcntFunc,             "VBoxNsxpNS_GetTraceRefcnt");
-#else /* !VBOX_WITH_XPCOM_NAMESPACE_CLEANUP */
-        GET_FUNC(getDebug,          GetDebugFunc,                   "NS_GetDebug");
-        GET_FUNC(getTraceRefcnt,    GetTraceRefcntFunc,             "NS_GetTraceRefcnt");
-#endif /* !VBOX_WITH_XPCOM_NAMESPACE_CLEANUP */
-    }
-
-    // these functions were added post 1.6 (need to check size of |functions|)
-    if (functions->size > offsetof(XPCOMFunctions, cstringCloneData)) {
-#ifdef VBOX_WITH_XPCOM_NAMESPACE_CLEANUP
-        GET_FUNC(stringContainerInit,    StringContainerInitFunc,        "VBoxNsxpNS_StringContainerInit");
-        GET_FUNC(stringContainerFinish,  StringContainerFinishFunc,      "VBoxNsxpNS_StringContainerFinish");
-        GET_FUNC(stringGetData,          StringGetDataFunc,              "VBoxNsxpNS_StringGetData");
-        GET_FUNC(stringSetData,          StringSetDataFunc,              "VBoxNsxpNS_StringSetData");
-        GET_FUNC(stringSetDataRange,     StringSetDataRangeFunc,         "VBoxNsxpNS_StringSetDataRange");
-        GET_FUNC(stringCopy,             StringCopyFunc,                 "VBoxNsxpNS_StringCopy");
-        GET_FUNC(cstringContainerInit,   CStringContainerInitFunc,       "VBoxNsxpNS_CStringContainerInit");
-        GET_FUNC(cstringContainerFinish, CStringContainerFinishFunc,     "VBoxNsxpNS_CStringContainerFinish");
-        GET_FUNC(cstringGetData,         CStringGetDataFunc,             "VBoxNsxpNS_CStringGetData");
-        GET_FUNC(cstringSetData,         CStringSetDataFunc,             "VBoxNsxpNS_CStringSetData");
-        GET_FUNC(cstringSetDataRange,    CStringSetDataRangeFunc,        "VBoxNsxpNS_CStringSetDataRange");
-        GET_FUNC(cstringCopy,            CStringCopyFunc,                "VBoxNsxpNS_CStringCopy");
-        GET_FUNC(cstringToUTF16,         CStringToUTF16,                 "VBoxNsxpNS_CStringToUTF16");
-        GET_FUNC(utf16ToCString,         UTF16ToCString,                 "VBoxNsxpNS_UTF16ToCString");
-        GET_FUNC(stringCloneData,        StringCloneDataFunc,            "VBoxNsxpNS_StringCloneData");
-        GET_FUNC(cstringCloneData,       CStringCloneDataFunc,           "VBoxNsxpNS_CStringCloneData");
-#else /* !VBOX_WITH_XPCOM_NAMESPACE_CLEANUP */
-        GET_FUNC(stringContainerInit,    StringContainerInitFunc,        "NS_StringContainerInit");
-        GET_FUNC(stringContainerFinish,  StringContainerFinishFunc,      "NS_StringContainerFinish");
-        GET_FUNC(stringGetData,          StringGetDataFunc,              "NS_StringGetData");
-        GET_FUNC(stringSetData,          StringSetDataFunc,              "NS_StringSetData");
-        GET_FUNC(stringSetDataRange,     StringSetDataRangeFunc,         "NS_StringSetDataRange");
-        GET_FUNC(stringCopy,             StringCopyFunc,                 "NS_StringCopy");
-        GET_FUNC(cstringContainerInit,   CStringContainerInitFunc,       "NS_CStringContainerInit");
-        GET_FUNC(cstringContainerFinish, CStringContainerFinishFunc,     "NS_CStringContainerFinish");
-        GET_FUNC(cstringGetData,         CStringGetDataFunc,             "NS_CStringGetData");
-        GET_FUNC(cstringSetData,         CStringSetDataFunc,             "NS_CStringSetData");
-        GET_FUNC(cstringSetDataRange,    CStringSetDataRangeFunc,        "NS_CStringSetDataRange");
-        GET_FUNC(cstringCopy,            CStringCopyFunc,                "NS_CStringCopy");
-        GET_FUNC(cstringToUTF16,         CStringToUTF16,                 "NS_CStringToUTF16");
-        GET_FUNC(utf16ToCString,         UTF16ToCString,                 "NS_UTF16ToCString");
-        GET_FUNC(stringCloneData,        StringCloneDataFunc,            "NS_StringCloneData");
-        GET_FUNC(cstringCloneData,       CStringCloneDataFunc,           "NS_CStringCloneData");
-#endif /* !VBOX_WITH_XPCOM_NAMESPACE_CLEANUP */
-    }
-
-    rv = NS_OK;
-end:
-    PR_UnloadLibrary(xpcomLib); // the library is refcnt'ed above by the caller.
-    return rv;
-}

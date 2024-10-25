@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1161,11 +1161,18 @@ typedef struct DBGF
     /** @} */
 
     /**
-     * Bug check data.
-     * @note This will not be reset on reset.
+     * Bug check configuration and data.
+     * @note The data will not be reset on reset.
      */
     struct
     {
+        /** Whether to power off the VM on BSOD.   */
+        bool                    fCfgPowerOffOnBsod;
+        /** Whether to suspend the VM on BSOD.   */
+        bool                    fCfgSuspendOnBsod;
+        /** Explicit padding. */
+        bool                    afReserved[2];
+
         /** The ID of the CPU reporting it. */
         VMCPUID                 idCpu;
         /** The event associated with the bug check (gives source).
@@ -1173,8 +1180,6 @@ typedef struct DBGF
         DBGFEVENTTYPE           enmEvent;
         /** The total reset count at the time (VMGetResetCount). */
         uint32_t                uResetNo;
-        /** Explicit padding. */
-        uint32_t                uPadding;
         /** When it was reported (TMVirtualGet). */
         uint64_t                uTimestamp;
         /** The bug check number.
@@ -1357,10 +1362,12 @@ typedef struct DBGFUSERPERVM
     /** The number of registers (aliases, sub-fields and the special CPU
      * register aliases (eg AH) are not counted). */
     uint32_t                    cRegs;
+    /** Number of registers per CPU. */
+    uint16_t                    cPerCpuRegs;
+    /** Number of hypervisor register per CPU. */
+    uint8_t                     cPerCpuHyperRegs;
     /** For early initialization by . */
     bool volatile               fRegDbInitialized;
-    /** Alignment padding. */
-    bool                        afAlignment2[3];
 
     /** Critical section protecting the Guest OS Digger data, the info handlers
      * and the plugins.  These share to give the best possible plugin unload

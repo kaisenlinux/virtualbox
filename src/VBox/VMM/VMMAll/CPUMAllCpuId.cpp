@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -650,6 +650,9 @@ VMMDECL(const char *) CPUMMicroarchName(CPUMMICROARCH enmMicroarch)
         CASE_RET_STR(kCpumMicroarch_NEC_V20);
         CASE_RET_STR(kCpumMicroarch_NEC_V30);
 
+        CASE_RET_STR(kCpumMicroarch_Apple_M1);
+        CASE_RET_STR(kCpumMicroarch_Apple_M2);
+
         CASE_RET_STR(kCpumMicroarch_Unknown);
 
 #undef CASE_RET_STR
@@ -672,6 +675,7 @@ VMMDECL(const char *) CPUMMicroarchName(CPUMMICROARCH enmMicroarch)
         case kCpumMicroarch_Shanghai_End:
         case kCpumMicroarch_Cyrix_End:
         case kCpumMicroarch_NEC_End:
+        case kCpumMicroarch_Apple_End:
         case kCpumMicroarch_32BitHack:
             break;
         /* no default! */
@@ -1209,6 +1213,7 @@ VMMDECL(const char *) CPUMCpuVendorName(CPUMCPUVENDOR enmVendor)
         case CPUMCPUVENDOR_CYRIX:       return "CYRIX";
         case CPUMCPUVENDOR_SHANGHAI:    return "SHANGHAI";
         case CPUMCPUVENDOR_HYGON:       return "HYGON";
+        case CPUMCPUVENDOR_APPLE:       return "APPLE";
         case CPUMCPUVENDOR_UNKNOWN:     return "UNKNOWN";
 
         case CPUMCPUVENDOR_INVALID:
@@ -1327,18 +1332,27 @@ static void cpumExplodeVmxFeatures(PCVMXMSRS pVmxMsrs, PCPUMFEATURES pFeatures)
         pFeatures->fVmxEptXcptVe             = RT_BOOL(fProcCtls2 & VMX_PROC_CTLS2_EPT_XCPT_VE);
         pFeatures->fVmxConcealVmxFromPt      = RT_BOOL(fProcCtls2 & VMX_PROC_CTLS2_CONCEAL_VMX_FROM_PT);
         pFeatures->fVmxXsavesXrstors         = RT_BOOL(fProcCtls2 & VMX_PROC_CTLS2_XSAVES_XRSTORS);
+        pFeatures->fVmxPasidTranslate        = RT_BOOL(fProcCtls2 & VMX_PROC_CTLS2_PASID_TRANSLATE);
         pFeatures->fVmxModeBasedExecuteEpt   = RT_BOOL(fProcCtls2 & VMX_PROC_CTLS2_MODE_BASED_EPT_PERM);
         pFeatures->fVmxSppEpt                = RT_BOOL(fProcCtls2 & VMX_PROC_CTLS2_SPP_EPT);
         pFeatures->fVmxPtEpt                 = RT_BOOL(fProcCtls2 & VMX_PROC_CTLS2_PT_EPT);
         pFeatures->fVmxUseTscScaling         = RT_BOOL(fProcCtls2 & VMX_PROC_CTLS2_TSC_SCALING);
         pFeatures->fVmxUserWaitPause         = RT_BOOL(fProcCtls2 & VMX_PROC_CTLS2_USER_WAIT_PAUSE);
+        pFeatures->fVmxPconfig               = RT_BOOL(fProcCtls2 & VMX_PROC_CTLS2_PCONFIG);
         pFeatures->fVmxEnclvExit             = RT_BOOL(fProcCtls2 & VMX_PROC_CTLS2_ENCLV_EXIT);
+        pFeatures->fVmxBusLockDetect         = RT_BOOL(fProcCtls2 & VMX_PROC_CTLS2_BUS_LOCK_DETECT);
+        pFeatures->fVmxInstrTimeout          = RT_BOOL(fProcCtls2 & VMX_PROC_CTLS2_INSTR_TIMEOUT);
     }
 
     /* Tertiary processor-based VM-execution controls. */
     {
         uint64_t const fProcCtls3 = pFeatures->fVmxTertiaryExecCtls ? pVmxMsrs->u64ProcCtls3 : 0;
         pFeatures->fVmxLoadIwKeyExit         = RT_BOOL(fProcCtls3 & VMX_PROC_CTLS3_LOADIWKEY_EXIT);
+        pFeatures->fVmxHlat                  = RT_BOOL(fProcCtls3 & VMX_PROC_CTLS3_HLAT);
+        pFeatures->fVmxEptPagingWrite        = RT_BOOL(fProcCtls3 & VMX_PROC_CTLS3_EPT_PAGING_WRITE);
+        pFeatures->fVmxGstPagingVerify       = RT_BOOL(fProcCtls3 & VMX_PROC_CTLS3_GST_PAGING_VERIFY);
+        pFeatures->fVmxIpiVirt               = RT_BOOL(fProcCtls3 & VMX_PROC_CTLS3_IPI_VIRT);
+        pFeatures->fVmxVirtSpecCtrl          = RT_BOOL(fProcCtls3 & VMX_PROC_CTLS3_VIRT_SPEC_CTRL);
     }
 
     /* VM-exit controls. */
@@ -1434,15 +1448,18 @@ int cpumCpuIdExplodeFeaturesX86(PCCPUMCPUIDLEAF paLeaves, uint32_t cLeaves, PCCP
         pFeatures->fSse2                = RT_BOOL(pStd1Leaf->uEdx & X86_CPUID_FEATURE_EDX_SSE2);
         pFeatures->fSse3                = RT_BOOL(pStd1Leaf->uEcx & X86_CPUID_FEATURE_ECX_SSE3);
         pFeatures->fSsse3               = RT_BOOL(pStd1Leaf->uEcx & X86_CPUID_FEATURE_ECX_SSSE3);
+        pFeatures->fFma                 = RT_BOOL(pStd1Leaf->uEcx & X86_CPUID_FEATURE_ECX_FMA);
         pFeatures->fSse41               = RT_BOOL(pStd1Leaf->uEcx & X86_CPUID_FEATURE_ECX_SSE4_1);
         pFeatures->fSse42               = RT_BOOL(pStd1Leaf->uEcx & X86_CPUID_FEATURE_ECX_SSE4_2);
         pFeatures->fAesNi               = RT_BOOL(pStd1Leaf->uEcx & X86_CPUID_FEATURE_ECX_AES);
         pFeatures->fAvx                 = RT_BOOL(pStd1Leaf->uEcx & X86_CPUID_FEATURE_ECX_AVX);
         pFeatures->fTsc                 = RT_BOOL(pStd1Leaf->uEdx & X86_CPUID_FEATURE_EDX_TSC);
         pFeatures->fSysEnter            = RT_BOOL(pStd1Leaf->uEdx & X86_CPUID_FEATURE_EDX_SEP);
+        pFeatures->fMtrr                = RT_BOOL(pStd1Leaf->uEdx & X86_CPUID_FEATURE_EDX_MTRR);
         pFeatures->fHypervisorPresent   = RT_BOOL(pStd1Leaf->uEcx & X86_CPUID_FEATURE_ECX_HVP);
         pFeatures->fMonitorMWait        = RT_BOOL(pStd1Leaf->uEcx & X86_CPUID_FEATURE_ECX_MONITOR);
-        pFeatures->fMovCmpXchg16b       = RT_BOOL(pStd1Leaf->uEcx & X86_CPUID_FEATURE_ECX_CX16);
+        pFeatures->fCmpXchg8b           = RT_BOOL(pStd1Leaf->uEdx & X86_CPUID_FEATURE_EDX_CX8);
+        pFeatures->fCmpXchg16b          = RT_BOOL(pStd1Leaf->uEcx & X86_CPUID_FEATURE_ECX_CX16);
         pFeatures->fClFlush             = RT_BOOL(pStd1Leaf->uEdx & X86_CPUID_FEATURE_EDX_CLFSH);
         pFeatures->fPcid                = RT_BOOL(pStd1Leaf->uEcx & X86_CPUID_FEATURE_ECX_PCID);
         pFeatures->fPopCnt              = RT_BOOL(pStd1Leaf->uEcx & X86_CPUID_FEATURE_ECX_POPCNT);
@@ -1450,6 +1467,7 @@ int cpumCpuIdExplodeFeaturesX86(PCCPUMCPUIDLEAF paLeaves, uint32_t cLeaves, PCCP
         pFeatures->fVmx                 = RT_BOOL(pStd1Leaf->uEcx & X86_CPUID_FEATURE_ECX_VMX);
         pFeatures->fPclMul              = RT_BOOL(pStd1Leaf->uEcx & X86_CPUID_FEATURE_ECX_PCLMUL);
         pFeatures->fMovBe               = RT_BOOL(pStd1Leaf->uEcx & X86_CPUID_FEATURE_ECX_MOVBE);
+        pFeatures->fF16c                = RT_BOOL(pStd1Leaf->uEcx & X86_CPUID_FEATURE_ECX_F16C);
         if (pFeatures->fVmx)
             cpumExplodeVmxFeatures(&pMsrs->hwvirt.vmx, pFeatures);
 
@@ -1467,6 +1485,8 @@ int cpumCpuIdExplodeFeaturesX86(PCCPUMCPUIDLEAF paLeaves, uint32_t cLeaves, PCCP
             pFeatures->fRdSeed              = RT_BOOL(pSxfLeaf0->uEbx & X86_CPUID_STEXT_FEATURE_EBX_RDSEED);
             pFeatures->fHle                 = RT_BOOL(pSxfLeaf0->uEbx & X86_CPUID_STEXT_FEATURE_EBX_HLE);
             pFeatures->fRtm                 = RT_BOOL(pSxfLeaf0->uEbx & X86_CPUID_STEXT_FEATURE_EBX_RTM);
+            pFeatures->fSha                 = RT_BOOL(pSxfLeaf0->uEbx & X86_CPUID_STEXT_FEATURE_EBX_SHA);
+            pFeatures->fAdx                 = RT_BOOL(pSxfLeaf0->uEbx & X86_CPUID_STEXT_FEATURE_EBX_ADX);
 
             pFeatures->fIbpb                = RT_BOOL(pSxfLeaf0->uEdx & X86_CPUID_STEXT_FEATURE_EDX_IBRS_IBPB);
             pFeatures->fIbrs                = pFeatures->fIbpb;
@@ -1540,10 +1560,17 @@ int cpumCpuIdExplodeFeaturesX86(PCCPUMCPUIDLEAF paLeaves, uint32_t cLeaves, PCCP
                 pFeatures->fSvmVirtVmsaveVmload     = RT_BOOL(pSvmLeaf->uEdx & X86_CPUID_SVM_FEATURE_EDX_VIRT_VMSAVE_VMLOAD);
                 pFeatures->fSvmVGif                 = RT_BOOL(pSvmLeaf->uEdx & X86_CPUID_SVM_FEATURE_EDX_VGIF);
                 pFeatures->fSvmGmet                 = RT_BOOL(pSvmLeaf->uEdx & X86_CPUID_SVM_FEATURE_EDX_GMET);
+                pFeatures->fSvmX2Avic               = RT_BOOL(pSvmLeaf->uEdx & X86_CPUID_SVM_FEATURE_EDX_X2AVIC);
                 pFeatures->fSvmSSSCheck             = RT_BOOL(pSvmLeaf->uEdx & X86_CPUID_SVM_FEATURE_EDX_SSSCHECK);
                 pFeatures->fSvmSpecCtrl             = RT_BOOL(pSvmLeaf->uEdx & X86_CPUID_SVM_FEATURE_EDX_SPEC_CTRL);
+                pFeatures->fSvmRoGpt                = RT_BOOL(pSvmLeaf->uEdx & X86_CPUID_SVM_FEATURE_EDX_ROGPT);
                 pFeatures->fSvmHostMceOverride      = RT_BOOL(pSvmLeaf->uEdx & X86_CPUID_SVM_FEATURE_EDX_HOST_MCE_OVERRIDE);
                 pFeatures->fSvmTlbiCtl              = RT_BOOL(pSvmLeaf->uEdx & X86_CPUID_SVM_FEATURE_EDX_TLBICTL);
+                pFeatures->fSvmVNmi                 = RT_BOOL(pSvmLeaf->uEdx & X86_CPUID_SVM_FEATURE_EDX_VNMI);
+                pFeatures->fSvmIbsVirt              = RT_BOOL(pSvmLeaf->uEdx & X86_CPUID_SVM_FEATURE_EDX_IBS_VIRT);
+                pFeatures->fSvmExtLvtAvicAccessChg  = RT_BOOL(pSvmLeaf->uEdx & X86_CPUID_SVM_FEATURE_EDX_EXT_LVT_AVIC_ACCESS_CHG);
+                pFeatures->fSvmNstVirtVmcbAddrChk   = RT_BOOL(pSvmLeaf->uEdx & X86_CPUID_SVM_FEATURE_EDX_NST_VIRT_VMCB_ADDR_CHK);
+                pFeatures->fSvmBusLockThreshold     = RT_BOOL(pSvmLeaf->uEdx & X86_CPUID_SVM_FEATURE_EDX_BUS_LOCK_THRESHOLD);
                 pFeatures->uSvmMaxAsid              = pSvmLeaf->uEbx;
             }
         }
@@ -1591,6 +1618,12 @@ int cpumCpuIdExplodeFeaturesX86(PCCPUMCPUIDLEAF paLeaves, uint32_t cLeaves, PCCP
                 AssertLogRelMsgFailedStmt(("Expected leaf eax=0xd/ecx=0 with the XSAVE/XRSTOR feature!\n"),
                                           pFeatures->fXSaveRstor = 0);
         }
+
+        /*
+         * Enable or disable VEX support depending on whether it's needed. Note that AVX,
+         * BMI1, and BMI2 all use VEX encoding but are theoretically independent of each other.
+         */
+        pFeatures->fVex = pFeatures->fAvx | pFeatures->fBmi1 | pFeatures->fBmi2;
     }
     else
         AssertLogRelReturn(cLeaves == 0, VERR_CPUM_IPE_1);

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -151,7 +151,10 @@ static decltype(LogonUserW)            *g_pfnLogonUserW                 = NULL;
 static decltype(CreateProcessAsUserW)  *g_pfnCreateProcessAsUserW       = NULL;
 /* user32.dll: */
 static decltype(OpenWindowStationW)    *g_pfnOpenWindowStationW         = NULL;
-static decltype(CloseWindowStation)    *g_pfnCloseWindowStation        = NULL;
+static decltype(CloseWindowStation)    *g_pfnCloseWindowStation         = NULL;
+/* user32.dll: (for reasons of bad AV heuristics) */
+static decltype(GetUserObjectSecurity) *g_pfnGetUserObjectSecurity     = NULL;
+static decltype(SetUserObjectSecurity) *g_pfnSetUserObjectSecurity     = NULL;
 /* userenv.dll: */
 static PFNCREATEENVIRONMENTBLOCK        g_pfnCreateEnvironmentBlock     = NULL;
 static PFNPFNDESTROYENVIRONMENTBLOCK    g_pfnDestroyEnvironmentBlock    = NULL;
@@ -376,6 +379,13 @@ static DECLCALLBACK(int) rtProcWinResolveOnce(void *pvUser)
 
         rc = RTLdrGetSymbol(hMod, "CloseWindowStation", (void **)&g_pfnCloseWindowStation);
         if (RT_FAILURE(rc)) { g_pfnCloseWindowStation = NULL; Assert(g_enmWinVer <= kRTWinOSType_NT310); }
+
+        /* These are only imported to workaround bad AV detection heuristics. */
+        rc = RTLdrGetSymbol(hMod, "GetUserObjectSecurity", (void **)&g_pfnGetUserObjectSecurity);
+        AssertRC(rc);
+
+        rc = RTLdrGetSymbol(hMod, "SetUserObjectSecurity", (void **)&g_pfnSetUserObjectSecurity);
+        AssertRC(rc);
 
         RTLdrClose(hMod);
     }
@@ -994,14 +1004,15 @@ static bool rtProcWinLogSecAttr(HANDLE hUserObj)
     SECURITY_INFORMATION SecInfo   = DACL_SECURITY_INFORMATION;
     DWORD                cbNeeded;
     AssertReturn(pSecDesc, false);
-    if (!GetUserObjectSecurity(hUserObj, &SecInfo, pSecDesc, cbSecDesc, &cbNeeded))
+    AssertReturn(g_pfnGetUserObjectSecurity, false);
+    if (!g_pfnGetUserObjectSecurity(hUserObj, &SecInfo, pSecDesc, cbSecDesc, &cbNeeded))
     {
         RTMemTmpFree(pSecDesc);
         AssertReturn(GetLastError() == ERROR_INSUFFICIENT_BUFFER, false);
         cbSecDesc = cbNeeded + 128;
         pSecDesc  = (PSECURITY_DESCRIPTOR)RTMemTmpAlloc(cbSecDesc);
         AssertReturn(pSecDesc, false);
-        if (!GetUserObjectSecurity(hUserObj, &SecInfo, pSecDesc, cbSecDesc, &cbNeeded))
+        if (!g_pfnGetUserObjectSecurity(hUserObj, &SecInfo, pSecDesc, cbSecDesc, &cbNeeded))
         {
             RTMemTmpFree(pSecDesc);
             AssertFailedReturn(false);
@@ -1147,14 +1158,15 @@ static PSECURITY_DESCRIPTOR rtProcWinGetUserObjDacl(HANDLE hUserObj, uint32_t *p
     SECURITY_INFORMATION SecInfo   = DACL_SECURITY_INFORMATION;
     DWORD                cbNeeded;
     AssertReturn(pSecDesc, NULL);
-    if (!GetUserObjectSecurity(hUserObj, &SecInfo, pSecDesc, cbSecDesc, &cbNeeded))
+    AssertReturn(g_pfnGetUserObjectSecurity, NULL);
+    if (!g_pfnGetUserObjectSecurity(hUserObj, &SecInfo, pSecDesc, cbSecDesc, &cbNeeded))
     {
         RTMemTmpFree(pSecDesc);
         AssertReturn(GetLastError() == ERROR_INSUFFICIENT_BUFFER, NULL);
         cbSecDesc = cbNeeded + 128;
         pSecDesc  = (PSECURITY_DESCRIPTOR)RTMemTmpAlloc(cbSecDesc);
         AssertReturn(pSecDesc, NULL);
-        if (!GetUserObjectSecurity(hUserObj, &SecInfo, pSecDesc, cbSecDesc, &cbNeeded))
+        if (!g_pfnGetUserObjectSecurity(hUserObj, &SecInfo, pSecDesc, cbSecDesc, &cbNeeded))
         {
             RTMemTmpFree(pSecDesc);
             AssertFailedReturn(NULL);
@@ -1267,6 +1279,7 @@ static bool rtProcWinAddAccessAllowedAce(PACL pDstAcl, uint32_t fAceFlags, uint3
 static bool rtProcWinAddSidToWinStation(HWINSTA hWinStation, PSID pSid)
 {
     bool fRet = false;
+    AssertReturn(g_pfnSetUserObjectSecurity, fRet);
 
     /*
      * Get the current DACL.
@@ -1305,7 +1318,7 @@ static bool rtProcWinAddSidToWinStation(HWINSTA hWinStation, PSID pSid)
                     if (SetSecurityDescriptorDacl(pNewSecDesc, TRUE /*fDaclPresent*/, pNewDacl, FALSE /*fDaclDefaulted*/))
                     {
                         SECURITY_INFORMATION SecInfo = DACL_SECURITY_INFORMATION;
-                        if (SetUserObjectSecurity(hWinStation, &SecInfo, pNewSecDesc))
+                        if (g_pfnSetUserObjectSecurity(hWinStation, &SecInfo, pNewSecDesc))
                             fRet = true;
                         else
                             AssertFailed();
@@ -1339,6 +1352,7 @@ static bool rtProcWinAddSidToWinStation(HWINSTA hWinStation, PSID pSid)
 static bool rtProcWinAddSidToDesktop(HDESK hDesktop, PSID pSid)
 {
     bool fRet = false;
+    AssertReturn(g_pfnSetUserObjectSecurity, fRet);
 
     /*
      * Get the current DACL.
@@ -1375,7 +1389,7 @@ static bool rtProcWinAddSidToDesktop(HDESK hDesktop, PSID pSid)
                     if (SetSecurityDescriptorDacl(pNewSecDesc, TRUE /*fDaclPresent*/, pNewDacl, FALSE /*fDaclDefaulted*/))
                     {
                         SECURITY_INFORMATION SecInfo = DACL_SECURITY_INFORMATION;
-                        if (SetUserObjectSecurity(hDesktop, &SecInfo, pNewSecDesc))
+                        if (g_pfnSetUserObjectSecurity(hDesktop, &SecInfo, pNewSecDesc))
                             fRet = true;
                         else
                             AssertFailed();
@@ -1433,7 +1447,7 @@ static void rtProcWinStationPrep(HANDLE hTokenToUse, STARTUPINFOW *pStartupInfo,
                     if (   rtProcWinAddSidToWinStation(hWinStation0, pSid)
                         && rtProcWinAddSidToDesktop(hDesktop, pSid))
                     {
-                        pStartupInfo->lpDesktop = L"winsta0\\default";
+                        pStartupInfo->lpDesktop = (PWSTR)L"winsta0\\default";
                     }
                     RTMemFree(pSid);
                 }
@@ -1612,7 +1626,7 @@ static int rtProcWinCreateAsUser2(PRTUTF16 pwszUser, PRTUTF16 pwszPassword, PRTU
                                   RTENV hEnv, DWORD dwCreationFlags,
                                   STARTUPINFOW *pStartupInfo, PROCESS_INFORMATION *pProcInfo,
                                   uint32_t fFlags, const char *pszExec, uint32_t idDesiredSession,
-                                  HANDLE hUserToken)
+                                  HANDLE hUserToken, PRTUTF16 pwszCwd)
 {
     /*
      * So if we want to start a process from a service (RTPROC_FLAGS_SERVICE),
@@ -1803,7 +1817,7 @@ static int rtProcWinCreateAsUser2(PRTUTF16 pwszUser, PRTUTF16 pwszPassword, PRTU
                                                                     /** @todo Warn about exceeding 8192 bytes
                                                                      *        on XP and up. */
                                                                     pwszzBlock,   /* lpEnvironment */
-                                                                    NULL,         /* pCurrentDirectory */
+                                                                    pwszCwd,       /* pCurrentDirectory */
                                                                     pStartupInfo,
                                                                     pProcInfo);
                                     if (fRc)
@@ -1941,7 +1955,7 @@ static void rtProcWinDupStdHandleIntoChild(HANDLE hSrcHandle, HANDLE hDstProcess
 static int rtProcWinCreateAsUser1(PRTUTF16 pwszUser, PRTUTF16 pwszPassword, PRTUTF16 *ppwszExec, PRTUTF16 pwszCmdLine,
                                   RTENV hEnv, DWORD dwCreationFlags,
                                   STARTUPINFOW *pStartupInfo, PROCESS_INFORMATION *pProcInfo,
-                                  uint32_t fFlags, const char *pszExec)
+                                  uint32_t fFlags, const char *pszExec, PRTUTF16 pwszCwd)
 {
     /* The CreateProcessWithLogonW API was introduced with W2K and later.  It uses a service
        for launching the process. */
@@ -2041,7 +2055,7 @@ static int rtProcWinCreateAsUser1(PRTUTF16 pwszUser, PRTUTF16 pwszPassword, PRTU
                                                 pwszCmdLine,
                                                 dwCreationFlags | (fCreatedSuspended ? CREATE_SUSPENDED : 0),
                                                 pwszzBlock,
-                                                NULL,                       /* pCurrentDirectory */
+                                                pwszCwd,                     /* pCurrentDirectory */
                                                 pStartupInfo,
                                                 pProcInfo);
         if (fRc)
@@ -2092,7 +2106,7 @@ static int rtProcWinCreateAsUser(PRTUTF16 pwszUser, PRTUTF16 pwszPassword, PRTUT
                                  RTENV hEnv, DWORD dwCreationFlags,
                                  STARTUPINFOW *pStartupInfo, PROCESS_INFORMATION *pProcInfo,
                                  uint32_t fFlags, const char *pszExec, uint32_t idDesiredSession,
-                                 HANDLE hUserToken)
+                                 HANDLE hUserToken, PRTUTF16 pwszCwd)
 {
     /*
      * If we run as a service CreateProcessWithLogon will fail, so don't even
@@ -2104,12 +2118,12 @@ static int rtProcWinCreateAsUser(PRTUTF16 pwszUser, PRTUTF16 pwszPassword, PRTUT
     {
         AssertPtr(pwszUser);
         int rc = rtProcWinCreateAsUser1(pwszUser, pwszPassword, ppwszExec, pwszCmdLine,
-                                        hEnv, dwCreationFlags, pStartupInfo, pProcInfo, fFlags, pszExec);
+                                        hEnv, dwCreationFlags, pStartupInfo, pProcInfo, fFlags, pszExec, pwszCwd);
         if (RT_SUCCESS(rc))
             return rc;
     }
     return rtProcWinCreateAsUser2(pwszUser, pwszPassword, ppwszExec, pwszCmdLine, hEnv, dwCreationFlags,
-                                  pStartupInfo, pProcInfo, fFlags, pszExec, idDesiredSession, hUserToken);
+                                  pStartupInfo, pProcInfo, fFlags, pszExec, idDesiredSession, hUserToken, pwszCwd);
 }
 
 
@@ -2276,15 +2290,32 @@ RTR3DECL(int)   RTProcCreateEx(const char *pszExec, const char * const *papszArg
     AssertPtrNullReturn(pszPassword, VERR_INVALID_POINTER);
 
     /* Extra data: */
+    AssertReturn(   pvExtraData == NULL
+                 || (fFlags & (   RTPROC_FLAGS_DESIRED_SESSION_ID
+                               | RTPROC_FLAGS_TOKEN_SUPPLIED
+                               | RTPROC_FLAGS_CWD)),
+                 VERR_INVALID_PARAMETER);
+
     uint32_t idDesiredSession = UINT32_MAX;
     if (   (fFlags & (RTPROC_FLAGS_DESIRED_SESSION_ID | RTPROC_FLAGS_SERVICE))
         ==           (RTPROC_FLAGS_DESIRED_SESSION_ID | RTPROC_FLAGS_SERVICE))
     {
+        AssertReturn(!(fFlags & (  RTPROC_FLAGS_TOKEN_SUPPLIED
+                                 | RTPROC_FLAGS_CWD)),
+                     VERR_INVALID_PARAMETER);
         AssertPtrReturn(pvExtraData, VERR_INVALID_POINTER);
         idDesiredSession = *(uint32_t *)pvExtraData;
     }
     else
         AssertReturn(!(fFlags & RTPROC_FLAGS_DESIRED_SESSION_ID), VERR_INVALID_FLAGS);
+
+    if (fFlags & RTPROC_FLAGS_CWD)
+    {
+        AssertReturn(!(fFlags & (  RTPROC_FLAGS_DESIRED_SESSION_ID
+                                 | RTPROC_FLAGS_TOKEN_SUPPLIED)),
+                     VERR_INVALID_PARAMETER);
+        AssertPtrReturn(pvExtraData, VERR_INVALID_POINTER);
+    }
 
     HANDLE hUserToken = NULL;
     if (fFlags & RTPROC_FLAGS_TOKEN_SUPPLIED)
@@ -2434,94 +2465,102 @@ RTR3DECL(int)   RTProcCreateEx(const char *pszExec, const char * const *papszArg
                                        ? RTGETOPTARGV_CNV_QUOTE_MS_CRT : RTGETOPTARGV_CNV_UNQUOTED);
     if (RT_SUCCESS(rc))
     {
-        PRTUTF16 pwszExec;
+        PRTUTF16 pwszExec = NULL;
         rc = RTPathWinFromUtf8(&pwszExec, pszExec, 0 /*fFlags*/);
         if (RT_SUCCESS(rc))
         {
-            /*
-             * Get going...
-             */
-            PROCESS_INFORMATION ProcInfo;
-            RT_ZERO(ProcInfo);
-            DWORD dwCreationFlags = CREATE_UNICODE_ENVIRONMENT;
-            if (fFlags & RTPROC_FLAGS_DETACHED)
-                dwCreationFlags |= DETACHED_PROCESS;
-            if (fFlags & RTPROC_FLAGS_NO_WINDOW)
-                dwCreationFlags |= CREATE_NO_WINDOW;
-
-            /*
-             * Only use the normal CreateProcess stuff if we have no user name
-             * and we are not running from a (Windows) service. Otherwise use
-             * the more advanced version in rtProcWinCreateAsUser().
-             */
-            if (   pszAsUser == NULL
-                && !(fFlags & (RTPROC_FLAGS_SERVICE | RTPROC_FLAGS_AS_IMPERSONATED_TOKEN | RTPROC_FLAGS_TOKEN_SUPPLIED)))
-            {
-                /* Create the environment block first. */
-                PRTUTF16 pwszzBlock;
-                rc = rtProcWinCreateEnvBlockAndFindExe(fFlags, hEnv, pszExec, &pwszzBlock, &pwszExec);
-                if (RT_SUCCESS(rc))
-                {
-                    if (CreateProcessW(pwszExec,
-                                       pwszCmdLine,
-                                       NULL,         /* pProcessAttributes */
-                                       NULL,         /* pThreadAttributes */
-                                       TRUE,         /* fInheritHandles */
-                                       dwCreationFlags,
-                                       pwszzBlock,
-                                       NULL,         /* pCurrentDirectory */
-                                       &StartupInfo,
-                                       &ProcInfo))
-                        rc = VINF_SUCCESS;
-                    else
-                        rc = RTErrConvertFromWin32(GetLastError());
-                    RTEnvFreeUtf16Block(pwszzBlock);
-                }
-            }
-            else
-            {
-                /*
-                 * Convert the additional parameters and use a helper
-                 * function to do the actual work.
-                 */
-                PRTUTF16 pwszUser = NULL;
-                if (pszAsUser)
-                    rc = RTStrToUtf16(pszAsUser, &pwszUser);
-                if (RT_SUCCESS(rc))
-                {
-                    PRTUTF16 pwszPassword;
-                    rc = RTStrToUtf16(pszPassword ? pszPassword : "", &pwszPassword);
-                    if (RT_SUCCESS(rc))
-                    {
-                        rc = rtProcWinCreateAsUser(pwszUser, pwszPassword, &pwszExec, pwszCmdLine, hEnv, dwCreationFlags,
-                                                   &StartupInfo, &ProcInfo, fFlags, pszExec, idDesiredSession,
-                                                   hUserToken);
-
-                        if (pwszPassword && *pwszPassword)
-                            RTMemWipeThoroughly(pwszPassword, RTUtf16Len(pwszPassword), 5);
-                        RTUtf16Free(pwszPassword);
-                    }
-                    RTUtf16Free(pwszUser);
-                }
-            }
+            PRTUTF16 pwszCwd = NULL;
+            if (fFlags & RTPROC_FLAGS_CWD)
+                rc = RTPathWinFromUtf8(&pwszCwd, (const char *)pvExtraData, 0);
             if (RT_SUCCESS(rc))
             {
-                CloseHandle(ProcInfo.hThread);
-                if (phProcess)
+                /*
+                 * Get going...
+                 */
+                PROCESS_INFORMATION ProcInfo;
+                RT_ZERO(ProcInfo);
+                DWORD dwCreationFlags = CREATE_UNICODE_ENVIRONMENT;
+                if (fFlags & RTPROC_FLAGS_DETACHED)
+                    dwCreationFlags |= DETACHED_PROCESS;
+                if (fFlags & RTPROC_FLAGS_NO_WINDOW)
+                    dwCreationFlags |= CREATE_NO_WINDOW;
+
+                /*
+                 * Only use the normal CreateProcess stuff if we have no user name
+                 * and we are not running from a (Windows) service. Otherwise use
+                 * the more advanced version in rtProcWinCreateAsUser().
+                 */
+                if (   pszAsUser == NULL
+                    && !(fFlags & (RTPROC_FLAGS_SERVICE | RTPROC_FLAGS_AS_IMPERSONATED_TOKEN | RTPROC_FLAGS_TOKEN_SUPPLIED)))
                 {
-                    /*
-                     * Add the process to the child process list so RTProcWait can reuse and close
-                     * the process handle, unless, of course, the caller has no intention waiting.
-                     */
-                    if (!(fFlags & RTPROC_FLAGS_NO_WAIT))
-                        rtProcWinAddPid(ProcInfo.dwProcessId, ProcInfo.hProcess);
-                    else
-                        CloseHandle(ProcInfo.hProcess);
-                    *phProcess = ProcInfo.dwProcessId;
+                    /* Create the environment block first. */
+                    PRTUTF16 pwszzBlock;
+                    rc = rtProcWinCreateEnvBlockAndFindExe(fFlags, hEnv, pszExec, &pwszzBlock, &pwszExec);
+                    if (RT_SUCCESS(rc))
+                    {
+                        if (CreateProcessW(pwszExec,
+                                           pwszCmdLine,
+                                           NULL,         /* pProcessAttributes */
+                                           NULL,         /* pThreadAttributes */
+                                           TRUE,         /* fInheritHandles */
+                                           dwCreationFlags,
+                                           pwszzBlock,
+                                           pwszCwd,       /* pCurrentDirectory */
+                                           &StartupInfo,
+                                           &ProcInfo))
+                            rc = VINF_SUCCESS;
+                        else
+                            rc = RTErrConvertFromWin32(GetLastError());
+                        RTEnvFreeUtf16Block(pwszzBlock);
+                    }
                 }
                 else
-                    CloseHandle(ProcInfo.hProcess);
-                rc = VINF_SUCCESS;
+                {
+                    /*
+                     * Convert the additional parameters and use a helper
+                     * function to do the actual work.
+                     */
+                    PRTUTF16 pwszUser = NULL;
+                    if (pszAsUser)
+                        rc = RTStrToUtf16(pszAsUser, &pwszUser);
+                    if (RT_SUCCESS(rc))
+                    {
+                        PRTUTF16 pwszPassword;
+                        rc = RTStrToUtf16(pszPassword ? pszPassword : "", &pwszPassword);
+                        if (RT_SUCCESS(rc))
+                        {
+                            rc = rtProcWinCreateAsUser(pwszUser, pwszPassword, &pwszExec, pwszCmdLine, hEnv, dwCreationFlags,
+                                                       &StartupInfo, &ProcInfo, fFlags, pszExec, idDesiredSession,
+                                                       hUserToken, pwszCwd);
+
+                            if (pwszPassword && *pwszPassword)
+                                RTMemWipeThoroughly(pwszPassword, RTUtf16Len(pwszPassword), 5);
+                            RTUtf16Free(pwszPassword);
+                        }
+                        RTUtf16Free(pwszUser);
+                    }
+                }
+                if (RT_SUCCESS(rc))
+                {
+                    CloseHandle(ProcInfo.hThread);
+                    if (phProcess)
+                    {
+                        /*
+                         * Add the process to the child process list so RTProcWait can reuse and close
+                         * the process handle, unless, of course, the caller has no intention waiting.
+                         */
+                        if (!(fFlags & RTPROC_FLAGS_NO_WAIT))
+                            rtProcWinAddPid(ProcInfo.dwProcessId, ProcInfo.hProcess);
+                        else
+                            CloseHandle(ProcInfo.hProcess);
+                        *phProcess = ProcInfo.dwProcessId;
+                    }
+                    else
+                        CloseHandle(ProcInfo.hProcess);
+                    rc = VINF_SUCCESS;
+                }
+
+                RTPathWinFree(pwszCwd);
             }
             RTPathWinFree(pwszExec);
         }

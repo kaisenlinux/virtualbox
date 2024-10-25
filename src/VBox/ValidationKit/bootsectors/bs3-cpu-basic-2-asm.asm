@@ -4,7 +4,7 @@
 ;
 
 ;
-; Copyright (C) 2007-2023 Oracle and/or its affiliates.
+; Copyright (C) 2007-2024 Oracle and/or its affiliates.
 ;
 ; This file is part of VirtualBox base platform packages, as
 ; available from https://www.virtualbox.org.
@@ -47,7 +47,6 @@
 BS3_BEGIN_DATA16
 BS3_GLOBAL_DATA g_bs3CpuBasic2_ud2_FlatAddr, 4
         dd  _bs3CpuBasic2_ud2 wrt FLAT
-
 
 
 ;

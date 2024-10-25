@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2017-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2017-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -43,6 +43,7 @@
 #include <iprt/fsvfs.h>
 
 #include <iprt/asm.h>
+#include <iprt/asm-mem.h>
 #include <iprt/assert.h>
 #include <iprt/ctype.h>
 #include <iprt/file.h>
@@ -924,11 +925,9 @@ static int rtFsFatClusterMap_FlushWorker(PRTFSFATVOL pThis, uint32_t const iFirs
     int      rc      = VINF_SUCCESS;
     uint64_t off     = UINT64_MAX;
     uint64_t offEdge = UINT64_MAX;
-    RTSGSEG  aSgSegs[8];
-    RT_ZERO(aSgSegs); /* Initialization required for GCC >= 11. */
-    RTSGBUF  SgBuf;
-    RTSgBufInit(&SgBuf, aSgSegs, RT_ELEMENTS(aSgSegs));
-    SgBuf.cSegs = 0; /** @todo RTSgBuf API is stupid, make it smarter. */
+    unsigned cSegs   = 0;
+    RTSGSEG  aSgSegs[8] /* Initialization required for GCC >= 11. */
+        = { { NULL, 0 }, { NULL, 0 }, { NULL, 0 }, { NULL, 0 },  { NULL, 0 }, { NULL, 0 }, { NULL, 0 }, { NULL, 0 }, };
 
     for (uint32_t iFatCopy = 0; iFatCopy < pThis->cFats; iFatCopy++)
     {
@@ -953,10 +952,10 @@ static int rtFsFatClusterMap_FlushWorker(PRTFSFATVOL pThis, uint32_t const iFirs
                         if (   offDirtyLine == offEdge
                             && offEntry)
                         {
-                            Assert(SgBuf.cSegs > 0);
-                            Assert(   (uintptr_t)aSgSegs[SgBuf.cSegs - 1].pvSeg + aSgSegs[SgBuf.cSegs - 1].cbSeg
+                            Assert(cSegs > 0);
+                            Assert(   (uintptr_t)aSgSegs[cSegs - 1].pvSeg + aSgSegs[cSegs - 1].cbSeg
                                    == (uintptr_t)&pFatCache->aEntries[iEntry].pbData[offEntry]);
-                            aSgSegs[SgBuf.cSegs - 1].cbSeg += pFatCache->cbDirtyLine;
+                            aSgSegs[cSegs - 1].cbSeg += pFatCache->cbDirtyLine;
                             offEdge += pFatCache->cbDirtyLine;
                         }
                         else
@@ -965,24 +964,25 @@ static int rtFsFatClusterMap_FlushWorker(PRTFSFATVOL pThis, uint32_t const iFirs
                             if (off == UINT64_MAX)
                             {
                                 off = offDirtyLine;
-                                Assert(SgBuf.cSegs == 0);
+                                Assert(cSegs == 0);
                             }
                             /* flush if not adjacent or if we're out of segments. */
                             else if (   offDirtyLine != offEdge
-                                     || SgBuf.cSegs >= RT_ELEMENTS(aSgSegs))
+                                     || cSegs >= RT_ELEMENTS(aSgSegs))
                             {
+                                RTSGBUF SgBuf;
+                                RTSgBufInit(&SgBuf, aSgSegs, cSegs);
                                 int rc2 = RTVfsFileSgWrite(pThis->hVfsBacking, off, &SgBuf, true /*fBlocking*/, NULL);
                                 if (RT_FAILURE(rc2) && RT_SUCCESS(rc))
                                     rc = rc2;
-                                RTSgBufReset(&SgBuf);
-                                SgBuf.cSegs = 0;
-                                off = offDirtyLine;
+                                cSegs = 0;
+                                off   = offDirtyLine;
                             }
 
                             /* Append segment. */
-                            aSgSegs[SgBuf.cSegs].cbSeg = pFatCache->cbDirtyLine;
-                            aSgSegs[SgBuf.cSegs].pvSeg = &pFatCache->aEntries[iEntry].pbData[offEntry];
-                            SgBuf.cSegs++;
+                            aSgSegs[cSegs].cbSeg = pFatCache->cbDirtyLine;
+                            aSgSegs[cSegs].pvSeg = &pFatCache->aEntries[iEntry].pbData[offEntry];
+                            cSegs++;
                             offEdge = offDirtyLine + pFatCache->cbDirtyLine;
                         }
 
@@ -1001,8 +1001,10 @@ static int rtFsFatClusterMap_FlushWorker(PRTFSFATVOL pThis, uint32_t const iFirs
     /*
      * Final flush job.
      */
-    if (SgBuf.cSegs > 0)
+    if (cSegs > 0)
     {
+        RTSGBUF SgBuf;
+        RTSgBufInit(&SgBuf, aSgSegs, cSegs);
         int rc2 = RTVfsFileSgWrite(pThis->hVfsBacking, off, &SgBuf, true /*fBlocking*/, NULL);
         if (RT_FAILURE(rc2) && RT_SUCCESS(rc))
             rc = rc2;
@@ -2164,7 +2166,7 @@ static DECLCALLBACK(int) rtFsFatFile_QueryInfo(void *pvThis, PRTFSOBJINFO pObjIn
 /**
  * @interface_method_impl{RTVFSIOSTREAMOPS,pfnRead}
  */
-static DECLCALLBACK(int) rtFsFatFile_Read(void *pvThis, RTFOFF off, PCRTSGBUF pSgBuf, bool fBlocking, size_t *pcbRead)
+static DECLCALLBACK(int) rtFsFatFile_Read(void *pvThis, RTFOFF off, PRTSGBUF pSgBuf, bool fBlocking, size_t *pcbRead)
 {
     PRTFSFATFILE     pThis   = (PRTFSFATFILE)pvThis;
     PRTFSFATFILESHRD pShared = pThis->pShared;
@@ -2229,6 +2231,7 @@ static DECLCALLBACK(int) rtFsFatFile_Read(void *pvThis, RTFOFF off, PCRTSGBUF pS
     pThis->offFile = off;
     if (pcbRead)
         *pcbRead = cbRead;
+    RTSgBufAdvance(pSgBuf, cbRead);
     return rc;
 }
 
@@ -2326,7 +2329,7 @@ static int rtFsFatObj_SetSize(PRTFSFATOBJ pObj, uint32_t cbFile)
 /**
  * @interface_method_impl{RTVFSIOSTREAMOPS,pfnWrite}
  */
-static DECLCALLBACK(int) rtFsFatFile_Write(void *pvThis, RTFOFF off, PCRTSGBUF pSgBuf, bool fBlocking, size_t *pcbWritten)
+static DECLCALLBACK(int) rtFsFatFile_Write(void *pvThis, RTFOFF off, PRTSGBUF pSgBuf, bool fBlocking, size_t *pcbWritten)
 {
     PRTFSFATFILE     pThis   = (PRTFSFATFILE)pvThis;
     PRTFSFATFILESHRD pShared = pThis->pShared;
@@ -2400,6 +2403,7 @@ static DECLCALLBACK(int) rtFsFatFile_Write(void *pvThis, RTFOFF off, PCRTSGBUF p
     pThis->offFile = off;
     if (pcbWritten)
         *pcbWritten = cbWritten;
+    RTSgBufAdvance(pSgBuf, cbWritten);
     return rc;
 }
 

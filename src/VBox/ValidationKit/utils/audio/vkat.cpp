@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2021-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2021-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -132,10 +132,6 @@ enum
 {
     VKAT_TEST_OPT_COUNT = 900,
     VKAT_TEST_OPT_DEV,
-    VKAT_TEST_OPT_GUEST_ATS_ADDR,
-    VKAT_TEST_OPT_GUEST_ATS_PORT,
-    VKAT_TEST_OPT_HOST_ATS_ADDR,
-    VKAT_TEST_OPT_HOST_ATS_PORT,
     VKAT_TEST_OPT_MODE,
     VKAT_TEST_OPT_NO_AUDIO_OK,
     VKAT_TEST_OPT_NO_VERIFY,
@@ -147,6 +143,7 @@ enum
     VKAT_TEST_OPT_PCM_SIGNED,
     VKAT_TEST_OPT_PROBE_BACKENDS,
     VKAT_TEST_OPT_TAG,
+    VKAT_TEST_OPT_TIMEOUT,
     VKAT_TEST_OPT_TEMPDIR,
     VKAT_TEST_OPT_VOL,
     VKAT_TEST_OPT_TCP_BIND_ADDRESS,
@@ -190,10 +187,6 @@ static const RTGETOPTDEF g_aCmdTestOptions[] =
     { "--drvaudio",          'd',                               RTGETOPT_REQ_NOTHING },
     { "--exclude",           'e',                               RTGETOPT_REQ_UINT32  },
     { "--exclude-all",       'a',                               RTGETOPT_REQ_NOTHING },
-    { "--guest-ats-addr",    VKAT_TEST_OPT_GUEST_ATS_ADDR,      RTGETOPT_REQ_STRING  },
-    { "--guest-ats-port",    VKAT_TEST_OPT_GUEST_ATS_PORT,      RTGETOPT_REQ_UINT32  },
-    { "--host-ats-address",  VKAT_TEST_OPT_HOST_ATS_ADDR,       RTGETOPT_REQ_STRING  },
-    { "--host-ats-port",     VKAT_TEST_OPT_HOST_ATS_PORT,       RTGETOPT_REQ_UINT32  },
     { "--include",           'i',                               RTGETOPT_REQ_UINT32  },
     { "--outdir",            VKAT_TEST_OPT_OUTDIR,              RTGETOPT_REQ_STRING  },
     { "--count",             VKAT_TEST_OPT_COUNT,               RTGETOPT_REQ_UINT32  },
@@ -209,6 +202,7 @@ static const RTGETOPTDEF g_aCmdTestOptions[] =
     { "--no-verify",         VKAT_TEST_OPT_NO_VERIFY,           RTGETOPT_REQ_NOTHING },
     { "--tag",               VKAT_TEST_OPT_TAG,                 RTGETOPT_REQ_STRING  },
     { "--tempdir",           VKAT_TEST_OPT_TEMPDIR,             RTGETOPT_REQ_STRING  },
+    { "--timeout",           VKAT_TEST_OPT_TIMEOUT,             RTGETOPT_REQ_UINT32  },
     { "--vol",               VKAT_TEST_OPT_VOL,                 RTGETOPT_REQ_UINT8   },
     { "--tcp-bind-addr",     VKAT_TEST_OPT_TCP_BIND_ADDRESS,    RTGETOPT_REQ_STRING  },
     { "--tcp-bind-port",     VKAT_TEST_OPT_TCP_BIND_PORT,       RTGETOPT_REQ_UINT16  },
@@ -524,7 +518,7 @@ static int audioTestOne(PAUDIOTESTENV pTstEnv, PAUDIOTESTDESC pTstDesc)
 
         if (RT_SUCCESS(rc2))
         {
-            AssertPtrBreakStmt(pTstDesc->pfnExec, VERR_INVALID_POINTER);
+            AssertPtrBreakStmt(pTstDesc->pfnExec, rc = VERR_INVALID_POINTER);
             rc2 = pTstDesc->pfnExec(pTstEnv, pvCtx, &TstParms);
             if (RT_FAILURE(rc2))
                 RTTestFailed(g_hTest, "Test #%RU32 execution failed with %Rrc\n", pTstEnv->idxTest, rc2);
@@ -726,14 +720,6 @@ static DECLCALLBACK(const char *) audioTestCmdTestHelp(PCRTGETOPTDEF pOpt)
                                                        "    Default: random duration";
         case VKAT_TEST_OPT_TONE_VOL_PERCENT:    return "Test tone volume (percent)\n"
                                                        "    Default: 100";
-        case VKAT_TEST_OPT_GUEST_ATS_ADDR:      return "Address of guest ATS to connect to\n"
-                                                       "    Default: " ATS_TCP_DEF_CONNECT_GUEST_STR;
-        case VKAT_TEST_OPT_GUEST_ATS_PORT:      return "Port of guest ATS to connect to (needs NAT port forwarding)\n"
-                                                       "    Default: 6042"; /* ATS_TCP_DEF_CONNECT_PORT_GUEST */
-        case VKAT_TEST_OPT_HOST_ATS_ADDR:       return "Address of host ATS to connect to\n"
-                                                       "    Default: " ATS_TCP_DEF_CONNECT_HOST_ADDR_STR;
-        case VKAT_TEST_OPT_HOST_ATS_PORT:       return "Port of host ATS to connect to\n"
-                                                       "    Default: 6052"; /* ATS_TCP_DEF_BIND_PORT_VALKIT */
         case VKAT_TEST_OPT_MODE:                return "Test mode to use when running the tests\n"
                                                         "    Available modes:\n"
                                                         "        guest: Run as a guest-side ATS\n"
@@ -753,6 +739,8 @@ static DECLCALLBACK(const char *) audioTestCmdTestHelp(PCRTGETOPTDEF pOpt)
         case VKAT_TEST_OPT_PROBE_BACKENDS:      return "Probes all (available) backends until a working one is found";
         case VKAT_TEST_OPT_TAG:                 return "Test set tag to use";
         case VKAT_TEST_OPT_TEMPDIR:             return "Temporary directory to use";
+        case VKAT_TEST_OPT_TIMEOUT:             return "Timeout to use (in ms)\";"
+                                                       "    Default: 5 minutes (300000)";
         case VKAT_TEST_OPT_VOL:                 return "Audio volume (percent) to use";
         case VKAT_TEST_OPT_TCP_BIND_ADDRESS:    return "TCP address listening to (server mode)";
         case VKAT_TEST_OPT_TCP_BIND_PORT:       return "TCP port listening to (server mode)";
@@ -785,11 +773,6 @@ static DECLCALLBACK(RTEXITCODE) audioTestMain(PRTGETOPTSTATE pGetState)
     bool        fProbeBackends = false;
     bool        fNoAudioOk     = false;
 
-    const char *pszGuestTcpAddr  = NULL;
-    uint16_t    uGuestTcpPort    = ATS_TCP_DEF_BIND_PORT_GUEST;
-    const char *pszValKitTcpAddr = NULL;
-    uint16_t    uValKitTcpPort   = ATS_TCP_DEF_BIND_PORT_VALKIT;
-
     int           ch;
     RTGETOPTUNION ValueUnion;
     while ((ch = RTGetOpt(pGetState, &ValueUnion)))
@@ -815,22 +798,6 @@ static DECLCALLBACK(RTEXITCODE) audioTestMain(PRTGETOPTSTATE pGetState)
                 if (ValueUnion.u32 >= RT_ELEMENTS(g_aTests))
                     return RTMsgErrorExit(RTEXITCODE_SYNTAX, "Invalid test number %u passed to --exclude", ValueUnion.u32);
                 g_aTests[ValueUnion.u32].fExcluded = true;
-                break;
-
-            case VKAT_TEST_OPT_GUEST_ATS_ADDR:
-                pszGuestTcpAddr = ValueUnion.psz;
-                break;
-
-            case VKAT_TEST_OPT_GUEST_ATS_PORT:
-                uGuestTcpPort = ValueUnion.u32;
-                break;
-
-            case VKAT_TEST_OPT_HOST_ATS_ADDR:
-                pszValKitTcpAddr = ValueUnion.psz;
-                break;
-
-            case VKAT_TEST_OPT_HOST_ATS_PORT:
-                uValKitTcpPort = ValueUnion.u32;
                 break;
 
             case VKAT_TEST_OPT_MODE:
@@ -912,6 +879,12 @@ static DECLCALLBACK(RTEXITCODE) audioTestMain(PRTGETOPTSTATE pGetState)
                     return RTMsgErrorExit(RTEXITCODE_FAILURE, "Temp dir invalid, rc=%Rrc", rc);
                 break;
 
+            case VKAT_TEST_OPT_TIMEOUT:
+                if (!ValueUnion.u32)
+                    return RTMsgErrorExit(RTEXITCODE_FAILURE, "Invalid timeout value given!");
+                TstEnv.msTimeout = ValueUnion.u32;
+                break;
+
             case VKAT_TEST_OPT_VOL:
                 TstEnv.IoOpts.uVolumePercent = ValueUnion.u8;
                 break;
@@ -978,7 +951,7 @@ static DECLCALLBACK(RTEXITCODE) audioTestMain(PRTGETOPTSTATE pGetState)
 
     AUDIOTESTDRVSTACK DrvStack;
     if (fProbeBackends)
-        rc = audioTestDriverStackProbe(&DrvStack, pDrvReg,
+        rc = audioTestDriverStackProbe(&DrvStack,
                                        true /* fEnabledIn */, true /* fEnabledOut */, TstEnv.IoOpts.fWithDrvAudio); /** @todo Make in/out configurable, too. */
     else
         rc = audioTestDriverStackInitEx(&DrvStack, pDrvReg,

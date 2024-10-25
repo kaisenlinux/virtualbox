@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -30,6 +30,9 @@
 #ifndef RT_WITHOUT_PRAGMA_ONCE
 # pragma once
 #endif
+
+/* Qt includes: */
+#include <QWidget>
 
 /* GUI includes: */
 #include "UIChooserItem.h"
@@ -129,9 +132,6 @@ protected:
 
     /** @name Event-handling stuff.
       * @{ */
-        /** Handles translation event. */
-        virtual void retranslateUi() RT_OVERRIDE;
-
         /** Handles show @a pEvent. */
         virtual void showEvent(QShowEvent *pEvent) RT_OVERRIDE;
 
@@ -235,6 +235,12 @@ private slots:
         void sltGroupToggleStart();
         /** Handles group toggle finish for group finally @a fToggled. */
         void sltGroupToggleFinish(bool fToggled);
+    /** @} */
+
+    /** @name Event handling stuff.
+      * @{ */
+        /** Handles translation event. */
+        void sltRetranslateUI();
     /** @} */
 
 private:

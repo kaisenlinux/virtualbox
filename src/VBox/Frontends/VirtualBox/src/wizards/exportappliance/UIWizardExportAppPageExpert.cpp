@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -28,12 +28,12 @@
 /* Qt includes: */
 #include <QButtonGroup>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QGridLayout>
 #include <QGroupBox>
 #include <QHeaderView>
 #include <QLabel>
 #include <QLineEdit>
-#include <QListWidget>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QStackedWidget>
@@ -41,7 +41,7 @@
 #include <QVBoxLayout>
 
 /* GUI includes: */
-#include "QIComboBox.h"
+#include "QIListWidget.h"
 #include "QIToolButton.h"
 #include "UICommon.h"
 #include "UIApplianceExportEditorWidget.h"
@@ -107,7 +107,7 @@ UIWizardExportAppPageExpert::UIWizardExportAppPageExpert(const QStringList &sele
         if (m_pToolBox)
         {
             /* Create VM selector: */
-            m_pVMSelector = new QListWidget(m_pToolBox);
+            m_pVMSelector = new QIListWidget(m_pToolBox);
             if (m_pVMSelector)
             {
                 m_pVMSelector->setAlternatingRowColors(true);
@@ -149,7 +149,7 @@ UIWizardExportAppPageExpert::UIWizardExportAppPageExpert(const QStringList &sele
                             m_pFormatLayout->addWidget(m_pFormatComboBoxLabel, 0, 0);
                         }
                         /* Create format combo-box: */
-                        m_pFormatComboBox = new QIComboBox(pWidgetSettings);
+                        m_pFormatComboBox = new QComboBox(pWidgetSettings);
                         if (m_pFormatComboBox)
                         {
                             m_pFormatComboBoxLabel->setBuddy(m_pFormatComboBox);
@@ -206,7 +206,7 @@ UIWizardExportAppPageExpert::UIWizardExportAppPageExpert(const QStringList &sele
                                     m_pSettingsLayout1->addWidget(m_pMACComboBoxLabel, 1, 0);
                                 }
                                 /* Create MAC policy combo-box: */
-                                m_pMACComboBox = new QIComboBox(pSettingsPane1);
+                                m_pMACComboBox = new QComboBox(pSettingsPane1);
                                 if (m_pMACComboBox)
                                 {
                                     m_pMACComboBoxLabel->setBuddy(m_pMACComboBox);
@@ -269,7 +269,7 @@ UIWizardExportAppPageExpert::UIWizardExportAppPageExpert(const QStringList &sele
                                     pSubLayout->setSpacing(1);
 
                                     /* Create profile combo-box: */
-                                    m_pProfileComboBox = new QIComboBox(pSettingsPane2);
+                                    m_pProfileComboBox = new QComboBox(pSettingsPane2);
                                     if (m_pProfileComboBox)
                                     {
                                         m_pProfileLabel->setBuddy(m_pProfileComboBox);
@@ -406,21 +406,21 @@ UIWizardExportAppPageExpert::UIWizardExportAppPageExpert(const QStringList &sele
             this, &UIWizardExportAppPageExpert::sltHandleFormatComboChange);
     connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigCloudProfileChanged,
             this, &UIWizardExportAppPageExpert::sltHandleFormatComboChange);
-    connect(m_pVMSelector, &QListWidget::itemSelectionChanged,
+    connect(m_pVMSelector, &QIListWidget::itemSelectionChanged,
             this, &UIWizardExportAppPageExpert::sltHandleVMItemSelectionChanged);
     connect(m_pFileSelector, &UIEmptyFilePathSelector::pathChanged,
             this, &UIWizardExportAppPageExpert::sltHandleFileSelectorChange);
-    connect(m_pFormatComboBox, static_cast<void(QIComboBox::*)(int)>(&QIComboBox::currentIndexChanged),
+    connect(m_pFormatComboBox, &QComboBox::currentIndexChanged,
             this, &UIWizardExportAppPageExpert::sltHandleFormatComboChange);
-    connect(m_pMACComboBox, static_cast<void(QIComboBox::*)(int)>(&QIComboBox::currentIndexChanged),
+    connect(m_pMACComboBox, &QComboBox::currentIndexChanged,
             this, &UIWizardExportAppPageExpert::sltHandleMACAddressExportPolicyComboChange);
     connect(m_pManifestCheckbox, &QCheckBox::stateChanged,
             this, &UIWizardExportAppPageExpert::sltHandleManifestCheckBoxChange);
     connect(m_pIncludeISOsCheckbox, &QCheckBox::stateChanged,
             this, &UIWizardExportAppPageExpert::sltHandleIncludeISOsCheckBoxChange);
-    connect(m_pProfileComboBox, static_cast<void(QIComboBox::*)(int)>(&QIComboBox::currentIndexChanged),
+    connect(m_pProfileComboBox, &QComboBox::currentIndexChanged,
             this, &UIWizardExportAppPageExpert::sltHandleProfileComboChange);
-    connect(m_pExportModeButtonGroup, static_cast<void(QButtonGroup::*)(QAbstractButton*, bool)>(&QButtonGroup::buttonToggled),
+    connect(m_pExportModeButtonGroup, &QButtonGroup::buttonToggled,
             this, &UIWizardExportAppPageExpert::sltHandleRadioButtonToggled);
     connect(m_pProfileToolButton, &QIToolButton::clicked,
             this, &UIWizardExportAppPageExpert::sltHandleProfileButtonClick);
@@ -431,7 +431,7 @@ UIWizardExportApp *UIWizardExportAppPageExpert::wizard() const
     return qobject_cast<UIWizardExportApp*>(UINativeWizardPage::wizard());
 }
 
-void UIWizardExportAppPageExpert::retranslateUi()
+void UIWizardExportAppPageExpert::sltRetranslateUI()
 {
     /* Translate objects: */
     m_strDefaultApplianceName = UIWizardExportApp::tr("Appliance");
@@ -443,10 +443,17 @@ void UIWizardExportAppPageExpert::retranslateUi()
     m_pToolBox->setPageTitle(1, UIWizardExportApp::tr("Format &settings"));
     m_pToolBox->setPageTitle(2, UIWizardExportApp::tr("&Appliance settings"));
 
+    /* Translate Machine list: */
+    m_pVMSelector->setWhatsThis(UIWizardExportApp::tr("Contains a list of Virtual Machines"));
+
     /* Translate File selector: */
     m_pFileSelectorLabel->setText(UIWizardExportApp::tr("&File:"));
-    m_pFileSelector->setChooseButtonToolTip(UIWizardExportApp::tr("Choose a file to export the virtual appliance to..."));
-    m_pFileSelector->setFileDialogTitle(UIWizardExportApp::tr("Please choose a file to export the virtual appliance to"));
+    if (m_pFileSelector)
+    {
+        m_pFileSelector->setLineEditToolTip(UIWizardExportApp::tr("Holds the path of the file selected for export."));
+        m_pFileSelector->setChooseButtonToolTip(UIWizardExportApp::tr("Choose a file to export the virtual appliance to..."));
+        m_pFileSelector->setFileDialogTitle(UIWizardExportApp::tr("Please choose a file to export the virtual appliance to"));
+    }
 
     /* Translate hard-coded values of Format combo-box: */
     m_pFormatComboBoxLabel->setText(UIWizardExportApp::tr("F&ormat:"));
@@ -508,17 +515,19 @@ void UIWizardExportAppPageExpert::retranslateUi()
 
     /* Translate profile stuff: */
     m_pProfileLabel->setText(UIWizardExportApp::tr("&Profile:"));
-    m_pProfileToolButton->setToolTip(UIWizardExportApp::tr("Open Cloud Profile Manager..."));
+    if (m_pProfileComboBox)
+        m_pProfileComboBox->setToolTip(UIWizardExportApp::tr("Selects cloud profile."));
+    if (m_pProfileToolButton)
+    {
+        m_pProfileToolButton->setText(UIWizardExportApp::tr("Cloud Profile Manager"));
+        m_pProfileToolButton->setToolTip(UIWizardExportApp::tr("Opens cloud profile manager..."));
+    }
 
     /* Translate option label: */
     m_pExportModeLabel->setText(UIWizardExportApp::tr("Machine Creation:"));
     m_exportModeButtons.value(CloudExportMode_DoNotAsk)->setText(UIWizardExportApp::tr("Do not ask me about it, leave custom &image for future usage"));
     m_exportModeButtons.value(CloudExportMode_AskThenExport)->setText(UIWizardExportApp::tr("Ask me about it &before exporting disk as custom image"));
     m_exportModeButtons.value(CloudExportMode_ExportThenAsk)->setText(UIWizardExportApp::tr("Ask me about it &after exporting disk as custom image"));
-
-    /* Translate file selector's tooltip: */
-    if (m_pFileSelector)
-        m_pFileSelector->setToolTip(UIWizardExportApp::tr("Holds the path of the file selected for export."));
 
     /* Adjust label widths: */
     QList<QWidget*> labels;
@@ -553,7 +562,7 @@ void UIWizardExportAppPageExpert::initializePage()
     /* Populate MAC address policies: */
     populateMACAddressPolicies(m_pMACComboBox);
     /* Translate page: */
-    retranslateUi();
+    sltRetranslateUI();
 
     /* Fetch it, asynchronously: */
     QMetaObject::invokeMethod(this, "sltHandleFormatComboChange", Qt::QueuedConnection);
@@ -819,7 +828,6 @@ void UIWizardExportAppPageExpert::updateCloudStuff()
     CCloudClient comClient;
     CVirtualSystemDescription comDescription;
     CVirtualSystemDescriptionForm comForm;
-    wizard()->wizardButton(WizardButtonType_Expert)->setEnabled(false);
     refreshCloudStuff(comAppliance,
                       comClient,
                       comDescription,
@@ -829,7 +837,6 @@ void UIWizardExportAppPageExpert::updateCloudStuff()
                       wizard()->machineIDs(),
                       wizard()->uri(),
                       wizard()->cloudExportMode());
-    wizard()->wizardButton(WizardButtonType_Expert)->setEnabled(true);
     wizard()->setCloudAppliance(comAppliance);
     wizard()->setCloudClient(comClient);
     wizard()->setVsd(comDescription);

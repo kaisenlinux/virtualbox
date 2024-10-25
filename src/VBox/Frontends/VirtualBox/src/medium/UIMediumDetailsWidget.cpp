@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,6 +26,7 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QComboBox>
 #include <QLabel>
 #include <QPushButton>
@@ -42,20 +43,20 @@
 #include "QILineEdit.h"
 #include "QITabWidget.h"
 #include "QIToolButton.h"
-#include "UICommon.h"
 #include "UIConverter.h"
 #include "UIIconPool.h"
 #include "UIMediumDetailsWidget.h"
 #include "UIMediumManager.h"
 #include "UIMediumSizeEditor.h"
 #include "UITranslator.h"
+#include "UITranslationEventListener.h"
 
 /* COM includes: */
 #include "CSystemProperties.h"
 
 
 UIMediumDetailsWidget::UIMediumDetailsWidget(UIMediumManagerWidget *pParent, EmbedTo enmEmbedding)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_pParent(pParent)
     , m_enmEmbedding(enmEmbedding)
     , m_oldData(UIDataMedium())
@@ -110,7 +111,7 @@ void UIMediumDetailsWidget::setOptionsEnabled(bool fEnabled)
     m_pTabWidget->widget(0)->setEnabled(fEnabled);
 }
 
-void UIMediumDetailsWidget::retranslateUi()
+void UIMediumDetailsWidget::sltRetranslateUI()
 {
     /* Translate tab-widget: */
     m_pTabWidget->setTabText(0, UIMediumManager::tr("&Attributes"));
@@ -129,6 +130,7 @@ void UIMediumDetailsWidget::retranslateUi()
     for (int i = 0; i < m_pComboBoxType->count(); ++i)
         m_pComboBoxType->setItemText(i, gpConverter->toString(m_pComboBoxType->itemData(i).value<KMediumType>()));
     m_pEditorLocation->setToolTip(UIMediumManager::tr("Holds the location of this medium."));
+    m_pButtonLocation->setText(UIMediumManager::tr("Choose Medium Location"));
     m_pButtonLocation->setToolTip(UIMediumManager::tr("Choose Medium Location"));
     m_pEditorDescription->setToolTip(UIMediumManager::tr("Holds the description of this medium."));
     m_pEditorSize->setToolTip(UIMediumManager::tr("Holds the size of this medium."));
@@ -218,7 +220,11 @@ void UIMediumDetailsWidget::prepare()
     prepareThis();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIMediumDetailsWidget::sltRetranslateUI);
+
 
     /* Update button states finally: */
     updateButtonStates();
@@ -283,7 +289,6 @@ void UIMediumDetailsWidget::prepareTabOptions()
             {
                 /* Configure label: */
                 m_pLabelType->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-
                 /* Add into layout: */
                 pLayoutOptions->addWidget(m_pLabelType, 0, 0);
             }
@@ -303,9 +308,8 @@ void UIMediumDetailsWidget::prepareTabOptions()
                     m_pLabelType->setBuddy(m_pComboBoxType);
                     m_pComboBoxType->setSizeAdjustPolicy(QComboBox::AdjustToContents);
                     m_pComboBoxType->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
-                    connect(m_pComboBoxType, static_cast<void(QComboBox::*)(int)>(&QComboBox::activated),
+                    connect(m_pComboBoxType, &QComboBox::activated,
                             this, &UIMediumDetailsWidget::sltTypeIndexChanged);
-
                     /* Add into layout: */
                     pLayoutType->addWidget(m_pComboBoxType);
                 }
@@ -321,7 +325,6 @@ void UIMediumDetailsWidget::prepareTabOptions()
                     m_pErrorPaneType->setAlignment(Qt::AlignCenter);
                     m_pErrorPaneType->setPixmap(UIIconPool::iconSet(":/status_error_16px.png")
                                                 .pixmap(QSize(iIconMetric, iIconMetric)));
-
                     /* Add into layout: */
                     pLayoutType->addWidget(m_pErrorPaneType);
                 }
@@ -336,7 +339,6 @@ void UIMediumDetailsWidget::prepareTabOptions()
             {
                 /* Configure label: */
                 m_pLabelLocation->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-
                 /* Add into layout: */
                 pLayoutOptions->addWidget(m_pLabelLocation, 1, 0);
             }
@@ -357,7 +359,6 @@ void UIMediumDetailsWidget::prepareTabOptions()
                     m_pEditorLocation->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
                     connect(m_pEditorLocation, &QLineEdit::textChanged,
                             this, &UIMediumDetailsWidget::sltLocationPathChanged);
-
                     /* Add into layout: */
                     pLayoutLocation->addWidget(m_pEditorLocation);
                 }
@@ -385,7 +386,6 @@ void UIMediumDetailsWidget::prepareTabOptions()
                     m_pButtonLocation->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
                     connect(m_pButtonLocation, &QIToolButton::clicked,
                             this, &UIMediumDetailsWidget::sltChooseLocationPath);
-
                     /* Add into layout: */
                     pLayoutLocation->addWidget(m_pButtonLocation);
                 }
@@ -400,7 +400,6 @@ void UIMediumDetailsWidget::prepareTabOptions()
             {
                 /* Configure label: */
                 m_pLabelDescription->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-
                 /* Add into layout: */
                 pLayoutOptions->addWidget(m_pLabelDescription, 2, 0);
             }
@@ -426,7 +425,6 @@ void UIMediumDetailsWidget::prepareTabOptions()
                     m_pEditorDescription->setMaximumHeight(iMinimumHeight);
                     connect(m_pEditorDescription, &QTextEdit::textChanged,
                             this, &UIMediumDetailsWidget::sltDescriptionTextChanged);
-
                     /* Add into layout: */
                     pLayoutDescription->addWidget(m_pEditorDescription, 0, 0, 2, 1);
                 }
@@ -440,7 +438,6 @@ void UIMediumDetailsWidget::prepareTabOptions()
                     m_pErrorPaneDescription->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
                     m_pErrorPaneDescription->setPixmap(UIIconPool::iconSet(":/status_error_16px.png")
                                                        .pixmap(QSize(iIconMetric, iIconMetric)));
-
                     /* Add into layout: */
                     pLayoutDescription->addWidget(m_pErrorPaneDescription, 0, 1, Qt::AlignCenter);
                 }
@@ -455,7 +452,6 @@ void UIMediumDetailsWidget::prepareTabOptions()
             {
                 /* Configure label: */
                 m_pLabelSize->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-
                 /* Add into layout: */
                 pLayoutOptions->addWidget(m_pLabelSize, 4, 0);
             }
@@ -483,7 +479,6 @@ void UIMediumDetailsWidget::prepareTabOptions()
                     m_pEditorSize->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
                     connect(m_pEditorSize, &UIMediumSizeEditor::sigSizeChanged,
                             this, &UIMediumDetailsWidget::sltSizeValueChanged);
-
                     /* Add into layout: */
                     pLayoutSize->addWidget(m_pEditorSize, 0, 0, 2, 1);
                 }
@@ -497,7 +492,6 @@ void UIMediumDetailsWidget::prepareTabOptions()
                     m_pErrorPaneSize->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
                     m_pErrorPaneSize->setPixmap(UIIconPool::iconSet(":/status_error_16px.png")
                                                 .pixmap(QSize(iIconMetric, iIconMetric)));
-
                     /* Add into layout: */
                     pLayoutSize->addWidget(m_pErrorPaneSize, 0, 1, Qt::AlignCenter);
                 }

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -421,7 +421,7 @@ static DECLCALLBACK(int) drvR3NetShaperAttach(PPDMDRVINS pDrvIns, uint32_t fFlag
         AssertMsgFailed(("Failed to attach to driver below! rc=%Rrc\n", rc));
 
     PDMDrvHlpCritSectLeave(pDrvIns, &pThis->XmitLock);
-    return VINF_SUCCESS;
+    return rc;
 }
 
 

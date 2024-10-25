@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -289,6 +289,7 @@ static const RTGETOPTDEF g_aCmdOptions[] =
     { "--maximum-requests",         'm',                            RTGETOPT_REQ_UINT32  },
     { "--verify-reads",             'y',                            RTGETOPT_REQ_BOOL    },
     { "--use-cache",                'c',                            RTGETOPT_REQ_BOOL    },
+    { "--report-io-stats",          't',                            RTGETOPT_REQ_BOOL    },
 
     { "--first-write",              kCmdOpt_FirstWrite,             RTGETOPT_REQ_NOTHING },
     { "--no-first-write",           kCmdOpt_NoFirstWrite,           RTGETOPT_REQ_NOTHING },
@@ -335,6 +336,8 @@ static bool         g_fNoCache     = true;
 static unsigned     g_uWriteChance = 50;
 /** Flag whether to verify read data. */
 static bool         g_fVerifyReads = true;
+/** Flag whether to report I/O statistics after each test. */
+static bool         g_fReportIoStats = true;
 
 /** @name Configured tests, this must match the IOPERFTEST order.
  * @{ */
@@ -893,7 +896,8 @@ static int ioPerfJobWorkLoop(PIOPERFJOB pJob)
          * the master will do this for each job and combined statistics
          * otherwise.
          */
-        if (!pJob->pMaster)
+        if (   !pJob->pMaster
+            && g_fReportIoStats)
             ioPerfJobStats(pJob);
     }
 
@@ -1275,6 +1279,10 @@ int main(int argc, char *argv[])
                 g_fNoCache = !ValueUnion.f;
                 break;
 
+            case 't':
+                g_fReportIoStats = ValueUnion.f;
+                break;
+
             case kCmdOpt_FirstWrite:
                 g_aenmTests[IOPERFTEST_FIRST_WRITE] = IOPERFTEST_FIRST_WRITE;
                 break;
@@ -1344,7 +1352,7 @@ int main(int argc, char *argv[])
 
             case 'V':
             {
-                char szRev[] = "$Revision: 157380 $";
+                char szRev[] = "$Revision: 164827 $";
                 szRev[RT_ELEMENTS(szRev) - 2] = '\0';
                 RTPrintf(RTStrStrip(strchr(szRev, ':') + 1));
                 return RTEXITCODE_SUCCESS;

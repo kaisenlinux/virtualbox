@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,14 +31,13 @@
 
 /* GUI includes: */
 #include "QITabWidget.h"
-#include "UICommon.h"
 #include "UIConverter.h"
+#include "UIDefs.h"
 #include "UIErrorString.h"
 #include "UIExtraDataManager.h"
+#include "UIGlobalSession.h"
 #include "UIGraphicsControllerEditor.h"
-#ifdef VBOX_WITH_3D_ACCELERATION
-# include "UIDisplayScreenFeaturesEditor.h"
-#endif
+#include "UIGuestOSType.h"
 #include "UIMachineSettingsDisplay.h"
 #include "UIMonitorCountEditor.h"
 #include "UIRecordingSettingsEditor.h"
@@ -46,13 +45,18 @@
 #include "UITranslator.h"
 #include "UIVideoMemoryEditor.h"
 #include "UIVRDESettingsEditor.h"
+#ifdef VBOX_WITH_3D_ACCELERATION
+# include "UIDisplayScreenFeaturesEditor.h"
+#endif
 
 /* COM includes: */
 #include "CExtPackManager.h"
 #include "CGraphicsAdapter.h"
+#include "CProgress.h" /* For starting recording. */
 #include "CRecordingScreenSettings.h"
 #include "CRecordingSettings.h"
 #include "CVRDEServer.h"
+#include <VBox/com/VirtualBox.h> /* For GUEST_OS_ID_STR_X86 and friends. */
 
 
 /** Machine settings: Display page data structure. */
@@ -69,6 +73,7 @@ struct UIDataSettingsMachineDisplay
         , m_fRemoteDisplayServerSupported(false)
         , m_fRemoteDisplayServerEnabled(false)
         , m_strRemoteDisplayPort(QString())
+        , m_remoteDisplaySecurityMethod(UIVRDESecurityMethod_Max)
         , m_remoteDisplayAuthType(KAuthType_Null)
         , m_uRemoteDisplayTimeout(0)
         , m_fRemoteDisplayMultiConnAllowed(false)
@@ -96,6 +101,7 @@ struct UIDataSettingsMachineDisplay
                && (m_fRemoteDisplayServerSupported == other.m_fRemoteDisplayServerSupported)
                && (m_fRemoteDisplayServerEnabled == other.m_fRemoteDisplayServerEnabled)
                && (m_strRemoteDisplayPort == other.m_strRemoteDisplayPort)
+               && (m_remoteDisplaySecurityMethod == other.m_remoteDisplaySecurityMethod)
                && (m_remoteDisplayAuthType == other.m_remoteDisplayAuthType)
                && (m_uRemoteDisplayTimeout == other.m_uRemoteDisplayTimeout)
                && (m_fRemoteDisplayMultiConnAllowed == other.m_fRemoteDisplayMultiConnAllowed)
@@ -264,6 +270,8 @@ struct UIDataSettingsMachineDisplay
     bool                     m_fRemoteDisplayServerEnabled;
     /** Holds the remote display server port. */
     QString                  m_strRemoteDisplayPort;
+    /** Holds the remote display server security method. */
+    UIVRDESecurityMethod     m_remoteDisplaySecurityMethod;
     /** Holds the remote display server auth type. */
     KAuthType                m_remoteDisplayAuthType;
     /** Holds the remote display server timeout. */
@@ -286,14 +294,14 @@ struct UIDataSettingsMachineDisplay
     /** Holds the recording bit rate. */
     int m_iRecordingVideoBitRate;
     /** Holds which of the guest screens should be recorded. */
-    QVector<BOOL> m_vecRecordingScreens;
+    QVector<bool> m_vecRecordingScreens;
     /** Holds the video recording options. */
     QString m_strRecordingVideoOptions;
 };
 
 
 UIMachineSettingsDisplay::UIMachineSettingsDisplay()
-    : m_comGuestOSType(CGuestOSType())
+    : m_strGuestOSTypeId(QString())
 #ifdef VBOX_WITH_3D_ACCELERATION
     , m_fWddmModeSupported(false)
 #endif
@@ -321,25 +329,24 @@ UIMachineSettingsDisplay::~UIMachineSettingsDisplay()
     cleanup();
 }
 
-void UIMachineSettingsDisplay::setGuestOSType(CGuestOSType comGuestOSType)
+void UIMachineSettingsDisplay::setGuestOSTypeId(const QString &strGuestOSTypeId)
 {
     /* Check if guest OS type changed: */
-    if (m_comGuestOSType == comGuestOSType)
+    if (m_strGuestOSTypeId == strGuestOSTypeId)
         return;
 
     /* Remember new guest OS type: */
-    m_comGuestOSType = comGuestOSType;
-    m_pEditorVideoMemorySize->setGuestOSType(m_comGuestOSType);
+    m_strGuestOSTypeId = strGuestOSTypeId;
+    m_pEditorVideoMemorySize->setGuestOSTypeId(m_strGuestOSTypeId);
 
 #ifdef VBOX_WITH_3D_ACCELERATION
     /* Check if WDDM mode supported by the guest OS type: */
-    const QString strGuestOSTypeId = m_comGuestOSType.isNotNull() ? m_comGuestOSType.GetId() : QString();
-    m_fWddmModeSupported = UICommon::isWddmCompatibleOsType(strGuestOSTypeId);
+    m_fWddmModeSupported = UIGuestOSTypeHelpers::isWddmCompatibleOsType(m_strGuestOSTypeId);
     m_pEditorVideoMemorySize->set3DAccelerationSupported(m_fWddmModeSupported);
 #endif /* VBOX_WITH_3D_ACCELERATION */
     /* Acquire recommended graphics controller type: */
-    m_enmGraphicsControllerTypeRecommended = m_comGuestOSType.GetRecommendedGraphicsController();
-
+    m_enmGraphicsControllerTypeRecommended =
+        gpGlobalSession->guestOSTypeManager().getRecommendedGraphicsController(m_strGuestOSTypeId);
     /* Revalidate: */
     revalidate();
 }
@@ -393,21 +400,26 @@ void UIMachineSettingsDisplay::loadToCacheFrom(QVariant &data)
         oldDisplayData.m_scaleFactors = gEDataManager->scaleFactors(m_machine.GetId());
         oldDisplayData.m_graphicsControllerType = comGraphics.GetGraphicsControllerType();
 #ifdef VBOX_WITH_3D_ACCELERATION
-        oldDisplayData.m_f3dAccelerationEnabled = comGraphics.GetAccelerate3DEnabled();
+        oldDisplayData.m_f3dAccelerationEnabled = comGraphics.IsFeatureEnabled(KGraphicsFeature_Acceleration3D);
 #endif
     }
 
     /* Check whether remote display server is valid: */
-    const CVRDEServer &vrdeServer = m_machine.GetVRDEServer();
-    oldDisplayData.m_fRemoteDisplayServerSupported = !vrdeServer.isNull();
-    if (!vrdeServer.isNull())
+    CExtPackManager comExtPackManager = gpGlobalSession->virtualBox().GetExtensionPackManager();
+    const bool fExtPackPresent = comExtPackManager.isNotNull() && comExtPackManager.IsExtPackUsable(GUI_ExtPackName);
+    CVRDEServer comVrdeServer = m_machine.GetVRDEServer();
+    const bool fServerExists = m_machine.isOk() && comVrdeServer.isNotNull();
+    oldDisplayData.m_fRemoteDisplayServerSupported = fExtPackPresent && fServerExists;
+    if (oldDisplayData.m_fRemoteDisplayServerSupported)
     {
         /* Gather old 'Remote Display' data: */
-        oldDisplayData.m_fRemoteDisplayServerEnabled = vrdeServer.GetEnabled();
-        oldDisplayData.m_strRemoteDisplayPort = vrdeServer.GetVRDEProperty("TCP/Ports");
-        oldDisplayData.m_remoteDisplayAuthType = vrdeServer.GetAuthType();
-        oldDisplayData.m_uRemoteDisplayTimeout = vrdeServer.GetAuthTimeout();
-        oldDisplayData.m_fRemoteDisplayMultiConnAllowed = vrdeServer.GetAllowMultiConnection();
+        oldDisplayData.m_fRemoteDisplayServerEnabled = comVrdeServer.GetEnabled();
+        oldDisplayData.m_strRemoteDisplayPort = comVrdeServer.GetVRDEProperty("TCP/Ports");
+        oldDisplayData.m_remoteDisplaySecurityMethod =
+            gpConverter->fromInternalString<UIVRDESecurityMethod>(comVrdeServer.GetVRDEProperty("Security/Method"));
+        oldDisplayData.m_remoteDisplayAuthType = comVrdeServer.GetAuthType();
+        oldDisplayData.m_uRemoteDisplayTimeout = comVrdeServer.GetAuthTimeout();
+        oldDisplayData.m_fRemoteDisplayMultiConnAllowed = comVrdeServer.GetAllowMultiConnection();
     }
 
     /* Gather old 'Recording' data: */
@@ -487,6 +499,7 @@ void UIMachineSettingsDisplay::getFromCache()
         {
             m_pEditorVRDESettings->setFeatureEnabled(oldDisplayData.m_fRemoteDisplayServerEnabled);
             m_pEditorVRDESettings->setPort(oldDisplayData.m_strRemoteDisplayPort);
+            m_pEditorVRDESettings->setSecurityMethod(oldDisplayData.m_remoteDisplaySecurityMethod);
             m_pEditorVRDESettings->setAuthType(oldDisplayData.m_remoteDisplayAuthType);
             m_pEditorVRDESettings->setTimeout(QString::number(oldDisplayData.m_uRemoteDisplayTimeout));
             m_pEditorVRDESettings->setMultipleConnectionsAllowed(oldDisplayData.m_fRemoteDisplayMultiConnAllowed);
@@ -563,6 +576,7 @@ void UIMachineSettingsDisplay::putToCache()
         /* Gather new 'Remote Display' data: */
         newDisplayData.m_fRemoteDisplayServerEnabled = m_pEditorVRDESettings->isFeatureEnabled();
         newDisplayData.m_strRemoteDisplayPort = m_pEditorVRDESettings->port();
+        newDisplayData.m_remoteDisplaySecurityMethod = m_pEditorVRDESettings->securityMethod();
         newDisplayData.m_remoteDisplayAuthType = m_pEditorVRDESettings->authType();
         newDisplayData.m_uRemoteDisplayTimeout = m_pEditorVRDESettings->timeout().toULong();
         newDisplayData.m_fRemoteDisplayMultiConnAllowed = m_pEditorVRDESettings->isMultipleConnectionsAllowed();
@@ -632,16 +646,16 @@ bool UIMachineSettingsDisplay::validate(QList<UIValidationMessage> &messages)
         message.first = UITranslator::removeAccelMark(m_pTabWidget->tabText(0));
 
         /* Video RAM amount test: */
-        if (shouldWeWarnAboutLowVRAM() && !m_comGuestOSType.isNull())
+        if (shouldWeWarnAboutLowVRAM() && !m_strGuestOSTypeId.isEmpty())
         {
-            quint64 uNeedBytes = UICommon::requiredVideoMemory(m_comGuestOSType.GetId(), m_pEditorMonitorCount->value());
+            quint64 uNeedBytes = UIGuestOSTypeHelpers::requiredVideoMemory(m_strGuestOSTypeId, m_pEditorMonitorCount->value());
 
             /* Basic video RAM amount test: */
             if ((quint64)m_pEditorVideoMemorySize->value() * _1M < uNeedBytes)
             {
                 message.second << tr("The virtual machine is currently assigned less than <b>%1</b> of video memory "
                                      "which is the minimum amount required to switch to full-screen or seamless mode.")
-                                     .arg(UITranslator::formatSize(uNeedBytes, 0, FormatSize_RoundUp));
+                                     .arg(UITranslator::formatSize(uNeedBytes, 0, UITranslator::FormatSize_RoundUp));
             }
 #ifdef VBOX_WITH_3D_ACCELERATION
             /* 3D acceleration video RAM amount test: */
@@ -653,14 +667,14 @@ bool UIMachineSettingsDisplay::validate(QList<UIValidationMessage> &messages)
                     message.second << tr("The virtual machine is set up to use hardware graphics acceleration "
                                          "and the operating system hint is set to Windows Vista or later. "
                                          "For best performance you should set the machine's video memory to at least <b>%1</b>.")
-                                         .arg(UITranslator::formatSize(uNeedBytes, 0, FormatSize_RoundUp));
+                                         .arg(UITranslator::formatSize(uNeedBytes, 0, UITranslator::FormatSize_RoundUp));
                 }
             }
 #endif /* VBOX_WITH_3D_ACCELERATION */
         }
 
         /* Graphics controller type test: */
-        if (!m_comGuestOSType.isNull())
+        if (!m_strGuestOSTypeId.isEmpty())
         {
             if (graphicsControllerTypeCurrent() != graphicsControllerTypeRecommended())
             {
@@ -686,6 +700,7 @@ bool UIMachineSettingsDisplay::validate(QList<UIValidationMessage> &messages)
     }
 
     /* Remote Display tab: */
+    if (m_pTabWidget->isTabEnabled(1))
     {
         /* Prepare message: */
         UIValidationMessage message;
@@ -694,7 +709,7 @@ bool UIMachineSettingsDisplay::validate(QList<UIValidationMessage> &messages)
         /* Extension Pack presence test: */
         if (m_pEditorVRDESettings->isFeatureEnabled())
         {
-            CExtPackManager extPackManager = uiCommon().virtualBox().GetExtensionPackManager();
+            CExtPackManager extPackManager = gpGlobalSession->virtualBox().GetExtensionPackManager();
             if (!extPackManager.isNull() && !extPackManager.IsExtPackUsable(GUI_ExtPackName))
             {
                 message.second << tr("Remote Display is currently enabled for this virtual machine. "
@@ -747,29 +762,19 @@ void UIMachineSettingsDisplay::setOrderAfter(QWidget *pWidget)
     setTabOrder(m_pEditorVRDESettings, m_pEditorRecordingSettings);
 }
 
-void UIMachineSettingsDisplay::retranslateUi()
+void UIMachineSettingsDisplay::sltRetranslateUI()
 {
     /* Translate tab-widget: */
     m_pTabWidget->setTabText(m_pTabWidget->indexOf(m_pTabScreen), tr("&Screen"));
     m_pTabWidget->setTabText(m_pTabWidget->indexOf(m_pTabRemoteDisplay), tr("&Remote Display"));
     m_pTabWidget->setTabText(m_pTabWidget->indexOf(m_pTabRecording), tr("Re&cording"));
 
-    /* These editors have own labels, but we want them to be properly layouted according to each other: */
-    int iMinimumLayoutHint = 0;
-    iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorVideoMemorySize->minimumLabelHorizontalHint());
-    iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorMonitorCount->minimumLabelHorizontalHint());
-    iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorScaleFactor->minimumLabelHorizontalHint());
-    iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorGraphicsController->minimumLabelHorizontalHint());
-#ifdef VBOX_WITH_3D_ACCELERATION
-    iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorDisplayScreenFeatures->minimumLabelHorizontalHint());
-#endif
-    m_pEditorVideoMemorySize->setMinimumLayoutIndent(iMinimumLayoutHint);
-    m_pEditorMonitorCount->setMinimumLayoutIndent(iMinimumLayoutHint);
-    m_pEditorScaleFactor->setMinimumLayoutIndent(iMinimumLayoutHint);
-    m_pEditorGraphicsController->setMinimumLayoutIndent(iMinimumLayoutHint);
-#ifdef VBOX_WITH_3D_ACCELERATION
-    m_pEditorDisplayScreenFeatures->setMinimumLayoutIndent(iMinimumLayoutHint);
-#endif
+    updateMinimumLayoutHint();
+}
+
+void UIMachineSettingsDisplay::handleFilterChange()
+{
+    updateMinimumLayoutHint();
 }
 
 void UIMachineSettingsDisplay::polishPage()
@@ -791,16 +796,11 @@ void UIMachineSettingsDisplay::polishPage()
     m_pTabRemoteDisplay->setEnabled(isMachineInValidMode());
     m_pEditorVRDESettings->setVRDEOptionsAvailable(isMachineOffline() || isMachineSaved());
 
-#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
-    /* Polish 'Recording' visibility: */
-    m_pTabWidget->setTabVisible(m_pTabWidget->indexOf(m_pTabRecording), uiCommon().supportedRecordingFeatures());
     /* Polish 'Recording' availability: */
-    m_pTabRecording->setEnabled(isMachineInValidMode());
-#else
-    /* Polish 'Recording' availability: */
-    m_pTabWidget->setTabEnabled(2, isMachineInValidMode() && uiCommon().supportedRecordingFeatures());
-    m_pTabRecording->setEnabled(isMachineInValidMode() && uiCommon().supportedRecordingFeatures());
-#endif
+    const int iSupportedRecordingFeatures = gpGlobalSession->supportedRecordingFeatures();
+    m_pTabWidget->setTabEnabled(2, isMachineInValidMode() && iSupportedRecordingFeatures);
+    m_pTabRecording->setEnabled(isMachineInValidMode() && iSupportedRecordingFeatures);
+
     // Recording options should be enabled only if:
     // 1. Machine is in 'offline' or 'saved' state,
     // 2. Machine is in 'online' state and video recording is *disabled* currently.
@@ -855,7 +855,7 @@ void UIMachineSettingsDisplay::prepare()
     prepareConnections();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIMachineSettingsDisplay::prepareWidgets()
@@ -881,43 +881,66 @@ void UIMachineSettingsDisplay::prepareWidgets()
 void UIMachineSettingsDisplay::prepareTabScreen()
 {
     /* Prepare 'Screen' tab: */
-    m_pTabScreen = new QWidget;
+    m_pTabScreen = new UIEditor(m_pTabWidget);
     if (m_pTabScreen)
     {
         /* Prepare 'Screen' tab layout: */
         QVBoxLayout *pLayoutScreen = new QVBoxLayout(m_pTabScreen);
         if (pLayoutScreen)
         {
+#ifdef VBOX_WS_MAC
+            /* On Mac OS X we can do a bit of smoothness: */
+            int iLeft, iTop, iRight, iBottom;
+            pLayoutScreen->getContentsMargins(&iLeft, &iTop, &iRight, &iBottom);
+            pLayoutScreen->setContentsMargins(iLeft / 2, iTop / 2, iRight / 2, iBottom / 2);
+#endif
+
             /* Prepare video memory editor: */
             m_pEditorVideoMemorySize = new UIVideoMemoryEditor(m_pTabScreen);
             if (m_pEditorVideoMemorySize)
+            {
+                m_pTabScreen->addEditor(m_pEditorVideoMemorySize);
                 pLayoutScreen->addWidget(m_pEditorVideoMemorySize);
+            }
 
             /* Prepare monitor count editor: */
             m_pEditorMonitorCount = new UIMonitorCountEditor(m_pTabScreen);
             if (m_pEditorMonitorCount)
+            {
+                m_pTabScreen->addEditor(m_pEditorMonitorCount);
                 pLayoutScreen->addWidget(m_pEditorMonitorCount);
+            }
 
             /* Prepare scale factor editor: */
             m_pEditorScaleFactor = new UIScaleFactorEditor(m_pTabScreen);
             if (m_pEditorScaleFactor)
+            {
+                m_pTabScreen->addEditor(m_pEditorScaleFactor);
                 pLayoutScreen->addWidget(m_pEditorScaleFactor);
+            }
 
             /* Prepare graphics controller editor: */
             m_pEditorGraphicsController = new UIGraphicsControllerEditor(m_pTabScreen);
             if (m_pEditorGraphicsController)
+            {
+                m_pTabScreen->addEditor(m_pEditorGraphicsController);
                 pLayoutScreen->addWidget(m_pEditorGraphicsController);
+            }
 
 #ifdef VBOX_WITH_3D_ACCELERATION
             /* Prepare display screen features editor: */
             m_pEditorDisplayScreenFeatures = new UIDisplayScreenFeaturesEditor(m_pTabScreen);
             if (m_pEditorDisplayScreenFeatures)
+            {
+                m_pTabScreen->addEditor(m_pEditorDisplayScreenFeatures);
                 pLayoutScreen->addWidget(m_pEditorDisplayScreenFeatures);
+            }
 #endif /* VBOX_WITH_3D_ACCELERATION */
 
             pLayoutScreen->addStretch();
         }
 
+        addEditor(m_pTabScreen);
         m_pTabWidget->addTab(m_pTabScreen, QString());
     }
 }
@@ -925,21 +948,32 @@ void UIMachineSettingsDisplay::prepareTabScreen()
 void UIMachineSettingsDisplay::prepareTabRemoteDisplay()
 {
     /* Prepare 'Remote Display' tab: */
-    m_pTabRemoteDisplay = new QWidget;
+    m_pTabRemoteDisplay = new UIEditor(m_pTabWidget);
     if (m_pTabRemoteDisplay)
     {
         /* Prepare 'Remote Display' tab layout: */
         QVBoxLayout *pLayoutRemoteDisplay = new QVBoxLayout(m_pTabRemoteDisplay);
         if (pLayoutRemoteDisplay)
         {
+#ifdef VBOX_WS_MAC
+            /* On Mac OS X we can do a bit of smoothness: */
+            int iLeft, iTop, iRight, iBottom;
+            pLayoutRemoteDisplay->getContentsMargins(&iLeft, &iTop, &iRight, &iBottom);
+            pLayoutRemoteDisplay->setContentsMargins(iLeft / 2, iTop / 2, iRight / 2, iBottom / 2);
+#endif
+
             /* Prepare remote display settings editor: */
             m_pEditorVRDESettings = new UIVRDESettingsEditor(m_pTabRemoteDisplay);
             if (m_pEditorVRDESettings)
+            {
+                m_pTabRemoteDisplay->addEditor(m_pEditorVRDESettings);
                 pLayoutRemoteDisplay->addWidget(m_pEditorVRDESettings);
+            }
 
             pLayoutRemoteDisplay->addStretch();
         }
 
+        addEditor(m_pTabRemoteDisplay);
         m_pTabWidget->addTab(m_pTabRemoteDisplay, QString());
     }
 }
@@ -947,21 +981,32 @@ void UIMachineSettingsDisplay::prepareTabRemoteDisplay()
 void UIMachineSettingsDisplay::prepareTabRecording()
 {
     /* Prepare 'Recording' tab: */
-    m_pTabRecording = new QWidget;
+    m_pTabRecording = new UIEditor(m_pTabWidget);
     if (m_pTabRecording)
     {
         /* Prepare 'Recording' tab layout: */
         QVBoxLayout *pLayoutRecording = new QVBoxLayout(m_pTabRecording);
         if (pLayoutRecording)
         {
+#ifdef VBOX_WS_MAC
+            /* On Mac OS X we can do a bit of smoothness: */
+            int iLeft, iTop, iRight, iBottom;
+            pLayoutRecording->getContentsMargins(&iLeft, &iTop, &iRight, &iBottom);
+            pLayoutRecording->setContentsMargins(iLeft / 2, iTop / 2, iRight / 2, iBottom / 2);
+#endif
+
             /* Prepare recording editor: */
             m_pEditorRecordingSettings = new UIRecordingSettingsEditor(m_pTabRecording);
             if (m_pEditorRecordingSettings)
+            {
+                m_pTabRecording->addEditor(m_pEditorRecordingSettings);
                 pLayoutRecording->addWidget(m_pEditorRecordingSettings);
+            }
 
             pLayoutRecording->addStretch();
         }
 
+        addEditor(m_pTabRecording);
         m_pTabWidget->addTab(m_pTabRecording, QString());
     }
 }
@@ -994,20 +1039,28 @@ void UIMachineSettingsDisplay::cleanup()
 
 bool UIMachineSettingsDisplay::shouldWeWarnAboutLowVRAM()
 {
-    bool fResult = true;
-
-    QStringList excludingOSList = QStringList()
-        << "Other" << "DOS" << "Netware" << "L4" << "QNX" << "JRockitVE";
-    if (m_comGuestOSType.isNull() || excludingOSList.contains(m_comGuestOSType.GetId()))
-        fResult = false;
-
-    return fResult;
+    static const char *s_apszExcludes[] =
+    {
+        GUEST_OS_ID_STR_X86("Other"),
+        GUEST_OS_ID_STR_X64("Other"),
+        GUEST_OS_ID_STR_A64("Other"),
+        GUEST_OS_ID_STR_X64("VBoxBS"),
+        GUEST_OS_ID_STR_X86("DOS"),
+        GUEST_OS_ID_STR_X86("Netware"),
+        GUEST_OS_ID_STR_X86("L4"),
+        GUEST_OS_ID_STR_X86("QNX"),
+        GUEST_OS_ID_STR_X86("JRockitVE"),
+    };
+    for (size_t idx = 0; idx < RT_ELEMENTS(s_apszExcludes); idx++)
+        if (m_strGuestOSTypeId == s_apszExcludes[idx])
+            return false;
+    return true;
 }
 
 void UIMachineSettingsDisplay::updateGuestScreenCount()
 {
     /* Update copy of the cached item to get the desired result: */
-    QVector<BOOL> screens = m_pCache->base().m_vecRecordingScreens;
+    QVector<bool> screens = m_pCache->base().m_vecRecordingScreens;
     screens.resize(m_pEditorMonitorCount->value());
     m_pEditorRecordingSettings->setScreens(screens);
     m_pEditorScaleFactor->setMonitorCount(m_pEditorMonitorCount->value());
@@ -1058,6 +1111,14 @@ bool UIMachineSettingsDisplay::saveScreenData()
         CGraphicsAdapter comGraphics = m_machine.GetGraphicsAdapter();
         fSuccess = m_machine.isOk() && comGraphics.isNotNull();
 
+        /* Get machine ID for further activities: */
+        QUuid uMachineId;
+        if (fSuccess)
+        {
+            uMachineId = m_machine.GetId();
+            fSuccess = m_machine.isOk();
+        }
+
         /* Show error message if necessary: */
         if (!fSuccess)
             notifyOperationProgressError(UIErrorString::formatErrorInfo(m_machine));
@@ -1085,22 +1146,14 @@ bool UIMachineSettingsDisplay::saveScreenData()
             /* Save whether 3D acceleration is enabled: */
             if (fSuccess && isMachineOffline() && newDisplayData.m_f3dAccelerationEnabled != oldDisplayData.m_f3dAccelerationEnabled)
             {
-                comGraphics.SetAccelerate3DEnabled(newDisplayData.m_f3dAccelerationEnabled);
+                comGraphics.SetFeature(KGraphicsFeature_Acceleration3D, newDisplayData.m_f3dAccelerationEnabled);
                 fSuccess = comGraphics.isOk();
             }
 #endif
 
-            /* Get machine ID for further activities: */
-            QUuid uMachineId;
-            if (fSuccess)
-            {
-                uMachineId = m_machine.GetId();
-                fSuccess = m_machine.isOk();
-            }
-
             /* Show error message if necessary: */
             if (!fSuccess)
-                notifyOperationProgressError(UIErrorString::formatErrorInfo(m_machine));
+                notifyOperationProgressError(UIErrorString::formatErrorInfo(comGraphics));
 
             /* Save guest-screen scale-factor: */
             if (fSuccess && newDisplayData.m_scaleFactors != oldDisplayData.m_scaleFactors)
@@ -1127,6 +1180,11 @@ bool UIMachineSettingsDisplay::saveRemoteDisplayData()
         /* Get new data from cache: */
         const UIDataSettingsMachineDisplay &newDisplayData = m_pCache->data();
 
+        /* Do not save anything if server isn't supported: */
+        if (   !oldDisplayData.m_fRemoteDisplayServerSupported
+            || !newDisplayData.m_fRemoteDisplayServerSupported)
+            return fSuccess;
+
         /* Get remote display server for further activities: */
         CVRDEServer comServer = m_machine.GetVRDEServer();
         fSuccess = m_machine.isOk() && comServer.isNotNull();
@@ -1146,6 +1204,12 @@ bool UIMachineSettingsDisplay::saveRemoteDisplayData()
             if (fSuccess && newDisplayData.m_strRemoteDisplayPort != oldDisplayData.m_strRemoteDisplayPort)
             {
                 comServer.SetVRDEProperty("TCP/Ports", newDisplayData.m_strRemoteDisplayPort);
+                fSuccess = comServer.isOk();
+            }
+            /* Save remote display server security method: */
+            if (fSuccess && newDisplayData.m_remoteDisplaySecurityMethod != oldDisplayData.m_remoteDisplaySecurityMethod)
+            {
+                comServer.SetVRDEProperty("Security/Method", gpConverter->toInternalString(newDisplayData.m_remoteDisplaySecurityMethod));
                 fSuccess = comServer.isOk();
             }
             /* Save remote display server auth type: */
@@ -1279,7 +1343,6 @@ bool UIMachineSettingsDisplay::saveRecordingData()
                     comRecordingScreenSettings.SetEnabled(newDisplayData.m_vecRecordingScreens[iScreenIndex]);
                     fSuccess = comRecordingScreenSettings.isOk();
                 }
-
                 if (!fSuccess)
                 {
                     if (!comRecordingScreenSettings.isOk())
@@ -1294,6 +1357,13 @@ bool UIMachineSettingsDisplay::saveRecordingData()
             {
                 recordingSettings.SetEnabled(newDisplayData.m_fRecordingEnabled);
                 fSuccess = recordingSettings.isOk();
+                if (fSuccess)
+                {
+                    /* Start recording when recording got enabled. */
+                    /** @todo r=andy Not sure if this is the right place for it. */
+                    CProgress comProgress = recordingSettings.Start();
+                    fSuccess = recordingSettings.isOk();
+                }
             }
         }
     }
@@ -1396,4 +1466,34 @@ bool UIMachineSettingsDisplay::saveRecordingData()
 
     /* Return result: */
     return fSuccess;
+}
+
+void UIMachineSettingsDisplay::updateMinimumLayoutHint()
+{
+    /* These editors have own labels, but we want them to be properly layouted according to each other: */
+    int iMinimumLayoutHint = 0;
+    if (m_pEditorVideoMemorySize && !m_pEditorVideoMemorySize->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorVideoMemorySize->minimumLabelHorizontalHint());
+    if (m_pEditorMonitorCount && !m_pEditorMonitorCount->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorMonitorCount->minimumLabelHorizontalHint());
+    if (m_pEditorScaleFactor && !m_pEditorScaleFactor->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorScaleFactor->minimumLabelHorizontalHint());
+    if (m_pEditorGraphicsController && !m_pEditorGraphicsController->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorGraphicsController->minimumLabelHorizontalHint());
+#ifdef VBOX_WITH_3D_ACCELERATION
+    if (m_pEditorDisplayScreenFeatures && !m_pEditorDisplayScreenFeatures->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorDisplayScreenFeatures->minimumLabelHorizontalHint());
+#endif
+    if (m_pEditorVideoMemorySize)
+        m_pEditorVideoMemorySize->setMinimumLayoutIndent(iMinimumLayoutHint);
+    if (m_pEditorMonitorCount)
+        m_pEditorMonitorCount->setMinimumLayoutIndent(iMinimumLayoutHint);
+    if (m_pEditorScaleFactor)
+        m_pEditorScaleFactor->setMinimumLayoutIndent(iMinimumLayoutHint);
+    if (m_pEditorGraphicsController)
+        m_pEditorGraphicsController->setMinimumLayoutIndent(iMinimumLayoutHint);
+#ifdef VBOX_WITH_3D_ACCELERATION
+    if (m_pEditorDisplayScreenFeatures)
+        m_pEditorDisplayScreenFeatures->setMinimumLayoutIndent(iMinimumLayoutHint);
+#endif
 }

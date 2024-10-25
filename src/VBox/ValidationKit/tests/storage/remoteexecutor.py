@@ -7,7 +7,7 @@ VirtualBox Validation Kit - Storage benchmark, test execution helpers.
 
 __copyright__ = \
 """
-Copyright (C) 2016-2023 Oracle and/or its affiliates.
+Copyright (C) 2016-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -36,7 +36,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 
 # Standard Python imports.
@@ -198,6 +198,21 @@ class RemoteExecutor(object):
         sBinary = self._getBinaryPath(sExec);
         if sBinary is not None:
             fRc, sOutput, sError = self._execLocallyOrThroughTxs(sBinary, asArgs, sInput, cMsTimeout);
+            # If verbose logging is enabled and the process failed for whatever reason, log its output to the reporter.
+            fLog = False;
+            if  not fRc \
+            and reporter.getVerbosity() >= 2: # Verbose logging starts at level 2.
+                fLog = True;
+            elif reporter.getVerbosity() >= 3:
+                fLog = True;
+
+            if fLog:
+                asOutput = sOutput.splitlines();
+                for sLine in asOutput:
+                    reporter.log('%s [stdout]: %s' % (sExec, sLine.encode(encoding = 'UTF-8', errors = 'strict'),));
+                asError = sError.splitlines();
+                for sLine in asError:
+                    reporter.log('%s [stderr]: %s' % (sExec, sLine.encode(encoding = 'UTF-8', errors = 'strict'),));
         else:
             fRc = False;
         return (fRc, sOutput, sError);
@@ -265,10 +280,11 @@ class RemoteExecutor(object):
         """
         fRc = True;
         if self.oTxsSession is not None:
-            fRc = self.oTxsSession.syncMkDir(sDir, fMode, cMsTimeout);
+            fRc = self.oTxsSession.syncMkDir(sDir, fMode, cMsTimeout, fIgnoreErrors=False);
         elif not os.path.isdir(sDir):
-            fRc = os.mkdir(sDir, fMode);
-
+            reporter.log("if no txs session found and os.path.isdir is False do os.mkdir for %s" % sDir)
+            os.mkdir(sDir, fMode)  # os.mkdir function returns nothing
+            fRc = os.path.isdir(sDir)
         return fRc;
 
     def rmDir(self, sDir, cMsTimeout = 30000):
@@ -285,14 +301,20 @@ class RemoteExecutor(object):
 
     def rmTree(self, sDir, cMsTimeout = 30000):
         """
-        Recursively removes all files and sub directories including the given directory.
+        Recursively removes all files and subdirectories including the given directory.
         """
         fRc = True;
         if self.oTxsSession is not None:
+            reporter.log("rmTree (%s) using txs" % sDir);
             fRc = self.oTxsSession.syncRmTree(sDir, cMsTimeout);
         else:
             try:
-                shutil.rmtree(sDir, ignore_errors=True);
+                if os.path.isfile(sDir):
+                    reporter.log("deleting file: %s" % sDir)
+                    os.remove(sDir)
+                else:
+                    reporter.log("rmTree (%s) using shutil.rmtree function" % sDir);
+                    shutil.rmtree(sDir);
             except:
                 fRc = False;
 

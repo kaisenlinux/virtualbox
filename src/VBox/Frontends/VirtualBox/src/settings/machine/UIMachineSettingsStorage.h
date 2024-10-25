@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -30,6 +30,9 @@
 #ifndef RT_WITHOUT_PRAGMA_ONCE
 # pragma once
 #endif
+
+/* COM includes: */
+#include "KChipsetType.h"
 
 /* GUI includes: */
 #include "UISettingsPage.h"
@@ -89,11 +92,13 @@ protected:
     /** Defines the configuration access @a enmLevel. */
     virtual void setConfigurationAccessLevel(ConfigurationAccessLevel enmLevel) RT_OVERRIDE;
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
     /** Performs final page polishing. */
     virtual void polishPage() RT_OVERRIDE;
+
+private slots:
+
+    /** Handles translation event. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 

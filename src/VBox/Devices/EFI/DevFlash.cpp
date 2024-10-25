@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2018-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2018-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -76,6 +76,22 @@ typedef struct DEVFLASHR3
 } DEVFLASHR3;
 /** Pointer to the ring-3 Flash device state. */
 typedef DEVFLASHR3 *PDEVFLASHR3;
+
+/**
+ * The flash device, ring-0 state.
+ */
+typedef struct DEVFLASHR0
+{
+    /** Dummy, no R0 only component so far. */
+    uint8_t            bDummy;
+} DEVFLASHR0;
+/** Pointer to the ring-3 Flash device state. */
+typedef DEVFLASHR0 *PDEVFLASHR0;
+
+/** The serial device state for the current context. */
+typedef CTX_SUFF(DEVFLASH) DEVFLASHCC;
+/** Pointer to the serial device state for the current context. */
+typedef CTX_SUFF(PDEVFLASH) PDEVFLASHCC;
 
 
 #ifndef VBOX_DEVICE_STRUCT_TESTCASE
@@ -284,7 +300,7 @@ const PDMDEVREG g_DeviceFlash =
     /* .cMaxInstances = */          1,
     /* .uSharedVersion = */         42,
     /* .cbInstanceShared = */       sizeof(DEVFLASH),
-    /* .cbInstanceCC = */           0,
+    /* .cbInstanceCC = */           sizeof(DEVFLASHCC),
     /* .cbInstanceRC = */           0,
     /* .cMaxPciDevices = */         0,
     /* .cMaxMsixVectors = */        0,

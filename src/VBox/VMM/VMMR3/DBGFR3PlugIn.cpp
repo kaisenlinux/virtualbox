@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -274,14 +274,16 @@ static DECLCALLBACK(int) dbgfR3PlugInLoadCallback(const char *pchPath, size_t cc
     size_t const cchModule = cchPath + sizeof(RTPATH_SLASH_STR) + sizeof(DBGF_PLUG_IN_PREFIX) + pPlugIn->cchName + cchSuff + 4;
     char        *pszModule = (char *)alloca(cchModule);
     AssertReturn(pszModule, VERR_TRY_AGAIN);
+
     memcpy(pszModule, pchPath, cchPath);
     pszModule[cchPath] = '\0';
 
     int rc = RTPathAppend(pszModule, cchModule, DBGF_PLUG_IN_PREFIX);
-    AssertRCReturn(rc, VERR_TRY_AGAIN);
-    strcat(&pszModule[cchPath], pPlugIn->szName);
-    strcat(&pszModule[cchPath + sizeof(DBGF_PLUG_IN_PREFIX) - 1 + pPlugIn->cchName], pszSuff);
-    Assert(strlen(pszModule) < cchModule - 4);
+    AssertRCReturn(rc, VERR_TRY_AGAIN); /* (This cannot possibly fail, just usual paranoia convention.) */
+    size_t const cchWithPrefix = cchPath + strlen(&pszModule[cchPath]); /* (May have added a slash.) */
+
+    Assert(cchWithPrefix + pPlugIn->cchName + cchSuff < cchModule - 4);
+    memcpy(mempcpy(&pszModule[cchWithPrefix], pPlugIn->szName, pPlugIn->cchName), pszSuff, cchSuff + 1);
 
     if (RTPathExists(pszModule))
     {
@@ -479,7 +481,8 @@ VMMR3DECL(void) DBGFR3PlugInLoadAll(PUVM pUVM)
 
     rc = RTPathAppend(szPath, sizeof(szPath) - cchSuff, DBGF_PLUG_IN_PREFIX "*");
     AssertRCReturnVoid(rc);
-    strcat(szPath, pszSuff);
+    rc = RTStrCat(szPath, sizeof(szPath), pszSuff);
+    AssertRCReturnVoid(rc);
 
     RTDIR hDir;
     rc = RTDirOpenFiltered(&hDir, szPath, RTDIRFILTER_WINNT, 0 /*fFlags*/);

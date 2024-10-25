@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,7 +26,7 @@
  */
 
 /* Qt includes: */
-#include <QAbstractTableModel>
+#include <QApplication>
 #include <QCheckBox>
 #include <QHeaderView>
 #include <QItemDelegate>
@@ -34,44 +34,48 @@
 #include <QMenuBar>
 #include <QPainter>
 #include <QPushButton>
-#include <QTableView>
 #include <QTimer>
 #include <QVBoxLayout>
-#include <QSortFilterProxyModel>
 
 /* GUI includes: */
 #include "QIDialogButtonBox.h"
 #include "QIToolBar.h"
 #include "UIActionPoolManager.h"
+#include "UICloudEntityKey.h"
+#include "UICloudNetworkingStuff.h"
 #include "UICommon.h"
 #include "UIConverter.h"
 #include "UIExtraDataDefs.h"
 #include "UIExtraDataManager.h"
+#include "UIGlobalSession.h"
 #include "UIIconPool.h"
+#include "UILocalMachineStuff.h"
 #include "UIMessageCenter.h"
 #include "UITranslator.h"
+#include "UITranslationEventListener.h"
 #include "UIVirtualBoxEventHandler.h"
+#include "UIVirtualMachineItemCloud.h"
 #include "UIVMActivityMonitor.h"
 #include "UIVMActivityOverviewWidget.h"
+#include "UIVMActivityOverviewModelView.h"
 
 #ifdef VBOX_WS_MAC
 # include "UIWindowMenuManager.h"
 #endif /* VBOX_WS_MAC */
 
 /* COM includes: */
+#include "CCloudClient.h"
 #include "CConsole.h"
 #include "CMachine.h"
 #include "CMachineDebugger.h"
 #include "CPerformanceMetric.h"
-
-/* Other VBox includes: */
-#include <iprt/cidr.h>
 
 struct ResourceColumn
 {
     QString m_strName;
     bool    m_fEnabled;
 };
+
 
 /** Draws a doughnut shaped chart for the passed data values and can have a text drawn in the center. */
 
@@ -102,43 +106,19 @@ private:
     quint64 m_iData0;
     quint64 m_iData1;
     quint64 m_iDataMaximum;
-    int m_iMargin;
-    QColor m_color0;
-    QColor m_color1;
+    int     m_iMargin;
+    QColor  m_color0;
+    QColor  m_color1;
     /** If not empty this text is drawn at the center of the doughnut chart. */
     QString m_strCenter;
 };
-
-/** A simple container to store host related performance values. */
-
-
-/*********************************************************************************************************************************
-*   Class UIVMActivityOverviewHostStats definition.                                                                              *
-*********************************************************************************************************************************/
-
-class UIVMActivityOverviewHostStats
-{
-
-public:
-
-    UIVMActivityOverviewHostStats();
-    quint64 m_iCPUUserLoad;
-    quint64 m_iCPUKernelLoad;
-    quint64 m_iCPUFreq;
-    quint64 m_iRAMTotal;
-    quint64 m_iRAMFree;
-    quint64 m_iFSTotal;
-    quint64 m_iFSFree;
-};
-
-/** A container QWidget to layout host stats. related widgets. */
 
 
 /*********************************************************************************************************************************
 *   Class UIVMActivityOverviewHostStatsWidget definition.                                                                        *
 *********************************************************************************************************************************/
-
-class UIVMActivityOverviewHostStatsWidget : public QIWithRetranslateUI<QWidget>
+/** A container QWidget to layout host stats. related widgets. */
+class UIVMActivityOverviewHostStatsWidget : public QWidget
 {
 
     Q_OBJECT;
@@ -148,9 +128,9 @@ public:
     UIVMActivityOverviewHostStatsWidget(QWidget *pParent = 0);
     void setHostStats(const UIVMActivityOverviewHostStats &hostStats);
 
-protected:
+private slots:
 
-    virtual void retranslateUi() RT_OVERRIDE;
+    void sltRetranslateUI();
 
 private:
 
@@ -182,192 +162,121 @@ private:
 
 
 /*********************************************************************************************************************************
-*   Class UIVMActivityOverviewTableView definition.                                                                              *
-*********************************************************************************************************************************/
-/** A QTableView extension so manage the column width a bit better than what Qt offers out of box. */
-class UIVMActivityOverviewTableView : public QTableView
-{
-    Q_OBJECT;
-
-signals:
-
-    void sigSelectionChanged(const QItemSelection &selected, const QItemSelection &deselected);
-
-public:
-
-    UIVMActivityOverviewTableView(QWidget *pParent = 0);
-    void setMinimumColumnWidths(const QMap<int, int>& widths);
-    void updateColumVisibility();
-    int selectedItemIndex() const;
-    bool hasSelection() const;
-
-protected:
-
-    virtual void resizeEvent(QResizeEvent *pEvent) RT_OVERRIDE;
-    virtual void selectionChanged(const QItemSelection &selected, const QItemSelection &deselected) RT_OVERRIDE;
-    virtual void mousePressEvent(QMouseEvent *pEvent) RT_OVERRIDE;
-
-private slots:
-
-
-
-private:
-
-    /** Resizes all the columns in response to resizeEvent. Columns cannot be narrower than m_minimumColumnWidths values. */
-    void resizeHeaders();
-    /** Value is in pixels. Columns cannot be narrower than this width. */
-    QMap<int, int> m_minimumColumnWidths;
-};
-
-/** Each instance of UIVMActivityOverviewItem corresponds to a running vm whose stats are displayed.
-  * they are owned my the model. */
-/*********************************************************************************************************************************
  *   Class UIVMActivityOverviewItem definition.                                                                           *
  *********************************************************************************************************************************/
-class UIActivityOverviewItem
+/** Each instance of UIVMActivityOverviewItem corresponds to a vm. they are owned my the model. */
+class UIVMActivityOverviewItem : public QObject
 {
+
+    Q_OBJECT;
 
 public:
 
-    UIActivityOverviewItem(const QUuid &uid, const QString &strVMName, KMachineState enmState);
-    //yUIActivityOverviewItem(const QUuid &uid);
-    UIActivityOverviewItem();
-    ~UIActivityOverviewItem();
-    bool operator==(const UIActivityOverviewItem& other) const;
-    bool isWithGuestAdditions();
-    void resetDebugger();
+    UIVMActivityOverviewItem(QObject *pParent, const QUuid &uid, const QString &strVMName);
 
-    QUuid         m_VMuid;
-    QString       m_strVMName;
-    KMachineState m_enmMachineState;
+    UIVMActivityOverviewItem();
+    virtual ~UIVMActivityOverviewItem();
+    bool operator==(const UIVMActivityOverviewItem& other) const;
+    int columnLength(int iColumnIndex) const;
+    const QUuid &machineId() const;
 
-    quint64  m_uCPUGuestLoad;
-    quint64  m_uCPUVMMLoad;
+    virtual QString machineStateString() const = 0;
+    virtual bool isRunning() const = 0;
+    virtual bool isCloudVM() const = 0;
+    virtual void setMachineState(int iState) = 0;
+
+    QString columnData(int iColumnIndex) const;
 
     quint64  m_uTotalRAM;
     quint64  m_uFreeRAM;
     quint64  m_uUsedRAM;
     float    m_fRAMUsagePercentage;
 
-    quint64 m_uNetworkDownRate;
-    quint64 m_uNetworkUpRate;
-    quint64 m_uNetworkDownTotal;
-    quint64 m_uNetworkUpTotal;
+protected:
 
-    quint64 m_uDiskWriteRate;
-    quint64 m_uDiskReadRate;
-    quint64 m_uDiskWriteTotal;
-    quint64 m_uDiskReadTotal;
+    QUuid         m_VMuid;
+    QString       m_strVMName;
 
-    quint64 m_uVMExitRate;
-    quint64 m_uVMExitTotal;
-
-    CSession m_comSession;
-    CMachineDebugger m_comDebugger;
-    CGuest   m_comGuest;
     /** The strings of each column for the item. We update this during performance query
       * instead of model's data function to know the string length earlier. */
     QMap<int, QString> m_columnData;
-
-private:
-
-    void setupPerformanceCollector();
 };
 
-Q_DECLARE_METATYPE(UIActivityOverviewItem);
+Q_DECLARE_METATYPE(UIVMActivityOverviewItem);
 
 
 /*********************************************************************************************************************************
-*   Class UIVMActivityOverviewProxyModel definition.                                                                             *
+*   Class UIVMActivityOverviewItemLocal definition.                                                                              *
 *********************************************************************************************************************************/
-class UIActivityOverviewProxyModel : public QSortFilterProxyModel
+/* A UIVMActivityOverviewItem derivation to show local vms in the table view: */
+class UIVMActivityOverviewItemLocal : public UIVMActivityOverviewItem
 {
-
     Q_OBJECT;
-
 public:
 
-    UIActivityOverviewProxyModel(QObject *parent = 0);
-    void dataUpdate();
-    void setNotRunningVMVisibility(bool fShow);
+    UIVMActivityOverviewItemLocal(QObject *pParent, const QUuid &uid, const QString &strVMName);
+    UIVMActivityOverviewItemLocal();
+    ~UIVMActivityOverviewItemLocal();
+
+    bool isWithGuestAdditions();
+    void resetDebugger();
+    void updateColumnData();
+
+    virtual bool isRunning() const RT_OVERRIDE;
+    virtual bool isCloudVM() const RT_OVERRIDE;
+    virtual QString machineStateString() const RT_OVERRIDE;
+    virtual void setMachineState(int iState) RT_OVERRIDE;
+
+private:
+
+    CSession         m_comSession;
+    CGuest           m_comGuest;
+    KMachineState    m_enmMachineState;
+    quint64          m_uVMExitTotal;
+    quint64          m_uDiskWriteTotal;
+    quint64          m_uDiskReadTotal;
+    quint64          m_uNetworkDownTotal;
+    quint64          m_uNetworkUpTotal;
+    CMachineDebugger m_comDebugger;
+};
+
+
+/*********************************************************************************************************************************
+*   Class UIVMActivityOverviewItemCloud definition.                                                                              *
+*********************************************************************************************************************************/
+/* A UIVMActivityOverviewItem derivation to show cloud vms in the table view: */
+class UIVMActivityOverviewItemCloud : public UIVMActivityOverviewItem
+{
+    Q_OBJECT;
+public:
+
+    UIVMActivityOverviewItemCloud(QObject *pParent, const QUuid &uid, const QString &strVMName, CCloudMachine &comCloudMachine);
+
+    UIVMActivityOverviewItemCloud();
+    ~UIVMActivityOverviewItemCloud();
+    void updateMachineState();
+    virtual bool isRunning() const RT_OVERRIDE;
+    virtual bool isCloudVM() const RT_OVERRIDE;
+    virtual QString machineStateString() const RT_OVERRIDE;
+    virtual void setMachineState(int iState) RT_OVERRIDE;
 
 protected:
 
-    virtual bool lessThan(const QModelIndex &source_left, const QModelIndex &source_right) const /* override*/;
-    bool filterAcceptsRow(int iSourceRow, const QModelIndex &sourceParent) const /* override*/;
-
-private:
-
-    bool m_fShowNotRunningVMs;
-};
-
-
-/*********************************************************************************************************************************
-*   Class UIActivityOverviewModel definition.                                                                                    *
-*********************************************************************************************************************************/
-class UIActivityOverviewModel : public QAbstractTableModel
-{
-    Q_OBJECT;
-
-signals:
-
-    void sigDataUpdate();
-    void sigHostStatsUpdate(const UIVMActivityOverviewHostStats &stats);
-
-public:
-
-    UIActivityOverviewModel(QObject *parent = 0);
-    int      rowCount(const QModelIndex &parent = QModelIndex()) const RT_OVERRIDE;
-    int      columnCount(const QModelIndex &parent = QModelIndex()) const RT_OVERRIDE;
-    QVariant data(const QModelIndex &index, int role) const RT_OVERRIDE;
-    void clearData();
-    QVariant headerData(int section, Qt::Orientation orientation, int role) const;
-    void setColumnCaptions(const QMap<int, QString>& captions);
-    void setColumnVisible(const QMap<int, bool>& columnVisible);
-    bool columnVisible(int iColumnId) const;
-    void setShouldUpdate(bool fShouldUpdate);
-    const QMap<int, int> dataLengths() const;
-    QUuid itemUid(int iIndex);
-    int itemIndex(const QUuid &uid);
-    /* Return the state of the machine represented by the item at @rowIndex. */
-    KMachineState machineState(int rowIndex) const;
-    void setDefaultViewFont(const QFont &font);
-    void setDefaultViewFontColor(const QColor &color);
-
 private slots:
 
-    void sltMachineStateChanged(const QUuid &uId, const KMachineState state);
-    void sltMachineRegistered(const QUuid &uId, bool fRegistered);
     void sltTimeout();
-
+    void sltMetricNameListingComplete(QVector<QString> metricNameList);
+    void sltMetricDataReceived(KMetricType enmMetricType,
+                               const QVector<QString> &data, const QVector<QString> &timeStamps);
 private:
 
-    void initialize();
-    void initializeItems();
-    void setupPerformanceCollector();
-    void queryPerformanceCollector();
-    void addItem(const QUuid& uMachineId, const QString& strMachineName, KMachineState enmState);
-    void removeItem(const QUuid& uMachineId);
-    void getHostRAMStats();
+    void getMetricList();
+    void resetColumData();
 
-    QVector<UIActivityOverviewItem> m_itemList;
-    QMap<int, QString> m_columnTitles;
     QTimer *m_pTimer;
-    /** @name The following are used during UIPerformanceCollector::QueryMetricsData(..)
-     * @{ */
-       QVector<QString> m_nameList;
-       QVector<CUnknown> m_objectList;
-    /** @} */
-    CPerformanceCollector m_performanceCollector;
-    QMap<int, bool> m_columnVisible;
-    /** If true the table data and corresponding view is updated. Possibly set by host widget to true only
-     *  when the widget is visible in the main UI. */
-    bool m_fShouldUpdate;
-    UIVMActivityOverviewHostStats m_hostStats;
-    QFont m_defaultViewFont;
-    QColor m_defaultViewFontColor;
-    /** Maximum length of string length of data displayed in column. Updated in UIActivityOverviewModel::data(..). */
-    mutable QMap<int, int> m_columnDataMaxLength;
+    CCloudMachine m_comCloudMachine;
+    KCloudMachineState m_enmMachineState;
+    QVector<KMetricType> m_availableMetricTypes;
 };
 
 
@@ -387,7 +296,7 @@ public:
 
 protected:
 
-    virtual void drawFocus ( QPainter * /*painter*/, const QStyleOptionViewItem & /*option*/, const QRect & /*rect*/ ) const {}
+    virtual void drawFocus ( QPainter * /*painter*/, const QStyleOptionViewItem & /*option*/, const QRect & /*rect*/ ) const  RT_OVERRIDE RT_FINAL {}
 };
 
 
@@ -455,7 +364,7 @@ void UIVMActivityOverviewDoughnutChart::paintEvent(QPaintEvent *pEvent)
 *********************************************************************************************************************************/
 
 UIVMActivityOverviewHostStatsWidget::UIVMActivityOverviewHostStatsWidget(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_pHostCPUChart(0)
     , m_pHostRAMChart(0)
     , m_pHostFSChart(0)
@@ -477,7 +386,9 @@ UIVMActivityOverviewHostStatsWidget::UIVMActivityOverviewHostStatsWidget(QWidget
     , m_RAMUsedColor(Qt::red)
 {
     prepare();
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIVMActivityOverviewHostStatsWidget::sltRetranslateUI);
 }
 
 void UIVMActivityOverviewHostStatsWidget::setHostStats(const UIVMActivityOverviewHostStats &hostStats)
@@ -517,7 +428,7 @@ void UIVMActivityOverviewHostStatsWidget::setHostStats(const UIVMActivityOvervie
     updateLabels();
 }
 
-void UIVMActivityOverviewHostStatsWidget::retranslateUi()
+void UIVMActivityOverviewHostStatsWidget::sltRetranslateUI()
 {
     updateLabels();
 }
@@ -532,16 +443,17 @@ void UIVMActivityOverviewHostStatsWidget::addVerticalLine(QHBoxLayout *pLayout)
 
 void UIVMActivityOverviewHostStatsWidget::prepare()
 {
-    QHBoxLayout *pLayout = new QHBoxLayout;
-    setLayout(pLayout);
+    QHBoxLayout *pMainLayout = new QHBoxLayout;
+    setLayout(pMainLayout);
     int iMinimumSize =  3 * QApplication::style()->pixelMetric(QStyle::PM_LargeIconSize);
 
     /* CPU Stuff: */
     {
         /* Host CPU Labels: */
+        QHBoxLayout *pCPULayout = new QHBoxLayout;
         QWidget *pCPULabelContainer = new QWidget;
         pCPULabelContainer->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
-        pLayout->addWidget(pCPULabelContainer);
+        pCPULayout->addWidget(pCPULabelContainer);
         QVBoxLayout *pCPULabelsLayout = new QVBoxLayout;
         pCPULabelsLayout->setContentsMargins(0, 0, 0, 0);
         pCPULabelContainer->setLayout(pCPULabelsLayout);
@@ -555,23 +467,26 @@ void UIVMActivityOverviewHostStatsWidget::prepare()
         pCPULabelsLayout->addWidget(m_pCPUTotalLabel);
         pCPULabelsLayout->setAlignment(Qt::AlignTop);
         pCPULabelsLayout->setSpacing(0);
+
         /* Host CPU chart widget: */
         m_pHostCPUChart = new UIVMActivityOverviewDoughnutChart;
         if (m_pHostCPUChart)
         {
             m_pHostCPUChart->setMinimumSize(iMinimumSize, iMinimumSize);
             m_pHostCPUChart->setDataMaximum(100);
-            pLayout->addWidget(m_pHostCPUChart);
+            pCPULayout->addWidget(m_pHostCPUChart);
             m_pHostCPUChart->setChartColors(m_CPUUserColor, m_CPUKernelColor);
         }
+        pMainLayout->addLayout(pCPULayout);
     }
-    addVerticalLine(pLayout);
+    addVerticalLine(pMainLayout);
     /* RAM Stuff: */
     {
+        QHBoxLayout *pRAMLayout = new QHBoxLayout;
         QWidget *pRAMLabelContainer = new QWidget;
         pRAMLabelContainer->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
 
-        pLayout->addWidget(pRAMLabelContainer);
+        pRAMLayout->addWidget(pRAMLabelContainer);
         QVBoxLayout *pRAMLabelsLayout = new QVBoxLayout;
         pRAMLabelsLayout->setContentsMargins(0, 0, 0, 0);
         pRAMLabelsLayout->setSpacing(0);
@@ -589,15 +504,18 @@ void UIVMActivityOverviewHostStatsWidget::prepare()
         if (m_pHostRAMChart)
         {
             m_pHostRAMChart->setMinimumSize(iMinimumSize, iMinimumSize);
-            pLayout->addWidget(m_pHostRAMChart);
+            pRAMLayout->addWidget(m_pHostRAMChart);
             m_pHostRAMChart->setChartColors(m_RAMUsedColor, m_RAMFreeColor);
         }
+        pMainLayout->addLayout(pRAMLayout);
     }
-    addVerticalLine(pLayout);
+
+    addVerticalLine(pMainLayout);
     /* FS Stuff: */
     {
+        QHBoxLayout *pFSLayout = new QHBoxLayout;
         QWidget *pFSLabelContainer = new QWidget;
-        pLayout->addWidget(pFSLabelContainer);
+        pFSLayout->addWidget(pFSLabelContainer);
         pFSLabelContainer->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
         QVBoxLayout *pFSLabelsLayout = new QVBoxLayout;
         pFSLabelsLayout->setContentsMargins(0, 0, 0, 0);
@@ -616,12 +534,12 @@ void UIVMActivityOverviewHostStatsWidget::prepare()
         if (m_pHostFSChart)
         {
             m_pHostFSChart->setMinimumSize(iMinimumSize, iMinimumSize);
-            pLayout->addWidget(m_pHostFSChart);
+            pFSLayout->addWidget(m_pHostFSChart);
             m_pHostFSChart->setChartColors(m_RAMUsedColor, m_RAMFreeColor);
         }
-
+        pMainLayout->addLayout(pFSLayout);
     }
-    pLayout->addStretch(2);
+    pMainLayout->addStretch(2);
 }
 
 void UIVMActivityOverviewHostStatsWidget::updateLabels()
@@ -681,187 +599,55 @@ void UIVMActivityOverviewHostStatsWidget::updateLabels()
 }
 
 
-
-/*********************************************************************************************************************************
-*   Class UIVMActivityOverviewTableView implementation.                                                                          *
-*********************************************************************************************************************************/
-
-UIVMActivityOverviewTableView::UIVMActivityOverviewTableView(QWidget *pParent /* = 0 */)
-    :QTableView(pParent)
-{
-}
-
-void UIVMActivityOverviewTableView::setMinimumColumnWidths(const QMap<int, int>& widths)
-{
-    m_minimumColumnWidths = widths;
-    resizeHeaders();
-}
-
-void UIVMActivityOverviewTableView::updateColumVisibility()
-{
-    UIActivityOverviewProxyModel *pProxyModel = qobject_cast<UIActivityOverviewProxyModel *>(model());
-    if (!pProxyModel)
-        return;
-    UIActivityOverviewModel *pModel = qobject_cast<UIActivityOverviewModel *>(pProxyModel->sourceModel());
-    QHeaderView *pHeader = horizontalHeader();
-
-    if (!pModel || !pHeader)
-        return;
-    for (int i = (int)VMActivityOverviewColumn_Name; i < (int)VMActivityOverviewColumn_Max; ++i)
-    {
-        if (!pModel->columnVisible(i))
-            pHeader->hideSection(i);
-        else
-            pHeader->showSection(i);
-    }
-    resizeHeaders();
-}
-
-int UIVMActivityOverviewTableView::selectedItemIndex() const
-{
-    UIActivityOverviewProxyModel *pModel = qobject_cast<UIActivityOverviewProxyModel*>(model());
-    if (!pModel)
-        return -1;
-
-    QItemSelectionModel *pSelectionModel =  selectionModel();
-    if (!pSelectionModel)
-        return -1;
-    QModelIndexList selectedItemIndices = pSelectionModel->selectedRows();
-    if (selectedItemIndices.isEmpty())
-        return -1;
-
-    /* just use the the 1st index: */
-    QModelIndex modelIndex = pModel->mapToSource(selectedItemIndices[0]);
-
-    if (!modelIndex.isValid())
-        return -1;
-    return modelIndex.row();
-}
-
-bool UIVMActivityOverviewTableView::hasSelection() const
-{
-    if (!selectionModel())
-        return false;
-    return selectionModel()->hasSelection();
-}
-
-void UIVMActivityOverviewTableView::resizeEvent(QResizeEvent *pEvent)
-{
-    resizeHeaders();
-    QTableView::resizeEvent(pEvent);
-}
-
-void UIVMActivityOverviewTableView::selectionChanged(const QItemSelection &selected, const QItemSelection &deselected)
-{
-    emit sigSelectionChanged(selected, deselected);
-    QTableView::selectionChanged(selected, deselected);
-}
-
-void UIVMActivityOverviewTableView::mousePressEvent(QMouseEvent *pEvent)
-{
-    if (!indexAt(pEvent->pos()).isValid())
-        clearSelection();
-    QTableView::mousePressEvent(pEvent);
-}
-
-void UIVMActivityOverviewTableView::resizeHeaders()
-{
-    QHeaderView* pHeader = horizontalHeader();
-    if (!pHeader)
-        return;
-    int iSectionCount = pHeader->count();
-    int iHiddenSectionCount = pHeader->hiddenSectionCount();
-    int iWidth = width() / (iSectionCount - iHiddenSectionCount);
-    for (int i = 0; i < iSectionCount; ++i)
-    {
-        if (pHeader->isSectionHidden(i))
-            continue;
-        int iMinWidth = m_minimumColumnWidths.value((VMActivityOverviewColumn)i, 0);
-        pHeader->resizeSection(i, iWidth < iMinWidth ? iMinWidth : iWidth);
-    }
-}
-
-
 /*********************************************************************************************************************************
 *   Class UIVMActivityOverviewItem implementation.                                                                               *
 *********************************************************************************************************************************/
-UIActivityOverviewItem::UIActivityOverviewItem(const QUuid &uid, const QString &strVMName, KMachineState enmState)
-    : m_VMuid(uid)
-    , m_strVMName(strVMName)
-    , m_enmMachineState(enmState)
-    , m_uCPUGuestLoad(0)
-    , m_uCPUVMMLoad(0)
+UIVMActivityOverviewItem::UIVMActivityOverviewItem(QObject *pParent, const QUuid &uid, const QString &strVMName)
+    : QObject(pParent)
     , m_uTotalRAM(0)
     , m_uFreeRAM(0)
     , m_uUsedRAM(0)
     , m_fRAMUsagePercentage(0)
-    , m_uNetworkDownRate(0)
-    , m_uNetworkUpRate(0)
-    , m_uNetworkDownTotal(0)
-    , m_uNetworkUpTotal(0)
-    , m_uDiskWriteRate(0)
-    , m_uDiskReadRate(0)
-    , m_uDiskWriteTotal(0)
-    , m_uDiskReadTotal(0)
-    , m_uVMExitRate(0)
-    , m_uVMExitTotal(0)
+    , m_VMuid(uid)
+    , m_strVMName(strVMName)
 {
-    if (m_enmMachineState == KMachineState_Running)
-        resetDebugger();
+    m_columnData[VMActivityOverviewColumn_Name] = m_strVMName;
 }
 
-UIActivityOverviewItem::UIActivityOverviewItem()
-    : m_VMuid(QUuid())
-    , m_uCPUGuestLoad(0)
-    , m_uCPUVMMLoad(0)
+UIVMActivityOverviewItem::UIVMActivityOverviewItem()
+    : QObject()
     , m_uTotalRAM(0)
+    , m_uFreeRAM(0)
     , m_uUsedRAM(0)
     , m_fRAMUsagePercentage(0)
-    , m_uNetworkDownRate(0)
-    , m_uNetworkUpRate(0)
-    , m_uNetworkDownTotal(0)
-    , m_uNetworkUpTotal(0)
-    , m_uDiskWriteRate(0)
-    , m_uDiskReadRate(0)
-    , m_uDiskWriteTotal(0)
-    , m_uDiskReadTotal(0)
-    , m_uVMExitRate(0)
-    , m_uVMExitTotal(0)
+    , m_VMuid(QUuid())
 {
 }
 
-void UIActivityOverviewItem::resetDebugger()
+UIVMActivityOverviewItem::~UIVMActivityOverviewItem()
 {
-    m_comSession = uiCommon().openSession(m_VMuid, KLockType_Shared);
-    if (!m_comSession.isNull())
-    {
-        CConsole comConsole = m_comSession.GetConsole();
-        if (!comConsole.isNull())
-        {
-            m_comGuest = comConsole.GetGuest();
-            m_comDebugger = comConsole.GetDebugger();
-        }
-    }
 }
 
-UIActivityOverviewItem::~UIActivityOverviewItem()
-{
-    if (!m_comSession.isNull())
-        m_comSession.UnlockMachine();
-}
-
-bool UIActivityOverviewItem::operator==(const UIActivityOverviewItem& other) const
+bool UIVMActivityOverviewItem::operator==(const UIVMActivityOverviewItem& other) const
 {
     if (m_VMuid == other.m_VMuid)
         return true;
     return false;
 }
 
-bool UIActivityOverviewItem::isWithGuestAdditions()
+QString UIVMActivityOverviewItem::columnData(int iColumnIndex) const
 {
-    if (m_comGuest.isNull())
-        return false;
-    return m_comGuest.GetAdditionsStatus(m_comGuest.GetAdditionsRunLevel());
+    return m_columnData.value(iColumnIndex, QString());
+}
+
+int UIVMActivityOverviewItem::columnLength(int iColumnIndex) const
+{
+    return m_columnData.value(iColumnIndex, QString()).length();
+}
+
+const QUuid &UIVMActivityOverviewItem::machineId() const
+{
+    return m_VMuid;
 }
 
 
@@ -882,489 +668,331 @@ UIVMActivityOverviewHostStats::UIVMActivityOverviewHostStats()
 
 
 /*********************************************************************************************************************************
-*   Class UIVMActivityOverviewProxyModel implementation.                                                                         *
+*   Class UIVMActivityOverviewItemCloud implementation.                                                                          *
 *********************************************************************************************************************************/
-UIActivityOverviewProxyModel::UIActivityOverviewProxyModel(QObject *parent /* = 0 */)
-    :QSortFilterProxyModel(parent)
-{
-}
 
-void UIActivityOverviewProxyModel::dataUpdate()
+UIVMActivityOverviewItemCloud::UIVMActivityOverviewItemCloud(QObject *pParent, const QUuid &uid, const QString &strVMName, CCloudMachine &comCloudMachine)
+    : UIVMActivityOverviewItem(pParent, uid, strVMName)
+    , m_comCloudMachine(comCloudMachine)
 {
-    if (sourceModel())
-        emit dataChanged(index(0,0), index(sourceModel()->rowCount(), sourceModel()->columnCount()));
-    invalidate();
-}
-
-void UIActivityOverviewProxyModel::setNotRunningVMVisibility(bool fShow)
-{
-    m_fShowNotRunningVMs = fShow;
-    invalidateFilter();
-}
-
-
-bool UIActivityOverviewProxyModel::lessThan(const QModelIndex &sourceLeftIndex, const QModelIndex &sourceRightIndex) const
-{
-    UIActivityOverviewModel *pModel = qobject_cast<UIActivityOverviewModel*>(sourceModel());
-    if (pModel)
+    updateMachineState();
+    m_pTimer = new QTimer(this);
+    if (m_pTimer)
     {
-        KMachineState enmLeftState = pModel->machineState(sourceLeftIndex.row());
-        KMachineState enmRightState = pModel->machineState(sourceRightIndex.row());
-        if ((enmLeftState == KMachineState_Running) && (enmRightState != KMachineState_Running))
-        {
-            if (sortOrder() == Qt::AscendingOrder)
-                return true;
-            else
-                return false;
-        }
-        if ((enmLeftState != KMachineState_Running) && (enmRightState == KMachineState_Running))
-        {
-            if (sortOrder() == Qt::AscendingOrder)
-                return false;
-            else
-                return true;
-        }
-
+        connect(m_pTimer, &QTimer::timeout, this, &UIVMActivityOverviewItemCloud::sltTimeout);
+        m_pTimer->setInterval(60 * 1000);
     }
-    return QSortFilterProxyModel::lessThan(sourceLeftIndex, sourceRightIndex);
+    resetColumData();
 }
 
-bool UIActivityOverviewProxyModel::filterAcceptsRow(int iSourceRow, const QModelIndex &sourceParent) const
+UIVMActivityOverviewItemCloud::UIVMActivityOverviewItemCloud()
 {
-    Q_UNUSED(sourceParent);
-    if (m_fShowNotRunningVMs)
-        return true;
-    UIActivityOverviewModel *pModel = qobject_cast<UIActivityOverviewModel*>(sourceModel());
-    if (!pModel)
-        return true;
-    if (pModel->machineState(iSourceRow) != KMachineState_Running)
-        return false;
+}
+
+UIVMActivityOverviewItemCloud::~UIVMActivityOverviewItemCloud()
+{
+}
+
+void UIVMActivityOverviewItemCloud::updateMachineState()
+{
+    if (m_comCloudMachine.isOk())
+        setMachineState(m_comCloudMachine.GetState());
+}
+
+bool UIVMActivityOverviewItemCloud::isRunning() const
+{
+    return m_enmMachineState == KCloudMachineState_Running;
+}
+
+bool UIVMActivityOverviewItemCloud::isCloudVM() const
+{
     return true;
+}
+
+QString UIVMActivityOverviewItemCloud::machineStateString() const
+{
+    if (!m_comCloudMachine.isOk())
+        return QString();
+    return gpConverter->toString(m_comCloudMachine.GetState());
+}
+
+void UIVMActivityOverviewItemCloud::sltTimeout()
+{
+    int iDataSize = 1;
+    foreach (const KMetricType &enmMetricType, m_availableMetricTypes)
+    {
+        UIProgressTaskReadCloudMachineMetricData *pTask = new UIProgressTaskReadCloudMachineMetricData(this, m_comCloudMachine,
+                                                                                                       enmMetricType, iDataSize);
+        connect(pTask, &UIProgressTaskReadCloudMachineMetricData::sigMetricDataReceived,
+                this, &UIVMActivityOverviewItemCloud::sltMetricDataReceived);
+        pTask->start();
+    }
+}
+
+void UIVMActivityOverviewItemCloud::sltMetricDataReceived(KMetricType enmMetricType,
+                                                        const QVector<QString> &data, const QVector<QString> &timeStamps)
+{
+    Q_UNUSED(timeStamps);
+    if (data.isEmpty())
+        return;
+
+    if (data[0].toFloat() < 0)
+        return;
+
+    int iDecimalCount = 2;
+    QLocale locale;
+    if (enmMetricType == KMetricType_CpuUtilization)
+    {
+        //QString QLocale::toString(double i, char f = 'g', int prec = 6) const
+
+        // m_columnData[VMActivityOverviewColumn_CPUGuestLoad] =
+        //     QString("%1%").arg(QString::number(data[0].toFloat(), 'f', iDecimalCount));
+
+        m_columnData[VMActivityOverviewColumn_CPUGuestLoad] =
+            QString("%1%").arg(locale.toString(data[0].toFloat(), 'f', iDecimalCount));
+}
+    else if (enmMetricType == KMetricType_MemoryUtilization)
+    {
+         if (m_uTotalRAM != 0)
+         {
+             quint64 uUsedRAM = (quint64)data[0].toFloat() * (m_uTotalRAM / 100.f);
+             m_columnData[VMActivityOverviewColumn_RAMUsedAndTotal] =
+                 QString("%1/%2").arg(UITranslator::formatSize(_1K * uUsedRAM, iDecimalCount)).
+                 arg(UITranslator::formatSize(_1K * m_uTotalRAM, iDecimalCount));
+         }
+         m_columnData[VMActivityOverviewColumn_RAMUsedPercentage] =
+             QString("%1%").arg(QString::number(data[0].toFloat(), 'f', iDecimalCount));
+    }
+    else if (enmMetricType == KMetricType_NetworksBytesOut)
+        m_columnData[VMActivityOverviewColumn_NetworkUpRate] =
+            UITranslator::formatSize((quint64)data[0].toFloat(), iDecimalCount);
+    else if (enmMetricType == KMetricType_NetworksBytesIn)
+        m_columnData[VMActivityOverviewColumn_NetworkDownRate] =
+            UITranslator::formatSize((quint64)data[0].toFloat(), iDecimalCount);
+    else if (enmMetricType == KMetricType_DiskBytesRead)
+        m_columnData[VMActivityOverviewColumn_DiskIOReadRate] =
+            UITranslator::formatSize((quint64)data[0].toFloat(), iDecimalCount);
+    else if (enmMetricType == KMetricType_DiskBytesWritten)
+        m_columnData[VMActivityOverviewColumn_DiskIOWriteRate] =
+            UITranslator::formatSize((quint64)data[0].toFloat(), iDecimalCount);
+
+    sender()->deleteLater();
+}
+
+void UIVMActivityOverviewItemCloud::setMachineState(int iState)
+{
+    if (iState <= KCloudMachineState_Invalid || iState >= KCloudMachineState_Max)
+        return;
+    KCloudMachineState enmState = static_cast<KCloudMachineState>(iState);
+    if (m_enmMachineState == enmState)
+        return;
+    m_enmMachineState = enmState;
+    if (isRunning())
+    {
+        getMetricList();
+        if (m_uTotalRAM == 0)
+            m_uTotalRAM = UIMonitorCommon::determineTotalRAMAmount(m_comCloudMachine);
+    }
+    else
+    {
+        if (m_pTimer)
+            m_pTimer->stop();
+    }
+}
+
+void UIVMActivityOverviewItemCloud::resetColumData()
+{
+    for (int i = (int) VMActivityOverviewColumn_CPUGuestLoad;
+         i < (int)VMActivityOverviewColumn_Max; ++i)
+        m_columnData[i] = UIVMActivityOverviewWidget::tr("N/A");
+}
+
+void UIVMActivityOverviewItemCloud::getMetricList()
+{
+    if (!isRunning())
+        return;
+    UIProgressTaskReadCloudMachineMetricList *pReadListProgressTask =
+        new UIProgressTaskReadCloudMachineMetricList(this, m_comCloudMachine);
+    AssertPtrReturnVoid(pReadListProgressTask);
+    connect(pReadListProgressTask, &UIProgressTaskReadCloudMachineMetricList::sigMetricListReceived,
+            this, &UIVMActivityOverviewItemCloud::sltMetricNameListingComplete);
+    pReadListProgressTask->start();
+}
+
+void UIVMActivityOverviewItemCloud::sltMetricNameListingComplete(QVector<QString> metricNameList)
+{
+    AssertReturnVoid(m_pTimer);
+    m_availableMetricTypes.clear();
+    foreach (const QString &strName, metricNameList)
+        m_availableMetricTypes << gpConverter->fromInternalString<KMetricType>(strName);
+
+    if (!m_availableMetricTypes.isEmpty())
+    {
+        /* Dont wait 60 secs: */
+        sltTimeout();
+        m_pTimer->start();
+    }
+    else
+    {
+        m_pTimer->stop();
+        resetColumData();
+    }
+
+    if (sender())
+        sender()->deleteLater();
+
 }
 
 
 /*********************************************************************************************************************************
-*   Class UIActivityOverviewModel implementation.                                                                                *
+*   Class UIVMActivityOverviewItemLocal implementation.                                                                          *
 *********************************************************************************************************************************/
-UIActivityOverviewModel::UIActivityOverviewModel(QObject *parent /*= 0*/)
-    :QAbstractTableModel(parent)
-    , m_pTimer(new QTimer(this))
-    , m_fShouldUpdate(true)
+UIVMActivityOverviewItemLocal::UIVMActivityOverviewItemLocal(QObject *pParent, const QUuid &uid, const QString &strVMName)
+    : UIVMActivityOverviewItem(pParent, uid, strVMName)
+    , m_enmMachineState(KMachineState_Null)
+    , m_uVMExitTotal(0)
+    , m_uDiskWriteTotal(0)
+    , m_uDiskReadTotal(0)
+    , m_uNetworkDownTotal(0)
+    , m_uNetworkUpTotal(0)
 {
-    initialize();
+    if (m_enmMachineState == KMachineState_Running)
+        resetDebugger();
 }
 
-void UIActivityOverviewModel::initialize()
+UIVMActivityOverviewItemLocal::UIVMActivityOverviewItemLocal()
+    : m_enmMachineState(KMachineState_Null)
+    , m_uVMExitTotal(0)
+    , m_uDiskWriteTotal(0)
+    , m_uDiskReadTotal(0)
+    , m_uNetworkDownTotal(0)
+    , m_uNetworkUpTotal(0)
 {
-    for (int i = 0; i < (int)VMActivityOverviewColumn_Max; ++i)
-        m_columnDataMaxLength[i] = 0;
+}
 
-    initializeItems();
-    connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigMachineStateChange,
-            this, &UIActivityOverviewModel::sltMachineStateChanged);
-    connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigMachineRegistered,
-            this, &UIActivityOverviewModel::sltMachineRegistered);
-    if (m_pTimer)
+UIVMActivityOverviewItemLocal::~UIVMActivityOverviewItemLocal()
+{
+    if (!m_comSession.isNull())
+        m_comSession.UnlockMachine();
+}
+
+bool UIVMActivityOverviewItemLocal::isWithGuestAdditions()
+{
+    if (m_comGuest.isNull())
+        return false;
+    return m_comGuest.GetAdditionsStatus(m_comGuest.GetAdditionsRunLevel());
+}
+
+void UIVMActivityOverviewItemLocal::resetDebugger()
+{
+    m_comSession = openSession(m_VMuid, KLockType_Shared);
+    if (!m_comSession.isNull())
     {
-        connect(m_pTimer, &QTimer::timeout, this, &UIActivityOverviewModel::sltTimeout);
-        m_pTimer->start(1000);
-    }
-}
-
-int UIActivityOverviewModel::rowCount(const QModelIndex &parent /* = QModelIndex() */) const
-{
-    Q_UNUSED(parent);
-    return m_itemList.size();
-}
-
-int UIActivityOverviewModel::columnCount(const QModelIndex &parent /* = QModelIndex() */) const
-{
-    Q_UNUSED(parent);
-    return VMActivityOverviewColumn_Max;
-}
-
-void UIActivityOverviewModel::setShouldUpdate(bool fShouldUpdate)
-{
-    m_fShouldUpdate = fShouldUpdate;
-}
-
-const QMap<int, int> UIActivityOverviewModel::dataLengths() const
-{
-    return m_columnDataMaxLength;
-}
-
-QUuid UIActivityOverviewModel::itemUid(int iIndex)
-{
-    if (iIndex >= m_itemList.size())
-        return QUuid();
-    return m_itemList[iIndex].m_VMuid;
-}
-
-int UIActivityOverviewModel::itemIndex(const QUuid &uid)
-{
-    for (int i = 0; i < m_itemList.size(); ++i)
-    {
-        if (m_itemList[i].m_VMuid == uid)
-            return i;
-    }
-    return -1;
-}
-
-KMachineState UIActivityOverviewModel::machineState(int rowIndex) const
-{
-    if (rowIndex >= m_itemList.size() || rowIndex < 0)
-        return KMachineState_Null;
-    return m_itemList[rowIndex].m_enmMachineState;
-}
-
-void UIActivityOverviewModel::setDefaultViewFont(const QFont &font)
-{
-    m_defaultViewFont = font;
-}
-
-void UIActivityOverviewModel::setDefaultViewFontColor(const QColor &color)
-{
-    m_defaultViewFontColor = color;
-}
-
-QVariant UIActivityOverviewModel::data(const QModelIndex &index, int role) const
-{
-    if (machineState(index.row()) != KMachineState_Running)
-    {
-        if (role == Qt::FontRole)
+        CConsole comConsole = m_comSession.GetConsole();
+        if (!comConsole.isNull())
         {
-            QFont font(m_defaultViewFont);
-            font.setItalic(true);
-            return font;
+            m_comGuest = comConsole.GetGuest();
+            m_comDebugger = comConsole.GetDebugger();
         }
-        if (role == Qt::ForegroundRole)
-            return m_defaultViewFontColor.lighter(250);
-    }
-    if (!index.isValid() || role != Qt::DisplayRole || index.row() >= rowCount())
-        return QVariant();
-    if (index.column() == VMActivityOverviewColumn_Name)
-        return m_itemList[index.row()].m_columnData[index.column()];
-    if (m_itemList[index.row()].m_enmMachineState != KMachineState_Running)
-        return gpConverter->toString(m_itemList[index.row()].m_enmMachineState);
-    return m_itemList[index.row()].m_columnData[index.column()];
-}
-
-void UIActivityOverviewModel::clearData()
-{
-    /* We have a request to detach COM stuff,
-     * first of all we are removing all the items,
-     * this will detach COM wrappers implicitly: */
-    m_itemList.clear();
-    /* Detaching perf. collector finally,
-     * please do not use it after all: */
-    m_performanceCollector.detach();
-}
-
-QVariant UIActivityOverviewModel::headerData(int section, Qt::Orientation orientation, int role) const
-{
-    if (role == Qt::DisplayRole && orientation == Qt::Horizontal)
-        return m_columnTitles.value((VMActivityOverviewColumn)section, QString());;
-    return QVariant();
-}
-
-void UIActivityOverviewModel::setColumnCaptions(const QMap<int, QString>& captions)
-{
-    m_columnTitles = captions;
-}
-
-void UIActivityOverviewModel::initializeItems()
-{
-    foreach (const CMachine &comMachine, uiCommon().virtualBox().GetMachines())
-    {
-        if (!comMachine.isNull())
-            addItem(comMachine.GetId(), comMachine.GetName(), comMachine.GetState());
-    }
-    setupPerformanceCollector();
-}
-
-void UIActivityOverviewModel::sltMachineStateChanged(const QUuid &uId, const KMachineState state)
-{
-    int iIndex = itemIndex(uId);
-    if (iIndex != -1 && iIndex < m_itemList.size())
-    {
-        m_itemList[iIndex].m_enmMachineState = state;
-        if (state == KMachineState_Running)
-            m_itemList[iIndex].resetDebugger();
     }
 }
 
-void UIActivityOverviewModel::sltMachineRegistered(const QUuid &uId, bool fRegistered)
+bool UIVMActivityOverviewItemLocal::isRunning() const
 {
-    if (fRegistered)
-    {
-        CMachine comMachine = uiCommon().virtualBox().FindMachine(uId.toString());
-        if (!comMachine.isNull())
-            addItem(uId, comMachine.GetName(), comMachine.GetState());
-    }
-    else
-        removeItem(uId);
-    emit sigDataUpdate();
+    return m_enmMachineState == KMachineState_Running;
 }
 
-void UIActivityOverviewModel::getHostRAMStats()
+bool UIVMActivityOverviewItemLocal::isCloudVM() const
 {
-    CHost comHost = uiCommon().host();
-    m_hostStats.m_iRAMTotal = _1M * (quint64)comHost.GetMemorySize();
-    m_hostStats.m_iRAMFree = _1M * (quint64)comHost.GetMemoryAvailable();
+    return false;
 }
 
-void UIActivityOverviewModel::sltTimeout()
+void UIVMActivityOverviewItemLocal::setMachineState(int iState)
 {
-    if (!m_fShouldUpdate)
+    if (iState <= KMachineState_Null || iState >= KMachineState_Max)
         return;
-    ULONG aPctExecuting;
-    ULONG aPctHalted;
-    ULONG aPctVMM;
+    KMachineState enmState = static_cast<KMachineState>(iState);
+    if (m_enmMachineState == enmState)
+        return;
+    m_enmMachineState = enmState;
+    if (m_enmMachineState == KMachineState_Running)
+        resetDebugger();
+}
 
-    bool fCPUColumns = columnVisible(VMActivityOverviewColumn_CPUVMMLoad) || columnVisible(VMActivityOverviewColumn_CPUGuestLoad);
-    bool fNetworkColumns = columnVisible(VMActivityOverviewColumn_NetworkUpRate)
-        || columnVisible(VMActivityOverviewColumn_NetworkDownRate)
-        || columnVisible(VMActivityOverviewColumn_NetworkUpTotal)
-        || columnVisible(VMActivityOverviewColumn_NetworkDownTotal);
-    bool fIOColumns = columnVisible(VMActivityOverviewColumn_DiskIOReadRate)
-        || columnVisible(VMActivityOverviewColumn_DiskIOWriteRate)
-        || columnVisible(VMActivityOverviewColumn_DiskIOReadTotal)
-        || columnVisible(VMActivityOverviewColumn_DiskIOWriteTotal);
-    bool fVMExitColumn = columnVisible(VMActivityOverviewColumn_VMExits);
+void UIVMActivityOverviewItemLocal::updateColumnData()
+{
+    AssertReturnVoid(m_comDebugger.isOk());
 
-    /* Host's RAM usage is obtained from IHost not from IPerformanceCollectior: */
-    getHostRAMStats();
-
-    /* RAM usage and Host Stats: */
-    queryPerformanceCollector();
-
-    for (int i = 0; i < m_itemList.size(); ++i)
-    {
-        if (!m_itemList[i].m_comDebugger.isNull())
-        {
-            /* CPU Load: */
-            if (fCPUColumns)
-            {
-                m_itemList[i].m_comDebugger.GetCPULoad(0x7fffffff, aPctExecuting, aPctHalted, aPctVMM);
-                m_itemList[i].m_uCPUGuestLoad = aPctExecuting;
-                m_itemList[i].m_uCPUVMMLoad = aPctVMM;
-            }
-            /* Network rate: */
-            if (fNetworkColumns)
-            {
-                quint64 uPrevDownTotal = m_itemList[i].m_uNetworkDownTotal;
-                quint64 uPrevUpTotal = m_itemList[i].m_uNetworkUpTotal;
-                UIMonitorCommon::getNetworkLoad(m_itemList[i].m_comDebugger,
-                                                m_itemList[i].m_uNetworkDownTotal, m_itemList[i].m_uNetworkUpTotal);
-                m_itemList[i].m_uNetworkDownRate = m_itemList[i].m_uNetworkDownTotal - uPrevDownTotal;
-                m_itemList[i].m_uNetworkUpRate = m_itemList[i].m_uNetworkUpTotal - uPrevUpTotal;
-            }
-            /* IO rate: */
-            if (fIOColumns)
-            {
-                quint64 uPrevWriteTotal = m_itemList[i].m_uDiskWriteTotal;
-                quint64 uPrevReadTotal = m_itemList[i].m_uDiskReadTotal;
-                UIMonitorCommon::getDiskLoad(m_itemList[i].m_comDebugger,
-                                             m_itemList[i].m_uDiskWriteTotal, m_itemList[i].m_uDiskReadTotal);
-                m_itemList[i].m_uDiskWriteRate = m_itemList[i].m_uDiskWriteTotal - uPrevWriteTotal;
-                m_itemList[i].m_uDiskReadRate = m_itemList[i].m_uDiskReadTotal - uPrevReadTotal;
-            }
-            /* VM Exits: */
-            if (fVMExitColumn)
-            {
-                quint64 uPrevVMExitsTotal = m_itemList[i].m_uVMExitTotal;
-                UIMonitorCommon::getVMMExitCount(m_itemList[i].m_comDebugger, m_itemList[i].m_uVMExitTotal);
-                m_itemList[i].m_uVMExitRate = m_itemList[i].m_uVMExitTotal - uPrevVMExitsTotal;
-            }
-        }
-    }
     int iDecimalCount = 2;
-    for (int i = 0; i < m_itemList.size(); ++i)
-    {
-        m_itemList[i].m_columnData[VMActivityOverviewColumn_Name] = m_itemList[i].m_strVMName;
-        m_itemList[i].m_columnData[VMActivityOverviewColumn_CPUGuestLoad] =
-            QString("%1%").arg(QString::number(m_itemList[i].m_uCPUGuestLoad));
-        m_itemList[i].m_columnData[VMActivityOverviewColumn_CPUVMMLoad] =
-            QString("%1%").arg(QString::number(m_itemList[i].m_uCPUVMMLoad));
 
-        if (m_itemList[i].isWithGuestAdditions())
-            m_itemList[i].m_columnData[VMActivityOverviewColumn_RAMUsedAndTotal] =
-                QString("%1/%2").arg(UITranslator::formatSize(_1K * m_itemList[i].m_uUsedRAM, iDecimalCount)).
-                arg(UITranslator::formatSize(_1K * m_itemList[i].m_uTotalRAM, iDecimalCount));
-        else
-            m_itemList[i].m_columnData[VMActivityOverviewColumn_RAMUsedAndTotal] = UIVMActivityOverviewWidget::tr("N/A");
+    /* CPU Load: */
+    ULONG aPctHalted;
+    ULONG  uCPUGuestLoad;
+    ULONG uCPUVMMLoad;
+    m_comDebugger.GetCPULoad(0x7fffffff, uCPUGuestLoad, aPctHalted, uCPUVMMLoad);
+    m_columnData[VMActivityOverviewColumn_CPUGuestLoad] =
+        QString("%1%").arg(QString::number(uCPUGuestLoad));
+    m_columnData[VMActivityOverviewColumn_CPUVMMLoad] =
+        QString("%1%").arg(QString::number(uCPUVMMLoad));
 
-        if (m_itemList[i].isWithGuestAdditions())
-            m_itemList[i].m_columnData[VMActivityOverviewColumn_RAMUsedPercentage] =
-                QString("%1%").arg(QString::number(m_itemList[i].m_fRAMUsagePercentage, 'f', 2));
-        else
-            m_itemList[i].m_columnData[VMActivityOverviewColumn_RAMUsedPercentage] = UIVMActivityOverviewWidget::tr("N/A");
+    /* RAM Utilization: */
+    if (isWithGuestAdditions())
+        m_columnData[VMActivityOverviewColumn_RAMUsedAndTotal] =
+            QString("%1/%2").arg(UITranslator::formatSize(_1K * m_uUsedRAM, iDecimalCount)).
+            arg(UITranslator::formatSize(_1K * m_uTotalRAM, iDecimalCount));
+    else
+        m_columnData[VMActivityOverviewColumn_RAMUsedAndTotal] = UIVMActivityOverviewWidget::tr("N/A");
 
-        m_itemList[i].m_columnData[VMActivityOverviewColumn_NetworkUpRate] =
-            QString("%1").arg(UITranslator::formatSize(m_itemList[i].m_uNetworkUpRate, iDecimalCount));
+    /* RAM Utilization %: */
+    if (isWithGuestAdditions())
+        m_columnData[VMActivityOverviewColumn_RAMUsedPercentage] =
+            QString("%1%").arg(QString::number(m_fRAMUsagePercentage, 'f', 2));
+    else
+        m_columnData[VMActivityOverviewColumn_RAMUsedPercentage] = UIVMActivityOverviewWidget::tr("N/A");
 
-        m_itemList[i].m_columnData[VMActivityOverviewColumn_NetworkDownRate] =
-            QString("%1").arg(UITranslator::formatSize(m_itemList[i].m_uNetworkDownRate, iDecimalCount));
+    /* Network rate: */
+    quint64 uPrevDownTotal = m_uNetworkDownTotal;
+    quint64 uPrevUpTotal = m_uNetworkUpTotal;
+    UIMonitorCommon::getNetworkLoad(m_comDebugger, m_uNetworkDownTotal, m_uNetworkUpTotal);
+    quint64 uNetworkDownRate = m_uNetworkDownTotal - uPrevDownTotal;
+    quint64 uNetworkUpRate = m_uNetworkUpTotal - uPrevUpTotal;
+    m_columnData[VMActivityOverviewColumn_NetworkUpRate] =
+        QString("%1").arg(UITranslator::formatSize(uNetworkUpRate, iDecimalCount));
+    m_columnData[VMActivityOverviewColumn_NetworkDownRate] =
+        QString("%1").arg(UITranslator::formatSize(uNetworkDownRate, iDecimalCount));
+    m_columnData[VMActivityOverviewColumn_NetworkUpTotal] =
+        QString("%1").arg(UITranslator::formatSize(m_uNetworkUpTotal, iDecimalCount));
+    m_columnData[VMActivityOverviewColumn_NetworkDownTotal] =
+        QString("%1").arg(UITranslator::formatSize(m_uNetworkDownTotal, iDecimalCount));
 
-        m_itemList[i].m_columnData[VMActivityOverviewColumn_NetworkUpTotal] =
-            QString("%1").arg(UITranslator::formatSize(m_itemList[i].m_uNetworkUpTotal, iDecimalCount));
 
-        m_itemList[i].m_columnData[VMActivityOverviewColumn_NetworkDownTotal] =
-            QString("%1").arg(UITranslator::formatSize(m_itemList[i].m_uNetworkDownTotal, iDecimalCount));
+    /* IO rate: */
+    quint64 uPrevWriteTotal = m_uDiskWriteTotal;
+    quint64 uPrevReadTotal = m_uDiskReadTotal;
+    UIMonitorCommon::getDiskLoad(m_comDebugger, m_uDiskWriteTotal, m_uDiskReadTotal);
+    quint64 uDiskWriteRate = m_uDiskWriteTotal - uPrevWriteTotal;
+    quint64 uDiskReadRate = m_uDiskReadTotal - uPrevReadTotal;
+    m_columnData[VMActivityOverviewColumn_DiskIOReadRate] =
+        QString("%1").arg(UITranslator::formatSize(uDiskReadRate, iDecimalCount));
+    m_columnData[VMActivityOverviewColumn_DiskIOWriteRate] =
+        QString("%1").arg(UITranslator::formatSize(uDiskWriteRate, iDecimalCount));
+    m_columnData[VMActivityOverviewColumn_DiskIOReadTotal] =
+        QString("%1").arg(UITranslator::formatSize(m_uDiskReadTotal, iDecimalCount));
+    m_columnData[VMActivityOverviewColumn_DiskIOWriteTotal] =
+        QString("%1").arg(UITranslator::formatSize(m_uDiskWriteTotal, iDecimalCount));
 
-        m_itemList[i].m_columnData[VMActivityOverviewColumn_DiskIOReadRate] =
-            QString("%1").arg(UITranslator::formatSize(m_itemList[i].m_uDiskReadRate, iDecimalCount));
-
-        m_itemList[i].m_columnData[VMActivityOverviewColumn_DiskIOWriteRate] =
-            QString("%1").arg(UITranslator::formatSize(m_itemList[i].m_uDiskWriteRate, iDecimalCount));
-
-        m_itemList[i].m_columnData[VMActivityOverviewColumn_DiskIOReadTotal] =
-            QString("%1").arg(UITranslator::formatSize(m_itemList[i].m_uDiskReadTotal, iDecimalCount));
-
-        m_itemList[i].m_columnData[VMActivityOverviewColumn_DiskIOWriteTotal] =
-            QString("%1").arg(UITranslator::formatSize(m_itemList[i].m_uDiskWriteTotal, iDecimalCount));
-
-        m_itemList[i].m_columnData[VMActivityOverviewColumn_VMExits] =
-            QString("%1/%2").arg(UITranslator::addMetricSuffixToNumber(m_itemList[i].m_uVMExitRate)).
-            arg(UITranslator::addMetricSuffixToNumber(m_itemList[i].m_uVMExitTotal));
-    }
-
-    for (int i = 0; i < (int)VMActivityOverviewColumn_Max; ++i)
-    {
-        for (int j = 0; j < m_itemList.size(); ++j)
-            if (m_columnDataMaxLength.value(i, 0) < m_itemList[j].m_columnData[i].length())
-                m_columnDataMaxLength[i] = m_itemList[j].m_columnData[i].length();
-    }
-    emit sigDataUpdate();
-    emit sigHostStatsUpdate(m_hostStats);
+    /* VM Exits: */
+    quint64 uPrevVMExitsTotal = m_uVMExitTotal;
+    UIMonitorCommon::getVMMExitCount(m_comDebugger, m_uVMExitTotal);
+    quint64 uVMExitRate = m_uVMExitTotal - uPrevVMExitsTotal;
+    m_columnData[VMActivityOverviewColumn_VMExits] =
+        QString("%1/%2").arg(UITranslator::addMetricSuffixToNumber(uVMExitRate)).
+        arg(UITranslator::addMetricSuffixToNumber(m_uVMExitTotal));
 }
 
-void UIActivityOverviewModel::setupPerformanceCollector()
+QString UIVMActivityOverviewItemLocal::machineStateString() const
 {
-    m_nameList.clear();
-    m_objectList.clear();
-    /* Initialize and configure CPerformanceCollector: */
-    const ULONG iPeriod = 1;
-    const int iMetricSetupCount = 1;
-    if (m_performanceCollector.isNull())
-        m_performanceCollector = uiCommon().virtualBox().GetPerformanceCollector();
-    for (int i = 0; i < m_itemList.size(); ++i)
-        m_nameList << "Guest/RAM/Usage*";
-    /* This is for the host: */
-    m_nameList << "CPU*";
-    m_nameList << "FS*";
-    m_objectList = QVector<CUnknown>(m_nameList.size(), CUnknown());
-    m_performanceCollector.SetupMetrics(m_nameList, m_objectList, iPeriod, iMetricSetupCount);
-}
-
-void UIActivityOverviewModel::queryPerformanceCollector()
-{
-    QVector<QString>  aReturnNames;
-    QVector<CUnknown>  aReturnObjects;
-    QVector<QString>  aReturnUnits;
-    QVector<ULONG>  aReturnScales;
-    QVector<ULONG>  aReturnSequenceNumbers;
-    QVector<ULONG>  aReturnDataIndices;
-    QVector<ULONG>  aReturnDataLengths;
-
-    QVector<LONG> returnData = m_performanceCollector.QueryMetricsData(m_nameList,
-                                                                     m_objectList,
-                                                                     aReturnNames,
-                                                                     aReturnObjects,
-                                                                     aReturnUnits,
-                                                                     aReturnScales,
-                                                                     aReturnSequenceNumbers,
-                                                                     aReturnDataIndices,
-                                                                     aReturnDataLengths);
-    /* Parse the result we get from CPerformanceCollector to get respective values: */
-    for (int i = 0; i < aReturnNames.size(); ++i)
-    {
-        if (aReturnDataLengths[i] == 0)
-            continue;
-        /* Read the last of the return data disregarding the rest since we are caching the data in GUI side: */
-        float fData = returnData[aReturnDataIndices[i] + aReturnDataLengths[i] - 1] / (float)aReturnScales[i];
-        if (aReturnNames[i].contains("RAM", Qt::CaseInsensitive) && !aReturnNames[i].contains(":"))
-        {
-            if (aReturnNames[i].contains("Total", Qt::CaseInsensitive) || aReturnNames[i].contains("Free", Qt::CaseInsensitive))
-            {
-                {
-                    CMachine comMachine = (CMachine)aReturnObjects[i];
-                    if (comMachine.isNull())
-                        continue;
-                    int iIndex = itemIndex(comMachine.GetId());
-                    if (iIndex == -1 || iIndex >= m_itemList.size())
-                        continue;
-                    if (aReturnNames[i].contains("Total", Qt::CaseInsensitive))
-                        m_itemList[iIndex].m_uTotalRAM = fData;
-                    else
-                        m_itemList[iIndex].m_uFreeRAM = fData;
-                }
-            }
-        }
-        else if (aReturnNames[i].contains("CPU/Load/User", Qt::CaseInsensitive) && !aReturnNames[i].contains(":"))
-        {
-            CHost comHost = (CHost)aReturnObjects[i];
-            if (!comHost.isNull())
-                m_hostStats.m_iCPUUserLoad = fData;
-        }
-        else if (aReturnNames[i].contains("CPU/Load/Kernel", Qt::CaseInsensitive) && !aReturnNames[i].contains(":"))
-        {
-            CHost comHost = (CHost)aReturnObjects[i];
-            if (!comHost.isNull())
-                m_hostStats.m_iCPUKernelLoad = fData;
-        }
-        else if (aReturnNames[i].contains("CPU/MHz", Qt::CaseInsensitive) && !aReturnNames[i].contains(":"))
-        {
-            CHost comHost = (CHost)aReturnObjects[i];
-            if (!comHost.isNull())
-                m_hostStats.m_iCPUFreq = fData;
-        }
-       else if (aReturnNames[i].contains("FS", Qt::CaseInsensitive) &&
-                aReturnNames[i].contains("Total", Qt::CaseInsensitive) &&
-                !aReturnNames[i].contains(":"))
-       {
-            CHost comHost = (CHost)aReturnObjects[i];
-            if (!comHost.isNull())
-                m_hostStats.m_iFSTotal = _1M * fData;
-       }
-       else if (aReturnNames[i].contains("FS", Qt::CaseInsensitive) &&
-                aReturnNames[i].contains("Free", Qt::CaseInsensitive) &&
-                !aReturnNames[i].contains(":"))
-       {
-            CHost comHost = (CHost)aReturnObjects[i];
-            if (!comHost.isNull())
-                m_hostStats.m_iFSFree = _1M * fData;
-       }
-    }
-    for (int i = 0; i < m_itemList.size(); ++i)
-    {
-        m_itemList[i].m_uUsedRAM = m_itemList[i].m_uTotalRAM - m_itemList[i].m_uFreeRAM;
-        if (m_itemList[i].m_uTotalRAM != 0)
-            m_itemList[i].m_fRAMUsagePercentage = 100.f * (m_itemList[i].m_uUsedRAM / (float)m_itemList[i].m_uTotalRAM);
-    }
-}
-
-void UIActivityOverviewModel::addItem(const QUuid& uMachineId, const QString& strMachineName, KMachineState enmState)
-{
-    m_itemList.append(UIActivityOverviewItem(uMachineId, strMachineName, enmState));
-}
-
-void UIActivityOverviewModel::removeItem(const QUuid& uMachineId)
-{
-    int iIndex = itemIndex(uMachineId);
-    if (iIndex == -1)
-        return;
-    m_itemList.remove(iIndex);
-}
-
-void UIActivityOverviewModel::setColumnVisible(const QMap<int, bool>& columnVisible)
-{
-    m_columnVisible = columnVisible;
-}
-
-bool UIActivityOverviewModel::columnVisible(int iColumnId) const
-{
-    return m_columnVisible.value(iColumnId, true);
+    return gpConverter->toString(m_enmMachineState);
 }
 
 
@@ -1374,7 +1002,7 @@ bool UIActivityOverviewModel::columnVisible(int iColumnId) const
 
 UIVMActivityOverviewWidget::UIVMActivityOverviewWidget(EmbedTo enmEmbedding, UIActionPool *pActionPool,
                                                  bool fShowToolbar /* = true */, QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_enmEmbedding(enmEmbedding)
     , m_pActionPool(pActionPool)
     , m_fShowToolbar(fShowToolbar)
@@ -1387,6 +1015,7 @@ UIVMActivityOverviewWidget::UIVMActivityOverviewWidget(EmbedTo enmEmbedding, UIA
     , m_fIsCurrentTool(true)
     , m_iSortIndicatorWidth(0)
     , m_fShowNotRunningVMs(false)
+    , m_fShowCloudVMs(true)
 {
     prepare();
 }
@@ -1413,8 +1042,16 @@ void UIVMActivityOverviewWidget::setIsCurrentTool(bool fIsCurrentTool)
         m_pModel->setShouldUpdate(fIsCurrentTool);
 }
 
-void UIVMActivityOverviewWidget::retranslateUi()
+void UIVMActivityOverviewWidget::setCloudMachineItems(const QList<UIVirtualMachineItemCloud*> &cloudItems)
 {
+    if (m_pModel)
+        m_pModel->setCloudMachineItems(cloudItems);
+}
+
+void UIVMActivityOverviewWidget::sltRetranslateUI()
+{
+    m_pTableView->setWhatsThis(tr("Lists all currently active virtual machines."));
+
     m_columnTitles[VMActivityOverviewColumn_Name] = UIVMActivityOverviewWidget::tr("VM Name");
     m_columnTitles[VMActivityOverviewColumn_CPUGuestLoad] = UIVMActivityOverviewWidget::tr("CPU Guest");
     m_columnTitles[VMActivityOverviewColumn_CPUVMMLoad] = UIVMActivityOverviewWidget::tr("CPU VMM");
@@ -1443,7 +1080,7 @@ void UIVMActivityOverviewWidget::showEvent(QShowEvent *pEvent)
     if (m_pVMActivityMonitorAction && m_pTableView)
         m_pVMActivityMonitorAction->setEnabled(m_pTableView->hasSelection());
 
-    QIWithRetranslateUI<QWidget>::showEvent(pEvent);
+    QWidget::showEvent(pEvent);
 }
 
 void UIVMActivityOverviewWidget::prepare()
@@ -1461,13 +1098,16 @@ void UIVMActivityOverviewWidget::prepare()
     prepareWidgets();
     loadSettings();
     prepareActions();
-    retranslateUi();
+    sltRetranslateUI();
     updateModelColumVisibilityCache();
-    uiCommon().setHelpKeyword(this, "vm-activity-overview-widget");
+    uiCommon().setHelpKeyword(this, "vm-activity-overview");
     connect(&uiCommon(), &UICommon::sigAskToCommitData,
             this, &UIVMActivityOverviewWidget::sltSaveSettings);
     connect(&uiCommon(), &UICommon::sigAskToDetachCOM,
             this, &UIVMActivityOverviewWidget::sltClearCOMData);
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIVMActivityOverviewWidget::sltRetranslateUI);
+    sltCloudVMVisibility(m_fShowCloudVMs);
 }
 
 void UIVMActivityOverviewWidget::prepareWidgets()
@@ -1491,43 +1131,40 @@ void UIVMActivityOverviewWidget::prepareWidgets()
     if (m_pHostStatsWidget)
         layout()->addWidget(m_pHostStatsWidget);
 
-    m_pModel = new UIActivityOverviewModel(this);
-    m_pProxyModel = new UIActivityOverviewProxyModel(this);
-    m_pTableView = new UIVMActivityOverviewTableView();
-    if (m_pTableView && m_pModel && m_pProxyModel)
-    {
-        layout()->addWidget(m_pTableView);
-        m_pProxyModel->setSourceModel(m_pModel);
-        m_pProxyModel->setNotRunningVMVisibility(m_fShowNotRunningVMs);
-        m_pTableView->setModel(m_pProxyModel);
-        m_pTableView->setItemDelegate(new UIVMActivityOverviewDelegate(this));
-        m_pTableView->setSelectionMode(QAbstractItemView::SingleSelection);
-        m_pTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
-        m_pTableView->setShowGrid(false);
-        m_pTableView->setContextMenuPolicy(Qt::CustomContextMenu);
-        m_pTableView->horizontalHeader()->setHighlightSections(false);
-        m_pTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Fixed);
-        m_pTableView->verticalHeader()->setVisible(false);
-        m_pTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
-        /* Minimize the row height: */
-        m_pTableView->verticalHeader()->setDefaultSectionSize(m_pTableView->verticalHeader()->minimumSectionSize());
-        m_pTableView->setAlternatingRowColors(true);
-        m_pTableView->setSortingEnabled(true);
-        m_pTableView->sortByColumn(0, Qt::AscendingOrder);
-        /* Store the default font and its color of the table on the view. They are used in ::data(..): */
-        m_pModel->setDefaultViewFont(m_pTableView->font());
-        m_pModel->setDefaultViewFontColor(m_pTableView->palette().color(QPalette::WindowText));
+    m_pProxyModel = new UIVMActivityOverviewProxyModel(this);
+    m_pTableView = new UIVMActivityOverviewTableView(this);
+    m_pModel = new UIVMActivityOverviewModel(this, m_pTableView);
+    m_pProxyModel->setSourceModel(m_pModel);
+    m_pProxyModel->setNotRunningVMVisibility(m_fShowNotRunningVMs);
+    m_pProxyModel->setSortCaseSensitivity(Qt::CaseInsensitive);
+    m_pTableView->setModel(m_pProxyModel);
 
-        connect(m_pModel, &UIActivityOverviewModel::sigDataUpdate,
-                this, &UIVMActivityOverviewWidget::sltHandleDataUpdate);
-        connect(m_pModel, &UIActivityOverviewModel::sigHostStatsUpdate,
-                this, &UIVMActivityOverviewWidget::sltHandleHostStatsUpdate);
-        connect(m_pTableView, &UIVMActivityOverviewTableView::customContextMenuRequested,
-                this, &UIVMActivityOverviewWidget::sltHandleTableContextMenuRequest);
-        connect(m_pTableView, &UIVMActivityOverviewTableView::sigSelectionChanged,
-                this, &UIVMActivityOverviewWidget::sltHandleTableSelectionChanged);
-        updateModelColumVisibilityCache();
-    }
+    m_pTableView->setItemDelegate(new UIVMActivityOverviewDelegate(this));
+    m_pTableView->setSelectionMode(QAbstractItemView::SingleSelection);
+    m_pTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
+    m_pTableView->setShowGrid(false);
+    m_pTableView->setContextMenuPolicy(Qt::CustomContextMenu);
+    m_pTableView->horizontalHeader()->setHighlightSections(false);
+    m_pTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+    m_pTableView->verticalHeader()->setVisible(false);
+    m_pTableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    /* Minimize the row height: */
+    m_pTableView->verticalHeader()->setDefaultSectionSize(m_pTableView->verticalHeader()->minimumSectionSize());
+    m_pTableView->setAlternatingRowColors(true);
+    m_pTableView->setSortingEnabled(true);
+    m_pTableView->sortByColumn(0, Qt::AscendingOrder);
+
+    connect(m_pTableView, &UIVMActivityOverviewTableView::customContextMenuRequested,
+            this, &UIVMActivityOverviewWidget::sltHandleTableContextMenuRequest);
+    connect(m_pTableView, &UIVMActivityOverviewTableView::sigSelectionChanged,
+            this, &UIVMActivityOverviewWidget::sltHandleTableSelectionChanged);
+    connect(m_pModel, &UIVMActivityOverviewModel::sigDataUpdate,
+            this, &UIVMActivityOverviewWidget::sltHandleDataUpdate);
+    connect(m_pModel, &UIVMActivityOverviewModel::sigHostStatsUpdate,
+            this, &UIVMActivityOverviewWidget::sltHandleHostStatsUpdate);
+
+    updateModelColumVisibilityCache();
+    layout()->addWidget(m_pTableView);
 }
 
 void UIVMActivityOverviewWidget::updateColumnsMenu()
@@ -1652,12 +1289,21 @@ void UIVMActivityOverviewWidget::sltHandleTableContextMenuRequest(const QPoint &
     if (m_pVMActivityMonitorAction)
         menu.addAction(m_pVMActivityMonitorAction);
     menu.addSeparator();
+
     QAction *pHideNotRunningAction =
-        menu.addAction(UIVMActivityOverviewWidget::tr("List all virtual machines"));
+        menu.addAction(UIVMActivityOverviewWidget::tr("List All Virtual Machines"));
     pHideNotRunningAction->setCheckable(true);
     pHideNotRunningAction->setChecked(m_fShowNotRunningVMs);
     connect(pHideNotRunningAction, &QAction::triggered,
             this, &UIVMActivityOverviewWidget::sltNotRunningVMVisibility);
+
+    QAction *pShowCloudVMsAction =
+        menu.addAction(UIVMActivityOverviewWidget::tr("Show Cloud Virtual Machines"));
+    pShowCloudVMsAction->setCheckable(true);
+    pShowCloudVMsAction->setChecked(m_fShowCloudVMs);
+    connect(pShowCloudVMsAction, &QAction::triggered,
+            this, &UIVMActivityOverviewWidget::sltCloudVMVisibility);
+
     menu.exec(m_pTableView->mapToGlobal(pos));
 }
 
@@ -1673,7 +1319,7 @@ void UIVMActivityOverviewWidget::sltHandleTableSelectionChanged(const QItemSelec
         return;
     }
     int iMachineIndex = m_pProxyModel->mapToSource(selected.indexes()[0]).row();
-    if (m_pModel->machineState(iMachineIndex) != KMachineState_Running)
+    if (!m_pModel->isVMRunning(iMachineIndex))
     {
         m_pVMActivityMonitorAction->setEnabled(false);
         return;
@@ -1696,6 +1342,13 @@ void UIVMActivityOverviewWidget::sltNotRunningVMVisibility(bool fShow)
     m_fShowNotRunningVMs = fShow;
     if (m_pProxyModel)
         m_pProxyModel->setNotRunningVMVisibility(m_fShowNotRunningVMs);
+}
+
+void UIVMActivityOverviewWidget::sltCloudVMVisibility(bool fShow)
+{
+    m_fShowCloudVMs = fShow;
+    if (m_pProxyModel)
+        m_pProxyModel->setCloudVMVisibility(m_fShowCloudVMs);
 }
 
 void UIVMActivityOverviewWidget::setColumnVisible(int iColumnId, bool fVisible)
@@ -1727,14 +1380,10 @@ void UIVMActivityOverviewWidget::computeMinimumColumnWidths()
         int iColumnStringWidth = columnDataStringLengths.value(i, 0);
         int iColumnTitleWidth = m_columnTitles.value(i, QString()).length();
         int iMax = iColumnStringWidth > iColumnTitleWidth ? iColumnStringWidth : iColumnTitleWidth;
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
-        columnWidthsInPixels[i] = iMax * fontMetrics.horizontalAdvance('x') +
-#else
-        columnWidthsInPixels[i] = iMax * fontMetrics.width('x') +
-#endif
-            QApplication::style()->pixelMetric(QStyle::PM_LayoutLeftMargin) +
-            QApplication::style()->pixelMetric(QStyle::PM_LayoutRightMargin) +
-            m_iSortIndicatorWidth;
+        columnWidthsInPixels[i] = iMax * fontMetrics.horizontalAdvance('x')
+                                + QApplication::style()->pixelMetric(QStyle::PM_LayoutLeftMargin)
+                                + QApplication::style()->pixelMetric(QStyle::PM_LayoutRightMargin)
+                                + m_iSortIndicatorWidth;
     }
     m_pTableView->setMinimumColumnWidths(columnWidthsInPixels);
 }

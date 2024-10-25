@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -4729,8 +4729,8 @@ static VBOXSTRICTRC ataIOPortWriteU8(PPDMDEVINS pDevIns, PATACONTROLLER pCtl, ui
             pCtl->aIfs[1].uATARegHCyl = val;
             break;
         case 6: /* drive/head */
-            pCtl->aIfs[0].uATARegSelect = (val & ~0x10) | 0xa0;
-            pCtl->aIfs[1].uATARegSelect = (val | 0x10) | 0xa0;
+            pCtl->aIfs[0].uATARegSelect = val & ~0x10;
+            pCtl->aIfs[1].uATARegSelect = val | 0x10;
             if (((val >> 4) & ATA_SELECTED_IF_MASK) != pCtl->iSelectedIf)
             {
                 /* select another drive */

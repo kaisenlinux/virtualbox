@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -51,6 +51,9 @@
 #include "ConsoleImpl.h"
 #ifdef VBOX_WITH_PCI_PASSTHROUGH
 # include "PCIRawDevImpl.h"
+#endif
+#ifdef VBOX_WITH_VIRT_ARMV8
+# include "ResourceStoreImpl.h"
 #endif
 
 #include <VBox/vmm/pdmdrv.h>
@@ -118,6 +121,12 @@ extern "C" DECLEXPORT(int) VBoxDriversRegister(PCPDMDRVREGCB pCallbacks, uint32_
     vrc = pCallbacks->pfnRegister(pCallbacks, &NvramStore::DrvReg);
     if (RT_FAILURE(vrc))
         return vrc;
+
+#ifdef VBOX_WITH_VIRT_ARMV8
+    vrc = pCallbacks->pfnRegister(pCallbacks, &ResourceStore::DrvReg);
+    if (RT_FAILURE(vrc))
+        return vrc;
+#endif
 
     return VINF_SUCCESS;
 }

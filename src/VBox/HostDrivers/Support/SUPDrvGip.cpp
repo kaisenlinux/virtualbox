@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -2024,7 +2024,7 @@ int VBOXCALL supdrvGipCreate(PSUPDRVDEVEXT pDevExt)
     cbGipCpuGroups = 0;
 #endif
     cbGip = RT_UOFFSETOF_DYN(SUPGLOBALINFOPAGE, aCPUs[cCpus]) + cbGipCpuGroups;
-    rc = RTR0MemObjAllocCont(&pDevExt->GipMemObj, cbGip, false /*fExecutable*/);
+    rc = RTR0MemObjAllocCont(&pDevExt->GipMemObj, cbGip, NIL_RTHCPHYS /*PhysHighest*/, false /*fExecutable*/);
     if (RT_FAILURE(rc))
     {
         OSDBGPRINT(("supdrvGipCreate: failed to allocate the GIP page. rc=%d\n", rc));

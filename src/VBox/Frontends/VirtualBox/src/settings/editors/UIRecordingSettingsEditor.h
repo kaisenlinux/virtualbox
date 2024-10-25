@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,14 +32,8 @@
 #endif
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
+#include "UIEditor.h"
 #include "UISettingsDefs.h"
-
-/* COM includes: */
-#include "COMEnums.h"
-
-/* Other VBox includes: */
-#include <VBox/com/com.h>
 
 /* Forward declarations: */
 class QCheckBox;
@@ -51,8 +45,8 @@ class QIAdvancedSlider;
 class UIFilePathSelector;
 class UIFilmContainer;
 
-/** QWidget subclass used as a recording settings editor. */
-class SHARED_LIBRARY_STUFF UIRecordingSettingsEditor : public QIWithRetranslateUI<QWidget>
+/** UIEditor sub-class used as a recording settings editor. */
+class SHARED_LIBRARY_STUFF UIRecordingSettingsEditor : public UIEditor
 {
     Q_OBJECT;
 
@@ -110,17 +104,15 @@ public:
     int audioQualityRate() const;
 
     /** Defines enabled @a screens. */
-    void setScreens(const QVector<BOOL> &screens);
+    void setScreens(const QVector<bool> &screens);
     /** Returns enabled screens. */
-    QVector<BOOL> screens() const;
+    QVector<bool> screens() const;
 
-protected:
-
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
 
 private slots:
 
+    /** Handles translation event. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
     /** Handles feature toggling. */
     void sltHandleFeatureToggled();
     /** Handles mode change. */
@@ -200,7 +192,7 @@ private:
         int  m_iAudioQualityRate;
 
         /** Holds the screens. */
-        QVector<BOOL>  m_screens;
+        QVector<bool>  m_screens;
     /** @} */
 
     /** @name Widgets

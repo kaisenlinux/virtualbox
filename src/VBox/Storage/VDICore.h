@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -53,7 +53,7 @@
 /** Image info, not handled anyhow.
  *  Must be less than 64 bytes in length, including the trailing 0.
  */
-#define VDI_IMAGE_FILE_INFO   "<<< Oracle VM VirtualBox Disk Image >>>\n"
+#define VDI_IMAGE_FILE_INFO   "<<< Oracle VirtualBox Disk Image >>>\n"
 
 /** The Sector size.
  * Currently we support only 512 bytes sectors.

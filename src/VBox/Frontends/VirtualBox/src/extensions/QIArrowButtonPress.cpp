@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -30,18 +30,20 @@
 
 /* GUI includes: */
 #include "QIArrowButtonPress.h"
-
+#include "UITranslationEventListener.h"
 
 QIArrowButtonPress::QIArrowButtonPress(QIArrowButtonPress::ButtonType enmButtonType,
                                        QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QIRichToolButton>(pParent)
+    : QIRichToolButton(pParent)
     , m_enmButtonType(enmButtonType)
 {
     /* Retranslate UI: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+        this, &QIArrowButtonPress::sltRetranslateUI);
 }
 
-void QIArrowButtonPress::retranslateUi()
+void QIArrowButtonPress::sltRetranslateUI()
 {
     /* Retranslate: */
     switch (m_enmButtonType)
@@ -63,5 +65,5 @@ void QIArrowButtonPress::keyPressEvent(QKeyEvent *pEvent)
         default: break;
     }
     /* Call to base-class: */
-    QIWithRetranslateUI<QIRichToolButton>::keyPressEvent(pEvent);
+    QIRichToolButton::keyPressEvent(pEvent);
 }

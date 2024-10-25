@@ -105,7 +105,7 @@ xptiInterfaceEntry::NewEntry(const xptiInterfaceEntry& r,
                              const xptiTypelib& typelib,
                              xptiWorkingSet* aWorkingSet)
 {
-    size_t nameLength = PL_strlen(r.mName);
+    size_t nameLength = strlen(r.mName);
     void* place = XPT_MALLOC(aWorkingSet->GetStructArena(),
                              sizeof(xptiInterfaceEntry) + nameLength);
     if(!place)
@@ -258,7 +258,7 @@ nsresult
 xptiInterfaceEntry::GetName(char **name)
 {
     // It is not necessary to Resolve because this info is read from manifest.
-    *name = (char*) nsMemory::Clone(mName, PL_strlen(mName)+1);
+    *name = (char*) nsMemory::Clone(mName, strlen(mName)+1);
     return *name ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
 }
 
@@ -350,7 +350,7 @@ xptiInterfaceEntry::GetMethodInfoForName(const char* methodName, uint16 *index,
         info = NS_REINTERPRET_CAST(nsXPTMethodInfo*,
                                    &mInterface->mDescriptor->
                                         method_descriptors[i]);
-        if (PL_strcmp(methodName, info->GetName()) == 0) {
+        if (RTStrCmp(methodName, info->GetName()) == 0) {
             *index = i + mInterface->mMethodBaseIndex;
             *result = info;
             return NS_OK;
@@ -774,7 +774,7 @@ xptiInterfaceInfo::~xptiInterfaceInfo()
 nsrefcnt
 xptiInterfaceInfo::AddRef(void)
 {
-    nsrefcnt cnt = (nsrefcnt) PR_AtomicIncrement((PRInt32*)&mRefCnt);
+    nsrefcnt cnt = (nsrefcnt) ASMAtomicIncU32((volatile uint32_t *)&mRefCnt);
     NS_LOG_ADDREF(this, cnt, "xptiInterfaceInfo", sizeof(*this));
     return cnt;
 }
@@ -783,11 +783,11 @@ nsrefcnt
 xptiInterfaceInfo::Release(void)
 {
     xptiInterfaceEntry* entry = mEntry;
-    nsrefcnt cnt = (nsrefcnt) PR_AtomicDecrement((PRInt32*)&mRefCnt);
+    nsrefcnt cnt = (nsrefcnt) ASMAtomicDecU32((volatile uint32_t *)&mRefCnt);
     NS_LOG_RELEASE(this, cnt, "xptiInterfaceInfo");
     if(!cnt)
     {
-        nsAutoMonitor lock(xptiInterfaceInfoManager::GetInfoMonitor());
+        nsAutoMonitorCanBeNull lock(xptiInterfaceInfoManager::GetInfoMonitor());
         LOG_INFO_MONITOR_ENTRY;
         
         // If GetInterfaceInfo added and *released* a reference before we 

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2017-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2017-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -6760,6 +6760,7 @@ static uint32_t rtFsIsoMakerOutFile_GenerateDirRec(PRTFSISOMAKERNAME pName, bool
         RTUTF16  wszTmp[128];
         PRTUTF16 pwszTmp = &wszTmp[0];
         size_t   cwcResult = 0;
+        wszTmp[0] = '\0';
         int rc = RTStrToUtf16BigEx(pName->szName, RTSTR_MAX, &pwszTmp, RT_ELEMENTS(wszTmp), &cwcResult);
         AssertRC(rc);
         Assert(   cwcResult * sizeof(RTUTF16) == pName->cbNameInDirRec
@@ -7279,7 +7280,7 @@ static size_t rtFsIsoMakerOutFile_ReadDirStructures(PRTFSISOMAKERNAMEDIR *ppDirH
 /**
  * @interface_method_impl{RTVFSIOSTREAMOPS,pfnRead}
  */
-static DECLCALLBACK(int) rtFsIsoMakerOutFile_Read(void *pvThis, RTFOFF off, PCRTSGBUF pSgBuf, bool fBlocking, size_t *pcbRead)
+static DECLCALLBACK(int) rtFsIsoMakerOutFile_Read(void *pvThis, RTFOFF off, PRTSGBUF pSgBuf, bool fBlocking, size_t *pcbRead)
 {
     PRTFSISOMAKEROUTPUTFILE pThis     = (PRTFSISOMAKEROUTPUTFILE)pvThis;
     PRTFSISOMAKERINT        pIsoMaker = pThis->pIsoMaker;
@@ -7395,6 +7396,7 @@ static DECLCALLBACK(int) rtFsIsoMakerOutFile_Read(void *pvThis, RTFOFF off, PCRT
 
     if (pcbRead)
         *pcbRead = cbRead;
+    RTSgBufAdvance(pSgBuf, cbRead);
     return rc;
 }
 

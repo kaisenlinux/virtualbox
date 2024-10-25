@@ -39,6 +39,9 @@
 
 /* Implementation of xptiManifest. */
 
+#include <iprt/file.h>
+#include <iprt/stream.h>
+
 #include "xptiprivate.h"
 #include "nsManifestLineReader.h"
 #include "nsString.h"
@@ -94,7 +97,7 @@ xpti_InterfaceWriter(PLDHashTable *table, PLDHashEntryHdr *hdr,
                      PRUint32 number, void *arg)
 {
     xptiInterfaceEntry* entry = ((xptiHashEntry*)hdr)->value;
-    PRFileDesc* fd = (PRFileDesc*)  arg;
+    PRTSTREAM fd = (PRTSTREAM)  arg;
 
     char* iidStr = entry->GetTheIID()->ToString();
     if(!iidStr)
@@ -102,14 +105,14 @@ xpti_InterfaceWriter(PLDHashTable *table, PLDHashEntryHdr *hdr,
 
     const xptiTypelib& typelib = entry->GetTypelibRecord();
 
-    PRBool success =  PR_fprintf(fd, "%d,%s,%s,%d,%d,%d\n",
-                                 (int) number,
-                                 entry->GetTheName(),
-                                 iidStr,
-                                 (int) typelib.GetFileIndex(),
-                                 (int) (typelib.IsZip() ?
-                                 typelib.GetZipItemIndex() : -1),
-                                 (int) entry->GetScriptableFlag());
+    PRBool success =  RTStrmPrintf(fd, "%d,%s,%s,%d,%d,%d\n",
+                                   (int) number,
+                                   entry->GetTheName(),
+                                   iidStr,
+                                   (int) typelib.GetFileIndex(),
+                                   (int) (typelib.IsZip() ?
+                                   typelib.GetZipItemIndex() : -1),
+                                   (int) entry->GetScriptableFlag()) > 0;
 
     nsCRT::free(iidStr);
 
@@ -123,7 +126,6 @@ PRBool xptiManifest::Write(xptiInterfaceInfoManager* aMgr,
 {
 
     PRBool succeeded = PR_FALSE;
-    PRFileDesc* fd = nsnull;
     PRUint32 i;
     PRUint32 size32;
     PRIntn interfaceCount = 0;
@@ -141,41 +143,57 @@ PRBool xptiManifest::Write(xptiInterfaceInfoManager* aMgr,
 
     tempFile->SetNativeLeafName(leafName);
 
+    nsCAutoString pathName;
+    nsresult rv = tempFile->GetNativePath(pathName);
+    if (NS_FAILED(rv))
+        return PR_FALSE;
+
     // All exits via "goto out;" from here on...
-    if(NS_FAILED(tempFile->
-                 OpenNSPRFileDesc(PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE,
-                                  0600, &fd)) || !fd)
+    RTFILE hFile      = NIL_RTFILE;
+    PRTSTREAM pStream = NULL;
+    int vrc = RTFileOpen(&hFile, pathName.get(),
+                         RTFILE_O_CREATE | RTFILE_O_WRITE | RTFILE_O_TRUNCATE | RTFILE_O_DENY_NONE
+                         | (0600 << RTFILE_O_CREATE_MODE_SHIFT));
+    if (RT_SUCCESS(vrc))
     {
-        goto out;
+        vrc = RTStrmOpenFileHandle(hFile, "at", 0 /*fFlags*/, &pStream);
+        if (RT_FAILURE(vrc))
+        {
+            RTFileClose(hFile);
+            hFile = NIL_RTFILE;
+            goto out;
+        }
     }
+    else
+        goto out;
 
     // write file header comments
 
-    if(!PR_fprintf(fd, "%s\n", g_Disclaimer))
+    if(RTStrmPrintf(pStream, "%s\n", g_Disclaimer) <= 0)
         goto out;
 
     // write the [Header] block, version number, and appdir.
 
-    if(!PR_fprintf(fd, "\n[%s,%d]\n", g_TOKEN_Header, 2))
+    if(RTStrmPrintf(pStream, "\n[%s,%d]\n", g_TOKEN_Header, 2) <= 0)
         goto out;
 
-    if(!PR_fprintf(fd, "%d,%s,%d,%d\n",
-                       0, g_TOKEN_Version, g_VERSION_MAJOR, g_VERSION_MINOR))
+    if(RTStrmPrintf(pStream, "%d,%s,%d,%d\n",
+                       0, g_TOKEN_Version, g_VERSION_MAJOR, g_VERSION_MINOR) <= 0)
         goto out;
 
     GetCurrentAppDirString(aMgr, appDirString);
     if(appDirString.IsEmpty())
         goto out;
 
-    if(!PR_fprintf(fd, "%d,%s,%s\n",
-                       1, g_TOKEN_AppDir, appDirString.get()))
+    if(RTStrmPrintf(pStream, "%d,%s,%s\n",
+                       1, g_TOKEN_AppDir, appDirString.get()) <= 0)
         goto out;
 
     // write Directories list
 
-    if(!PR_fprintf(fd, "\n[%s,%d]\n",
+    if(RTStrmPrintf(pStream, "\n[%s,%d]\n",
                        g_TOKEN_Directories,
-                       (int) aWorkingSet->GetDirectoryCount()))
+                       (int) aWorkingSet->GetDirectoryCount()) <= 0)
         goto out;
 
     for(i = 0; i < aWorkingSet->GetDirectoryCount(); i++)
@@ -191,15 +209,15 @@ PRBool xptiManifest::Write(xptiInterfaceInfoManager* aMgr,
         if(str.IsEmpty())
             goto out;
 
-        if(!PR_fprintf(fd, "%d,%s\n", (int) i, str.get()))
+        if(RTStrmPrintf(pStream, "%d,%s\n", (int) i, str.get()) <= 0)
             goto out;
     }
 
     // write Files list
 
-    if(!PR_fprintf(fd, "\n[%s,%d]\n",
+    if(RTStrmPrintf(pStream, "\n[%s,%d]\n",
                        g_TOKEN_Files,
-                       (int) aWorkingSet->GetFileCount()))
+                       (int) aWorkingSet->GetFileCount()) <= 0)
         goto out;
 
     for(i = 0; i < aWorkingSet->GetFileCount(); i++)
@@ -208,26 +226,26 @@ PRBool xptiManifest::Write(xptiInterfaceInfoManager* aMgr,
 
         LL_L2UI(size32, file.GetSize());
 
-        if(!PR_fprintf(fd, "%d,%s,%d,%u,%lld\n",
+        if(RTStrmPrintf(pStream, "%d,%s,%d,%u,%lld\n",
                            (int) i,
                            file.GetName(),
                            (int) file.GetDirectory(),
-                           size32, PRInt64(file.GetDate())))
+                           size32, PRInt64(file.GetDate())) <= 0)
         goto out;
     }
 
     // write ArchiveItems list
 
-    if(!PR_fprintf(fd, "\n[%s,%d]\n",
+    if(RTStrmPrintf(pStream, "\n[%s,%d]\n",
                        g_TOKEN_ArchiveItems,
-                       (int) aWorkingSet->GetZipItemCount()))
+                       (int) aWorkingSet->GetZipItemCount()) <= 0)
         goto out;
 
     for(i = 0; i < aWorkingSet->GetZipItemCount(); i++)
     {
-        if(!PR_fprintf(fd, "%d,%s\n",
+        if(RTStrmPrintf(pStream, "%d,%s\n",
                            (int) i,
-                           aWorkingSet->GetZipItemAt(i).GetName()))
+                           aWorkingSet->GetZipItemAt(i).GetName()) <= 0)
         goto out;
     }
 
@@ -235,26 +253,26 @@ PRBool xptiManifest::Write(xptiInterfaceInfoManager* aMgr,
 
     interfaceCount = aWorkingSet->mNameTable->entryCount;
 
-    if(!PR_fprintf(fd, "\n[%s,%d]\n",
+    if(RTStrmPrintf(pStream, "\n[%s,%d]\n",
                        g_TOKEN_Interfaces,
-                       (int) interfaceCount))
+                       (int) interfaceCount) <= 0)
         goto out;
 
     if(interfaceCount != (PRIntn)
         PL_DHashTableEnumerate(aWorkingSet->mNameTable,
-                               xpti_InterfaceWriter, fd))
+                               xpti_InterfaceWriter, pStream))
         goto out;
 
 
-    if(PR_SUCCESS == PR_Close(fd))
+    if (RT_SUCCESS(RTStrmClose(pStream)))
     {
         succeeded = PR_TRUE;
     }
-    fd = nsnull;
+    pStream = NULL;
 
 out:
-    if(fd)
-        PR_Close(fd);
+    if (pStream)
+        RTStrmClose(pStream);
 
     if(succeeded)
     {
@@ -288,9 +306,6 @@ static char*
 ReadManifestIntoMemory(xptiInterfaceInfoManager* aMgr,
                        PRUint32* pLength)
 {
-    PRFileDesc* fd = nsnull;
-    PRInt32 flen;
-    PRInt64 fileSize;
     char* whole = nsnull;
     PRBool success = PR_FALSE;
 
@@ -298,39 +313,53 @@ ReadManifestIntoMemory(xptiInterfaceInfoManager* aMgr,
     if(!aMgr->GetCloneOfManifestLocation(getter_AddRefs(aFile)) || !aFile)
         return nsnull;
 
+    nsCAutoString pathName;
+    if (NS_FAILED(aFile->GetNativePath(pathName)))
+        return nsnull;
+
 #ifdef DEBUG
     {
         static PRBool shown = PR_FALSE;
 
-        nsCAutoString path;
-        if(!shown && NS_SUCCEEDED(aFile->GetNativePath(path)) && !path.IsEmpty())
+        if(!shown && !pathName.IsEmpty())
         {
-            fprintf(stderr, "Type Manifest File: %s\n", path.get());
+            fprintf(stderr, "Type Manifest File: %s\n", pathName.get());
             shown = PR_TRUE;
         }
     }
 #endif
 
-    if(NS_FAILED(aFile->GetFileSize(&fileSize)) || !(flen = nsInt64(fileSize)))
+    RTFILE hFile = NIL_RTFILE;
+    int vrc = RTFileOpen(&hFile, pathName.get(),
+                         RTFILE_O_OPEN | RTFILE_O_READ | RTFILE_O_DENY_NONE);
+    if (RT_FAILURE(vrc))
         return nsnull;
 
-    whole = new char[flen];
+    uint64_t cbFile = 0;
+    vrc = RTFileQuerySize(hFile, &cbFile);
+    if (RT_FAILURE(vrc) || cbFile >= 128 * _1M)
+    {
+        RTFileClose(hFile);
+        return nsnull;
+    }
+
+    whole = new char[cbFile];
     if (!whole)
+    {
+        RTFileClose(hFile);
         return nsnull;
+    }
 
-    // All exits from on here should be via 'goto out'
-
-    if(NS_FAILED(aFile->OpenNSPRFileDesc(PR_RDONLY, 0444, &fd)) || !fd)
-        goto out;
-
-    if(flen > PR_Read(fd, whole, flen))
+    size_t cbRead = 0;
+    vrc = RTFileRead(hFile, whole, cbFile, &cbRead);
+    if(RT_FAILURE(vrc) || cbRead < cbFile)
         goto out;
 
     success = PR_TRUE;
 
  out:
-    if(fd)
-        PR_Close(fd);
+    if (hFile != NIL_RTFILE)
+        RTFileClose(hFile);
 
     if(!success)
     {
@@ -338,7 +367,7 @@ ReadManifestIntoMemory(xptiInterfaceInfoManager* aMgr,
         return nsnull;
     }
 
-    *pLength = flen;
+    *pLength = (uint32_t)cbFile;
     return whole;
 }
 
@@ -363,7 +392,7 @@ PRBool ReadSectionHeader(nsManifestLineReader& reader,
                 break;
 
             // ignore the leading '['
-            if(0 != PL_strcmp(values[0]+1, token))
+            if(0 != RTStrCmp(values[0]+1, token))
                 break;
 
             if((*count = atoi(values[1])) < minCount)
@@ -435,7 +464,7 @@ PRBool xptiManifest::Read(xptiInterfaceInfoManager* aMgr,
         goto out;
 
     // VersionLiteral
-    if(0 != PL_strcmp(values[1], g_TOKEN_Version))
+    if(0 != RTStrCmp(values[1], g_TOKEN_Version))
         goto out;
 
     // major
@@ -460,7 +489,7 @@ PRBool xptiManifest::Read(xptiInterfaceInfoManager* aMgr,
         goto out;
 
     // AppDirLiteral
-    if(0 != PL_strcmp(values[1], g_TOKEN_AppDir))
+    if(0 != RTStrCmp(values[1], g_TOKEN_AppDir))
         goto out;
 
     if(!CurrentAppDirMatchesPersistentDescriptor(aMgr, values[2]))
@@ -678,8 +707,7 @@ PRBool xptiManifest::Read(xptiInterfaceInfoManager* aMgr,
     succeeded = PR_TRUE;
 
  out:
-    if(whole)
-        delete [] whole;
+    delete [] whole;
 
     if(!succeeded)
     {

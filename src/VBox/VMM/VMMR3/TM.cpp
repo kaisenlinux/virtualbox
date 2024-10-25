@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -185,6 +185,7 @@ static bool                 tmR3HasFixedTSC(PVM pVM);
 static uint64_t             tmR3CalibrateTSC(void);
 static DECLCALLBACK(int)    tmR3Save(PVM pVM, PSSMHANDLE pSSM);
 static DECLCALLBACK(int)    tmR3Load(PVM pVM, PSSMHANDLE pSSM, uint32_t uVersion, uint32_t uPass);
+static DECLCALLBACK(int)    tmR3LoadDone(PVM pVM, PSSMHANDLE pSSM);
 #ifdef VBOX_WITH_STATISTICS
 static void                 tmR3TimerQueueRegisterStats(PVM pVM, PTMTIMERQUEUE pQueue, uint32_t cTimers);
 #endif
@@ -334,6 +335,7 @@ VMM_INT_DECL(int) TMR3Init(PVM pVM)
                               "TSCTicksPerSecond|"
                               "TSCTiedToExecution|"
                               "TSCNotTiedToHalt|"
+                              "TSCMultiplier|"
                               "ScheduleSlack|"
                               "CatchUpStopThreshold|"
                               "CatchUpGiveUpThreshold|"
@@ -419,6 +421,23 @@ VMM_INT_DECL(int) TMR3Init(PVM pVM)
         pVM->tm.s.fTSCModeSwitchAllowed = false;
     }
 
+    /** @cfgm{/TM/TSCMultiplier, uint8_t}
+     * This is a multiplier to apply to the host TSC while calculating the guest
+     * TSC.  It's recommended to avoid using a power-of-two value to reduce number
+     * of zeros in least-significant-bits of the scaled TSC.  Defaults to 43 on
+     * ARM64 and 1 on all other hosts. */
+#ifdef RT_ARCH_ARM64
+    pVM->tm.s.u8TSCMultiplier = 43; /* 125/3 + some fudge to get us >= 1GHz from 24MHz */
+#else
+    pVM->tm.s.u8TSCMultiplier = 1;
+#endif
+    rc = CFGMR3QueryU8Def(pCfgHandle, "TSCMultiplier", &pVM->tm.s.u8TSCMultiplier, pVM->tm.s.u8TSCMultiplier);
+    if (RT_FAILURE(rc))
+        return VMSetError(pVM, rc, RT_SRC_POS,
+                          N_("Configuration error: Failed to query 8-bit value \"TSCMultiplier\""));
+    if (pVM->tm.s.u8TSCMultiplier == 0)
+        return VMSetError(pVM, rc, RT_SRC_POS, N_("Configuration error: \"TSCMultiplier\" must not be zero!"));
+
     /** @cfgm{/TM/TSCTicksPerSecond, uint32_t, Current TSC frequency from GIP}
      * The number of TSC ticks per second (i.e. the TSC frequency). This will
      * override enmTSCMode.
@@ -427,7 +446,7 @@ VMM_INT_DECL(int) TMR3Init(PVM pVM)
     rc = CFGMR3QueryU64(pCfgHandle, "TSCTicksPerSecond", &pVM->tm.s.cTSCTicksPerSecond);
     if (rc == VERR_CFGM_VALUE_NOT_FOUND)
     {
-        pVM->tm.s.cTSCTicksPerSecond = pVM->tm.s.cTSCTicksPerSecondHost;
+        pVM->tm.s.cTSCTicksPerSecond = pVM->tm.s.cTSCTicksPerSecondHost * pVM->tm.s.u8TSCMultiplier;
         if (   (   pVM->tm.s.enmTSCMode == TMTSCMODE_DYNAMIC
                 || pVM->tm.s.enmTSCMode == TMTSCMODE_VIRT_TSC_EMULATED)
             && pVM->tm.s.cTSCTicksPerSecond >= _4G)
@@ -449,7 +468,7 @@ VMM_INT_DECL(int) TMR3Init(PVM pVM)
     else
     {
         LogRel(("TM: NEM overrides the /TM/TSCTicksPerSecond=%RU64 setting.\n", pVM->tm.s.cTSCTicksPerSecond));
-        pVM->tm.s.cTSCTicksPerSecond = pVM->tm.s.cTSCTicksPerSecondHost;
+        pVM->tm.s.cTSCTicksPerSecond = pVM->tm.s.cTSCTicksPerSecondHost * pVM->tm.s.u8TSCMultiplier;
     }
 
     /** @cfgm{/TM/TSCTiedToExecution, bool, false}
@@ -637,11 +656,13 @@ VMM_INT_DECL(int) TMR3Init(PVM pVM)
      * Finally, setup and report.
      */
     pVM->tm.s.enmOriginalTSCMode = pVM->tm.s.enmTSCMode;
+#if !defined(VBOX_VMM_TARGET_ARMV8)
     CPUMR3SetCR4Feature(pVM, X86_CR4_TSD, ~X86_CR4_TSD);
-    LogRel(("TM:     cTSCTicksPerSecond=%'RU64 (%#RX64) enmTSCMode=%d (%s)\n"
+#endif
+    LogRel(("TM:     cTSCTicksPerSecond=%'RU64 (%#RX64) enmTSCMode=%d (%s) TSCMultiplier=%u\n"
             "TM: cTSCTicksPerSecondHost=%'RU64 (%#RX64)\n"
             "TM: TSCTiedToExecution=%RTbool TSCNotTiedToHalt=%RTbool\n",
-            pVM->tm.s.cTSCTicksPerSecond, pVM->tm.s.cTSCTicksPerSecond, pVM->tm.s.enmTSCMode, tmR3GetTSCModeName(pVM),
+            pVM->tm.s.cTSCTicksPerSecond, pVM->tm.s.cTSCTicksPerSecond, pVM->tm.s.enmTSCMode, tmR3GetTSCModeName(pVM), pVM->tm.s.u8TSCMultiplier,
             pVM->tm.s.cTSCTicksPerSecondHost, pVM->tm.s.cTSCTicksPerSecondHost,
             pVM->tm.s.fTSCTiedToExecution, pVM->tm.s.fTSCNotTiedToHalt));
 
@@ -672,7 +693,7 @@ VMM_INT_DECL(int) TMR3Init(PVM pVM)
     rc = SSMR3RegisterInternal(pVM, "tm", 1, TM_SAVED_STATE_VERSION, sizeof(uint64_t) * 8,
                                NULL, NULL, NULL,
                                NULL, tmR3Save, NULL,
-                               NULL, tmR3Load, NULL);
+                               NULL, tmR3Load, tmR3LoadDone);
     if (RT_FAILURE(rc))
         return rc;
 
@@ -1072,6 +1093,19 @@ static uint64_t tmR3CalibrateTSC(void)
     return u64Hz;
 }
 
+#ifdef TM_SECONDS_TO_AUTOMATIC_POWER_OFF
+# include <iprt/message.h>
+/** @callback_method_impl{FNTMTIMERINT} */
+static DECLCALLBACK(void) tmR3AutoPowerOffTimer(PVM pVM, TMTIMERHANDLE hTimer, void *pvUser)
+{
+    RT_NOREF(hTimer, pvUser);
+    RTMsgInfo("The automatic power off timer fired...\n");
+    LogRel(("The automatic power off timer fired...\n"));
+    int rc = VMR3ReqCallNoWait(pVM, VMCPUID_ANY_QUEUE, (PFNRT)VMR3PowerOff, 1, pVM->pUVM);
+    AssertLogRelRC(rc);
+}
+#endif
+
 
 /**
  * Finalizes the TM initialization.
@@ -1127,6 +1161,17 @@ VMM_INT_DECL(int) TMR3InitFinalize(PVM pVM)
         pVM->tm.s.aTimerQueues[idxQueue].fCannotGrow = true;
         tmR3TimerQueueRegisterStats(pVM, &pVM->tm.s.aTimerQueues[idxQueue], UINT32_MAX);
     }
+#endif
+
+#ifdef TM_SECONDS_TO_AUTOMATIC_POWER_OFF
+    /*
+     * Automatic VM shutdown timer.
+     */
+    rc = TMR3TimerCreate(pVM, TMCLOCK_VIRTUAL, tmR3AutoPowerOffTimer, NULL, TMTIMER_FLAGS_NO_RING0,
+                         "Auto power off after " RT_XSTR(TM_SECONDS_TO_AUTOMATIC_POWER_OFF) " sec", &hTimer);
+    AssertLogRelRCReturn(rc, rc);
+    TMTimerSetMillies(pVM, hTimer, TM_SECONDS_TO_AUTOMATIC_POWER_OFF * RT_MS_1SEC);
+    pVM->tm.s.hAutoPowerOff = hTimer;
 #endif
 
     return rc;
@@ -1247,7 +1292,7 @@ VMM_INT_DECL(void) TMR3Reset(PVM pVM)
     switch (pVM->tm.s.enmTSCMode)
     {
         case TMTSCMODE_REAL_TSC_OFFSET:
-            offTscRawSrc = SUPReadTsc();
+            offTscRawSrc = SUPReadTsc() * pVM->tm.s.u8TSCMultiplier;
             break;
         case TMTSCMODE_DYNAMIC:
         case TMTSCMODE_VIRT_TSC_EMULATED:
@@ -1267,6 +1312,9 @@ VMM_INT_DECL(void) TMR3Reset(PVM pVM)
         pVCpu->tm.s.offTSCRawSrc   = offTscRawSrc;
         pVCpu->tm.s.u64TSC         = 0;
         pVCpu->tm.s.u64TSCLastSeen = 0;
+#if defined(VBOX_VMM_TARGET_ARMV8)
+        pVCpu->cNsVTimerActivate   = UINT64_MAX;
+#endif
     }
 }
 
@@ -1462,6 +1510,20 @@ static DECLCALLBACK(int) tmR3Load(PVM pVM, PSSMHANDLE pSSM, uint32_t uVersion, u
 
     return VINF_SUCCESS;
 }
+
+
+/**
+ * @callback_method_impl{FNSSMINTLOADDONE, For rearming autopoweroff}
+ */
+static DECLCALLBACK(int) tmR3LoadDone(PVM pVM, PSSMHANDLE pSSM)
+{
+    RT_NOREF(pVM, pSSM);
+#ifdef TM_SECONDS_TO_AUTOMATIC_POWER_OFF
+    TMTimerSetMillies(pVM, pVM->tm.s.hAutoPowerOff, TM_SECONDS_TO_AUTOMATIC_POWER_OFF * RT_MS_1SEC);
+#endif
+    return VINF_SUCCESS;
+}
+
 
 #ifdef VBOX_WITH_STATISTICS
 
@@ -3736,7 +3798,7 @@ static DECLCALLBACK(VBOXSTRICTRC) tmR3CpuTickParavirtEnable(PVM pVM, PVMCPU pVCp
          *  => offTscRawSrcNew  = uRawNewTsc - uOldTsc
          */
         uint64_t uRawOldTsc = tmR3CpuTickGetRawVirtualNoCheck(pVM);
-        uint64_t uRawNewTsc = SUPReadTsc();
+        uint64_t uRawNewTsc = SUPReadTsc() * pVM->tm.s.u8TSCMultiplier;
         uint32_t cCpus = pVM->cCpus;
         for (uint32_t i = 0; i < cCpus; i++)
         {
@@ -3790,7 +3852,7 @@ static DECLCALLBACK(VBOXSTRICTRC) tmR3CpuTickParavirtDisable(PVM pVM, PVMCPU pVC
         /*
          * See tmR3CpuTickParavirtEnable for an explanation of the conversion math.
          */
-        uint64_t uRawOldTsc = SUPReadTsc();
+        uint64_t uRawOldTsc = SUPReadTsc() * pVM->tm.s.u8TSCMultiplier;
         uint64_t uRawNewTsc = tmR3CpuTickGetRawVirtualNoCheck(pVM);
         uint32_t cCpus = pVM->cCpus;
         for (uint32_t i = 0; i < cCpus; i++)

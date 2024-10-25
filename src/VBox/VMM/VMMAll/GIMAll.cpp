@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2014-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2014-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,7 +35,7 @@
 #include "GIMInternal.h"
 #include <VBox/vmm/vmcc.h>
 
-#include <VBox/dis.h>       /* For DISCPUSTATE */
+#include <VBox/dis.h>       /* For DISSTATE */
 #include <VBox/err.h>
 #include <iprt/string.h>
 
@@ -90,9 +90,10 @@ VMMDECL(PGIMMMIO2REGION) GIMGetMmio2Regions(PVMCC pVM, uint32_t *pcRegions)
     *pcRegions = 0;
     switch (pVM->gim.s.enmProviderId)
     {
+#if !defined(VBOX_VMM_TARGET_ARMV8)
         case GIMPROVIDERID_HYPERV:
             return gimHvGetMmio2Regions(pVM, pcRegions);
-
+#endif
         default:
             break;
     }
@@ -115,12 +116,13 @@ VMM_INT_DECL(bool) GIMAreHypercallsEnabled(PVMCPUCC pVCpu)
 
     switch (pVM->gim.s.enmProviderId)
     {
+#if !defined(VBOX_VMM_TARGET_ARMV8)
         case GIMPROVIDERID_HYPERV:
             return gimHvAreHypercallsEnabled(pVM);
 
         case GIMPROVIDERID_KVM:
             return gimKvmAreHypercallsEnabled(pVCpu);
-
+#endif
         default:
             return false;
     }
@@ -152,6 +154,10 @@ VMM_INT_DECL(bool) GIMAreHypercallsEnabled(PVMCPUCC pVCpu)
  */
 VMM_INT_DECL(VBOXSTRICTRC) GIMHypercall(PVMCPUCC pVCpu, PCPUMCTX pCtx)
 {
+#if defined(VBOX_VMM_TARGET_ARMV8)
+    RT_NOREF(pCtx);
+#endif
+
     PVMCC pVM = pVCpu->CTX_SUFF(pVM);
     VMCPU_ASSERT_EMT(pVCpu);
 
@@ -160,12 +166,13 @@ VMM_INT_DECL(VBOXSTRICTRC) GIMHypercall(PVMCPUCC pVCpu, PCPUMCTX pCtx)
 
     switch (pVM->gim.s.enmProviderId)
     {
+#if !defined(VBOX_VMM_TARGET_ARMV8)
         case GIMPROVIDERID_HYPERV:
             return gimHvHypercall(pVCpu, pCtx);
 
         case GIMPROVIDERID_KVM:
             return gimKvmHypercall(pVCpu, pCtx);
-
+#endif
         default:
             AssertMsgFailed(("GIMHypercall: for provider %u not available/implemented\n", pVM->gim.s.enmProviderId));
             return VERR_GIM_HYPERCALLS_NOT_AVAILABLE;
@@ -203,6 +210,10 @@ VMM_INT_DECL(VBOXSTRICTRC) GIMHypercall(PVMCPUCC pVCpu, PCPUMCTX pCtx)
  */
 VMM_INT_DECL(VBOXSTRICTRC) GIMHypercallEx(PVMCPUCC pVCpu, PCPUMCTX pCtx, unsigned uDisOpcode, uint8_t cbInstr)
 {
+#if defined(VBOX_VMM_TARGET_ARMV8)
+    RT_NOREF(pCtx, uDisOpcode, cbInstr);
+#endif
+
     PVMCC pVM = pVCpu->CTX_SUFF(pVM);
     VMCPU_ASSERT_EMT(pVCpu);
 
@@ -211,12 +222,13 @@ VMM_INT_DECL(VBOXSTRICTRC) GIMHypercallEx(PVMCPUCC pVCpu, PCPUMCTX pCtx, unsigne
 
     switch (pVM->gim.s.enmProviderId)
     {
+#if !defined(VBOX_VMM_TARGET_ARMV8)
         case GIMPROVIDERID_HYPERV:
             return gimHvHypercallEx(pVCpu, pCtx, uDisOpcode, cbInstr);
 
         case GIMPROVIDERID_KVM:
             return gimKvmHypercallEx(pVCpu, pCtx, uDisOpcode, cbInstr);
-
+#endif
         default:
             AssertMsgFailedReturn(("enmProviderId=%u\n", pVM->gim.s.enmProviderId), VERR_GIM_HYPERCALLS_NOT_AVAILABLE);
     }
@@ -238,14 +250,18 @@ VMM_INT_DECL(VBOXSTRICTRC) GIMHypercallEx(PVMCPUCC pVCpu, PCPUMCTX pCtx, unsigne
  */
 VMM_INT_DECL(VBOXSTRICTRC) GIMExecHypercallInstr(PVMCPUCC pVCpu, PCPUMCTX pCtx, uint8_t *pcbInstr)
 {
+#if defined(VBOX_VMM_TARGET_ARMV8)
+    RT_NOREF(pCtx);
+#endif
+
     PVMCC pVM = pVCpu->CTX_SUFF(pVM);
     VMCPU_ASSERT_EMT(pVCpu);
 
     if (RT_UNLIKELY(!GIMIsEnabled(pVM)))
         return VERR_GIM_NOT_ENABLED;
 
-    unsigned    cbInstr;
-    DISCPUSTATE Dis;
+    unsigned cbInstr;
+    DISSTATE Dis;
     int rc = EMInterpretDisasCurrent(pVCpu, &Dis, &cbInstr);
     if (RT_SUCCESS(rc))
     {
@@ -253,19 +269,22 @@ VMM_INT_DECL(VBOXSTRICTRC) GIMExecHypercallInstr(PVMCPUCC pVCpu, PCPUMCTX pCtx, 
             *pcbInstr = (uint8_t)cbInstr;
         switch (pVM->gim.s.enmProviderId)
         {
+#if !defined(VBOX_VMM_TARGET_ARMV8)
             case GIMPROVIDERID_HYPERV:
                 return gimHvHypercallEx(pVCpu, pCtx, Dis.pCurInstr->uOpcode, Dis.cbInstr);
 
             case GIMPROVIDERID_KVM:
                 return gimKvmHypercallEx(pVCpu, pCtx, Dis.pCurInstr->uOpcode, Dis.cbInstr);
-
+#endif
             default:
                 AssertMsgFailed(("GIMExecHypercallInstr: for provider %u not available/implemented\n", pVM->gim.s.enmProviderId));
                 return VERR_GIM_HYPERCALLS_NOT_AVAILABLE;
         }
     }
 
+#if !defined(VBOX_VMM_TARGET_ARMV8)
     Log(("GIM: GIMExecHypercallInstr: Failed to disassemble CS:RIP=%04x:%08RX64. rc=%Rrc\n", pCtx->cs.Sel, pCtx->rip, rc));
+#endif
     return rc;
 }
 
@@ -284,12 +303,13 @@ VMM_INT_DECL(bool) GIMIsParavirtTscEnabled(PVMCC pVM)
 {
     switch (pVM->gim.s.enmProviderId)
     {
+#if !defined(VBOX_VMM_TARGET_ARMV8)
         case GIMPROVIDERID_HYPERV:
             return gimHvIsParavirtTscEnabled(pVM);
 
         case GIMPROVIDERID_KVM:
             return gimKvmIsParavirtTscEnabled(pVM);
-
+#endif
         default:
             break;
     }
@@ -317,12 +337,13 @@ VMM_INT_DECL(bool) GIMShouldTrapXcptUD(PVMCPUCC pVCpu)
 
     switch (pVM->gim.s.enmProviderId)
     {
+#if !defined(VBOX_VMM_TARGET_ARMV8)
         case GIMPROVIDERID_KVM:
             return gimKvmShouldTrapXcptUD(pVM);
 
         case GIMPROVIDERID_HYPERV:
             return gimHvShouldTrapXcptUD(pVCpu);
-
+#endif
         default:
             return false;
     }
@@ -353,26 +374,32 @@ VMM_INT_DECL(bool) GIMShouldTrapXcptUD(PVMCPUCC pVCpu)
  *
  * @thread  EMT(pVCpu).
  */
-VMM_INT_DECL(VBOXSTRICTRC) GIMXcptUD(PVMCPUCC pVCpu, PCPUMCTX pCtx, PDISCPUSTATE pDis, uint8_t *pcbInstr)
+VMM_INT_DECL(VBOXSTRICTRC) GIMXcptUD(PVMCPUCC pVCpu, PCPUMCTX pCtx, PDISSTATE pDis, uint8_t *pcbInstr)
 {
+#if defined(VBOX_VMM_TARGET_ARMV8)
+    RT_NOREF(pCtx, pDis, pcbInstr);
+#endif
+
     PVMCC pVM = pVCpu->CTX_SUFF(pVM);
     Assert(GIMIsEnabled(pVM));
     Assert(pDis || pcbInstr);
 
     switch (pVM->gim.s.enmProviderId)
     {
+#if !defined(VBOX_VMM_TARGET_ARMV8)
         case GIMPROVIDERID_KVM:
             return gimKvmXcptUD(pVM, pVCpu, pCtx, pDis, pcbInstr);
 
         case GIMPROVIDERID_HYPERV:
             return gimHvXcptUD(pVCpu, pCtx, pDis, pcbInstr);
-
+#endif
         default:
             return VERR_GIM_OPERATION_FAILED;
     }
 }
 
 
+#if !defined(VBOX_VMM_TARGET_ARMV8)
 /**
  * Invokes the read-MSR handler for the GIM provider configured for the VM.
  *
@@ -503,4 +530,5 @@ VMM_INT_DECL(int) GIMQueryHypercallOpcodeBytes(PVM pVM, void *pvBuf, size_t cbBu
     }
     return VERR_BUFFER_OVERFLOW;
 }
+#endif
 

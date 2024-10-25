@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,32 +26,36 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QHeaderView>
 #include <QMenuBar>
 #include <QPushButton>
-#include <QRegExp>
+#include <QRegularExpression>
 #include <QVBoxLayout>
 
 /* GUI includes: */
 #include "QIDialogButtonBox.h"
 #include "QITabWidget.h"
 #include "QITreeWidget.h"
+#include "QIToolBar.h"
 #include "UIActionPoolManager.h"
+#include "UICommon.h"
 #include "UIConverter.h"
 #include "UIDetailsWidgetCloudNetwork.h"
 #include "UIDetailsWidgetHostNetwork.h"
 #include "UIDetailsWidgetNATNetwork.h"
 #include "UIExtraDataManager.h"
+#include "UIGlobalSession.h"
 #include "UIIconPool.h"
 #include "UIMessageCenter.h"
 #include "UINetworkManager.h"
 #include "UINetworkManagerUtils.h"
 #include "UINotificationCenter.h"
-#include "QIToolBar.h"
+#include "UIShortcutPool.h"
 #ifdef VBOX_WS_MAC
 # include "UIWindowMenuManager.h"
 #endif
-#include "UICommon.h"
+#include "UITranslationEventListener.h"
 
 /* COM includes: */
 #include "CCloudNetwork.h"
@@ -63,9 +67,6 @@
 # include "CHostNetworkInterface.h"
 #endif
 #include "CNATNetwork.h"
-
-/* Other VBox includes: */
-#include <iprt/cidr.h>
 
 
 /** Tab-widget indexes. */
@@ -377,7 +378,7 @@ void UIItemCloudNetwork::updateFields()
 
 UINetworkManagerWidget::UINetworkManagerWidget(EmbedTo enmEmbedding, UIActionPool *pActionPool,
                                                bool fShowToolbar /* = true */, QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_enmEmbedding(enmEmbedding)
     , m_pActionPool(pActionPool)
     , m_fShowToolbar(fShowToolbar)
@@ -405,19 +406,8 @@ QMenu *UINetworkManagerWidget::menu() const
     return m_pActionPool->action(UIActionIndexMN_M_NetworkWindow)->menu();
 }
 
-void UINetworkManagerWidget::retranslateUi()
+void UINetworkManagerWidget::sltRetranslateUI()
 {
-    /* Adjust toolbar: */
-#ifdef VBOX_WS_MAC
-    // WORKAROUND:
-    // There is a bug in Qt Cocoa which result in showing a "more arrow" when
-    // the necessary size of the toolbar is increased. Also for some languages
-    // the with doesn't match if the text increase. So manually adjust the size
-    // after changing the text.
-    if (m_pToolBar)
-        m_pToolBar->updateLayout();
-#endif /* VBOX_WS_MAC */
-
     /* Translate tab-widget: */
     if (m_pTabWidget)
     {
@@ -473,7 +463,7 @@ void UINetworkManagerWidget::retranslateUi()
 void UINetworkManagerWidget::resizeEvent(QResizeEvent *pEvent)
 {
     /* Call to base-class: */
-    QIWithRetranslateUI<QWidget>::resizeEvent(pEvent);
+    QWidget::resizeEvent(pEvent);
 
     /* Adjust tree-widgets: */
     sltAdjustTreeWidgets();
@@ -482,7 +472,7 @@ void UINetworkManagerWidget::resizeEvent(QResizeEvent *pEvent)
 void UINetworkManagerWidget::showEvent(QShowEvent *pEvent)
 {
     /* Call to base-class: */
-    QIWithRetranslateUI<QWidget>::showEvent(pEvent);
+    QWidget::showEvent(pEvent);
 
     /* Adjust tree-widgets: */
     sltAdjustTreeWidgets();
@@ -535,10 +525,13 @@ void UINetworkManagerWidget::sltCreateHostNetwork()
     /* Compose a map of busy indexes: */
     QMap<int, bool> presence;
     const QString strNameTemplate("HostNetwork%1");
-    const QRegExp regExp(strNameTemplate.arg("([\\d]*)"));
+    const QRegularExpression re(strNameTemplate.arg("([\\d]*)"));
     foreach (const QString &strName, names)
-        if (regExp.indexIn(strName) != -1)
-            presence[regExp.cap(1).toInt()] = true;
+    {
+        const QRegularExpressionMatch mt = re.match(strName);
+        if (mt.hasMatch())
+            presence[mt.captured(1).toInt()] = true;
+    }
     /* Search for a minimum index: */
     int iMinimumIndex = 0;
     for (int i = 0; !presence.isEmpty() && i <= presence.lastKey() + 1; ++i)
@@ -556,7 +549,7 @@ void UINetworkManagerWidget::sltCreateHostNetwork()
     oldData.m_strName = strNetworkName;
 
     /* Get VirtualBox for further activities: */
-    CVirtualBox comVBox = uiCommon().virtualBox();
+    CVirtualBox comVBox = gpGlobalSession->virtualBox();
 
     /* Create network: */
     CHostOnlyNetwork comNetwork = comVBox.CreateHostOnlyNetwork(oldData.m_strName);
@@ -587,7 +580,7 @@ void UINetworkManagerWidget::sltCreateHostNetwork()
 #else /* !VBOX_WS_MAC */
 
     /* Get host for further activities: */
-    CHost comHost = uiCommon().host();
+    CHost comHost = gpGlobalSession->host();
     CHostNetworkInterface comInterface;
 
     /* Create interface: */
@@ -611,7 +604,7 @@ void UINetworkManagerWidget::sigHandleHostOnlyNetworkInterfaceCreated(const CHos
     else
     {
         /* Get VBox for further activities: */
-        CVirtualBox comVBox = uiCommon().virtualBox();
+        CVirtualBox comVBox = gpGlobalSession->virtualBox();
 
         /* Find corresponding DHCP server (create if necessary): */
         CDHCPServer comServer = comVBox.FindDHCPServerByNetworkName(strNetworkName);
@@ -656,7 +649,7 @@ void UINetworkManagerWidget::sltRemoveHostNetwork()
         return;
 
     /* Get VirtualBox for further activities: */
-    CVirtualBox comVBox = uiCommon().virtualBox();
+    CVirtualBox comVBox = gpGlobalSession->virtualBox();
 
     /* Find corresponding network: */
     const CHostOnlyNetwork &comNetwork = comVBox.FindHostOnlyNetworkByName(strNetworkName);
@@ -700,7 +693,7 @@ void UINetworkManagerWidget::sltRemoveHostNetwork()
         return;
 
     /* Get host for further activities: */
-    CHost comHost = uiCommon().host();
+    CHost comHost = gpGlobalSession->host();
 
     /* Find corresponding interface: */
     const CHostNetworkInterface comInterface = comHost.FindHostNetworkInterfaceByName(strInterfaceName);
@@ -725,7 +718,7 @@ void UINetworkManagerWidget::sltRemoveHostNetwork()
         else
         {
             /* Get VBox for further activities: */
-            CVirtualBox comVBox = uiCommon().virtualBox();
+            CVirtualBox comVBox = gpGlobalSession->virtualBox();
 
             /* Find corresponding DHCP server: */
             const CDHCPServer &comServer = comVBox.FindDHCPServerByNetworkName(strNetworkName);
@@ -790,10 +783,13 @@ void UINetworkManagerWidget::sltCreateNATNetwork()
     /* Compose a map of busy indexes: */
     QMap<int, bool> presence;
     const QString strNameTemplate("NatNetwork%1");
-    const QRegExp regExp(strNameTemplate.arg("([\\d]*)"));
+    const QRegularExpression re(strNameTemplate.arg("([\\d]*)"));
     foreach (const QString &strName, names)
-        if (regExp.indexIn(strName) != -1)
-            presence[regExp.cap(1).toInt()] = true;
+    {
+        const QRegularExpressionMatch mt = re.match(strName);
+        if (mt.hasMatch())
+            presence[mt.captured(1).toInt()] = true;
+    }
     /* Search for a minimum index: */
     int iMinimumIndex = 0;
     for (int i = 0; !presence.isEmpty() && i <= presence.lastKey() + 1; ++i)
@@ -816,7 +812,7 @@ void UINetworkManagerWidget::sltCreateNATNetwork()
     oldData.m_fAdvertiseDefaultIPv6Route = false;
 
     /* Get VirtualBox for further activities: */
-    CVirtualBox comVBox = uiCommon().virtualBox();
+    CVirtualBox comVBox = gpGlobalSession->virtualBox();
 
     /* Create network: */
     CNATNetwork comNetwork = comVBox.CreateNATNetwork(oldData.m_strName);
@@ -881,7 +877,7 @@ void UINetworkManagerWidget::sltRemoveNATNetwork()
         return;
 
     /* Get VirtualBox for further activities: */
-    CVirtualBox comVBox = uiCommon().virtualBox();
+    CVirtualBox comVBox = gpGlobalSession->virtualBox();
 
     /* Find corresponding network: */
     const CNATNetwork &comNetwork = comVBox.FindNATNetworkByName(strNetworkName);
@@ -929,10 +925,13 @@ void UINetworkManagerWidget::sltCreateCloudNetwork()
     /* Compose a map of busy indexes: */
     QMap<int, bool> presence;
     const QString strNameTemplate("CloudNetwork%1");
-    const QRegExp regExp(strNameTemplate.arg("([\\d]*)"));
+    const QRegularExpression re(strNameTemplate.arg("([\\d]*)"));
     foreach (const QString &strName, names)
-        if (regExp.indexIn(strName) != -1)
-            presence[regExp.cap(1).toInt()] = true;
+    {
+        const QRegularExpressionMatch mt = re.match(strName);
+        if (mt.hasMatch())
+            presence[mt.captured(1).toInt()] = true;
+    }
     /* Search for a minimum index: */
     int iMinimumIndex = 0;
     for (int i = 0; !presence.isEmpty() && i <= presence.lastKey() + 1; ++i)
@@ -950,7 +949,7 @@ void UINetworkManagerWidget::sltCreateCloudNetwork()
     oldData.m_strName = strNetworkName;
 
     /* Get VirtualBox for further activities: */
-    CVirtualBox comVBox = uiCommon().virtualBox();
+    CVirtualBox comVBox = gpGlobalSession->virtualBox();
 
     /* Create network: */
     CCloudNetwork comNetwork = comVBox.CreateCloudNetwork(oldData.m_strName);
@@ -1003,7 +1002,7 @@ void UINetworkManagerWidget::sltRemoveCloudNetwork()
         return;
 
     /* Get VirtualBox for further activities: */
-    CVirtualBox comVBox = uiCommon().virtualBox();
+    CVirtualBox comVBox = gpGlobalSession->virtualBox();
 
     /* Find corresponding network: */
     const CCloudNetwork &comNetwork = comVBox.FindCloudNetworkByName(strNetworkName);
@@ -1277,7 +1276,7 @@ void UINetworkManagerWidget::sltApplyDetailsChangesHostNetwork()
 
 #ifdef VBOX_WS_MAC
         /* Get VirtualBox for further activities: */
-        CVirtualBox comVBox = uiCommon().virtualBox();
+        CVirtualBox comVBox = gpGlobalSession->virtualBox();
 
         /* Find corresponding network: */
         CHostOnlyNetwork comNetwork = comVBox.FindHostOnlyNetworkByName(oldData.m_strName);
@@ -1320,7 +1319,7 @@ void UINetworkManagerWidget::sltApplyDetailsChangesHostNetwork()
 #else /* !VBOX_WS_MAC */
 
         /* Get host for further activities: */
-        CHost comHost = uiCommon().host();
+        CHost comHost = gpGlobalSession->host();
 
         /* Find corresponding interface: */
         CHostNetworkInterface comInterface = comHost.FindHostNetworkInterfaceByName(oldData.m_interface.m_strName);
@@ -1369,7 +1368,7 @@ void UINetworkManagerWidget::sltApplyDetailsChangesHostNetwork()
                 else
                 {
                     /* Get VBox for further activities: */
-                    CVirtualBox comVBox = uiCommon().virtualBox();
+                    CVirtualBox comVBox = gpGlobalSession->virtualBox();
 
                     /* Find corresponding DHCP server (create if necessary): */
                     CDHCPServer comServer = comVBox.FindDHCPServerByNetworkName(strNetworkName);
@@ -1506,7 +1505,7 @@ void UINetworkManagerWidget::sltApplyDetailsChangesNATNetwork()
         UIDataNATNetwork newData = m_pDetailsWidgetNATNetwork->data();
 
         /* Get VirtualBox for further activities: */
-        CVirtualBox comVBox = uiCommon().virtualBox();
+        CVirtualBox comVBox = gpGlobalSession->virtualBox();
 
         /* Find corresponding network: */
         CNATNetwork comNetwork = comVBox.FindNATNetworkByName(oldData.m_strName);
@@ -1669,7 +1668,7 @@ void UINetworkManagerWidget::sltApplyDetailsChangesCloudNetwork()
         UIDataCloudNetwork newData = m_pDetailsWidgetCloudNetwork->data();
 
         /* Get VirtualBox for further activities: */
-        CVirtualBox comVBox = uiCommon().virtualBox();
+        CVirtualBox comVBox = gpGlobalSession->virtualBox();
 
         /* Find corresponding network: */
         CCloudNetwork comNetwork = comVBox.FindCloudNetworkByName(oldData.m_strName);
@@ -1730,7 +1729,10 @@ void UINetworkManagerWidget::prepare()
     loadSettings();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UINetworkManagerWidget::sltRetranslateUI);
 
     /* Load networks: */
     loadHostNetworks();
@@ -2044,7 +2046,7 @@ void UINetworkManagerWidget::loadHostNetworks()
 
 #ifdef VBOX_WS_MAC
     /* Get VirtualBox for further activities: */
-    const CVirtualBox comVBox = uiCommon().virtualBox();
+    const CVirtualBox comVBox = gpGlobalSession->virtualBox();
 
     /* Get networks for further activities: */
     const QVector<CHostOnlyNetwork> networks = comVBox.GetHostOnlyNetworks();
@@ -2073,7 +2075,7 @@ void UINetworkManagerWidget::loadHostNetworks()
 #else /* !VBOX_WS_MAC */
 
     /* Get host for further activities: */
-    const CHost comHost = uiCommon().host();
+    const CHost comHost = gpGlobalSession->host();
 
     /* Get interfaces for further activities: */
     const QVector<CHostNetworkInterface> interfaces = comHost.GetNetworkInterfaces();
@@ -2154,7 +2156,7 @@ void UINetworkManagerWidget::loadHostNetwork(const CHostNetworkInterface &comInt
         UINotificationMessage::cannotAcquireHostNetworkInterfaceParameter(comInterface);
 
     /* Get VBox for further activities: */
-    CVirtualBox comVBox = uiCommon().virtualBox();
+    CVirtualBox comVBox = gpGlobalSession->virtualBox();
 
     /* Find corresponding DHCP server (create if necessary): */
     CDHCPServer comServer = comVBox.FindDHCPServerByNetworkName(strNetworkName);
@@ -2195,7 +2197,7 @@ void UINetworkManagerWidget::loadNATNetworks()
     m_pTreeWidgetNATNetwork->clear();
 
     /* Get VirtualBox for further activities: */
-    const CVirtualBox comVBox = uiCommon().virtualBox();
+    const CVirtualBox comVBox = gpGlobalSession->virtualBox();
 
     /* Get interfaces for further activities: */
     const QVector<CNATNetwork> networks = comVBox.GetNATNetworks();
@@ -2267,14 +2269,16 @@ void UINetworkManagerWidget::loadNATNetwork(const CNATNetwork &comNetwork, UIDat
             /* Replace all ':' with ',' first: */
             strIPv6Rule.replace(':', ',');
             /* But replace ',' back with ':' for addresses: */
-            QRegExp re("\\[[0-9a-fA-F,]*,[0-9a-fA-F,]*\\]");
-            re.setMinimal(true);
-            while (re.indexIn(strIPv6Rule) != -1)
+            QRegularExpression re("\\[[0-9a-fA-F,]*,[0-9a-fA-F,]*\\]");
+            re.setPatternOptions(QRegularExpression::InvertedGreedinessOption);
+            QRegularExpressionMatch mt = re.match(strIPv6Rule);
+            while (mt.hasMatch())
             {
-                QString strCapOld = re.cap(0);
+                QString strCapOld = mt.captured();
                 QString strCapNew = strCapOld;
                 strCapNew.replace(',', ':');
                 strIPv6Rule.replace(strCapOld, strCapNew);
+                mt = re.match(strIPv6Rule);
             }
             /* Parse rules: */
             QStringList rules = strIPv6Rule.split(',');
@@ -2305,7 +2309,7 @@ void UINetworkManagerWidget::loadCloudNetworks()
     m_pTreeWidgetCloudNetwork->clear();
 
     /* Get VirtualBox for further activities: */
-    const CVirtualBox comVBox = uiCommon().virtualBox();
+    const CVirtualBox comVBox = gpGlobalSession->virtualBox();
 
     /* Get interfaces for further activities: */
     const QVector<CCloudNetwork> networks = comVBox.GetCloudNetworks();
@@ -2540,7 +2544,7 @@ void UINetworkManagerFactory::create(QIManagerDialog *&pDialog, QWidget *pCenter
 *********************************************************************************************************************************/
 
 UINetworkManager::UINetworkManager(QWidget *pCenterWidget, UIActionPool *pActionPool)
-    : QIWithRetranslateUI<QIManagerDialog>(pCenterWidget)
+    : QIManagerDialog(pCenterWidget)
     , m_pActionPool(pActionPool)
 {
 }
@@ -2559,7 +2563,7 @@ void UINetworkManager::sltHandleButtonBoxClick(QAbstractButton *pButton)
         emit sigDataChangeAccepted();
 }
 
-void UINetworkManager::retranslateUi()
+void UINetworkManager::sltRetranslateUI()
 {
     /* Translate window title: */
     setWindowTitle(tr("Network Manager"));
@@ -2576,7 +2580,7 @@ void UINetworkManager::retranslateUi()
     button(ButtonType_Reset)->setShortcut(QString("Ctrl+Backspace"));
     button(ButtonType_Apply)->setShortcut(QString("Ctrl+Return"));
     button(ButtonType_Close)->setShortcut(Qt::Key_Escape);
-    button(ButtonType_Help)->setShortcut(QKeySequence::HelpContents);
+    button(ButtonType_Help)->setShortcut(UIShortcutPool::standardSequence(QKeySequence::HelpContents));
     button(ButtonType_Reset)->setToolTip(tr("Reset Changes (%1)").arg(button(ButtonType_Reset)->shortcut().toString()));
     button(ButtonType_Apply)->setToolTip(tr("Apply Changes (%1)").arg(button(ButtonType_Apply)->shortcut().toString()));
     button(ButtonType_Close)->setToolTip(tr("Close Window (%1)").arg(button(ButtonType_Close)->shortcut().toString()));
@@ -2643,7 +2647,10 @@ void UINetworkManager::configureButtonBox()
 void UINetworkManager::finalize()
 {
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UINetworkManager::sltRetranslateUI);
 }
 
 UINetworkManagerWidget *UINetworkManager::widget()

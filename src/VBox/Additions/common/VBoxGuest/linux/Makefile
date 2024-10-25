@@ -4,7 +4,7 @@
 #
 
 #
-# Copyright (C) 2006-2023 Oracle and/or its affiliates.
+# Copyright (C) 2006-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -167,6 +167,8 @@ VBOXMOD_DEFS = \
 	VBGL_VBOXGUEST \
 	VBOX_WITH_HGCM
 ifeq ($(VBOX_KBUILD_TARGET_ARCH),amd64)
+VBOXMOD_DEFS += VBOX_WITH_64_BITS_GUESTS
+else ifeq ($(VBOX_KBUILD_TARGET_ARCH),arm64)
 VBOXMOD_DEFS += VBOX_WITH_64_BITS_GUESTS
 endif
 ifeq ($(KERN_VERSION),24)

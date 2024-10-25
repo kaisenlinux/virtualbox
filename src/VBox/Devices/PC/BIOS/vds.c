@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -56,7 +56,7 @@ int vds_lock_sg( vds_edds __far *edds );
     "xor    al, al"         \
     "error:"                \
     "cbw"                   \
-    parm [es di] value [ax];
+    parm [es di] value [ax] modify [dx];
 
 int vds_unlock_sg( vds_edds __far *edds );
 #pragma aux vds_unlock_sg = \
@@ -67,7 +67,7 @@ int vds_unlock_sg( vds_edds __far *edds );
     "xor    al, al"         \
     "error:"                \
     "cbw"                   \
-    parm [es di] value [ax];
+    parm [es di] value [ax] modify [dx];
 
 
 /*

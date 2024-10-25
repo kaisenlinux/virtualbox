@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -60,7 +60,7 @@ public:
     static const QChar dosDelimiter;
     /** Tries to determine if the path starts with DOS style drive letters. */
     static bool doesPathStartWithDriveLetter(const QString &path);
-
+    static const QString replaceDosDelimeter(const QString &path);
 };
 
 #endif /* !FEQT_INCLUDED_SRC_globals_UIPathOperations_h */

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -3330,9 +3330,9 @@ static int rtDwarfUnwind_LoadCie(PRTDWARFCURSOR pCursor, PRTDWARFCIEINFO pNewCie
  *                          with different CIE_pointer values.
  * @param   enmImageArch    The image architecture.
  */
-DECLHIDDEN(int) rtDwarfUnwind_Slow(PRTDWARFCURSOR pCursor, RTUINTPTR uRvaCursor,
-                                   RTDBGSEGIDX idxSeg, RTUINTPTR offSeg, RTUINTPTR uRva,
-                                   PRTDBGUNWINDSTATE pState, uint8_t bDefaultPtrEnc, bool fIsEhFrame, RTLDRARCH enmImageArch)
+static int rtDwarfUnwind_Slow(PRTDWARFCURSOR pCursor, RTUINTPTR uRvaCursor,
+                              RTDBGSEGIDX idxSeg, RTUINTPTR offSeg, RTUINTPTR uRva,
+                              PRTDBGUNWINDSTATE pState, uint8_t bDefaultPtrEnc, bool fIsEhFrame, RTLDRARCH enmImageArch)
 {
     Log8(("rtDwarfUnwind_Slow: idxSeg=%#x offSeg=%RTptr uRva=%RTptr enmArch=%d PC=%#RX64\n", idxSeg, offSeg, uRva, pState->enmArch, pState->uPc));
 
@@ -6109,8 +6109,10 @@ static int rtDbgModDwarfTryOpenDbgFile(PRTDBGMODINT pDbgMod, PRTDBGMODDWARF pThi
 
 
 /** @interface_method_impl{RTDBGMODVTDBG,pfnTryOpen} */
-static DECLCALLBACK(int) rtDbgModDwarf_TryOpen(PRTDBGMODINT pMod, RTLDRARCH enmArch)
+static DECLCALLBACK(int) rtDbgModDwarf_TryOpen(PRTDBGMODINT pMod, RTLDRARCH enmArch, RTDBGCFG hDbgCfg)
 {
+    RT_NOREF_PV(hDbgCfg);
+
     /*
      * DWARF is only supported when part of an image.
      */

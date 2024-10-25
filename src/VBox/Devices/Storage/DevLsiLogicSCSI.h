@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -237,7 +237,7 @@ AssertCompileSize(MptMessageHdr, 12);
 #define MPT_MESSAGE_HDR_FUNCTION_TARGET_MODE_ABORT      (0x0D)
 #define MPT_MESSAGE_HDR_FUNCTION_FW_UPLOAD              (0x12)
 
-#ifdef DEBUG
+#ifdef LOG_ENABLED
 /**
  * Function names
  */

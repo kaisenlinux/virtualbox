@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,13 +31,13 @@
 /* GUI includes: */
 #include "QIRichTextLabel.h"
 #include "UIBaseMemoryEditor.h"
+#include "UIGlobalSession.h"
+#include "UIGuestOSType.h"
 #include "UIVirtualCPUEditor.h"
 #include "UIWizardNewVM.h"
 #include "UIWizardNewVMEditors.h"
 #include "UIWizardNewVMHardwarePage.h"
 
-/* COM includes: */
-#include "CGuestOSType.h"
 
 UIWizardNewVMHardwarePage::UIWizardNewVMHardwarePage()
     : m_pLabel(0)
@@ -74,7 +74,7 @@ void UIWizardNewVMHardwarePage::createConnections()
     }
 }
 
-void UIWizardNewVMHardwarePage::retranslateUi()
+void UIWizardNewVMHardwarePage::sltRetranslateUI()
 {
     setTitle(UIWizardNewVM::tr("Hardware"));
 
@@ -85,35 +85,33 @@ void UIWizardNewVMHardwarePage::retranslateUi()
 
 void UIWizardNewVMHardwarePage::initializePage()
 {
-    retranslateUi();
+    sltRetranslateUI();
 
     UIWizardNewVM *pWizard = wizardWindow<UIWizardNewVM>();
     if (pWizard && m_pHardwareWidgetContainer)
     {
-        CGuestOSType type = pWizard->guestOSType();
-        if (!type.isNull())
+        const QString &strTypeId = pWizard->guestOSTypeId();
+
+        m_pHardwareWidgetContainer->blockSignals(true);
+        if (!m_userModifiedParameters.contains("MemorySize"))
         {
-            m_pHardwareWidgetContainer->blockSignals(true);
-            if (!m_userModifiedParameters.contains("MemorySize"))
-            {
-                ULONG recommendedRam = type.GetRecommendedRAM();
-                m_pHardwareWidgetContainer->setMemorySize(recommendedRam);
-                pWizard->setMemorySize(recommendedRam);
-            }
-            if (!m_userModifiedParameters.contains("CPUCount"))
-            {
-                ULONG recommendedCPUs = type.GetRecommendedCPUCount();
-                m_pHardwareWidgetContainer->setCPUCount(recommendedCPUs);
-                pWizard->setCPUCount(recommendedCPUs);
-            }
-            if (!m_userModifiedParameters.contains("EFIEnabled"))
-            {
-                KFirmwareType fwType = type.GetRecommendedFirmware();
-                m_pHardwareWidgetContainer->setEFIEnabled(fwType != KFirmwareType_BIOS);
-                pWizard->setEFIEnabled(fwType != KFirmwareType_BIOS);
-            }
-            m_pHardwareWidgetContainer->blockSignals(false);
+            ULONG recommendedRam = gpGlobalSession->guestOSTypeManager().getRecommendedRAM(strTypeId);
+            m_pHardwareWidgetContainer->setMemorySize(recommendedRam);
+            pWizard->setMemorySize(recommendedRam);
         }
+        if (!m_userModifiedParameters.contains("CPUCount"))
+        {
+            ULONG recommendedCPUs = gpGlobalSession->guestOSTypeManager().getRecommendedCPUCount(strTypeId);
+            m_pHardwareWidgetContainer->setCPUCount(recommendedCPUs);
+            pWizard->setCPUCount(recommendedCPUs);
+        }
+        if (!m_userModifiedParameters.contains("EFIEnabled"))
+        {
+            KFirmwareType fwType = gpGlobalSession->guestOSTypeManager().getRecommendedFirmware(strTypeId);
+            m_pHardwareWidgetContainer->setEFIEnabled(fwType != KFirmwareType_BIOS);
+            pWizard->setEFIEnabled(fwType != KFirmwareType_BIOS);
+        }
+        m_pHardwareWidgetContainer->blockSignals(false);
     }
 }
 

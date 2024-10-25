@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -45,7 +45,9 @@
         .file       "zero-alt.S"
         .section    ".rodata"
 # define NAME(a) a
-# define NEED_HIDDEN
+# ifndef RT_ARCH_ARM64 /* RTSignTool references g_abRTZero4K from VBoxRT.so */
+#  define NEED_HIDDEN
+# endif
 #else
 # error "PORT ME!"
 #endif

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,7 +35,6 @@
 
 /* GUI includes */
 #include "QIDialogButtonBox.h"
-#include "UICommon.h"
 #include "UIFilePathSelector.h"
 #include "UISharedFolderDetailsEditor.h"
 
@@ -44,7 +43,7 @@ UISharedFolderDetailsEditor::UISharedFolderDetailsEditor(EditorType enmType,
                                                          bool fUsePermanent,
                                                          const QStringList &usedNames,
                                                          QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI2<QIDialog>(pParent)
+    : QIDialog(pParent)
     , m_enmType(enmType)
     , m_fUsePermanent(fUsePermanent)
     , m_usedNames(usedNames)
@@ -128,7 +127,7 @@ bool UISharedFolderDetailsEditor::isPermanent() const
     return m_fUsePermanent ? m_pCheckBoxPermanent->isChecked() : true;
 }
 
-void UISharedFolderDetailsEditor::retranslateUi()
+void UISharedFolderDetailsEditor::sltRetranslateUI()
 {
     switch (m_enmType)
     {
@@ -216,8 +215,8 @@ void UISharedFolderDetailsEditor::sltSelectPath()
     {
         /* Processing root folder: */
 #if defined (VBOX_WS_WIN) || defined (Q_OS_OS2)
-        m_pEditorName->setText(strFolderName.toUpper()[0] + "_DRIVE");
-#elif defined (VBOX_WS_X11)
+        m_pEditorName->setText(strFolderName.toUpper().left(1) + "_DRIVE");
+#elif defined (VBOX_WS_NIX)
         m_pEditorName->setText("ROOT");
 #endif
     }
@@ -233,7 +232,7 @@ void UISharedFolderDetailsEditor::prepare()
     prepareConnections();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 
     /* Validate the initial field values: */
     sltValidate();
@@ -326,7 +325,7 @@ void UISharedFolderDetailsEditor::prepareConnections()
 {
     if (m_pSelectorPath)
     {
-        connect(m_pSelectorPath, static_cast<void(UIFilePathSelector::*)(int)>(&UIFilePathSelector::currentIndexChanged),
+        connect(m_pSelectorPath, &UIFilePathSelector::currentIndexChanged,
                 this, &UISharedFolderDetailsEditor::sltSelectPath);
         connect(m_pSelectorPath, &UIFilePathSelector::pathChanged,
                 this, &UISharedFolderDetailsEditor::sltSelectPath);

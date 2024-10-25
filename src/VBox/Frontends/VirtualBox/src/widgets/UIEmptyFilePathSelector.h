@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,9 +31,6 @@
 # pragma once
 #endif
 
-/* VBox includes */
-#include "QIWithRetranslateUI.h"
-
 /* Qt includes */
 #include <QComboBox>
 
@@ -47,7 +44,7 @@ class QAction;
 class QToolButton;
 
 
-class UIEmptyFilePathSelector: public QIWithRetranslateUI<QWidget>
+class UIEmptyFilePathSelector: public QWidget
 {
     Q_OBJECT;
 
@@ -88,6 +85,8 @@ public:
     bool isModified () const { return mIsModified; }
     void resetModified () { mIsModified = false; }
 
+    void setLineEditToolTip(const QString &strToolTip);
+    QString lineEditToolTip() const;
     void setChooseButtonToolTip(const QString &strToolTip);
     QString chooseButtonToolTip() const;
 
@@ -106,10 +105,9 @@ signals:
 public slots:
     void setPath (const QString& aPath);
 
-protected:
-    void retranslateUi();
-
 private slots:
+
+    void sltRetranslateUI();
     void choose();
     void textChanged (const QString& aPath);
 
@@ -121,6 +119,7 @@ private:
     UIEmptyFilePathSelector::Mode mMode;
     QILineEdit *mLineEdit;
     QToolButton *mSelectButton;
+    bool m_fLineEditoToolTipSet;
     bool m_fButtonToolTipSet;
     QString mFileDialogTitle;
     QString mFileFilters;
@@ -131,4 +130,3 @@ private:
 };
 
 #endif /* !FEQT_INCLUDED_SRC_widgets_UIEmptyFilePathSelector_h */
-

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,15 +35,10 @@
 #include <QMainWindow>
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
 #include "UIExtraDataDefs.h"
 #ifdef VBOX_WS_MAC
 # include "VBoxUtils-darwin.h"
 #endif /* VBOX_WS_MAC */
-
-/* COM includes: */
-#include "COMEnums.h"
-#include "CMachine.h"
 
 /* Forward declarations: */
 class QCloseEvent;
@@ -53,21 +48,16 @@ class QGridLayout;
 class QShowEvent;
 class QSpacerItem;
 class UIActionPool;
-class UISession;
+class UIMachine;
 class UIMachineLogic;
 class UIMachineView;
 class CSession;
 
 
 /* Machine-window interface: */
-class UIMachineWindow : public QIWithRetranslateUI2<QMainWindow>
+class UIMachineWindow : public QMainWindow
 {
     Q_OBJECT;
-
-signals:
-
-    /** Notifies about frame-buffer resize. */
-    void sigFrameBufferResize();
 
 public:
 
@@ -83,18 +73,15 @@ public:
     ulong screenId() const { return m_uScreenId; }
     UIMachineView* machineView() const { return m_pMachineView; }
     UIMachineLogic* machineLogic() const { return m_pMachineLogic; }
-    UIActionPool* actionPool() const;
-    UISession* uisession() const;
 
-    /** Returns the session reference. */
-    CSession& session() const;
-    /** Returns the session's machine reference. */
-    CMachine& machine() const;
-    /** Returns the session's console reference. */
-    CConsole& console() const;
+    /** Returns machine UI reference. */
+    UIMachine *uimachine() const;
+
+    /** Returns action-pool reference. */
+    UIActionPool *actionPool() const;
 
     /** Returns the machine name. */
-    const QString& machineName() const;
+    QString machineName() const;
 
     /** Returns whether the machine-window should resize to fit to the guest display.
       * @note Relevant only to normal (windowed) case. */
@@ -129,10 +116,10 @@ public:
 
 protected slots:
 
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     /** X11: Performs machine-window geometry normalization. */
     void sltNormalizeGeometry() { normalizeGeometry(true /* adjust position */, shouldResizeToGuestDisplay()); }
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
 
     /** Performs machine-window activation. */
     void sltActivateWindow() { activateWindow(); }
@@ -145,9 +132,6 @@ protected:
     /* Constructor: */
     UIMachineWindow(UIMachineLogic *pMachineLogic, ulong uScreenId);
 
-    /* Translate stuff: */
-    void retranslateUi();
-
     /** Handles any Qt @a pEvent. */
     virtual bool event(QEvent *pEvent) RT_OVERRIDE;
 
@@ -157,7 +141,7 @@ protected:
     virtual void hideEvent(QHideEvent *pEvent) RT_OVERRIDE;
 
     /** Close event handler. */
-    void closeEvent(QCloseEvent *pCloseEvent);
+    void closeEvent(QCloseEvent *pCloseEvent) RT_OVERRIDE;
 
 #ifdef VBOX_WS_MAC
     /** Mac OS X: Handles native notifications.
@@ -171,6 +155,7 @@ protected:
 #endif /* VBOX_WS_MAC */
 
     /* Prepare helpers: */
+    virtual void prepareSelf();
     virtual void prepareSessionConnections();
     virtual void prepareMainLayout();
     virtual void prepareMenu() {}
@@ -191,6 +176,7 @@ protected:
     virtual void cleanupMenu() {}
     virtual void cleanupMainLayout() {}
     virtual void cleanupSessionConnections();
+    virtual void cleanupSelf() {}
 
     /* Update stuff: */
 #ifdef VBOX_WITH_DEBUGGER_GUI
@@ -198,7 +184,7 @@ protected:
 #endif /* VBOX_WITH_DEBUGGER_GUI */
 
     /* Helpers: */
-    const QString& defaultWindowTitle() const { return m_strWindowTitlePrefix; }
+    QString defaultWindowTitle() const { return m_strWindowTitlePrefix; }
     static Qt::Alignment viewAlignment(UIVisualStateType visualStateType);
 
 #ifdef VBOX_WS_MAC
@@ -224,6 +210,12 @@ protected:
     QSpacerItem *m_pBottomSpacer;
     QSpacerItem *m_pLeftSpacer;
     QSpacerItem *m_pRightSpacer;
+
+private slots:
+
+    /* Translate stuff: */
+    void sltRetranslateUI();
+
 };
 
 #endif /* !FEQT_INCLUDED_SRC_runtime_UIMachineWindow_h */

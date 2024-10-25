@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -36,15 +36,14 @@
 #include <QLineEdit>
 #include <QWidget>
 
-/* Local includes: */
-#include "QIWithRetranslateUI.h"
+/* GUI includes: */
+#include "UILibraryDefs.h"
 
 /* Forward declarations: */
 class QGridLayout;
 class QLabel;
 class QILineEdit;
 class QIToolButton;
-class UIMarkableLineEdit;
 class UIPasswordLineEdit;
 
 class SHARED_LIBRARY_STUFF UIPasswordLineEdit : public QLineEdit
@@ -82,7 +81,7 @@ private:
     bool m_fMarkForError;
 };
 
-class SHARED_LIBRARY_STUFF UIUserNamePasswordEditor : public QIWithRetranslateUI<QWidget>
+class SHARED_LIBRARY_STUFF UIUserNamePasswordEditor : public QWidget
 {
 
     Q_OBJECT;
@@ -109,15 +108,12 @@ public:
     void setPlaceholderTextEnabled(bool fEnabled);
     void setLabelsVisible(bool fVisible);
 
-protected:
-
-    void retranslateUi();
-
 private slots:
 
     void sltHandlePasswordVisibility(bool fPasswordVisible);
     void sltUserNameChanged();
     void sltPasswordChanged();
+    void sltRetranslateUI();
 
 private:
 
@@ -128,7 +124,7 @@ private:
     bool isUserNameComplete();
     bool isPasswordComplete();
 
-    UIMarkableLineEdit *m_pUserNameLineEdit;
+    QILineEdit         *m_pUserNameLineEdit;
     UIPasswordLineEdit *m_pPasswordLineEdit;
     UIPasswordLineEdit *m_pPasswordRepeatLineEdit;
 

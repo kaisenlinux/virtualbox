@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,8 +32,8 @@
 #include "UIActionPool.h"
 #include "UIExtraDataManager.h"
 #include "UIMachineSettingsInterface.h"
-#include "UIStatusBarEditorWindow.h"
-#include "UIMenuBarEditorWindow.h"
+#include "UIStatusBarEditor.h"
+#include "UIMenuBarEditor.h"
 #include "UIMiniToolbarSettingsEditor.h"
 #include "UIVisualStateEditor.h"
 
@@ -332,32 +332,36 @@ void UIMachineSettingsInterface::saveFromCacheTo(QVariant &data)
     UISettingsPageMachine::uploadData(data);
 }
 
-void UIMachineSettingsInterface::retranslateUi()
+void UIMachineSettingsInterface::sltRetranslateUI()
 {
-    /* These editors have own labels, but we want them to be properly layouted according to each other: */
-    int iMinimumLayoutHint = 0;
-    iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorVisualState->minimumLabelHorizontalHint());
-    iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorMiniToolabSettings->minimumLabelHorizontalHint());
-    m_pEditorVisualState->setMinimumLayoutIndent(iMinimumLayoutHint);
-    m_pEditorMiniToolabSettings->setMinimumLayoutIndent(iMinimumLayoutHint);
+    updateMinimumLayoutHint();
+}
+
+void UIMachineSettingsInterface::handleFilterChange()
+{
+    updateMinimumLayoutHint();
 }
 
 void UIMachineSettingsInterface::polishPage()
 {
     /* Polish interface page availability: */
-    m_pEditorMenuBar->setEnabled(isMachineInValidMode());
+    if (m_pEditorMenuBar)
+        m_pEditorMenuBar->setEnabled(isMachineInValidMode());
 #ifdef VBOX_WS_MAC
-    m_pEditorMiniToolabSettings->hide();
+    if (m_pEditorMiniToolabSettings)
+        m_pEditorMiniToolabSettings->hide();
 #else
-    m_pEditorMiniToolabSettings->setEnabled(isMachineInValidMode());
+    if (m_pEditorMiniToolabSettings)
+        m_pEditorMiniToolabSettings->setEnabled(isMachineInValidMode());
 #endif
-    m_pEditorStatusBar->setEnabled(isMachineInValidMode());
+    if (m_pEditorStatusBar)
+        m_pEditorStatusBar->setEnabled(isMachineInValidMode());
 }
 
 void UIMachineSettingsInterface::prepare()
 {
     /* Prepare action-pool: */
-    m_pActionPool = UIActionPool::create(UIActionPoolType_Runtime);
+    m_pActionPool = UIActionPool::create(UIType_RuntimeUI);
 
     /* Prepare cache: */
     m_pCache = new UISettingsCacheMachineInterface;
@@ -368,7 +372,7 @@ void UIMachineSettingsInterface::prepare()
     prepareConnections();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIMachineSettingsInterface::prepareWidgets()
@@ -381,6 +385,7 @@ void UIMachineSettingsInterface::prepareWidgets()
         m_pEditorMenuBar = new UIMenuBarEditorWidget(this);
         if (m_pEditorMenuBar)
         {
+            addEditor(m_pEditorMenuBar);
             m_pEditorMenuBar->setActionPool(m_pActionPool);
             m_pEditorMenuBar->setMachineID(m_uMachineId);
 
@@ -390,12 +395,18 @@ void UIMachineSettingsInterface::prepareWidgets()
         /* Prepare visual-state editor: */
         m_pEditorVisualState = new UIVisualStateEditor(this);
         if (m_pEditorVisualState)
+        {
+            addEditor(m_pEditorVisualState);
             pLayout->addWidget(m_pEditorVisualState);
+        }
 
         /* Prepare mini-toolbar settings editor: */
         m_pEditorMiniToolabSettings = new UIMiniToolbarSettingsEditor(this);
         if (m_pEditorMiniToolabSettings)
+        {
+            addEditor(m_pEditorMiniToolabSettings);
             pLayout->addWidget(m_pEditorMiniToolabSettings);
+        }
 
         pLayout->addStretch();
 
@@ -403,6 +414,7 @@ void UIMachineSettingsInterface::prepareWidgets()
         m_pEditorStatusBar = new UIStatusBarEditorWidget(this);
         if (m_pEditorStatusBar)
         {
+            addEditor(m_pEditorStatusBar);
             m_pEditorStatusBar->setMachineID(m_uMachineId);
             pLayout->addWidget(m_pEditorStatusBar);
         }
@@ -589,4 +601,18 @@ bool UIMachineSettingsInterface::saveVisualStateData()
     }
     /* Return result: */
     return fSuccess;
+}
+
+void UIMachineSettingsInterface::updateMinimumLayoutHint()
+{
+    /* These editors have own labels, but we want them to be properly layouted according to each other: */
+    int iMinimumLayoutHint = 0;
+    if (m_pEditorVisualState && !m_pEditorVisualState->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorVisualState->minimumLabelHorizontalHint());
+    if (m_pEditorMiniToolabSettings && !m_pEditorMiniToolabSettings->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorMiniToolabSettings->minimumLabelHorizontalHint());
+    if (m_pEditorVisualState)
+        m_pEditorVisualState->setMinimumLayoutIndent(iMinimumLayoutHint);
+    if (m_pEditorMiniToolabSettings)
+        m_pEditorMiniToolabSettings->setMinimumLayoutIndent(iMinimumLayoutHint);
 }

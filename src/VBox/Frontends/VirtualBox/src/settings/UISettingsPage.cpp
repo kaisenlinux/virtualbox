@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -25,10 +25,21 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
+/* Qt includes: */
+#include <QApplication>
+#include <QLabel>
+#include <QPainter>
+#include <QPainterPath>
+#include <QPaintEvent>
+#include <QStyle>
+#include <QVariant>
+#include <QVBoxLayout>
+
 /* GUI includes: */
+#include "UICommon.h"
 #include "UIConverter.h"
 #include "UISettingsPage.h"
-#include "QIWidgetValidator.h"
+#include "UISettingsPageValidator.h"
 
 
 /*********************************************************************************************************************************
@@ -54,7 +65,7 @@ void UISettingsPage::notifyOperationProgressError(const QString &strErrorInfo)
                               Q_ARG(QString, strErrorInfo));
 }
 
-void UISettingsPage::setValidator(UIPageValidator *pValidator)
+void UISettingsPage::setValidator(UISettingsPageValidator *pValidator)
 {
     /* Make sure validator is not yet assigned: */
     AssertMsg(!m_pValidator, ("Validator already assigned!\n"));
@@ -73,9 +84,9 @@ void UISettingsPage::setConfigurationAccessLevel(ConfigurationAccessLevel enmCon
 
 void UISettingsPage::revalidate()
 {
-    /* Revalidate if possible: */
-    if (m_pValidator && !m_fIsValidatorBlocked)
-        m_pValidator->revalidate();
+    /* Invalidate validator if allowed: */
+    if (!m_fIsValidatorBlocked && m_pValidator)
+        m_pValidator->invalidate();
 }
 
 
@@ -150,4 +161,115 @@ void UISettingsPageMachine::uploadData(QVariant &data) const
 {
     /* Upload m_machine & m_console to data: */
     data = QVariant::fromValue(UISettingsDataMachine(m_machine, m_console));
+}
+
+
+/*********************************************************************************************************************************
+*   Class UISettingsPageFrame implementation.                                                                                    *
+*********************************************************************************************************************************/
+
+UISettingsPageFrame::UISettingsPageFrame(UISettingsPage *pPage, QWidget *pParent /* = 0 */)
+    : UIEditor(pParent)
+    , m_pPage(pPage)
+    , m_pLabelName(0)
+    , m_pWidget(0)
+    , m_pLayout(0)
+{
+    prepare();
+}
+
+void UISettingsPageFrame::setName(const QString &strName)
+{
+    if (m_strName == strName)
+        return;
+
+    m_strName = strName;
+    if (m_pLabelName)
+        m_pLabelName->setText(m_strName);
+}
+
+void UISettingsPageFrame::sltRetranslateUI()
+{
+    // No NLS tags for now; We are receiving our name through the getter.
+}
+
+void UISettingsPageFrame::paintEvent(QPaintEvent *pPaintEvent)
+{
+    /* Prepare painter: */
+    QPainter painter(this);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setRenderHint(QPainter::TextAntialiasing);
+    /* Avoid painting more than necessary: */
+    painter.setClipRect(pPaintEvent->rect());
+
+    /* Prepare colors: */
+    const bool fActive = window() && window()->isActiveWindow();
+    QColor col1;
+    QColor col2;
+    if (uiCommon().isInDarkMode())
+    {
+        col1 = qApp->palette().color(fActive ? QPalette::Active : QPalette::Inactive, QPalette::Window).lighter(130);
+        col2 = qApp->palette().color(fActive ? QPalette::Active : QPalette::Inactive, QPalette::Window).lighter(150);
+    }
+    else
+    {
+        col1 = qApp->palette().color(fActive ? QPalette::Active : QPalette::Inactive, QPalette::Window).darker(105);
+        col2 = qApp->palette().color(fActive ? QPalette::Active : QPalette::Inactive, QPalette::Window).darker(120);
+    }
+
+    /* Prepare painter path: */
+    const QRect widgetRect = rect();
+    QPainterPath path;
+    int iRadius = 6;
+    QSizeF arcSize(2 * iRadius, 2 * iRadius);
+    path.moveTo(widgetRect.x() + iRadius, widgetRect.y());
+    path.arcTo(QRectF(path.currentPosition(), arcSize).translated(-iRadius, 0), 90, 90);
+    path.lineTo(path.currentPosition().x(), widgetRect.height() - iRadius);
+    path.arcTo(QRectF(path.currentPosition(), arcSize).translated(0, -iRadius), 180, 90);
+    path.lineTo(widgetRect.width() - iRadius, path.currentPosition().y());
+    path.arcTo(QRectF(path.currentPosition(), arcSize).translated(-iRadius, -2 * iRadius), 270, 90);
+    path.lineTo(path.currentPosition().x(), widgetRect.y() + iRadius);
+    path.arcTo(QRectF(path.currentPosition(), arcSize).translated(-2 * iRadius, -iRadius), 0, 90);
+    path.closeSubpath();
+
+    /* Painting stuff: */
+    painter.fillPath(path, col1);
+    painter.strokePath(path, col2);
+}
+
+void UISettingsPageFrame::prepare()
+{
+    /* Keep minimum vertical size: */
+    setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+
+    /* Create main layout: */
+    QVBoxLayout *pLayoutMain = new QVBoxLayout(this);
+    if (pLayoutMain)
+    {
+        /* Create name label: */
+        m_pLabelName = new QLabel(this);
+        if (m_pLabelName)
+        {
+            QFont fnt = m_pLabelName->font();
+            fnt.setBold(true);
+            m_pLabelName->setFont(fnt);
+            pLayoutMain->addWidget(m_pLabelName);
+        }
+
+        /* Create contents widget: */
+        m_pWidget = new QWidget(this);
+        if (m_pWidget)
+        {
+            m_pLayout = new QVBoxLayout(m_pWidget);
+            if (m_pLayout)
+            {
+                m_pLayout->setContentsMargins(0, 0, 0, 0);
+
+                m_pLayout->addWidget(m_pPage);
+                /// @todo what about removal handling?
+                addEditor(m_pPage);
+            }
+            pLayoutMain->addWidget(m_pWidget);
+        }
+    }
 }

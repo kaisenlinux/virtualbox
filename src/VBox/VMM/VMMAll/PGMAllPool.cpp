@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -38,12 +38,12 @@
 #include "PGMInternal.h"
 #include <VBox/vmm/vmcc.h>
 #include "PGMInline.h"
-#include <VBox/disopcode.h>
 #include <VBox/vmm/hm_vmx.h>
 
 #include <VBox/log.h>
 #include <VBox/err.h>
 #include <iprt/asm.h>
+#include <iprt/asm-mem.h>
 #include <iprt/string.h>
 
 
@@ -634,6 +634,7 @@ static void pgmPoolMonitorChainChanging(PVMCPU pVCpu, PPGMPOOL pPool, PPGMPOOLPA
                 X86PGPAEUINT const uPde = uShw.pEptPd->a[iShw].u;
                 if (uPde & EPT_PRESENT_MASK)
                 {
+                    Assert(!(uPde & EPT_E_LEAF));
                     Log7Func(("EPT PD iShw=%#x: %RX64 (%RGp) -> freeing it!\n", iShw, uPde, pPage->GCPhys));
                     pgmPoolFree(pVM, uPde & EPT_PDE_PG_MASK, pPage->idx, iShw);
                     ASMAtomicWriteU64(&uShw.pEptPd->a[iShw].u, 0);
@@ -648,6 +649,7 @@ static void pgmPoolMonitorChainChanging(PVMCPU pVCpu, PPGMPOOL pPool, PPGMPOOLPA
                     X86PGPAEUINT const uPde2 = uShw.pEptPd->a[iShw2].u;
                     if (uPde2 & EPT_PRESENT_MASK)
                     {
+                        Assert(!(uPde2 & EPT_E_LEAF));
                         Log7Func(("EPT PD (2): iShw2=%#x: %RX64 (%RGp) -> freeing it!\n", iShw2, uPde2, pPage->GCPhys));
                         pgmPoolFree(pVM, uPde2 & EPT_PDE_PG_MASK, pPage->idx, iShw2);
                         ASMAtomicWriteU64(&uShw.pEptPd->a[iShw2].u, 0);
@@ -726,7 +728,7 @@ static void pgmPoolMonitorChainChanging(PVMCPU pVCpu, PPGMPOOL pPool, PPGMPOOLPA
  * @param   pDis        The disassembled instruction.
  * @param   offFault    The access offset.
  */
-DECLINLINE(bool) pgmRZPoolMonitorIsForking(PPGMPOOL pPool, PDISCPUSTATE pDis, unsigned offFault)
+DECLINLINE(bool) pgmRZPoolMonitorIsForking(PPGMPOOL pPool, PDISSTATE pDis, unsigned offFault)
 {
     /*
      * i386 linux is using btr to clear X86_PTE_RW.
@@ -770,7 +772,7 @@ DECLINLINE(bool) pgmRZPoolMonitorIsForking(PPGMPOOL pPool, PDISCPUSTATE pDis, un
  *
  * @remark  The REP prefix check is left to the caller because of STOSD/W.
  */
-DECLINLINE(bool) pgmRZPoolMonitorIsReused(PVMCC pVM, PVMCPUCC pVCpu, PCPUMCTX pCtx, PDISCPUSTATE pDis, RTGCPTR pvFault,
+DECLINLINE(bool) pgmRZPoolMonitorIsReused(PVMCC pVM, PVMCPUCC pVCpu, PCPUMCTX pCtx, PDISSTATE pDis, RTGCPTR pvFault,
                                           PPGMPOOLPAGE pPage)
 {
     /* Locked (CR3, PDPTR*4) should not be reusable.  Considering them as
@@ -790,7 +792,7 @@ DECLINLINE(bool) pgmRZPoolMonitorIsReused(PVMCC pVM, PVMCPUCC pVCpu, PCPUMCTX pC
         return true;
     }
 
-    LogFlow(("Reused instr %RGv %d at %RGv param1.fUse=%llx param1.reg=%d\n", pCtx->rip, pDis->pCurInstr->uOpcode, pvFault, pDis->Param1.fUse,  pDis->Param1.Base.idxGenReg));
+    LogFlow(("Reused instr %RGv %d at %RGv param1.fUse=%llx param1.reg=%d\n", pCtx->rip, pDis->pCurInstr->uOpcode, pvFault, pDis->aParams[0].fUse,  pDis->aParams[0].x86.Base.idxGenReg));
 
     /* Non-supervisor mode write means it's used for something else. */
     if (CPUMGetGuestCPL(pVCpu) == 3)
@@ -822,7 +824,7 @@ DECLINLINE(bool) pgmRZPoolMonitorIsReused(PVMCC pVM, PVMCPUCC pVCpu, PCPUMCTX pC
             return true;
         case OP_MOVSWD:
         case OP_STOSWD:
-            if (    pDis->fPrefix == (DISPREFIX_REP|DISPREFIX_REX)
+            if (    pDis->x86.fPrefix == (DISPREFIX_REP|DISPREFIX_REX)
                 &&  pCtx->rcx >= 0x40
                )
             {
@@ -837,9 +839,9 @@ DECLINLINE(bool) pgmRZPoolMonitorIsReused(PVMCC pVM, PVMCPUCC pVCpu, PCPUMCTX pC
             /*
              * Anything having ESP on the left side means stack writes.
              */
-            if (    (    (pDis->Param1.fUse & DISUSE_REG_GEN32)
-                     ||  (pDis->Param1.fUse & DISUSE_REG_GEN64))
-                &&  (pDis->Param1.Base.idxGenReg == DISGREG_ESP))
+            if (    (    (pDis->aParams[0].fUse & DISUSE_REG_GEN32)
+                     ||  (pDis->aParams[0].fUse & DISUSE_REG_GEN64))
+                &&  (pDis->aParams[0].x86.Base.idxGenReg == DISGREG_ESP))
             {
                 Log4(("pgmRZPoolMonitorIsReused: ESP\n"));
                 return true;
@@ -851,7 +853,7 @@ DECLINLINE(bool) pgmRZPoolMonitorIsReused(PVMCC pVM, PVMCPUCC pVCpu, PCPUMCTX pC
      * Page table updates are very very unlikely to be crossing page boundraries,
      * and we don't want to deal with that in pgmPoolMonitorChainChanging and such.
      */
-    uint32_t const cbWrite = DISGetParamSize(pDis, &pDis->Param1);
+    uint32_t const cbWrite = DISGetParamSize(pDis, &pDis->aParams[0]);
     if ( (((uintptr_t)pvFault + cbWrite) >> X86_PAGE_SHIFT) != ((uintptr_t)pvFault >> X86_PAGE_SHIFT) )
     {
         Log4(("pgmRZPoolMonitorIsReused: cross page write\n"));
@@ -884,7 +886,7 @@ DECLINLINE(bool) pgmRZPoolMonitorIsReused(PVMCC pVM, PVMCPUCC pVCpu, PCPUMCTX pC
  * @param   GCPhysFault The fault address as guest physical address.
  * @todo VBOXSTRICTRC
  */
-static int pgmRZPoolAccessPfHandlerFlush(PVMCC pVM, PVMCPUCC pVCpu, PPGMPOOL pPool, PPGMPOOLPAGE pPage, PDISCPUSTATE pDis,
+static int pgmRZPoolAccessPfHandlerFlush(PVMCC pVM, PVMCPUCC pVCpu, PPGMPOOL pPool, PPGMPOOLPAGE pPage, PDISSTATE pDis,
                                          PCPUMCTX pCtx, RTGCPHYS GCPhysFault)
 {
     NOREF(pVM); NOREF(GCPhysFault);
@@ -936,17 +938,17 @@ static int pgmRZPoolAccessPfHandlerFlush(PVMCC pVM, PVMCPUCC pVCpu, PPGMPOOL pPo
  * @param   GCPhysFault The fault address as guest physical address.
  * @param   pvFault     The fault address.
  */
-DECLINLINE(int) pgmRZPoolAccessPfHandlerSTOSD(PVMCC pVM, PPGMPOOL pPool, PPGMPOOLPAGE pPage, PDISCPUSTATE pDis,
+DECLINLINE(int) pgmRZPoolAccessPfHandlerSTOSD(PVMCC pVM, PPGMPOOL pPool, PPGMPOOLPAGE pPage, PDISSTATE pDis,
                                               PCPUMCTX pCtx, RTGCPHYS GCPhysFault, RTGCPTR pvFault)
 {
-    unsigned uIncrement = pDis->Param1.cb;
+    unsigned uIncrement = pDis->aParams[0].x86.cb;
     NOREF(pVM);
 
     Assert(pDis->uCpuMode == DISCPUMODE_32BIT || pDis->uCpuMode == DISCPUMODE_64BIT);
     Assert(pCtx->rcx <= 0x20);
 
 # ifdef VBOX_STRICT
-    if (pDis->uOpMode == DISCPUMODE_32BIT)
+    if (pDis->x86.uOpMode == DISCPUMODE_32BIT)
         Assert(uIncrement == 4);
     else
         Assert(uIncrement == 8);
@@ -998,7 +1000,7 @@ DECLINLINE(int) pgmRZPoolAccessPfHandlerSTOSD(PVMCC pVM, PPGMPOOL pPool, PPGMPOO
  * @param   GCPhysFault The fault address as guest physical address.
  * @param   pfReused    Reused state (in/out)
  */
-DECLINLINE(int) pgmRZPoolAccessPfHandlerSimple(PVMCC pVM, PVMCPUCC pVCpu, PPGMPOOL pPool, PPGMPOOLPAGE pPage, PDISCPUSTATE pDis,
+DECLINLINE(int) pgmRZPoolAccessPfHandlerSimple(PVMCC pVM, PVMCPUCC pVCpu, PPGMPOOL pPool, PPGMPOOLPAGE pPage, PDISSTATE pDis,
                                                PCPUMCTX pCtx, RTGCPHYS GCPhysFault, bool *pfReused)
 {
     Log3(("pgmRZPoolAccessPfHandlerSimple\n"));
@@ -1015,7 +1017,7 @@ DECLINLINE(int) pgmRZPoolAccessPfHandlerSimple(PVMCC pVM, PVMCPUCC pVCpu, PPGMPO
     /*
      * Clear all the pages.
      */
-    uint32_t cbWrite = DISGetParamSize(pDis, &pDis->Param1);
+    uint32_t cbWrite = DISGetParamSize(pDis, &pDis->aParams[0]);
     if (cbWrite <= 8)
         pgmPoolMonitorChainChanging(pVCpu, pPool, pPage, GCPhysFault, NULL, cbWrite);
     else if (cbWrite <= 16)
@@ -1149,7 +1151,7 @@ DECLCALLBACK(VBOXSTRICTRC) pgmRZPoolAccessPfHandler(PVMCC pVM, PVMCPUCC pVCpu, R
     /*
      * Disassemble the faulting instruction.
      */
-    PDISCPUSTATE pDis = &pVCpu->pgm.s.DisState;
+    PDISSTATE pDis = &pVCpu->pgm.s.Dis;
     int rc = EMInterpretDisasCurrent(pVCpu, pDis, NULL);
     if (RT_UNLIKELY(rc != VINF_SUCCESS))
     {
@@ -1184,7 +1186,7 @@ DECLCALLBACK(VBOXSTRICTRC) pgmRZPoolAccessPfHandler(PVMCC pVM, PVMCPUCC pVCpu, R
     pVCpu->pgm.s.cPoolAccessHandler++;
     if (    pPage->GCPtrLastAccessHandlerRip >= pCtx->rip - 0x40      /* observed loops in Windows 7 x64 */
         &&  pPage->GCPtrLastAccessHandlerRip <  pCtx->rip + 0x40
-        &&  pvFault == (pPage->GCPtrLastAccessHandlerFault + pDis->Param1.cb)
+        &&  pvFault == (pPage->GCPtrLastAccessHandlerFault + pDis->aParams[0].x86.cb)
         &&  pVCpu->pgm.s.cPoolAccessHandler == pPage->cLastAccessHandler + 1)
     {
         Log(("Possible page reuse cMods=%d -> %d (locked=%d type=%s)\n", pPage->cModifications, pPage->cModifications * 2, pgmPoolIsPageLocked(pPage), pgmPoolPoolKindToStr(pPage->enmKind)));
@@ -1216,7 +1218,7 @@ DECLCALLBACK(VBOXSTRICTRC) pgmRZPoolAccessPfHandler(PVMCC pVM, PVMCPUCC pVCpu, R
         /*
          * Simple instructions, no REP prefix.
          */
-        if (!(pDis->fPrefix & (DISPREFIX_REP | DISPREFIX_REPNE)))
+        if (!(pDis->x86.fPrefix & (DISPREFIX_REP | DISPREFIX_REPNE)))
         {
             rc = pgmRZPoolAccessPfHandlerSimple(pVM, pVCpu, pPool, pPage, pDis, pCtx, GCPhysFault, &fReused);
             if (fReused)
@@ -1259,13 +1261,13 @@ DECLCALLBACK(VBOXSTRICTRC) pgmRZPoolAccessPfHandler(PVMCC pVM, PVMCPUCC pVCpu, R
          */
         if (    pDis->pCurInstr->uOpcode == OP_STOSWD
             &&  !pCtx->eflags.Bits.u1DF
-            &&  pDis->uOpMode == pDis->uCpuMode
-            &&  pDis->uAddrMode == pDis->uCpuMode)
+            &&  pDis->x86.uOpMode == pDis->uCpuMode
+            &&  pDis->x86.uAddrMode == pDis->uCpuMode)
         {
             bool fValidStosd = false;
 
             if (    pDis->uCpuMode == DISCPUMODE_32BIT
-                &&  pDis->fPrefix == DISPREFIX_REP
+                &&  pDis->x86.fPrefix == DISPREFIX_REP
                 &&  pCtx->ecx <= 0x20
                 &&  pCtx->ecx * 4 <= GUEST_PAGE_SIZE - ((uintptr_t)pvFault & GUEST_PAGE_OFFSET_MASK)
                 &&  !((uintptr_t)pvFault & 3)
@@ -1277,7 +1279,7 @@ DECLCALLBACK(VBOXSTRICTRC) pgmRZPoolAccessPfHandler(PVMCC pVM, PVMCPUCC pVCpu, R
             }
             else
             if (    pDis->uCpuMode == DISCPUMODE_64BIT
-                &&  pDis->fPrefix == (DISPREFIX_REP | DISPREFIX_REX)
+                &&  pDis->x86.fPrefix == (DISPREFIX_REP | DISPREFIX_REX)
                 &&  pCtx->rcx <= 0x20
                 &&  pCtx->rcx * 8 <= GUEST_PAGE_SIZE - ((uintptr_t)pvFault & GUEST_PAGE_OFFSET_MASK)
                 &&  !((uintptr_t)pvFault & 7)
@@ -1299,7 +1301,7 @@ DECLCALLBACK(VBOXSTRICTRC) pgmRZPoolAccessPfHandler(PVMCC pVM, PVMCPUCC pVCpu, R
         /* REP prefix, don't bother. */
         STAM_COUNTER_INC(&pPool->StatMonitorPfRZRepPrefix);
         Log4(("pgmRZPoolAccessPfHandler: eax=%#x ecx=%#x edi=%#x esi=%#x rip=%RGv opcode=%d prefix=%#x\n",
-              pCtx->eax, pCtx->ecx, pCtx->edi, pCtx->esi, (RTGCPTR)pCtx->rip, pDis->pCurInstr->uOpcode, pDis->fPrefix));
+              pCtx->eax, pCtx->ecx, pCtx->edi, pCtx->esi, (RTGCPTR)pCtx->rip, pDis->pCurInstr->uOpcode, pDis->x86.fPrefix));
         fNotReusedNotForking = true;
     }
 
@@ -2162,7 +2164,9 @@ DECLINLINE(void) pgmPoolHashRemove(PPGMPOOL pPool, PPGMPOOLPAGE pPage)
  */
 static int pgmPoolCacheFreeOne(PPGMPOOL pPool, uint16_t iUser)
 {
+#ifndef VBOX_VMM_TARGET_ARMV8
     const PVMCC pVM = pPool->CTX_SUFF(pVM);
+#endif
     Assert(pPool->iAgeHead != pPool->iAgeTail); /* We shouldn't be here if there < 2 cached entries! */
     STAM_COUNTER_INC(&pPool->StatCacheFreeUpOne);
 
@@ -3440,6 +3444,9 @@ static bool pgmPoolTrackFlushGCPhysPTInt(PVM pVM, PCPGMPAGE pPhysPage, bool fFlu
         case PGMPOOLKIND_EPT_PT_FOR_PHYS:   /* physical mask the same as PAE; RW bit as well; be careful! */
 #ifdef VBOX_WITH_NESTED_HWVIRT_VMX_EPT
         case PGMPOOLKIND_EPT_PT_FOR_EPT_PT:
+# ifdef PGM_WITH_LARGE_PAGES
+        case PGMPOOLKIND_EPT_PT_FOR_EPT_2MB:
+# endif
 #endif
         {
             const uint64_t  u64 = PGM_PAGE_GET_HCPHYS(pPhysPage) | X86_PTE_P;
@@ -3512,14 +3519,15 @@ static bool pgmPoolTrackFlushGCPhysPTInt(PVM pVM, PCPGMPAGE pPhysPage, bool fFlu
 #ifdef PGM_WITH_LARGE_PAGES
         /* Large page case only. */
         case PGMPOOLKIND_EPT_PD_FOR_PHYS:
-#ifdef VBOX_WITH_NESTED_HWVIRT_VMX_EPT
-        case PGMPOOLKIND_EPT_PT_FOR_EPT_2MB:    /* X86_PDE4M_PS is same as leaf bit in EPT; be careful! */
-#endif
+        case PGMPOOLKIND_EPT_PD_FOR_EPT_PD:
         {
             Assert(pVM->pgm.s.fNestedPaging);
 
             const uint64_t  u64 = PGM_PAGE_GET_HCPHYS(pPhysPage) | X86_PDE4M_P | X86_PDE4M_PS;
             PEPTPD          pPD = (PEPTPD)PGMPOOL_PAGE_2_PTR(pVM, pPage);
+
+            Assert(   pPage->enmKind != PGMPOOLKIND_EPT_PD_FOR_EPT_PD
+                   || (pPD->a[iPte].u & EPT_E_LEAF));
 
             if ((pPD->a[iPte].u & (EPT_PDE2M_PG_MASK | X86_PDE4M_P | X86_PDE4M_PS)) == u64)
             {
@@ -3537,12 +3545,15 @@ static bool pgmPoolTrackFlushGCPhysPTInt(PVM pVM, PCPGMPAGE pPhysPage, bool fFlu
                 return fRet;
             }
 # ifdef LOG_ENABLED
-            Log(("iFirstPresent=%d cPresent=%d\n", pPage->iFirstPresent, pPage->cPresent));
+            LogRel(("iFirstPresent=%d cPresent=%d\n", pPage->iFirstPresent, pPage->cPresent));
             for (unsigned i = 0, cFound = 0; i < RT_ELEMENTS(pPD->a); i++)
                 if ((pPD->a[i].u & (EPT_PDE2M_PG_MASK | X86_PDE4M_P | X86_PDE4M_PS)) == u64)
-                    Log(("i=%d cFound=%d\n", i, ++cFound));
+                {
+                    cFound++;
+                    LogRel(("i=%d cFound=%d\n", i, cFound));
+                }
 # endif
-            AssertFatalMsgFailed(("iFirstPresent=%d cPresent=%d\n", pPage->iFirstPresent, pPage->cPresent));
+            AssertFatalMsgFailed(("iFirstPresent=%d cPresent=%d enmKind=%d\n", pPage->iFirstPresent, pPage->cPresent, pPage->enmKind));
             /*PGM_DYNMAP_UNUSED_HINT_VM(pVM, pPD);*/
             break;
         }
@@ -3742,8 +3753,12 @@ int pgmPoolTrackUpdateGCPhys(PVMCC pVM, RTGCPHYS GCPhysPage, PPGMPAGE pPhysPage,
          * is defined, zero pages won't normally be mapped. Some kind of solution
          * will be needed for this problem of course, but it will have to wait...
          */
+# ifndef VBOX_WITH_NEW_LAZY_PAGE_ALLOC /* end up guruing after pgmR0PhysAllocateLargePage otherwise. */
         if (    PGM_PAGE_IS_ZERO(pPhysPage)
             ||  PGM_PAGE_IS_BALLOONED(pPhysPage))
+# else
+        if (PGM_PAGE_IS_BALLOONED(pPhysPage))
+# endif
             rc = VINF_PGM_GCPHYS_ALIASED;
         else
         {
@@ -4494,12 +4509,14 @@ void pgmPoolTracDerefGCPhysHint(PPGMPOOL pPool, PPGMPOOLPAGE pPage, RTHCPHYS HCP
      * Damn, the hint didn't work.  We'll have to do an expensive linear search.
      */
     STAM_COUNTER_INC(&pPool->StatTrackLinearRamSearches);
-    PPGMRAMRANGE pRam = pPool->CTX_SUFF(pVM)->pgm.s.CTX_SUFF(pRamRangesX);
-    while (pRam)
+    uint32_t const idRamRangeMax = RT_MIN(pVM->pgm.s.idRamRangeMax, RT_ELEMENTS(pVM->pgm.s.apRamRanges) - 1U);
+    Assert(pVM->pgm.s.apRamRanges[0] == NULL);
+    for (uint32_t idx = 1; idx <= idRamRangeMax; idx++)
     {
+        PPGMRAMRANGE const pRam = pVM->CTX_EXPR(pgm, pgmr0, pgm).s.apRamRanges[idx];
+        AssertContinue(pRam);
         unsigned iPage = pRam->cb >> PAGE_SHIFT;
         while (iPage-- > 0)
-        {
             if (PGM_PAGE_GET_HCPHYS(&pRam->aPages[iPage]) == HCPhys)
             {
                 Log4(("pgmPoolTracDerefGCPhysHint: Linear HCPhys=%RHp GCPhysHint=%RGp GCPhysReal=%RGp\n",
@@ -4511,8 +4528,6 @@ void pgmPoolTracDerefGCPhysHint(PPGMPOOL pPool, PPGMPOOLPAGE pPage, RTHCPHYS HCP
                 pgmTrackDerefGCPhys(pPool, pPage, &pRam->aPages[iPage], iPte);
                 return;
             }
-        }
-        pRam = pRam->CTX_SUFF(pNext);
     }
 
     AssertFatalMsgFailed(("HCPhys=%RHp GCPhysHint=%RGp (Hinted page has HCPhys = %RHp)\n", HCPhys, GCPhysHint, HCPhysHinted));
@@ -5159,7 +5174,7 @@ static void pgmPoolTrackDeref(PPGMPOOL pPool, PPGMPOOLPAGE pPage)
 
     /* paranoia, clear the shadow page. Remove this laser (i.e. let Alloc and ClearAll do it). */
     STAM_PROFILE_START(&pPool->StatZeroPage, z);
-    ASMMemZeroPage(pvShw);
+    RT_BZERO(pvShw, PAGE_SIZE);
     STAM_PROFILE_STOP(&pPool->StatZeroPage, z);
     pPage->fZeroed = true;
     Assert(!pPage->cPresent);
@@ -5208,6 +5223,7 @@ int pgmPoolFlushPage(PPGMPOOL pPool, PPGMPOOLPAGE pPage, bool fFlush)
      */
     if (pgmPoolIsPageLocked(pPage))
     {
+#if !defined(VBOX_VMM_TARGET_ARMV8)
         AssertMsg(   pPage->enmKind == PGMPOOLKIND_64BIT_PML4
                   || pPage->enmKind == PGMPOOLKIND_PAE_PDPT
                   || pPage->enmKind == PGMPOOLKIND_PAE_PDPT_FOR_32BIT
@@ -5219,6 +5235,7 @@ int pgmPoolFlushPage(PPGMPOOL pPool, PPGMPOOLPAGE pPage, bool fFlush)
                   || pPage->enmKind == PGMPOOLKIND_PAE_PD3_FOR_32BIT_PD
                   || pPage->enmKind == PGMPOOLKIND_ROOT_NESTED,
                   ("Can't free the shadow CR3! (%RHp vs %RHp kind=%d\n", PGMGetHyperCR3(VMMGetCpu(pVM)), pPage->Core.Key, pPage->enmKind));
+#endif
         Log(("pgmPoolFlushPage: current active shadow CR3, rejected. enmKind=%s idx=%d\n", pgmPoolPoolKindToStr(pPage->enmKind), pPage->idx));
         PGM_UNLOCK(pVM);
         return VINF_SUCCESS;
@@ -5493,7 +5510,7 @@ int pgmPoolAlloc(PVMCC pVM, RTGCPHYS GCPhys, PGMPOOLKIND enmKind, PGMPOOLACCESS 
     {
         STAM_PROFILE_START(&pPool->StatZeroPage, z);
         void *pv = PGMPOOL_PAGE_2_PTR(pVM, pPage);
-        ASMMemZeroPage(pv);
+        RT_BZERO(pv, PAGE_SIZE);
         STAM_PROFILE_STOP(&pPool->StatZeroPage, z);
     }
 
@@ -5777,10 +5794,12 @@ void pgmR3PoolReset(PVM pVM)
     /*
      * Clear all the GCPhys links and rebuild the phys ext free list.
      */
-    for (PPGMRAMRANGE pRam = pVM->pgm.s.CTX_SUFF(pRamRangesX);
-         pRam;
-         pRam = pRam->CTX_SUFF(pNext))
+    uint32_t const idRamRangeMax = RT_MIN(pVM->pgm.s.idRamRangeMax, RT_ELEMENTS(pVM->pgm.s.apRamRanges) - 1U);
+    Assert(pVM->pgm.s.apRamRanges[0] == NULL);
+    for (uint32_t idx = 1; idx <= idRamRangeMax; idx++)
     {
+        PPGMRAMRANGE const pRam = pVM->CTX_EXPR(pgm, pgmr0, pgm).s.apRamRanges[idx];
+        AssertContinue(pRam);
         unsigned iPage = pRam->cb >> PAGE_SHIFT;
         while (iPage-- > 0)
             PGM_PAGE_SET_TRACKING(pVM, &pRam->aPages[iPage], 0);

@@ -8,7 +8,7 @@ VirtualBox Validation Kit - Guest OS unattended installation tests.
 
 __copyright__ = \
 """
-Copyright (C) 2010-2023 Oracle and/or its affiliates.
+Copyright (C) 2010-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -37,7 +37,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 
 # Standard Python imports.
@@ -47,7 +47,7 @@ import sys;
 
 
 # Only the main script needs to modify the path.
-try:    __file__
+try:    __file__                            # pylint: disable=used-before-assignment
 except: __file__ = sys.argv[0]
 g_ksValidationKitDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(g_ksValidationKitDir)
@@ -88,8 +88,8 @@ class UnattendedVm(vboxtestvms.BaseTestVm):
     ## IRQ delay extra data config for win2k VMs.
     kasIdeIrqDelay     = [ 'VBoxInternal/Devices/piix3ide/0/Config/IRQDelay:1', ];
 
-    def __init__(self, oSet, sVmName, sKind, sInstallIso, fFlags = 0):
-        vboxtestvms.BaseTestVm.__init__(self, sVmName, oSet = oSet, sKind = sKind,
+    def __init__(self, oSet, sVmName, sKind, sInstallIso, fFlags = 0, sPlatformArchitecture = 'x86'):
+        vboxtestvms.BaseTestVm.__init__(self, sVmName, sPlatformArchitecture, oSet = oSet, sKind = sKind,
                                         fRandomPvPModeCrap = (fFlags & self.kfNoWin81Paravirt) == 0);
         self.sInstallIso            = sInstallIso;
         self.fInstVmFlags           = fFlags;
@@ -215,12 +215,16 @@ class UnattendedVm(vboxtestvms.BaseTestVm):
         Logs the attributes of the unattended installation object.
         """
         fRc = True;
-        asAttribs = ( 'isoPath', 'user', 'password', 'fullUserName', 'productKey', 'additionsIsoPath', 'installGuestAdditions',
+        asAttribs = [ 'isoPath', 'user', 'fullUserName', 'productKey', 'additionsIsoPath', 'installGuestAdditions',
                       'validationKitIsoPath', 'installTestExecService', 'timeZone', 'locale', 'language', 'country', 'proxy',
                       'packageSelectionAdjustments', 'hostname', 'auxiliaryBasePath', 'imageIndex', 'machine',
                       'scriptTemplatePath', 'postInstallScriptTemplatePath', 'postInstallCommand',
                       'extraInstallKernelParameters', 'detectedOSTypeId', 'detectedOSVersion', 'detectedOSLanguages',
-                      'detectedOSFlavor', 'detectedOSHints', );
+                      'detectedOSFlavor', 'detectedOSHints' ];
+        if oTestDrv.fpApiVer >= 7.1: # Since 7.1 we offer different passwords for user and admin/root accounts.
+            asAttribs.extend( [ 'userPassword', 'adminPassword' ] );
+        else:
+            asAttribs.append('password')
         for sAttrib in asAttribs:
             try:
                 oValue = getattr(oIUnattended, sAttrib);
@@ -250,8 +254,15 @@ class UnattendedVm(vboxtestvms.BaseTestVm):
         # downloading updates and doing database updates during installation.
         # We want predicable results.
         #
+        # On macOS however this will result in HostOnly networking being used
+        # with an incompatible IP address, resulting in the TXS service not being
+        # able to contact the host. Until this is fixed properly just get along
+        # with inconsistent results, still better than completely failing testcases.
+        #
         if eNic0AttachType is None:
-            if self.isLinux() \
+            if utils.getHostOs() != 'darwin' \
+               and oTestDrv.fpApiVer < 7.0 \
+               and self.isLinux() \
                and (   'ubuntu' in self.sKind.lower()
                     or 'debian' in self.sKind.lower()):
                 eNic0AttachType = vboxcon.NetworkAttachmentType_HostOnly;
@@ -298,7 +309,7 @@ class UnattendedVm(vboxtestvms.BaseTestVm):
 
         # I/O APIC:
         if self.fOptPae is not None:
-            fRc = oSession.enablePae(self.fOptPae) and fRc;
+            fRc = oSession.enablePaeX86(self.fOptPae) and fRc;
 
         # Set extra data
         for sExtraData in self.asOptExtraData:
@@ -460,6 +471,12 @@ class tdGuestOsInstTest1(vbox.TestDriver):
         # pylint: disable=line-too-long
         oSet.aoTestVms.extend([
             #
+            #
+            # x86/amd64 VMs
+            #
+            #
+
+            #
             # Windows.  The older windows ISOs requires a keyfile (for xp sp3
             # pick a key from the PID.INF file on the ISO).
             #
@@ -536,17 +553,59 @@ class tdGuestOsInstTest1(vbox.TestDriver):
             #             UnattendedVm.kfNoGAs),
             UnattendedVm(oSet, 'tst-ubuntu-19.04-64',   'Ubuntu_64', '6.0/uaisos/ubuntu-19.04-desktop-amd64.iso',    # >=6GiB
                          UnattendedVm.kfNoGAs),
-            UnattendedVm(oSet, 'tst-debian-9.3-64',     'Debian_64', '6.0/uaisos/debian-9.3.0-amd64-DVD-1.iso',      # >=6GiB?
+            UnattendedVm(oSet, 'tst-ubuntu-22.04-64', 'Ubuntu_64', '7.0/uaisos/ubuntu-22.04.3-desktop-amd64.iso',    # >=6GiB ?
+                         UnattendedVm.kfNoGAs),
+            UnattendedVm(oSet, 'tst-ubuntu-23.10-64', 'Ubuntu_64', '7.0/uaisos/ubuntu-23.10.1-desktop-amd64.iso',    # >=6GiB ?
+                         UnattendedVm.kfNoGAs),
+            UnattendedVm(oSet, 'tst-ubuntu-server-23.10-64', 'Ubuntu_64', '7.1/uaisos/ubuntu-23.10-live-server-amd64.iso',
+                         UnattendedVm.kfNoGAs),
+
+            #
+            # Debian
+            #
+            UnattendedVm(oSet, 'tst-debian-9.3-64', 'Debian_64', '6.0/uaisos/debian-9.3.0-amd64-DVD-1.iso',  # >=6GiB?
                          UnattendedVm.kfAvoidNetwork | UnattendedVm.kfNoGAs),
-            UnattendedVm(oSet, 'tst-debian-9.4-64',     'Debian_64', '6.0/uaisos/debian-9.4.0-amd64-DVD-1.iso',      # >=6GiB?
+            UnattendedVm(oSet, 'tst-debian-9.4-64', 'Debian_64', '6.0/uaisos/debian-9.4.0-amd64-DVD-1.iso',  # >=6GiB?
                          UnattendedVm.kfAvoidNetwork | UnattendedVm.kfNoGAs),
-            UnattendedVm(oSet, 'tst-debian-10.0-64',     'Debian_64', '6.0/uaisos/debian-10.0.0-amd64-DVD-1.iso',      # >=6GiB?
+            UnattendedVm(oSet, 'tst-debian-10.0-64', 'Debian_64', '6.0/uaisos/debian-10.0.0-amd64-DVD-1.iso',  # >=6GiB?
                          UnattendedVm.kfAvoidNetwork),
+
+            #
+            # Fedora
+            #
+            UnattendedVm(oSet, 'tst-fedora-39-64', 'Fedora_64', '7.0/uaisos/Fedora-Workstation-Live-x86_64-39-1.5.iso',
+                         UnattendedVm.kfAvoidNetwork | UnattendedVm.kfNoGAs),
+
+            #
+            # OracleLinux
+            #
+            UnattendedVm(oSet, 'tst-ol-9_2-amd64', 'Oracle_64', '7.1/uaisos/OracleLinux-R9-U2-x86_64-dvd.iso',
+                         UnattendedVm.kfAvoidNetwork | UnattendedVm.kfNoGAs),
+
             #
             # OS/2.
             #
             UnattendedVm(oSet, 'tst-acp2',              'OS2Warp45', '7.0/uaisos/acp2_us_cd2.iso'),                  # ~400MiB
             ## @todo mcp2 too?
+
+
+            #
+            #
+            # ARM VMs
+            #
+            #
+
+            #
+            # Debian
+            #
+            UnattendedVm(oSet, 'tst-debian-11.8-arm64', 'Debian_arm64', '7.1/uaisos/debian-11.8.0-arm64-DVD-1.iso',   # >=6GiB?
+                         UnattendedVm.kfAvoidNetwork, "ARM"),
+
+            #
+            # OracleLinux
+            #
+            UnattendedVm(oSet, 'tst-ol-9_2-arm64', 'Oracle_arm64', '7.1/uaisos/OracleLinux-R9-U2-aarch64-dvd.iso',
+                         UnattendedVm.kfAvoidNetwork | UnattendedVm.kfNoGAs, "ARM"),
         ]);
         # pylint: enable=line-too-long
         self.oTestVmSet = oSet;

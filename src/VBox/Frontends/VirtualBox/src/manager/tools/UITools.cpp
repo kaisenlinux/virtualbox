@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -29,15 +29,15 @@
 #include <QVBoxLayout>
 
 /* GUI includes: */
-#include "UICommon.h"
 #include "UITools.h"
 #include "UIToolsModel.h"
 #include "UIToolsView.h"
 #include "UIVirtualBoxManagerWidget.h"
 
 
-UITools::UITools(UIVirtualBoxManagerWidget *pParent /* = 0 */)
+UITools::UITools(UIToolClass enmClass, UIVirtualBoxManagerWidget *pParent /* = 0 */)
     : QWidget(pParent, Qt::Popup)
+    , m_enmClass(enmClass)
     , m_pManagerWidget(pParent)
     , m_pMainLayout(0)
     , m_pToolsModel(0)
@@ -51,16 +51,6 @@ UIActionPool *UITools::actionPool() const
     return managerWidget()->actionPool();
 }
 
-void UITools::setToolsClass(UIToolClass enmClass)
-{
-    m_pToolsModel->setToolsClass(enmClass);
-}
-
-UIToolClass UITools::toolsClass() const
-{
-    return m_pToolsModel->toolsClass();
-}
-
 void UITools::setToolsType(UIToolType enmType)
 {
     m_pToolsModel->setToolsType(enmType);
@@ -71,24 +61,14 @@ UIToolType UITools::toolsType() const
     return m_pToolsModel->toolsType();
 }
 
-UIToolType UITools::lastSelectedToolGlobal() const
+void UITools::setItemsEnabled(bool fEnabled)
 {
-    return m_pToolsModel->lastSelectedToolGlobal();
+    m_pToolsModel->setItemsEnabled(fEnabled);
 }
 
-UIToolType UITools::lastSelectedToolMachine() const
+bool UITools::isItemsEnabled() const
 {
-    return m_pToolsModel->lastSelectedToolMachine();
-}
-
-void UITools::setToolClassEnabled(UIToolClass enmClass, bool fEnabled)
-{
-    m_pToolsModel->setToolClassEnabled(enmClass, fEnabled);
-}
-
-bool UITools::toolClassEnabled(UIToolClass enmClass) const
-{
-    return m_pToolsModel->toolClassEnabled(enmClass);
+    return m_pToolsModel->isItemsEnabled();
 }
 
 void UITools::setRestrictedToolTypes(const QList<UIToolType> &types)
@@ -136,7 +116,7 @@ void UITools::prepareContents()
 void UITools::prepareModel()
 {
     /* Prepare model: */
-    m_pToolsModel = new UIToolsModel(this);
+    m_pToolsModel = new UIToolsModel(m_enmClass, this);
     if (m_pToolsModel)
         prepareView();
 }
@@ -162,6 +142,14 @@ void UITools::prepareView()
 void UITools::prepareConnections()
 {
     /* Model connections: */
+    connect(m_pToolsModel, &UIToolsModel::sigClose,
+            this, &UITools::close);
+    connect(m_pToolsModel, &UIToolsModel::sigSelectionChanged,
+            this, &UITools::sigSelectionChanged);
+    connect(m_pToolsModel, &UIToolsModel::sigExpandingStarted,
+            this, &UITools::sigExpandingStarted);
+    connect(m_pToolsModel, &UIToolsModel::sigExpandingFinished,
+            this, &UITools::sigExpandingFinished);
     connect(m_pToolsModel, &UIToolsModel::sigItemMinimumWidthHintChanged,
             m_pToolsView, &UIToolsView::sltMinimumWidthHintChanged);
     connect(m_pToolsModel, &UIToolsModel::sigItemMinimumHeightHintChanged,

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -161,6 +161,7 @@
 *********************************************************************************************************************************/
 #define LOG_GROUP LOG_GROUP_DBGF
 #define VMCPU_INCL_CPUM_GST_CTX
+#include <VBox/vmm/cpum.h>
 #include <VBox/vmm/dbgf.h>
 #include <VBox/vmm/selm.h>
 #include <VBox/vmm/iem.h>
@@ -1771,6 +1772,11 @@ static DECLCALLBACK(VBOXSTRICTRC) dbgfR3BpRegRecalcOnCpu(PVM pVM, PVMCPU pVCpu, 
 {
     RT_NOREF(pvUser);
 
+#if defined(VBOX_VMM_TARGET_ARMV8)
+    RT_NOREF(pVM, pVCpu);
+    AssertReleaseFailed();
+    return VERR_NOT_IMPLEMENTED;
+#else
     /*
      * CPU 0 updates the enabled hardware breakpoint counts.
      */
@@ -1790,6 +1796,7 @@ static DECLCALLBACK(VBOXSTRICTRC) dbgfR3BpRegRecalcOnCpu(PVM pVM, PVMCPU pVCpu, 
     }
 
     return CPUMRecalcHyperDRx(pVCpu, UINT8_MAX);
+#endif
 }
 
 
@@ -1976,7 +1983,7 @@ static VBOXSTRICTRC dbgfR3BpHit(PVM pVM, PVMCPU pVCpu, DBGFBP hBp, PDBGFBPINT pB
             if (rcStrict == VINF_SUCCESS)
             {
                 uint8_t abInstr[DBGF_BP_INSN_MAX];
-                RTGCPTR const GCPtrInstr = pVCpu->cpum.GstCtx.rip + pVCpu->cpum.GstCtx.cs.u64Base;
+                RTGCPTR const GCPtrInstr = CPUMGetGuestFlatPC(pVCpu);
                 int rc = PGMPhysSimpleReadGCPtr(pVCpu, &abInstr[0], GCPtrInstr, sizeof(abInstr));
                 AssertRC(rc);
                 if (RT_SUCCESS(rc))
@@ -2200,8 +2207,7 @@ VMMR3DECL(int) DBGFR3BpSetInt3Ex(PUVM pUVM, DBGFBPOWNER hOwner, void *pvUser,
             if (RT_SUCCESS(rc))
             {
                 rc = VINF_DBGF_BP_ALREADY_EXIST;
-                if (phBp)
-                    *phBp = hBp;
+                *phBp = hBp;
             }
             return rc;
         }
@@ -2324,8 +2330,7 @@ VMMR3DECL(int) DBGFR3BpSetRegEx(PUVM pUVM, DBGFBPOWNER hOwner, void *pvUser,
         if (RT_SUCCESS(rc))
         {
             rc = VINF_DBGF_BP_ALREADY_EXIST;
-            if (phBp)
-                *phBp = hBp;
+            *phBp = hBp;
         }
         return rc;
     }
@@ -2351,8 +2356,7 @@ VMMR3DECL(int) DBGFR3BpSetRegEx(PUVM pUVM, DBGFBPOWNER hOwner, void *pvUser,
                 rc = dbgfR3BpArm(pUVM, hBp, pBp);
             if (RT_SUCCESS(rc))
             {
-                if (phBp)
-                    *phBp = hBp;
+                *phBp = hBp;
                 return VINF_SUCCESS;
             }
 
@@ -2456,8 +2460,7 @@ VMMR3DECL(int) DBGFR3BpSetPortIoEx(PUVM pUVM, DBGFBPOWNER hOwner, void *pvUser,
         if (RT_SUCCESS(rc))
         {
             rc = VINF_DBGF_BP_ALREADY_EXIST;
-            if (phBp)
-                *phBp = hBp;
+            *phBp = hBp;
         }
         return rc;
     }

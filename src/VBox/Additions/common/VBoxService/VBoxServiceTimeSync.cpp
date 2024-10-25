@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2007-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2007-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -537,7 +537,7 @@ static void vgsvcTimeSyncSet(PCRTTIMESPEC pDrift)
 /**
  * @interface_method_impl{VBOXSERVICE,pfnWorker}
  */
-DECLCALLBACK(int) vgsvcTimeSyncWorker(bool volatile *pfShutdown)
+static DECLCALLBACK(int) vgsvcTimeSyncWorker(bool volatile *pfShutdown)
 {
     RTTIME Time;
     int rc = VINF_SUCCESS;

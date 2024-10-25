@@ -6,7 +6,7 @@
 /*
  * Contributed by knut st. osmundsen, Andriy Gapon, Arto Huusko.
  *
- * Copyright (C) 2007-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2007-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -287,12 +287,13 @@ DECLHIDDEN(int) rtR0MemObjNativeAllocLow(PPRTR0MEMOBJINTERNAL ppMem, size_t cb, 
 }
 
 
-DECLHIDDEN(int) rtR0MemObjNativeAllocCont(PPRTR0MEMOBJINTERNAL ppMem, size_t cb, bool fExecutable, const char *pszTag)
+DECLHIDDEN(int) rtR0MemObjNativeAllocCont(PPRTR0MEMOBJINTERNAL ppMem, size_t cb, RTHCPHYS PhysHighest,
+                                          bool fExecutable, const char *pszTag)
 {
     PRTR0MEMOBJNETBSD pMemNetBSD = (PRTR0MEMOBJNETBSD)rtR0MemObjNew(sizeof(*pMemNetBSD), RTR0MEMOBJTYPE_CONT, NULL, cb, pszTag);
     if (pMemNetBSD)
     {
-        int rc = rtR0MemObjNetBSDAllocHelper(pMemNetBSD, cb, fExecutable, _4G - 1, true /*fContiguous*/);
+        int rc = rtR0MemObjNetBSDAllocHelper(pMemNetBSD, cb, fExecutable, PhysHighest, true /*fContiguous*/);
         if (RT_SUCCESS(rc))
         {
             *ppMem = &pMemNetBSD->Core;
@@ -582,5 +583,12 @@ DECLHIDDEN(RTHCPHYS) rtR0MemObjNativeGetPagePhysAddr(PRTR0MEMOBJINTERNAL pMem, s
         default:
             return NIL_RTHCPHYS;
     }
+}
+
+
+DECLHIDDEN(int) rtR0MemObjNativeZeroInitWithoutMapping(PRTR0MEMOBJINTERNAL pMem)
+{
+    RT_NOREF(pMem);
+    return VERR_NOT_IMPLEMENTED;
 }
 

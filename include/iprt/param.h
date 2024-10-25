@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -64,7 +64,25 @@
 #if defined(RT_ARCH_SPARC64)
 # define PAGE_SIZE          8192
 #elif defined(RT_ARCH_ARM64)
-# define PAGE_SIZE          16384
+# if defined(RT_OS_DARWIN)
+#  define PAGE_SIZE         16384
+# elif defined(RT_OS_LINUX)
+#  ifdef IN_RING0
+#   if RTLNX_VER_MIN(6,9,0)
+#    define PAGE_SIZE        (1 << CONFIG_PAGE_SHIFT)
+#   else
+#    define PAGE_SIZE        (1 << CONFIG_ARM64_PAGE_SHIFT)
+#   endif
+#  elif defined(IPRT_STATIC_ARM64_PAGE_SHIFT)
+#   define PAGE_SIZE        (1 << IPRT_STATIC_ARM64_PAGE_SHIFT)
+#  else
+#   define PAGE_SIZE        RT_DONT_USE_PAGE_SIZE_ON_LINUX_ARM64_IN_USERSPACE_DUE_TO_VARIABLE_PAGE_SIZE
+#  endif
+# elif defined(RT_OS_WINDOWS)
+#  define PAGE_SIZE         4096
+# else
+#  error "This needs porting"
+# endif
 #else
 # define PAGE_SIZE          4096
 #endif
@@ -76,7 +94,25 @@
 #if defined(RT_ARCH_SPARC64)
 # define PAGE_SHIFT         13
 #elif defined(RT_ARCH_ARM64)
-# define PAGE_SHIFT         14
+# if defined(RT_OS_DARWIN)
+#  define PAGE_SHIFT        14
+# elif defined(RT_OS_LINUX)
+#  ifdef IN_RING0
+#   if RTLNX_VER_MIN(6,9,0)
+#    define PAGE_SHIFT       CONFIG_PAGE_SHIFT
+#   else
+#    define PAGE_SHIFT       CONFIG_ARM64_PAGE_SHIFT
+#   endif
+#  elif defined(IPRT_STATIC_ARM64_PAGE_SHIFT)
+#   define PAGE_SHIFT       IPRT_STATIC_ARM64_PAGE_SHIFT
+#  else
+#   define PAGE_SHIFT       RT_DONT_USE_PAGE_SHIFT_ON_LINUX_ARM64_IN_USERSPACE_DUE_TO_VARIABLE_PAGE_SIZE
+#  endif
+# elif defined(RT_OS_WINDOWS)
+#  define PAGE_SHIFT        12
+# else
+#  error "This needs porting"
+# endif
 #else
 # define PAGE_SHIFT         12
 #endif
@@ -90,7 +126,21 @@
 #if defined(RT_ARCH_SPARC64)
 # define PAGE_OFFSET_MASK    0x1fff
 #elif defined(RT_ARCH_ARM64)
-# define PAGE_OFFSET_MASK    0x3fff
+# if defined(RT_OS_DARWIN)
+#  define PAGE_OFFSET_MASK   0x3fff
+# elif defined(RT_OS_LINUX)
+#  ifdef IN_RING0
+#   define PAGE_OFFSET_MASK  (PAGE_SIZE - 1)
+#  elif defined(IPRT_STATIC_ARM64_PAGE_SHIFT)
+#   define PAGE_OFFSET_MASK  ((1 << IPRT_STATIC_ARM64_PAGE_SHIFT) - 1)
+#  else
+#   define PAGE_OFFSET_MASK  RT_DONT_USE_PAGE_OFFSET_MASK_ON_LINUX_ARM64_IN_USERSPACE_DUE_TO_VARIABLE_PAGE_SIZE
+#  endif
+# elif defined(RT_OS_WINDOWS)
+#  define PAGE_OFFSET_MASK   0xfff
+# else
+#  error "This needs porting"
+# endif
 #else
 # define PAGE_OFFSET_MASK    0xfff
 #endif

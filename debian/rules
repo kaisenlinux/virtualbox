@@ -49,6 +49,7 @@ endif
 	    --ose \
 	    --odir=$(abspath out) \
 	    --with-linux="/usr" \
+	    --disable-docs \
 	    --disable-kmods \
 	    --enable-webservice \
 	    --enable-vde \
@@ -71,7 +72,9 @@ override_dh_auto_build:
 	    VBOX_WITH_REGISTRATION_REQUEST= \
 	    VBOX_WITH_UPDATE_REQUEST= \
 	    KBUILD_VERBOSE=2 \
-	    VBOX_WITH_EXTPACK_VBOXDTRACE=
+	    VBOX_WITH_EXTPACK_VBOXDTRACE= \
+	    VBOX_DITA_OT_PATH=/usr/share/dita-ot \
+	    VBOX_DITA_CLASSPATH=/usr/share/dita-ot/lib/ant-launcher.jar
 
 	xsltproc --nonet --stringparam section.autolabel 1 \
 	    -o debian/README.Debian.html \
@@ -88,7 +91,7 @@ override_dh_auto_install:
 
 ifneq (,$(filter $(sname), $(shell dh_listpackages)))
 	export VBOX_INSTALL_PATH=$(INSTALL_PATH) && \
-	    cd out/bin/sdk/installer && \
+	    cd out/bin/sdk/installer/python && \
 	    python3 ./vboxapisetup.py install --root $(CURDIR)/debian/$(sname)
 endif
 
@@ -182,14 +185,14 @@ endif
 endif
 
 override_dh_shlibdeps:
-ifneq (,$(filter $(sname), $(shell dh_listpackages)))
-	dh_shlibdeps -p$(sname) -X debian/$(sname)$(INSTALL_PATH)/VBoxTestOGL -- \
-	    -dRecommends debian/$(sname)$(INSTALL_PATH)/VBoxTestOGL -dDepends
-endif
 	dh_shlibdeps --remaining-packages
 
 override_dh_compress:
 	dh_compress -X.pdf -X.qhc -X.qch
+
+override_dh_gencontrol:
+	dh_gencontrol -- \
+		-Vvirtualbox-ext-pack:Version=$(DEB_VERSION_UPSTREAM)-1kaisen -Vvirtualbox-ext-pack:nextVersion=$(DEB_VERSION_UPSTREAM)-zkaisen -Vvirtualbox-guest-additions-iso:Version=$(DEB_VERSION_UPSTREAM)-1kaisen -Vvirtualbox-guest-additions-iso:nextVersion=$(DEB_VERSION_UPSTREAM)-zkaisen
 
 override_dh_auto_clean:
 	dh_auto_clean
@@ -202,8 +205,3 @@ override_dh_auto_clean:
 	rm -f debian/$(pdkms).links
 
 	find . -name "*.pyc" -exec rm -f {} \;
-
-override_dh_gencontrol:
-	dh_gencontrol -- \
-		-Vvirtualbox-ext-pack:Version=$(DEB_VERSION_UPSTREAM)-1kaisen -Vvirtualbox-ext-pack:nextVersion=$(DEB_VERSION_UPSTREAM)-zkaisen \
-		-Vvirtualbox-guest-additions-iso:Version=$(DEB_VERSION_UPSTREAM)-1kaisen -Vvirtualbox-guest-additions-iso:nextVersion=$(DEB_VERSION_UPSTREAM)-zkaisen

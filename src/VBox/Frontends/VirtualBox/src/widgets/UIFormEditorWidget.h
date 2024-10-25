@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -36,14 +36,12 @@
 #include <QWidget>
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CFormValue.h"
 
 /* Forward declarations: */
 class QHeaderView;
-class QItemEditorFactory;
+class QITableView;
 class UIFormEditorModel;
-class UIFormEditorView;
 class UINotificationCenter;
 class CForm;
 class CVirtualSystemDescriptionForm;
@@ -58,8 +56,6 @@ public:
     /** Constructs Form Editor widget passing @a pParent to the base-class.
       * @param  pNotificationCenter  Brings the notification-center this widget should report to. */
     UIFormEditorWidget(QWidget *pParent = 0, UINotificationCenter *pNotificationCenter = 0);
-    /** Destructs Form Editor widget. */
-    virtual ~UIFormEditorWidget() RT_OVERRIDE;
 
     /** Returns the notification-center reference. */
     UINotificationCenter *notificationCenter() const { return m_pNotificationCenter; }
@@ -67,7 +63,7 @@ public:
     void setNotificationCenter(UINotificationCenter *pNotificationCenter) { m_pNotificationCenter = pNotificationCenter; }
 
     /** Returns table-view reference. */
-    UIFormEditorView *view() const;
+    QITableView *view() const;
     /** Returns horizontal header reference. */
     QHeaderView *horizontalHeader() const;
     /** Returns vertical header reference. */
@@ -77,8 +73,8 @@ public:
 
     /** Clears form. */
     void clearForm();
-    /** Defines @a values to be edited. */
-    void setValues(const QVector<CFormValue> &values);
+    /** Defines form @a values to be edited. */
+    void setFormValues(const QVector<CFormValue> &values);
     /** Defines @a comForm to be edited. */
     void setForm(const CForm &comForm);
     /** Defines virtual system description @a comForm to be edited. */
@@ -87,31 +83,18 @@ public:
     /** Makes sure current editor data committed. */
     void makeSureEditorDataCommitted();
 
-protected:
-
-    /** Preprocesses any Qt @a pEvent for passed @a pObject. */
-    virtual bool eventFilter(QObject *pObject, QEvent *pEvent) RT_OVERRIDE;
-
 private:
 
     /** Prepares all. */
     void prepare();
-    /** Cleanups all. */
-    void cleanup();
-
-    /** Adjusts table column sizes. */
-    void adjustTable();
 
     /** Holds the notification-center reference. */
     UINotificationCenter *m_pNotificationCenter;
 
     /** Holds the table-view instance. */
-    UIFormEditorView  *m_pTableView;
+    QITableView       *m_pTableView;
     /** Holds the table-model instance. */
     UIFormEditorModel *m_pTableModel;
-
-    /** Holds the item editor factory instance. */
-    QItemEditorFactory *m_pItemEditorFactory;
 };
 
 /** Safe pointer to Form Editor widget. */

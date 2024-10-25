@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -27,10 +27,11 @@
 
 /* Qt includes: */
 #include <QComboBox>
+#include <QHBoxLayout>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QPainter>
-#include <QHBoxLayout>
+#include <QRegularExpression>
 
 /* GUI includes: */
 #include "QIToolButton.h"
@@ -39,6 +40,7 @@
 #include "UIMediumItem.h"
 #include "UIMediumSearchWidget.h"
 #include "UISearchLineEdit.h"
+#include "UITranslationEventListener.h"
 
 #ifdef VBOX_WS_MAC
 # include "UIWindowMenuManager.h"
@@ -58,7 +60,7 @@ public:
         : m_enmSearchType(enmSearchType)
         , m_strSearchTerm(strSearchTerm){}
     virtual ~FilterByNameUUID(){}
-    virtual bool operator()(QTreeWidgetItem *pItem) const
+    virtual bool operator()(QTreeWidgetItem *pItem) const RT_OVERRIDE RT_FINAL
     {
         if (!pItem || m_strSearchTerm.isEmpty())
             return false;
@@ -68,13 +70,18 @@ public:
         UIMediumItem *pMediumItem = dynamic_cast<UIMediumItem*>(pItem);
         if (!pMediumItem)
             return false;
-        if (m_enmSearchType == UIMediumSearchWidget::SearchByUUID &&
-            !pMediumItem->id().toString().contains(m_strSearchTerm, Qt::CaseInsensitive))
+        QString strValue;
+        if (m_enmSearchType == UIMediumSearchWidget::SearchByUUID)
+            strValue = pMediumItem->id().toString();
+        else if (m_enmSearchType == UIMediumSearchWidget::SearchByName)
+            strValue = pMediumItem->name();
+        else
             return false;
-        if (m_enmSearchType == UIMediumSearchWidget::SearchByName &&
-            !pMediumItem->name().contains(m_strSearchTerm, Qt::CaseInsensitive))
-            return false;
-        return true;
+        QRegularExpression searchRegEx = QRegularExpression::fromWildcard(m_strSearchTerm, Qt::CaseInsensitive,
+                                                                          QRegularExpression::UnanchoredWildcardConversion);
+        if (strValue.contains(searchRegEx))
+            return true;
+        return false;
     }
 
 private:
@@ -89,7 +96,7 @@ private:
 *********************************************************************************************************************************/
 
 UIMediumSearchWidget::UIMediumSearchWidget(QWidget *pParent)
-    :QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_pSearchComboxBox(0)
     , m_pSearchTermLineEdit(0)
     , m_pShowNextMatchButton(0)
@@ -113,11 +120,9 @@ void UIMediumSearchWidget::prepareWidgets()
         m_pSearchComboxBox->setEditable(false);
         m_pSearchComboxBox->insertItem(SearchByName, "Search By Name");
         m_pSearchComboxBox->insertItem(SearchByUUID, "Search By UUID");
-        pLayout->addWidget(m_pSearchComboxBox);
-
-        connect(m_pSearchComboxBox, static_cast<void(QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+        connect(m_pSearchComboxBox, &QComboBox::currentIndexChanged,
                 this, &UIMediumSearchWidget::sigPerformSearch);
-
+        pLayout->addWidget(m_pSearchComboxBox);
     }
 
     m_pSearchTermLineEdit = new UISearchLineEdit;
@@ -144,7 +149,10 @@ void UIMediumSearchWidget::prepareWidgets()
         pLayout->addWidget(m_pShowNextMatchButton);
     }
 
-    retranslateUi();
+    sltRetranslateUI();
+
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIMediumSearchWidget::sltRetranslateUI);
 }
 
 UIMediumSearchWidget::SearchType UIMediumSearchWidget::searchType() const
@@ -183,7 +191,7 @@ void UIMediumSearchWidget::search(QITreeWidget* pTreeWidget, bool fGotoNext /* =
     updateSearchLineEdit(m_matchedItemList.size(), m_iScrollToIndex);
 }
 
-void UIMediumSearchWidget::retranslateUi()
+void UIMediumSearchWidget::sltRetranslateUI()
 {
     if (m_pSearchComboxBox)
     {
@@ -194,16 +202,22 @@ void UIMediumSearchWidget::retranslateUi()
     if (m_pSearchTermLineEdit)
         m_pSearchTermLineEdit->setToolTip(tr("Enter the search term and press Enter/Return"));
     if (m_pShowPreviousMatchButton)
-        m_pShowPreviousMatchButton->setToolTip(tr("Show the previous item matching the search term"));
+    {
+        m_pShowPreviousMatchButton->setToolTip(tr("Navigates to the previous item matching the search term"));
+        m_pShowPreviousMatchButton->setText(tr("Previous Match"));
+    }
     if (m_pShowNextMatchButton)
-        m_pShowNextMatchButton->setToolTip(tr("Show the next item matching the search term"));
+    {
+        m_pShowNextMatchButton->setToolTip(tr("Navigates to the next item matching the search term"));
+        m_pShowNextMatchButton->setText(tr("Next Match"));
+    }
 }
 
 void UIMediumSearchWidget::showEvent(QShowEvent *pEvent)
 {
     if (m_pSearchTermLineEdit)
         m_pSearchTermLineEdit->setFocus();
-    QIWithRetranslateUI<QWidget>::showEvent(pEvent);
+    QWidget::showEvent(pEvent);
 }
 
 void UIMediumSearchWidget::markUnmarkItems(QList<QTreeWidgetItem*> &itemList, bool fMark)

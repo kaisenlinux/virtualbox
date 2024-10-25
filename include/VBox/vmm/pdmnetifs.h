@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -40,6 +40,7 @@
 #endif
 
 #include <VBox/types.h>
+#include <iprt/sg.h>
 
 
 RT_C_DECLS_BEGIN
@@ -53,12 +54,20 @@ RT_C_DECLS_BEGIN
 /**
  * PDM scatter/gather buffer.
  *
+ * @note    This is a little bit similar to the RTSGBUF structure in IPRT.
+ *
+ *          It is possible to reuse the PDMSCATTERGATHER::aSegs member here in a
+ *          RTSGBUF, but must always remember to specify
+ *          PDMSCATTERGATHER::cbUsed as the max length to any RTSgBufXxxx API
+ *          call, since the segments here will (normally) describe the full
+ *          PDMSCATTERGATHER::cbAvailable length.
+ *
  * @todo Promote this to VBox/types.h, VBox/vmm/pdmcommon.h or some such place.
  */
 typedef struct PDMSCATTERGATHER
 {
     /** Flags. */
-    size_t          fFlags;
+    uint64_t        fFlags;
     /** The number of bytes used.
      * This is cleared on alloc and set by the user. */
     size_t          cbUsed;
@@ -72,8 +81,10 @@ typedef struct PDMSCATTERGATHER
     /** The number of segments
      * This is set on alloc and not changed by the user. */
     size_t          cSegs;
-    /** Variable sized array of segments. */
-    PDMDATASEG      aSegs[1];
+    /** Variable sized array of segments.
+     * This describes the max allocated buffer length, consumers must limit
+     * operations to PDMSCATTERGATHER::cbUser. */
+    RTSGSEG         aSegs[1];
 } PDMSCATTERGATHER;
 /** Pointer to a PDM scatter/gather buffer. */
 typedef PDMSCATTERGATHER *PPDMSCATTERGATHER;
@@ -83,23 +94,23 @@ typedef PPDMSCATTERGATHER *PPPDMSCATTERGATHER;
 
 /** @name PDMSCATTERGATHER::fFlags
  * @{  */
-/** Magic value. */
-#define PDMSCATTERGATHER_FLAGS_MAGIC        UINT32_C(0xb1b10000)
+/** Magic value (Andrzej Sapkowski). */
+#define PDMSCATTERGATHER_FLAGS_MAGIC        UINT64_C(0x19480621b1b20000)
 /** Magic mask. */
-#define PDMSCATTERGATHER_FLAGS_MAGIC_MASK   UINT32_C(0xffff0000)
+#define PDMSCATTERGATHER_FLAGS_MAGIC_MASK   UINT64_C(0xffffffffffff0000)
 /** Owned by owner number 1. */
-#define PDMSCATTERGATHER_FLAGS_OWNER_1      UINT32_C(0x00000001)
+#define PDMSCATTERGATHER_FLAGS_OWNER_1      UINT64_C(0x0000000000000001)
 /** Owned by owner number 2. */
-#define PDMSCATTERGATHER_FLAGS_OWNER_2      UINT32_C(0x00000002)
+#define PDMSCATTERGATHER_FLAGS_OWNER_2      UINT64_C(0x0000000000000002)
 /** Owned by owner number 3. */
-#define PDMSCATTERGATHER_FLAGS_OWNER_3      UINT32_C(0x00000002)
+#define PDMSCATTERGATHER_FLAGS_OWNER_3      UINT64_C(0x0000000000000002)
 /** Owner mask. */
-#define PDMSCATTERGATHER_FLAGS_OWNER_MASK   UINT32_C(0x00000003)
+#define PDMSCATTERGATHER_FLAGS_OWNER_MASK   UINT64_C(0x0000000000000003)
 /** Mask of flags available to general use.
  * The parties using the SG must all agree upon how to use these of course. */
-#define PDMSCATTERGATHER_FLAGS_AVL_MASK     UINT32_C(0x0000f000)
+#define PDMSCATTERGATHER_FLAGS_AVL_MASK     UINT64_C(0x000000000000f000)
 /** Flags reserved for future use, MBZ. */
-#define PDMSCATTERGATHER_FLAGS_RVD_MASK     UINT32_C(0x00000ff8)
+#define PDMSCATTERGATHER_FLAGS_RVD_MASK     UINT64_C(0x0000000000000ff8)
 /** @} */
 
 
@@ -421,6 +432,29 @@ typedef struct PDMINETWORKCONFIG
 #define PDMINETWORKCONFIG_IID                   "d6d909e8-716d-415d-b109-534e4478ff4e"
 
 
+/**
+ * DNS Setting Update Payload
+ * @sa PGMINETWORKNATCONFIG::pfnNotifyDnsChanged
+ */
+typedef struct PDMINETWORKNATDNSCONFIG
+{
+    /** Domain name.
+     * (The length is per RFC2821 plus null char.) */
+    char                szDomainName[256];
+    /** Number of entries in the ppszNameServers array.   */
+    size_t              cNameServers;
+    /** Name servers (NULL terminated array). */
+    const char * const *papszNameServers;
+    /** Number of entries in the ppszSearchDomains array. */
+    size_t              cSearchDomains;
+    /** Search domains (NULL terminated array). */
+    const char * const *papszSearchDomains;
+} PDMINETWORKNATDNSCONFIG;
+/** Pointer to a const DNS settings update payload.
+ * @sa PGMINETWORKNATCONFIG::pfnNotifyDnsChanged */
+typedef PDMINETWORKNATDNSCONFIG const *PCPDMINETWORKNATDNSCONFIG;
+
+
 /** Pointer to a NAT configuration port.   */
 typedef struct PDMINETWORKNATCONFIG *PPDMINETWORKNATCONFIG;
 /**
@@ -443,11 +477,11 @@ typedef struct PDMINETWORKNATCONFIG
      *
      * IHostNameResolutionConfigurationChangeEvent.
      */
-    DECLR3CALLBACKMEMBER(void, pfnNotifyDnsChanged, (PPDMINETWORKNATCONFIG pInterface));
+    DECLR3CALLBACKMEMBER(void, pfnNotifyDnsChanged, (PPDMINETWORKNATCONFIG pInterface, PCPDMINETWORKNATDNSCONFIG pDnsConfig));
 
 } PDMINETWORKNATCONFIG;
 /** PDMINETWORKNATCONFIG interface ID. */
-#define PDMINETWORKNATCONFIG_IID                "dc961028-3523-4b52-a93b-e38168a4a9fa"
+#define PDMINETWORKNATCONFIG_IID                "16de6afe-e48f-4cad-abc0-f96507683376"
 /** @} */
 
 RT_C_DECLS_END

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -46,7 +46,7 @@
 
 
 /* HACK ALERT! */
-#if defined(RT_OS_DARWIN) && defined(RT_ARCH_ARM64)
+#if (defined(RT_OS_DARWIN) || defined(RT_OS_LINUX) || defined(RT_OS_WINDOWS)) && defined(RT_ARCH_ARM64)
 # undef  RTTimeNanoTSWorkerName
 # define RTTimeNanoTSWorkerName() "system"
 #endif

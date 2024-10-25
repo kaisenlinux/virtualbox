@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,8 +31,11 @@
 # pragma once
 #endif
 
-/* GUI includes: */
-#include "QIWithRetranslateUI.h"
+/* Qt includes. */
+#include <QWidget>
+
+/* GUI includes. */
+#include "UILibraryDefs.h"
 
 /* Forward declarations: */
 class QComboBox;
@@ -43,7 +46,7 @@ class UISearchLineEdit;
 
 /** QWidget extension providing a simple way to enter a earch term and search type for medium searching
  *  in virtual media manager, medium selection dialog, etc. */
-class  SHARED_LIBRARY_STUFF UIMediumSearchWidget : public QIWithRetranslateUI<QWidget>
+class  SHARED_LIBRARY_STUFF UIMediumSearchWidget : public QWidget
 {
     Q_OBJECT;
 
@@ -71,13 +74,13 @@ public:
 
 protected:
 
-    void retranslateUi() RT_OVERRIDE;
     virtual void showEvent(QShowEvent *pEvent) RT_OVERRIDE;
 
 private slots:
 
     void sltShowNextMatchingItem();
     void sltShowPreviousMatchingItem();
+    void sltRetranslateUI();
 
 private:
 

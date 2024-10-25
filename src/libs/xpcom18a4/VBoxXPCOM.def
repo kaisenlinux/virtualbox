@@ -3,7 +3,7 @@
 ; VirtualBox XPCOM - Import library definition file.
 
 ;
-; Copyright (C) 2018-2023 Oracle and/or its affiliates.
+; Copyright (C) 2018-2024 Oracle and/or its affiliates.
 ;
 ; This file is part of VirtualBox base platform packages, as
 ; available from https://www.virtualbox.org.
@@ -91,6 +91,7 @@ EXPORTS
     NS_GetMemoryManager
     NS_GetServiceManager
     NS_GetTraceRefcnt
+    NS_IsXPCOMInitialized
     NS_InitXPCOM2
     NS_MeanAndStdDev
     NS_NewByteInputStream
@@ -181,25 +182,19 @@ EXPORTS
     PL_RevokeEvents
     PL_WaitForEvent
     PL_strcasecmp
-    PL_strchr
     PL_strcmp
-    PL_strcpy
     PL_strdup
     PL_strfree
     PL_strlen
     PL_strncasecmp
-    PL_strnchr
     PL_strncmp
     PL_strncpy
     PL_strncpyz
     PL_strndup
     PL_strnlen
-    PL_strnrchr
-    PL_strnrstr
     PL_strnstr
     PL_strrchr
     PL_strrstr
-    PL_strstr
     PRP_DestroyNakedCondVar
     PRP_NakedBroadcast
     PRP_NakedNotify
@@ -446,7 +441,6 @@ EXPORTS
     PR_Send
     PR_SendFile
     PR_SendTo
-    PR_SetConcurrency
     PR_SetEnv
     PR_SetError
     PR_SetErrorText
@@ -572,7 +566,6 @@ EXPORTS
     _MD_TLockFile
     _MD_UnlockFile
     _MD_gethostname
-    _MD_getsysinfo
     _MD_unix_map_accept_error
     _MD_unix_map_access_error
     _MD_unix_map_bind_error

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -41,7 +41,6 @@
 
 /* GUI includes: */
 #include "QIDialog.h"
-#include "QIWithRetranslateUI.h"
 
 /* Forward declarations: */
 class QCloseEvent;
@@ -137,7 +136,7 @@ protected slots:
 protected:
 
     /** Worker-thread serialization rutine. */
-    void run();
+    void run() RT_OVERRIDE;
 
     /** Holds the load/save direction. */
     const SerializationDirection  m_enmDirection;
@@ -162,7 +161,7 @@ protected:
 
 /** QIDialog reimplementation used to
   * reflect the settings serialization operation. */
-class SHARED_LIBRARY_STUFF UISettingsSerializerProgress : public QIWithRetranslateUI<QIDialog>
+class SHARED_LIBRARY_STUFF UISettingsSerializerProgress : public QIDialog
 {
     Q_OBJECT;
 
@@ -181,7 +180,7 @@ public:
                                  const QVariant &data, const UISettingsPageList &pages);
 
     /** Executes the dialog. */
-    int exec();
+    int exec() RT_OVERRIDE;
 
     /** Returns the instance of wrapper(s) to load/save the data from/to. */
     QVariant &data();
@@ -194,16 +193,16 @@ protected:
     /** Prepare routine. */
     void prepare();
 
-    /** Translate routine: */
-    void retranslateUi();
-
     /** Close event-handler called with the given window system @a pEvent. */
-    virtual void closeEvent(QCloseEvent *pEvent);
+    virtual void closeEvent(QCloseEvent *pEvent) RT_OVERRIDE;
 
 private slots:
 
+    /** Translate routine: */
+    void sltRetranslateUI();
+
     /** Hides the modal dialog and sets the result code to <i>Rejected</i>. */
-    virtual void reject();
+    virtual void reject() RT_OVERRIDE;
 
     /** Starts the process. */
     void sltStartProcess();

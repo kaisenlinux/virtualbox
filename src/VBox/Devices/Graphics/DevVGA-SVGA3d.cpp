@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -85,23 +85,26 @@ static void vmsvga3dSurfaceFreeMipLevels(PVMSVGA3DSURFACE pSurface)
  * @param   surfaceFlags        .
  * @param   format              .
  * @param   multisampleCount    .
+ * @param   multisamplePattern  .
+ * @param   qualityLevel        .
  * @param   autogenFilter       .
  * @param   numMipLevels        .
  * @param   pMipLevel0Size      .
  * @param   arraySize           Number of elements in a texture array.
+ * @param   bufferByteStride    .
  * @param   fAllocMipLevels     .
  */
 int vmsvga3dSurfaceDefine(PVGASTATECC pThisCC, uint32_t sid, SVGA3dSurfaceAllFlags surfaceFlags, SVGA3dSurfaceFormat format,
-                          uint32_t multisampleCount, SVGA3dTextureFilter autogenFilter,
-                          uint32_t numMipLevels, SVGA3dSize const *pMipLevel0Size, uint32_t arraySize, bool fAllocMipLevels)
+                          uint32_t multisampleCount, SVGA3dMSPattern multisamplePattern, SVGA3dMSQualityLevel qualityLevel, SVGA3dTextureFilter autogenFilter,
+                          uint32_t numMipLevels, SVGA3dSize const *pMipLevel0Size, uint32_t arraySize, uint32_t bufferByteStride, bool fAllocMipLevels)
 {
     PVMSVGA3DSURFACE pSurface;
     PVMSVGA3DSTATE   pState = pThisCC->svga.p3dState;
     AssertReturn(pState, VERR_INVALID_STATE);
 
-    LogFunc(("sid=%u surfaceFlags=0x%RX64 format=%s (%#x) multiSampleCount=%d autogenFilter=%d, numMipLevels=%d size=(%dx%dx%d)\n",
+    LogFunc(("sid=%u surfaceFlags=0x%RX64 format=%s (%#x) multiSampleCount=%d autogenFilter=%d, numMipLevels=%d size=%dx%dx%d, arraySize=%u\n",
              sid, surfaceFlags, vmsvgaLookupEnum((int)format, &g_SVGA3dSurfaceFormat2String), format, multisampleCount, autogenFilter,
-             numMipLevels, pMipLevel0Size->width, pMipLevel0Size->height, pMipLevel0Size->depth));
+             numMipLevels, pMipLevel0Size->width, pMipLevel0Size->height, pMipLevel0Size->depth, arraySize));
 
     ASSERT_GUEST_RETURN(sid < SVGA3D_MAX_SURFACE_IDS, VERR_INVALID_PARAMETER);
     ASSERT_GUEST_RETURN(numMipLevels >= 1 && numMipLevels <= SVGA3D_MAX_MIP_LEVELS, VERR_INVALID_PARAMETER);
@@ -139,6 +142,11 @@ int vmsvga3dSurfaceDefine(PVGASTATECC pThisCC, uint32_t sid, SVGA3dSurfaceAllFla
         pSurface->surfaceDesc.numArrayElements = SVGA3D_MAX_SURFACE_FACES;
     else
         pSurface->surfaceDesc.numArrayElements = 1;
+
+    pSurface->surfaceDesc.multisampleCount = RT_MAX(multisampleCount, 1);
+    pSurface->surfaceDesc.multisamplePattern = RT_CLAMP(multisamplePattern, SVGA3D_MS_PATTERN_MIN, SVGA3D_MS_PATTERN_MAX);
+    pSurface->surfaceDesc.qualityLevel = RT_CLAMP(qualityLevel, SVGA3D_MS_QUALITY_MIN, SVGA3D_MS_QUALITY_MAX);
+    pSurface->surfaceDesc.bufferByteStride = bufferByteStride;
 
     /** @todo This 'switch' and the surfaceFlags tweaks should not be necessary.
      * The actual surface type will be figured out when the surface is actually used later.
@@ -227,14 +235,14 @@ int vmsvga3dSurfaceDefine(PVGASTATECC pThisCC, uint32_t sid, SVGA3dSurfaceAllFla
     /* cFaces is 6 for a cubemaps and 1 otherwise. */
     pSurface->cFaces            = (uint32_t)((surfaceFlags & SVGA3D_SURFACE_CUBEMAP) ? 6 : 1);
     pSurface->cLevels           = numMipLevels;
-    pSurface->multiSampleCount  = multisampleCount;
+    pSurface->multiSampleCount  = pSurface->surfaceDesc.multisampleCount; /** @todo Remove the field. */
     pSurface->autogenFilter     = autogenFilter;
     Assert(autogenFilter != SVGA3D_TEX_FILTER_FLATCUBIC);
     Assert(autogenFilter != SVGA3D_TEX_FILTER_GAUSSIANCUBIC);
     pSurface->paMipmapLevels    = (PVMSVGA3DMIPMAPLEVEL)RTMemAllocZ(numMipLevels * pSurface->surfaceDesc.numArrayElements * sizeof(VMSVGA3DMIPMAPLEVEL));
     AssertReturn(pSurface->paMipmapLevels, VERR_NO_MEMORY);
 
-    pSurface->cbBlock = vmsvga3dSurfaceFormatSize(format, &pSurface->cxBlock, &pSurface->cyBlock);
+    pSurface->cbBlock = vmsvga3dSurfaceFormatSize(format, &pSurface->cxBlock, &pSurface->cyBlock, &pSurface->cbPitchBlock);
     AssertReturn(pSurface->cbBlock, VERR_INVALID_PARAMETER);
 
     /** @todo cbMemRemaining = value of SVGA_REG_MOB_MAX_SIZE */
@@ -253,38 +261,12 @@ int vmsvga3dSurfaceDefine(PVGASTATECC pThisCC, uint32_t sid, SVGA3dSurfaceAllFla
 
             uint32_t cBlocksX;
             uint32_t cBlocksY;
-            if (RT_LIKELY(pSurface->cxBlock == 1 && pSurface->cyBlock == 1))
-            {
-                cBlocksX = mipmapSize.width;
-                cBlocksY = mipmapSize.height;
-            }
-            else
-            {
-                cBlocksX = mipmapSize.width / pSurface->cxBlock;
-                if (mipmapSize.width % pSurface->cxBlock)
-                    ++cBlocksX;
-                cBlocksY = mipmapSize.height / pSurface->cyBlock;
-                if (mipmapSize.height % pSurface->cyBlock)
-                    ++cBlocksY;
-            }
-
-            AssertBreakStmt(cBlocksX > 0 && cBlocksY > 0 && mipmapSize.depth > 0, rc = VERR_INVALID_PARAMETER);
-
-            const uint32_t cMaxBlocksX = cbMemRemaining / pSurface->cbBlock;
-            AssertBreakStmt(cBlocksX < cMaxBlocksX, rc = VERR_INVALID_PARAMETER);
-
-            const uint32_t cbSurfacePitch = pSurface->cbBlock * cBlocksX;
-            LogFunc(("cbSurfacePitch=0x%x\n", cbSurfacePitch));
-
-            const uint32_t cMaxBlocksY = cbMemRemaining / cbSurfacePitch;
-            AssertBreakStmt(cBlocksY < cMaxBlocksY, rc = VERR_INVALID_PARAMETER);
-
-            const uint32_t cbSurfacePlane = cbSurfacePitch * cBlocksY;
-
-            const uint32_t cMaxDepth = cbMemRemaining / cbSurfacePlane;
-            AssertBreakStmt(mipmapSize.depth < cMaxDepth, rc = VERR_INVALID_PARAMETER);
-
-            const uint32_t cbSurface = cbSurfacePlane * mipmapSize.depth;
+            uint32_t cbSurfacePitch;
+            uint32_t cbSurfacePlane;
+            uint32_t cbSurface;
+            vmsvga3dSurfaceMipBufferSize(format, mipmapSize, pSurface->surfaceDesc.multisampleCount,
+                                         &cBlocksX, &cBlocksY, &cbSurfacePitch, &cbSurfacePlane, &cbSurface);
+            AssertBreakStmt(cbMemRemaining >= cbSurface, rc = VERR_INVALID_PARAMETER);
 
             PVMSVGA3DMIPMAPLEVEL pMipmapLevel = &pSurface->paMipmapLevels[iMipmap];
             pMipmapLevel->mipmapSize     = mipmapSize;
@@ -1610,12 +1592,14 @@ void vmsvga3dSurfaceMapInit(VMSVGA3D_MAPPED_SURFACE *pMap, VMSVGA3D_SURFACE_MAP 
     pMap->format       = pSurface->format;
     pMap->box          = *pBox;
     pMap->cbBlock      = pSurface->cbBlock;
-    pMap->cbRow        = cxBlocks * pSurface->cbBlock;
+    pMap->cxBlocks     = cxBlocks;
+    pMap->cyBlocks     = cyBlocks;
+    pMap->cbRow        = cxBlocks * pSurface->cbPitchBlock;
     pMap->cbRowPitch   = cbRowPitch;
-    pMap->cRows        = cyBlocks;
+    pMap->cRows        = (cyBlocks * pSurface->cbBlock) / pSurface->cbPitchBlock;
     pMap->cbDepthPitch = cbDepthPitch;
     pMap->pvData       = (uint8_t *)pvData
-                       + (pBox->x / pSurface->cxBlock) * pSurface->cbBlock
+                       + (pBox->x / pSurface->cxBlock) * pSurface->cbPitchBlock
                        + (pBox->y / pSurface->cyBlock) * cbRowPitch
                        + pBox->z * cbDepthPitch;
 }
@@ -1755,6 +1739,16 @@ uint32_t vmsvga3dGetSubresourceCount(PVGASTATECC pThisCC, SVGA3dSurfaceId sid)
 }
 
 
+bool vmsvga3dIsMultisampleSurface(PVGASTATECC pThisCC, SVGA3dSurfaceId sid)
+{
+    PVMSVGA3DSURFACE pSurface;
+    int rc = vmsvga3dSurfaceFromSid(pThisCC->svga.p3dState, sid, &pSurface);
+    AssertRCReturn(rc, 0);
+
+    return pSurface->surfaceDesc.multisampleCount > 1;
+}
+
+
 /*
  * Calculates memory layout of a surface box for memcpy:
  */
@@ -1791,12 +1785,13 @@ int vmsvga3dGetBoxDimensions(PVGASTATECC pThisCC, SVGA3dSurfaceImageId const *pI
     uint32_t const cBlocksY = (clipBox.h + pSurface->cyBlock - 1) / pSurface->cyBlock;
 
     pResult->offSubresource = vmsvga3dCalcSubresourceOffset(pThisCC, pImage);
-    pResult->offBox   = (clipBox.x / pSurface->cxBlock) * pSurface->cbBlock
+    pResult->offBox   = (clipBox.x / pSurface->cxBlock) * pSurface->cbPitchBlock
                       + (clipBox.y / pSurface->cyBlock) * pMipLevel->cbSurfacePitch
                       + clipBox.z * pMipLevel->cbSurfacePlane;
-    pResult->cbRow    = cBlocksX * pSurface->cbBlock;
+    pResult->cbRow    = cBlocksX * pSurface->cbPitchBlock;
     pResult->cbPitch  = pMipLevel->cbSurfacePitch;
     pResult->cyBlocks = cBlocksY;
+    pResult->cRows    = (cBlocksY * pSurface->cbBlock) / pSurface->cbPitchBlock;
     pResult->cbDepthPitch = pMipLevel->cbSurfacePlane;
 
     return VINF_SUCCESS;

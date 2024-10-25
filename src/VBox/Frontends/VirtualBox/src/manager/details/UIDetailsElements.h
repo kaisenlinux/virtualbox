@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -36,10 +36,10 @@
 
 /* GUI includes: */
 #include "UIDetailsElement.h"
+#include "UILibraryDefs.h"
 #include "UITask.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CCloudMachine.h"
 #include "CMachine.h"
 
@@ -100,11 +100,8 @@ public:
 
 protected:
 
-    /** Performs translation. */
-    virtual void retranslateUi();
-
     /** Updates appearance. */
-    virtual void updateAppearance();
+    virtual void updateAppearance() RT_OVERRIDE;
 
     /** Creates update task. */
     virtual UITask *createUpdateTask() = 0;
@@ -113,6 +110,9 @@ private slots:
 
     /** Handles the signal about update @a pTask is finished. */
     virtual void sltUpdateAppearanceFinished(UITask *pTask);
+
+    /** Performs translation. */
+    void sltRetranslateUI();
 
 private:
 
@@ -140,20 +140,20 @@ private slots:
     /** Handles preview size-hint changes. */
     void sltPreviewSizeHintChanged();
 
+    /** Performs translation. */
+    void sltRetranslateUI();
+
 private:
 
-    /** Performs translation. */
-    virtual void retranslateUi();
-
     /** Returns minimum width hint. */
-    int minimumWidthHint() const;
+    int minimumWidthHint() const RT_OVERRIDE;
     /** Returns minimum height hint.
       * @param fClosed allows to specify whether the hint should
       *                be calculated for the closed element. */
-    int minimumHeightHintForElement(bool fClosed) const;
+    int minimumHeightHintForElement(bool fClosed) const RT_OVERRIDE;
 
     /** Updates appearance. */
-    void updateAppearance();
+    void updateAppearance() RT_OVERRIDE;
 
     /** Holds the instance of VM preview. */
     UIMachinePreview *m_pPreview;
@@ -174,7 +174,7 @@ public:
 private:
 
     /** Contains update task body. */
-    void run();
+    void run() RT_OVERRIDE RT_FINAL;
 
     /** Holds the options. */
     UIExtraDataMetaDefs::DetailsElementOptionTypeGeneral m_fOptions;
@@ -194,7 +194,7 @@ public:
 private:
 
     /** Contains update task body. */
-    void run();
+    void run() RT_OVERRIDE RT_FINAL;
 
     /** Holds the options. */
     UIExtraDataMetaDefs::DetailsElementOptionTypeGeneral m_fOptions;
@@ -233,7 +233,7 @@ public:
 private:
 
     /** Contains update task body. */
-    void run();
+    void run() RT_OVERRIDE RT_FINAL;
 
     /** Holds the options. */
     UIExtraDataMetaDefs::DetailsElementOptionTypeSystem m_fOptions;
@@ -272,7 +272,7 @@ public:
 private:
 
     /** Contains update task body. */
-    void run();
+    void run() RT_OVERRIDE RT_FINAL;
 
     /** Holds the options. */
     UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay m_fOptions;
@@ -311,7 +311,7 @@ public:
 private:
 
     /** Contains update task body. */
-    void run();
+    void run() RT_OVERRIDE RT_FINAL;
 
     /** Holds the options. */
     UIExtraDataMetaDefs::DetailsElementOptionTypeStorage m_fOptions;
@@ -350,7 +350,7 @@ public:
 private:
 
     /** Contains update task body. */
-    void run();
+    void run() RT_OVERRIDE RT_FINAL;
 
     /** Holds the options. */
     UIExtraDataMetaDefs::DetailsElementOptionTypeAudio m_fOptions;
@@ -389,10 +389,7 @@ public:
 private:
 
     /** Contains update task body. */
-    void run();
-
-    /** Summarizes generic properties. */
-    static QString summarizeGenericProperties(const CNetworkAdapter &adapter);
+    void run() RT_OVERRIDE RT_FINAL;
 
     /** Holds the options. */
     UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork m_fOptions;
@@ -431,7 +428,7 @@ public:
 private:
 
     /** Contains update task body. */
-    void run();
+    void run() RT_OVERRIDE RT_FINAL;
 
     /** Holds the options. */
     UIExtraDataMetaDefs::DetailsElementOptionTypeSerial m_fOptions;
@@ -470,7 +467,7 @@ public:
 private:
 
     /** Contains update task body. */
-    void run();
+    void run() RT_OVERRIDE RT_FINAL;
 
     /** Holds the options. */
     UIExtraDataMetaDefs::DetailsElementOptionTypeUsb m_fOptions;
@@ -509,7 +506,7 @@ public:
 private:
 
     /** Contains update task body. */
-    void run();
+    void run() RT_OVERRIDE RT_FINAL;
 
     /** Holds the options. */
     UIExtraDataMetaDefs::DetailsElementOptionTypeSharedFolders m_fOptions;
@@ -548,7 +545,7 @@ public:
 private:
 
     /** Contains update task body. */
-    void run();
+    void run() RT_OVERRIDE RT_FINAL;
 
     /** Holds the options. */
     UIExtraDataMetaDefs::DetailsElementOptionTypeUserInterface m_fOptions;
@@ -587,7 +584,7 @@ public:
 private:
 
     /** Contains update task body. */
-    void run();
+    void run() RT_OVERRIDE RT_FINAL;
 
     /** Holds the options. */
     UIExtraDataMetaDefs::DetailsElementOptionTypeDescription m_fOptions;
@@ -612,4 +609,3 @@ private:
 };
 
 #endif /* !FEQT_INCLUDED_SRC_manager_details_UIDetailsElements_h */
-

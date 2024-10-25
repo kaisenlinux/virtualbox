@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,31 +31,31 @@
 #endif /* !VBOX_WS_MAC */
 
 /* GUI includes: */
+#include "UIActionPoolRuntime.h"
 #include "UICommon.h"
 #include "UIDesktopWidgetWatchdog.h"
-#include "UIMessageCenter.h"
-#include "UISession.h"
-#include "UIActionPoolRuntime.h"
-#include "UIMachineLogicNormal.h"
-#include "UIMachineWindow.h"
-#include "UIMenuBarEditorWindow.h"
-#include "UIStatusBarEditorWindow.h"
 #include "UIExtraDataManager.h"
 #include "UIFrameBuffer.h"
+#include "UILoggingDefs.h"
+#include "UIMachine.h"
+#include "UIMachineLogicNormal.h"
+#include "UIMachineWindow.h"
+#include "UIMenuBarEditor.h"
+#include "UIMessageCenter.h"
+#include "UIStatusBarEditor.h"
 #ifndef VBOX_WS_MAC
 # include "QIMenu.h"
-#else  /* VBOX_WS_MAC */
+#else
 # include "VBoxUtils.h"
-#endif /* VBOX_WS_MAC */
+#endif
 
 /* COM includes: */
 #include "CConsole.h"
-#include "CDisplay.h"
 #include "CGraphicsAdapter.h"
 
 
-UIMachineLogicNormal::UIMachineLogicNormal(QObject *pParent, UISession *pSession)
-    : UIMachineLogic(pParent, pSession, UIVisualStateType_Normal)
+UIMachineLogicNormal::UIMachineLogicNormal(UIMachine *pMachine)
+    : UIMachineLogic(pMachine)
 #ifndef VBOX_WS_MAC
     , m_pPopupMenu(0)
 #endif /* !VBOX_WS_MAC */
@@ -71,29 +71,29 @@ bool UIMachineLogicNormal::checkAvailability()
 void UIMachineLogicNormal::sltCheckForRequestedVisualStateType()
 {
     LogRel(("GUI: UIMachineLogicNormal::sltCheckForRequestedVisualStateType: Requested-state=%d, Machine-state=%d\n",
-            uisession()->requestedVisualState(), uisession()->machineState()));
+            uimachine()->requestedVisualState(), uimachine()->machineState()));
 
     /* Do not try to change visual-state type if machine was not started yet: */
-    if (!uisession()->isRunning() && !uisession()->isPaused())
+    if (!uimachine()->isRunning() && !uimachine()->isPaused())
         return;
 
     /* Do not try to change visual-state type in 'manual override' mode: */
-    if (uisession()->isManualOverrideMode())
+    if (uimachine()->isManualOverrideMode())
         return;
 
     /* Check requested visual-state types: */
-    switch (uisession()->requestedVisualState())
+    switch (uimachine()->requestedVisualState())
     {
         /* If 'seamless' visual-state type is requested: */
         case UIVisualStateType_Seamless:
         {
             /* And supported: */
-            if (uisession()->isGuestSupportsSeamless())
+            if (uimachine()->isGuestSupportsSeamless())
             {
                 LogRel(("GUI: UIMachineLogicNormal::sltCheckForRequestedVisualStateType: "
                         "Going 'seamless' as requested...\n"));
-                uisession()->setRequestedVisualState(UIVisualStateType_Invalid);
-                uisession()->changeVisualState(UIVisualStateType_Seamless);
+                uimachine()->setRequestedVisualState(UIVisualStateType_Invalid);
+                uimachine()->asyncChangeVisualState(UIVisualStateType_Seamless);
             }
             else
                 LogRel(("GUI: UIMachineLogicNormal::sltCheckForRequestedVisualStateType: "
@@ -219,7 +219,7 @@ void UIMachineLogicNormal::sltToggleStatusBar()
 
 void UIMachineLogicNormal::sltHostScreenAvailableAreaChange()
 {
-#if defined(VBOX_WS_X11) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
+#if defined(VBOX_WS_NIX) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
     /* Prevent handling if fake screen detected: */
     if (UIDesktopWidgetWatchdog::isFakeScreenDetected())
         return;
@@ -228,7 +228,7 @@ void UIMachineLogicNormal::sltHostScreenAvailableAreaChange()
     foreach (UIMachineWindow *pMachineWindow, machineWindows())
         if (!pMachineWindow->isMaximized())
             pMachineWindow->restoreCachedGeometry();
-#endif /* VBOX_WS_X11 && !VBOX_GUI_WITH_CUSTOMIZATIONS1 */
+#endif /* VBOX_WS_NIX && !VBOX_GUI_WITH_CUSTOMIZATIONS1 */
 
     /* Call to base-class: */
     UIMachineLogic::sltHostScreenAvailableAreaChange();
@@ -281,20 +281,16 @@ void UIMachineLogicNormal::prepareMachineWindows()
     ::darwinSetFrontMostProcess();
 #endif /* VBOX_WS_MAC */
 
-    /* Get monitors count: */
-    ulong uMonitorCount = machine().GetGraphicsAdapter().GetMonitorCount();
+    /* Acquire monitor count: */
+    ulong cMonitorCount = 0;
+    uimachine()->acquireMonitorCount(cMonitorCount);
+
     /* Create machine window(s): */
-    for (ulong uScreenId = 0; uScreenId < uMonitorCount; ++ uScreenId)
+    for (ulong uScreenId = 0; uScreenId < cMonitorCount; ++ uScreenId)
         addMachineWindow(UIMachineWindow::create(this, uScreenId));
     /* Order machine window(s): */
-    for (ulong uScreenId = uMonitorCount; uScreenId > 0; -- uScreenId)
+    for (ulong uScreenId = cMonitorCount; uScreenId > 0; -- uScreenId)
         machineWindows()[uScreenId - 1]->raise();
-
-    /* Listen for frame-buffer resize: */
-    foreach (UIMachineWindow *pMachineWindow, machineWindows())
-        connect(pMachineWindow, &UIMachineWindow::sigFrameBufferResize,
-                this, &UIMachineLogicNormal::sigFrameBufferResize);
-    emit sigFrameBufferResize();
 
     /* Mark machine-window(s) created: */
     setMachineWindowsCreated(true);

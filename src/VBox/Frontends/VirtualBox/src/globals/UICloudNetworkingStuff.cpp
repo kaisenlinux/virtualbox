@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2020-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2020-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -25,10 +25,13 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
+/* Qt includes: */
+#include <QVariant>
+
 /* GUI includes: */
 #include "UICloudNetworkingStuff.h"
-#include "UICommon.h"
 #include "UIErrorString.h"
+#include "UIGlobalSession.h"
 #include "UIMessageCenter.h"
 
 /* COM includes: */
@@ -44,7 +47,7 @@
 CCloudProviderManager UICloudNetworkingStuff::cloudProviderManager(UINotificationCenter *pParent /* = 0 */)
 {
     /* Acquire VBox: */
-    const CVirtualBox comVBox = uiCommon().virtualBox();
+    const CVirtualBox comVBox = gpGlobalSession->virtualBox();
     if (comVBox.isNotNull())
     {
         /* Acquire cloud provider manager: */
@@ -61,7 +64,7 @@ CCloudProviderManager UICloudNetworkingStuff::cloudProviderManager(UINotificatio
 CCloudProviderManager UICloudNetworkingStuff::cloudProviderManager(QString &strErrorMessage)
 {
     /* Acquire VBox: */
-    const CVirtualBox comVBox = uiCommon().virtualBox();
+    const CVirtualBox comVBox = gpGlobalSession->virtualBox();
     if (comVBox.isNotNull())
     {
         /* Acquire cloud provider manager: */
@@ -202,7 +205,7 @@ CCloudClient UICloudNetworkingStuff::cloudClientByName(const QString &strProvide
 CVirtualSystemDescription UICloudNetworkingStuff::createVirtualSystemDescription(UINotificationCenter *pParent /* = 0 */)
 {
     /* Acquire VBox: */
-    CVirtualBox comVBox = uiCommon().virtualBox();
+    CVirtualBox comVBox = gpGlobalSession->virtualBox();
     if (comVBox.isNotNull())
     {
         /* Create appliance: */
@@ -601,4 +604,23 @@ bool UICloudNetworkingStuff::applyCloudMachineSettingsForm(const CCloudMachine &
     UINotificationProgressCloudMachineSettingsFormApply *pNotification =
         new UINotificationProgressCloudMachineSettingsFormApply(comForm, strMachineName);
     return pParent->handleNow(pNotification);
+}
+
+void UICloudNetworkingStuff::createCloudMachineClone(const QString &strProviderShortName,
+                                                     const QString &strProfileName,
+                                                     const CCloudMachine &comCloudMachine,
+                                                     const QString &strCloneName,
+                                                     UINotificationCenter *pParent)
+{
+    /* Create cloud client: */
+    CCloudClient comCloudClient = cloudClientByName(strProviderShortName,
+                                                    strProfileName,
+                                                    pParent);
+    if (comCloudClient.isNotNull())
+    {
+        /* Clone specified cloud machine asynchronously: */
+        UINotificationProgressCloudMachineClone *pNotification =
+            new UINotificationProgressCloudMachineClone(comCloudClient, comCloudMachine, strCloneName);
+        pParent->append(pNotification);
+    }
 }

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -47,6 +47,8 @@
 #include <iprt/getopt.h>
 #include <iprt/file.h>
 #include <iprt/path.h>
+#include <iprt/rand.h>
+#include <iprt/sha.h>
 #include <iprt/stream.h>
 #include <iprt/vfs.h>
 #ifdef RT_OS_SOLARIS
@@ -77,10 +79,29 @@ UnattendedInstaller::createInstance(VBOXOSTYPE enmDetectedOSType, const Utf8Str 
         pUinstaller = new UnattendedOs2Installer(pParent, strDetectedOSHints);
     else
     {
-        if (enmDetectedOSType >= VBOXOSTYPE_Debian && enmDetectedOSType <= VBOXOSTYPE_Debian_latest_x64)
+        if (   enmDetectedOSType >= VBOXOSTYPE_Debian
+            && (   enmDetectedOSType <= VBOXOSTYPE_Debian_latest_x64
+                || enmDetectedOSType <= VBOXOSTYPE_Debian_latest_arm64))
             pUinstaller = new UnattendedDebianInstaller(pParent);
-        else if (enmDetectedOSType >= VBOXOSTYPE_Ubuntu && enmDetectedOSType <= VBOXOSTYPE_Ubuntu_latest_x64)
-            pUinstaller = new UnattendedUbuntuInstaller(pParent);
+        else if (   enmDetectedOSType >= VBOXOSTYPE_Ubuntu
+                 && (   enmDetectedOSType <= VBOXOSTYPE_Ubuntu_latest_x64
+                     || enmDetectedOSType <= VBOXOSTYPE_Ubuntu_latest_arm64))
+        {
+            /*
+             * Here we have to decide, based on the Ubuntu version, which exact installer flavor we have to use:
+             * - The preseed installer for older Ubuntu distros, or
+             * - The autoinstall installer for newer Ubuntu desktop or Ubuntu server versions.
+             */
+            if (/* Ubuntu Desktop >= 22.10 switch to the autoinstall installer. */
+                   RTStrVersionCompare(strDetectedOSVersion.c_str(), "22.10") >= 0
+                /* Ubuntu Server >= 20.04 also uses autoinstall installer. Before that no unattended installation was possible. */
+                || (   RTStrVersionCompare(strDetectedOSVersion.c_str(), "20.04") >= 0
+                    && strDetectedOSFlavor.contains("Server", RTCString::CaseSensitivity::CaseSensitive))
+               )
+                pUinstaller = new UnattendedUbuntuAutoInstallInstaller(pParent);
+            else
+                pUinstaller = new UnattendedUbuntuPreseedInstaller(pParent);
+        }
         else if (enmDetectedOSType >= VBOXOSTYPE_RedHat && enmDetectedOSType <= VBOXOSTYPE_RedHat_latest_x64)
         {
             if (RTStrVersionCompare(strDetectedOSVersion.c_str(), "8") >= 0)
@@ -100,7 +121,9 @@ UnattendedInstaller::createInstance(VBOXOSTYPE enmDetectedOSType, const Utf8Str 
         }
         else if (enmDetectedOSType >= VBOXOSTYPE_FedoraCore && enmDetectedOSType <= VBOXOSTYPE_FedoraCore_x64)
             pUinstaller = new UnattendedFedoraInstaller(pParent);
-        else if (enmDetectedOSType >= VBOXOSTYPE_Oracle && enmDetectedOSType <= VBOXOSTYPE_Oracle_latest_x64)
+        else if (   enmDetectedOSType >= VBOXOSTYPE_Oracle
+                 && (   enmDetectedOSType <= VBOXOSTYPE_Oracle_latest_x64
+                     || enmDetectedOSType <= VBOXOSTYPE_Oracle_latest_arm64))
         {
             if (RTStrVersionCompare(strDetectedOSVersion.c_str(), "9") >= 0)
                 pUinstaller = new UnattendedOracleLinux9Installer(pParent);
@@ -113,7 +136,9 @@ UnattendedInstaller::createInstance(VBOXOSTYPE enmDetectedOSType, const Utf8Str 
             else
                 pUinstaller = new UnattendedOracleLinux6Installer(pParent);
         }
-        else if (enmDetectedOSType >= VBOXOSTYPE_FreeBSD && enmDetectedOSType <= VBOXOSTYPE_FreeBSD_x64)
+        else if (   enmDetectedOSType >= VBOXOSTYPE_FreeBSD
+                 && (   enmDetectedOSType <= VBOXOSTYPE_FreeBSD_x64
+                     || enmDetectedOSType <= VBOXOSTYPE_FreeBSD_arm64))
             pUinstaller = new UnattendedFreeBsdInstaller(pParent);
 #if 0 /* doesn't work, so convert later. */
         else if (enmDetectedOSType == VBOXOSTYPE_OpenSUSE || enmDetectedOSType == VBOXOSTYPE_OpenSUSE_x64)
@@ -224,8 +249,9 @@ HRESULT UnattendedInstaller::initInstaller()
         return mpParent->setError(E_INVALIDARG, tr("Cannot proceed with an empty installation ISO path"));
     if (mpParent->i_getUser().isEmpty())
         return mpParent->setError(E_INVALIDARG, tr("Empty user name is not allowed"));
-    if (mpParent->i_getPassword().isEmpty())
-        return mpParent->setError(E_INVALIDARG, tr("Empty password is not allowed"));
+    if (mpParent->i_getUserPassword().isEmpty())
+        return mpParent->setError(E_INVALIDARG, tr("Empty user password is not allowed"));
+    /* If admin password is empty, the user password will be used instead. */
 
     LogRelFunc(("UnattendedInstaller::savePassedData(): \n"));
     return S_OK;
@@ -247,10 +273,11 @@ bool UnattendedInstaller::isValidationKitIsoNeeded() const
 
 bool UnattendedInstaller::isAuxiliaryIsoNeeded() const
 {
-    /* In the VISO case we use the AUX ISO for GAs and TXS. */
+    /* In the VISO case we use the AUX ISO for GAs, TXS, and User Payloads. */
     return isAuxiliaryIsoIsVISO()
         && (   mpParent->i_getInstallGuestAdditions()
-            || mpParent->i_getInstallTestExecService());
+            || mpParent->i_getInstallTestExecService()
+            || mpParent->i_getInstallUserPayload());
 }
 
 
@@ -748,6 +775,16 @@ HRESULT UnattendedInstaller::addFilesToAuxVisoVectors(RTCList<RTCString> &rVecAr
                 rVecArgs.append() = "/vboxvalidationkit=/";
                 rVecArgs.append() = "--pop";
             }
+
+            /*
+             * If we've got a User Payload ISO, add its content to a /vboxuserpayload dir.
+             */
+            if (mpParent->i_getInstallUserPayload())
+            {
+                rVecArgs.append().append("--push-iso=").append(mpParent->i_getUserPayloadIsoPath());
+                rVecArgs.append() = "/vboxuserpayload=/";
+                rVecArgs.append() = "--pop";
+            }
         }
         catch (std::bad_alloc &)
         {
@@ -985,6 +1022,95 @@ HRESULT UnattendedLinuxInstaller::editIsoLinuxCommon(GeneralTextScript *pEditor)
 }
 
 
+HRESULT UnattendedLinuxInstaller::editGrubCfg(GeneralTextScript *pEditor)
+{
+    /* Default menu entry of grub.cfg is set in /etc/deafult/grub file. */
+    try
+    {
+        /* Set timeouts to 4 seconds. */
+        std::vector<size_t> vecLineNumbers = pEditor->findTemplate("set timeout", RTCString::CaseInsensitive);
+        if (vecLineNumbers.size() > 0)
+        {
+            for (size_t i = 0; i < vecLineNumbers.size(); ++i)
+                if (pEditor->getContentOfLine(vecLineNumbers[i]).startsWithWord("set timeout", RTCString::CaseInsensitive))
+                {
+                    HRESULT hrc = pEditor->setContentOfLine(vecLineNumbers.at(i), "set timeout=4");
+                    if (FAILED(hrc))
+                        return hrc;
+                }
+        }
+        else
+        {
+            /* Append timeout if not set (happens with arm64 iso images at least). */
+            HRESULT hrc = pEditor->appendLine("set timeout=4");
+            if (FAILED(hrc))
+                return hrc;
+        }
+
+        /* Modify kernel lines assuming that they starts with 'linux' keyword and 2nd word is the kernel command.*
+         * we remove whatever comes after command and add our own command line options. */
+        vecLineNumbers = pEditor->findTemplate("linux", RTCString::CaseInsensitive);
+        if (vecLineNumbers.size() > 0)
+        {
+            Utf8Str const &rStrAppend = mpParent->i_getExtraInstallKernelParameters().isNotEmpty()
+                                      ? mpParent->i_getExtraInstallKernelParameters()
+                                      : mStrDefaultExtraInstallKernelParameters;
+
+            for (size_t i = 0; i < vecLineNumbers.size(); ++i)
+            {
+                HRESULT hrc = S_OK;
+                if (pEditor->getContentOfLine(vecLineNumbers[i]).startsWithWord("linux", RTCString::CaseInsensitive))
+                {
+                    Utf8Str strLine = pEditor->getContentOfLine(vecLineNumbers[i]);
+                    size_t cbPos = strLine.find("linux") + strlen("linux");
+                    bool fSecondWord = false;
+                    /* Find the end of 2nd word assuming that it is kernel command. */
+                    while (cbPos < strLine.length())
+                    {
+                        if (!fSecondWord)
+                        {
+                            if (strLine[cbPos] != '\t' && strLine[cbPos] != ' ')
+                                fSecondWord = true;
+                        }
+                        else
+                        {
+                            if (strLine[cbPos] == '\t' || strLine[cbPos] == ' ')
+                                break;
+                        }
+                        ++cbPos;
+                    }
+                    if (!fSecondWord)
+                        hrc = E_FAIL;
+
+                    if (SUCCEEDED(hrc))
+                    {
+                        strLine.erase(cbPos, strLine.length() - cbPos);
+
+                        /* Do the appending. */
+                        if (rStrAppend.isNotEmpty())
+                        {
+                            if (!rStrAppend.startsWith(" ") && !strLine.endsWith(" "))
+                                strLine.append(' ');
+                            strLine.append(rStrAppend);
+                        }
+
+                        /* Update line. */
+                        hrc = pEditor->setContentOfLine(vecLineNumbers.at(i), strLine);
+                    }
+                    if (FAILED(hrc))
+                        return hrc;
+                }
+            }
+        }
+    }
+    catch (std::bad_alloc &)
+    {
+        return E_OUTOFMEMORY;
+    }
+    return S_OK;
+}
+
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 /*
 *
@@ -1123,7 +1249,7 @@ HRESULT UnattendedDebianInstaller::addFilesToAuxVisoVectors(RTCList<RTCString> &
         if (SUCCEEDED(hrc))
         {
             if (fMenuConfigIsGrub)
-                hrc = editDebianGrubCfg(&Editor);
+                hrc = editGrubCfg(&Editor);
             else
                     hrc = editDebianMenuCfg(&Editor);
             if (SUCCEEDED(hrc))
@@ -1279,83 +1405,39 @@ bool UnattendedDebianInstaller::modifyLabelLine(GeneralTextScript *pEditor, cons
     return false;
 }
 
-HRESULT UnattendedDebianInstaller::editDebianGrubCfg(GeneralTextScript *pEditor)
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+/*
+*
+*
+*  Implementation UnattendedUbuntuAutoInstallInstaller functions
+*
+*/
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+HRESULT UnattendedUbuntuAutoInstallInstaller::addFilesToAuxVisoVectors(RTCList<RTCString> &rVecArgs, RTCList<RTCString> &rVecFiles,
+                                                                       RTVFS hVfsOrgIso, bool fOverwrite)
 {
-    /* Default menu entry of grub.cfg is set in /etc/deafult/grub file. */
     try
     {
-        /* Set timeouts to 4 seconds. */
-        std::vector<size_t> vecLineNumbers = pEditor->findTemplate("set timeout", RTCString::CaseInsensitive);
-        for (size_t i = 0; i < vecLineNumbers.size(); ++i)
-            if (pEditor->getContentOfLine(vecLineNumbers[i]).startsWithWord("set timeout", RTCString::CaseInsensitive))
-            {
-                HRESULT hrc = pEditor->setContentOfLine(vecLineNumbers.at(i), "set timeout=4");
-                if (FAILED(hrc))
-                    return hrc;
-            }
-
-        /* Modify kernel lines assuming that they starts with 'linux' keyword and 2nd word is the kernel command.*
-         * we remove whatever comes after command and add our own command line options. */
-        vecLineNumbers = pEditor->findTemplate("linux", RTCString::CaseInsensitive);
-        if (vecLineNumbers.size() > 0)
-        {
-            Utf8Str const &rStrAppend = mpParent->i_getExtraInstallKernelParameters().isNotEmpty()
-                                      ? mpParent->i_getExtraInstallKernelParameters()
-                                      : mStrDefaultExtraInstallKernelParameters;
-
-            for (size_t i = 0; i < vecLineNumbers.size(); ++i)
-            {
-                HRESULT hrc = S_OK;
-                if (pEditor->getContentOfLine(vecLineNumbers[i]).startsWithWord("linux", RTCString::CaseInsensitive))
-                {
-                    Utf8Str strLine = pEditor->getContentOfLine(vecLineNumbers[i]);
-                    size_t cbPos = strLine.find("linux") + strlen("linux");
-                    bool fSecondWord = false;
-                    /* Find the end of 2nd word assuming that it is kernel command. */
-                    while (cbPos < strLine.length())
-                    {
-                        if (!fSecondWord)
-                        {
-                            if (strLine[cbPos] != '\t' && strLine[cbPos] != ' ')
-                                fSecondWord = true;
-                        }
-                        else
-                        {
-                            if (strLine[cbPos] == '\t' || strLine[cbPos] == ' ')
-                                break;
-                        }
-                        ++cbPos;
-                    }
-                    if (!fSecondWord)
-                        hrc = E_FAIL;
-
-                    if (SUCCEEDED(hrc))
-                    {
-                        strLine.erase(cbPos, strLine.length() - cbPos);
-
-                        /* Do the appending. */
-                        if (rStrAppend.isNotEmpty())
-                        {
-                            if (!rStrAppend.startsWith(" ") && !strLine.endsWith(" "))
-                                strLine.append(' ');
-                            strLine.append(rStrAppend);
-                        }
-
-                        /* Update line. */
-                        hrc = pEditor->setContentOfLine(vecLineNumbers.at(i), strLine);
-                    }
-                    if (FAILED(hrc))
-                        return hrc;
-                }
-            }
-        }
+        /* Add the (empty) meta-data file to the ISO: */
+        Utf8Str strUnattendedTemplates;
+        int vrc = RTPathAppPrivateNoArchCxx(strUnattendedTemplates);
+        AssertRCReturn(vrc, mpParent->setErrorVrc(vrc));
+        vrc = RTPathAppendCxx(strUnattendedTemplates, "UnattendedTemplates");
+        AssertRCReturn(vrc, mpParent->setErrorVrc(vrc));
+        rVecArgs.append().assign("/meta-data=").append(strUnattendedTemplates).append("/ubuntu_autoinstall_meta_data");
     }
     catch (std::bad_alloc &)
     {
         return E_OUTOFMEMORY;
     }
-    return S_OK;
+
+    /*
+     * Call parent to add default Debian-based stuff.
+     */
+    return UnattendedDebianInstaller::addFilesToAuxVisoVectors(rVecArgs, rVecFiles, hVfsOrgIso, fOverwrite);
 }
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 /*
@@ -1368,7 +1450,27 @@ HRESULT UnattendedDebianInstaller::editDebianGrubCfg(GeneralTextScript *pEditor)
 HRESULT UnattendedRhelInstaller::addFilesToAuxVisoVectors(RTCList<RTCString> &rVecArgs, RTCList<RTCString> &rVecFiles,
                                                           RTVFS hVfsOrgIso, bool fOverwrite)
 {
-    Utf8Str strIsoLinuxCfg;
+    /*
+     * Figure out the name of the menu config file that we have to edit.
+     */
+    bool        fMenuConfigIsGrub     = false;
+    const char *pszMenuConfigFilename = "/isolinux/isolinux.cfg";
+    if (!hlpVfsFileExists(hVfsOrgIso, pszMenuConfigFilename))
+    {
+        /* arm64 variants of Oracle Linux 9 have grub. */
+        if (hlpVfsFileExists(hVfsOrgIso, "/EFI/BOOT/grub.cfg"))
+        {
+            pszMenuConfigFilename     =  "/EFI/BOOT/grub.cfg";
+            fMenuConfigIsGrub         = true;
+        }
+        else
+            AssertFailed();
+    }
+
+    /*
+     * VISO bits and filenames.
+     */
+    RTCString strBootCfg;
     try
     {
 #if 1
@@ -1382,12 +1484,23 @@ HRESULT UnattendedRhelInstaller::addFilesToAuxVisoVectors(RTCList<RTCString> &rV
         rVecArgs.append() = "--file-mode=0444";
         rVecArgs.append() = "--dir-mode=0555";
 
-        /* We replace isolinux.cfg with our edited version (see further down). */
-        rVecArgs.append() = "isolinux/isolinux.cfg=:must-remove:";
-        strIsoLinuxCfg = mpParent->i_getAuxiliaryBasePath();
-        strIsoLinuxCfg.append("isolinux-isolinux.cfg");
-        rVecArgs.append().append("isolinux/isolinux.cfg=").append(strIsoLinuxCfg);
-
+        /* Replace the grub.cfg/isolinux.cfg configuration file. */
+        if (fMenuConfigIsGrub)
+        {
+            /* Replace menu configuration file as well. */
+            rVecArgs.append().assign(pszMenuConfigFilename).append("=:must-remove:");
+            strBootCfg = mpParent->i_getAuxiliaryBasePath();
+            strBootCfg.append("grub.cfg");
+            rVecArgs.append().assign(pszMenuConfigFilename).append("=").append(strBootCfg);
+        }
+        else
+        {
+            /* First remove. */
+            rVecArgs.append() = "isolinux/isolinux.cfg=:must-remove:";
+            strBootCfg = mpParent->i_getAuxiliaryBasePath();
+            strBootCfg.append("isolinux-isolinux.cfg");
+            rVecArgs.append().append("isolinux/isolinux.cfg=").append(strBootCfg);
+        }
 #else
         /** @todo Maybe we should just remaster the ISO for redhat derivatives too?
          *        One less CDROM to mount. */
@@ -1402,9 +1515,9 @@ HRESULT UnattendedRhelInstaller::addFilesToAuxVisoVectors(RTCList<RTCString> &rV
         /* We replace isolinux.cfg with our edited version (see further down). */
         rVecArgs.append() = "/isolinux/isolinux.cfg=:must-remove:";
 
-        strIsoLinuxCfg = mpParent->i_getAuxiliaryBasePath();
-        strIsoLinuxCfg.append("isolinux-isolinux.cfg");
-        rVecArgs.append().append("/isolinux/isolinux.cfg=").append(strIsoLinuxCfg);
+        strBootCfg = mpParent->i_getAuxiliaryBasePath();
+        strBootCfg.append("isolinux-isolinux.cfg");
+        rVecArgs.append().append("/isolinux/isolinux.cfg=").append(strBootCfg);
 
         /* Configure booting /isolinux/isolinux.bin. */
         rVecArgs.append() = "--eltorito-boot";
@@ -1423,27 +1536,29 @@ HRESULT UnattendedRhelInstaller::addFilesToAuxVisoVectors(RTCList<RTCString> &rV
         return E_OUTOFMEMORY;
     }
 
-    /*
-     * Edit isolinux.cfg and save it.
-     */
     {
         GeneralTextScript Editor(mpParent);
-        HRESULT hrc = loadAndParseFileFromIso(hVfsOrgIso, "/isolinux/isolinux.cfg", &Editor);
-        if (SUCCEEDED(hrc))
-            hrc = editIsoLinuxCfg(&Editor);
+        HRESULT hrc = loadAndParseFileFromIso(hVfsOrgIso, pszMenuConfigFilename, &Editor);
         if (SUCCEEDED(hrc))
         {
-            hrc = Editor.save(strIsoLinuxCfg, fOverwrite);
+            if (fMenuConfigIsGrub)
+                hrc = editGrubCfg(&Editor);
+            else
+                hrc = editIsoLinuxCfg(&Editor);
             if (SUCCEEDED(hrc))
             {
-                try
+                hrc = Editor.save(strBootCfg, fOverwrite);
+                if (SUCCEEDED(hrc))
                 {
-                    rVecFiles.append(strIsoLinuxCfg);
-                }
-                catch (std::bad_alloc &)
-                {
-                    RTFileDelete(strIsoLinuxCfg.c_str());
-                    hrc = E_OUTOFMEMORY;
+                    try
+                    {
+                        rVecFiles.append(strBootCfg);
+                    }
+                    catch (std::bad_alloc &)
+                    {
+                        RTFileDelete(strBootCfg.c_str());
+                        hrc = E_OUTOFMEMORY;
+                    }
                 }
             }
         }

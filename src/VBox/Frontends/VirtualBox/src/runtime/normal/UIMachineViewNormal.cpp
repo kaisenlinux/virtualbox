@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -33,17 +33,15 @@
 #include <QTimer>
 
 /* GUI includes: */
-#include "UISession.h"
 #include "UIActionPoolRuntime.h"
-#include "UIMachineLogic.h"
-#include "UIMachineWindow.h"
-#include "UIMachineViewNormal.h"
-#include "UIFrameBuffer.h"
-#include "UIExtraDataManager.h"
 #include "UIDesktopWidgetWatchdog.h"
-
-/* Other VBox includes: */
-#include "VBox/log.h"
+#include "UIExtraDataManager.h"
+#include "UIFrameBuffer.h"
+#include "UILoggingDefs.h"
+#include "UIMachine.h"
+#include "UIMachineLogic.h"
+#include "UIMachineViewNormal.h"
+#include "UIMachineWindow.h"
 
 
 UIMachineViewNormal::UIMachineViewNormal(UIMachineWindow *pMachineWindow, ulong uScreenId)
@@ -68,7 +66,7 @@ bool UIMachineViewNormal::eventFilter(QObject *pWatched, QEvent *pEvent)
                 /* Recalculate maximum guest size: */
                 setMaximumGuestSize();
                 /* And resize guest to current window size: */
-                if (m_fGuestAutoresizeEnabled && uisession()->isGuestSupportsGraphics())
+                if (m_fGuestAutoresizeEnabled && uimachine()->isGuestSupportsGraphics())
                     QTimer::singleShot(300, this, SLOT(sltPerformGuestResize()));
                 break;
             }
@@ -131,7 +129,7 @@ void UIMachineViewNormal::prepareConsoleConnections()
     UIMachineView::prepareConsoleConnections();
 
     /* Guest additions state-change updater: */
-    connect(uisession(), &UISession::sigAdditionsStateActualChange, this, &UIMachineViewNormal::sltAdditionsStateChanged);
+    connect(uimachine(), &UIMachine::sigAdditionsStateActualChange, this, &UIMachineViewNormal::sltAdditionsStateChanged);
 }
 
 void UIMachineViewNormal::setGuestAutoresizeEnabled(bool fEnabled)
@@ -140,15 +138,20 @@ void UIMachineViewNormal::setGuestAutoresizeEnabled(bool fEnabled)
     {
         m_fGuestAutoresizeEnabled = fEnabled;
 
-        if (m_fGuestAutoresizeEnabled && uisession()->isGuestSupportsGraphics())
+        if (m_fGuestAutoresizeEnabled && uimachine()->isGuestSupportsGraphics())
             sltPerformGuestResize();
     }
 }
 
 void UIMachineViewNormal::resendSizeHint()
 {
+    /* Skip if VM isn't running/paused yet: */
+    if (   !uimachine()->isRunning()
+        && !uimachine()->isPaused())
+        return;
+
     /* Skip if another visual representation mode requested: */
-    if (uisession()->requestedVisualState() == UIVisualStateType_Seamless) // Seamless only for now.
+    if (uimachine()->requestedVisualState() == UIVisualStateType_Seamless) // Seamless only for now.
         return;
 
     /* Get the last guest-screen size-hint, taking the scale factor into account. */
@@ -171,10 +174,14 @@ void UIMachineViewNormal::resendSizeHint()
      * the guest (aNotify == false), because there is technically no change (same
      * hardware as before shutdown), and notifying would interfere with the Windows
      * guest driver which saves the video mode to the registry on shutdown. */
-    uisession()->setScreenVisibleHostDesires(screenId(), guestScreenVisibilityStatus());
-    display().SetVideoModeHint(screenId(),
-                               guestScreenVisibilityStatus(),
-                               false, 0, 0, effectiveSizeHint.width(), effectiveSizeHint.height(), 0, false);
+    uimachine()->setScreenVisibleHostDesires(screenId(), guestScreenVisibilityStatus());
+    uimachine()->setVideoModeHint(screenId(),
+                                  guestScreenVisibilityStatus(),
+                                  false /* change origin? */,
+                                  0 /* origin x */, 0 /* origin y */,
+                                  effectiveSizeHint.width(), effectiveSizeHint.height(),
+                                  0 /* bits per pixel */,
+                                  false /* notify? */);
 }
 
 void UIMachineViewNormal::adjustGuestScreenSize()
@@ -203,7 +210,7 @@ QSize UIMachineViewNormal::sizeHint() const
     /* If guest-screen auto-resize is not enabled
      * or the guest-additions doesn't support graphics
      * we should take scroll-bars size-hints into account: */
-    if (!m_fGuestAutoresizeEnabled || !uisession()->isGuestSupportsGraphics())
+    if (!m_fGuestAutoresizeEnabled || !uimachine()->isGuestSupportsGraphics())
     {
         if (verticalScrollBar()->isVisible())
             size += QSize(verticalScrollBar()->sizeHint().width(), 0);

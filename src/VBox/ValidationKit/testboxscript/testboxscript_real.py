@@ -8,7 +8,7 @@ TestBox Script - main().
 
 __copyright__ = \
 """
-Copyright (C) 2012-2023 Oracle and/or its affiliates.
+Copyright (C) 2012-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -37,7 +37,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 162363 $"
+__version__ = "$Revision: 165070 $"
 
 
 # Standard python imports.
@@ -53,7 +53,7 @@ import time
 import uuid
 
 # Only the main script needs to modify the path.
-try:    __file__
+try:    __file__                            # pylint: disable=used-before-assignment
 except: __file__ = sys.argv[0];
 g_ksTestScriptDir = os.path.dirname(os.path.abspath(__file__));
 g_ksValidationKitDir = os.path.dirname(g_ksTestScriptDir);
@@ -183,6 +183,7 @@ class TestBoxScript(object):
             constants.tbreq.SIGNON_PARAM_HAS_NESTED_PAGING:{ self.VALUE: self._hasHostNestedPaging(),  self.FN: None },
             constants.tbreq.SIGNON_PARAM_HAS_64_BIT_GUEST: { self.VALUE: self._can64BitGuest(),        self.FN: None },
             constants.tbreq.SIGNON_PARAM_HAS_IOMMU:        { self.VALUE: self._hasHostIoMmu(),         self.FN: None },
+            constants.tbreq.SIGNON_PARAM_HAS_NATIVE_API:   { self.VALUE: self._hasHostNativeApi(),     self.FN: None },
             #constants.tbreq.SIGNON_PARAM_WITH_RAW_MODE:    { self.VALUE: self._withRawModeSupport(),   self.FN: None },
             constants.tbreq.SIGNON_PARAM_SCRIPT_REV:       { self.VALUE: self._getScriptRev(),         self.FN: None },
             constants.tbreq.SIGNON_PARAM_REPORT:           { self.VALUE: self._getHostReport(),        self.FN: None },
@@ -230,6 +231,7 @@ class TestBoxScript(object):
         os.environ['TESTBOX_HAS_HW_VIRT']       = self.getSignOnParam(constants.tbreq.SIGNON_PARAM_HAS_HW_VIRT);
         os.environ['TESTBOX_HAS_NESTED_PAGING'] = self.getSignOnParam(constants.tbreq.SIGNON_PARAM_HAS_NESTED_PAGING);
         os.environ['TESTBOX_HAS_IOMMU']         = self.getSignOnParam(constants.tbreq.SIGNON_PARAM_HAS_IOMMU);
+        os.environ['TESTBOX_HAS_NATIVE_API']    = self.getSignOnParam(constants.tbreq.SIGNON_PARAM_HAS_NATIVE_API);
         os.environ['TESTBOX_SCRIPT_REV']        = self.getSignOnParam(constants.tbreq.SIGNON_PARAM_SCRIPT_REV);
         os.environ['TESTBOX_CPU_COUNT']         = self.getSignOnParam(constants.tbreq.SIGNON_PARAM_CPU_COUNT);
         os.environ['TESTBOX_MEM_SIZE']          = self.getSignOnParam(constants.tbreq.SIGNON_PARAM_MEM_SIZE);
@@ -558,6 +560,14 @@ class TestBoxScript(object):
             ## @todo Any way to figure this one out on any host OS?
             self._oOptions.fHasIoMmu = False;
         return self._oOptions.fHasIoMmu;
+
+    def _hasHostNativeApi(self):
+        """
+        Check if the host supports the native API/NEM mode.
+        """
+        if self._oOptions.fHasNativeApi is None:
+            self._oOptions.fHasNativeApi = self._getHelperOutput('nativeapi');
+        return self._oOptions.fHasNativeApi;
 
     def _withRawModeSupport(self):
         """
@@ -959,7 +969,7 @@ class TestBoxScript(object):
                               help='The type of server, cifs (default) or nfs. If empty, we won\'t try mount anything.');
             parser.add_option('--' + sLower + '-server-name',
                               dest=sPrefix + 'ServerName',   metavar='<server>',
-                              default='vboxstor.de.oracle.com' if sLower == 'builds' else 'teststor.de.oracle.com',
+                              default='10.165.98.144' if sLower == 'builds' else 'teststor.de.oracle.com',
                               help='The name of the server with the builds.');
             parser.add_option('--' + sLower + '-server-share',
                               dest=sPrefix + 'ServerShare',  metavar='<share>',    default=sLower,
@@ -1004,6 +1014,12 @@ class TestBoxScript(object):
         parser.add_option("--no-64-bit-guest",
                           dest="fCan64BitGuest", action="store_false", default=None,
                           help="Host cannot execute 64-bit guests");
+        parser.add_option("--native-api",
+                          dest="fHasNativeApi", action="store_true", default=None,
+                          help="Native API virtualization is available");
+        parser.add_option("--no-native-api",
+                          dest="fHasNativeApi", action="store_false", default=None,
+                          help="Native API virtualization is not available");
         parser.add_option("--io-mmu",
                           dest="fHasIoMmu", action="store_true", default=None,
                           help="I/O MMU available");

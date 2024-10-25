@@ -3,7 +3,7 @@
     manpage, user manual, usage: VBoxManage cloudprofile
 -->
 <!--
-    Copyright (C) 2018-2023 Oracle and/or its affiliates.
+    Copyright (C) 2018-2024 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.
@@ -30,7 +30,7 @@
 ]>
 <refentry id="vboxmanage-cloudprofile" lang="en">
   <refentryinfo>
-    <pubdate>$Date: 2023-01-17 15:15:46 +0100 (Tue, 17 Jan 2023) $</pubdate>
+    <pubdate>$Date: 2024-09-16 16:03:52 +0200 (Mon, 16 Sep 2024) $</pubdate>
     <title>VBoxManage cloudprofile</title>
   </refentryinfo>
 
@@ -86,14 +86,16 @@
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-cloudprofile-description">
     <title>Description</title>
 
     <refsect2 id="vboxmanage-cloudprofile-common-options">
       <title>Common options</title>
       <remark role="help-scope" condition="GLOBAL"/>
-      <para>The subcommands of <command>cloudprofile</command> implement the standard CRUD operations for a cloud profile.
-        The next common options must be placed between the "cloud" and  the following sub-commands:</para>
+      <para>The subcommands of <command>cloudprofile</command> implement the standard Create, Read,
+        Update, and Delete (CRUD) operations for a cloud profile.
+        The following common options must be placed after the <command>cloudprofile</command> argument and
+        before the following sub-commands:</para>
       <variablelist>
         <varlistentry>
           <term>--provider=<replaceable>name</replaceable></term>
@@ -101,7 +103,7 @@
         </varlistentry>
         <varlistentry>
           <term>--profile=<replaceable>name</replaceable></term>
-          <listitem><para>Cloud profile name. </para></listitem>
+          <listitem><para>Cloud profile name.</para></listitem>
         </varlistentry>
       </variablelist>
     </refsect2>
@@ -110,29 +112,36 @@
       <title>cloudprofile add</title>
       <remark role="help-copy-synopsis"/>
       <para>
-        Add new cloud profile for a specified cloud provider.
+        Add a new cloud profile for the specified cloud provider.
       </para>
       <variablelist>
         <varlistentry>
-          <term><option>--clouduser</option></term><listitem><para>The name which fully identifies the user in the specified cloud provider.</para></listitem>
+          <term><option>--clouduser=<replaceable>unique id</replaceable></option></term>
+          <listitem><para>The name which fully identifies the user in the specified cloud provider.</para></listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--fingerprint</option></term><listitem><para>Fingerprint for the key pair being used.</para></listitem>
+          <term><option>--fingerprint=<replaceable>MD5 string</replaceable></option></term>
+          <listitem><para>Fingerprint of the key pair being used.</para></listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--keyfile</option></term><listitem><para>Full path and filename of the private key. </para></listitem>
+          <term><option>--keyfile=<replaceable>path</replaceable></option></term>
+          <listitem><para>Full path and filename of the private key.</para></listitem>
         </varlistentry>
         <varlistentry>
-        <term><option>--passphrase</option></term><listitem><para>Passphrase used for the key, if it is encrypted.</para></listitem>
+        <term><option>--passphrase=<replaceable>string</replaceable></option></term>
+        <listitem><para>Passphrase used for the key if it is encrypted.</para></listitem>
       </varlistentry>
       <varlistentry>
-        <term><option>--tenancy</option></term><listitem><para>ID of your tenancy. </para></listitem>
+        <term><option>--tenancy=<replaceable>unique id</replaceable></option></term>
+        <listitem><para>ID of your tenancy.</para></listitem>
       </varlistentry>
       <varlistentry>
-        <term><option>--compartment</option></term><listitem><para>ID of your compartment.</para></listitem>
+        <term><option>--compartment=<replaceable>unique id</replaceable></option></term>
+        <listitem><para>ID of your compartment.</para></listitem>
       </varlistentry>
       <varlistentry>
-        <term><option>--region</option></term><listitem><para>Region name. Region is where you plan to deploy an application.</para></listitem>
+        <term><option>--region=<replaceable>string</replaceable></option></term>
+        <listitem><para>Region name. Region is where you plan to deploy an application.</para></listitem>
       </varlistentry>
       </variablelist>
     </refsect2>
@@ -141,7 +150,7 @@
       <title>cloudprofile show</title>
       <remark role="help-copy-synopsis"/>
       <para>
-        Display information about a cloud profile for a specified cloud provider.
+        Display information about a cloud profile for the specified cloud provider.
       </para>
     </refsect2>
 
@@ -153,25 +162,32 @@
       </para>
       <variablelist>
         <varlistentry>
-          <term><option>--clouduser</option></term><listitem><para>The name which fully identifies the user in the specified cloud provider.</para></listitem>
+          <term><option>--clouduser=<replaceable>unique id</replaceable></option></term>
+          <listitem><para>The name which fully identifies the user in the specified cloud provider.</para></listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--fingerprint</option></term><listitem><para>Fingerprint for the key pair being used.</para></listitem>
+          <term><option>--fingerprint=<replaceable>MD5 string</replaceable></option></term>
+          <listitem><para>Fingerprint for the key pair being used.</para></listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--keyfile</option></term><listitem><para>Full path and filename of the private key. </para></listitem>
+          <term><option>--keyfile=<replaceable>path</replaceable></option></term>
+          <listitem><para>Full path and filename of the private key.</para></listitem>
         </varlistentry>
         <varlistentry>
-        <term><option>--passphrase</option></term><listitem><para>Passphrase used for the key, if it is encrypted.</para></listitem>
+        <term><option>--passphrase=<replaceable>string</replaceable></option></term>
+        <listitem><para>Passphrase used for the key if it is encrypted.</para></listitem>
       </varlistentry>
       <varlistentry>
-        <term><option>--tenancy</option></term><listitem><para>ID of your tenancy. </para></listitem>
+        <term><option>--tenancy=<replaceable>unique id</replaceable></option></term>
+        <listitem><para>ID of the tenancy.</para></listitem>
       </varlistentry>
       <varlistentry>
-        <term><option>--compartment</option></term><listitem><para>ID of your compartment.</para></listitem>
+        <term><option>--compartment=<replaceable>unique id</replaceable></option></term>
+        <listitem><para>ID of the compartment.</para></listitem>
       </varlistentry>
       <varlistentry>
-        <term><option>--region</option></term><listitem><para>Region name. Region is where you plan to deploy an application.</para></listitem>
+        <term><option>--region=<replaceable>string</replaceable></option></term>
+        <listitem><para>Region name. Region is where you plan to deploy an application.</para></listitem>
       </varlistentry>
       </variablelist>
     </refsect2>

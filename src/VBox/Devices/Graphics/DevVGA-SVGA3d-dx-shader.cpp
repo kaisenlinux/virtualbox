@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2020-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2020-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -41,7 +41,7 @@
 
 #include "DevVGA-SVGA3d-dx-shader.h"
 
-#ifdef RT_OS_WINDOWS
+#if defined(RT_OS_WINDOWS) && !defined(RT_ARCH_ARM64)
 #include <d3d11TokenizedProgramFormat.hpp>
 #else
 #define D3D11_SB_EXTENDED_OPCODE_RESOURCE_DIM 2
@@ -912,7 +912,7 @@ static const char *dxbcVmwareOpcodeTypeToString(uint32_t value)
 
 /* This is the central step in the MD5 algorithm. */
 #define MD5STEP(f, w, x, y, z, data, s) \
-    ( w += f(x, y, z) + data,  w = w<<s | w>>(32-s),  w += x )
+    ( w += f(x, y, z) + (data),  w = w<<s | w>>(32-s),  w += x )
 
 
 /**

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,6 +26,7 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QMenuBar>
 #include <QPushButton>
 #include <QStyle>
@@ -36,7 +37,9 @@
 #include "QIManagerDialog.h"
 #include "UICommon.h"
 #include "UIDesktopWidgetWatchdog.h"
+#include "UIHelpBrowserDialog.h"
 #include "UIMessageCenter.h"
+#include "UIShortcutPool.h"
 #ifdef VBOX_WS_MAC
 # include "QIToolBar.h"
 # include "UIWindowMenuManager.h"
@@ -55,9 +58,12 @@ void QIManagerDialogFactory::prepare(QIManagerDialog *&pDialog, QWidget *pCenter
 
 void QIManagerDialogFactory::cleanup(QIManagerDialog *&pDialog)
 {
-    pDialog->cleanup();
-    pDialog->deleteLater();
-    pDialog = 0;
+    if (pDialog)
+    {
+        pDialog->cleanup();
+        delete pDialog;
+        pDialog = 0;
+    }
 }
 
 
@@ -90,7 +96,7 @@ void QIManagerDialog::closeEvent(QCloseEvent *pEvent)
 
 void QIManagerDialog::sltHandleHelpRequested()
 {
-    emit sigHelpRequested(uiCommon().helpKeyword(m_pWidget));
+    UIHelpBrowserDialog::findManualFileAndShow(uiCommon().helpKeyword(m_pWidget));
 }
 
 void QIManagerDialog::prepare()
@@ -169,34 +175,41 @@ void QIManagerDialog::prepareButtonBox()
     AssertPtrReturnVoid(m_pButtonBox);
     {
         /* Configure button-box: */
+        m_pButtonBox->setStandardButtons(  QDialogButtonBox::Reset
 #ifdef VBOX_WS_WIN
-        m_pButtonBox->setStandardButtons(QDialogButtonBox::Reset | QDialogButtonBox::Save |  QDialogButtonBox::Close | QDialogButtonBox::Help);
+                                         | QDialogButtonBox::Save
 #else
-        m_pButtonBox->setStandardButtons(QDialogButtonBox::Reset | QDialogButtonBox::Apply |  QDialogButtonBox::Close | QDialogButtonBox::Help);
+                                         | QDialogButtonBox::Apply
 #endif
+                                         | QDialogButtonBox::Cancel
+                                         | QDialogButtonBox::Close
+                                         | QDialogButtonBox::Help);
         m_buttons[ButtonType_Reset] = m_pButtonBox->button(QDialogButtonBox::Reset);
 #ifdef VBOX_WS_WIN
         m_buttons[ButtonType_Apply] = m_pButtonBox->button(QDialogButtonBox::Save);
 #else
         m_buttons[ButtonType_Apply] = m_pButtonBox->button(QDialogButtonBox::Apply);
 #endif
+        m_buttons[ButtonType_Embed] = m_pButtonBox->button(QDialogButtonBox::Cancel);
         m_buttons[ButtonType_Close] = m_pButtonBox->button(QDialogButtonBox::Close);
         m_buttons[ButtonType_Help] = m_pButtonBox->button(QDialogButtonBox::Help);
 
         /* Assign shortcuts: */
         button(ButtonType_Close)->setShortcut(Qt::Key_Escape);
-        button(ButtonType_Help)->setShortcut(QKeySequence::HelpContents);
+        button(ButtonType_Help)->setShortcut(UIShortcutPool::standardSequence(QKeySequence::HelpContents));
 
-        /* Hide 'Reset' and 'Apply' initially: */
+        /* Hide some of buttons initially: */
         button(ButtonType_Reset)->hide();
         button(ButtonType_Apply)->hide();
-        /* Disable 'Reset' and 'Apply' initially: */
+        button(ButtonType_Embed)->hide();
+        /* Disable some of buttons initially: */
         button(ButtonType_Reset)->setEnabled(false);
         button(ButtonType_Apply)->setEnabled(false);
+        button(ButtonType_Embed)->setEnabled(false);
+
+        /* Configure connections: */
         connect(m_pButtonBox, &QIDialogButtonBox::rejected, this, &QIManagerDialog::close);
-        /* Connections to enable the context sensitive help: */
-        connect(m_pButtonBox, &QDialogButtonBox::helpRequested, this, &QIManagerDialog::sltHandleHelpRequested);
-        connect(this, &QIManagerDialog::sigHelpRequested, &msgCenter(), &UIMessageCenter::sltHandleHelpRequestWithKeyword);
+        connect(m_pButtonBox, &QIDialogButtonBox::helpRequested, this, &QIManagerDialog::sltHandleHelpRequested);
 
         /* Configure button-box: */
         configureButtonBox();

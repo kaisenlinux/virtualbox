@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -141,7 +141,7 @@ void UIGlobalSettingsLanguage::saveFromCacheTo(QVariant &data)
     UISettingsPageGlobal::uploadData(data);
 }
 
-void UIGlobalSettingsLanguage::retranslateUi()
+void UIGlobalSettingsLanguage::sltRetranslateUI()
 {
 }
 
@@ -155,7 +155,7 @@ void UIGlobalSettingsLanguage::prepare()
     prepareWidgets();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIGlobalSettingsLanguage::prepareWidgets()
@@ -167,7 +167,10 @@ void UIGlobalSettingsLanguage::prepareWidgets()
         /* Prepare 'language settings' editor: */
         m_pEditorLanguageSettings = new UILanguageSettingsEditor(this);
         if (m_pEditorLanguageSettings)
+        {
+            addEditor(m_pEditorLanguageSettings);
             pLayout->addWidget(m_pEditorLanguageSettings);
+        }
     }
 }
 

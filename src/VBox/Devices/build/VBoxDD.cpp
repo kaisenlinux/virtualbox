@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -246,6 +246,43 @@ extern "C" DECLEXPORT(int) VBoxDevicesRegister(PPDMDEVREGCB pCallbacks, uint32_t
     rc = pCallbacks->pfnRegister(pCallbacks, &g_DeviceTpm);
     if (RT_FAILURE(rc))
         return rc;
+
+    rc = pCallbacks->pfnRegister(pCallbacks, &g_DeviceTpmPpi);
+    if (RT_FAILURE(rc))
+        return rc;
+#endif
+#ifdef VBOX_WITH_VIRT_ARMV8
+    rc = pCallbacks->pfnRegister(pCallbacks, &g_DeviceEfiArmV8);
+    if (RT_FAILURE(rc))
+        return rc;
+
+    rc = pCallbacks->pfnRegister(pCallbacks, &g_DevicePl011);
+    if (RT_FAILURE(rc))
+        return rc;
+
+    rc = pCallbacks->pfnRegister(pCallbacks, &g_DevicePl031Rtc);
+    if (RT_FAILURE(rc))
+        return rc;
+
+    rc = pCallbacks->pfnRegister(pCallbacks, &g_DevicePl061Gpio);
+    if (RT_FAILURE(rc))
+        return rc;
+
+    rc = pCallbacks->pfnRegister(pCallbacks, &g_DeviceFlashCFI);
+    if (RT_FAILURE(rc))
+        return rc;
+
+    rc = pCallbacks->pfnRegister(pCallbacks, &g_DevicePciGenericEcam);
+    if (RT_FAILURE(rc))
+        return rc;
+
+    rc = pCallbacks->pfnRegister(pCallbacks, &g_DevicePciGenericEcamBridge);
+    if (RT_FAILURE(rc))
+        return rc;
+
+    rc = pCallbacks->pfnRegister(pCallbacks, &g_DevicePlatform);
+    if (RT_FAILURE(rc))
+        return rc;
 #endif
 
     return VINF_SUCCESS;
@@ -283,9 +320,16 @@ extern "C" DECLEXPORT(int) VBoxDriversRegister(PCPDMDRVREGCB pCallbacks, uint32_
     if (RT_FAILURE(rc))
         return rc;
 #endif
+#ifndef VBOX_WITH_LIBSLIRP
     rc = pCallbacks->pfnRegister(pCallbacks, &g_DrvNAT);
     if (RT_FAILURE(rc))
         return rc;
+#endif
+#ifdef VBOX_WITH_LIBSLIRP
+    rc = pCallbacks->pfnRegister(pCallbacks, &g_DrvNATlibslirp);
+    if (RT_FAILURE(rc))
+        return rc;
+#endif
 #if defined(RT_OS_LINUX) || defined(RT_OS_FREEBSD)
     rc = pCallbacks->pfnRegister(pCallbacks, &g_DrvHostInterface);
     if (RT_FAILURE(rc))
@@ -451,6 +495,11 @@ extern "C" DECLEXPORT(int) VBoxDriversRegister(PCPDMDRVREGCB pCallbacks, uint32_
 # endif
 #endif
 
+#ifdef VBOX_WITH_VIRT_ARMV8
+    rc = pCallbacks->pfnRegister(pCallbacks, &g_DrvGpioButton);
+    if (RT_FAILURE(rc))
+        return rc;
+#endif
     return VINF_SUCCESS;
 }
 

@@ -3,7 +3,7 @@
     manpage, user manual, usage: VBoxManage encryptvm
 -->
 <!--
-    Copyright (C) 2006-2023 Oracle and/or its affiliates.
+    Copyright (C) 2006-2024 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.
@@ -42,7 +42,7 @@
   <refnamediv>
     <refname>VBoxManage-encryptvm</refname>
     <refpurpose>изменение шифрования и паролей ВМ</refpurpose>
-    <refclass>Oracle VM VirtualBox</refclass>
+    <refclass>&product-name;</refclass>
   </refnamediv>
 
   <refsynopsisdiv>
@@ -93,7 +93,7 @@
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-encryptvm-description">
     <title>Описание</title>
     <para>
       Команда <command>VBoxManage encryptvm</command> позволяет изменить
@@ -180,7 +180,7 @@
     </refsect2>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-encryptvm-examples">
     <title>Примеры</title>
     <remark role="help-scope" condition="GLOBAL" />
     <para>
@@ -190,7 +190,7 @@
 <screen>$ VBoxManage encryptvm ol7 setencryption --cipher=AES-256 --new-password - --new-password-id vmid</screen>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-encryptvm-see-also">
     <title>Смотрите также</title>
     <para>
       <xref linkend="vboxmanage-createvm" />,

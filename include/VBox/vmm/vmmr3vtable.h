@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2022-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2022-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -49,6 +49,7 @@
 #include <VBox/vmm/pdmapi.h>
 #include <VBox/vmm/pdmasynccompletion.h>
 #include <VBox/vmm/pdmcritsect.h>
+#include <VBox/vmm/pdmdrv.h>
 #include <VBox/vmm/pdmnetshaper.h>
 #include <VBox/vmm/pdmqueue.h>
 #include <VBox/vmm/pdmusb.h>
@@ -70,7 +71,7 @@ RT_C_DECLS_BEGIN
 
 
 /** Magic and version for the VMM vtable.  (Magic: Emmet Cohen)   */
-#define VMMR3VTABLE_MAGIC_VERSION         RT_MAKE_U64(0x19900525, 0x00030000)
+#define VMMR3VTABLE_MAGIC_VERSION         RT_MAKE_U64(0x19900525, 0x00050001)
 /** Compatibility mask: These bits must match - magic and major version. */
 #define VMMR3VTABLE_MAGIC_VERSION_MASK    RT_MAKE_U64(0xffffffff, 0xffff0000)
 

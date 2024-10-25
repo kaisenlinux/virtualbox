@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -33,13 +33,12 @@
 
 /* GUI includes: */
 #include "QIGraphicsView.h"
-#include "QIWithRetranslateUI.h"
 
 /* Forward declarations: */
 class UIDetails;
 
 /* Graphics details-view: */
-class UIDetailsView : public QIWithRetranslateUI<QIGraphicsView>
+class UIDetailsView : public QIGraphicsView
 {
     Q_OBJECT;
 
@@ -64,16 +63,25 @@ public slots:
 
 protected:
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
     /** Handles resize @a pEvent. */
     virtual void resizeEvent(QResizeEvent *pEvent) RT_OVERRIDE;
+
+private slots:
+
+    /** Updates palette. */
+    void sltUpdatePalette() { preparePalette(); }
+
+    /** Handles translation event. */
+    void sltRetranslateUI();
 
 private:
 
     /** Prepares all. */
     void prepare();
+    /** Prepares this. */
+    void prepareThis();
+    /** Prepares palette. */
+    void preparePalette();
 
     /** Updates scene rectangle. */
     void updateSceneRect();

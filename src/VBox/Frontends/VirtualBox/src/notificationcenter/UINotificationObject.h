@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2021-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2021-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -110,15 +110,15 @@ protected:
     /** Returns whether object is done. */
     virtual bool isDone() const RT_OVERRIDE;
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Returns object internal name. */
-    virtual QString internalName() const /* override final */;
+    virtual QString internalName() const RT_OVERRIDE RT_FINAL;
     /** Returns object help keyword. */
-    virtual QString helpKeyword() const /* override final */;
+    virtual QString helpKeyword() const RT_OVERRIDE RT_FINAL;
     /** Handles notification-object being added. */
-    virtual void handle() /* override final */;
+    virtual void handle() RT_OVERRIDE RT_FINAL;
 
     /** Returns whether message with passed @a strInternalName is suppressed. */
     static bool isSuppressed(const QString &strInternalName);
@@ -157,7 +157,7 @@ public:
     /** Constructs notification-progress. */
     UINotificationProgress();
     /** Destructs notification-progress. */
-    virtual ~UINotificationProgress() /* override final */;
+    virtual ~UINotificationProgress() RT_OVERRIDE;
 
     /** Creates and returns started progress-wrapper. */
     virtual CProgress createProgress(COMResult &comResult) = 0;
@@ -174,16 +174,16 @@ public:
     /** Returns whether object is done. */
     virtual bool isDone() const RT_OVERRIDE;
     /** Returns object internal name. */
-    virtual QString internalName() const /* override final */;
+    virtual QString internalName() const RT_OVERRIDE RT_FINAL;
     /** Returns object help keyword. */
-    virtual QString helpKeyword() const /* override final */;
+    virtual QString helpKeyword() const RT_OVERRIDE RT_FINAL;
     /** Handles notification-object being added. */
-    virtual void handle() /* override final */;
+    virtual void handle() RT_OVERRIDE RT_FINAL;
 
 public slots:
 
     /** Stops the progress and notifies model about closing. */
-    virtual void close() /* override final */;
+    virtual void close() RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -229,7 +229,7 @@ public:
     /** Constructs notification-downloader. */
     UINotificationDownloader();
     /** Destructs notification-downloader. */
-    virtual ~UINotificationDownloader() /* override final */;
+    virtual ~UINotificationDownloader() RT_OVERRIDE;
 
     /** Creates and returns started downloader-wrapper. */
     virtual UIDownloader *createDownloader() = 0;
@@ -244,16 +244,16 @@ public:
     /** Returns whether object is done. */
     virtual bool isDone() const RT_OVERRIDE;
     /** Returns object internal name. */
-    virtual QString internalName() const /* override final */;
+    virtual QString internalName() const RT_OVERRIDE RT_FINAL;
     /** Returns object help keyword. */
-    virtual QString helpKeyword() const /* override final */;
+    virtual QString helpKeyword() const RT_OVERRIDE RT_FINAL;
     /** Handles notification-object being added. */
-    virtual void handle() /* override final */;
+    virtual void handle() RT_OVERRIDE RT_FINAL;
 
 public slots:
 
     /** Stops the downloader and notifies model about closing. */
-    virtual void close() /* override final */;
+    virtual void close() RT_OVERRIDE RT_FINAL;
 
 private slots:
 

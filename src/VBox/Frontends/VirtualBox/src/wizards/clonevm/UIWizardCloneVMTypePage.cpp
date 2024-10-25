@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -72,23 +72,23 @@ void UIWizardCloneVMTypePage::sltCloneTypeChanged(bool fIsFullClone)
     pWizard->setCloneModePageVisible(fIsFullClone);
 }
 
-void UIWizardCloneVMTypePage::retranslateUi()
+void UIWizardCloneVMTypePage::sltRetranslateUI()
 {
     /* Translate page: */
     setTitle(UIWizardCloneVM::tr("Clone type"));
 
     /* Translate widgets: */
     QString strLabel = UIWizardCloneVM::tr("<p>Please choose the type of clone you wish to create.</p>"
-                                           "<p>If you choose <b>Full clone</b>, "
+                                           "<p>If you choose <b>Full Clone</b>, "
                                            "an exact copy (including all virtual hard disk files) "
                                            "of the original virtual machine will be created.</p>"
-                                           "<p>If you choose <b>Linked clone</b>, "
+                                           "<p>If you choose <b>Linked Clone</b>, "
                                            "a new machine will be created, but the virtual hard disk files "
                                            "will be tied to the virtual hard disk files of original machine "
                                            "and you will not be able to move the new virtual machine "
                                            "to a different computer without moving the original as well.</p>");
     if (m_fAdditionalInfo)
-        strLabel += UIWizardCloneVM::tr("<p>If you create a <b>Linked clone</b> then a new snapshot will be created "
+        strLabel += UIWizardCloneVM::tr("<p>If you create a <b>Linked Clone</b> then a new snapshot will be created "
                                         "in the original virtual machine as part of the cloning process.</p>");
     if (m_pLabel)
         m_pLabel->setText(strLabel);
@@ -97,7 +97,7 @@ void UIWizardCloneVMTypePage::retranslateUi()
 void UIWizardCloneVMTypePage::initializePage()
 {
     AssertReturnVoid(wizardWindow<UIWizardCloneVM>());
-    retranslateUi();
+    sltRetranslateUI();
     if (m_pCloneTypeGroupBox && !m_userModifiedParameters.contains("LinkedClone"))
         wizardWindow<UIWizardCloneVM>()->setLinkedClone(!m_pCloneTypeGroupBox->isFullClone());
 }

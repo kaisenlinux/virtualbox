@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -41,17 +41,20 @@ class UIMachineLogicScale : public UIMachineLogic
 
 public:
 
-    /** Constructs scaled logic passing @a pParent to the base-class.
-      * @param  pSession  Brings the session UI reference. */
-    UIMachineLogicScale(QObject *pParent, UISession *pSession);
+    /** Constructs a logic passing @a pMachine and @a pSession to the base-class.
+      * @param  pMachine  Brings the machine this logic belongs to. */
+    UIMachineLogicScale(UIMachine *pMachine);
+
+    /** Returns visual state type. */
+    virtual UIVisualStateType visualStateType() const RT_OVERRIDE { return UIVisualStateType_Scale; }
 
 protected:
 
     /* Check if this logic is available: */
-    bool checkAvailability();
+    bool checkAvailability() RT_OVERRIDE;
 
     /** Returns machine-window flags for 'Scale' machine-logic and passed @a uScreenId. */
-    virtual Qt::WindowFlags windowFlags(ulong uScreenId) const { Q_UNUSED(uScreenId); return Qt::Window; }
+    virtual Qt::WindowFlags windowFlags(ulong uScreenId) const RT_OVERRIDE { Q_UNUSED(uScreenId); return Qt::Window; }
 
 private slots:
 
@@ -66,20 +69,20 @@ private slots:
 private:
 
     /* Prepare helpers: */
-    void prepareActionGroups();
-    void prepareActionConnections();
-    void prepareMachineWindows();
+    void prepareActionGroups() RT_OVERRIDE;
+    void prepareActionConnections() RT_OVERRIDE;
+    void prepareMachineWindows() RT_OVERRIDE;
 #ifndef RT_OS_DARWIN
-    void prepareMenu();
+    void prepareMenu() RT_OVERRIDE RT_FINAL;
 #endif /* !RT_OS_DARWIN */
 
     /* Cleanup helpers: */
 #ifndef RT_OS_DARWIN
-    void cleanupMenu();
+    void cleanupMenu() RT_OVERRIDE RT_FINAL;
 #endif /* !RT_OS_DARWIN */
-    void cleanupMachineWindows();
-    void cleanupActionConnections();
-    void cleanupActionGroups();
+    void cleanupMachineWindows() RT_OVERRIDE;
+    void cleanupActionConnections() RT_OVERRIDE;
+    void cleanupActionGroups() RT_OVERRIDE;
 
 #ifndef RT_OS_DARWIN
     /** Holds the popup-menu instance. */

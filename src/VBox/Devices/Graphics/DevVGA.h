@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -66,6 +66,17 @@
 
 #ifdef VBOX_WITH_VMSVGA
 # include "DevVGA-SVGA.h"
+#else
+# include <VBox/vmm/pdmifs.h>
+# include <VBox/vmm/stam.h>
+#endif
+
+#include <VBox/param.h> /* For VRAM ranges. */
+#ifdef VBOX_WITH_VMSVGA
+/* Make sure the param.h copy of the SVGA VRAM sizes matches the originals. */
+AssertCompile(VBOX_SVGA_VRAM_MIN_SIZE    == SVGA_VRAM_MIN_SIZE);
+AssertCompile(VBOX_SVGA_VRAM_MIN_SIZE_3D == SVGA_VRAM_MIN_SIZE_3D);
+AssertCompile(VBOX_SVGA_VRAM_MAX_SIZE    == SVGA_VRAM_MAX_SIZE);
 #endif
 
 #include <iprt/list.h>
@@ -73,16 +84,6 @@
 
 /** Use VBE bytewise I/O. Only needed for Windows Longhorn/Vista betas and backwards compatibility. */
 #define VBE_BYTEWISE_IO
-
-#ifdef VBOX
-/** The default amount of VRAM. */
-# define VGA_VRAM_DEFAULT    (_4M)
-/** The maximum amount of VRAM. Limited by VBOX_MAX_ALLOC_PAGE_COUNT. */
-# define VGA_VRAM_MAX        (256 * _1M)
-/** The minimum amount of VRAM. */
-# define VGA_VRAM_MIN        (_1M)
-#endif
-
 
 /** @name Macros dealing with partial ring-0/raw-mode VRAM mappings.
  * @{ */
@@ -369,23 +370,24 @@ typedef struct VGAState
 
     /** Flag indicating that there are dirty bits. This is used to optimize the handler resetting. */
     bool                        fHasDirtyBits;
-    /** Flag indicating that the VGA memory in the 0xa0000-0xbffff region has been remapped to allow direct access.
-     * @todo This is just an unnecessary summmary of bmPageMapBitmap.  */
-    bool                        fRemappedVGA;
     /** Whether to render the guest VRAM to the framebuffer memory. False only for some LFB modes. */
     bool                        fRenderVRAM;
     /** Whether 3D is enabled for the VM. */
     bool                        f3DEnabled;
     /** Set if state has been restored. */
     bool                        fStateLoaded;
+    /** Flag whether to expose the legacy VGA interface to the guest. */
+    bool                        fLegacyVgaEnabled;
 #ifdef VBOX_WITH_VMSVGA
     /* Whether the SVGA emulation is enabled or not. */
     bool                        fVMSVGAEnabled;
     bool                        fVMSVGA10;
     bool                        fVMSVGAPciId;
     bool                        fVMSVGAPciBarLayout;
+    /** Flag whether the SVGA3 interface is exposed to the guest. */
+    bool                        fVmSvga3;
 #else
-    bool                        afPadding4[4];
+    bool                        afPadding4[5];
 #endif
 
     struct {
@@ -515,6 +517,8 @@ typedef struct VGAState
 #ifdef VBOX_WITH_VMSVGA
     /** VMSVGA: I/O port PCI region. */
     IOMIOPORTHANDLE             hIoPortVmSvga;
+    /** VMSVGA3: MMIO PCI region for the registers. */
+    IOMMMIOHANDLE               hMmioSvga3;
     /** VMSVGA: The MMIO2 handle of the FIFO PCI region. */
     PGMMMIO2HANDLE              hMmio2VmSvgaFifo;
 #endif
@@ -722,11 +726,6 @@ int     VBVAInfoScreen(PVGASTATE pThis, const VBVAINFOSCREEN RT_UNTRUSTED_VOLATI
 int     VBVAGetInfoViewAndScreen(PVGASTATE pThis, PVGASTATECC pThisCC, uint32_t u32ViewIndex,
                                  VBVAINFOVIEW *pView, VBVAINFOSCREEN *pScreen);
 #endif
-
-/* @return host-guest flags that were set on reset
- * this allows the caller to make further cleaning when needed,
- * e.g. reset the IRQ */
-uint32_t HGSMIReset(PHGSMIINSTANCE pIns);
 
 # ifdef VBOX_WITH_VIDEOHWACCEL
 DECLCALLBACK(int) vbvaR3VHWACommandCompleteAsync(PPDMIDISPLAYVBVACALLBACKS pInterface,

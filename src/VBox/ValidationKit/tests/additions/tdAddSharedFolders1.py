@@ -7,7 +7,7 @@ VirtualBox Validation Kit - Shared Folders #1.
 
 __copyright__ = \
 """
-Copyright (C) 2010-2023 Oracle and/or its affiliates.
+Copyright (C) 2010-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -36,7 +36,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 # Standard Python imports.
 import os
@@ -44,7 +44,7 @@ import shutil
 import sys
 
 # Only the main script needs to modify the path.
-try:    __file__
+try:    __file__                            # pylint: disable=used-before-assignment
 except: __file__ = sys.argv[0];
 g_ksValidationKitDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))));
 sys.path.append(g_ksValidationKitDir);
@@ -63,7 +63,8 @@ class SubTstDrvAddSharedFolders1(base.SubTestDriverBase):
     def __init__(self, oTstDrv):
         base.SubTestDriverBase.__init__(self, oTstDrv, 'add-shared-folders', 'Shared Folders');
 
-        self.asTestsDef         = [ 'fsperf', ];
+        # Note: 'basic' acts as a placeholder, to be able to run w/o 'fsperf' or 'all'.
+        self.asTestsDef         = [ 'basic', 'fsperf', ];
         self.asTests            = self.asTestsDef;
         self.asExtraArgs        = [];
         self.asGstFsPerfPaths   = [
@@ -88,6 +89,9 @@ class SubTstDrvAddSharedFolders1(base.SubTestDriverBase):
                         raise base.InvalidOption('The "--add-shared-folders-tests" value "%s" is not valid; valid values are: %s'
                                                  % (s, ' '.join(self.asTestsDef)));
             return iNext;
+        if asArgs[iArg] == '--add-shared-folders-quick':
+            self.asTests = [ 'basic' ];
+            return iArg + 1;
         if asArgs[iArg] == '--add-shared-folders-extra-arg':
             iArg += 1;
             iNext = self.oTstDrv.requireMoreArgs(1, asArgs, iArg);
@@ -101,6 +105,8 @@ class SubTstDrvAddSharedFolders1(base.SubTestDriverBase):
         reporter.log('      Default: all  (%s)' % (':'.join(self.asTestsDef)));
         reporter.log('  --add-shared-folders-extra-arg <fsperf-arg>');
         reporter.log('      Adds an extra FsPerf argument.  Can be repeated.');
+        reporter.log('  --add-shared-folders-quick');
+        reporter.log('      Skips lengthly tests (such as FsPerf).');
 
         return True;
 
@@ -191,7 +197,7 @@ class SubTstDrvAddSharedFolders1(base.SubTestDriverBase):
         """
         return self.unmountShareEx(oSession, oTxsSession, sShareName, sGuestMountPoint, fMustSucceed = True);
 
-    def testIt(self, oTestVm, oSession, oTxsSession):
+    def testIt(self, oTestVm, oSession, oTxsSession): #pylint: disable=too-many-statements
         """
         Executes the test.
 
@@ -200,10 +206,13 @@ class SubTstDrvAddSharedFolders1(base.SubTestDriverBase):
         reporter.log("Active tests: %s" % (self.asTests,));
 
         #
-        # Skip the test if before 6.0
+        # Skip the test if before 6.0 or if the VM is NT4 or older.
         #
         if self.oTstDrv.fpApiVer < 6.0:
             reporter.log('Requires 6.0 or later (for now)');
+            return (None, oTxsSession);
+        if oTestVm.isWindows() and oTestVm.sKind in ('WindowsNT3x', 'WindowsNT4', 'Windows2000',):
+            reporter.log('No shared folders on %s' % (oTestVm.sKind,));
             return (None, oTxsSession);
 
         # Guess a free mount point inside the guest.
@@ -304,8 +313,12 @@ class SubTstDrvAddSharedFolders1(base.SubTestDriverBase):
                     sCopy           = self.oTstDrv.getGuestSystemShell();
                     sCopyArgs       = ( sCopy, "/C", "copy", "/Y",  sFsPerfPath, sFsPerfPathTemp );
                 else:
-                    sCopy           = oTestVm.pathJoin(self.oTstDrv.getGuestSystemDir(oTestVm), 'cp');
-                    sCopyArgs       = ( sCopy, "-a", "-v", sFsPerfPath, sFsPerfPathTemp );
+                    # Really old guests (like OL 6) have their coreutils in /bin instead of symlinking /bin to /usr/bin.
+                    if self.oTstDrv.txsIsFile(oSession, oTxsSession, "/bin/cp", fIgnoreErrors = True):
+                        sCopy = "/bin/cp";
+                    else:
+                        sCopy = oTestVm.pathJoin(self.oTstDrv.getGuestSystemDir(oTestVm), 'cp');
+                    sCopyArgs = ( sCopy, "-a", "-v", sFsPerfPath, sFsPerfPathTemp );
                 fRc = self.oTstDrv.txsRunTest(oTxsSession, 'Copying FsPerf', 60 * 1000,
                                               sCopy, sCopyArgs, fCheckSessionStatus = True);
                 fRc = fRc and oTxsSession.syncChMod(sFsPerfPathTemp, 0o755);
@@ -319,7 +332,11 @@ class SubTstDrvAddSharedFolders1(base.SubTestDriverBase):
                 # Do a bit of diagnosis to find out why this failed.
                 if     not oTestVm.isWindows() \
                    and not oTestVm.isOS2():
-                    sCmdLs = oTestVm.pathJoin(self.oTstDrv.getGuestSystemDir(oTestVm), 'ls');
+                    # Really old guests (like OL 6) have their coreutils in /bin instead of symlinking /bin to /usr/bin.
+                    if self.oTstDrv.txsIsFile(oSession, oTxsSession, "/bin/ls", fIgnoreErrors = True):
+                        sCmdLs = "/bin/ls";
+                    else:
+                        sCmdLs = oTestVm.pathJoin(self.oTstDrv.getGuestSystemDir(oTestVm), 'ls');
                     oTxsSession.syncExec(sCmdLs, (sCmdLs, "-al", sFsPerfPath), fIgnoreErrors = True);
                     oTxsSession.syncExec(sCmdLs, (sCmdLs, "-al", "-R", "/opt"), fIgnoreErrors = True);
                     oTxsSession.syncExec(sCmdLs, (sCmdLs, "-al", "-R", "/media/cdrom"), fIgnoreErrors = True);

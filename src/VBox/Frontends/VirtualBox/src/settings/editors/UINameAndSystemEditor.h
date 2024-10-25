@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,15 +31,11 @@
 # pragma once
 #endif
 
-/* Qt includes: */
-#include <QWidget>
-
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
-#include "UILibraryDefs.h"
+#include "UIEditor.h"
+#include "UIGuestOSType.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CGuestOSType.h"
 
 /* Forward declarations: */
@@ -49,22 +45,12 @@ class QLabel;
 class QILineEdit;
 class QString;
 class UIFilePathSelector;
-class UIMarkableLineEdit;
 
-/** QWidget subclass providing complex editor for basic VM parameters. */
-class SHARED_LIBRARY_STUFF UINameAndSystemEditor : public QIWithRetranslateUI<QWidget>
+/** UIEditor sub-class providing complex editor for basic VM parameters. */
+class SHARED_LIBRARY_STUFF UINameAndSystemEditor : public UIEditor
 {
     Q_OBJECT;
     Q_PROPERTY(QString name READ name WRITE setName);
-    Q_PROPERTY(CGuestOSType type READ type WRITE setType);
-
-    /** Simple struct representing CGuestOSType cache. */
-    struct UIGuestOSType
-    {
-        QString typeId;
-        QString typeDescription;
-        bool is64bit;
-    };
 
 signals:
 
@@ -77,12 +63,13 @@ signals:
     /** Notifies listeners about VM image change. */
     void sigImageChanged(const QString &strImage);
 
-    /** Notifies listeners about VM OS type change. */
-    void sigOsTypeChanged();
+    /** Notifies listeners about edition change. */
+    void sigEditionChanged(ulong uIndex);
+
     /** Notifies listeners about VM OS family change. */
     void sigOSFamilyChanged(const QString &strFamilyId);
-    /** Notifies listeners about edition change. */
-    void sigEditionChanged(ulong selectedEditionIndex);
+    /** Notifies listeners about VM OS type change. */
+    void sigOsTypeChanged();
 
 public:
 
@@ -109,6 +96,11 @@ public:
     /** Defines whether VM OS type stuff is @a fEnabled. */
     void setOSTypeStuffEnabled(bool fEnabled);
 
+    /** Defines whether edition selector is @a fEnabled. */
+    void setEditionSelectorEnabled(bool fEnabled);
+    /** Returns whether edition selector is enabled. */
+    bool isEditionsSelectorEmpty() const;
+
     /** Defines the VM @a strName. */
     void setName(const QString &strName);
     /** Returns the VM name. */
@@ -119,68 +111,81 @@ public:
     /** Returns path string selected by the user. */
     QString path() const;
 
-    /** Returns image string selected by the user. */
-    QString ISOImagePath() const;
     /** Sets image path. */
     void setISOImagePath(const QString &strPath);
+    /** Returns image string selected by the user. */
+    QString ISOImagePath() const;
 
-    /** Defines the VM OS @a strTypeId and @a strFamilyId if passed. */
-    void setTypeId(QString strTypeId, QString strFamilyId = QString());
-    /** Returns the VM OS type ID. */
-    QString typeId() const;
-    /** Returns the VM OS family ID. */
+    /* strTypeId should be one of the type ids defined in Global.cpp and returned by IGuestOSType::getId(). */
+    bool setGuestOSTypeByTypeId(const QString &strTypeId);
+    /** Returns current family ID. */
     QString familyId() const;
-
-    /** Defines the VM OS @a enmType. */
-    void setType(const CGuestOSType &enmType);
-    /** Returns the VM OS type. */
-    CGuestOSType type() const;
+    /** Returns current distribution. */
+    QString distribution() const;
+    /** Returns current type ID. */
+    QString typeId() const;
 
     /** Passes the @p fError to QILineEdit::mark(bool) effectively marking it for error. */
     void markNameEditor(bool fError);
     /** Passes the @p fError and @a strErrorMessage to UIFilePathSelector::mark(bool)
       *  effectively changing the background color and error-text. */
-    void markImageEditor(bool fError, const QString &strErrorMessage);
+    void markImageEditor(bool fError, const QString &strErrorMessage, const QString &strNoErrorMessage);
 
     /** @p names and @p indices are parallel array storing edition names and their indices, respectively.*/
     void setEditionNameAndIndices(const QVector<QString> &names, const QVector<ulong> &ids);
-
-    void setEditionSelectorEnabled(bool fEnabled);
-    bool isEditionsSelectorEmpty() const;
 
     /** Returns 1st column width. */
     int firstColumnWidth() const;
 
 protected:
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
+    /** Handles filter change.
+      * Reimplement this in subclass to handle various filter changes,
+      * like experience mode change or manual filter editor change. */
+    virtual void handleFilterChange() RT_OVERRIDE;
 
 private slots:
 
+    /** Handles translation event. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
+    /** Handles VM OS edition @a iIndex change. */
+    void sltSelectedEditionsChanged(int iIndex);
     /** Handles VM OS family @a iIndex change. */
     void sltFamilyChanged(int iIndex);
+    /** Handles VM OS @a strDistribution change. */
+    void sltDistributionChanged(const QString &strDistribution);
     /** Handles VM OS type @a iIndex change. */
     void sltTypeChanged(int iIndex);
-    void sltSelectedEditionsChanged(int);
 
 private:
 
-    /** @name Prepare cascade.
-      * @{ */
-        /** Prepares all. */
-        void prepare();
-        /** Prepares this. */
-        void prepareThis();
-        /** Prepares widgets. */
-        void prepareWidgets();
-        /** Prepares VM OS family combo. */
-        void prepareFamilyCombo();
-        /** Prepares connections. */
-        void prepareConnections();
-    /** @} */
+    /** Prepares all. */
+    void prepare();
+    /** Prepares widgets. */
+    void prepareWidgets();
+    /** Prepares connections. */
+    void prepareConnections();
 
+    /** Returns selected editions index. */
     ulong selectedEditionIndex() const;
+
+    /** Pupulates VM OS family combo. */
+    void populateFamilyCombo();
+    /** Pupulates VM OS distribution combo. */
+    void populateDistributionCombo();
+    /** Pupulates VM OS type combo.
+      * @param  types  Brings the list of type pairs. */
+    void populateTypeCombo(const QList<QPair<QString, QString> > &types);
+
+    /** Selects preferred family. */
+    void selectPreferredFamily();
+    /** Selects preferred distribution. */
+    void selectPreferredDistribution();
+    /** Selects preferred type. */
+    void selectPreferredType();
+
+    /** Defines whether @a pWidget @a fEnabled by reason @a uReason. */
+    static void setEnabledByReason(QWidget *pWidget, uint uReason, bool fEnabled);
 
     /** @name Arguments
      * @{ */
@@ -198,19 +203,15 @@ private:
 
     /** @name Values
      * @{ */
-        /** Holds the current family ID list. */
-        QStringList  m_familyIDs;
-
-        /** Holds the current type cache. */
-        QMap<QString, QList<UIGuestOSType> >  m_types;
-
-        /** Holds the VM OS type ID. */
-        QString  m_strTypeId;
         /** Holds the VM OS family ID. */
         QString  m_strFamilyId;
 
+        /** Holds the currently chosen OS distributions on per-family basis. */
+        QMap<QString, QString>  m_familyToDistribution;
         /** Holds the currently chosen OS type IDs on per-family basis. */
-        QMap<QString, QString>  m_currentIds;
+        QMap<QString, QString>  m_familyToType;
+        /** Holds the currently chosen OS type IDs on per-distribution basis. */
+        QMap<QString, QString>  m_distributionToType;
     /** @} */
 
     /** @name Widgets
@@ -219,32 +220,39 @@ private:
         QGridLayout *m_pLayout;
 
         /** Holds the VM name label instance. */
-        QLabel *m_pLabelName;
-        /** Holds the VM path label instance. */
-        QLabel *m_pLabelPath;
-        /** Holds the ISO image label instance. */
-        QLabel *m_pLabelImage;
-        /** Holds the edition label instance. */
-        QLabel *m_pLabelEdition;
-        /** Holds the VM OS family label instance. */
-        QLabel *m_pLabelFamily;
-        /** Holds the VM OS type label instance. */
-        QLabel *m_pLabelType;
-        /** Holds the VM OS type icon instance. */
-        QLabel *m_pIconType;
-
+        QLabel             *m_pLabelName;
         /** Holds the VM name editor instance. */
-        UIMarkableLineEdit *m_pEditorName;
+        QILineEdit *m_pEditorName;
+
+        /** Holds the VM path label instance. */
+        QLabel             *m_pLabelPath;
         /** Holds the VM path editor instance. */
         UIFilePathSelector *m_pSelectorPath;
-        /** Holds the file selector for ISO image (either for unattended install or to be attached to vm). */
+
+        /** Holds the ISO image label instance. */
+        QLabel             *m_pLabelImage;
+        /** Holds the file selector for ISO image. */
         UIFilePathSelector *m_pSelectorImage;
+
+        /** Holds the edition label instance. */
+        QLabel    *m_pLabelEdition;
         /** Holds the VM OS edition combo (currently only Windows ISO have this). */
-        QComboBox          *m_pComboEdition;
+        QComboBox *m_pComboEdition;
+
+        /** Holds the VM OS family label instance. */
+        QLabel    *m_pLabelFamily;
         /** Holds the VM OS family combo instance. */
-        QComboBox          *m_pComboFamily;
+        QComboBox *m_pComboFamily;
+        /** Holds the VM OS distribution label instance. */
+        QLabel    *m_pLabelDistribution;
+        /** Holds the VM OS distribution combo instance. */
+        QComboBox *m_pComboDistribution;
+        /** Holds the VM OS type label instance. */
+        QLabel    *m_pLabelType;
         /** Holds the VM OS type combo instance. */
-        QComboBox          *m_pComboType;
+        QComboBox *m_pComboType;
+        /** Holds the VM OS type icon instance. */
+        QLabel    *m_pIconType;
     /** @} */
 };
 

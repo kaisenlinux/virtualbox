@@ -34,13 +34,10 @@
  * the terms of any one of the MPL, the GPL or the LGPL.
  *
  * ***** END LICENSE BLOCK ***** */
-
+#define LOG_GROUP LOG_GROUP_IPC
 #include "ipcdclient.h"
 #include "ipcConnection.h"
 #include "ipcConfig.h"
-#include "ipcMessageQ.h"
-#include "ipcMessageUtils.h"
-#include "ipcLog.h"
 #include "ipcm.h"
 
 #include "nsIFile.h"
@@ -54,18 +51,19 @@
 #include "nsProxyRelease.h"
 #include "nsCOMArray.h"
 
-#include "prio.h"
-#include "prproces.h"
-#include "pratom.h"
+#include <iprt/asm.h>
+#include <iprt/critsect.h>
+#include <iprt/env.h>
+#include <iprt/message.h>
+#include <iprt/pipe.h>
+#include <iprt/process.h>
+#include <iprt/string.h>
 
-#ifdef VBOX
-# include <iprt/critsect.h>
-# define VBOX_WITH_IPCCLIENT_RW_CS
-#endif
+#include <VBox/log.h>
 
 /* ------------------------------------------------------------------------- */
 
-#define IPC_REQUEST_TIMEOUT PR_SecondsToInterval(30)
+#define IPC_REQUEST_TIMEOUT (30 * RT_MS_1SEC)
 
 /* ------------------------------------------------------------------------- */
 
@@ -75,8 +73,8 @@ public:
   static NS_HIDDEN_(ipcTargetData*) Create();
 
   // threadsafe addref/release
-  NS_HIDDEN_(nsrefcnt) AddRef()  { return PR_AtomicIncrement(&refcnt); }
-  NS_HIDDEN_(nsrefcnt) Release() { PRInt32 r = PR_AtomicDecrement(&refcnt); if (r == 0) delete this; return r; }
+  NS_HIDDEN_(nsrefcnt) AddRef()  { return ASMAtomicIncU32(&refcnt); }
+  NS_HIDDEN_(nsrefcnt) Release() { uint32_t r = ASMAtomicDecU32(&refcnt); if (r == 0) delete this; return r; }
 
   NS_HIDDEN_(void) SetObserver(ipcIMessageObserver *aObserver, PRBool aOnCurrentThread);
 
@@ -90,7 +88,7 @@ public:
   nsCOMPtr<nsIEventQueue> eventQ;
 
   // incoming messages are added to this list
-  ipcMessageQ pendingQ;
+  RTLISTANCHOR            LstPendingMsgs;
 
   // non-zero if the observer has been disabled (this means that new messages
   // should not be dispatched to the observer until the observer is re-enabled
@@ -103,15 +101,25 @@ private:
     : monitor(nsAutoMonitor::NewMonitor("ipcTargetData"))
     , observerDisabled(0)
     , refcnt(0)
-    {}
+    {
+        RTListInit(&LstPendingMsgs);
+    }
 
   ~ipcTargetData()
   {
     if (monitor)
       nsAutoMonitor::DestroyMonitor(monitor);
+
+    /* Free all the pending messages. */
+    PIPCMSG pIt, pItNext;
+    RTListForEachSafe(&LstPendingMsgs, pIt, pItNext, IPCMSG, NdMsg)
+    {
+        RTListNodeRemove(&pIt->NdMsg);
+        IPCMsgFree(pIt, true /*fFreeStruct*/);
+    }
   }
 
-  PRInt32 refcnt;
+  volatile uint32_t refcnt;
 };
 
 ipcTargetData *
@@ -151,27 +159,19 @@ public:
 
   ~ipcClientState()
   {
-#ifndef VBOX_WITH_IPCCLIENT_RW_CS
-    if (monitor)
-      nsAutoMonitor::DestroyMonitor(monitor);
-#else
     RTCritSectRwDelete(&critSect);
-#endif
+    RTCritSectDelete(&CritSectCache);
+
+    /* Free all the cached messages. */
+    PIPCMSG pIt, pItNext;
+    RTListForEachSafe(&LstMsgCache, pIt, pItNext, IPCMSG, NdMsg)
+    {
+        RTListNodeRemove(&pIt->NdMsg);
+        IPCMsgFree(pIt, true /*fFreeStruct*/);
+    }
   }
 
-#ifndef VBOX_WITH_IPCCLIENT_RW_CS
-  //
-  // the monitor protects the targetMap and the connected and shutdown flags.
-  //
-  // NOTE: we use a PRMonitor for this instead of a PRLock because we need
-  //       the lock to be re-entrant.  since we don't ever need to wait on
-  //       this monitor, it might be worth it to implement a re-entrant
-  //       wrapper for PRLock.
-  //
-  PRMonitor    *monitor;
-#else  /* VBOX_WITH_IPCCLIENT_RW_CS */
   RTCRITSECTRW  critSect;
-#endif /* VBOX_WITH_IPCCLIENT_RW_CS */
   ipcTargetMap  targetMap;
   PRBool        connected;
   PRBool        shutdown;
@@ -181,22 +181,23 @@ public:
 
   nsCOMArray<ipcIClientObserver> clientObservers;
 
+  RTCRITSECT     CritSectCache;
+  RTLISTANCHOR  LstMsgCache;
+  uint32_t      cMsgsInCache;
+
 private:
 
   ipcClientState()
-#ifndef VBOX_WITH_IPCCLIENT_RW_CS
-    : monitor(nsAutoMonitor::NewMonitor("ipcClientState"))
-    , connected(PR_FALSE)
-#else
     : connected(PR_FALSE)
-#endif
     , shutdown(PR_FALSE)
     , selfID(0)
   {
-#ifdef VBOX_WITH_IPCCLIENT_RW_CS
     /* Not employing the lock validator here to keep performance up in debug builds. */
     RTCritSectRwInitEx(&critSect, RTCRITSECT_FLAGS_NO_LOCK_VAL, NIL_RTLOCKVALCLASS, RTLOCKVAL_SUB_CLASS_NONE, NULL);
-#endif
+
+    RTCritSectInit(&CritSectCache);
+    RTListInit(&LstMsgCache);
+    cMsgsInCache = 0;
   }
 };
 
@@ -207,11 +208,7 @@ ipcClientState::Create()
   if (!cs)
     return NULL;
 
-#ifndef VBOX_WITH_IPCCLIENT_RW_CS
-  if (!cs->monitor || !cs->targetMap.Init())
-#else
   if (!RTCritSectRwIsInitialized(&cs->critSect) || !cs->targetMap.Init())
-#endif
   {
     delete cs;
     return NULL;
@@ -224,45 +221,105 @@ ipcClientState::Create()
 
 static ipcClientState *gClientState;
 
+DECLHIDDEN(void) IPC_MsgFree(PIPCMSG pMsg)
+{
+    if (pMsg->fStack)
+        return;
+
+    int vrc = RTCritSectTryEnter(&gClientState->CritSectCache);
+    if (RT_SUCCESS(vrc))
+    {
+        if (gClientState->cMsgsInCache < 10)
+        {
+            RTListAppend(&gClientState->LstMsgCache, &pMsg->NdMsg);
+            gClientState->cMsgsInCache++;
+            RTCritSectLeave(&gClientState->CritSectCache);
+            return;
+        }
+
+        RTCritSectLeave(&gClientState->CritSectCache);
+    }
+
+    IPCMsgFree(pMsg, true /*fFreeStruct*/);
+}
+
+DECLINLINE(PIPCMSG) ipcdMsgGetFromCache(void)
+{
+    PIPCMSG pMsg = NULL;
+
+    if (gClientState->cMsgsInCache)
+    {
+        int vrc = RTCritSectTryEnter(&gClientState->CritSectCache);
+        if (RT_SUCCESS(vrc))
+        {
+            if (gClientState->cMsgsInCache)
+            {
+                pMsg = RTListRemoveFirst(&gClientState->LstMsgCache, IPCMSG, NdMsg);
+                gClientState->cMsgsInCache--;
+            }
+
+            RTCritSectLeave(&gClientState->CritSectCache);
+        }
+    }
+
+    return pMsg;
+}
+
+static PIPCMSG IPC_MsgClone(PCIPCMSG pMsg)
+{
+    PIPCMSG pClone = ipcdMsgGetFromCache();
+    if (pClone)
+    {
+        int vrc = IPCMsgCloneWithMsg(pMsg, pClone);
+        if (RT_SUCCESS(vrc))
+            return pClone;
+
+        /* Don't bother putting the clone back into the cache. */
+        IPCMsgFree(pClone, true /*fFreeStruct*/);
+    }
+
+    /* Allocate new */
+    return IPCMsgClone(pMsg);
+}
+
+static PIPCMSG IPC_MsgNewSg(const nsID &target, size_t cbTotal, PCRTSGSEG paSegs, uint32_t cSegs)
+{
+    PIPCMSG pMsg = ipcdMsgGetFromCache();
+    if (pMsg)
+    {
+        int vrc = IPCMsgInitSg(pMsg, target, cbTotal, paSegs, cSegs);
+        if (RT_SUCCESS(vrc))
+            return pMsg;
+    }
+
+    return IPCMsgNewSg(target, cbTotal, paSegs, cSegs);
+}
+
+
 static PRBool
 GetTarget(const nsID &aTarget, ipcTargetData **td)
 {
-#ifndef VBOX_WITH_IPCCLIENT_RW_CS
-  nsAutoMonitor mon(gClientState->monitor);
-  return gClientState->targetMap.Get(nsIDHashKey(&aTarget).GetKey(), td);
-#else
   RTCritSectRwEnterShared(&gClientState->critSect);
   PRBool fRc = gClientState->targetMap.Get(nsIDHashKey(&aTarget).GetKey(), td);
   RTCritSectRwLeaveShared(&gClientState->critSect);
   return fRc;
-#endif
 }
 
 static PRBool
 PutTarget(const nsID &aTarget, ipcTargetData *td)
 {
-#ifndef VBOX_WITH_IPCCLIENT_RW_CS
-  nsAutoMonitor mon(gClientState->monitor);
-  return gClientState->targetMap.Put(nsIDHashKey(&aTarget).GetKey(), td);
-#else
   RTCritSectRwEnterExcl(&gClientState->critSect);
   PRBool fRc = gClientState->targetMap.Put(nsIDHashKey(&aTarget).GetKey(), td);
   RTCritSectRwLeaveExcl(&gClientState->critSect);
   return fRc;
-#endif
 }
 
 static void
 DelTarget(const nsID &aTarget)
 {
-#ifndef VBOX_WITH_IPCCLIENT_RW_CS
-  nsAutoMonitor mon(gClientState->monitor);
-  gClientState->targetMap.Remove(nsIDHashKey(&aTarget).GetKey());
-#else
   RTCritSectRwEnterExcl(&gClientState->critSect);
   gClientState->targetMap.Remove(nsIDHashKey(&aTarget).GetKey());
   RTCritSectRwLeaveExcl(&gClientState->critSect);
-#endif
 }
 
 /* ------------------------------------------------------------------------- */
@@ -289,44 +346,47 @@ GetDaemonPath(nsCString &dpath)
 static void
 ProcessPendingQ(const nsID &aTarget)
 {
-  ipcMessageQ tempQ;
+    RTLISTANCHOR LstPendingMsgs;
+    RTListInit(&LstPendingMsgs);
 
-  nsRefPtr<ipcTargetData> td;
-  if (GetTarget(aTarget, getter_AddRefs(td)))
-  {
-    nsAutoMonitor mon(td->monitor);
-
-    // if the observer for this target has been temporarily disabled, then
-    // we must not processing any pending messages at this time.
-
-    if (!td->observerDisabled)
-      td->pendingQ.MoveTo(tempQ);
-  }
-
-  // process pending queue outside monitor
-  while (!tempQ.IsEmpty())
-  {
-    ipcMessage *msg = tempQ.First();
-
-    // it is possible that messages for other targets are in the queue
-    // (currently, this can be only a IPCM_MSG_PSH_CLIENT_STATE message
-    // initially addressed to IPCM_TARGET, see IPC_OnMessageAvailable())
-    // --ignore them.
-    if (td->observer && msg->Target().Equals(aTarget))
-      td->observer->OnMessageAvailable(msg->mMetaData,
-                                       msg->Target(),
-                                       (const PRUint8 *) msg->Data(),
-                                       msg->DataLen());
-    else
+    nsRefPtr<ipcTargetData> td;
+    if (GetTarget(aTarget, getter_AddRefs(td)))
     {
-      // the IPCM target does not have an observer, and therefore any IPCM
-      // messages that make it here will simply be dropped.
-      NS_ASSERTION(aTarget.Equals(IPCM_TARGET) || msg->Target().Equals(IPCM_TARGET),
-                   "unexpected target");
-      LOG(("dropping IPCM message: type=%x\n", IPCM_GetType(msg)));
+        nsAutoMonitor mon(td->monitor);
+
+        // if the observer for this target has been temporarily disabled, then
+        // we must not processing any pending messages at this time.
+
+        if (!td->observerDisabled)
+            RTListMove(&LstPendingMsgs, &td->LstPendingMsgs);
     }
-    tempQ.DeleteFirst();
-  }
+
+    // process pending queue outside monitor
+    while (!RTListIsEmpty(&LstPendingMsgs))
+    {
+        PIPCMSG pMsg = RTListGetFirst(&LstPendingMsgs, IPCMSG, NdMsg);
+        RTListNodeRemove(&pMsg->NdMsg);
+
+        // it is possible that messages for other targets are in the queue
+        // (currently, this can be only a IPCM_MSG_PSH_CLIENT_STATE message
+        // initially addressed to IPCM_TARGET, see IPC_OnMessageAvailable())
+        // --ignore them.
+        if (td->observer && IPCMsgGetTarget(pMsg)->Equals(aTarget))
+            td->observer->OnMessageAvailable(pMsg->upUser,
+                                             *IPCMsgGetTarget(pMsg),
+                                             (const PRUint8 *)IPCMsgGetPayload(pMsg),
+                                             IPCMsgGetPayloadSize(pMsg));
+        else
+        {
+          // the IPCM target does not have an observer, and therefore any IPCM
+          // messages that make it here will simply be dropped.
+          NS_ASSERTION(   aTarget.Equals(IPCM_TARGET)
+                       || IPCMsgGetTarget(pMsg)->Equals(IPCM_TARGET),
+                       "unexpected target");
+          Log(("dropping IPCM message: type=%x\n", IPCM_GetType(pMsg)));
+        }
+        IPC_MsgFree(pMsg);
+    }
 }
 
 /* ------------------------------------------------------------------------- */
@@ -334,27 +394,22 @@ ProcessPendingQ(const nsID &aTarget)
 // WaitTarget enables support for multiple threads blocking on the same
 // message target.  the selector is called while inside the target's monitor.
 
-typedef nsresult (* ipcMessageSelector)(
-  void *arg,
-  ipcTargetData *td,
-  const ipcMessage *msg
-);
+typedef nsresult (* ipcMessageSelector)(void *arg, ipcTargetData *td, PCIPCMSG pMsg);
 
 // selects any
-static nsresult
-DefaultSelector(void *arg, ipcTargetData *td, const ipcMessage *msg)
+static nsresult DefaultSelector(void *arg, ipcTargetData *td, PCIPCMSG pMsg)
 {
   return NS_OK;
 }
 
 static nsresult
 WaitTarget(const nsID           &aTarget,
-           PRIntervalTime        aTimeout,
-           ipcMessage          **aMsg,
+           RTMSINTERVAL         aTimeout,
+           PIPCMSG              *ppMsg,
            ipcMessageSelector    aSelector = nsnull,
            void                 *aArg = nsnull)
 {
-  *aMsg = nsnull;
+  *ppMsg = NULL;
 
   if (!aSelector)
     aSelector = DefaultSelector;
@@ -365,11 +420,11 @@ WaitTarget(const nsID           &aTarget,
 
   PRBool isIPCMTarget = aTarget.Equals(IPCM_TARGET);
 
-  PRIntervalTime timeStart = PR_IntervalNow();
-  PRIntervalTime timeEnd;
-  if (aTimeout == PR_INTERVAL_NO_TIMEOUT)
-    timeEnd = aTimeout;
-  else if (aTimeout == PR_INTERVAL_NO_WAIT)
+  uint64_t timeStart = RTTimeProgramMilliTS();
+  uint64_t timeEnd;
+  if (aTimeout == RT_INDEFINITE_WAIT)
+    timeEnd = UINT64_MAX;
+  else if (aTimeout == 0)
     timeEnd = timeStart;
   else
   {
@@ -377,10 +432,9 @@ WaitTarget(const nsID           &aTarget,
 
     // if overflowed, then set to max value
     if (timeEnd < timeStart)
-      timeEnd = PR_INTERVAL_NO_TIMEOUT;
+      timeEnd = UINT64_MAX;
   }
 
-  ipcMessage *lastChecked = nsnull, *beforeLastChecked = nsnull;
   nsresult rv = NS_ERROR_ABORT;
 
   nsAutoMonitor mon(td->monitor);
@@ -392,8 +446,6 @@ WaitTarget(const nsID           &aTarget,
 
   while (gClientState->connected && (!gClientState->shutdown || isIPCMTarget))
   {
-    NS_ASSERTION(!lastChecked, "oops");
-
     //
     // NOTE:
     //
@@ -407,11 +459,9 @@ WaitTarget(const nsID           &aTarget,
     // avoid revisiting all messages sometimes.
     //
 
-    lastChecked = td->pendingQ.First();
-    beforeLastChecked = nsnull;
-
+    PIPCMSG pIt, pItNext;
     // loop over pending queue until we find a message that our selector likes.
-    while (lastChecked)
+    RTListForEachSafe(&td->LstPendingMsgs, pIt, pItNext, IPCMSG, NdMsg)
     {
       //
       // it is possible that this call to WaitTarget() has been initiated by
@@ -420,49 +470,32 @@ WaitTarget(const nsID           &aTarget,
       // returns TRUE).  here we prevent this situation by using a special flag
       // to guarantee that every message is processed only once.
       //
-
-      if (!lastChecked->TestFlag(IPC_MSG_FLAG_IN_PROCESS))
+      if (!IPCMsgIsFlagSet(pIt, IPC_MSG_HDR_FLAG_IN_PROCESS))
       {
-        lastChecked->SetFlag(IPC_MSG_FLAG_IN_PROCESS);
-        nsresult acceptedRV = (aSelector)(aArg, td, lastChecked);
-        lastChecked->ClearFlag(IPC_MSG_FLAG_IN_PROCESS);
+        IPCMsgSetFlag(pIt, IPC_MSG_HDR_FLAG_IN_PROCESS);
+        nsresult acceptedRV = (aSelector)(aArg, td, pIt);
+        IPCMsgClearFlag(pIt, IPC_MSG_HDR_FLAG_IN_PROCESS);
 
         if (acceptedRV != IPC_WAIT_NEXT_MESSAGE)
         {
           if (acceptedRV == NS_OK)
           {
             // remove from pending queue
-            if (beforeLastChecked)
-              td->pendingQ.RemoveAfter(beforeLastChecked);
-            else
-              td->pendingQ.RemoveFirst();
-
-            lastChecked->mNext = nsnull;
-            *aMsg = lastChecked;
+            RTListNodeRemove(&pIt->NdMsg);
+            *ppMsg = pIt;
             break;
           }
           else /* acceptedRV == IPC_DISCARD_MESSAGE */
           {
-            ipcMessage *nextToCheck = lastChecked->mNext;
-
-            // discard from pending queue
-            if (beforeLastChecked)
-              td->pendingQ.DeleteAfter(beforeLastChecked);
-            else
-              td->pendingQ.DeleteFirst();
-
-            lastChecked = nextToCheck;
-
+            RTListNodeRemove(&pIt->NdMsg);
+            IPC_MsgFree(pIt);
             continue;
           }
         }
       }
-
-      beforeLastChecked = lastChecked;
-      lastChecked = lastChecked->mNext;
     }
 
-    if (*aMsg)
+    if (*ppMsg)
     {
       rv = NS_OK;
       break;
@@ -476,22 +509,25 @@ WaitTarget(const nsID           &aTarget,
       nsresult aliveRV = (aSelector)(aArg, td, NULL);
       if (aliveRV != IPC_WAIT_NEXT_MESSAGE)
       {
-        *aMsg = NULL;
+        *ppMsg = NULL;
         break;
       }
     }
 #endif /* VBOX */
 
-    PRIntervalTime t = PR_IntervalNow();
-    if (t > timeEnd) // check if timeout has expired
+    uint64_t t = RTTimeProgramMilliTS();
+    if (   aTimeout != RT_INDEFINITE_WAIT
+        && t > timeEnd) // check if timeout has expired
     {
       rv = IPC_ERROR_WOULD_BLOCK;
       break;
     }
-    mon.Wait(timeEnd - t);
+    mon.Wait(  aTimeout == RT_INDEFINITE_WAIT
+             ? RT_INDEFINITE_WAIT
+             : timeEnd - t);
 
-    LOG(("woke up from sleep [pendingQempty=%d connected=%d shutdown=%d isIPCMTarget=%d]\n",
-          td->pendingQ.IsEmpty(), gClientState->connected,
+    Log(("woke up from sleep [pendingQempty=%d connected=%d shutdown=%d isIPCMTarget=%d]\n",
+          RTListIsEmpty(&td->LstPendingMsgs), gClientState->connected,
           gClientState->shutdown, isIPCMTarget));
   }
 
@@ -631,7 +667,7 @@ EnableMessageObserver(const nsID &aTarget)
   {
     nsAutoMonitor mon(td->monitor);
     if (td->observerDisabled > 0 && --td->observerDisabled == 0)
-      if (!td->pendingQ.IsEmpty())
+      if (!RTListIsEmpty(&td->LstPendingMsgs))
         CallProcessPendingQ(aTarget, td);
   }
 }
@@ -639,7 +675,7 @@ EnableMessageObserver(const nsID &aTarget)
 /* ------------------------------------------------------------------------- */
 
 // converts IPCM_ERROR_* status codes to NS_ERROR_* status codes
-static nsresult nsresult_from_ipcm_result(PRInt32 status)
+static nsresult nsresult_from_ipcm_result(int32_t status)
 {
   nsresult rv = NS_ERROR_FAILURE;
 
@@ -661,14 +697,14 @@ static nsresult nsresult_from_ipcm_result(PRInt32 status)
 
 // selects the next IPCM message with matching request index
 static nsresult
-WaitIPCMResponseSelector(void *arg, ipcTargetData *td, const ipcMessage *msg)
+WaitIPCMResponseSelector(void *arg, ipcTargetData *td, PCIPCMSG pMsg)
 {
 #ifdef VBOX
-  if (!msg)
+  if (!pMsg)
     return IPC_WAIT_NEXT_MESSAGE;
 #endif /* VBOX */
   PRUint32 requestIndex = *(PRUint32 *) arg;
-  return IPCM_GetRequestIndex(msg) == requestIndex ? NS_OK : IPC_WAIT_NEXT_MESSAGE;
+  return IPCM_GetRequestIndex(pMsg) == requestIndex ? NS_OK : IPC_WAIT_NEXT_MESSAGE;
 }
 
 // wait for an IPCM response message.  if responseMsg is null, then it is
@@ -676,69 +712,72 @@ WaitIPCMResponseSelector(void *arg, ipcTargetData *td, const ipcMessage *msg)
 // response itself.  if the response is an IPCM_MSG_ACK_RESULT, then the
 // status code is mapped to a nsresult and returned by this function.
 static nsresult
-WaitIPCMResponse(PRUint32 requestIndex, ipcMessage **responseMsg = nsnull)
+WaitIPCMResponse(PRUint32 requestIndex, PIPCMSG *ppMsgResponse = NULL)
 {
-  ipcMessage *msg;
+  PIPCMSG pMsg;
 
-  nsresult rv = WaitTarget(IPCM_TARGET, IPC_REQUEST_TIMEOUT, &msg,
+  nsresult rv = WaitTarget(IPCM_TARGET, IPC_REQUEST_TIMEOUT, &pMsg,
                            WaitIPCMResponseSelector, &requestIndex);
   if (NS_FAILED(rv))
     return rv;
 
-  if (IPCM_GetType(msg) == IPCM_MSG_ACK_RESULT)
+  if (IPCM_GetType(pMsg) == IPCM_MSG_ACK_RESULT)
   {
-    ipcMessageCast<ipcmMessageResult> result(msg);
-    if (result->Status() < 0)
-      rv = nsresult_from_ipcm_result(result->Status());
+    PCIPCMMSGRESULT pIpcmRes = (PCIPCMMSGRESULT)IPCMsgGetPayload(pMsg);
+    if (pIpcmRes->i32Status < 0)
+      rv = nsresult_from_ipcm_result(pIpcmRes->i32Status);
     else
       rv = NS_OK;
   }
 
-  if (responseMsg)
-    *responseMsg = msg;
+  if (ppMsgResponse)
+    *ppMsgResponse = pMsg;
   else
-    delete msg;
+    IPC_MsgFree(pMsg);
 
   return rv;
 }
 
 // make an IPCM request and wait for a response.
 static nsresult
-MakeIPCMRequest(ipcMessage *msg, ipcMessage **responseMsg = nsnull)
+MakeIPCMRequest(PIPCMSG pMsg, PIPCMSG *ppMsgResponse = NULL)
 {
-  if (!msg)
-    return NS_ERROR_OUT_OF_MEMORY;
+    AssertPtrReturn(pMsg, NS_ERROR_OUT_OF_MEMORY);
 
-  PRUint32 requestIndex = IPCM_GetRequestIndex(msg);
+    uint32_t requestIndex = IPCM_GetRequestIndex(pMsg);
 
-  // suppress 'ProcessPendingQ' for IPCM messages until we receive the
-  // response to this IPCM request.  if we did not do this then there
-  // would be a race condition leading to the possible removal of our
-  // response from the pendingQ between sending the request and waiting
-  // for the response.
-  DisableMessageObserver(IPCM_TARGET);
+    // suppress 'ProcessPendingQ' for IPCM messages until we receive the
+    // response to this IPCM request.  if we did not do this then there
+    // would be a race condition leading to the possible removal of our
+    // response from the pendingQ between sending the request and waiting
+    // for the response.
+    DisableMessageObserver(IPCM_TARGET);
 
-  nsresult rv = IPC_SendMsg(msg);
-  if (NS_SUCCEEDED(rv))
-    rv = WaitIPCMResponse(requestIndex, responseMsg);
+    nsresult rv = IPC_SendMsg(pMsg);
+    if (NS_SUCCEEDED(rv))
+        rv = WaitIPCMResponse(requestIndex, ppMsgResponse);
 
-  EnableMessageObserver(IPCM_TARGET);
-  return rv;
+    EnableMessageObserver(IPCM_TARGET);
+    return rv;
 }
 
 /* ------------------------------------------------------------------------- */
 
-static void
-RemoveTarget(const nsID &aTarget, PRBool aNotifyDaemon)
+static void RemoveTarget(const nsID &aTarget, PRBool aNotifyDaemon)
 {
-  DelTarget(aTarget);
+    DelTarget(aTarget);
 
-  if (aNotifyDaemon)
-  {
-    nsresult rv = MakeIPCMRequest(new ipcmMessageClientDelTarget(aTarget));
-    if (NS_FAILED(rv))
-      LOG(("failed to delete target: rv=%x\n", rv));
-  }
+    if (aNotifyDaemon)
+    {
+        IPCMMSGSTACK IpcmMsg;
+        IPCMSG IpcMsg;
+
+        IPCMMsgDelTargetInit(&IpcmMsg.Ipcm.AddDelTarget, aTarget);
+        IPCMsgInitStack(&IpcMsg, IPCM_TARGET, &IpcmMsg, sizeof(IpcmMsg.Ipcm.AddDelTarget));
+        nsresult rv = MakeIPCMRequest(&IpcMsg);
+        if (NS_FAILED(rv))
+            Log(("failed to delete target: rv=%x\n", rv));
+    }
 }
 
 static nsresult
@@ -748,30 +787,35 @@ DefineTarget(const nsID           &aTarget,
              PRBool                aNotifyDaemon,
              ipcTargetData       **aResult)
 {
-  nsresult rv;
+    nsresult rv;
 
-  nsRefPtr<ipcTargetData> td( ipcTargetData::Create() );
-  if (!td)
-    return NS_ERROR_OUT_OF_MEMORY;
-  td->SetObserver(aObserver, aOnCurrentThread);
+    nsRefPtr<ipcTargetData> td( ipcTargetData::Create() );
+    if (!td)
+        return NS_ERROR_OUT_OF_MEMORY;
+    td->SetObserver(aObserver, aOnCurrentThread);
 
-  if (!PutTarget(aTarget, td))
-    return NS_ERROR_OUT_OF_MEMORY;
+    if (!PutTarget(aTarget, td))
+        return NS_ERROR_OUT_OF_MEMORY;
 
-  if (aNotifyDaemon)
-  {
-    rv = MakeIPCMRequest(new ipcmMessageClientAddTarget(aTarget));
-    if (NS_FAILED(rv))
+    if (aNotifyDaemon)
     {
-      LOG(("failed to add target: rv=%x\n", rv));
-      RemoveTarget(aTarget, PR_FALSE);
-      return rv;
-    }
-  }
+        IPCMMSGSTACK IpcmMsg;
+        IPCMSG IpcMsg;
 
-  if (aResult)
-    NS_ADDREF(*aResult = td);
-  return NS_OK;
+        IPCMMsgAddTargetInit(&IpcmMsg.Ipcm.AddDelTarget, aTarget);
+        IPCMsgInitStack(&IpcMsg, IPCM_TARGET, &IpcmMsg, sizeof(IpcmMsg.Ipcm.AddDelTarget));
+        rv = MakeIPCMRequest(&IpcMsg);
+        if (NS_FAILED(rv))
+        {
+          Log(("failed to add target: rv=%x\n", rv));
+          RemoveTarget(aTarget, PR_FALSE);
+          return rv;
+        }
+    }
+
+    if (aResult)
+        NS_ADDREF(*aResult = td);
+    return NS_OK;
 }
 
 /* ------------------------------------------------------------------------- */
@@ -779,53 +823,58 @@ DefineTarget(const nsID           &aTarget,
 static nsresult
 TryConnect()
 {
-  nsCAutoString dpath;
-  nsresult rv = GetDaemonPath(dpath);
-  if (NS_FAILED(rv))
-    return rv;
+    nsCAutoString dpath;
+    nsresult rv = GetDaemonPath(dpath);
+    if (NS_FAILED(rv))
+        return rv;
 
-  rv = IPC_Connect(dpath.get());
-  if (NS_FAILED(rv))
-    return rv;
+    rv = IPC_Connect(dpath.get());
+    if (NS_FAILED(rv))
+        return rv;
 
-  gClientState->connected = PR_TRUE;
+    gClientState->connected = PR_TRUE;
 
-  rv = DefineTarget(IPCM_TARGET, nsnull, PR_FALSE, PR_FALSE, nsnull);
-  if (NS_FAILED(rv))
-    return rv;
+    rv = DefineTarget(IPCM_TARGET, nsnull, PR_FALSE, PR_FALSE, nsnull);
+    if (NS_FAILED(rv))
+        return rv;
 
-  ipcMessage *msg = NULL;
+    PIPCMSG pMsg = NULL;
 
-  // send CLIENT_HELLO and wait for CLIENT_ID response...
-  rv = MakeIPCMRequest(new ipcmMessageClientHello(), &msg);
-  if (NS_FAILED(rv))
-  {
+    // send CLIENT_HELLO and wait for CLIENT_ID response...
+    IPCMMSGSTACK IpcmMsg;
+    IPCMSG IpcMsg;
+
+    IPCMMsgClientHelloInit(&IpcmMsg.Ipcm.ClientHello);
+    IPCMsgInitStack(&IpcMsg, IPCM_TARGET, &IpcmMsg, sizeof(IpcmMsg.Ipcm.ClientHello));
+    rv = MakeIPCMRequest(&IpcMsg, &pMsg);
+    if (NS_FAILED(rv))
+    {
 #ifdef VBOX  /* MakeIPCMRequest may return a failure (e.g. NS_ERROR_CALL_FAILED) and a response msg. */
-    if (msg)
-      delete msg;
+        if (pMsg)
+            IPC_MsgFree(pMsg);
 #endif
+        return rv;
+    }
+
+    if (IPCM_GetType(pMsg) == IPCM_MSG_ACK_CLIENT_ID)
+    {
+        PCIPCMMSGCLIENTID pIpcmClientId = (PCIPCMMSGCLIENTID)IPCMsgGetPayload(pMsg);
+        gClientState->selfID = pIpcmClientId->u32ClientId;
+    }
+    else
+    {
+        Log(("unexpected response from CLIENT_HELLO message: type=%x!\n", IPCM_GetType(pMsg)));
+        rv = NS_ERROR_UNEXPECTED;
+    }
+
+    IPC_MsgFree(pMsg);
     return rv;
-  }
-
-  if (IPCM_GetType(msg) == IPCM_MSG_ACK_CLIENT_ID)
-    gClientState->selfID = ipcMessageCast<ipcmMessageClientID>(msg)->ClientID();
-  else
-  {
-    LOG(("unexpected response from CLIENT_HELLO message: type=%x!\n",
-        IPCM_GetType(msg)));
-    rv = NS_ERROR_UNEXPECTED;
-  }
-
-  delete msg;
-  return rv;
 }
 
 nsresult
 IPC_Init()
 {
   NS_ENSURE_TRUE(!gClientState, NS_ERROR_ALREADY_INITIALIZED);
-
-  IPC_InitLog(">>>");
 
   gClientState = ipcClientState::Create();
   if (!gClientState)
@@ -848,7 +897,7 @@ IPC_Shutdown()
 {
   NS_ENSURE_TRUE(gClientState, NS_ERROR_NOT_INITIALIZED);
 
-  LOG(("IPC_Shutdown: connected=%d\n",gClientState->connected));
+  Log(("IPC_Shutdown: connected=%d\n",gClientState->connected));
 
   if (gClientState->connected)
   {
@@ -856,18 +905,10 @@ IPC_Shutdown()
       // first, set the shutdown flag and unblock any calls to WaitTarget.
       // all targets but IPCM will not be able to use WaitTarget any more.
 
-#ifndef VBOX_WITH_IPCCLIENT_RW_CS
-      nsAutoMonitor mon(gClientState->monitor);
-#else
       RTCritSectRwEnterExcl(&gClientState->critSect);
-#endif
-
       gClientState->shutdown = PR_TRUE;
       gClientState->targetMap.EnumerateRead(EnumerateTargetMapAndNotify, nsnull);
-
-#ifdef VBOX_WITH_IPCCLIENT_RW_CS
       RTCritSectRwLeaveExcl(&gClientState->critSect);
-#endif
     }
 
     // inform all client observers that we're being shutdown to let interested
@@ -974,29 +1015,46 @@ IPC_SendMessage(PRUint32       aReceiverID,
                 const PRUint8 *aData,
                 PRUint32       aDataLen)
 {
-  NS_ENSURE_TRUE(gClientState, NS_ERROR_NOT_INITIALIZED);
+    NS_ENSURE_TRUE(gClientState, NS_ERROR_NOT_INITIALIZED);
 
-  // do not permit sending IPCM messages
-  if (aTarget.Equals(IPCM_TARGET))
-    return NS_ERROR_INVALID_ARG;
+    // do not permit sending IPCM messages
+    if (aTarget.Equals(IPCM_TARGET))
+      return NS_ERROR_INVALID_ARG;
 
-  nsresult rv;
-  if (aReceiverID == 0)
-  {
-    ipcMessage *msg = new ipcMessage(aTarget, (const char *) aData, aDataLen);
-    if (!msg)
-      return NS_ERROR_OUT_OF_MEMORY;
+    nsresult rv;
+    if (aReceiverID == 0)
+    {
+        RTSGSEG Seg = { (void *)aData, aDataLen };
+        PIPCMSG pMsg = IPC_MsgNewSg(aTarget, aDataLen, &Seg, 1 /*cSegs*/);
+        if (!pMsg)
+            return NS_ERROR_OUT_OF_MEMORY;
 
-    rv = IPC_SendMsg(msg);
-  }
-  else
-    rv = MakeIPCMRequest(new ipcmMessageForward(IPCM_MSG_REQ_FORWARD,
-                                                aReceiverID,
-                                                aTarget,
-                                                (const char *) aData,
-                                                aDataLen));
+        rv = IPC_SendMsg(pMsg);
+    }
+    else
+    {
+        IPCMSGHDR InnerMsgHdr;
+        IPCMMSGFORWARD IpcmFwd;
+        RTSGSEG aSegs[3];
 
-  return rv;
+        /* Construct the forwarded message. */
+        IpcmFwd.Hdr.u32Type         = IPCM_MSG_REQ_FORWARD;
+        IpcmFwd.Hdr.u32RequestIndex = IPCM_NewRequestIndex();
+        IpcmFwd.u32ClientId         = aReceiverID;
+
+        aSegs[0].pvSeg = &IpcmFwd;
+        aSegs[0].cbSeg = sizeof(IpcmFwd);
+        aSegs[1].pvSeg = IPCMsgHdrInit(&InnerMsgHdr, aTarget, aDataLen);
+        aSegs[1].cbSeg = sizeof(InnerMsgHdr);
+        aSegs[2].pvSeg = (void *)aData;
+        aSegs[2].cbSeg = aDataLen;
+
+        PIPCMSG pMsg = IPC_MsgNewSg(IPCM_TARGET, aDataLen + sizeof(IpcmFwd) + sizeof(InnerMsgHdr),
+                                    &aSegs[0], RT_ELEMENTS(aSegs));
+        rv = MakeIPCMRequest(pMsg);
+    }
+
+    return rv;
 }
 
 struct WaitMessageSelectorData
@@ -1006,11 +1064,11 @@ struct WaitMessageSelectorData
   PRBool               senderDead;
 };
 
-static nsresult WaitMessageSelector(void *arg, ipcTargetData *td, const ipcMessage *msg)
+static nsresult WaitMessageSelector(void *arg, ipcTargetData *td, PCIPCMSG pMsg)
 {
   WaitMessageSelectorData *data = (WaitMessageSelectorData *) arg;
 #ifdef VBOX
-  if (!msg)
+  if (!pMsg)
   {
     /* Special NULL message which asks to check whether the client is
      * still alive. Called when there is nothing suitable in the queue. */
@@ -1030,19 +1088,19 @@ static nsresult WaitMessageSelector(void *arg, ipcTargetData *td, const ipcMessa
   // process the specially forwarded client state message to see if the
   // sender we're waiting a message from has died.
 
-  if (msg->Target().Equals(IPCM_TARGET))
+  if (IPCMsgGetTarget(pMsg)->Equals(IPCM_TARGET))
   {
-    switch (IPCM_GetType(msg))
+    switch (IPCM_GetType(pMsg))
     {
       case IPCM_MSG_PSH_CLIENT_STATE:
       {
-        ipcMessageCast<ipcmMessageClientState> status(msg);
+        PCIPCMMSGCLIENTSTATE pClientState = (PCIPCMMSGCLIENTSTATE)IPCMsgGetPayload(pMsg);
         if ((data->senderID == IPC_SENDER_ANY ||
-             status->ClientID() == data->senderID) &&
-            status->ClientState() == IPCM_CLIENT_STATE_DOWN)
+             pClientState->u32ClientId == data->senderID) &&
+             pClientState->u32ClientStatus == IPCM_CLIENT_STATE_DOWN)
         {
-          LOG(("sender (%d) we're waiting a message from (%d) has died\n",
-               status->ClientID(), data->senderID));
+          Log(("sender (%d) we're waiting a message from (%d) has died\n",
+               pClientState->u32ClientId, data->senderID));
 
           if (data->senderID != IPC_SENDER_ANY)
           {
@@ -1063,7 +1121,7 @@ static nsresult WaitMessageSelector(void *arg, ipcTargetData *td, const ipcMessa
               obs = td->observer;
             NS_ASSERTION(obs, "must at least have a default observer");
 
-            nsresult rv = obs->OnMessageAvailable(status->ClientID(), nsID(), 0, 0);
+            nsresult rv = obs->OnMessageAvailable(pClientState->u32ClientId, nsID(), 0, 0);
             if (rv != IPC_WAIT_NEXT_MESSAGE)
               data->senderDead = PR_TRUE;
 
@@ -1072,11 +1130,11 @@ static nsresult WaitMessageSelector(void *arg, ipcTargetData *td, const ipcMessa
         }
 #ifdef VBOX
         else if ((data->senderID == IPC_SENDER_ANY ||
-                  status->ClientID() == data->senderID) &&
-                 status->ClientState() == IPCM_CLIENT_STATE_UP)
+                  pClientState->u32ClientId) &&
+                 pClientState->u32ClientStatus == IPCM_CLIENT_STATE_UP)
         {
-          LOG(("sender (%d) we're waiting a message from (%d) has come up\n",
-               status->ClientID(), data->senderID));
+          Log(("sender (%d) we're waiting a message from (%d) has come up\n",
+               pClientState->u32ClientId, data->senderID));
           if (data->senderID == IPC_SENDER_ANY)
           {
             // inform the observer about the client appearance using a special
@@ -1087,7 +1145,7 @@ static nsresult WaitMessageSelector(void *arg, ipcTargetData *td, const ipcMessa
               obs = td->observer;
             NS_ASSERTION(obs, "must at least have a default observer");
 
-            nsresult rv = obs->OnMessageAvailable(status->ClientID(), nsID(), 0, 1);
+            /*nsresult rv = */obs->OnMessageAvailable(pClientState->u32ClientId, nsID(), 0, 1);
             /* VBoxSVC/VBoxXPCOMIPCD auto-start can cause that a client up
              * message arrives while we're already waiting for a response
              * from this client. Don't declare the connection as dead in
@@ -1111,17 +1169,17 @@ static nsresult WaitMessageSelector(void *arg, ipcTargetData *td, const ipcMessa
   nsresult rv = IPC_WAIT_NEXT_MESSAGE;
 
   if (data->senderID == IPC_SENDER_ANY ||
-      msg->mMetaData == data->senderID)
+      pMsg->upUser == data->senderID)
   {
     ipcIMessageObserver *obs = data->observer;
     if (!obs)
       obs = td->observer;
     NS_ASSERTION(obs, "must at least have a default observer");
 
-    rv = obs->OnMessageAvailable(msg->mMetaData,
-                                 msg->Target(),
-                                 (const PRUint8 *) msg->Data(),
-                                 msg->DataLen());
+    rv = obs->OnMessageAvailable(pMsg->upUser,
+                                 *IPCMsgGetTarget(pMsg),
+                                 (const PRUint8 *)IPCMsgGetPayload(pMsg),
+                                 IPCMsgGetPayloadSize(pMsg));
   }
 
   // stop iterating if we got a match that the observer accepted.
@@ -1133,7 +1191,7 @@ IPC_WaitMessage(PRUint32             aSenderID,
                 const nsID          &aTarget,
                 ipcIMessageObserver *aObserver,
                 ipcIMessageObserver *aConsumer,
-                PRIntervalTime       aTimeout)
+                RTMSINTERVAL        aTimeout)
 {
   NS_ENSURE_TRUE(gClientState, NS_ERROR_NOT_INITIALIZED);
 
@@ -1144,8 +1202,8 @@ IPC_WaitMessage(PRUint32             aSenderID,
   // use aObserver as the message selector
   WaitMessageSelectorData data = { aSenderID, aObserver, PR_FALSE };
 
-  ipcMessage *msg;
-  nsresult rv = WaitTarget(aTarget, aTimeout, &msg, WaitMessageSelector, &data);
+  PIPCMSG pMsg;
+  nsresult rv = WaitTarget(aTarget, aTimeout, &pMsg, WaitMessageSelector, &data);
   if (NS_FAILED(rv))
     return rv;
 
@@ -1155,13 +1213,13 @@ IPC_WaitMessage(PRUint32             aSenderID,
   // from the pending queue).
   if (aObserver && aConsumer)
   {
-    aConsumer->OnMessageAvailable(msg->mMetaData,
-                                  msg->Target(),
-                                  (const PRUint8 *) msg->Data(),
-                                  msg->DataLen());
+    aConsumer->OnMessageAvailable(pMsg->upUser,
+                                  *IPCMsgGetTarget(pMsg),
+                                  (const PRUint8 *)IPCMsgGetPayload(pMsg),
+                                  IPCMsgGetPayloadSize(pMsg));
   }
 
-  delete msg;
+  IPC_MsgFree(pMsg);
 
   // if the requested sender has died while waiting, return an error
   if (data.senderDead)
@@ -1184,17 +1242,41 @@ IPC_GetID(PRUint32 *aClientID)
 nsresult
 IPC_AddName(const char *aName)
 {
-  NS_ENSURE_TRUE(gClientState, NS_ERROR_NOT_INITIALIZED);
+    NS_ENSURE_TRUE(gClientState, NS_ERROR_NOT_INITIALIZED);
 
-  return MakeIPCMRequest(new ipcmMessageClientAddName(aName));
+    size_t cbStr = strlen(aName) + 1; /* Includes terminator. */
+    const IPCMMSGHDR Hdr = { IPCM_MSG_REQ_CLIENT_ADD_NAME, IPCM_NewRequestIndex() };
+    RTSGSEG aSegs[2];
+
+    aSegs[0].pvSeg = (void *)&Hdr;
+    aSegs[0].cbSeg = sizeof(Hdr);
+
+    aSegs[1].pvSeg = (void *)aName;
+    aSegs[1].cbSeg = cbStr;
+
+    PIPCMSG pMsg = IPC_MsgNewSg(IPCM_TARGET, cbStr + sizeof(Hdr),
+                                &aSegs[0], RT_ELEMENTS(aSegs));
+    return MakeIPCMRequest(pMsg);
 }
 
 nsresult
 IPC_RemoveName(const char *aName)
 {
-  NS_ENSURE_TRUE(gClientState, NS_ERROR_NOT_INITIALIZED);
+    NS_ENSURE_TRUE(gClientState, NS_ERROR_NOT_INITIALIZED);
 
-  return MakeIPCMRequest(new ipcmMessageClientDelName(aName));
+    size_t cbStr = strlen(aName) + 1; /* Includes terminator. */
+    const IPCMMSGHDR Hdr = { IPCM_MSG_REQ_CLIENT_DEL_NAME, IPCM_NewRequestIndex() };
+    RTSGSEG aSegs[2];
+
+    aSegs[0].pvSeg = (void *)&Hdr;
+    aSegs[0].cbSeg = sizeof(Hdr);
+
+    aSegs[1].pvSeg = (void *)aName;
+    aSegs[1].cbSeg = cbStr;
+
+    PIPCMSG pMsg = IPC_MsgNewSg(IPCM_TARGET, cbStr + sizeof(Hdr),
+                                &aSegs[0], RT_ELEMENTS(aSegs));
+    return MakeIPCMRequest(pMsg);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -1228,110 +1310,107 @@ IPC_RemoveClientObserver(ipcIClientObserver *aObserver)
 nsresult
 IPC_ResolveClientName(const char *aName, PRUint32 *aClientID)
 {
-  NS_ENSURE_TRUE(gClientState, NS_ERROR_NOT_INITIALIZED);
+    NS_ENSURE_TRUE(gClientState, NS_ERROR_NOT_INITIALIZED);
 
-  ipcMessage *msg = NULL;
+    size_t cbStr = strlen(aName) + 1; /* Includes terminator. */
+    const IPCMMSGHDR Hdr = { IPCM_MSG_REQ_QUERY_CLIENT_BY_NAME, IPCM_NewRequestIndex() };
+    RTSGSEG aSegs[2];
 
-  nsresult rv = MakeIPCMRequest(new ipcmMessageQueryClientByName(aName), &msg);
-  if (NS_FAILED(rv))
-  {
-#ifdef VBOX  /* MakeIPCMRequest may return a failure (e.g. NS_ERROR_CALL_FAILED) and a response msg. */
-    if (msg)
-      delete msg;
-#endif
+    aSegs[0].pvSeg = (void *)&Hdr;
+    aSegs[0].cbSeg = sizeof(Hdr);
+
+    aSegs[1].pvSeg = (void *)aName;
+    aSegs[1].cbSeg = cbStr;
+
+    PIPCMSG pMsg = IPC_MsgNewSg(IPCM_TARGET, cbStr + sizeof(Hdr),
+                                &aSegs[0], RT_ELEMENTS(aSegs));
+
+    PIPCMSG pMsgResp = NULL;
+    nsresult rv = MakeIPCMRequest(pMsg, &pMsgResp);
+    if (NS_FAILED(rv))
+    {
+        /* MakeIPCMRequest may return a failure (e.g. NS_ERROR_CALL_FAILED) and a response msg. */
+        if (pMsgResp)
+            IPC_MsgFree(pMsgResp);
+
+        return rv;
+    }
+
+    if (IPCM_GetType(pMsgResp) == IPCM_MSG_ACK_CLIENT_ID)
+    {
+        PCIPCMMSGCLIENTID pClientId = (PCIPCMMSGCLIENTID)IPCMsgGetPayload(pMsgResp);
+        *aClientID = pClientId->u32ClientId;
+    }
+    else
+    {
+        Log(("unexpected IPCM response: type=%x\n", IPCM_GetType(pMsg)));
+        rv = NS_ERROR_UNEXPECTED;
+    }
+
+    IPC_MsgFree(pMsgResp);
     return rv;
-  }
-
-  if (IPCM_GetType(msg) == IPCM_MSG_ACK_CLIENT_ID)
-    *aClientID = ipcMessageCast<ipcmMessageClientID>(msg)->ClientID();
-  else
-  {
-    LOG(("unexpected IPCM response: type=%x\n", IPCM_GetType(msg)));
-    rv = NS_ERROR_UNEXPECTED;
-  }
-
-  delete msg;
-  return rv;
 }
 
-/* ------------------------------------------------------------------------- */
-
-nsresult
-IPC_ClientExists(PRUint32 aClientID, PRBool *aResult)
-{
-  // this is a bit of a hack.  we forward a PING to the specified client.
-  // the assumption is that the forwarding will only succeed if the client
-  // exists, so we wait for the RESULT message corresponding to the FORWARD
-  // request.  if that gives a successful status, then we know that the
-  // client exists.
-
-  ipcmMessagePing ping;
-
-  return MakeIPCMRequest(new ipcmMessageForward(IPCM_MSG_REQ_FORWARD,
-                                                aClientID,
-                                                IPCM_TARGET,
-                                                ping.Data(),
-                                                ping.DataLen()));
-}
 
 /* ------------------------------------------------------------------------- */
 
 nsresult
 IPC_SpawnDaemon(const char *path)
 {
-  PRFileDesc *readable = nsnull, *writable = nsnull;
-  PRProcessAttr *attr = nsnull;
-  nsresult rv = NS_ERROR_FAILURE;
-  PRFileDesc *devNull;
-  char *const argv[] = { (char *const) path, nsnull };
-  char c;
+    /*
+     * Setup an anonymous pipe that we can use to determine when the daemon
+     * process has started up.  the daemon will write a char to the pipe, and
+     * when we read it, we'll know to proceed with trying to connect to the
+     * daemon.
+     */
+    RTPIPE hPipeWr = NIL_RTPIPE;
+    RTPIPE hPipeRd = NIL_RTPIPE;
+    int vrc = RTPipeCreate(&hPipeRd, &hPipeWr, RTPIPE_C_INHERIT_WRITE);
+    if (RT_SUCCESS(vrc))
+    {
+      char szPipeInheritFd[32]; RT_ZERO(szPipeInheritFd);
+      const char *const s_apszArgs[] = { (char *const) path,
+                                         "--auto-shutdown",
+                                         "--inherit-startup-pipe",
+                                         &szPipeInheritFd[0], NULL };
 
-  // setup an anonymous pipe that we can use to determine when the daemon
-  // process has started up.  the daemon will write a char to the pipe, and
-  // when we read it, we'll know to proceed with trying to connect to the
-  // daemon.
+      ssize_t cch = RTStrFormatU32(&szPipeInheritFd[0], sizeof(szPipeInheritFd),
+                                   (uint32_t)RTPipeToNative(hPipeWr), 10 /*uiBase*/,
+                                   0 /*cchWidth*/, 0 /*cchPrecision*/, 0 /*fFlags*/);
+      Assert(cch > 0); RT_NOREF(cch);
 
-  if (PR_CreatePipe(&readable, &writable) != PR_SUCCESS)
-    goto end;
-  PR_SetFDInheritable(writable, PR_TRUE);
+      RTHANDLE hStdNil;
+      hStdNil.enmType = RTHANDLETYPE_FILE;
+      hStdNil.u.hFile = NIL_RTFILE;
 
-  attr = PR_NewProcessAttr();
-  if (!attr)
-    goto end;
+      vrc = RTProcCreateEx(path, s_apszArgs, RTENV_DEFAULT,
+                           RTPROC_FLAGS_DETACHED, &hStdNil, &hStdNil, &hStdNil,
+                           NULL /* pszAsUser */, NULL /* pszPassword */, NULL /* pExtraData */,
+                           NULL /* phProcess */);
+      if (RT_SUCCESS(vrc))
+      {
+          vrc = RTPipeClose(hPipeWr); AssertRC(vrc); RT_NOREF(vrc);
+          hPipeWr = NIL_RTPIPE;
 
-  if (PR_ProcessAttrSetInheritableFD(attr, writable, IPC_STARTUP_PIPE_NAME) != PR_SUCCESS)
-  goto end;
+          size_t cbRead = 0;
+          char msg[10];
+          memset(msg, '\0', sizeof(msg));
+          vrc = RTPipeReadBlocking(hPipeRd, &msg[0], sizeof(msg) - 1, &cbRead);
+          if (   RT_SUCCESS(vrc)
+              && cbRead == 5
+              && !strcmp(msg, "READY"))
+          {
+            RTPipeClose(hPipeRd);
+            return NS_OK;
+          }
+      }
 
-  devNull = PR_Open("/dev/null", PR_RDWR, 0);
-  if (!devNull)
-    goto end;
+      if (hPipeWr != NIL_RTPIPE)
+          RTPipeClose(hPipeWr);
+      RTPipeClose(hPipeRd);
+    }
 
-  PR_ProcessAttrSetStdioRedirect(attr, PR_StandardInput, devNull);
-  PR_ProcessAttrSetStdioRedirect(attr, PR_StandardOutput, devNull);
-  PR_ProcessAttrSetStdioRedirect(attr, PR_StandardError, devNull);
-
-  if (PR_CreateProcessDetached(path, argv, nsnull, attr) != PR_SUCCESS)
-    goto end;
-
-  // Close /dev/null
-  PR_Close(devNull);
-  // close the child end of the pipe in order to get notification on unexpected
-  // child termination instead of being infinitely blocked in PR_Read().
-  PR_Close(writable);
-  writable = nsnull;
-
-  if ((PR_Read(readable, &c, 1) != 1) || (c != IPC_STARTUP_PIPE_MAGIC))
-    goto end;
-
-  rv = NS_OK;
-end:
-  if (readable)
-    PR_Close(readable);
-  if (writable)
-    PR_Close(writable);
-  if (attr)
-    PR_DestroyProcessAttr(attr);
-  return rv;
+    return NS_ERROR_FAILURE;
 }
 
 /* ------------------------------------------------------------------------- */
@@ -1356,39 +1435,30 @@ IPC_OnConnectionEnd(nsresult error)
   // now, go through the target map, and tickle each monitor.  that should
   // unblock any calls to WaitTarget.
 
-#ifndef VBOX_WITH_IPCCLIENT_RW_CS
-  nsAutoMonitor mon(gClientState->monitor);
-#else
   RTCritSectRwEnterExcl(&gClientState->critSect);
-#endif
-
   gClientState->connected = PR_FALSE;
   gClientState->targetMap.EnumerateRead(EnumerateTargetMapAndNotify, nsnull);
-
-#ifdef VBOX_WITH_IPCCLIENT_RW_CS
   RTCritSectRwLeaveExcl(&gClientState->critSect);
-#endif
 }
 
 /* ------------------------------------------------------------------------- */
 
 static void
-PlaceOnPendingQ(const nsID &target, ipcTargetData *td, ipcMessage *msg)
+PlaceOnPendingQ(const nsID &target, ipcTargetData *td, PIPCMSG pMsg)
 {
   nsAutoMonitor mon(td->monitor);
 
   // we only want to dispatch a 'ProcessPendingQ' event if we have not
   // already done so.
-  PRBool dispatchEvent = td->pendingQ.IsEmpty();
+  PRBool dispatchEvent = RTListIsEmpty(&td->LstPendingMsgs);
 
   // put this message on our pending queue
-  td->pendingQ.Append(msg);
+  RTListAppend(&td->LstPendingMsgs, &pMsg->NdMsg);
 
-#ifdef IPC_LOGGING
-  if (IPC_LOG_ENABLED())
+#ifdef LOG_ENABLED
   {
     char *targetStr = target.ToString();
-    LOG(("placed message on pending queue for target %s and notifying all...\n", targetStr));
+    Log(("placed message on pending queue for target %s and notifying all...\n", targetStr));
     nsMemory::Free(targetStr);
   }
 #endif
@@ -1409,8 +1479,11 @@ EnumerateTargetMapAndPlaceMsg(const nsID    &aKey,
   if (!aKey.Equals(IPCM_TARGET))
   {
     // place a message clone to a target's event queue
-    ipcMessage *msg = (ipcMessage *) userArg;
-    PlaceOnPendingQ(aKey, aData, msg->Clone());
+    PCIPCMSG pMsg = (PCIPCMSG)userArg;
+    PIPCMSG pClone = IPC_MsgClone(pMsg);
+    Assert(pClone);
+    if (pClone)
+       PlaceOnPendingQ(aKey, aData, pClone);
   }
 
   return PL_DHASH_NEXT;
@@ -1418,88 +1491,65 @@ EnumerateTargetMapAndPlaceMsg(const nsID    &aKey,
 
 /* ------------------------------------------------------------------------- */
 
-#ifdef IPC_LOGGING
-#include "prprf.h"
-#include <ctype.h>
-#endif
-
 // called on a background thread
-void
-IPC_OnMessageAvailable(ipcMessage *msg)
+DECLHIDDEN(void) IPC_OnMessageAvailable(PCIPCMSG pMsg)
 {
-#ifdef IPC_LOGGING
-  if (IPC_LOG_ENABLED())
+  const nsID target = *IPCMsgGetTarget(pMsg);
+
+#ifdef LOG_ENABLED
   {
-    char *targetStr = msg->Target().ToString();
-    LOG(("got message for target: %s\n", targetStr));
+    char *targetStr = target.ToString();
+    Log(("got message for target: %s\n", targetStr));
     nsMemory::Free(targetStr);
 
 //     IPC_LogBinary((const PRUint8 *) msg->Data(), msg->DataLen());
   }
 #endif
 
-  if (msg->Target().Equals(IPCM_TARGET))
+  if (target.Equals(IPCM_TARGET))
   {
-    switch (IPCM_GetType(msg))
+    switch (IPCM_GetType(pMsg))
     {
-      // if this is a forwarded message, then post the inner message instead.
       case IPCM_MSG_PSH_FORWARD:
       {
-        ipcMessageCast<ipcmMessageForward> fwd(msg);
-        ipcMessage *innerMsg = new ipcMessage(fwd->InnerTarget(),
-                                              fwd->InnerData(),
-                                              fwd->InnerDataLen());
-        // store the sender's client id in the meta-data field of the message.
-        innerMsg->mMetaData = fwd->ClientID();
+        PCIPCMMSGFORWARD pFwd = (PCIPCMMSGFORWARD)IPCMsgGetPayload(pMsg);
 
-        delete msg;
+        /** @todo De-uglify this. */
+        /* Forward the inner message. */
+        IPCMSG InnerMsg; RT_ZERO(InnerMsg);
+        InnerMsg.pMsgHdr = (PIPCMSGHDR)(pFwd + 1);
+        InnerMsg.cbBuf   = InnerMsg.pMsgHdr->cbMsg;
+        InnerMsg.pbBuf   = (uint8_t *)InnerMsg.pMsgHdr;
+        InnerMsg.upUser  = pFwd->u32ClientId;
 
-        // recurse so we can handle forwarded IPCM messages
-        IPC_OnMessageAvailable(innerMsg);
+        /* Recurse to forward the inner message (it will get cloned). */
+        IPC_OnMessageAvailable(&InnerMsg);
         return;
       }
       case IPCM_MSG_PSH_CLIENT_STATE:
       {
-        ipcMessageCast<ipcmMessageClientState> status(msg);
-        PostEventToMainThread(new ipcEvent_ClientState(status->ClientID(),
-                                                       status->ClientState()));
+        PCIPCMMSGCLIENTSTATE pClientState = (PCIPCMMSGCLIENTSTATE)IPCMsgGetPayload(pMsg);
+        PostEventToMainThread(new ipcEvent_ClientState(pClientState->u32ClientId,
+                                                       pClientState->u32ClientStatus));
 
         // go through the target map, and place this message to every target's
         // pending event queue.  that unblocks all WaitTarget calls (on all
         // targets) giving them an opportuninty to finish wait cycle because of
         // the peer client death, when appropriate.
-#ifndef VBOX_WITH_IPCCLIENT_RW_CS
-        nsAutoMonitor mon(gClientState->monitor);
-#else
         RTCritSectRwEnterShared(&gClientState->critSect);
-#endif
-
-        gClientState->targetMap.EnumerateRead(EnumerateTargetMapAndPlaceMsg, msg);
-
-#ifdef VBOX_WITH_IPCCLIENT_RW_CS
+        gClientState->targetMap.EnumerateRead(EnumerateTargetMapAndPlaceMsg, (void *)pMsg);
         RTCritSectRwLeaveShared(&gClientState->critSect);
-#endif
-        delete msg;
-
         return;
       }
     }
   }
 
   nsRefPtr<ipcTargetData> td;
-  if (GetTarget(msg->Target(), getter_AddRefs(td)))
+  if (GetTarget(target, getter_AddRefs(td)))
   {
-    // make copy of target since |msg| may end up pointing to free'd memory
-    // once we notify the monitor inside PlaceOnPendingQ().
-    const nsID target = msg->Target();
-
-    PlaceOnPendingQ(target, td, msg);
+    PIPCMSG pClone = IPC_MsgClone(pMsg);
+    PlaceOnPendingQ(target, td, pClone);
   }
   else
-  {
     NS_WARNING("message target is undefined");
-#ifdef VBOX
-    delete msg;
-#endif
-  }
 }

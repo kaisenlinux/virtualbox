@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -49,13 +49,13 @@
 #include "UINetworkManager.h"
 #include "UINetworkManagerUtils.h"
 #include "UINotificationCenter.h"
-
+#include "UITranslationEventListener.h"
 
 UISubnetSelectionDialog::UISubnetSelectionDialog(QWidget *pParent,
                                                  const QString &strShortProviderName,
                                                  const QString &strProfileName,
                                                  const QString &strSubnetId)
-    : QIWithRetranslateUI<QDialog>(pParent)
+    : QDialog(pParent)
     , m_strProviderShortName(strShortProviderName)
     , m_strProfileName(strProfileName)
     , m_strSubnetId(strSubnetId)
@@ -89,7 +89,7 @@ void UISubnetSelectionDialog::accept()
     m_strSubnetId = aVBoxValues.first();
 
     /* Call to base-class: */
-    return QIWithRetranslateUI<QDialog>::accept();
+    return QDialog::accept();
 }
 
 int UISubnetSelectionDialog::exec()
@@ -98,10 +98,10 @@ int UISubnetSelectionDialog::exec()
     QMetaObject::invokeMethod(this, "sltInit", Qt::QueuedConnection);
 
     /* Call to base-class: */
-    return QIWithRetranslateUI<QDialog>::exec();
+    return QDialog::exec();
 }
 
-void UISubnetSelectionDialog::retranslateUi()
+void UISubnetSelectionDialog::sltRetranslateUI()
 {
     setWindowTitle(UINetworkManager::tr("Select Subnet"));
 }
@@ -165,7 +165,10 @@ void UISubnetSelectionDialog::prepare()
         m_pFormEditor->setNotificationCenter(m_pNotificationCenter);
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UISubnetSelectionDialog::sltRetranslateUI);
 }
 
 void UISubnetSelectionDialog::cleanup()
@@ -177,7 +180,7 @@ void UISubnetSelectionDialog::cleanup()
 
 
 UIDetailsWidgetCloudNetwork::UIDetailsWidgetCloudNetwork(EmbedTo enmEmbedding, QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_enmEmbedding(enmEmbedding)
     , m_pLabelNetworkName(0)
     , m_pEditorNetworkName(0)
@@ -248,7 +251,7 @@ void UIDetailsWidgetCloudNetwork::updateButtonStates()
     emit sigDataChanged(m_oldData != m_newData);
 }
 
-void UIDetailsWidgetCloudNetwork::retranslateUi()
+void UIDetailsWidgetCloudNetwork::sltRetranslateUI()
 {
     if (m_pLabelNetworkName)
         m_pLabelNetworkName->setText(UINetworkManager::tr("N&ame:"));
@@ -267,7 +270,10 @@ void UIDetailsWidgetCloudNetwork::retranslateUi()
     if (m_pEditorNetworkId)
         m_pEditorNetworkId->setToolTip(UINetworkManager::tr("Holds the id for this network."));
     if (m_pButtonNetworkId)
+    {
+        m_pButtonNetworkId->setText(UINetworkManager::tr("Select Network ID"));
         m_pButtonNetworkId->setToolTip(UINetworkManager::tr("Selects the id for this network."));
+    }
     if (m_pButtonBoxOptions)
     {
         m_pButtonBoxOptions->button(QDialogButtonBox::Cancel)->setText(UINetworkManager::tr("Reset"));
@@ -362,7 +368,10 @@ void UIDetailsWidgetCloudNetwork::prepare()
     prepareProfiles();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIDetailsWidgetCloudNetwork::sltRetranslateUI);
 
     /* Update button states finally: */
     updateButtonStates();
@@ -394,7 +403,6 @@ void UIDetailsWidgetCloudNetwork::prepareThis()
                 m_pLabelNetworkName->setBuddy(m_pEditorNetworkName);
             connect(m_pEditorNetworkName, &QLineEdit::textEdited,
                     this, &UIDetailsWidgetCloudNetwork::sltNetworkNameChanged);
-
             pLayout->addWidget(m_pEditorNetworkName, 0, 1, 1, 2);
         }
 
@@ -411,9 +419,8 @@ void UIDetailsWidgetCloudNetwork::prepareThis()
         {
             if (m_pLabelProviderName)
                 m_pLabelProviderName->setBuddy(m_pComboProviderName);
-            connect(m_pComboProviderName, static_cast<void(QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+            connect(m_pComboProviderName, &QComboBox::currentIndexChanged,
                     this, &UIDetailsWidgetCloudNetwork::sltCloudProviderNameChanged);
-
             pLayout->addWidget(m_pComboProviderName, 1, 1, 1, 2);
         }
 
@@ -430,9 +437,8 @@ void UIDetailsWidgetCloudNetwork::prepareThis()
         {
             if (m_pLabelProfileName)
                 m_pLabelProfileName->setBuddy(m_pComboProfileName);
-            connect(m_pComboProfileName, static_cast<void(QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+            connect(m_pComboProfileName, &QComboBox::currentIndexChanged,
                     this, &UIDetailsWidgetCloudNetwork::sltCloudProfileNameChanged);
-
             pLayout->addWidget(m_pComboProfileName, 2, 1, 1, 2);
         }
 
@@ -451,7 +457,6 @@ void UIDetailsWidgetCloudNetwork::prepareThis()
                 m_pLabelNetworkId->setBuddy(m_pEditorNetworkId);
             connect(m_pEditorNetworkId, &QLineEdit::textChanged,
                     this, &UIDetailsWidgetCloudNetwork::sltNetworkIdChanged);
-
             pLayout->addWidget(m_pEditorNetworkId, 3, 1);
         }
         /* Prepare network id button: */
@@ -461,7 +466,6 @@ void UIDetailsWidgetCloudNetwork::prepareThis()
             m_pButtonNetworkId->setIcon(UIIconPool::iconSet(":/subnet_16px.png"));
             connect(m_pButtonNetworkId, &QIToolButton::clicked,
                     this, &UIDetailsWidgetCloudNetwork::sltNetworkIdListRequested);
-
             pLayout->addWidget(m_pButtonNetworkId, 3, 2);
         }
 
@@ -474,7 +478,6 @@ void UIDetailsWidgetCloudNetwork::prepareThis()
             {
                 m_pButtonBoxOptions->setStandardButtons(QDialogButtonBox::Cancel | QDialogButtonBox::Ok);
                 connect(m_pButtonBoxOptions, &QIDialogButtonBox::clicked, this, &UIDetailsWidgetCloudNetwork::sltHandleButtonBoxClick);
-
                 pLayout->addWidget(m_pButtonBoxOptions, 4, 0, 1, 2);
             }
         }

@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -51,9 +51,6 @@ RT_C_DECLS_BEGIN
  * @{
  */
 
-/** Enable to allow V86 code to run in raw mode. */
-#define VBOX_RAW_V86
-
 /**
  * The Execution Manager State.
  *
@@ -61,19 +58,24 @@ RT_C_DECLS_BEGIN
  */
 typedef enum EMSTATE
 {
+    /** Invalid zero value. */
+    EMSTATE_INVALID = 0,
     /** Not yet started. */
-    EMSTATE_NONE = 1,
-    /** Raw-mode execution. */
-    EMSTATE_RAW,
+    EMSTATE_NONE,
+    /** Raw-mode execution.
+     * @note obsolete, here only for saved state reasons.  */
+    EMSTATE_RAW_OBSOLETE,
     /** Hardware accelerated raw-mode execution. */
     EMSTATE_HM,
     /** Executing in IEM. */
     EMSTATE_IEM,
     /** Recompiled mode execution. */
-    EMSTATE_REM,
-    /** Execution is halted. (waiting for interrupt) */
+    EMSTATE_RECOMPILER,
+    /** Execution is halted. (waiting for interrupt)
+     * @note Relevant for saved state. */
     EMSTATE_HALTED,
-    /** Application processor execution is halted. (waiting for startup IPI (SIPI)) */
+    /** Application processor execution is halted (waiting for startup IPI (SIPI)).
+     * @note Relevant for saved state. */
     EMSTATE_WAIT_SIPI,
     /** Execution is suspended. */
     EMSTATE_SUSPENDED,
@@ -86,57 +88,29 @@ typedef enum EMSTATE
     /** Guest debug event from interpreted execution mode is being processed. */
     EMSTATE_DEBUG_GUEST_IEM,
     /** Guest debug event from recompiled-mode is being processed. */
-    EMSTATE_DEBUG_GUEST_REM,
+    EMSTATE_DEBUG_GUEST_RECOMPILER,
     /** Hypervisor debug event being processed. */
     EMSTATE_DEBUG_HYPER,
     /** The VM has encountered a fatal error. (And everyone is panicing....) */
     EMSTATE_GURU_MEDITATION,
     /** Executing in IEM, falling back on REM if we cannot switch back to HM or
-     * RAW after a short while. */
-    EMSTATE_IEM_THEN_REM,
+     * RAW after a short while.
+     * @note obsolete, here only for saved state reasons.  */
+    EMSTATE_IEM_THEN_REM_OBSOLETE,
     /** Executing in native (API) execution monitor. */
     EMSTATE_NEM,
     /** Guest debug event from NEM mode is being processed. */
     EMSTATE_DEBUG_GUEST_NEM,
+    /** End of valid values. */
+    EMSTATE_END,
     /** Just a hack to ensure that we get a 32-bit integer. */
     EMSTATE_MAKE_32BIT_HACK = 0x7fffffff
 } EMSTATE;
-
-
-/**
- * EMInterpretInstructionCPU execution modes.
- */
-typedef enum
-{
-    /** Only supervisor code (CPL=0). */
-    EMCODETYPE_SUPERVISOR,
-    /** User-level code only. */
-    EMCODETYPE_USER,
-    /** Supervisor and user-level code (use with great care!). */
-    EMCODETYPE_ALL,
-    /** Just a hack to ensure that we get a 32-bit integer. */
-    EMCODETYPE_32BIT_HACK = 0x7fffffff
-} EMCODETYPE;
+AssertCompile(EMSTATE_HALTED == 6);
+AssertCompile(EMSTATE_WAIT_SIPI == 7);
 
 VMM_INT_DECL(EMSTATE)           EMGetState(PVMCPU pVCpu);
 VMM_INT_DECL(void)              EMSetState(PVMCPU pVCpu, EMSTATE enmNewState);
-
-/** @name Callback handlers for instruction emulation functions.
- * These are placed here because IOM wants to use them as well.
- * @{
- */
-typedef DECLCALLBACKTYPE(uint32_t, FNEMULATEPARAM2UINT32,(void *pvParam1, uint64_t val2));
-typedef FNEMULATEPARAM2UINT32    *PFNEMULATEPARAM2UINT32;
-typedef DECLCALLBACKTYPE(uint32_t, FNEMULATEPARAM2,(void *pvParam1, size_t val2));
-typedef FNEMULATEPARAM2          *PFNEMULATEPARAM2;
-typedef DECLCALLBACKTYPE(uint32_t, FNEMULATEPARAM3,(void *pvParam1, uint64_t val2, size_t val3));
-typedef FNEMULATEPARAM3          *PFNEMULATEPARAM3;
-typedef DECLCALLBACKTYPE(int, FNEMULATELOCKPARAM2,(void *pvParam1, uint64_t val2, RTGCUINTREG32 *pf));
-typedef FNEMULATELOCKPARAM2 *PFNEMULATELOCKPARAM2;
-typedef DECLCALLBACKTYPE(int, FNEMULATELOCKPARAM3,(void *pvParam1, uint64_t val2, size_t cb, RTGCUINTREG32 *pf));
-typedef FNEMULATELOCKPARAM3 *PFNEMULATELOCKPARAM3;
-/** @}  */
-
 VMMDECL(void)                   EMSetHypercallInstructionsEnabled(PVMCPU pVCpu, bool fEnabled);
 VMMDECL(bool)                   EMAreHypercallInstructionsEnabled(PVMCPU pVCpu);
 VMM_INT_DECL(bool)              EMShouldContinueAfterHalt(PVMCPU pVCpu, PCPUMCTX pCtx);
@@ -201,12 +175,15 @@ AssertCompileSize(EMEXITTYPE, 4);
 #define EMEXIT_F_KIND_VMX           UINT32_C(0x00001000)    /**< VT-x exit codes. */
 #define EMEXIT_F_KIND_SVM           UINT32_C(0x00002000)    /**< SVM exit codes. */
 #define EMEXIT_F_KIND_NEM           UINT32_C(0x00003000)    /**< NEMEXITTYPE */
-#define EMEXIT_F_KIND_XCPT          UINT32_C(0x00004000)    /**< Exception numbers (raw-mode). */
+#define EMEXIT_F_KIND_IEM           UINT32_C(0x00004000)    /**< IEM specific stuff. */
+#define EMEXIT_F_KIND_XCPT          UINT32_C(0x00005000)    /**< Exception numbers (IEM,raw-mode). */
 #define EMEXIT_F_KIND_MASK          UINT32_C(0x00007000)
 #define EMEXIT_F_CS_EIP             UINT32_C(0x00010000)    /**< The PC is EIP in the low dword and CS in the high. */
 #define EMEXIT_F_UNFLATTENED_PC     UINT32_C(0x00020000)    /**< The PC hasn't had CS.BASE added to it. */
 /** HM is calling (from ring-0).  Preemption is currently disabled or we're using preemption hooks. */
 #define EMEXIT_F_HM                 UINT32_C(0x00040000)
+#define EMEXIT_F_XCPT_ERRCD         UINT32_C(0x00000800)    /**< Additional record w/ the error code stored as PC. */
+#define EMEXIT_F_XCPT_CR2           UINT32_C(0x00000400)    /**< Additional record w/ the CR3 value stored as PC. */
 /** Combines flags and exit type into EMHistoryAddExit() input. */
 #define EMEXIT_MAKE_FT(a_fFlags, a_uType)   ((a_fFlags) | (uint32_t)(a_uType))
 /** @} */
@@ -267,11 +244,11 @@ VMM_INT_DECL(VBOXSTRICTRC)      EMHistoryExec(PVMCPUCC pVCpu, PCEMEXITREC pExitR
 
 /** @name Deprecated interpretation related APIs (use IEM).
  * @{ */
-VMM_INT_DECL(int)               EMInterpretDisasCurrent(PVMCPUCC pVCpu, PDISCPUSTATE pCpu, unsigned *pcbInstr);
+VMM_INT_DECL(int)               EMInterpretDisasCurrent(PVMCPUCC pVCpu, PDISSTATE pDis, unsigned *pcbInstr);
 VMM_INT_DECL(int)               EMInterpretDisasOneEx(PVMCPUCC pVCpu, RTGCUINTPTR GCPtrInstr,
-                                                      PDISCPUSTATE pDISState, unsigned *pcbInstr);
+                                                      PDISSTATE pDis, unsigned *pcbInstr);
 VMM_INT_DECL(VBOXSTRICTRC)      EMInterpretInstruction(PVMCPUCC pVCpu);
-VMM_INT_DECL(VBOXSTRICTRC)      EMInterpretInstructionDisasState(PVMCPUCC pVCpu, PDISCPUSTATE pDis, uint64_t rip);
+VMM_INT_DECL(VBOXSTRICTRC)      EMInterpretInstructionDisasState(PVMCPUCC pVCpu, PDISSTATE pDis, uint64_t rip);
 /** @} */
 
 
@@ -299,7 +276,7 @@ VMMR0_INT_DECL(int)             EMR0InitVM(PGVM pGVM);
  */
 
 /**
- * Command argument for EMR3RawSetMode().
+ * For use with EMR3SetExecutionPolicy() and EMR3QueryExecutionPolicy().
  *
  * It's possible to extend this interface to change several
  * execution modes at once should the need arise.
@@ -308,12 +285,10 @@ typedef enum EMEXECPOLICY
 {
     /** The customary invalid zero entry. */
     EMEXECPOLICY_INVALID = 0,
-    /** Whether to recompile ring-0 code or execute it in raw/hm. */
-    EMEXECPOLICY_RECOMPILE_RING0,
-    /** Whether to recompile ring-3 code or execute it in raw/hm. */
-    EMEXECPOLICY_RECOMPILE_RING3,
     /** Whether to only use IEM for execution. */
     EMEXECPOLICY_IEM_ALL,
+    /** Whether IEM is recompiled when used for mass execution. */
+    EMEXECPOLICY_IEM_RECOMPILED,
     /** End of valid value (not included). */
     EMEXECPOLICY_END,
     /** The customary 32-bit type blowup. */

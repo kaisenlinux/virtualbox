@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -610,7 +610,7 @@ static void intnetR3RequestProcess(xpc_connection_t hCon, xpc_object_t hObj, PSU
 }
 
 
-DECLCALLBACK(void) xpcConnHandler(xpc_connection_t hXpcCon)
+static DECLCALLBACK(void) xpcConnHandler(xpc_connection_t hXpcCon)
 {
     xpc_connection_set_event_handler(hXpcCon, ^(xpc_object_t hObj) {
         PSUPDRVSESSION pSession = (PSUPDRVSESSION)xpc_connection_get_context(hXpcCon);

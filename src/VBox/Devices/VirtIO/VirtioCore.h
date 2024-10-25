@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,12 +31,6 @@
 #ifndef RT_WITHOUT_PRAGMA_ONCE
 # pragma once
 #endif
-
-/* Some temporary printouts to release log in descriptor chain handling */
-//#define VIRTIO_REL_INFO_DUMP 1
-
-/* Do not allocate VIRTQBUF from the heap when possible */
-#define VIRTIO_VBUF_ON_STACK 1
 
 #include <iprt/ctype.h>
 #include <iprt/sg.h>
@@ -74,6 +68,62 @@ typedef CTX_SUFF(PVIRTIOCORE) PVIRTIOCORECC;
 #define VIRTIO_REGION_PCI_CAP               2                    /**< BAR for VirtIO Cap. MMIO (impl specific) */
 #define VIRTIO_REGION_MSIX_CAP              0                    /**< Bar for MSI-X handling                   */
 #define VIRTIO_PAGE_SIZE                 4096                    /**< Page size used by VirtIO specification   */
+
+/** Virtio-over-MMIO transport region size, excluding the device specific configuration area. */
+#define VIRTIO_MMIO_SIZE                  256
+/** Register containing a magic value identifying a VirtIO over MMIO device - readonly. */
+#define VIRTIO_MMIO_REG_MAGIC_OFF           0
+/** Magic value read from the register. */
+# define VIRTIO_MMIO_REG_MAGIC_VALUE        UINT32_C(0x74726976)
+/** Register containing th version of the MMIO transport - readonly. */
+#define VIRTIO_MMIO_REG_VERSION_OFF         4
+/** Version value read from the register. */
+# define VIRTIO_MMIO_REG_VERSION_VALUE      UINT32_C(0x2)
+/** Register containing the device ID of the device - readonly. */
+#define VIRTIO_MMIO_REG_DEVICEID_OFF        8
+/** Register containing the vendor ID of the device - readonly. */
+#define VIRTIO_MMIO_REG_VENDORID_OFF       12
+/** Register containing the features the device supports - readonly. */
+#define VIRTIO_MMIO_REG_DEVICEFEAT_OFF     16
+/** Device features selection - writeonly. */
+#define VIRTIO_MMIO_REG_DEVICEFEATSEL_OFF  20
+/** Features of the device selected by the driver - writeonly. */
+#define VIRTIO_MMIO_REG_DRIVERFEAT_OFF     32
+/** - writeonly. */
+#define VIRTIO_MMIO_REG_DRIVERFEATSEL_OFF  36
+/** Virtual queue selection - writeonly. */
+#define VIRTIO_MMIO_REG_QUEUESEL_OFF       48
+/**  - readonly */
+#define VIRTIO_MMIO_REG_QUEUENUMMAX_OFF    52
+/**  - writeonly */
+#define VIRTIO_MMIO_REG_QUEUENUM_OFF       56
+/** - read/write. */
+#define VIRTIO_MMIO_REG_QUEUEALIGN_LEGACY_OFF   60
+/** - read/write. */
+#define VIRTIO_MMIO_REG_QUEUERDY_OFF       68
+/**  - writeonly */
+#define VIRTIO_MMIO_REG_QUEUENOTIFY_OFF    80
+/**  - readonly */
+#define VIRTIO_MMIO_REG_INTRSTATUS_OFF     96
+/**  - writeonly */
+#define VIRTIO_MMIO_REG_INTRACK_OFF       100
+/**  - read/write */
+#define VIRTIO_MMIO_REG_DEVSTATUS_OFF     112
+/**  - writeonly */
+#define VIRTIO_MMIO_REG_QUEUEDESCLOW_OFF  128
+/**  - writeonly */
+#define VIRTIO_MMIO_REG_QUEUEDESCHIGH_OFF 132
+/**  - writeonly */
+#define VIRTIO_MMIO_REG_QUEUEDRVLOW_OFF   144
+/**  - writeonly */
+#define VIRTIO_MMIO_REG_QUEUEDRVHIGH_OFF  148
+/**  - writeonly */
+#define VIRTIO_MMIO_REG_QUEUEDEVLOW_OFF   160
+/**  - writeonly */
+#define VIRTIO_MMIO_REG_QUEUEDEVHIGH_OFF  164
+/**  - readonly */
+#define VIRTIO_MMIO_REG_CFGGEN_OFF        252
+
 
 /**
  * @todo Move the following virtioCoreGCPhysChain*() functions mimic the functionality of the related
@@ -159,6 +209,7 @@ typedef struct VIRTIOPCIPARAMS
     uint16_t  uSubsystemId;                                      /**< PCI Cfg Card Manufacturer Vendor ID       */
     uint16_t  uInterruptLine;                                    /**< PCI Cfg Interrupt line                    */
     uint16_t  uInterruptPin;                                     /**< PCI Cfg Interrupt pin                     */
+    uint8_t   uDeviceType;                                       /**< Device type (used for Virtio-over-MMIO)   */
 } VIRTIOPCIPARAMS, *PVIRTIOPCIPARAMS;
 
 
@@ -212,6 +263,34 @@ static const VIRTIO_FEATURES_LIST s_aCoreFeatures[] =
  * 0x1040 to 0x107f.
  */
 #define DEVICE_PCI_DEVICE_ID_VIRTIO_BASE           0x1040
+
+/**
+ * @name Virtio Device types as outlined in chapter 5.
+ * @{ */
+#define VIRTIO_DEVICE_TYPE_INVALID                      0
+#define VIRTIO_DEVICE_TYPE_NETWORK                      1
+#define VIRTIO_DEVICE_TYPE_BLOCK                        2
+#define VIRTIO_DEVICE_TYPE_CONSOLE                      3
+#define VIRTIO_DEVICE_TYPE_ENTROPY_SOURCE               4
+#define VIRTIO_DEVICE_TYPE_MEMORY_BALLOONING_TRAD       5
+#define VIRTIO_DEVICE_TYPE_IOMEM                        6
+#define VIRTIO_DEVICE_TYPE_RPMSG                        7
+#define VIRTIO_DEVICE_TYPE_SCSI_HOST                    8
+#define VIRTIO_DEVICE_TYPE_9P_TRANSPORT                 9
+#define VIRTIO_DEVICE_TYPE_MAC80211_WLAN               10
+#define VIRTIO_DEVICE_TYPE_RPROC_SERIAL                11
+#define VIRTIO_DEVICE_TYPE_CAIF                        12
+#define VIRTIO_DEVICE_TYPE_MEMORY_BALLOONING           13
+#define VIRTIO_DEVICE_TYPE_GPU                         16
+#define VIRTIO_DEVICE_TYPE_TIMER                       17
+#define VIRTIO_DEVICE_TYPE_INPUT                       18
+#define VIRTIO_DEVICE_TYPE_SOCKET                      19
+#define VIRTIO_DEVICE_TYPE_CRYPTO                      20
+#define VIRTIO_DEVICE_TYPE_SIGNAL_DIST_MOD             21
+#define VIRTIO_DEVICE_TYPE_PSTORE                      22
+#define VIRTIO_DEVICE_TYPE_IOMMU                       23
+#define VIRTIO_DEVICE_TYPE_MEMORY                      24
+/** @} */
 
 /** Reserved (*negotiated*) Feature Bits (e.g. device independent features, VirtIO 1.0 spec,section 6) */
 
@@ -376,6 +455,8 @@ typedef struct VIRTIOCORE
     uint16_t                    uVirtqSelect;                     /**< (MMIO) queue selector               GUEST */
     uint32_t                    fLegacyDriver;                    /**< Set if guest drv < VirtIO 1.0 and allowed */
     uint32_t                    fOfferLegacy;                     /**< Set at init call from dev-specific code   */
+    uint16_t                    uIrqMmio;                         /**< The interrupt number when Virtio-over-MMIO is used */
+    uint8_t                     uDeviceType;                      /**< The implemented device type for Virtio-over-MMIO   */
 
     /** @name The locations of the capability structures in PCI config space and the BAR.
      * @{ */
@@ -539,16 +620,16 @@ typedef CTX_SUFF(VIRTIOCORE) VIRTIOCORECC;
  * @param   pvDevSpecificCfg        Address of client's dev-specific
  *                                  configuration struct.
  */
-int virtioCoreR3Init(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, PVIRTIOCORECC pVirtioCC,
-                          PVIRTIOPCIPARAMS pPciParams, const char *pcszInstance,
-                          uint64_t fDevSpecificFeatures, uint32_t fOfferLegacy, void *pvDevSpecificCfg, uint16_t cbDevSpecificCfg);
+DECLHIDDEN(int) virtioCoreR3Init(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, PVIRTIOCORECC pVirtioCC,
+                                 PVIRTIOPCIPARAMS pPciParams, const char *pcszInstance,
+                                 uint64_t fDevSpecificFeatures, uint32_t fOfferLegacy, void *pvDevSpecificCfg, uint16_t cbDevSpecificCfg);
 /**
  * Initiate orderly reset procedure. This is an exposed API for clients that might need it.
  * Invoked by client to reset the device and driver (see VirtIO 1.0 section 2.1.1/2.1.2)
  *
  * @param   pVirtio     Pointer to the virtio state.
  */
-void  virtioCoreResetAll(PVIRTIOCORE pVirtio);
+DECLHIDDEN(void) virtioCoreResetAll(PVIRTIOCORE pVirtio);
 
 /**
  * Resets the device state upon a VM reset for instance.
@@ -578,7 +659,7 @@ DECLHIDDEN(void) virtioCoreR3ResetDevice(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio
  *
  * @returns VBox status code.
  */
-int  virtioCoreR3VirtqAttach(PVIRTIOCORE pVirtio, uint16_t uVirtqNbr, const char *pcszName);
+DECLHIDDEN(int) virtioCoreR3VirtqAttach(PVIRTIOCORE pVirtio, uint16_t uVirtqNbr, const char *pcszName);
 
 /**
  * Detaches host device-specific implementation's queue state from the host VirtIO core
@@ -591,7 +672,7 @@ int  virtioCoreR3VirtqAttach(PVIRTIOCORE pVirtio, uint16_t uVirtqNbr, const char
  *
  * @returns VBox status code.
  */
-int  virtioCoreR3VirtqDetach(PVIRTIOCORE pVirtio, uint16_t uVirtqNbr);
+DECLHIDDEN(int) virtioCoreR3VirtqDetach(PVIRTIOCORE pVirtio, uint16_t uVirtqNbr);
 
 /**
  * Checks to see whether queue is attached to core.
@@ -602,7 +683,7 @@ int  virtioCoreR3VirtqDetach(PVIRTIOCORE pVirtio, uint16_t uVirtqNbr);
  * Returns boolean true or false indicating whether dev-specific reflection
  * of queue is attached to core.
  */
-bool  virtioCoreR3VirtqIsAttached(PVIRTIOCORE pVirtio, uint16_t uVirtqNbr);
+DECLHIDDEN(bool) virtioCoreR3VirtqIsAttached(PVIRTIOCORE pVirtio, uint16_t uVirtqNbr);
 
 /**
  * Checks to see whether queue is enabled.
@@ -622,7 +703,7 @@ bool  virtioCoreR3VirtqIsAttached(PVIRTIOCORE pVirtio, uint16_t uVirtqNbr);
  * parameters passed from host VirtIO device to guest VirtIO driver, result in guest re-establishing
  * queue, except, in that situation, the queue operational state would be valid.
  */
-bool  virtioCoreR3VirtqIsEnabled(PVIRTIOCORE pVirtio, uint16_t uVirtqNbr);
+DECLHIDDEN(bool) virtioCoreR3VirtqIsEnabled(PVIRTIOCORE pVirtio, uint16_t uVirtqNbr);
 
 /**
  * Enable or disable notification for the specified queue.
@@ -640,14 +721,14 @@ bool  virtioCoreR3VirtqIsEnabled(PVIRTIOCORE pVirtio, uint16_t uVirtqNbr);
  * @param   uVirtqNbr   Virtq number
  * @param   fEnable     Selects notification mode (enabled or disabled)
  */
-void  virtioCoreVirtqEnableNotify(PVIRTIOCORE pVirtio, uint16_t uVirtqNbr, bool fEnable);
+DECLHIDDEN(void) virtioCoreVirtqEnableNotify(PVIRTIOCORE pVirtio, uint16_t uVirtqNbr, bool fEnable);
 
 /**
  * Notifies guest (via ISR or MSI-X) of device configuration change
  *
  * @param   pVirtio     Pointer to the shared virtio state.
  */
-void  virtioCoreNotifyConfigChanged(PVIRTIOCORE pVirtio);
+DECLHIDDEN(void) virtioCoreNotifyConfigChanged(PVIRTIOCORE pVirtio);
 
 /**
  * Displays a well-formatted human-readable translation of otherwise inscrutable bitmasks
@@ -665,8 +746,8 @@ void  virtioCoreNotifyConfigChanged(PVIRTIOCORE pVirtio);
  * @param   s_aDevSpecificFeatures  Dev-specific features (virtio-net, virtio-scsi...)
  * @param   cFeatures   Number of features in aDevSpecificFeatures
  */
-void  virtioCorePrintDeviceFeatures(VIRTIOCORE *pVirtio, PCDBGFINFOHLP pHlp,
-    const VIRTIO_FEATURES_LIST *aDevSpecificFeatures, int cFeatures);
+DECLHIDDEN(void) virtioCorePrintDeviceFeatures(VIRTIOCORE *pVirtio, PCDBGFINFOHLP pHlp,
+                                               const VIRTIO_FEATURES_LIST *aDevSpecificFeatures, int cFeatures);
 
 /*
  * Debug-assist utility function to display state of the VirtIO core code, including
@@ -689,7 +770,7 @@ void  virtioCorePrintDeviceFeatures(VIRTIOCORE *pVirtio, PCDBGFINFOHLP pHlp,
  * @param   pHlp        Pointer to the debug info hlp struct
  * @param   pszArgs     Arguments to function
  */
-void  virtioCoreR3VirtqInfo(PPDMDEVINS pDevIns, PCDBGFINFOHLP pHlp, const char *pszArgs, int uVirtqNbr);
+DECLHIDDEN(void) virtioCoreR3VirtqInfo(PPDMDEVINS pDevIns, PCDBGFINFOHLP pHlp, const char *pszArgs, int uVirtqNbr);
 
 /**
  * Returns the number of avail bufs in the virtq.
@@ -698,9 +779,8 @@ void  virtioCoreR3VirtqInfo(PPDMDEVINS pDevIns, PCDBGFINFOHLP pHlp, const char *
  * @param   pVirtio     Pointer to the shared virtio state.
  * @param   uVirtqNbr   Virtqueue to return the count of buffers available for.
  */
-uint16_t virtioCoreVirtqAvailBufCount(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, uint16_t uVirtqNbr);
+DECLHIDDEN(uint16_t) virtioCoreVirtqAvailBufCount(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, uint16_t uVirtqNbr);
 
-#ifdef VIRTIO_VBUF_ON_STACK
 /**
  * This function is identical to virtioCoreR3VirtqAvailBufGet(), *except* it doesn't consume
  * peeked buffer from avail ring of the virtq. The function *becomes* identical to the
@@ -719,8 +799,8 @@ uint16_t virtioCoreVirtqAvailBufCount(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, u
  * @retval  VERR_INVALID_STATE   VirtIO not in ready state (asserted).
  * @retval  VERR_NOT_AVAILABLE   If the queue is empty.
  */
-int  virtioCoreR3VirtqAvailBufPeek(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, uint16_t uVirtqNbr,
-                                   PVIRTQBUF pVirtqBuf);
+DECLHIDDEN(int) virtioCoreR3VirtqAvailBufPeek(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, uint16_t uVirtqNbr,
+                                              PVIRTQBUF pVirtqBuf);
 
 /**
  * This function fetches the next buffer (descriptor chain) from the VirtIO "avail" ring of
@@ -744,8 +824,8 @@ int  virtioCoreR3VirtqAvailBufPeek(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, uint
  * @retval  VERR_INVALID_STATE   VirtIO not in ready state (asserted).
  * @retval  VERR_NOT_AVAILABLE   If the queue is empty.
  */
-int  virtioCoreR3VirtqAvailBufGet(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, uint16_t uVirtqNbr,
-                                  PVIRTQBUF pVirtqBuf, bool fRemove);
+DECLHIDDEN(int) virtioCoreR3VirtqAvailBufGet(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, uint16_t uVirtqNbr,
+                                             PVIRTQBUF pVirtqBuf, bool fRemove);
 
 /**
  * Fetches a specific descriptor chain using avail ring of indicated queue and converts the
@@ -767,82 +847,8 @@ int  virtioCoreR3VirtqAvailBufGet(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, uint1
  * @retval  VERR_INVALID_STATE   VirtIO not in ready state (asserted).
  * @retval  VERR_NOT_AVAILABLE   If the queue is empty.
  */
-int virtioCoreR3VirtqAvailBufGet(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, uint16_t uVirtqNbr,
-                                  uint16_t uHeadIdx, PVIRTQBUF pVirtqBuf);
-#else /* !VIRTIO_VBUF_ON_STACK */
-/**
- * This function is identical to virtioCoreR3VirtqAvailBufGet(), *except* it doesn't consume
- * peeked buffer from avail ring of the virtq. The function *becomes* identical to the
- * virtioCoreR3VirtqAvailBufGet() only if virtioCoreR3VirtqAvailRingNext() is invoked to
- * consume buf from the queue's avail ring, followed by invocation of virtioCoreR3VirtqUsedBufPut(),
- * to hand host-processed buffer back to guest, which completes guest-initiated virtq buffer circuit.
- *
- * @param   pDevIns     The device instance.
- * @param   pVirtio     Pointer to the shared virtio state.
- * @param   uVirtqNbr   Virtq number
- * @param   ppVirtqBuf  Address to store pointer to descriptor chain that contains the
- *                      pre-processed transaction information pulled from the virtq.
- *
- * @returns VBox status code:
- * @retval  VINF_SUCCESS         Success
- * @retval  VERR_INVALID_STATE   VirtIO not in ready state (asserted).
- * @retval  VERR_NOT_AVAILABLE   If the queue is empty.
- */
-int  virtioCoreR3VirtqAvailBufPeek(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, uint16_t uVirtqNbr,
-                                   PPVIRTQBUF ppVirtqBuf);
-
-/**
- * This function fetches the next buffer (descriptor chain) from the VirtIO "avail" ring of
- * indicated queue, separating the buf's s/g vectors into OUT (e.g. guest-to-host)
- * components and and IN (host-to-guest) components.
- *
- * Caller is responsible for GCPhys to host virtual memory conversions. If the
- * virtq buffer being peeked at is "consumed", virtioCoreR3VirtqAvailRingNext() must
- * be called, and after that virtioCoreR3VirtqUsedBufPut() must be called to
- * complete the buffer transfer cycle with the guest.
- *
- * @param   pDevIns     The device instance.
- * @param   pVirtio     Pointer to the shared virtio state.
- * @param   uVirtqNbr   Virtq number
- * @param   ppVirtqBuf  Address to store pointer to descriptor chain that contains the
- *                      pre-processed transaction information pulled from the virtq.
- *                      Returned reference must be released by calling
- *                      virtioCoreR3VirtqBufRelease().
- * @param   fRemove     flags whether to remove desc chain from queue (false = peek)
- *
- * @returns VBox status code:
- * @retval  VINF_SUCCESS         Success
- * @retval  VERR_INVALID_STATE   VirtIO not in ready state (asserted).
- * @retval  VERR_NOT_AVAILABLE   If the queue is empty.
- */
-int  virtioCoreR3VirtqAvailBufGet(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, uint16_t uVirtqNbr,
-                                  PPVIRTQBUF ppVirtqBuf, bool fRemove);
-
-/**
- * Fetches a specific descriptor chain using avail ring of indicated queue and converts the
- * descriptor chain into its OUT (to device) and IN (to guest) components.
- *
- * The caller is responsible for GCPhys to host virtual memory conversions and *must*
- * return the virtq buffer using virtioCoreR3VirtqUsedBufPut() to complete the roundtrip
- * virtq transaction.
- * *
- * @param   pDevIns     The device instance.
- * @param   pVirtio     Pointer to the shared virtio state.
- * @param   uVirtqNbr   Virtq number
- * @param   ppVirtqBuf  Address to store pointer to descriptor chain that contains the
- *                      pre-processed transaction information pulled from the virtq.
- *                      Returned reference must be released by calling
- *                      virtioCoreR3VirtqBufRelease().
- * @param   fRemove     flags whether to remove desc chain from queue (false = peek)
- *
- * @returns VBox status code:
- * @retval  VINF_SUCCESS         Success
- * @retval  VERR_INVALID_STATE   VirtIO not in ready state (asserted).
- * @retval  VERR_NOT_AVAILABLE   If the queue is empty.
- */
-int virtioCoreR3VirtqAvailBufGet(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, uint16_t uVirtqNbr,
-                                  uint16_t uHeadIdx, PPVIRTQBUF ppVirtqBuf);
-#endif /* !VIRTIO_VBUF_ON_STACK */
+DECLHIDDEN(int) virtioCoreR3VirtqAvailBufGet(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, uint16_t uVirtqNbr,
+                                             uint16_t uHeadIdx, PVIRTQBUF pVirtqBuf);
 
 /**
  * Returns data to the guest to complete a transaction initiated by virtioCoreR3VirtqAvailBufGet(),
@@ -881,8 +887,8 @@ int virtioCoreR3VirtqAvailBufGet(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, uint16
  * @note    This function will not release any reference to pVirtqBuf.  The
  *          caller must take care of that.
  */
-int virtioCoreR3VirtqUsedBufPut(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, uint16_t uVirtqNbr, PRTSGBUF pSgVirtReturn,
-                                 PVIRTQBUF pVirtqBuf, bool fFence = true);
+DECLHIDDEN(int) virtioCoreR3VirtqUsedBufPut(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, uint16_t uVirtqNbr, PRTSGBUF pSgVirtReturn,
+                                            PVIRTQBUF pVirtqBuf, bool fFence = true);
 
 
 /**
@@ -907,8 +913,8 @@ int virtioCoreR3VirtqUsedBufPut(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, uint16_
  * @note    This function will not release any reference to pVirtqBuf.  The
  *          caller must take care of that.
  */
-int virtioCoreR3VirtqUsedBufPut(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, uint16_t uVirtq, size_t cb, const void *pv,
-                            PVIRTQBUF pVirtqBuf, size_t cbEnqueue, bool fFence = true);
+DECLHIDDEN(int) virtioCoreR3VirtqUsedBufPut(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, uint16_t uVirtq, size_t cb, const void *pv,
+                                            PVIRTQBUF pVirtqBuf, size_t cbEnqueue, bool fFence = true);
 
 
 /**
@@ -917,7 +923,7 @@ int virtioCoreR3VirtqUsedBufPut(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, uint16_
  * @param   pVirtio      Pointer to the virtio state.
  * @param   uVirtqNbr    Index of queue
  */
-int virtioCoreR3VirtqAvailBufNext(PVIRTIOCORE pVirtio, uint16_t uVirtqNbr);
+DECLHIDDEN(int) virtioCoreR3VirtqAvailBufNext(PVIRTIOCORE pVirtio, uint16_t uVirtqNbr);
 
 /**
  * Checks to see if guest has accepted host device's VIRTIO_F_VERSION_1 (i.e. "modern")
@@ -929,7 +935,7 @@ int virtioCoreR3VirtqAvailBufNext(PVIRTIOCORE pVirtio, uint16_t uVirtqNbr);
  *
  * @param   pVirtio      Pointer to the virtio state.
  */
-int virtioCoreIsLegacyMode(PVIRTIOCORE pVirtio);
+DECLHIDDEN(int) virtioCoreIsLegacyMode(PVIRTIOCORE pVirtio);
 
 /**
  * This VirtIO transitional device supports "modern" (rev 1.0+) as well as "legacy" (e.g. < 1.0) VirtIO drivers.
@@ -940,7 +946,8 @@ int virtioCoreIsLegacyMode(PVIRTIOCORE pVirtio);
 DECLINLINE(int) virtioCoreGCPhysWrite(PVIRTIOCORE pVirtio, PPDMDEVINS pDevIns, RTGCPHYS GCPhys, void *pvBuf, size_t cbWrite)
 {
     int rc;
-    if (virtioCoreIsLegacyMode(pVirtio))
+    if (   virtioCoreIsLegacyMode(pVirtio)
+        || pVirtio->uIrqMmio)
         rc = PDMDevHlpPhysWrite(pDevIns, GCPhys, pvBuf, cbWrite);
     else
         rc = PDMDevHlpPCIPhysWrite(pDevIns, GCPhys, pvBuf, cbWrite);
@@ -950,7 +957,8 @@ DECLINLINE(int) virtioCoreGCPhysWrite(PVIRTIOCORE pVirtio, PPDMDEVINS pDevIns, R
 DECLINLINE(int) virtioCoreGCPhysRead(PVIRTIOCORE pVirtio, PPDMDEVINS pDevIns, RTGCPHYS GCPhys, void *pvBuf, size_t cbRead)
 {
     int rc;
-    if (virtioCoreIsLegacyMode(pVirtio))
+    if (   virtioCoreIsLegacyMode(pVirtio)
+        || pVirtio->uIrqMmio)
         rc = PDMDevHlpPhysRead(pDevIns, GCPhys, pvBuf, cbRead);
     else
         rc = PDMDevHlpPCIPhysRead(pDevIns, GCPhys, pvBuf, cbRead);
@@ -1156,7 +1164,10 @@ DECLINLINE(void) virtioCoreR3VirtqBufDrain(PVIRTIOCORE pVirtio, PVIRTQBUF pVirtq
     {
         size_t cbSeg = cbLim;
         RTGCPHYS GCPhys = virtioCoreGCPhysChainGetNextSeg(pVirtqBuf->pSgPhysSend, &cbSeg);
-        PDMDevHlpPCIPhysRead(pVirtio->pDevInsR3, GCPhys, pb, cbSeg);
+        if (pVirtio->uIrqMmio)
+            PDMDevHlpPhysRead(pVirtio->pDevInsR3, GCPhys, pb, cbSeg);
+        else
+            PDMDevHlpPCIPhysRead(pVirtio->pDevInsR3, GCPhys, pb, cbSeg);
         pb += cbSeg;
         cbLim -= cbSeg;
         pVirtqBuf->cbPhysSend -= cbSeg;
@@ -1185,9 +1196,8 @@ DECLINLINE(void) virtioCoreR3VirtqBufDrain(PVIRTIOCORE pVirtio, PVIRTQBUF pVirtq
  * @retval  VINF_SUCCESS       Success
  * @retval  VERR_INVALID_STATE VirtIO not in ready state
  */
-int  virtioCoreVirtqUsedRingSync(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, uint16_t uVirtqNbr);
+DECLHIDDEN(int) virtioCoreVirtqUsedRingSync(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, uint16_t uVirtqNbr);
 
-#ifdef VIRTIO_VBUF_ON_STACK
 /**
  * Allocates a descriptor chain object with the reference count of one. Copying the reference
  * to this object requires a call to virtioCoreR3VirtqBufRetain. All references must be later
@@ -1201,8 +1211,7 @@ int  virtioCoreVirtqUsedRingSync(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, uint16
  * NOTE: VIRTQBUF_T objects allocated on the stack will have garbage in the u32Magic field,
  * triggering an assertion if virtioCoreR3VirtqBufRelease is called on them.
  */
-PVIRTQBUF virtioCoreR3VirtqBufAlloc(void);
-#endif /* VIRTIO_VBUF_ON_STACK */
+DECLHIDDEN(PVIRTQBUF) virtioCoreR3VirtqBufAlloc(void);
 
 /**
  * Retains a reference to the given descriptor chain.
@@ -1212,7 +1221,7 @@ PVIRTQBUF virtioCoreR3VirtqBufAlloc(void);
  * @returns New reference count.
  * @retval  UINT32_MAX on invalid parameter.
  */
-uint32_t virtioCoreR3VirtqBufRetain(PVIRTQBUF pVirtqBuf);
+DECLHIDDEN(uint32_t) virtioCoreR3VirtqBufRetain(PVIRTQBUF pVirtqBuf);
 
 /**
  * Releases a reference to the given descriptor chain.
@@ -1223,7 +1232,7 @@ uint32_t virtioCoreR3VirtqBufRetain(PVIRTQBUF pVirtqBuf);
  * @returns New reference count.
  * @retval  0 if freed or invalid parameter.
  */
-uint32_t virtioCoreR3VirtqBufRelease(PVIRTIOCORE pVirtio, PVIRTQBUF pVirtqBuf);
+DECLHIDDEN(uint32_t) virtioCoreR3VirtqBufRelease(PVIRTIOCORE pVirtio, PVIRTQBUF pVirtqBuf);
 
 /**
  * Return queue enable state
@@ -1280,7 +1289,7 @@ DECLINLINE(uint64_t) virtioCoreGetNegotiatedFeatures(PVIRTIOCORE pVirtio)
  *
  * @returns associated text.
  */
-const char *virtioCoreGetStateChangeText(VIRTIOVMSTATECHANGED enmState);
+DECLHIDDEN(const char *) virtioCoreGetStateChangeText(VIRTIOVMSTATECHANGED enmState);
 
 /**
  * Debug assist code for any consumer that inherits VIRTIOCORE.
@@ -1301,9 +1310,9 @@ const char *virtioCoreGetStateChangeText(VIRTIOVMSTATECHANGED enmState);
  * @param   fHasIndex   True if the member is indexed
  * @param   idx         The index if fHasIndex
  */
-void virtioCoreLogMappedIoValue(const char *pszFunc, const char *pszMember, uint32_t uMemberSize,
-                                const void *pv, uint32_t cb, uint32_t uOffset,
-                                int fWrite, int fHasIndex, uint32_t idx);
+DECLHIDDEN(void) virtioCoreLogMappedIoValue(const char *pszFunc, const char *pszMember, uint32_t uMemberSize,
+                                            const void *pv, uint32_t cb, uint32_t uOffset,
+                                            int fWrite, int fHasIndex, uint32_t idx);
 
 /**
  * Debug assist for any consumer
@@ -1317,7 +1326,7 @@ void virtioCoreLogMappedIoValue(const char *pszFunc, const char *pszMember, uint
  * @param   pszTitle    Optional title. If present displays title that lists
  *                      provided text with value of cb to indicate VIRTQ_SIZE next to it.
  */
-void virtioCoreHexDump(uint8_t *pv, uint32_t cb, uint32_t uBase, const char *pszTitle);
+DECLHIDDEN(void) virtioCoreHexDump(uint8_t *pv, uint32_t cb, uint32_t uBase, const char *pszTitle);
 
 /**
  * Debug assist for any consumer device code
@@ -1329,20 +1338,23 @@ void virtioCoreHexDump(uint8_t *pv, uint32_t cb, uint32_t uBase, const char *psz
  * @param   pszTitle    Optional title. If present displays title that lists
  *                      provided text with value of cb to indicate size next to it.
  */
-void virtioCoreGCPhysHexDump(PPDMDEVINS pDevIns, RTGCPHYS GCPhys, uint16_t cb, uint32_t uBase, const char *pszTitle);
+DECLHIDDEN(void) virtioCoreGCPhysHexDump(PPDMDEVINS pDevIns, RTGCPHYS GCPhys, uint16_t cb, uint32_t uBase, const char *pszTitle);
 
 /**
  * The following API is functions identically to the similarly-named calls pertaining to the RTSGBUF
  */
 
 /** Misc VM and PDM boilerplate */
-int      virtioCoreR3SaveExec(PVIRTIOCORE pVirtio, PCPDMDEVHLPR3 pHlp, PSSMHANDLE pSSM, uint32_t uVersion, uint32_t cQueues);
-int      virtioCoreR3ModernDeviceLoadExec(PVIRTIOCORE pVirtio, PCPDMDEVHLPR3 pHlp, PSSMHANDLE pSSM, uint32_t uVersion, uint32_t uTestVersion, uint32_t cQueues);
-int      virtioCoreR3LegacyDeviceLoadExec(PVIRTIOCORE pVirtio, PCPDMDEVHLPR3 pHlp, PSSMHANDLE pSSM, uint32_t uVersion, uint32_t uVirtioLegacy_3_1_Beta);
-void     virtioCoreR3VmStateChanged(PVIRTIOCORE pVirtio, VIRTIOVMSTATECHANGED enmState);
-void     virtioCoreR3Term(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, PVIRTIOCORECC pVirtioCC);
-int      virtioCoreRZInit(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio);
-const char *virtioCoreGetStateChangeText(VIRTIOVMSTATECHANGED enmState);
+DECLHIDDEN(int)          virtioCoreR3SaveExec(PVIRTIOCORE pVirtio, PCPDMDEVHLPR3 pHlp, PSSMHANDLE pSSM,
+                                              uint32_t uVersion, uint32_t cQueues);
+DECLHIDDEN(int)          virtioCoreR3ModernDeviceLoadExec(PVIRTIOCORE pVirtio, PCPDMDEVHLPR3 pHlp, PSSMHANDLE pSSM,
+                                                          uint32_t uVersion, uint32_t uTestVersion, uint32_t cQueues);
+DECLHIDDEN(int)          virtioCoreR3LegacyDeviceLoadExec(PVIRTIOCORE pVirtio, PCPDMDEVHLPR3 pHlp, PSSMHANDLE pSSM,
+                                                          uint32_t uVersion, uint32_t uVirtioLegacy_3_1_Beta);
+DECLHIDDEN(void)         virtioCoreR3VmStateChanged(PVIRTIOCORE pVirtio, VIRTIOVMSTATECHANGED enmState);
+DECLHIDDEN(void)         virtioCoreR3Term(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio, PVIRTIOCORECC pVirtioCC);
+DECLHIDDEN(int)          virtioCoreRZInit(PPDMDEVINS pDevIns, PVIRTIOCORE pVirtio);
+DECLHIDDEN(const char *) virtioCoreGetStateChangeText(VIRTIOVMSTATECHANGED enmState);
 
 /*
  * The following macros assist with handling/logging MMIO accesses to VirtIO dev-specific config area,

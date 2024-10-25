@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2005-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2005-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -418,7 +418,14 @@ static int vusbHubAttach(PVUSBROOTHUB pThis, PVUSBDEV pDev)
  */
 static int vusbHubDetach(PVUSBROOTHUB pThis, PVUSBDEV pDev)
 {
-    Assert(pDev->i16Port != -1);
+    /*
+     * It is possible to race the re-attach timer callback in some extreme cases,
+     * typically involving custom VBox builds that does very little guest code
+     * execution before terminating the VM again (e.g. IEM debugging).
+     */
+    Assert(pDev->i16Port != -1 || pThis->pLoad);
+    if (pDev->i16Port == -1 && pThis->pLoad)
+        return VINF_SUCCESS;
 
     /*
      * Detach the device and mark the port as available.
@@ -703,7 +710,8 @@ DECLHIDDEN(uint64_t) vusbRhR3ProcessFrame(PVUSBROOTHUB pThis, bool fCallback)
     uint64_t tsNanoStart = RTTimeNanoTS();
 
     /* Don't do anything if we are not supposed to process anything (EHCI and XHCI). */
-    if (!pThis->uFrameRateDefault)
+    if (   !pThis->uFrameRateDefault
+        || ASMAtomicReadBool(&pThis->fSavingState))
         return 0;
 
     if (ASMAtomicXchgBool(&pThis->fFrameProcessing, true))
@@ -1340,6 +1348,24 @@ static DECLCALLBACK(VUSBSPEED) vusbR3RhDevGetSpeed(PVUSBIROOTHUBCONNECTOR pInter
 
 
 /**
+ * Helper that frees up pThis->pLoad.
+ *
+ * This is called in a few places.
+ */
+static void vushR3RhFreeLoadData(PVUSBROOTHUB pThis, PPDMDRVINS pDrvIns)
+{
+    PVUSBROOTHUBLOAD const pLoad = pThis->pLoad;
+    if (pLoad)
+    {
+        pThis->pLoad = NULL;
+        PDMDrvHlpTimerDestroy(pDrvIns, pLoad->hTimer);
+        pLoad->hTimer = NIL_TMTIMERHANDLE;
+        RTMemFree(pLoad);
+    }
+}
+
+
+/**
  * @callback_method_impl{FNSSMDRVSAVEPREP, All URBs needs to be canceled.}
  */
 static DECLCALLBACK(int) vusbR3RhSavePrep(PPDMDRVINS pDrvIns, PSSMHANDLE pSSM)
@@ -1348,15 +1374,30 @@ static DECLCALLBACK(int) vusbR3RhSavePrep(PPDMDRVINS pDrvIns, PSSMHANDLE pSSM)
     LogFlow(("vusbR3RhSavePrep:\n"));
     RT_NOREF(pSSM);
 
+    ASMAtomicXchgBool(&pThis->fSavingState, true);
+
+    /*
+     * If there is old load state hanging around, we'll have to execute it first
+     * to get the hub into the right state prior to saving. This isn't entirely
+     * right wrt snapshotting and continuing execution, but OTOH it will screw up
+     * if shutting down afterwards.
+     */
+    PVUSBROOTHUBLOAD const pLoad = pThis->pLoad;
+    if (pLoad)
+    {
+        for (unsigned i = 0; i < pLoad->cDevs; i++)
+            vusbHubAttach(pThis, pLoad->apDevs[i]);
+        vushR3RhFreeLoadData(pThis, pDrvIns);
+    }
+
     /*
      * Detach all proxied devices.
      */
-    RTCritSectEnter(&pThis->CritSectDevices);
 
     /** @todo we a) can't tell which are proxied, and b) this won't work well when continuing after saving! */
     for (unsigned i = 0; i < RT_ELEMENTS(pThis->apDevByPort); i++)
     {
-        PVUSBDEV pDev = pThis->apDevByPort[i];
+        PVUSBDEV pDev = vusbR3RhGetVUsbDevByPortRetain(pThis, i, "SavePrep");
         if (pDev)
         {
             if (!VUSBIDevIsSavedStateSupported(&pDev->IDevice))
@@ -1369,22 +1410,11 @@ static DECLCALLBACK(int) vusbR3RhSavePrep(PPDMDRVINS pDrvIns, PSSMHANDLE pSSM)
                  * This will work fine even if the save fails since the Done handler is
                  * called unconditionally if the Prep handler was called.
                  */
+                Assert(!pThis->apDevByPort[i]);
                 pThis->apDevByPort[i] = pDev;
+                vusbDevRelease(pDev, "SavePrep");
             }
         }
-    }
-
-    RTCritSectLeave(&pThis->CritSectDevices);
-
-    /*
-     * Kill old load data which might be hanging around.
-     */
-    if (pThis->pLoad)
-    {
-        PDMDrvHlpTimerDestroy(pDrvIns, pThis->pLoad->hTimer);
-        pThis->pLoad->hTimer = NIL_TMTIMERHANDLE;
-        PDMDrvHlpMMHeapFree(pDrvIns, pThis->pLoad);
-        pThis->pLoad = NULL;
     }
 
     return VINF_SUCCESS;
@@ -1423,6 +1453,7 @@ static DECLCALLBACK(int) vusbR3RhSaveDone(PPDMDRVINS pDrvIns, PSSMHANDLE pSSM)
             vusbHubAttach(pThis, pDev);
     }
 
+    ASMAtomicXchgBool(&pThis->fSavingState, false);
     return VINF_SUCCESS;
 }
 
@@ -1441,6 +1472,8 @@ static DECLCALLBACK(int) vusbR3RhLoadPrep(PPDMDRVINS pDrvIns, PSSMHANDLE pSSM)
 
     if (!pThis->pLoad)
     {
+        /** @todo allocate first, it may fail later and we'll potentially leave things
+         *        dangling. */
         VUSBROOTHUBLOAD Load;
         unsigned        i;
 
@@ -1467,10 +1500,9 @@ static DECLCALLBACK(int) vusbR3RhLoadPrep(PPDMDRVINS pDrvIns, PSSMHANDLE pSSM)
          */
         if (Load.cDevs)
         {
-            pThis->pLoad = (PVUSBROOTHUBLOAD)RTMemAllocZ(sizeof(Load));
+            pThis->pLoad = (PVUSBROOTHUBLOAD)RTMemDup(&Load, sizeof(Load));
             if (!pThis->pLoad)
                 return VERR_NO_MEMORY;
-            *pThis->pLoad = Load;
         }
     }
     /* else: we ASSUME no device can be attached or detached in the time
@@ -1480,14 +1512,16 @@ static DECLCALLBACK(int) vusbR3RhLoadPrep(PPDMDRVINS pDrvIns, PSSMHANDLE pSSM)
 
 
 /**
- * Reattaches devices after a saved state load.
+ * Timer callback that reattaches devices after a saved state load.
+ *
  */
 static DECLCALLBACK(void) vusbR3RhLoadReattachDevices(PPDMDRVINS pDrvIns, TMTIMERHANDLE hTimer, void *pvUser)
 {
     PVUSBROOTHUB        pThis = PDMINS_2_DATA(pDrvIns, PVUSBROOTHUB);
     PVUSBROOTHUBLOAD    pLoad = pThis->pLoad;
+    AssertPtrReturnVoid(pLoad);
     LogFlow(("vusbR3RhLoadReattachDevices:\n"));
-    Assert(hTimer == pLoad->hTimer); RT_NOREF(pvUser);
+    Assert(hTimer == pLoad->hTimer); RT_NOREF(hTimer, pvUser);
 
     /*
      * Reattach devices.
@@ -1498,10 +1532,7 @@ static DECLCALLBACK(void) vusbR3RhLoadReattachDevices(PPDMDRVINS pDrvIns, TMTIME
     /*
      * Cleanup.
      */
-    PDMDrvHlpTimerDestroy(pDrvIns, hTimer);
-    pLoad->hTimer = NIL_TMTIMERHANDLE;
-    RTMemFree(pLoad);
-    pThis->pLoad = NULL;
+    vushR3RhFreeLoadData(pThis, pDrvIns);
 }
 
 
@@ -1517,13 +1548,26 @@ static DECLCALLBACK(int) vusbR3RhLoadDone(PPDMDRVINS pDrvIns, PSSMHANDLE pSSM)
     /*
      * Start a timer if we've got devices to reattach
      */
-    if (pThis->pLoad)
+    PVUSBROOTHUBLOAD const pLoad = pThis->pLoad;
+    if (pLoad)
     {
-        int rc = PDMDrvHlpTMTimerCreate(pDrvIns, TMCLOCK_VIRTUAL, vusbR3RhLoadReattachDevices, NULL,
-                                        TMTIMER_FLAGS_NO_CRIT_SECT | TMTIMER_FLAGS_NO_RING0,
-                                        "VUSB reattach on load", &pThis->pLoad->hTimer);
+        int rc = PDMDrvHlpSSMHandleGetStatus(pDrvIns, pSSM);
         if (RT_SUCCESS(rc))
-            rc = PDMDrvHlpTimerSetMillies(pDrvIns, pThis->pLoad->hTimer, 250);
+        {
+            rc = PDMDrvHlpTMTimerCreate(pDrvIns, TMCLOCK_VIRTUAL, vusbR3RhLoadReattachDevices, NULL,
+                                        TMTIMER_FLAGS_NO_CRIT_SECT | TMTIMER_FLAGS_NO_RING0,
+                                        "VUSB reattach on load", &pLoad->hTimer);
+            AssertLogRelRC(rc);
+            if (RT_SUCCESS(rc))
+            {
+                rc = PDMDrvHlpTimerSetMillies(pDrvIns, pLoad->hTimer, 250);
+                if (RT_SUCCESS(rc))
+                    return VINF_SUCCESS;
+            }
+        }
+        else
+            rc = VINF_SUCCESS;
+        vushR3RhFreeLoadData(pThis, pDrvIns); /** @todo or call vusbR3RhLoadReattachDevices directly then fail? */
         return rc;
     }
 

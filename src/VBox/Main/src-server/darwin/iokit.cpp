@@ -8,7 +8,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -120,7 +120,9 @@ static bool darwinOpenMasterPort(void)
 {
     if (!g_MasterPort)
     {
-        kern_return_t krc = IOMasterPort(MACH_PORT_NULL, &g_MasterPort);
+        RT_GCC_NO_WARN_DEPRECATED_BEGIN
+        kern_return_t krc = IOMasterPort(MACH_PORT_NULL, &g_MasterPort); /* Deprecated since 12.0. */
+        RT_GCC_NO_WARN_DEPRECATED_END
         AssertReturn(krc == KERN_SUCCESS, false);
 
         /* Get the darwin version we are running on. */
@@ -940,8 +942,8 @@ static void darwinDetermineUSBDeviceStateWorker(PUSBDEVICE pCur, io_object_t USB
     if (krc != KERN_SUCCESS)
         return;
 
-    bool fUserClientOnly = true;
-    bool fConfigured = false;
+    bool fUserClientOnly = true; RT_NOREF(fUserClientOnly); /* Shut up Clang 13 (-Wunused-but-set-variable). */
+    bool fConfigured = false;    RT_NOREF(fConfigured);
     bool fInUse = false;
     bool fSeizable = true;
     io_object_t Interface;
@@ -1094,7 +1096,6 @@ PUSBDEVICE DarwinGetUSBDevices(void)
      */
     PUSBDEVICE pHead = NULL;
     PUSBDEVICE pTail = NULL;
-    unsigned i = 0;
     io_object_t USBDevice;
     while ((USBDevice = IOIteratorNext(USBDevices)) != IO_OBJECT_NULL)
     {
@@ -1233,7 +1234,6 @@ PUSBDEVICE DarwinGetUSBDevices(void)
             AssertMsgFailed(("krc=%#x\n", krc));
 
         IOObjectRelease(USBDevice);
-        i++;
     }
 
     IOObjectRelease(USBDevices);
@@ -1456,7 +1456,6 @@ PDARWINFIXEDDRIVE DarwinGetFixedDrives(void)
      */
     PDARWINFIXEDDRIVE pHead = NULL;
     PDARWINFIXEDDRIVE pTail = NULL;
-    unsigned i = 0;
     io_object_t MediaService;
     while ((MediaService = IOIteratorNext(MediaServices)) != IO_OBJECT_NULL)
     {
@@ -1577,7 +1576,6 @@ PDARWINFIXEDDRIVE DarwinGetFixedDrives(void)
             CFRelease(DeviceName);
         }
         IOObjectRelease(MediaService);
-        i++;
     }
     IOObjectRelease(MediaServices);
 

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,14 +32,13 @@
 #include <QLabel>
 
 /* GUI includes: */
-#include "UICommon.h"
 #include "UIConverter.h"
 #include "UIExtraDataManager.h"
 #include "UIVisualStateEditor.h"
 
 
 UIVisualStateEditor::UIVisualStateEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent)
     , m_enmValue(UIVisualStateType_Invalid)
     , m_pLayout(0)
     , m_pLabel(0)
@@ -86,7 +85,7 @@ void UIVisualStateEditor::setMinimumLayoutIndent(int iIndent)
         m_pLayout->setColumnMinimumWidth(0, iIndent);
 }
 
-void UIVisualStateEditor::retranslateUi()
+void UIVisualStateEditor::sltRetranslateUI()
 {
     if (m_pLabel)
         m_pLabel->setText(tr("Visual &State:"));
@@ -145,7 +144,7 @@ void UIVisualStateEditor::prepare()
     populateCombo();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIVisualStateEditor::populateCombo()
@@ -186,6 +185,6 @@ void UIVisualStateEditor::populateCombo()
             m_pCombo->setCurrentIndex(iIndex);
 
         /* Retranslate finally: */
-        retranslateUi();
+        sltRetranslateUI();
     }
 }

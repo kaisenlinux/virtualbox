@@ -18,7 +18,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -61,6 +61,9 @@
 #include <CoreServices/CoreServices.h>
 #include <AudioToolbox/AudioQueue.h>
 #include <AudioUnit/AudioUnit.h>
+
+
+RT_GCC_NO_WARN_DEPRECATED_BEGIN /* Much here is deprecated since 12.0 */
 
 #if MAC_OS_X_VERSION_MIN_REQUIRED < 1090 /* possibly 1080 */
 # define kAudioHardwarePropertyTranslateUIDToDevice (AudioObjectPropertySelector)'uidd'
@@ -2923,3 +2926,5 @@ const PDMDRVREG g_DrvHostCoreAudio =
     /* u32EndVersion */
     PDM_DRVREG_VERSION
 };
+
+RT_GCC_NO_WARN_DEPRECATED_END

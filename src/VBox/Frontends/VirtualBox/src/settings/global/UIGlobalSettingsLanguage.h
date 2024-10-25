@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -70,8 +70,9 @@ protected:
       * @note  This task WILL be performed in other than the GUI thread, no widget interactions! */
     virtual void saveFromCacheTo(QVariant &data) RT_OVERRIDE;
 
+private slots:
     /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -90,7 +91,7 @@ private:
 
     /** @name Widgets
      * @{ */
-        /** Holds the language settings editor instance. */
+        /** Holds the 'language settings' editor instance. */
         UILanguageSettingsEditor *m_pEditorLanguageSettings;
     /** @} */
 };

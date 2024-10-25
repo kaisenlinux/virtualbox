@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -33,6 +33,7 @@
 /* GUI includes: */
 #include "QITabWidget.h"
 #include "QIDialogButtonBox.h"
+#include "UIActionPool.h"
 #include "UICommon.h"
 #include "UIConverter.h"
 #include "UIExtraDataManager.h"
@@ -40,53 +41,27 @@
 #include "UIInformationConfiguration.h"
 #include "UIInformationRuntime.h"
 #include "UIGuestProcessControlWidget.h"
+#include "UILoggingDefs.h"
 #include "UIMachineLogic.h"
 #include "UIMachine.h"
 #include "UIMachineView.h"
-#include "UIMachineWindow.h"
 #include "UIMessageCenter.h"
-#include "UIVMActivityMonitor.h"
+#include "UIVMActivityMonitorContainer.h"
 #include "UISession.h"
+#include "UIShortcutPool.h"
+#include "UITranslationEventListener.h"
 #include "UIVirtualBoxEventHandler.h"
 #include "UIVMInformationDialog.h"
 #include "VBoxUtils.h"
 
-
-/* COM includes: */
-#include "COMEnums.h"
-#include "CMachine.h"
-#include "CConsole.h"
-#include "CSystemProperties.h"
-#include "CMachineDebugger.h"
-#include "CDisplay.h"
-#include "CStorageController.h"
-#include "CMediumAttachment.h"
-#include "CNetworkAdapter.h"
-#include "CVRDEServerInfo.h"
-
-/* Other VBox includes: */
-#include <iprt/time.h>
-
-UIVMInformationDialog::UIVMInformationDialog(UIMachineWindow *pMachineWindow)
-    : QMainWindowWithRestorableGeometryAndRetranslateUi(0)
+UIVMInformationDialog::UIVMInformationDialog(UIActionPool *pActionPool)
+    : QMainWindowWithRestorableGeometry(0)
     , m_pTabWidget(0)
-    , m_pMachineWindow(pMachineWindow)
     , m_fCloseEmitted(false)
     , m_iGeometrySaveTimerId(-1)
+    , m_pActionPool(pActionPool)
 {
-    if (m_pMachineWindow && !m_pMachineWindow->console().isNull())
-    {
-        CMachine comMachine = m_pMachineWindow->console().GetMachine();
-        m_uMachineId = comMachine.GetId();
-    }
-    /* Prepare: */
     prepare();
-    connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigMachineStateChange,
-            this, &UIVMInformationDialog::sltMachineStateChange);
-}
-
-UIVMInformationDialog::~UIVMInformationDialog()
-{
 }
 
 bool UIVMInformationDialog::shouldBeMaximized() const
@@ -94,10 +69,10 @@ bool UIVMInformationDialog::shouldBeMaximized() const
     return gEDataManager->sessionInformationDialogShouldBeMaximized();
 }
 
-void UIVMInformationDialog::retranslateUi()
+void UIVMInformationDialog::sltRetranslateUI()
 {
     /* Setup dialog title: */
-    setWindowTitle(tr("%1 - Session Information").arg(m_pMachineWindow->machine().GetName()));
+    setWindowTitle(tr("%1 - Session Information").arg(m_strMachineName));
 
     /* Translate tabs: */
     m_pTabWidget->setTabText(Tabs_ConfigurationDetails, tr("Configuration &Details"));
@@ -113,7 +88,7 @@ void UIVMInformationDialog::retranslateUi()
         m_pButtonBox->button(QDialogButtonBox::Close)->setStatusTip(tr("Close dialog without saving"));
         m_pButtonBox->button(QDialogButtonBox::Help)->setStatusTip(tr("Show dialog help"));
         m_pButtonBox->button(QDialogButtonBox::Close)->setShortcut(Qt::Key_Escape);
-        m_pButtonBox->button(QDialogButtonBox::Help)->setShortcut(QKeySequence::HelpContents);
+        m_pButtonBox->button(QDialogButtonBox::Help)->setShortcut(UIShortcutPool::standardSequence(QKeySequence::HelpContents));
         m_pButtonBox->button(QDialogButtonBox::Close)->setToolTip(tr("Close this dialog (%1)").arg(m_pButtonBox->button(QDialogButtonBox::Close)->shortcut().toString()));
         m_pButtonBox->button(QDialogButtonBox::Help)->setToolTip(tr("Show Help (%1)").arg(m_pButtonBox->button(QDialogButtonBox::Help)->shortcut().toString()));
     }
@@ -155,7 +130,7 @@ bool UIVMInformationDialog::event(QEvent *pEvent)
         default:
             break;
     }
-    return QMainWindowWithRestorableGeometryAndRetranslateUi::event(pEvent);
+    return QMainWindowWithRestorableGeometry::event(pEvent);
 }
 
 void UIVMInformationDialog::sltHandlePageChanged(int iIndex)
@@ -174,6 +149,17 @@ void UIVMInformationDialog::sltMachineStateChange(const QUuid &uMachineId, const
     pWidget->setEnabled(state == KMachineState_Running);
 }
 
+void UIVMInformationDialog::sltAdditionsStateChange()
+{
+    if (!m_pTabWidget)
+        return;
+    UIVMActivityMonitorContainer *pVMActivityMonitorContainer =
+        qobject_cast<UIVMActivityMonitorContainer*>(m_pTabWidget->widget(Tabs_ActivityMonitor));
+    if (!pVMActivityMonitorContainer)
+        return;
+    pVMActivityMonitorContainer->guestAdditionsStateChange(uiCommon().managedVMUuid());
+}
+
 void UIVMInformationDialog::saveDialogGeometry()
 {
     const QRect geo = currentGeometry();
@@ -184,24 +170,27 @@ void UIVMInformationDialog::saveDialogGeometry()
 
 void UIVMInformationDialog::prepare()
 {
-    /* Prepare dialog: */
-    prepareThis();
-    /* Load settings: */
-    loadDialogGeometry();
-}
-
-void UIVMInformationDialog::prepareThis()
-{
+    connect(gpMachine, &UIMachine::sigAdditionsStateChange,
+            this, &UIVMInformationDialog::sltAdditionsStateChange);
 #ifndef VBOX_WS_MAC
     /* Assign window icon: */
     setWindowIcon(UIIconPool::iconSetFull(":/session_info_32px.png", ":/session_info_16px.png"));
 #endif
 
-    /* Prepare central-widget: */
-    prepareCentralWidget();
+    m_uMachineId = uiCommon().managedVMUuid();
+    m_strMachineName = gpMachine->machineName();
 
-    /* Retranslate: */
-    retranslateUi();
+    /* Prepare stuff: */
+    prepareCentralWidget();
+    prepareConnections();
+
+    /* Apply language settings: */
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIVMInformationDialog::sltRetranslateUI);
+
+    /* Load settings: */
+    loadDialogGeometry();
 }
 
 void UIVMInformationDialog::prepareCentralWidget()
@@ -233,8 +222,7 @@ void UIVMInformationDialog::prepareTabWidget()
         m_pTabWidget->setTabIcon(Tabs_RuntimeInformation, UIIconPool::iconSet(":/session_info_runtime_16px.png"));
 
         /* Create Configuration Details tab: */
-        UIInformationConfiguration *pInformationConfigurationWidget =
-            new UIInformationConfiguration(this, m_pMachineWindow->machine(), m_pMachineWindow->console());
+        UIInformationConfiguration *pInformationConfigurationWidget = new UIInformationConfiguration(this);
         if (pInformationConfigurationWidget)
         {
             m_tabs.insert(Tabs_ConfigurationDetails, pInformationConfigurationWidget);
@@ -243,41 +231,32 @@ void UIVMInformationDialog::prepareTabWidget()
 
         /* Create Runtime Information tab: */
         UIInformationRuntime *pInformationRuntimeWidget =
-            new UIInformationRuntime(this, m_pMachineWindow->machine(), m_pMachineWindow->console(), m_pMachineWindow->uisession());
+            new UIInformationRuntime(this);
         if (pInformationRuntimeWidget)
         {
             m_tabs.insert(Tabs_RuntimeInformation, pInformationRuntimeWidget);
             m_pTabWidget->addTab(m_tabs.value(Tabs_RuntimeInformation), QString());
         }
 
-        /* Create Performance Monitor tab: */
-        UIVMActivityMonitor *pVMActivityMonitorWidget =
-            new UIVMActivityMonitor(EmbedTo_Dialog, this, m_pMachineWindow->machine());
-        if (pVMActivityMonitorWidget)
+        /* Create Activity Monitor tab: */
+        UIVMActivityMonitorContainer *pVMActivityMonitorContainer = new UIVMActivityMonitorContainer(this, m_pActionPool, EmbedTo_Dialog);
+        if (pVMActivityMonitorContainer)
         {
-            connect(m_pMachineWindow->uisession(), &UISession::sigAdditionsStateChange,
-                    pVMActivityMonitorWidget, &UIVMActivityMonitor::sltGuestAdditionsStateChange);
-            m_tabs.insert(Tabs_ActivityMonitor, pVMActivityMonitorWidget);
+            pVMActivityMonitorContainer->addLocalMachine(gpMachine->uisession()->machine());
+            m_tabs.insert(Tabs_ActivityMonitor, pVMActivityMonitorContainer);
             m_pTabWidget->addTab(m_tabs.value(Tabs_ActivityMonitor), QString());
         }
-
+#ifdef DEBUG
         /* Create Guest Process Control tab: */
-        QString strMachineName;
-        if (m_pMachineWindow && m_pMachineWindow->console().isOk())
-        {
-            CMachine comMachine = m_pMachineWindow->console().GetMachine();
-            if (comMachine.isOk())
-                strMachineName = comMachine.GetName();
-        }
         UIGuestProcessControlWidget *pGuestProcessControlWidget =
-            new UIGuestProcessControlWidget(EmbedTo_Dialog, m_pMachineWindow->console().GetGuest(),
-                                            this, strMachineName, false /* fShowToolbar */);
+            new UIGuestProcessControlWidget(EmbedTo_Dialog, gpMachine->uisession()->guest(),
+                                            this, m_strMachineName, false /* fShowToolbar */);
         if (pGuestProcessControlWidget)
         {
             m_tabs.insert(3, pGuestProcessControlWidget);
             m_pTabWidget->addTab(m_tabs.value(3), QString());
         }
-
+#endif
         m_pTabWidget->setCurrentIndex(Tabs_ActivityMonitor);
 
         /* Assign tab-widget page change handler: */
@@ -297,19 +276,25 @@ void UIVMInformationDialog::prepareButtonBox()
         /* Configure button-box: */
         m_pButtonBox->setStandardButtons(QDialogButtonBox::Close | QDialogButtonBox::Help);
         m_pButtonBox->button(QDialogButtonBox::Close)->setShortcut(Qt::Key_Escape);
-        m_pButtonBox->button(QDialogButtonBox::Help)->setShortcut(QKeySequence::HelpContents);
+        m_pButtonBox->button(QDialogButtonBox::Help)->setShortcut(UIShortcutPool::standardSequence(QKeySequence::HelpContents));
         uiCommon().setHelpKeyword(m_pButtonBox->button(QDialogButtonBox::Help), "vm-session-information");
         connect(m_pButtonBox, &QIDialogButtonBox::rejected, this, &UIVMInformationDialog::sigClose);
         connect(m_pButtonBox->button(QDialogButtonBox::Help), &QPushButton::pressed,
-                &(msgCenter()), &UIMessageCenter::sltHandleHelpRequest);
+                m_pButtonBox, &QIDialogButtonBox::sltHandleHelpRequest);
         /* add button-box into main-layout: */
         centralWidget()->layout()->addWidget(m_pButtonBox);
     }
 }
 
+void UIVMInformationDialog::prepareConnections()
+{
+    connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigMachineStateChange,
+            this, &UIVMInformationDialog::sltMachineStateChange);
+}
+
 void UIVMInformationDialog::loadDialogGeometry()
 {
-    const QRect geo = gEDataManager->sessionInformationDialogGeometry(this, m_pMachineWindow);
+    const QRect geo = gEDataManager->sessionInformationDialogGeometry(this, gpMachine->activeWindow());
     LogRel2(("GUI: UIVMInformationDialog: Restoring geometry to: Origin=%dx%d, Size=%dx%d\n",
              geo.x(), geo.y(), geo.width(), geo.height()));
     restoreGeometry(geo);

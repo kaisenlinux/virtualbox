@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -38,6 +38,7 @@
 #endif
 #include "GuestSessionImpl.h"
 #include "GuestSessionImplTasks.h"
+#include "GuestFsInfoImpl.h"
 #include "GuestCtrlImplPrivate.h"
 #include "VirtualBoxErrorInfoImpl.h"
 
@@ -198,6 +199,7 @@ void GuestSession::FinalRelease(void)
  * yet. This needs to be done via the openSession() / openSessionAsync calls.
  *
  * @returns VBox status code.
+ * @retval  VERR_NOT_FOUND if the Guest Additions were not found (or were not reported yet).
  * @param   pGuest              Guest object the guest session belongs to.
  * @param   ssInfo              Guest session startup info to use.
  * @param   guestCreds          Guest credentials to use for starting a guest session
@@ -218,7 +220,8 @@ int GuestSession::init(Guest *pGuest, const GuestSessionStartupInfo &ssInfo,
     /*
      * Initialize our data members from the input.
      */
-    mParent = pGuest;
+    mParent  = pGuest;
+    mConsole = pGuest->i_getConsole();
 
     /* Copy over startup info. */
     /** @todo Use an overloaded copy operator. Later. */
@@ -317,12 +320,12 @@ int GuestSession::init(Guest *pGuest, const GuestSessionStartupInfo &ssInfo,
  */
 void GuestSession::uninit(void)
 {
+    LogFlowThisFuncEnter();
+
     /* Enclose the state transition Ready->InUninit->NotReady. */
     AutoUninitSpan autoUninitSpan(this);
     if (autoUninitSpan.uninitDone())
         return;
-
-    LogFlowThisFuncEnter();
 
     /* Call i_onRemove to take care of the object cleanups. */
     i_onRemove();
@@ -612,6 +615,44 @@ HRESULT GuestSession::getUserDocuments(com::Utf8Str &aUserDocuments)
 
             default:
                 hrc = setErrorBoth(VBOX_E_IPRT_ERROR, vrc, tr("Getting the user's documents path failed: %Rrc"), vrc);
+                break;
+        }
+    }
+
+    return hrc;
+}
+
+HRESULT GuestSession::getMountPoints(std::vector<com::Utf8Str> &aMountPoints)
+{
+    HRESULT hrc = i_isStartedExternal();
+    if (FAILED(hrc))
+        return hrc;
+
+    int vrcGuest = VERR_IPE_UNINITIALIZED_STATUS;
+    int vrc = i_getMountPoints(aMountPoints, &vrcGuest);
+    if (RT_FAILURE(vrc))
+    {
+        switch (vrc)
+        {
+            case VERR_GSTCTL_GUEST_ERROR:
+            {
+                switch (vrcGuest)
+                {
+                    case VERR_NOT_SUPPORTED:
+                        hrc = setErrorBoth(VBOX_E_IPRT_ERROR, vrcGuest,
+                                          tr("Getting the mount points is not supported by installed Guest Additions"));
+                        break;
+
+                    default:
+                        hrc = setErrorBoth(VBOX_E_IPRT_ERROR, vrcGuest,
+                                          tr("Getting the mount points failed on the guest: %Rrc"), vrcGuest);
+                        break;
+                }
+                break;
+            }
+
+            default:
+                hrc = setErrorBoth(VBOX_E_IPRT_ERROR, vrc, tr("Getting the mount points failed: %Rrc"), vrc);
                 break;
         }
     }
@@ -933,6 +974,7 @@ HRESULT GuestSession::i_directoryCopyFlagFromStr(const com::Utf8Str &strFlags, b
     return S_OK;
 }
 
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT
 /**
  * Creates a directory on the guest.
  *
@@ -941,19 +983,15 @@ HRESULT GuestSession::i_directoryCopyFlagFromStr(const com::Utf8Str &strFlags, b
  * @param   uMode               Creation mode to use (octal, 0777 max).
  * @param   uFlags              Directory creation flags to use.
  * @param   pvrcGuest           Where to return the guest error when
- *                              VERR_GSTCTL_GUEST_ERROR was returned. Optional.
+ *                              VERR_GSTCTL_GUEST_ERROR was returned.
  */
-int GuestSession::i_directoryCreate(const Utf8Str &strPath, uint32_t uMode, uint32_t uFlags, int *pvrcGuest)
+int GuestSession::i_directoryCreateViaToolbox(const Utf8Str &strPath, uint32_t uMode, uint32_t uFlags, int *pvrcGuest)
 {
-    AssertPtrReturn(pvrcGuest, VERR_INVALID_POINTER);
-
-    LogFlowThisFunc(("strPath=%s, uMode=%x, uFlags=%x\n", strPath.c_str(), uMode, uFlags));
-
     int vrc = VINF_SUCCESS;
 
     GuestProcessStartupInfo procInfo;
     procInfo.mFlags      = ProcessCreateFlag_Hidden;
-    procInfo.mExecutable = Utf8Str(VBOXSERVICE_TOOL_MKDIR);
+    procInfo.mExecutable = VBOXSERVICE_TOOL_MKDIR;
 
     try
     {
@@ -975,9 +1013,7 @@ int GuestSession::i_directoryCreate(const Utf8Str &strPath, uint32_t uMode, uint
 
             char szMode[16];
             if (RTStrPrintf(szMode, sizeof(szMode), "%o", uMode))
-            {
                 procInfo.mArguments.push_back(Utf8Str(szMode));
-            }
             else
                 vrc = VERR_BUFFER_OVERFLOW;
         }
@@ -991,9 +1027,78 @@ int GuestSession::i_directoryCreate(const Utf8Str &strPath, uint32_t uMode, uint
     }
 
     if (RT_SUCCESS(vrc))
-        vrc = GuestProcessTool::run(this, procInfo, pvrcGuest);
+        vrc = GuestProcessToolbox::runTool(this, procInfo, pvrcGuest);
 
-    LogFlowFuncLeaveRC(vrc);
+    return vrc;
+}
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT */
+
+/**
+ * Creates a directory on the guest.
+ *
+ * @returns VBox status code.
+ * @param   strPath             Path on guest to directory to create.
+ * @param   uMode               Creation mode to use (octal, 0777 max).
+ * @param   uFlags              Directory creation flags to use.
+ * @param   pvrcGuest           Where to return the guest error when
+ *                              VERR_GSTCTL_GUEST_ERROR was returned.
+ */
+int GuestSession::i_directoryCreate(const Utf8Str &strPath, uint32_t uMode, uint32_t uFlags, int *pvrcGuest)
+{
+    AssertPtrReturn(pvrcGuest, VERR_INVALID_POINTER);
+    LogFlowThisFunc(("strPath=%s, uMode=%x, uFlags=%x\n", strPath.c_str(), uMode, uFlags));
+    *pvrcGuest = VERR_IPE_UNINITIALIZED_STATUS;
+
+    int vrc = VINF_SUCCESS;
+
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+    if (mParent->i_getGuestControlFeatures0() & VBOX_GUESTCTRL_GF_0_TOOLBOX_AS_CMDS)
+    {
+        AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
+
+        GuestWaitEvent *pEvent = NULL;
+        vrc = registerWaitEvent(mData.mSession.mID, mData.mObjectID, &pEvent);
+        if (RT_FAILURE(vrc))
+            return vrc;
+
+        uint32_t fFlags = GSTCTL_CREATEDIRECTORY_F_NONE;
+        if (uFlags & DirectoryCreateFlag_Parents)
+            fFlags |= GSTCTL_CREATEDIRECTORY_F_PARENTS;
+        Assert(!(fFlags & ~GSTCTL_CREATEDIRECTORY_F_VALID_MASK));
+
+        /* Prepare HGCM call. */
+        VBOXHGCMSVCPARM paParms[4];
+        int i = 0;
+        HGCMSvcSetU32(&paParms[i++], pEvent->ContextID());
+        HGCMSvcSetPv (&paParms[i++], (void*)strPath.c_str(), (ULONG)strPath.length() + 1);
+        HGCMSvcSetU32(&paParms[i++], uMode);
+        HGCMSvcSetU32(&paParms[i++], fFlags);
+        alock.release(); /* Drop lock before sending. */
+
+        vrc = i_sendMessage(HOST_MSG_DIR_CREATE, i, paParms);
+        if (RT_SUCCESS(vrc))
+        {
+            vrc = pEvent->Wait(GSTCTL_DEFAULT_TIMEOUT_MS);
+            if (RT_SUCCESS(vrc))
+            {
+                // Nothing to do here.
+            }
+            else if (pEvent->HasGuestError())
+                *pvrcGuest = pEvent->GuestResult();
+        }
+    }
+    else
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS */
+    {
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT
+        vrc = i_directoryCreateViaToolbox(strPath, uMode, uFlags, pvrcGuest);
+#else
+        RT_NOREF(uMode, uFlags, pvrcGuest);
+        vrc = VERR_NOT_SUPPORTED;
+#endif
+    }
+
+    LogFlowFunc(("LEAVE: %Rrc *pvrcGuest=%Rrc\n", vrc, pvrcGuest ? *pvrcGuest : -VERR_IPE_UNINITIALIZED_STATUS));
     return vrc;
 }
 
@@ -1046,7 +1151,7 @@ int GuestSession::i_directoryQueryInfo(const Utf8Str &strPath, bool fFollowSymli
 
     LogFlowThisFunc(("strPath=%s, fFollowSymlinks=%RTbool\n", strPath.c_str(), fFollowSymlinks));
 
-    int vrc = i_fsQueryInfo(strPath, fFollowSymlinks, objData, pvrcGuest);
+    int vrc = i_fsObjQueryInfo(strPath, fFollowSymlinks, objData, pvrcGuest);
     if (RT_SUCCESS(vrc))
     {
         vrc = objData.mType == FsObjType_Directory
@@ -1143,9 +1248,8 @@ int GuestSession::i_directoryRemove(const Utf8Str &strPath, uint32_t fFlags, int
     vrc = i_sendMessage(HOST_MSG_DIR_REMOVE, i, paParms);
     if (RT_SUCCESS(vrc))
     {
-        vrc = pEvent->Wait(30 * 1000);
-        if (   vrc == VERR_GSTCTL_GUEST_ERROR
-            && pvrcGuest)
+        vrc = pEvent->Wait(GSTCTL_DEFAULT_TIMEOUT_MS);
+        if (pEvent->HasGuestError())
             *pvrcGuest = pEvent->GuestResult();
     }
 
@@ -1155,8 +1259,9 @@ int GuestSession::i_directoryRemove(const Utf8Str &strPath, uint32_t fFlags, int
     return vrc;
 }
 
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT
 /**
- * Creates a temporary directory / file on the guest.
+ * Creates a temporary directory / file on the guest (legacy version).
  *
  * @returns VBox status code.
  * @returns VERR_GSTCTL_GUEST_ERROR on received guest error.
@@ -1171,14 +1276,10 @@ int GuestSession::i_directoryRemove(const Utf8Str &strPath, uint32_t fFlags, int
  * @param   pvrcGuest           Guest VBox status code, when returning
  *                              VERR_GSTCTL_GUEST_ERROR.
  */
-int GuestSession::i_fsCreateTemp(const Utf8Str &strTemplate, const Utf8Str &strPath, bool fDirectory, Utf8Str &strName,
-                                 uint32_t fMode, bool fSecure, int *pvrcGuest)
+int GuestSession::i_fsCreateTempViaToolbox(const Utf8Str &strTemplate, const Utf8Str &strPath, bool fDirectory, Utf8Str &strName,
+                                           uint32_t fMode, bool fSecure, int *pvrcGuest)
 {
-    AssertPtrReturn(pvrcGuest, VERR_INVALID_POINTER);
-    AssertReturn(fSecure || !(fMode & ~07777), VERR_INVALID_PARAMETER);
-
-    LogFlowThisFunc(("strTemplate=%s, strPath=%s, fDirectory=%RTbool, fMode=%o, fSecure=%RTbool\n",
-                     strTemplate.c_str(), strPath.c_str(), fDirectory, fMode, fSecure));
+    int vrc;
 
     GuestProcessStartupInfo procInfo;
     procInfo.mFlags = ProcessCreateFlag_WaitForStdOut;
@@ -1205,8 +1306,8 @@ int GuestSession::i_fsCreateTemp(const Utf8Str &strTemplate, const Utf8Str &strP
 
             /* Note: Pass the mode unmodified down to the guest. See @ticketref{21394}. */
             char szMode[16];
-            int vrc2 = RTStrPrintf2(szMode, sizeof(szMode), "%d", fMode);
-            AssertRCReturn(vrc2, vrc2);
+            vrc = RTStrPrintf2(szMode, sizeof(szMode), "%d", fMode);
+            AssertRCReturn(vrc, vrc);
             procInfo.mArguments.push_back(szMode);
         }
         procInfo.mArguments.push_back("--"); /* strTemplate could be '--help'. */
@@ -1218,17 +1319,15 @@ int GuestSession::i_fsCreateTemp(const Utf8Str &strTemplate, const Utf8Str &strP
         return VERR_NO_MEMORY;
     }
 
-    /** @todo Use an internal HGCM command for this operation, since
-     *        we now can run in a user-dedicated session. */
-    int vrcGuest = VERR_IPE_UNINITIALIZED_STATUS;
     GuestCtrlStreamObjects stdOut;
-    int vrc = GuestProcessTool::runEx(this, procInfo, &stdOut, 1 /* cStrmOutObjects */, &vrcGuest);
+    int vrcGuest;
+    vrc = GuestProcessToolbox::runTool(this, procInfo, &vrcGuest, &stdOut);
     if (!GuestProcess::i_isGuestError(vrc))
     {
         GuestFsObjData objData;
         if (!stdOut.empty())
         {
-            vrc = objData.FromMkTemp(stdOut.at(0));
+            vrc = objData.FromToolboxMkTemp(stdOut.at(0));
             if (RT_FAILURE(vrc))
             {
                 vrcGuest = vrc;
@@ -1246,7 +1345,105 @@ int GuestSession::i_fsCreateTemp(const Utf8Str &strTemplate, const Utf8Str &strP
     else if (pvrcGuest)
         *pvrcGuest = vrcGuest;
 
-    LogFlowThisFunc(("Returning vrc=%Rrc, vrcGuest=%Rrc\n", vrc, vrcGuest));
+    return vrc;
+}
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT */
+
+/**
+ * Creates a temporary directory / file on the guest.
+ *
+ * @returns VBox status code.
+ * @returns VERR_GSTCTL_GUEST_ERROR on received guest error.
+ * @param   strTemplate         Name template to use.
+ *                              \sa RTDirCreateTemp / RTDirCreateTempSecure.
+ * @param   strPath             Path where to create the temporary directory / file.
+ * @param   fDirectory          Whether to create a temporary directory or file.
+ * @param   strName             Where to return the created temporary name on success.
+ * @param   fMode               File mode to use for creation (octal, umask-style).
+ *                              Ignored when \a fSecure is specified.
+ * @param   fSecure             Whether to perform a secure creation or not.
+ * @param   pvrcGuest           Guest VBox status code, when returning
+ *                              VERR_GSTCTL_GUEST_ERROR.
+ */
+int GuestSession::i_fsCreateTemp(const Utf8Str &strTemplate, const Utf8Str &strPath, bool fDirectory, Utf8Str &strName,
+                                 uint32_t fMode, bool fSecure, int *pvrcGuest)
+{
+    AssertPtrReturn(pvrcGuest, VERR_INVALID_POINTER);
+    AssertReturn(fSecure || !(fMode & ~07777), VERR_INVALID_PARAMETER);
+
+    LogFlowThisFunc(("strTemplate=%s, strPath=%s, fDirectory=%RTbool, fMode=%o, fSecure=%RTbool\n",
+                     strTemplate.c_str(), strPath.c_str(), fDirectory, fMode, fSecure));
+
+    int vrc;
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+    if (mParent->i_getGuestControlFeatures0() & VBOX_GUESTCTRL_GF_0_TOOLBOX_AS_CMDS)
+    {
+        AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
+
+        GuestWaitEvent *pEvent = NULL;
+        vrc = registerWaitEvent(mData.mSession.mID, mData.mObjectID, &pEvent);
+        if (RT_FAILURE(vrc))
+            return vrc;
+
+        uint32_t fFlags = GSTCTL_CREATETEMP_F_NONE;
+        if (fDirectory)
+            fFlags |= GSTCTL_CREATETEMP_F_DIRECTORY;
+        if (fSecure)
+            fFlags |= GSTCTL_CREATETEMP_F_SECURE;
+        Assert(!(fFlags & ~GSTCTL_CREATETEMP_F_VALID_MASK));
+
+        /* Prepare HGCM call. */
+        VBOXHGCMSVCPARM paParms[8];
+        int i = 0;
+        HGCMSvcSetU32(&paParms[i++], pEvent->ContextID());
+        HGCMSvcSetStr(&paParms[i++], strTemplate.c_str());
+        HGCMSvcSetStr(&paParms[i++], strPath.c_str());
+        HGCMSvcSetU32(&paParms[i++], fFlags);
+        HGCMSvcSetU32(&paParms[i++], fMode);
+
+        alock.release(); /* Drop lock before sending. */
+
+        vrc = i_sendMessage(HOST_MSG_FS_CREATE_TEMP, i, paParms);
+        if (RT_SUCCESS(vrc))
+        {
+            vrc = pEvent->Wait(GSTCTL_DEFAULT_TIMEOUT_MS);
+            if (RT_SUCCESS(vrc))
+            {
+                PCALLBACKDATA_FS_NOTIFY const pFsNotify = (PCALLBACKDATA_FS_NOTIFY)pEvent->Payload().Raw();
+                AssertPtrReturn(pFsNotify, VERR_INVALID_POINTER);
+                int vrcGuest = (int)pFsNotify->rc;
+                if (RT_SUCCESS(vrcGuest))
+                {
+                    AssertReturn(pFsNotify->uType == GUEST_FS_NOTIFYTYPE_CREATE_TEMP, VERR_INVALID_PARAMETER);
+                    AssertReturn(pFsNotify->u.CreateTemp.cbPath, VERR_INVALID_PARAMETER);
+                    strName = pFsNotify->u.CreateTemp.pszPath;
+                    RTStrFree(pFsNotify->u.CreateTemp.pszPath);
+                }
+                else
+                {
+                    *pvrcGuest = vrcGuest;
+                    vrc = VERR_GSTCTL_GUEST_ERROR;
+                }
+            }
+            else
+            {
+                if (pEvent->HasGuestError() && pvrcGuest)
+                    *pvrcGuest = pEvent->GuestResult();
+            }
+        }
+    }
+    else
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS */
+    {
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT
+        vrc = i_fsCreateTempViaToolbox(strTemplate, strPath, fDirectory, strName, fMode, fSecure, pvrcGuest);
+#else
+        RT_NOREF(strTemplate, strPath, fDirectory, strName, fMode, fSecure, pvrcGuest);
+        vrc = VERR_NOT_SUPPORTED;
+#endif
+    }
+
+    LogFlowThisFunc(("Returning vrc=%Rrc, vrcGuest=%Rrc\n", vrc, pvrcGuest ? *pvrcGuest : VERR_IPE_UNINITIALIZED_STATUS));
     return vrc;
 }
 
@@ -1284,15 +1481,18 @@ int GuestSession::i_directoryOpen(const GuestDirectoryOpenInfo &openInfo, ComObj
         return vrc;
     }
 
-    /* We need to release the write lock first before initializing the directory object below,
+    /**
+     * If VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT is enabled:
+     *
+     * We need to release the write lock first before opening the directory object below,
      * as we're starting a guest process as part of it. This in turn will try to acquire the session's
      * write lock. */
     alock.release();
 
-    Console *pConsole = mParent->i_getConsole();
-    AssertPtr(pConsole);
+    vrc = pDirectory->init(mConsole, this /* Parent */, idObject, openInfo);
+    if (RT_SUCCESS(vrc))
+        vrc = pDirectory->i_open(pvrcGuest);
 
-    vrc = pDirectory->init(pConsole, this /* Parent */, idObject, openInfo);
     if (RT_FAILURE(vrc))
     {
         /* Make sure to acquire the write lock again before unregistering the object. */
@@ -1329,8 +1529,7 @@ int GuestSession::i_directoryOpen(const GuestDirectoryOpenInfo &openInfo, ComObj
     if (RT_SUCCESS(vrc))
     {
         /* Nothing further to do here yet. */
-        if (pvrcGuest)
-            *pvrcGuest = VINF_SUCCESS;
+        *pvrcGuest = VINF_SUCCESS;
     }
 
     LogFlowFuncLeaveRC(vrc);
@@ -1442,6 +1641,11 @@ int GuestSession::i_dispatchToThis(PVBOXGUESTCTRLHOSTCBCTX pCbCtx, PVBOXGUESTCTR
             vrc = VERR_INTERNAL_ERROR;
             break;
 
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+        case GUEST_MSG_FS_NOTIFY:
+            vrc = i_onFsNotify(pCbCtx, pSvcCbData);
+            break;
+#endif
         case GUEST_MSG_SESSION_NOTIFY: /* Guest Additions >= 4.3.0. */
             vrc = i_onSessionStatusChange(pCbCtx, pSvcCbData);
             break;
@@ -1574,8 +1778,9 @@ int GuestSession::i_fileUnregister(GuestFile *pFile)
     return vrc;
 }
 
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT
 /**
- * Removes a file from the guest.
+ * Removes a file from the guest (legacy version).
  *
  * @returns VBox status code.
  * @returns VERR_GSTCTL_GUEST_ERROR on received guest error.
@@ -1583,12 +1788,10 @@ int GuestSession::i_fileUnregister(GuestFile *pFile)
  * @param   pvrcGuest           Where to return the guest error when
  *                              VERR_GSTCTL_GUEST_ERROR was returned. Optional.
  */
-int GuestSession::i_fileRemove(const Utf8Str &strPath, int *pvrcGuest)
+int GuestSession::i_fileRemoveViaToolbox(const Utf8Str &strPath, int *pvrcGuest)
 {
-    LogFlowThisFunc(("strPath=%s\n", strPath.c_str()));
-
     GuestProcessStartupInfo procInfo;
-    GuestProcessStream      streamOut;
+    GuestToolboxStream  streamOut;
 
     procInfo.mFlags      = ProcessCreateFlag_WaitForStdOut;
     procInfo.mExecutable = Utf8Str(VBOXSERVICE_TOOL_RM);
@@ -1605,15 +1808,15 @@ int GuestSession::i_fileRemove(const Utf8Str &strPath, int *pvrcGuest)
         return VERR_NO_MEMORY;
     }
 
-    int vrcGuest = VERR_IPE_UNINITIALIZED_STATUS;
     GuestCtrlStreamObjects stdOut;
-    int vrc = GuestProcessTool::runEx(this, procInfo, &stdOut, 1 /* cStrmOutObjects */, &vrcGuest);
-    if (GuestProcess::i_isGuestError(vrc))
+    int vrcGuest;
+    int vrc = GuestProcessToolbox::runTool(this, procInfo, &vrcGuest, &stdOut);
+    if (!GuestProcess::i_isGuestError(vrc))
     {
         if (!stdOut.empty())
         {
             GuestFsObjData objData;
-            vrc = objData.FromRm(stdOut.at(0));
+            vrc = objData.FromToolboxRm(stdOut.at(0));
             if (RT_FAILURE(vrc))
             {
                 vrcGuest = vrc;
@@ -1628,7 +1831,66 @@ int GuestSession::i_fileRemove(const Utf8Str &strPath, int *pvrcGuest)
     else if (pvrcGuest)
         *pvrcGuest = vrcGuest;
 
-    LogFlowThisFunc(("Returning vrc=%Rrc, vrcGuest=%Rrc\n", vrc, vrcGuest));
+    return vrc;
+}
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT */
+
+/**
+ * Removes a file from the guest.
+ *
+ * @returns VBox status code.
+ * @returns VERR_GSTCTL_GUEST_ERROR on received guest error.
+ * @param   strPath             Path of file on guest to remove.
+ * @param   pvrcGuest           Where to return the guest error when
+ *                              VERR_GSTCTL_GUEST_ERROR was returned. Optional.
+ */
+int GuestSession::i_fileRemove(const Utf8Str &strPath, int *pvrcGuest)
+{
+    LogFlowThisFunc(("strPath=%s\n", strPath.c_str()));
+
+    int vrc;
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+    if (mParent->i_getGuestControlFeatures0() & VBOX_GUESTCTRL_GF_0_TOOLBOX_AS_CMDS)
+    {
+        AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
+
+        GuestWaitEvent *pEvent = NULL;
+        vrc = registerWaitEvent(mData.mSession.mID, mData.mObjectID, &pEvent);
+        if (RT_FAILURE(vrc))
+            return vrc;
+
+        /* Prepare HGCM call. */
+        VBOXHGCMSVCPARM paParms[4];
+        int i = 0;
+        HGCMSvcSetU32(&paParms[i++], pEvent->ContextID());
+        HGCMSvcSetPv (&paParms[i++], (void*)strPath.c_str(), (ULONG)strPath.length() + 1);
+
+        alock.release(); /* Drop lock before sending. */
+
+        vrc = i_sendMessage(HOST_MSG_FILE_REMOVE, i, paParms);
+        if (RT_SUCCESS(vrc))
+        {
+            vrc = pEvent->Wait(GSTCTL_DEFAULT_TIMEOUT_MS);
+            if (RT_SUCCESS(vrc))
+            {
+                // Nothing to do here.
+            }
+            else if (pEvent->HasGuestError() && pvrcGuest)
+                *pvrcGuest = pEvent->GuestResult();
+        }
+    }
+    else
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS */
+    {
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT
+        vrc = i_fileRemoveViaToolbox(strPath, pvrcGuest);
+#else
+        RT_NOREF(strPath, pvrcGuest);
+        vrc = VERR_NOT_SUPPORTED;
+#endif
+    }
+
+    LogFlowThisFunc(("Returning vrc=%Rrc, vrcGuest=%Rrc\n", vrc, pvrcGuest ? *pvrcGuest : VERR_IPE_UNINITIALIZED_STATUS));
     return vrc;
 }
 
@@ -1713,10 +1975,7 @@ int GuestSession::i_fileOpen(const GuestFileOpenInfo &openInfo, ComObjPtr<GuestF
         return vrc;
     }
 
-    Console *pConsole = mParent->i_getConsole();
-    AssertPtr(pConsole);
-
-    vrc = pFile->init(pConsole, this /* GuestSession */, idObject, openInfo);
+    vrc = pFile->init(mConsole, this /* GuestSession */, idObject, openInfo);
     if (RT_FAILURE(vrc))
         return vrc;
 
@@ -1747,7 +2006,7 @@ int GuestSession::i_fileOpen(const GuestFileOpenInfo &openInfo, ComObjPtr<GuestF
     if (RT_SUCCESS(vrc))
     {
         int vrcGuest = VERR_IPE_UNINITIALIZED_STATUS;
-        vrc = pFile->i_openFile(30 * 1000 /* 30s timeout */, &vrcGuest);
+        vrc = pFile->i_open(GSTCTL_DEFAULT_TIMEOUT_MS, &vrcGuest);
         if (   vrc == VERR_GSTCTL_GUEST_ERROR
             && pvrcGuest)
             *pvrcGuest = vrcGuest;
@@ -1773,7 +2032,7 @@ int GuestSession::i_fileQueryInfo(const Utf8Str &strPath, bool fFollowSymlinks, 
 {
     LogFlowThisFunc(("strPath=%s fFollowSymlinks=%RTbool\n", strPath.c_str(), fFollowSymlinks));
 
-    int vrc = i_fsQueryInfo(strPath, fFollowSymlinks, objData, pvrcGuest);
+    int vrc = i_fsObjQueryInfo(strPath, fFollowSymlinks, objData, pvrcGuest);
     if (RT_SUCCESS(vrc))
         vrc = objData.mType == FsObjType_File ? VINF_SUCCESS : VERR_NOT_A_FILE;
 
@@ -1805,8 +2064,9 @@ int GuestSession::i_fileQuerySize(const Utf8Str &strPath, bool fFollowSymlinks, 
     return vrc;
 }
 
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT
 /**
- * Queries information of a file system object (file, directory, ...).
+ * Queries information of a file system object (file, directory, ...). Legacy version.
  *
  * @return  IPRT status code.
  * @param   strPath             Path to file system object to query information for.
@@ -1816,16 +2076,14 @@ int GuestSession::i_fileQuerySize(const Utf8Str &strPath, bool fFollowSymlinks, 
  *                              VERR_GSTCTL_GUEST_ERROR. Any other return code
  *                              indicates some host side error.
  */
-int GuestSession::i_fsQueryInfo(const Utf8Str &strPath, bool fFollowSymlinks, GuestFsObjData &objData, int *pvrcGuest)
+int GuestSession::i_fsObjQueryInfoViaToolbox(const Utf8Str &strPath, bool fFollowSymlinks, GuestFsObjData &objData, int *pvrcGuest)
 {
-    LogFlowThisFunc(("strPath=%s\n", strPath.c_str()));
-
     /** @todo Merge this with IGuestFile::queryInfo(). */
     GuestProcessStartupInfo procInfo;
-    procInfo.mFlags      = ProcessCreateFlag_WaitForStdOut;
+    procInfo.mFlags = ProcessCreateFlag_WaitForStdOut;
     try
     {
-        procInfo.mExecutable = Utf8Str(VBOXSERVICE_TOOL_STAT);
+        procInfo.mExecutable = VBOXSERVICE_TOOL_STAT;
         procInfo.mArguments.push_back(procInfo.mExecutable); /* Set argv0. */
         procInfo.mArguments.push_back(Utf8Str("--machinereadable"));
         if (fFollowSymlinks)
@@ -1839,16 +2097,14 @@ int GuestSession::i_fsQueryInfo(const Utf8Str &strPath, bool fFollowSymlinks, Gu
         return VERR_NO_MEMORY;
     }
 
-    int vrcGuest = VERR_IPE_UNINITIALIZED_STATUS;
     GuestCtrlStreamObjects stdOut;
-    int vrc = GuestProcessTool::runEx(this, procInfo,
-                                        &stdOut, 1 /* cStrmOutObjects */,
-                                        &vrcGuest);
+    int vrcGuest;
+    int vrc = GuestProcessToolbox::runTool(this, procInfo, &vrcGuest, &stdOut);
     if (!GuestProcess::i_isGuestError(vrc))
     {
         if (!stdOut.empty())
         {
-            vrc = objData.FromStat(stdOut.at(0));
+            vrc = objData.FromToolboxStat(stdOut.at(0));
             if (RT_FAILURE(vrc))
             {
                 vrcGuest = vrc;
@@ -1863,7 +2119,164 @@ int GuestSession::i_fsQueryInfo(const Utf8Str &strPath, bool fFollowSymlinks, Gu
     else if (pvrcGuest)
         *pvrcGuest = vrcGuest;
 
-    LogFlowThisFunc(("Returning vrc=%Rrc, vrcGuest=%Rrc\n", vrc, vrcGuest));
+    return vrc;
+}
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT */
+
+/**
+ * Queries information of a guest file system.
+ *
+ * @return  IPRT status code.
+ * @param   strPath             Path to file system object to query information for.
+ * @param   pFsInfo             Where to return the file system information on success.
+ * @param   pvrcGuest           Guest VBox status code, when returning
+ *                              VERR_GSTCTL_GUEST_ERROR. Any other return code
+ *                              indicates some host side error.
+ */
+int GuestSession::i_fsQueryInfo(const Utf8Str &strPath, PGSTCTLFSINFO pFsInfo, int *pvrcGuest)
+{
+    LogFlowThisFunc(("strPath=%s\n", strPath.c_str()));
+
+    int vrc;
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+    if (mParent->i_getGuestControlFeatures0() & VBOX_GUESTCTRL_GF_0_TOOLBOX_AS_CMDS)
+    {
+        AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
+
+        GuestWaitEvent *pEvent = NULL;
+        vrc = registerWaitEvent(mData.mSession.mID, mData.mObjectID, &pEvent);
+        if (RT_FAILURE(vrc))
+            return vrc;
+
+        /* Prepare HGCM call. */
+        VBOXHGCMSVCPARM paParms[2];
+        int i = 0;
+        HGCMSvcSetU32(&paParms[i++], pEvent->ContextID());
+        HGCMSvcSetStr(&paParms[i++], strPath.c_str());
+
+        alock.release(); /* Drop lock before sending. */
+
+        vrc = i_sendMessage(HOST_MSG_FS_QUERY_INFO, i, paParms);
+        if (RT_SUCCESS(vrc))
+        {
+            vrc = pEvent->Wait(GSTCTL_DEFAULT_TIMEOUT_MS);
+            if (RT_SUCCESS(vrc))
+            {
+                PCALLBACKDATA_FS_NOTIFY const pFsNotify = (PCALLBACKDATA_FS_NOTIFY)pEvent->Payload().Raw();
+                AssertPtrReturn(pFsNotify, VERR_INVALID_POINTER);
+                int vrcGuest = (int)pFsNotify->rc;
+                if (RT_SUCCESS(vrcGuest))
+                {
+                    AssertReturn(pFsNotify->uType == GUEST_FS_NOTIFYTYPE_QUERY_INFO, VERR_INVALID_PARAMETER);
+                    memcpy(pFsInfo, &pFsNotify->u.QueryInfo.fsInfo, sizeof(GSTCTLFSINFO));
+                }
+                else
+                {
+                    if (pvrcGuest)
+                        *pvrcGuest = vrcGuest;
+                    vrc = VERR_GSTCTL_GUEST_ERROR;
+                }
+            }
+            else
+            {
+                if (pEvent->HasGuestError() && pvrcGuest)
+                    *pvrcGuest = pEvent->GuestResult();
+            }
+        }
+        unregisterWaitEvent(pEvent);
+    }
+    else
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS */
+    {
+        vrc = VERR_NOT_SUPPORTED;
+    }
+
+    LogFlowThisFunc(("Returning vrc=%Rrc, vrcGuest=%Rrc\n", vrc, pvrcGuest ? *pvrcGuest : VERR_IPE_UNINITIALIZED_STATUS));
+    return vrc;
+}
+
+/**
+ * Queries information of a file system object (file, directory, ...).
+ *
+ * @return  IPRT status code.
+ * @param   strPath             Path to file system object to query information for.
+ * @param   fFollowSymlinks     Whether to follow symbolic links or not.
+ * @param   objData             Where to return the file system object data, if found.
+ * @param   pvrcGuest           Guest VBox status code, when returning
+ *                              VERR_GSTCTL_GUEST_ERROR. Any other return code
+ *                              indicates some host side error.
+ */
+int GuestSession::i_fsObjQueryInfo(const Utf8Str &strPath, bool fFollowSymlinks, GuestFsObjData &objData, int *pvrcGuest)
+{
+    LogFlowThisFunc(("strPath=%s\n", strPath.c_str()));
+
+    int vrc;
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+    if (mParent->i_getGuestControlFeatures0() & VBOX_GUESTCTRL_GF_0_TOOLBOX_AS_CMDS)
+    {
+        AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
+
+        GuestWaitEvent *pEvent = NULL;
+        vrc = registerWaitEvent(mData.mSession.mID, mData.mObjectID, &pEvent);
+        if (RT_FAILURE(vrc))
+            return vrc;
+
+        uint32_t const fFlags = fFollowSymlinks ? GSTCTL_PATH_F_FOLLOW_LINK : GSTCTL_PATH_F_ON_LINK;
+
+        /* Prepare HGCM call. */
+        VBOXHGCMSVCPARM paParms[4];
+        int i = 0;
+        HGCMSvcSetU32(&paParms[i++], pEvent->ContextID());
+        HGCMSvcSetStr(&paParms[i++], strPath.c_str());
+        HGCMSvcSetU32(&paParms[i++], GSTCTLFSOBJATTRADD_UNIX /* Implicit */);
+        HGCMSvcSetU32(&paParms[i++], fFlags);
+
+        alock.release(); /* Drop lock before sending. */
+
+        vrc = i_sendMessage(HOST_MSG_FS_OBJ_QUERY_INFO, i, paParms);
+        if (RT_SUCCESS(vrc))
+        {
+            vrc = pEvent->Wait(GSTCTL_DEFAULT_TIMEOUT_MS);
+            if (RT_SUCCESS(vrc))
+            {
+                PCALLBACKDATA_FS_NOTIFY const pFsNotify = (PCALLBACKDATA_FS_NOTIFY)pEvent->Payload().Raw();
+                AssertPtrReturn(pFsNotify, VERR_INVALID_POINTER);
+                int vrcGuest = (int)pFsNotify->rc;
+                if (RT_SUCCESS(vrcGuest))
+                {
+                    AssertReturn(pFsNotify->uType == GUEST_FS_NOTIFYTYPE_QUERY_OBJ_INFO, VERR_INVALID_PARAMETER);
+                    objData.Init(strPath);
+                    vrc = objData.FromGuestFsObjInfo(&pFsNotify->u.QueryObjInfo.objInfo);
+                    RTStrFree(pFsNotify->u.QueryObjInfo.pszUser);
+                    RTStrFree(pFsNotify->u.QueryObjInfo.pszGroups);
+                }
+                else
+                {
+                    if (pvrcGuest)
+                        *pvrcGuest = vrcGuest;
+                    vrc = VERR_GSTCTL_GUEST_ERROR;
+                }
+            }
+            else
+            {
+                if (pEvent->HasGuestError() && pvrcGuest)
+                    *pvrcGuest = pEvent->GuestResult();
+            }
+        }
+        unregisterWaitEvent(pEvent);
+    }
+    else
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS */
+    {
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT
+        vrc = i_fsObjQueryInfoViaToolbox(strPath, fFollowSymlinks, objData, pvrcGuest);
+#else
+        RT_NOREF(strPath, fFollowSymlinks, objData, pvrcGuest);
+        vrc = VERR_NOT_SUPPORTED;
+#endif
+    }
+
+    LogFlowThisFunc(("Returning vrc=%Rrc, vrcGuest=%Rrc\n", vrc, pvrcGuest ? *pvrcGuest : VERR_IPE_UNINITIALIZED_STATUS));
     return vrc;
 }
 
@@ -1951,20 +2364,46 @@ bool GuestSession::i_isStarted(void) const
 }
 
 /**
- * Checks if this session is ready state where it can handle
+ * Checks if this session is in a ready state where it can handle
  * all session-bound actions (like guest processes, guest files).
- * Only used by official API methods. Will set an external
- * error when not ready.
+ *
+ * Only used by official API methods.
+ * Takes the read lock.
+ *
+ * @returns S_OK if ready, E_FAIL if not.
+ * @note    Will set an external error when not ready.
  */
 HRESULT GuestSession::i_isStartedExternal(void)
 {
     AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
 
-    /** @todo Be a bit more informative. */
     if (!i_isStarted())
-        return setError(E_UNEXPECTED, tr("Session is not in started state"));
-
+        return setError(E_FAIL, tr("Session is not in started state (state is '%s')",
+                                   Global::stringifyGuestSessionStatus(mData.mStatus)));
     return S_OK;
+}
+
+/**
+ * Returns if this session is in a ready-to-use state or not.
+ *
+ * @returns \c true if ready, or \c false if not.
+ */
+bool GuestSession::i_isReady(void)
+{
+    /* Check if the VM has the right machine state we can operate with. Also make sure that
+     * the VM is in an online *and* non-transient state while at it.
+     *
+     * This for instance is required if we want to close a guest session while the VM state is being saved or
+     * is doing some other lenghtly operations we can't operate with the guest.
+     */
+    MachineState_T enmMachineState = MachineState_Null;
+    HRESULT hrc = mConsole->COMGETTER(State)(&enmMachineState);
+    ComAssertComRCRet(hrc, false);
+    if (   !Global::IsOnline(enmMachineState)
+        ||  Global::IsTransient(enmMachineState))
+        return false;
+
+    return true;
 }
 
 /**
@@ -2035,6 +2474,110 @@ int GuestSession::i_onRemove(void)
     return vrc;
 }
 
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+/**
+ * Handles guest file system notifications.
+ *
+ * @returns VBox status code.
+ * @param   pCbCtx              Host callback context from HGCM service.
+ * @param   pSvcCbData          HGCM service callback data.
+ */
+int GuestSession::i_onFsNotify(PVBOXGUESTCTRLHOSTCBCTX pCbCtx, PVBOXGUESTCTRLHOSTCALLBACK pSvcCbData)
+{
+    AssertPtrReturn(pCbCtx, VERR_INVALID_POINTER);
+    AssertPtrReturn(pSvcCbData, VERR_INVALID_POINTER);
+
+    if (pSvcCbData->mParms < 4)
+        return VERR_INVALID_PARAMETER;
+
+    CALLBACKDATA_FS_NOTIFY dataCb;
+    RT_ZERO(dataCb);
+    /* pSvcCb->mpaParms[0] always contains the context ID. */
+    int vrc = HGCMSvcGetU32(&pSvcCbData->mpaParms[1], &dataCb.uType);
+    AssertRCReturn(vrc, vrc);
+    vrc = HGCMSvcGetU32(&pSvcCbData->mpaParms[2], &dataCb.rc);
+    AssertRCReturn(vrc, vrc);
+
+    int const vrcGuest = (int)dataCb.rc;
+
+    if (RT_SUCCESS(vrcGuest))
+    {
+        switch (dataCb.uType)
+        {
+            case GUEST_FS_NOTIFYTYPE_CREATE_TEMP:
+            {
+                char    *pszPath;
+                uint32_t cbPath;
+                vrc = HGCMSvcGetStr(&pSvcCbData->mpaParms[3], &pszPath, &cbPath);
+                AssertRCBreak(vrc);
+                dataCb.u.CreateTemp.pszPath = RTStrDup(pszPath);
+                AssertPtrBreakStmt(dataCb.u.CreateTemp.pszPath, vrc = VERR_NO_MEMORY);
+                dataCb.u.CreateTemp.cbPath  = cbPath;
+                break;
+            }
+
+            case GUEST_FS_NOTIFYTYPE_QUERY_OBJ_INFO:
+            {
+                AssertBreakStmt(pSvcCbData->mParms >= 6, vrc = VERR_INVALID_PARAMETER);
+                PGSTCTLFSOBJINFO pObjInfo;
+                uint32_t         cbObjInfo;
+                vrc = HGCMSvcGetPv(&pSvcCbData->mpaParms[3], (void **)&pObjInfo, &cbObjInfo);
+                AssertRCBreak(vrc);
+                AssertBreakStmt(cbObjInfo == sizeof(GSTCTLFSOBJINFO), vrc = VERR_INVALID_PARAMETER);
+                memcpy(&dataCb.u.QueryObjInfo.objInfo, pObjInfo, sizeof(GSTCTLFSOBJINFO));
+
+                char    *pszUser;
+                uint32_t cbUser;
+                vrc = HGCMSvcGetStr(&pSvcCbData->mpaParms[4], &pszUser, &cbUser);
+                AssertRCBreak(vrc);
+                dataCb.u.QueryObjInfo.pszUser = RTStrDup(pszUser);
+                AssertPtrBreakStmt(dataCb.u.QueryObjInfo.pszUser, vrc = VERR_NO_MEMORY);
+                dataCb.u.QueryObjInfo.cbUser  = cbUser;
+
+                char    *pszGroups;
+                uint32_t cbGroups;
+                vrc = HGCMSvcGetStr(&pSvcCbData->mpaParms[5], &pszGroups, &cbGroups);
+                AssertRCBreak(vrc);
+                dataCb.u.QueryObjInfo.pszGroups = RTStrDup(pszGroups);
+                AssertPtrBreakStmt(dataCb.u.QueryObjInfo.pszGroups, vrc = VERR_NO_MEMORY);
+                dataCb.u.QueryObjInfo.cbGroups  = cbGroups;
+                break;
+            }
+
+            case GUEST_FS_NOTIFYTYPE_QUERY_INFO:
+            {
+                AssertBreakStmt(pSvcCbData->mParms >= 2, vrc = VERR_INVALID_PARAMETER);
+                PGSTCTLFSINFO pFsInfo;
+                uint32_t      cbFsInfo;
+                vrc = HGCMSvcGetPv(&pSvcCbData->mpaParms[3], (void **)&pFsInfo, &cbFsInfo);
+                AssertRCBreak(vrc);
+                AssertBreakStmt(cbFsInfo == sizeof(GSTCTLFSINFO), vrc = VERR_INVALID_PARAMETER);
+                memcpy(&dataCb.u.QueryInfo.fsInfo, pFsInfo, sizeof(GSTCTLFSINFO));
+                break;
+            }
+
+            case GUEST_FS_NOTIFYTYPE_UNKNOWN:
+                RT_FALL_THROUGH();
+            default:
+                vrc = VERR_NOT_SUPPORTED;
+                break;
+        }
+    }
+
+    try
+    {
+        GuestWaitEventPayload evPayload(dataCb.uType, &dataCb, sizeof(dataCb));
+        vrc = signalWaitEventInternal(pCbCtx, dataCb.rc, &evPayload);
+    }
+    catch (int vrcEx) /* Thrown by GuestWaitEventPayload constructor. */
+    {
+        vrc = vrcEx;
+    }
+
+    return vrc;
+}
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS */
+
 /**
  * Handles guest session status changes from the guest.
  *
@@ -2047,7 +2590,6 @@ int GuestSession::i_onRemove(void)
 int GuestSession::i_onSessionStatusChange(PVBOXGUESTCTRLHOSTCBCTX pCbCtx, PVBOXGUESTCTRLHOSTCALLBACK pSvcCbData)
 {
     AssertPtrReturn(pCbCtx, VERR_INVALID_POINTER);
-    /* pCallback is optional. */
     AssertPtrReturn(pSvcCbData, VERR_INVALID_POINTER);
 
     if (pSvcCbData->mParms < 3)
@@ -2277,8 +2819,7 @@ int GuestSession::i_startSession(int *pvrcGuest)
     if (RT_SUCCESS(vrc))
     {
         vrc = i_waitForStatusChange(pEvent, GuestSessionWaitForFlag_Start,
-                                    30 * 1000 /* 30s timeout */,
-                                    NULL /* Session status */, pvrcGuest);
+                                    GSTCTL_DEFAULT_TIMEOUT_MS, NULL /* Session status */, pvrcGuest);
     }
     else
     {
@@ -2572,9 +3113,8 @@ int GuestSession::i_pathRename(const Utf8Str &strSource, const Utf8Str &strDest,
     vrc = i_sendMessage(HOST_MSG_PATH_RENAME, i, paParms);
     if (RT_SUCCESS(vrc))
     {
-        vrc = pEvent->Wait(30 * 1000);
-        if (   vrc == VERR_GSTCTL_GUEST_ERROR
-            && pvrcGuest)
+        vrc = pEvent->Wait(GSTCTL_DEFAULT_TIMEOUT_MS);
+        if (pEvent->HasGuestError() && pvrcGuest)
             *pvrcGuest = pEvent->GuestResult();
     }
 
@@ -2616,18 +3156,68 @@ int GuestSession::i_pathUserDocuments(Utf8Str &strPath, int *pvrcGuest)
     vrc = i_sendMessage(HOST_MSG_PATH_USER_DOCUMENTS, i, paParms);
     if (RT_SUCCESS(vrc))
     {
-        vrc = pEvent->Wait(30 * 1000);
+        vrc = pEvent->Wait(GSTCTL_DEFAULT_TIMEOUT_MS);
         if (RT_SUCCESS(vrc))
         {
             strPath = pEvent->Payload().ToString();
         }
         else
         {
-            if (vrc == VERR_GSTCTL_GUEST_ERROR)
-            {
-                if (pvrcGuest)
-                    *pvrcGuest = pEvent->GuestResult();
-            }
+            if (pEvent->HasGuestError() && pvrcGuest)
+                *pvrcGuest = pEvent->GuestResult();
+        }
+    }
+
+    unregisterWaitEvent(pEvent);
+
+    LogFlowFuncLeaveRC(vrc);
+    return vrc;
+}
+
+/**
+ * Returns the currently accessible mount points of the guest.
+ *
+ * @returns VBox status code.
+ * @retval  VERR_NOT_SUPPORTED if the installed Guest Additions do not support this feature.
+ * @param   vecMountPoints      Where to return the mount points (guest-style paths).
+ * @param   pvrcGuest           Guest VBox status code, when returning
+ *                              VERR_GSTCTL_GUEST_ERROR. Any other return code indicates
+ *                              some host side error.
+ *
+ * @note    Takes the read lock.
+ */
+int GuestSession::i_getMountPoints(std::vector<com::Utf8Str> &vecMountPoints, int *pvrcGuest)
+{
+    AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
+
+    if (!(mParent->i_getGuestControlFeatures0() & VBOX_GUESTCTRL_GF_0_MOUNT_POINTS_ENUM))
+        return VERR_NOT_SUPPORTED;
+
+    GuestWaitEvent *pEvent = NULL;
+    int vrc = registerWaitEvent(mData.mSession.mID, mData.mObjectID, &pEvent);
+    if (RT_FAILURE(vrc))
+        return vrc;
+
+    /* Prepare HGCM call. */
+    VBOXHGCMSVCPARM paParms[4];
+    int i = 0;
+    HGCMSvcSetU32(&paParms[i++], pEvent->ContextID());
+    HGCMSvcSetU32(&paParms[i++], 0 /* fFlags, unused */);
+
+    alock.release(); /* Drop lock before sending. */
+
+    vrc = i_sendMessage(HOST_MSG_MOUNT_POINTS, i, paParms);
+    if (RT_SUCCESS(vrc))
+    {
+        vrc = pEvent->Wait(GSTCTL_DEFAULT_TIMEOUT_MS);
+        if (RT_SUCCESS(vrc))
+        {
+            vrc = pEvent->Payload().ToStringVector(vecMountPoints);
+        }
+        else
+        {
+            if (pEvent->HasGuestError() && pvrcGuest)
+                *pvrcGuest = pEvent->GuestResult();
         }
     }
 
@@ -2669,18 +3259,15 @@ int GuestSession::i_pathUserHome(Utf8Str &strPath, int *pvrcGuest)
     vrc = i_sendMessage(HOST_MSG_PATH_USER_HOME, i, paParms);
     if (RT_SUCCESS(vrc))
     {
-        vrc = pEvent->Wait(30 * 1000);
+        vrc = pEvent->Wait(GSTCTL_DEFAULT_TIMEOUT_MS);
         if (RT_SUCCESS(vrc))
         {
             strPath = pEvent->Payload().ToString();
         }
         else
         {
-            if (vrc == VERR_GSTCTL_GUEST_ERROR)
-            {
-                if (pvrcGuest)
-                    *pvrcGuest = pEvent->GuestResult();
-            }
+            if (pEvent->HasGuestError() && pvrcGuest)
+                *pvrcGuest = pEvent->GuestResult();
         }
     }
 
@@ -2824,7 +3411,7 @@ int GuestSession::i_processCreateEx(GuestProcessStartupInfo &procInfo, ComObjPtr
         return vrc;
     }
 
-    vrc = pProcess->init(mParent->i_getConsole() /* Console */, this /* Session */, idObject, procInfo, mData.mpBaseEnvironment);
+    vrc = pProcess->init(mConsole, this /* Session */, idObject, procInfo, mData.mpBaseEnvironment);
     if (RT_FAILURE(vrc))
         return vrc;
 
@@ -2910,6 +3497,7 @@ inline int GuestSession::i_processGetByPID(ULONG uPID, ComObjPtr<GuestProcess> *
  * Sends a message to the HGCM host service.
  *
  * @returns VBox status code.
+ * @retval  VERR_VM_INVALID_VM_STATE if the VM is in a state where can't send message to the guest (anymore).
  * @param   uMessage            Message ID to send.
  * @param   uParms              Number of parameters in \a paParms to send.
  * @param   paParms             Array of HGCM parameters to send.
@@ -2921,13 +3509,10 @@ int GuestSession::i_sendMessage(uint32_t uMessage, uint32_t uParms, PVBOXHGCMSVC
     LogFlowThisFuncEnter();
 
 #ifndef VBOX_GUESTCTRL_TEST_CASE
-    ComObjPtr<Console> pConsole = mParent->i_getConsole();
-    Assert(!pConsole.isNull());
+    VMMDev *pVMMDev = mConsole->i_getVMMDev();
+    AssertPtrReturn(pVMMDev, VERR_VM_INVALID_VM_STATE);
 
     /* Forward the information to the VMM device. */
-    VMMDev *pVMMDev = pConsole->i_getVMMDev();
-    AssertPtr(pVMMDev);
-
     LogFlowThisFunc(("uMessage=%RU32 (%s), uParms=%RU32\n", uMessage, GstCtrlHostMsgtoStr((guestControl::eHostMsg)uMessage), uParms));
 
     /* HACK ALERT! We extend the first parameter to 64-bit and use the
@@ -3035,7 +3620,6 @@ int GuestSession::i_shutdown(uint32_t fFlags, int *pvrcGuest)
 {
     AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
 
-    AssertPtrReturn(mParent, VERR_INVALID_POINTER);
     if (!(mParent->i_getGuestControlFeatures0() & VBOX_GUESTCTRL_GF_0_SHUTDOWN))
         return VERR_NOT_SUPPORTED;
 
@@ -3059,10 +3643,10 @@ int GuestSession::i_shutdown(uint32_t fFlags, int *pvrcGuest)
     vrc = i_sendMessage(HOST_MSG_SHUTDOWN, i, paParms);
     if (RT_SUCCESS(vrc))
     {
-        vrc = pEvent->Wait(30 * 1000);
+        vrc = pEvent->Wait(GSTCTL_DEFAULT_TIMEOUT_MS);
         if (RT_FAILURE(vrc))
         {
-            if (vrc == VERR_GSTCTL_GUEST_ERROR)
+            if (pEvent->HasGuestError())
                 vrcGuest = pEvent->GuestResult();
         }
     }
@@ -3070,8 +3654,7 @@ int GuestSession::i_shutdown(uint32_t fFlags, int *pvrcGuest)
     if (RT_FAILURE(vrc))
     {
         LogRel(("Guest Control: Shutting down guest failed, vrc=%Rrc\n", vrc == VERR_GSTCTL_GUEST_ERROR ? vrcGuest : vrc));
-        if (   vrc == VERR_GSTCTL_GUEST_ERROR
-            && pvrcGuest)
+        if (pEvent->HasGuestError() && pvrcGuest)
             *pvrcGuest = vrcGuest;
     }
 
@@ -3084,10 +3667,10 @@ int GuestSession::i_shutdown(uint32_t fFlags, int *pvrcGuest)
 /**
  * Determines the protocol version (sets mData.mProtocolVersion).
  *
- * This is called from the init method prior to to establishing a guest
- * session.
+ * This is called from the init method prior to to establishing a guest session.
  *
  * @returns VBox status code.
+ * @retval  VERR_NOT_FOUND if the Guest Additions were not found (or were not reported) yet.
  */
 int GuestSession::i_determineProtocolVersion(void)
 {
@@ -3098,6 +3681,8 @@ int GuestSession::i_determineProtocolVersion(void)
     ComObjPtr<Guest> pGuest = mParent;
     AssertReturn(!pGuest.isNull(), VERR_NOT_SUPPORTED);
     uint32_t uGaVersion = pGuest->i_getAdditionsVersion();
+    if (!uGaVersion) /* If 0, there was no Guest Additions version detected (yet), or the VM is in reset state. */
+        return VERR_NOT_FOUND;
 
     /* Everyone supports version one, if they support anything at all. */
     mData.mProtocolVersion = 1;
@@ -3384,7 +3969,7 @@ int GuestSession::i_waitForStatusChange(GuestWaitEvent *pEvent, uint32_t fWaitFl
             AssertMsgFailedReturn(("Got unexpected event type %#x\n", evtType), VERR_WRONG_ORDER);
     }
     /* waitForEvent may also return VERR_GSTCTL_GUEST_ERROR like we do above, so make pvrcGuest is set. */
-    else if (vrc == VERR_GSTCTL_GUEST_ERROR && pvrcGuest)
+    else if (pEvent->HasGuestError() && pvrcGuest)
         *pvrcGuest = pEvent->GuestResult();
     Assert(vrc != VERR_GSTCTL_GUEST_ERROR || !pvrcGuest || *pvrcGuest != (int)0xcccccccc);
 
@@ -3397,37 +3982,62 @@ int GuestSession::i_waitForStatusChange(GuestWaitEvent *pEvent, uint32_t fWaitFl
 
 HRESULT GuestSession::close()
 {
+    AutoCaller autoCaller(this);
+    if (FAILED(autoCaller.hrc())) return autoCaller.hrc();
+
     LogFlowThisFuncEnter();
 
-    /* Note: Don't check if the session is ready via i_isStartedExternal() here;
-     *       the session (already) could be in a stopped / aborted state. */
+    int vrc = VINF_SUCCESS; /* Shut up MSVC. */
 
-    int vrc      = VINF_SUCCESS; /* Shut up MSVC. */
+    AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
+
+    /* If the guest session is not in an usable state (anymore), do the cleanup stuff ourselves. */
+    if (!i_isReady())
+    {
+        i_onRemove();
+        return S_OK;
+    }
+
+    alock.release(); /* Leave lock before calling i_closeSession() below. */
+
     int vrcGuest = VINF_SUCCESS;
 
-    uint32_t msTimeout = RT_MS_10SEC; /* 10s timeout by default */
-    for (int i = 0; i < 3; i++)
+    /* If the session is in a started state, tell the guest to close it.
+     *
+     * Note: Don't check if the session is ready via i_isStartedExternal() here;
+     *       the session (already) could be in a stopped / aborted state.
+     */
+    AutoCaller autoCallerParent(mParent);
+    if (   SUCCEEDED(autoCallerParent.hrc())
+        && i_isStarted())
     {
-        if (i)
+        uint32_t msTimeout = RT_MS_10SEC; /* 10s timeout by default */
+        for (int i = 0; i < 3; i++)
         {
-            LogRel(("Guest Control: Closing session '%s' timed out (%RU32s timeout, attempt %d/10), retrying ...\n",
-                    mData.mSession.mName.c_str(), msTimeout / RT_MS_1SEC, i + 1));
-            msTimeout += RT_MS_5SEC; /* Slightly increase the timeout. */
-        }
+            if (i)
+            {
+                LogRel(("Guest Control: Closing session '%s' timed out (%RU32s timeout, attempt %d/10), retrying ...\n",
+                        mData.mSession.mName.c_str(), msTimeout / RT_MS_1SEC, i + 1));
+                msTimeout += RT_MS_5SEC; /* Slightly increase the timeout. */
+            }
 
-        /* Close session on guest. */
-        vrc = i_closeSession(0 /* Flags */, msTimeout, &vrcGuest);
-        if (   RT_SUCCESS(vrc)
-            || vrc != VERR_TIMEOUT) /* If something else happened there is no point in retrying further. */
-            break;
+            /* Close session on guest. */
+            vrc = i_closeSession(0 /* Flags */, msTimeout, &vrcGuest);
+            if (   RT_SUCCESS(vrc)
+                || vrc != VERR_TIMEOUT) /* If something else happened there is no point in retrying further. */
+                break;
+        }
     }
 
     /* On failure don't return here, instead do all the cleanup
      * work first and then return an error. */
 
-    /* Destroy session + remove ourselves from the session list. */
-    AssertPtr(mParent);
-    int vrc2 = mParent->i_sessionDestroy(mData.mSession.mID);
+    /* We have to make sure that our parent (IGuest) still is alive and in a working shapee.
+     * If not, skip removing the session from it. */
+    LogFlowThisFunc(("Removing session '%s' from parent ...", mData.mSession.mName.c_str()));
+
+    /* Remove ourselves from the session list. */
+    int vrc2 = mParent->i_sessionRemove(mData.mSession.mID);
     if (vrc2 == VERR_NOT_FOUND) /* Not finding the session anymore isn't critical. */
         vrc2 = VINF_SUCCESS;
 
@@ -3541,7 +4151,7 @@ HRESULT GuestSession::copyFromGuest(const std::vector<com::Utf8Str> &aSources, c
     {
         GuestFsObjData objData;
         int vrcGuest = VERR_IPE_UNINITIALIZED_STATUS;
-        int vrc = i_fsQueryInfo(*(itSource), fFollowSymlinks, objData, &vrcGuest);
+        int vrc = i_fsObjQueryInfo(*(itSource), fFollowSymlinks, objData, &vrcGuest);
         if (   RT_FAILURE(vrc)
             && !fContinueOnErrors)
         {
@@ -3801,7 +4411,7 @@ HRESULT GuestSession::directoryCreateTemp(const com::Utf8Str &aTemplateName, ULO
         {
             case VERR_GSTCTL_GUEST_ERROR:
             {
-                GuestErrorInfo ge(GuestErrorInfo::Type_ToolMkTemp, vrcGuest, aPath.c_str());
+                GuestErrorInfo ge(GuestErrorInfo::Type_Fs, vrcGuest, aPath.c_str());
                 hrc = setErrorBoth(VBOX_E_IPRT_ERROR, vrcGuest, tr("Temporary guest directory creation failed: %s"),
                                    GuestBase::getErrorAsString(ge).c_str());
                 break;
@@ -3846,7 +4456,7 @@ HRESULT GuestSession::directoryExists(const com::Utf8Str &aPath, BOOL aFollowSym
                         break;
                     default:
                     {
-                        GuestErrorInfo ge(GuestErrorInfo::Type_ToolStat, vrcGuest, aPath.c_str());
+                        GuestErrorInfo ge(GuestErrorInfo::Type_Fs, vrcGuest, aPath.c_str());
                         hrc = setErrorBoth(VBOX_E_IPRT_ERROR, vrcGuest, tr("Querying directory existence failed: %s"),
                                            GuestBase::getErrorAsString(ge).c_str());
                         break;
@@ -4189,7 +4799,7 @@ HRESULT GuestSession::fileExists(const com::Utf8Str &aPath, BOOL aFollowSymlinks
 
                 default:
                 {
-                    GuestErrorInfo ge(GuestErrorInfo::Type_ToolStat, vrcGuest, aPath.c_str());
+                    GuestErrorInfo ge(GuestErrorInfo::Type_Fs, vrcGuest, aPath.c_str());
                     hrc = setErrorBoth(VBOX_E_IPRT_ERROR, vrcGuest, tr("Querying guest file existence failed: %s"),
                                        GuestBase::getErrorAsString(ge).c_str());
                     break;
@@ -4342,7 +4952,7 @@ HRESULT GuestSession::fileQuerySize(const com::Utf8Str &aPath, BOOL aFollowSymli
     {
         if (GuestProcess::i_isGuestError(vrc))
         {
-            GuestErrorInfo ge(GuestErrorInfo::Type_ToolStat, vrcGuest, aPath.c_str());
+            GuestErrorInfo ge(GuestErrorInfo::Type_Fs, vrcGuest, aPath.c_str());
             hrc = setErrorBoth(VBOX_E_IPRT_ERROR, vrcGuest, tr("Querying guest file size failed: %s"),
                                GuestBase::getErrorAsString(ge).c_str());
         }
@@ -4356,16 +4966,52 @@ HRESULT GuestSession::fileQuerySize(const com::Utf8Str &aPath, BOOL aFollowSymli
 
 HRESULT GuestSession::fsQueryFreeSpace(const com::Utf8Str &aPath, LONG64 *aFreeSpace)
 {
-    RT_NOREF(aPath, aFreeSpace);
+    ComPtr<IGuestFsInfo> pFsInfo;
+    HRESULT hrc = fsQueryInfo(aPath, pFsInfo);
+    if (SUCCEEDED(hrc))
+        hrc = pFsInfo->COMGETTER(FreeSize)(aFreeSpace);
 
-    return E_NOTIMPL;
+    return hrc;
 }
 
 HRESULT GuestSession::fsQueryInfo(const com::Utf8Str &aPath, ComPtr<IGuestFsInfo> &aInfo)
 {
-    RT_NOREF(aPath, aInfo);
+    if (aPath.isEmpty())
+        return setError(E_INVALIDARG, tr("No path specified"));
 
-    return E_NOTIMPL;
+    HRESULT hrc = i_isStartedExternal();
+    if (FAILED(hrc))
+        return hrc;
+
+    GSTCTLFSINFO fsInfo;
+    int vrcGuest = VERR_IPE_UNINITIALIZED_STATUS;
+    int vrc = i_fsQueryInfo(aPath, &fsInfo, &vrcGuest);
+    if (RT_SUCCESS(vrc))
+    {
+        ComObjPtr<GuestFsInfo> ptrFsInfo;
+        hrc = ptrFsInfo.createObject();
+        if (SUCCEEDED(hrc))
+        {
+            vrc = ptrFsInfo->init(&fsInfo);
+            if (RT_SUCCESS(vrc))
+                hrc = ptrFsInfo.queryInterfaceTo(aInfo.asOutParam());
+            else
+                hrc = setErrorVrc(vrc);
+        }
+    }
+    else
+    {
+        if (GuestProcess::i_isGuestError(vrc))
+        {
+            GuestErrorInfo ge(GuestErrorInfo::Type_Fs, vrcGuest, aPath.c_str());
+            hrc = setErrorBoth(VBOX_E_IPRT_ERROR, vrcGuest, tr("Querying guest filesystem information failed: %s"),
+                               GuestBase::getErrorAsString(ge).c_str());
+        }
+        else
+            hrc = setErrorVrc(vrc, tr("Querying guest filesystem information for \"%s\" failed: %Rrc"), aPath.c_str(), vrc);
+    }
+
+    return hrc;
 }
 
 HRESULT GuestSession::fsObjExists(const com::Utf8Str &aPath, BOOL aFollowSymlinks, BOOL *aExists)
@@ -4383,7 +5029,7 @@ HRESULT GuestSession::fsObjExists(const com::Utf8Str &aPath, BOOL aFollowSymlink
 
     GuestFsObjData objData;
     int vrcGuest = VERR_IPE_UNINITIALIZED_STATUS;
-    int vrc = i_fsQueryInfo(aPath, aFollowSymlinks != FALSE, objData, &vrcGuest);
+    int vrc = i_fsObjQueryInfo(aPath, aFollowSymlinks != FALSE, objData, &vrcGuest);
     if (RT_SUCCESS(vrc))
         *aExists = TRUE;
     else
@@ -4397,7 +5043,7 @@ HRESULT GuestSession::fsObjExists(const com::Utf8Str &aPath, BOOL aFollowSymlink
                 hrc = S_OK; /* Ignore these vrc values. */
             else
             {
-                GuestErrorInfo ge(GuestErrorInfo::Type_ToolStat, vrcGuest, aPath.c_str());
+                GuestErrorInfo ge(GuestErrorInfo::Type_Fs, vrcGuest, aPath.c_str());
                 hrc = setErrorBoth(VBOX_E_IPRT_ERROR, vrcGuest, tr("Querying guest file existence information failed: %s"),
                                    GuestBase::getErrorAsString(ge).c_str());
             }
@@ -4420,16 +5066,16 @@ HRESULT GuestSession::fsObjQueryInfo(const com::Utf8Str &aPath, BOOL aFollowSyml
 
     LogFlowThisFunc(("aPath=%s, aFollowSymlinks=%RTbool\n", aPath.c_str(), RT_BOOL(aFollowSymlinks)));
 
-    GuestFsObjData Info;
+    GuestFsObjData objData;
     int vrcGuest = VERR_IPE_UNINITIALIZED_STATUS;
-    int vrc = i_fsQueryInfo(aPath, aFollowSymlinks != FALSE, Info, &vrcGuest);
+    int vrc = i_fsObjQueryInfo(aPath, aFollowSymlinks != FALSE, objData, &vrcGuest);
     if (RT_SUCCESS(vrc))
     {
         ComObjPtr<GuestFsObjInfo> ptrFsObjInfo;
         hrc = ptrFsObjInfo.createObject();
         if (SUCCEEDED(hrc))
         {
-            vrc = ptrFsObjInfo->init(Info);
+            vrc = ptrFsObjInfo->init(objData);
             if (RT_SUCCESS(vrc))
                 hrc = ptrFsObjInfo.queryInterfaceTo(aInfo.asOutParam());
             else
@@ -4440,12 +5086,12 @@ HRESULT GuestSession::fsObjQueryInfo(const com::Utf8Str &aPath, BOOL aFollowSyml
     {
         if (GuestProcess::i_isGuestError(vrc))
         {
-            GuestErrorInfo ge(GuestErrorInfo::Type_ToolStat, vrcGuest, aPath.c_str());
-            hrc = setErrorBoth(VBOX_E_IPRT_ERROR, vrcGuest, tr("Querying guest file information failed: %s"),
+            GuestErrorInfo ge(GuestErrorInfo::Type_Fs, vrcGuest, aPath.c_str());
+            hrc = setErrorBoth(VBOX_E_IPRT_ERROR, vrcGuest, tr("Querying guest filesystem object information failed: %s"),
                                GuestBase::getErrorAsString(ge).c_str());
         }
         else
-            hrc = setErrorVrc(vrc, tr("Querying guest file information for \"%s\" failed: %Rrc"), aPath.c_str(), vrc);
+            hrc = setErrorVrc(vrc, tr("Querying guest filesystem object information for \"%s\" failed: %Rrc"), aPath.c_str(), vrc);
     }
 
     return hrc;
@@ -4468,7 +5114,7 @@ HRESULT GuestSession::fsObjRemove(const com::Utf8Str &aPath)
     {
         if (GuestProcess::i_isGuestError(vrc))
         {
-            GuestErrorInfo ge(GuestErrorInfo::Type_ToolRm, vrcGuest, aPath.c_str());
+            GuestErrorInfo ge(GuestErrorInfo::Type_File, vrcGuest, aPath.c_str());
             hrc = setErrorBoth(VBOX_E_IPRT_ERROR, vrcGuest, tr("Removing guest file failed: %s"),
                                GuestBase::getErrorAsString(ge).c_str());
         }
@@ -4578,6 +5224,7 @@ HRESULT GuestSession::fsObjSetACL(const com::Utf8Str &aPath, BOOL aFollowSymlink
 
 
 HRESULT GuestSession::processCreate(const com::Utf8Str &aExecutable, const std::vector<com::Utf8Str> &aArguments,
+                                    const com::Utf8Str &aCwd,
                                     const std::vector<com::Utf8Str> &aEnvironment,
                                     const std::vector<ProcessCreateFlag_T> &aFlags,
                                     ULONG aTimeoutMS, ComPtr<IGuestProcess> &aGuestProcess)
@@ -4585,11 +5232,12 @@ HRESULT GuestSession::processCreate(const com::Utf8Str &aExecutable, const std::
     LogFlowThisFuncEnter();
 
     std::vector<LONG> affinityIgnored;
-    return processCreateEx(aExecutable, aArguments, aEnvironment, aFlags, aTimeoutMS, ProcessPriority_Default,
-                           affinityIgnored, aGuestProcess);
+    return processCreateEx(aExecutable, aArguments, aCwd, aEnvironment, aFlags, aTimeoutMS,
+                           ProcessPriority_Default, affinityIgnored, aGuestProcess);
 }
 
 HRESULT GuestSession::processCreateEx(const com::Utf8Str &aExecutable, const std::vector<com::Utf8Str> &aArguments,
+                                      const com::Utf8Str &aCwd,
                                       const std::vector<com::Utf8Str> &aEnvironment,
                                       const std::vector<ProcessCreateFlag_T> &aFlags, ULONG aTimeoutMS,
                                       ProcessPriority_T aPriority, const std::vector<LONG> &aAffinity,
@@ -4612,6 +5260,17 @@ HRESULT GuestSession::processCreateEx(const com::Utf8Str &aExecutable, const std
             return setError(E_INVALIDARG, tr("No command to execute specified"));
     }
 
+    uint32_t const uProtocol              = i_getProtocolVersion();
+    uint64_t const fGuestControlFeatures0 = mParent->i_getGuestControlFeatures0();
+
+    /* If a current working directory (CWD) is set, make sure that the installed Guest Additions actually
+     * support this before doing anything else. */
+    if (   !aCwd.isEmpty()
+        && (   uProtocol < 2
+            || !(fGuestControlFeatures0 & VBOX_GUESTCTRL_GF_0_PROCESS_CWD)))
+        return setError(VBOX_E_NOT_SUPPORTED,
+                        tr("Setting the current working directory is not supported by the installed Guest Addtions!"));
+
     /* The rest of the input is being validated in i_processCreateEx(). */
 
     LogFlowThisFuncEnter();
@@ -4630,6 +5289,9 @@ HRESULT GuestSession::processCreateEx(const com::Utf8Str &aExecutable, const std
     }
     else /* If no arguments were given, add the executable as argv[0] by default. */
         procInfo.mArguments.push_back(procInfo.mExecutable);
+
+    /* Optional working directory */
+    procInfo.mCwd = aCwd;
 
     /* Combine the environment changes associated with the ones passed in by
        the caller, giving priority to the latter.  The changes are putenv style
@@ -4746,6 +5408,7 @@ HRESULT GuestSession::symlinkRead(const com::Utf8Str &aSymlink, const std::vecto
     ReturnComNotImplemented();
 }
 
+/* Deprecated; use GuestSession::waitForArray() instead. */
 HRESULT GuestSession::waitFor(ULONG aWaitFor, ULONG aTimeoutMS, GuestSessionWaitResult_T *aReason)
 {
     /* Note: No call to i_isStartedExternal() needed here, as the session might not has been started (yet). */

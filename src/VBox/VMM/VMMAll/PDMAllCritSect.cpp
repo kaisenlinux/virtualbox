@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -143,9 +143,11 @@ DECL_FORCE_INLINE(int) pdmCritSectEnterFirst(PPDMCRITSECT pCritSect, RTNATIVETHR
 # else
     NOREF(pSrcPos);
 # endif
+# ifdef IN_RING3
     if (pSrcPos)
         Log12Func(("%p: uId=%p ln=%u fn=%s\n", pCritSect, pSrcPos->uId, pSrcPos->uLine, pSrcPos->pszFunction));
     else
+# endif
         Log12Func(("%p\n", pCritSect));
 
     STAM_PROFILE_ADV_START(&pCritSect->s.StatLocked, l);
@@ -230,7 +232,7 @@ static int pdmR3R0CritSectEnterContended(PVMCC pVM, PVMCPU pVCpu, PPDMCRITSECT p
          * Do the wait.
          *
          * In ring-3 this gets cluttered by lock validation and thread state
-         * maintainence.
+         * maintenance.
          *
          * In ring-0 we have to deal with the possibility that the thread has
          * been signalled and the interruptible wait function returning

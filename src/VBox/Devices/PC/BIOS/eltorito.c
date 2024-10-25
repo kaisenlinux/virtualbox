@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -802,7 +802,7 @@ int13_success_noah:
 // Start of int13 for cdrom
 // ---------------------------------------------------------------------------
 
-void BIOSCALL int13_cdrom(uint16_t EHBX, disk_regs_t r)
+void BIOSCALL int13_cdrom(disk_regs_t r)
 {
     uint16_t            ebda_seg = read_word(0x0040,0x000E);
     uint8_t             device, status, locks;

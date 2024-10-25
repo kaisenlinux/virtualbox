@@ -38,107 +38,118 @@
 #ifndef ipcClientUnix_h__
 #define ipcClientUnix_h__
 
-#include "prio.h"
-#include "ipcMessageQ.h"
+#include <iprt/list.h>
+#include <iprt/socket.h>
+
+#include "ipcMessageNew.h"
+
 #include "ipcStringList.h"
 #include "ipcIDList.h"
 
-#ifdef XP_WIN
-#include <windows.h>
-#endif
 
-//-----------------------------------------------------------------------------
-// ipcClient
-//
-// NOTE: this class is an implementation detail of the IPC daemon. IPC daemon
-// modules (other than the built-in IPCM module) must not access methods on
-// this class directly. use the API provided via ipcd.h instead.
-//-----------------------------------------------------------------------------
+/** Pointer to the IPCD manager state. */
+typedef struct IPCDSTATE *PIPCDSTATE;
 
-class ipcClient
+/**
+ * IPC daemon client state.
+ *
+ * @note Treat these as opaque and use the accessor functions below.
+ */
+typedef struct IPCDCLIENT
 {
-public:
-    void Init();
-    void Finalize();
+    /** Node for the list of clients. */
+    RTLISTNODE      NdClients;
+    /** The owning IPCD state. */
+    PIPCDSTATE      pIpcd;
+    /** Flag whether the client state is currently in use. */
+    bool            fUsed;
+    /** The poll ID for this client. */
+    uint32_t        idPoll;
+    /** Poll event flags */
+    uint32_t        fPollEvts;
 
-    PRUint32 ID() const { return mID; }
+    /** Client ID .*/
+    uint32_t        idClient;
+    /** Client socket. */
+    RTSOCKET        hSock;
+    /** The current incoming message. */
+    IPCMSG          MsgIn;
+    /** List of outgoing messages. */
+    RTLISTANCHOR    LstMsgsOut;
+    /** How much of the current message in the output buffer was already sent. */
+    uint32_t        offMsgOutBuf;
 
-    void   AddName(const char *name);
-    PRBool DelName(const char *name);
-    PRBool HasName(const char *name) const { return mNames.Find(name) != NULL; }
+    bool            fExpectsSyncReply;
+    ipcStringList   mNames;
+    ipcIDList       mTargets;
+} IPCDCLIENT;
+/** Pointer to an IPCD client state. */
+typedef IPCDCLIENT *PIPCDCLIENT;
+/** Pointer to a const IPCD client state. */
+typedef const IPCDCLIENT *PCIPCDCLIENT;
 
-    void   AddTarget(const nsID &target);
-    PRBool DelTarget(const nsID &target);
-    PRBool HasTarget(const nsID &target) const { return mTargets.Find(target) != NULL; }
 
-    // list iterators
-    const ipcStringNode *Names()   const { return mNames.First(); }
-    const ipcIDNode     *Targets() const { return mTargets.First(); }
+DECLINLINE(PIPCDSTATE) ipcdClientGetDaemonState(PCIPCDCLIENT pThis)
+{
+    return pThis->pIpcd;
+}
 
-    // returns primary client name (the one specified in the "client hello" message)
-    const char *PrimaryName() const { return mNames.First() ? mNames.First()->Value() : NULL; }
 
-    void   SetExpectsSyncReply(PRBool val) { mExpectsSyncReply = val; }
-    PRBool GetExpectsSyncReply() const     { return mExpectsSyncReply; }
+DECLINLINE(uint32_t) ipcdClientGetId(PCIPCDCLIENT pThis)
+{
+    return pThis->idClient;
+}
 
-#ifdef XP_WIN
-    PRUint32 PID() const { return mPID; }
-    void SetPID(PRUint32 pid) { mPID = pid; }
 
-    HWND Hwnd() const { return mHwnd; }
-    void SetHwnd(HWND hwnd) { mHwnd = hwnd; }
-#endif
+DECLINLINE(void) ipcdClientEnqueueOutboundMsg(PIPCDCLIENT pThis, PIPCMSG pMsg)
+{
+    RTListAppend(&pThis->LstMsgsOut, &pMsg->NdMsg);
+}
 
-#if defined(XP_UNIX) || defined(XP_OS2)
-    //
-    // called to process a client file descriptor.  the value of pollFlags
-    // indicates the state of the socket.
-    //
-    // returns:
-    //   0             - to cancel client connection
-    //   PR_POLL_READ  - to poll for a readable socket
-    //   PR_POLL_WRITE - to poll for a writable socket
-    //   (both flags)  - to poll for either a readable or writable socket
-    //
-    // the socket is non-blocking.
-    //
-    int Process(PRFileDesc *sockFD, int pollFlags);
+DECLINLINE(bool) ipcdClientHasName(PCIPCDCLIENT pThis, const char *pszName)
+{
+    return pThis->mNames.Find(pszName) != NULL;
+}
 
-    //
-    // on success or failure, this function takes ownership of |msg| and will
-    // delete it when appropriate.
-    //
-    void EnqueueOutboundMsg(ipcMessage *msg) { mOutMsgQ.Append(msg); }
-#endif
+DECLHIDDEN(void) ipcdClientAddName(PIPCDCLIENT pThis, const char *pszName);
 
-private:
-    static PRUint32 gLastID;
+DECLHIDDEN(bool) ipcdClientDelName(PIPCDCLIENT pThis, const char *pszName);
 
-    PRUint32      mID;
-    ipcStringList mNames;
-    ipcIDList     mTargets;
-    PRBool        mExpectsSyncReply;
+DECLINLINE(bool) ipcdClientHasTarget(PCIPCDCLIENT pThis, const nsID *target)
+{
+    return pThis->mTargets.Find(*target) != NULL;
+}
 
-#ifdef XP_WIN
-    // on windows, we store the PID of the client process to help us determine
-    // the client from which a message originated.  each message has the PID
-    // encoded in it.
-    PRUint32      mPID;
+DECLHIDDEN(void) ipcdClientAddTarget(PIPCDCLIENT pThis, const nsID *target);
 
-    // the hwnd of the client's message window.
-    HWND          mHwnd;
-#endif
+DECLHIDDEN(bool) ipcdClientDelTarget(PIPCDCLIENT pThis, const nsID *target);
 
-#if defined(XP_UNIX) || defined(XP_OS2)
-    ipcMessage    mInMsg;    // buffer for incoming message
-    ipcMessageQ   mOutMsgQ;  // outgoing message queue
+DECLHIDDEN(int) ipcdClientInit(PIPCDCLIENT pThis, PIPCDSTATE pIpcd, uint32_t idPoll, RTSOCKET hSock);
 
-    // keep track of the amount of the first message sent
-    PRUint32      mSendOffset;
+DECLHIDDEN(void) ipcdClientDestroy(PIPCDCLIENT pThis);
 
-    // utility function for writing out messages.
-    int WriteMsgs(PRFileDesc *fd);
-#endif
-};
+//
+// called to process a client file descriptor.  the value of pollFlags
+// indicates the state of the socket.
+//
+// returns:
+//   0                - to cancel client connection
+//   RTPOLL_EVT_READ  - to poll for a readable socket
+//   RTPOLL_EVT_WRITE - to poll for a writable socket
+//   (both flags)     - to poll for either a readable or writable socket
+//
+// the socket is non-blocking.
+//
+DECLHIDDEN(uint32_t) ipcdClientProcess(PIPCDCLIENT pThis, uint32_t fPollFlags);
+
+DECLINLINE(void) ipcdClientSetExpectsSyncReply(PIPCDCLIENT pThis, bool f)
+{
+    pThis->fExpectsSyncReply = f;
+}
+
+DECLINLINE(bool) ipcdClientGetExpectsSyncReply(PCIPCDCLIENT pThis)
+{
+    return pThis->fExpectsSyncReply;
+}
 
 #endif // !ipcClientUnix_h__

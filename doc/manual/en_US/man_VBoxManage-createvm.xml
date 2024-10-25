@@ -3,7 +3,7 @@
     manpage, user manual, usage: VBoxManage createvm
 -->
 <!--
-    Copyright (C) 2006-2023 Oracle and/or its affiliates.
+    Copyright (C) 2006-2024 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.
@@ -30,7 +30,7 @@
 ]>
 <refentry id="vboxmanage-createvm" lang="en">
   <refentryinfo>
-    <pubdate>$Date: 2024-02-19 17:23:30 +0100 (Mon, 19 Feb 2024) $</pubdate>
+    <pubdate>$Date: 2024-09-16 16:03:52 +0200 (Mon, 16 Sep 2024) $</pubdate>
     <title>VBoxManage createvm</title>
   </refentryinfo>
 
@@ -50,19 +50,23 @@
 <!-- The 'id' is mandatory and must start with 'synopsis-'. -->
       <command>VBoxManage createvm</command>
       <arg choice="req">--name=<replaceable>name</replaceable></arg>
+      <arg choice="req">--platform-architecture=<group choice="plain">
+        <arg choice="plain">x86</arg>
+        <arg choice="plain">arm</arg>
+      </group></arg>
       <arg>--basefolder=<replaceable>basefolder</replaceable></arg>
       <arg>--default</arg>
-      <arg>--groups=<replaceable>group-ID</replaceable>,...</arg>
+      <arg>--groups=<replaceable>group-ID</replaceable><arg rep="repeat">,</arg></arg>
       <arg>--ostype=<replaceable>ostype</replaceable></arg>
       <arg>--register</arg>
       <arg>--uuid=<replaceable>uuid</replaceable></arg>
-      <arg>--cipher <replaceable>cipher</replaceable></arg>
-      <arg>--password-id <replaceable>password-id</replaceable></arg>
-      <arg>--password <replaceable>file</replaceable></arg>
+      <arg>--cipher=<replaceable>cipher</replaceable></arg>
+      <arg>--password-id=<replaceable>password-id</replaceable></arg>
+      <arg>--password=<replaceable>file</replaceable></arg>
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-createvm-description">
     <title>Description</title>
     <para>
       The <command>VBoxManage createvm</command> command creates a new
@@ -84,12 +88,17 @@
       file and folder names will be updated to match the new name
       automatically.
     </para>
+    <para>
+      Also, the intended platform architecture for the VM must be specified by
+      using <option>--platform-architecture<replaceable>architecture</replaceable>
+      </option>.
+    </para>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-createvm-common-options">
     <title>Command Options</title>
     <para>
-      In addition to specifying the name or UUID of the VM, which is
+      In addition to specifying the name or UUID of the VM and the platform architecture, which is
       required, you can specify any of the following options:
     </para>
     <variablelist>
@@ -153,7 +162,7 @@
           </para></listitem>
       </varlistentry>
       <varlistentry>
-        <term><option>--cipher <replaceable>cipher</replaceable></option></term>
+        <term><option>--cipher=<replaceable>cipher</replaceable></option></term>
         <listitem><para>
             Specifies the cipher to use for encryption. Valid values are
             <literal>AES-128</literal> or
@@ -163,7 +172,7 @@
           </para></listitem>
       </varlistentry>
       <varlistentry>
-        <term><option>--password-id <replaceable>password-id</replaceable></option></term>
+        <term><option>--password-id=<replaceable>password-id</replaceable></option></term>
         <listitem><para>
             Specifies a new password identifier that is used for correct
             identification when supplying multiple passwords for the VM.
@@ -172,7 +181,7 @@
           </para></listitem>
       </varlistentry>
       <varlistentry>
-        <term><option>--password <replaceable>file</replaceable></option></term>
+        <term><option>--password=<replaceable>file</replaceable></option></term>
         <listitem><para>
             Use the <option>--password</option> to supply the encryption
             password of the VM. Either specify the absolute pathname of a
@@ -185,7 +194,7 @@
     </variablelist>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-createvm-examples">
     <title>Examples</title>
     <remark role="help-scope" condition="GLOBAL" />
     <para>
@@ -200,7 +209,7 @@
 <screen>$ VBoxManage createvm --name "vm3" --register</screen>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-createvm-see-also">
     <title>See Also</title>
     <para>
       <xref linkend="vboxmanage-list" />,

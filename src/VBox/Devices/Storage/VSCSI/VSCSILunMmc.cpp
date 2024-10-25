@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1103,8 +1103,9 @@ static DECLCALLBACK(int) vscsiLunMmcReqProcess(PVSCSILUNINT pVScsiLun, PVSCSIREQ
             {
                 SCSIINQUIRYDATA ScsiInquiryReply;
 
+                uint16_t cbDataReq = scsiBE2H_U16(&pVScsiReq->pbCDB[3]);
                 vscsiReqSetXferDir(pVScsiReq, VSCSIXFERDIR_T2I);
-                vscsiReqSetXferSize(pVScsiReq, RT_MIN(sizeof(SCSIINQUIRYDATA), scsiBE2H_U16(&pVScsiReq->pbCDB[3])));
+                vscsiReqSetXferSize(pVScsiReq, RT_MIN(sizeof(SCSIINQUIRYDATA), cbDataReq));
                 memset(&ScsiInquiryReply, 0, sizeof(ScsiInquiryReply));
 
                 ScsiInquiryReply.cbAdditional           = 31;
@@ -1221,6 +1222,7 @@ static DECLCALLBACK(int) vscsiLunMmcReqProcess(PVSCSILUNINT pVScsiLun, PVSCSIREQ
                                             |  (pVScsiReq->pbCDB[2] <<  8)
                                             | ((pVScsiReq->pbCDB[1] & 0x1f) << 16));
                 cSectorTransfer = pVScsiReq->pbCDB[4];
+                cSectorTransfer = cSectorTransfer ? cSectorTransfer : 256;  /* Zero blocks means 256 */
                 cbSector        = _2K;
                 break;
             }
@@ -1295,12 +1297,13 @@ static DECLCALLBACK(int) vscsiLunMmcReqProcess(PVSCSILUNINT pVScsiLun, PVSCSIREQ
                             rcReq = vscsiLunReqSenseOkSet(pVScsiLun, pVScsiReq);
                             break;
                         case 0x10:
-                            /* normal read */
+                            /* user data only (normal read) */
                             enmTxDir = VSCSIIOREQTXDIR_READ;
                             cbSector = _2K;
                             break;
                         case 0xf8:
                         {
+                            /* everything (sync, headers, user data, ECC) */
                             if (cbSectorRegion == 2048)
                             {
                                 /*
@@ -1349,6 +1352,8 @@ static DECLCALLBACK(int) vscsiLunMmcReqProcess(PVSCSILUNINT pVScsiLun, PVSCSIREQ
                                     PRTSGSEG paSegsNew = (PRTSGSEG)RTMemAllocZ(cSegsNew * sizeof(RTSGSEG));
                                     if (paSegsNew)
                                     {
+                                        Assert(cbSectorRegion == 2048);
+                                        cbSector = cbSectorRegion;
                                         enmTxDir = VSCSIIOREQTXDIR_READ;
 
                                         uint32_t idxSeg = 0;

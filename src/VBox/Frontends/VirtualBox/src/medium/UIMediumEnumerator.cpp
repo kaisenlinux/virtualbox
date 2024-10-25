@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,19 +26,23 @@
  */
 
 /* Qt includes: */
+#include <QFileInfo>
 #include <QSet>
 
 /* GUI includes: */
 #include "UICommon.h"
 #include "UIErrorString.h"
+#include "UIExtraDataManager.h"
+#include "UIGlobalSession.h"
+#include "UILoggingDefs.h"
 #include "UIMediumEnumerator.h"
 #include "UINotificationCenter.h"
 #include "UITask.h"
+#include "UITranslationEventListener.h"
 #include "UIThreadPool.h"
 #include "UIVirtualBoxEventHandler.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CMachine.h"
 #include "CMediumAttachment.h"
 #include "CSnapshot.h"
@@ -107,6 +111,47 @@ private:
 *   Class UIMediumEnumerator implementation.                                                                                     *
 *********************************************************************************************************************************/
 
+/* static */
+UIMediumEnumerator *UIMediumEnumerator::s_pInstance = 0;
+
+/* static */
+QReadWriteLock UIMediumEnumerator::s_guiCleanupProtectionToken = QReadWriteLock();
+
+/* static */
+void UIMediumEnumerator::create()
+{
+    AssertReturnVoid(!s_pInstance);
+    s_pInstance = new UIMediumEnumerator;
+}
+
+/* static */
+void UIMediumEnumerator::destroy()
+{
+    AssertPtrReturnVoid(s_pInstance);
+
+    s_guiCleanupProtectionToken.lockForWrite();
+    delete s_pInstance;
+    s_pInstance = 0;
+    s_guiCleanupProtectionToken.unlock();
+}
+
+/* static */
+UIMediumEnumerator *UIMediumEnumerator::instance()
+{
+    /* This is the fallback behavior, we need the lazy-init here
+     * only to make sure gpMediumEnumerator is never NULL. */
+    AssertPtr(s_pInstance);
+    if (!s_pInstance)
+        create();
+    return s_pInstance;
+}
+
+/* static */
+bool UIMediumEnumerator::exists()
+{
+    return !!s_pInstance;
+}
+
 UIMediumEnumerator::UIMediumEnumerator()
     : m_fFullMediumEnumerationRequested(false)
     , m_fMediumEnumerationInProgress(false)
@@ -134,124 +179,161 @@ UIMediumEnumerator::UIMediumEnumerator()
     connect(uiCommon().threadPool(), &UIThreadPool::sigTaskComplete,
             this, &UIMediumEnumerator::sltHandleMediumEnumerationTaskComplete);
 
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIMediumEnumerator::sltRetranslateUI);
+
     /* We should make sure media map contains at least NULL medium object: */
     addNullMediumToMap(m_media);
     /* Notify listener about initial enumeration started/finished instantly: */
     LogRel(("GUI: UIMediumEnumerator: Initial medium-enumeration finished!\n"));
     emit sigMediumEnumerationStarted();
     emit sigMediumEnumerationFinished();
+
+    /* Populate the list of medium names to be excluded from the recently used media extra data: */
+#if 0 /* bird: This is counter productive as it is _frequently_ necessary to re-insert the
+               viso to refresh the files (like after you rebuilt them on the host).
+               The guest caches ISOs aggressively and files sizes may change. */
+    m_recentMediaExcludeList << "ad-hoc.viso";
+#endif
 }
 
 QList<QUuid> UIMediumEnumerator::mediumIDs() const
 {
-    /* Return keys of current media map: */
-    return m_media.keys();
+    /* Redirect request to subroutine under proper lock: */
+    if (s_guiCleanupProtectionToken.tryLockForRead())
+    {
+        const QList<QUuid> mediaList = mediumIDsSub();
+        s_guiCleanupProtectionToken.unlock();
+        return mediaList;
+    }
+    return QList<QUuid>();
 }
 
 UIMedium UIMediumEnumerator::medium(const QUuid &uMediumID) const
 {
-    /* Search through current media map
-     * for the UIMedium with passed ID: */
-    if (m_media.contains(uMediumID))
-        return m_media.value(uMediumID);
-    /* Return NULL UIMedium otherwise: */
+    /* Redirect request to subroutine under proper lock: */
+    if (s_guiCleanupProtectionToken.tryLockForRead())
+    {
+        const UIMedium guiMedium = mediumSub(uMediumID);
+        s_guiCleanupProtectionToken.unlock();
+        return guiMedium;
+    }
     return UIMedium();
 }
 
 void UIMediumEnumerator::createMedium(const UIMedium &guiMedium)
 {
-    /* Get UIMedium ID: */
-    const QUuid uMediumID = guiMedium.id();
-
-    /* Do not create UIMedium(s) with incorrect ID: */
-    AssertReturnVoid(!uMediumID.isNull());
-    /* Make sure UIMedium doesn't exist already: */
-    if (m_media.contains(uMediumID))
-        return;
-
-    /* Insert UIMedium: */
-    m_media[uMediumID] = guiMedium;
-    LogRel(("GUI: UIMediumEnumerator: Medium with key={%s} created\n", uMediumID.toString().toUtf8().constData()));
-
-    /* Notify listener: */
-    emit sigMediumCreated(uMediumID);
+    /* Redirect request to subroutine under proper lock: */
+    if (s_guiCleanupProtectionToken.tryLockForRead())
+    {
+        createMediumSub(guiMedium);
+        s_guiCleanupProtectionToken.unlock();
+    }
 }
 
 void UIMediumEnumerator::enumerateMedia(const CMediumVector &comMedia /* = CMediumVector() */)
 {
-    /* Compose new map of currently cached media & their children.
-     * While composing we are using data from already cached media. */
-    UIMediumMap guiMedia;
-    addNullMediumToMap(guiMedia);
-    if (comMedia.isEmpty())
-    {
-        /* Compose new map of all known media & their children: */
-        addMediaToMap(uiCommon().virtualBox().GetHardDisks(), guiMedia);
-        addMediaToMap(uiCommon().host().GetDVDDrives(), guiMedia);
-        addMediaToMap(uiCommon().virtualBox().GetDVDImages(), guiMedia);
-        addMediaToMap(uiCommon().host().GetFloppyDrives(), guiMedia);
-        addMediaToMap(uiCommon().virtualBox().GetFloppyImages(), guiMedia);
-    }
-    else
-    {
-        /* Compose new map of passed media & their children: */
-        addMediaToMap(comMedia, guiMedia);
-    }
-
-    /* UICommon is cleaning up, abort immediately: */
+    /* Make sure UICommon is already valid: */
+    AssertReturnVoid(uiCommon().isValid());
+    /* Ignore the request during UICommon cleanup: */
     if (uiCommon().isCleaningUp())
         return;
+    /* Ignore the request during startup snapshot restoring: */
+    if (uiCommon().shouldRestoreCurrentSnapshot())
+        return;
 
-    if (comMedia.isEmpty())
+    /* Redirect request to subroutine under proper lock: */
+    if (s_guiCleanupProtectionToken.tryLockForRead())
     {
-        /* Replace existing media map since
-         * we have full medium enumeration: */
-        m_fFullMediumEnumerationRequested = true;
-        m_media = guiMedia;
+        enumerateMediaSub(comMedia);
+        s_guiCleanupProtectionToken.unlock();
     }
-    else
-    {
-        /* Throw the media to existing map: */
-        foreach (const QUuid &uMediumId, guiMedia.keys())
-            m_media[uMediumId] = guiMedia.value(uMediumId);
-    }
-
-    /* If enumeration hasn't yet started: */
-    if (!m_fMediumEnumerationInProgress)
-    {
-        /* Notify listener about enumeration started: */
-        LogRel(("GUI: UIMediumEnumerator: Medium-enumeration started...\n"));
-        m_fMediumEnumerationInProgress = true;
-        emit sigMediumEnumerationStarted();
-
-        /* Make sure we really have more than one UIMedium (which is NULL): */
-        if (   guiMedia.size() == 1
-            && guiMedia.first().id() == UIMedium::nullID())
-        {
-            /* Notify listener about enumeration finished instantly: */
-            LogRel(("GUI: UIMediumEnumerator: Medium-enumeration finished!\n"));
-            m_fMediumEnumerationInProgress = false;
-            emit sigMediumEnumerationFinished();
-        }
-    }
-
-    /* Start enumeration for media with non-NULL ID: */
-    foreach (const QUuid &uMediumID, guiMedia.keys())
-        if (!uMediumID.isNull())
-            createMediumEnumerationTask(guiMedia[uMediumID]);
 }
 
 void UIMediumEnumerator::refreshMedia()
 {
-    /* Make sure we are not already in progress: */
-    AssertReturnVoid(!m_fMediumEnumerationInProgress);
+    /* Make sure UICommon is already valid: */
+    AssertReturnVoid(uiCommon().isValid());
+    /* Ignore the request during UICommon cleanup: */
+    if (uiCommon().isCleaningUp())
+        return;
+    /* Ignore the request during startup snapshot restoring: */
+    if (uiCommon().shouldRestoreCurrentSnapshot())
+        return;
 
-    /* Refresh all cached media we have: */
-    foreach (const QUuid &uMediumID, m_media.keys())
-        m_media[uMediumID].refresh();
+    /* Make sure enumeration is not already started: */
+    if (isMediumEnumerationInProgress())
+        return;
+
+    /* We assume it's safe to call it without locking,
+     * since we are performing blocking operation here. */
+    gpMediumEnumerator->refreshMediaSub();
 }
 
-void UIMediumEnumerator::retranslateUi()
+void UIMediumEnumerator::updateRecentlyUsedMediumListAndFolder(UIMediumDeviceType enmMediumType, QString strMediumLocation)
+{
+    /* Don't add the medium to extra data if its name is in exclude list, m_recentMediaExcludeList: */
+    foreach (const QString &strExcludeName, m_recentMediaExcludeList)
+        if (strMediumLocation.contains(strExcludeName))
+            return;
+
+    /* Remember the path of the last chosen medium: */
+    switch (enmMediumType)
+    {
+        case UIMediumDeviceType_HardDisk:
+            gEDataManager->setRecentFolderForHardDrives(QFileInfo(strMediumLocation).absolutePath());
+            break;
+        case UIMediumDeviceType_DVD:
+            gEDataManager->setRecentFolderForOpticalDisks(QFileInfo(strMediumLocation).absolutePath());
+            break;
+        case UIMediumDeviceType_Floppy:
+            gEDataManager->setRecentFolderForFloppyDisks(QFileInfo(strMediumLocation).absolutePath());
+            break;
+        default:
+            break;
+    }
+
+    /* Update recently used list: */
+    QStringList recentMediumList;
+    switch (enmMediumType)
+    {
+        case UIMediumDeviceType_HardDisk: recentMediumList = gEDataManager->recentListOfHardDrives(); break;
+        case UIMediumDeviceType_DVD:      recentMediumList = gEDataManager->recentListOfOpticalDisks(); break;
+        case UIMediumDeviceType_Floppy:   recentMediumList = gEDataManager->recentListOfFloppyDisks(); break;
+        default: break;
+    }
+    if (recentMediumList.contains(strMediumLocation))
+        recentMediumList.removeAll(strMediumLocation);
+    recentMediumList.prepend(strMediumLocation);
+    while(recentMediumList.size() > 5)
+        recentMediumList.removeLast();
+    switch (enmMediumType)
+    {
+        case UIMediumDeviceType_HardDisk: gEDataManager->setRecentListOfHardDrives(recentMediumList); break;
+        case UIMediumDeviceType_DVD:      gEDataManager->setRecentListOfOpticalDisks(recentMediumList); break;
+        case UIMediumDeviceType_Floppy:   gEDataManager->setRecentListOfFloppyDisks(recentMediumList); break;
+        default: break;
+    }
+    emit sigRecentMediaListUpdated(enmMediumType);
+}
+
+void UIMediumEnumerator::sltHandleMediumCreated(const CMedium &comMedium)
+{
+    /* Acquire device type: */
+    const KDeviceType enmDeviceType = comMedium.GetDeviceType();
+    if (!comMedium.isOk())
+        UINotificationMessage::cannotAcquireMediumParameter(comMedium);
+    else
+    {
+        /* Convert to medium type: */
+        const UIMediumDeviceType enmMediumType = mediumTypeToLocal(enmDeviceType);
+
+        /* Make sure we cached created medium in GUI: */
+        createMedium(UIMedium(comMedium, enmMediumType, KMediumState_Created));
+    }
+}
+
+void UIMediumEnumerator::sltRetranslateUI()
 {
     /* Translating NULL UIMedium by recreating it: */
     if (m_media.contains(UIMedium::nullID()))
@@ -323,7 +405,7 @@ void UIMediumEnumerator::sltHandleMediumRegistered(const QUuid &uMediumId, KDevi
     if (fRegistered)
     {
         /* Make sure this medium isn't already cached: */
-        if (!medium(uMediumId).isNull())
+        if (!mediumSub(uMediumId).isNull())
         {
             /* This medium can be known because of async event nature. Currently medium registration event comes
              * very late and other even unrelated events can come before it and request for this particular medium
@@ -342,7 +424,7 @@ void UIMediumEnumerator::sltHandleMediumRegistered(const QUuid &uMediumId, KDevi
         else
         {
             /* Get VBox for temporary usage, it will cache the error info: */
-            CVirtualBox comVBox = uiCommon().virtualBox();
+            CVirtualBox comVBox = gpGlobalSession->virtualBox();
             /* Open existing medium, this API can be used to open known medium as well, using ID as location for that: */
             CMedium comMedium = comVBox.OpenMedium(uMediumId.toString(), enmMediumType, KAccessMode_ReadWrite, false);
             if (!comVBox.isOk())
@@ -374,7 +456,7 @@ void UIMediumEnumerator::sltHandleMediumRegistered(const QUuid &uMediumId, KDevi
     else
     {
         /* Make sure this medium is still cached: */
-        if (medium(uMediumId).isNull())
+        if (mediumSub(uMediumId).isNull())
         {
             /* This medium can be wiped out already because of async event nature. Currently
              * medium unregistration event comes very late and other even unrealted events
@@ -477,6 +559,115 @@ void UIMediumEnumerator::sltHandleMediumEnumerationTaskComplete(UITask *pTask)
         m_fMediumEnumerationInProgress = false;
         emit sigMediumEnumerationFinished();
     }
+}
+
+QList<QUuid> UIMediumEnumerator::mediumIDsSub() const
+{
+    /* Return keys of current media map: */
+    return m_media.keys();
+}
+
+UIMedium UIMediumEnumerator::mediumSub(const QUuid &uMediumID) const
+{
+    /* Search through current media map
+     * for the UIMedium with passed ID: */
+    if (m_media.contains(uMediumID))
+        return m_media.value(uMediumID);
+    /* Return NULL UIMedium otherwise: */
+    return UIMedium();
+}
+
+void UIMediumEnumerator::createMediumSub(const UIMedium &guiMedium)
+{
+    /* Get UIMedium ID: */
+    const QUuid uMediumID = guiMedium.id();
+
+    /* Do not create UIMedium(s) with incorrect ID: */
+    AssertReturnVoid(!uMediumID.isNull());
+    /* Make sure UIMedium doesn't exist already: */
+    if (m_media.contains(uMediumID))
+        return;
+
+    /* Insert UIMedium: */
+    m_media[uMediumID] = guiMedium;
+    LogRel(("GUI: UIMediumEnumerator: Medium with key={%s} created\n", uMediumID.toString().toUtf8().constData()));
+
+    /* Notify listener: */
+    emit sigMediumCreated(uMediumID);
+}
+
+void UIMediumEnumerator::enumerateMediaSub(const CMediumVector &comMedia /* = CMediumVector() */)
+{
+    /* Compose new map of currently cached media & their children.
+     * While composing we are using data from already cached media. */
+    UIMediumMap guiMedia;
+    addNullMediumToMap(guiMedia);
+    if (comMedia.isEmpty())
+    {
+        /* Compose new map of all known media & their children: */
+        addMediaToMap(gpGlobalSession->virtualBox().GetHardDisks(), guiMedia);
+        addMediaToMap(gpGlobalSession->host().GetDVDDrives(), guiMedia);
+        addMediaToMap(gpGlobalSession->virtualBox().GetDVDImages(), guiMedia);
+        addMediaToMap(gpGlobalSession->host().GetFloppyDrives(), guiMedia);
+        addMediaToMap(gpGlobalSession->virtualBox().GetFloppyImages(), guiMedia);
+    }
+    else
+    {
+        /* Compose new map of passed media & their children: */
+        addMediaToMap(comMedia, guiMedia);
+    }
+
+    /* UICommon is cleaning up, abort immediately: */
+    if (uiCommon().isCleaningUp())
+        return;
+
+    if (comMedia.isEmpty())
+    {
+        /* Replace existing media map since
+         * we have full medium enumeration: */
+        m_fFullMediumEnumerationRequested = true;
+        m_media = guiMedia;
+    }
+    else
+    {
+        /* Throw the media to existing map: */
+        foreach (const QUuid &uMediumId, guiMedia.keys())
+            m_media[uMediumId] = guiMedia.value(uMediumId);
+    }
+
+    /* If enumeration hasn't yet started: */
+    if (!m_fMediumEnumerationInProgress)
+    {
+        /* Notify listener about enumeration started: */
+        LogRel(("GUI: UIMediumEnumerator: Medium-enumeration started...\n"));
+        m_fMediumEnumerationInProgress = true;
+        emit sigMediumEnumerationStarted();
+
+        /* Make sure we really have more than one UIMedium (which is NULL): */
+        if (   guiMedia.size() == 1
+            && guiMedia.first().id() == UIMedium::nullID())
+        {
+            /* Notify listener about enumeration finished instantly: */
+            LogRel(("GUI: UIMediumEnumerator: Medium-enumeration finished!\n"));
+            m_fMediumEnumerationInProgress = false;
+            emit sigMediumEnumerationFinished();
+        }
+    }
+
+    /* Start enumeration for media with non-NULL ID: */
+    foreach (const QUuid &uMediumID, guiMedia.keys())
+        if (!uMediumID.isNull())
+            createMediumEnumerationTask(guiMedia[uMediumID]);
+}
+
+void UIMediumEnumerator::refreshMediaSub()
+{
+    /* Make sure we are not already in progress: */
+    AssertReturnVoid(!m_fMediumEnumerationInProgress);
+
+    /* Refresh all cached media we have: */
+    foreach (const QUuid &uMediumID, m_media.keys())
+        m_media[uMediumID].refresh();
 }
 
 void UIMediumEnumerator::createMediumEnumerationTask(const UIMedium &guiMedium)
@@ -591,7 +782,7 @@ void UIMediumEnumerator::parseMedium(CMedium comMedium, QList<QUuid> &result)
             //printf(" Medium to recache: %s\n", uMediumId.toString().toUtf8().constData());
 
             /* Make sure this medium is already cached: */
-            if (medium(uMediumId).isNull())
+            if (mediumSub(uMediumId).isNull())
             {
                 /* This medium isn't cached by some reason, which can be different.
                  * One of such reasons is when config-changed event comes earlier than
@@ -614,11 +805,11 @@ void UIMediumEnumerator::parseMedium(CMedium comMedium, QList<QUuid> &result)
 void UIMediumEnumerator::enumerateAllMediaOfMachineWithId(const QUuid &uMachineId, QList<QUuid> &result)
 {
     /* For each the cached UIMedium we have: */
-    foreach (const QUuid &uMediumId, mediumIDs())
+    foreach (const QUuid &uMediumId, mediumIDsSub())
     {
         /* Check if medium isn't NULL, used by our
          * machine and wasn't already enumerated. */
-        const UIMedium guiMedium = medium(uMediumId);
+        const UIMedium guiMedium = mediumSub(uMediumId);
         if (   !guiMedium.isNull()
             && guiMedium.machineIds().contains(uMachineId)
             && !result.contains(uMediumId))
@@ -638,11 +829,11 @@ void UIMediumEnumerator::enumerateAllMediaOfMachineWithId(const QUuid &uMachineI
 void UIMediumEnumerator::enumerateAllMediaOfMediumWithId(const QUuid &uParentMediumId, QList<QUuid> &result)
 {
     /* For each the cached UIMedium we have: */
-    foreach (const QUuid &uMediumId, mediumIDs())
+    foreach (const QUuid &uMediumId, mediumIDsSub())
     {
         /* Check if medium isn't NULL, and is
          * a child of specified parent medium. */
-        const UIMedium guiMedium = medium(uMediumId);
+        const UIMedium guiMedium = mediumSub(uMediumId);
         if (   !guiMedium.isNull()
             && guiMedium.parentID() == uParentMediumId)
         {

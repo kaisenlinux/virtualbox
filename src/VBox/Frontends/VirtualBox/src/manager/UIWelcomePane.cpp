@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,104 +26,25 @@
  */
 
 /* Qt includes: */
-#include <QHBoxLayout>
+#include <QApplication>
+#include <QButtonGroup>
+#include <QGridLayout>
 #include <QLabel>
+#include <QPushButton>
 #include <QStyle>
-#include <QVBoxLayout>
+#include <QUrl>
 
 /* GUI includes */
-#include "QIWithRetranslateUI.h"
+#include "QIRichTextLabel.h"
 #include "UICommon.h"
+#include "UIDesktopWidgetWatchdog.h"
+#include "UIExtraDataManager.h"
 #include "UIIconPool.h"
+#include "UITranslationEventListener.h"
 #include "UIWelcomePane.h"
 
-/* Forward declarations: */
-class QEvent;
-class QHBoxLayout;
-class QString;
-class QResizeEvent;
-class QVBoxLayout;
-
-
-/** Wrappable QLabel extension for tools pane of the desktop widget.
-  * The main idea behind this stuff is to allow dynamically calculate
-  * [minimum] size hint for changeable one-the-fly widget width.
-  * That's a "white unicorn" task for QLabel which never worked since
-  * the beginning, because out-of-the-box version just uses static
-  * hints calculation which is very stupid taking into account
-  * QLayout "eats it raw" and tries to be dynamical on it's basis. */
-class UIWrappableLabel : public QLabel
-{
-    Q_OBJECT;
-
-public:
-
-    /** Constructs wrappable label passing @a pParent to the base-class. */
-    UIWrappableLabel(QWidget *pParent = 0);
-
-protected:
-
-    /** Handles resize @a pEvent. */
-    virtual void resizeEvent(QResizeEvent *pEvent) RT_OVERRIDE;
-
-    /** Returns whether the widget's preferred height depends on its width. */
-    virtual bool hasHeightForWidth() const RT_OVERRIDE;
-
-    /** Holds the minimum widget size. */
-    virtual QSize minimumSizeHint() const RT_OVERRIDE;
-
-    /** Holds the preferred widget size. */
-    virtual QSize sizeHint() const RT_OVERRIDE;
-};
-
-
-/*********************************************************************************************************************************
-*   Class UIWrappableLabel implementation.                                                                                       *
-*********************************************************************************************************************************/
-
-UIWrappableLabel::UIWrappableLabel(QWidget *pParent /* = 0 */)
-    : QLabel(pParent)
-{
-}
-
-void UIWrappableLabel::resizeEvent(QResizeEvent *pEvent)
-{
-    /* Call to base-class: */
-    QLabel::resizeEvent(pEvent);
-
-    // WORKAROUND:
-    // That's not cheap procedure but we need it to
-    // make sure geometry is updated after width changed.
-    if (minimumWidth() > 0)
-        updateGeometry();
-}
-
-bool UIWrappableLabel::hasHeightForWidth() const
-{
-    // WORKAROUND:
-    // No need to panic, we do it ourselves in resizeEvent() and
-    // this 'false' here to prevent automatic layout fighting for it.
-    return   minimumWidth() > 0
-           ? false
-           : QLabel::hasHeightForWidth();
-}
-
-QSize UIWrappableLabel::minimumSizeHint() const
-{
-    // WORKAROUND:
-    // We should calculate hint height on the basis of width,
-    // keeping the hint width equal to minimum we have set.
-    return   minimumWidth() > 0
-           ? QSize(minimumWidth(), heightForWidth(width()))
-           : QLabel::minimumSizeHint();
-}
-
-QSize UIWrappableLabel::sizeHint() const
-{
-    // WORKAROUND:
-    // Keep widget always minimal.
-    return minimumSizeHint();
-}
+/* Other VBox includes: */
+#include "iprt/assert.h"
 
 
 /*********************************************************************************************************************************
@@ -131,11 +52,11 @@ QSize UIWrappableLabel::sizeHint() const
 *********************************************************************************************************************************/
 
 UIWelcomePane::UIWelcomePane(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
-    , m_pLabelText(0)
+    : QWidget(pParent)
+    , m_pLabelGreetings(0)
+    , m_pLabelMode(0)
     , m_pLabelIcon(0)
 {
-    /* Prepare: */
     prepare();
 }
 
@@ -148,6 +69,7 @@ bool UIWelcomePane::event(QEvent *pEvent)
         case QEvent::ScreenChangeInternal:
         {
             /* Update pixmap: */
+            updateTextLabels();
             updatePixmap();
             break;
         }
@@ -156,26 +78,62 @@ bool UIWelcomePane::event(QEvent *pEvent)
     }
 
     /* Call to base-class: */
-    return QIWithRetranslateUI<QWidget>::event(pEvent);
+    return QWidget::event(pEvent);
 }
 
-void UIWelcomePane::retranslateUi()
+void UIWelcomePane::sltRetranslateUI()
 {
-    /* Translate welcome text: */
-    m_pLabelText->setText(tr("<h3>Welcome to VirtualBox!</h3>"
-                             "<p>The left part of application window contains global tools and "
-                             "lists all virtual machines and virtual machine groups on your computer. "
-                             "You can import, add and create new VMs using corresponding toolbar buttons. "
-                             "You can popup a tools of currently selected element using corresponding element button.</p>"
-                             "<p>You can press the <b>%1</b> key to get instant help, or visit "
-                             "<a href=https://www.virtualbox.org>www.virtualbox.org</a> "
-                             "for more information and latest news.</p>")
-                             .arg(QKeySequence(QKeySequence::HelpContents).toString(QKeySequence::NativeText)));
+    /* Translate greetings text: */
+    if (m_pLabelGreetings)
+        m_pLabelGreetings->setText(tr("<h3>Welcome to VirtualBox!</h3>"
+                                      "<p>The left part of application window contains global tools and "
+                                      "lists all virtual machines and virtual machine groups on your computer. "
+                                      "You can import, add and create new VMs using corresponding toolbar buttons. "
+                                      "You can popup a tools of currently selected element using corresponding element "
+                                      "button.</p>"
+                                      "<p>You can press the <b>%1</b> key to get instant help, or visit "
+                                      "<a href=https://www.virtualbox.org>www.virtualbox.org</a> "
+                                      "for more information and latest news.</p>")
+                                      .arg(QKeySequence(QKeySequence::HelpContents).toString(QKeySequence::NativeText)));
+
+    /* Translate experience mode stuff: */
+    if (m_pLabelMode)
+        m_pLabelMode->setText(tr("<h3>Please choose Experience Mode!</h3>"
+                                 "By default, the VirtualBox GUI is hiding some options, tools and wizards. "
+                                 "<p>The <b>Basic Mode</b> is intended for those users who are not interested in advanced "
+                                 "functionality and prefer a simpler, cleaner interface.</p>"
+                                 "<p>The <b>Expert Mode</b> is intended for experienced users who wish to utilize all "
+                                 "VirtualBox functionality.</p>"
+                                 "<p>You can choose whether you are a beginner or experienced user by selecting required "
+                                 "option at the right. This choice can always be changed in Global Preferences or Machine "
+                                 "Settings windows.</p>"));
+    if (m_buttons.contains(false))
+        m_buttons.value(false)->setText(tr("Basic Mode"));
+    if (m_buttons.contains(true))
+        m_buttons.value(true)->setText(tr("Expert Mode"));
 }
 
-void UIWelcomePane::sltHandleLinkActivated(const QString &strLink)
+void UIWelcomePane::sltHandleLinkActivated(const QUrl &urlLink)
 {
-    uiCommon().openURL(strLink);
+    uiCommon().openURL(urlLink.toString());
+}
+
+void UIWelcomePane::sltHandleButtonClicked(QAbstractButton *pButton)
+{
+    /* Make sure one of buttons was really pressed: */
+    AssertReturnVoid(m_buttons.contains(pButton));
+
+    /* Hide everything related to experience mode: */
+    if (m_pLabelMode)
+        m_pLabelMode->hide();
+    if (m_buttons.contains(false))
+        m_buttons.value(false)->hide();
+    if (m_buttons.contains(true))
+        m_buttons.value(true)->hide();
+
+    /* Check which button was pressed actually and save the value: */
+    const bool fExpertMode = m_buttons.key(pButton, false);
+    gEDataManager->setSettingsInExpertMode(fExpertMode);
 }
 
 void UIWelcomePane::prepare()
@@ -183,73 +141,128 @@ void UIWelcomePane::prepare()
     /* Prepare default welcome icon: */
     m_icon = UIIconPool::iconSet(":/tools_banner_global_200px.png");
 
-    /* Create main layout: */
-    QVBoxLayout *pMainLayout = new QVBoxLayout(this);
+    /* Prepare main layout: */
+    QGridLayout *pMainLayout = new QGridLayout(this);
     if (pMainLayout)
     {
-        /* Create welcome layout: */
-        QHBoxLayout *pLayoutWelcome = new QHBoxLayout;
-        if (pLayoutWelcome)
+        const int iL = qApp->style()->pixelMetric(QStyle::PM_LayoutLeftMargin) / 2;
+        const int iT = qApp->style()->pixelMetric(QStyle::PM_LayoutTopMargin);
+        const int iR = qApp->style()->pixelMetric(QStyle::PM_LayoutRightMargin);
+        const int iB = qApp->style()->pixelMetric(QStyle::PM_LayoutBottomMargin) / 2;
+#ifdef VBOX_WS_MAC
+        const int iSpacing = 20;
+#else
+        const int iSpacing = qApp->style()->pixelMetric(QStyle::PM_LayoutVerticalSpacing);
+#endif
+        pMainLayout->setContentsMargins(iL, iT, iR, iB);
+        pMainLayout->setSpacing(iSpacing);
+        pMainLayout->setRowStretch(2, 1);
+
+        /* Prepare greetings label: */
+        m_pLabelGreetings = new QIRichTextLabel(this);
+        if (m_pLabelGreetings)
         {
-            /* Configure layout: */
-            const int iL = qApp->style()->pixelMetric(QStyle::PM_LayoutLeftMargin) / 2;
-            pLayoutWelcome->setContentsMargins(iL, 0, 0, 0);
-
-            /* Create welcome text label: */
-            m_pLabelText = new UIWrappableLabel;
-            if (m_pLabelText)
-            {
-                /* Configure label: */
-                m_pLabelText->setWordWrap(true);
-                m_pLabelText->setMinimumWidth(160); /// @todo make dynamic
-                m_pLabelText->setAlignment(Qt::AlignLeading | Qt::AlignTop);
-                m_pLabelText->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Minimum);
-                connect(m_pLabelText, &QLabel::linkActivated, this, &UIWelcomePane::sltHandleLinkActivated);
-
-                /* Add into layout: */
-                pLayoutWelcome->addWidget(m_pLabelText);
-            }
-
-            /* Create welcome picture label: */
-            m_pLabelIcon = new QLabel;
-            if (m_pLabelIcon)
-            {
-                /* Configure label: */
-                m_pLabelIcon->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
-
-                /* Add into layout: */
-                pLayoutWelcome->addWidget(m_pLabelIcon);
-                pLayoutWelcome->setAlignment(m_pLabelIcon, Qt::AlignHCenter | Qt::AlignTop);
-            }
-
-            /* Add into layout: */
-            pMainLayout->addLayout(pLayoutWelcome);
+            m_pLabelGreetings->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Minimum);
+            connect(m_pLabelGreetings, &QIRichTextLabel::sigLinkClicked, this, &UIWelcomePane::sltHandleLinkActivated);
+            pMainLayout->addWidget(m_pLabelGreetings, 0, 0);
         }
 
-        /* Add stretch: */
-        pMainLayout->addStretch();
+        /* Prepare icon label: */
+        m_pLabelIcon = new QLabel(this);
+        if (m_pLabelIcon)
+        {
+            m_pLabelIcon->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+            pMainLayout->addWidget(m_pLabelIcon, 0, 1);
+        }
+
+        /* This block for the case if experienced mode is NOT defined yet: */
+        if (gEDataManager->extraDataString(UIExtraDataDefs::GUI_Settings_ExpertMode).isNull())
+        {
+            /* Prepare experience mode label: */
+            m_pLabelMode = new QIRichTextLabel(this);
+            if (m_pLabelMode)
+            {
+                m_pLabelMode->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Minimum);
+                pMainLayout->addWidget(m_pLabelMode, 1, 0);
+            }
+
+            /* Prepare button layout: */
+            QVBoxLayout *pLayoutButton = new QVBoxLayout;
+            if (pLayoutButton)
+            {
+                pLayoutButton->setSpacing(iSpacing / 2);
+
+                /* Prepare button group: */
+                QButtonGroup *pButtonGroup = new QButtonGroup(this);
+                if (pButtonGroup)
+                {
+                    /* Prepare Basic button ('false' means 'not Expert'): */
+                    m_buttons[false] = new QPushButton(this);
+                    QAbstractButton *pButtonBasic = m_buttons.value(false);
+                    if (pButtonBasic)
+                    {
+                        pButtonGroup->addButton(pButtonBasic);
+                        pLayoutButton->addWidget(pButtonBasic);
+                    }
+
+                    /* Prepare Expert button ('true' means 'is Expert'): */
+                    m_buttons[true] = new QPushButton(this);
+                    QAbstractButton *pButtonExpert = m_buttons[true];
+                    if (pButtonExpert)
+                    {
+                        pButtonGroup->addButton(pButtonExpert);
+                        pLayoutButton->addWidget(pButtonExpert);
+                    }
+
+                    connect(pButtonGroup, &QButtonGroup::buttonClicked,
+                            this, &UIWelcomePane::sltHandleButtonClicked);
+                }
+
+                pLayoutButton->addStretch();
+                pMainLayout->addLayout(pLayoutButton, 1, 1);
+            }
+        }
     }
 
+    /* Assign Help keyword: */
     uiCommon().setHelpKeyword(this, "intro-starting");
 
     /* Translate finally: */
-    retranslateUi();
-    /* Update pixmap: */
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIWelcomePane::sltRetranslateUI);
+
+    /* Update stuff: */
+    updateTextLabels();
     updatePixmap();
+}
+
+void UIWelcomePane::updateTextLabels()
+{
+    /* For all the text-labels: */
+    QList<QIRichTextLabel*> labels = findChildren<QIRichTextLabel*>();
+    if (!labels.isEmpty())
+    {
+        /* Make sure their minimum width is around 20% of the screen width: */
+        const QSize screenGeometry = gpDesktop->screenGeometry(this).size();
+        foreach (QIRichTextLabel *pLabel, labels)
+        {
+            pLabel->setMinimumTextWidth(screenGeometry.width() * .2);
+            pLabel->resize(pLabel->minimumSizeHint());
+        }
+    }
 }
 
 void UIWelcomePane::updatePixmap()
 {
     /* Assign corresponding icon: */
-    if (!m_icon.isNull())
+    if (!m_icon.isNull() && m_pLabelIcon)
     {
+        /* Check which size goes as the default one: */
         const QList<QSize> sizes = m_icon.availableSizes();
-        const QSize firstOne = sizes.isEmpty() ? QSize(200, 200) : sizes.first();
-        m_pLabelIcon->setPixmap(m_icon.pixmap(window()->windowHandle(),
-                                                       QSize(firstOne.width(),
-                                                             firstOne.height())));
+        const QSize defaultSize = sizes.isEmpty() ? QSize(200, 200) : sizes.first();
+        /* Acquire device-pixel ratio: */
+        const qreal fDevicePixelRatio = gpDesktop->devicePixelRatio(this);
+        m_pLabelIcon->setPixmap(m_icon.pixmap(defaultSize, fDevicePixelRatio));
     }
 }
-
-
-#include "UIWelcomePane.moc"

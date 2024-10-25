@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -39,9 +39,6 @@
 #include "QIWithRestorableGeometry.h"
 #include "UILibraryDefs.h"
 
-/* Other VBox includes: */
-#include <iprt/cdefs.h>
-
 /* Forward declarations: */
 class QPushButton;
 class QIDialogButtonBox;
@@ -65,8 +62,9 @@ enum ButtonType
     ButtonType_Invalid = 0,
     ButtonType_Reset   = RT_BIT(0),
     ButtonType_Apply   = RT_BIT(1),
-    ButtonType_Close   = RT_BIT(2),
-    ButtonType_Help    = RT_BIT(3)
+    ButtonType_Embed   = RT_BIT(2),
+    ButtonType_Close   = RT_BIT(3),
+    ButtonType_Help    = RT_BIT(4),
 };
 
 
@@ -102,11 +100,10 @@ class SHARED_LIBRARY_STUFF QIManagerDialog : public QIWithRestorableGeometry<QMa
 
 signals:
 
+    /** Notifies listeners about dialog should be embedded. */
+    void sigEmbed();
     /** Notifies listeners about dialog should be closed. */
     void sigClose();
-    /** Notifies listeners about help requested.
-      * @param  strHelpKeyword  Brings the tag to find related section in the manual. */
-    void sigHelpRequested(const QString &strHelpKeyword);
 
 protected:
 

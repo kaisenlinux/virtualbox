@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -29,8 +29,6 @@
 #include "VBoxCocoaHelper.h"
 
 #include <QMenu>
-
-#include <iprt/assert.h>
 
 #import <AppKit/NSEvent.h>
 #import <AppKit/NSColor.h>

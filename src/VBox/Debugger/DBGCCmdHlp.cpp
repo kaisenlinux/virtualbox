@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -413,13 +413,13 @@ static DECLCALLBACK(int) dbgcHlpMemRead(PDBGCCMDHLP pCmdHlp, void *pvBuffer, siz
         /*
          * Calc read size.
          */
-        size_t cb = RT_MIN(PAGE_SIZE, cbLeft);
+        size_t cb = RT_MIN(GUEST_PAGE_SIZE, cbLeft);
         switch (pVarPointer->enmType)
         {
-            case DBGCVAR_TYPE_GC_FLAT: cb = RT_MIN(cb, PAGE_SIZE - (Var.u.GCFlat & PAGE_OFFSET_MASK)); break;
-            case DBGCVAR_TYPE_GC_PHYS: cb = RT_MIN(cb, PAGE_SIZE - (Var.u.GCPhys & PAGE_OFFSET_MASK)); break;
-            case DBGCVAR_TYPE_HC_FLAT: cb = RT_MIN(cb, PAGE_SIZE - ((uintptr_t)Var.u.pvHCFlat & PAGE_OFFSET_MASK)); break;
-            case DBGCVAR_TYPE_HC_PHYS: cb = RT_MIN(cb, PAGE_SIZE - ((size_t)Var.u.HCPhys & PAGE_OFFSET_MASK)); break; /* size_t: MSC has braindead loss of data warnings! */
+            case DBGCVAR_TYPE_GC_FLAT: cb = RT_MIN(cb, GUEST_PAGE_SIZE - (Var.u.GCFlat & GUEST_PAGE_OFFSET_MASK)); break;
+            case DBGCVAR_TYPE_GC_PHYS: cb = RT_MIN(cb, GUEST_PAGE_SIZE - (Var.u.GCPhys & GUEST_PAGE_OFFSET_MASK)); break;
+            case DBGCVAR_TYPE_HC_FLAT: cb = RT_MIN(cb, GUEST_PAGE_SIZE - ((uintptr_t)Var.u.pvHCFlat & GUEST_PAGE_OFFSET_MASK)); break;
+            case DBGCVAR_TYPE_HC_PHYS: cb = RT_MIN(cb, GUEST_PAGE_SIZE - ((size_t)Var.u.HCPhys & GUEST_PAGE_OFFSET_MASK)); break; /* size_t: MSC has braindead loss of data warnings! */
             default: break;
         }
 
@@ -603,8 +603,8 @@ static DECLCALLBACK(int) dbgcHlpMemWrite(PDBGCCMDHLP pCmdHlp, const void *pvBuff
                 }
 
                 /* calc size. */
-                size_t cbChunk = PAGE_SIZE;
-                cbChunk -= (uintptr_t)Var.u.pvHCFlat & PAGE_OFFSET_MASK;
+                size_t cbChunk = GUEST_PAGE_SIZE;
+                cbChunk -= (uintptr_t)Var.u.pvHCFlat & GUEST_PAGE_OFFSET_MASK;
                 if (cbChunk > cbWrite)
                     cbChunk = cbWrite;
 
@@ -1367,6 +1367,7 @@ static DECLCALLBACK(int) dbgcHlpRegPrintf(PDBGCCMDHLP pCmdHlp, VMCPUID idCpu, in
     if (f64BitMode < 0)
         f64BitMode = DBGFR3CpuIsIn64BitCode(pDbgc->pUVM, idCpu);
 
+#ifndef VBOX_VMM_TARGET_ARMV8
     if (fTerse)
     {
         if (f64BitMode)
@@ -1433,17 +1434,72 @@ static DECLCALLBACK(int) dbgcHlpRegPrintf(PDBGCCMDHLP pCmdHlp, VMCPUID idCpu, in
                                  "fcw=%04VR{fcw} fsw=%04VR{fsw} ftw=%04VR{ftw} mxcsr=%04VR{mxcsr} mxcsr_mask=%04VR{mxcsr_mask}\n"
                                  );
     }
+#else
+    if (fTerse)
+    {
+        if (f64BitMode)
+            rc = DBGFR3RegPrintf(pDbgc->pUVM, idCpu, &szDisAndRegs[0], sizeof(szDisAndRegs),
+                                 "u %016VR{pc} L 0\n"
+                                 "x0=%016VR{x0} x1=%016VR{x1} x2=%016VR{x2} x3=%016VR{x3}\n"
+                                 "x4=%016VR{x4} x5=%016VR{x5} x6=%016VR{x6} x7=%016VR{x7}\n"
+                                 "x8=%016VR{x8} x9=%016VR{x9} x10=%016VR{x10} x11=%016VR{x11}\n"
+                                 "x12=%016VR{x12} x13=%016VR{x13} x14=%016VR{x14} x15=%016VR{x15}\n"
+                                 "x16=%016VR{x16} x17=%016VR{x17} x18=%016VR{x18} x19=%016VR{x19}\n"
+                                 "x20=%016VR{x20} x21=%016VR{x21} x22=%016VR{x22} x23=%016VR{x23}\n"
+                                 "x24=%016VR{x24} x25=%016VR{x25} x26=%016VR{x26} x27=%016VR{x27}\n"
+                                 "x28=%016VR{x28} x29=%016VR{x29} x30=%016VR{x30}\n"
+                                 "pc=%016VR{pc} pstate=%016VR{pstate}\n"
+                                 "sp_el0=%016VR{sp_el0} sp_el1=%016VR{sp_el1} elr_el1=%016VR{elr_el1}\n");
+        else
+            rc = DBGFR3RegPrintf(pDbgc->pUVM, idCpu, szDisAndRegs, sizeof(szDisAndRegs),
+                                 "u %08VR{pc} L 0\n"
+                                 "r0=%016VR{r0} r1=%016VR{r1} r2=%016VR{r2} r3=%016VR{r3}\n"
+                                 "r4=%016VR{r4} r5=%016VR{r5} r6=%016VR{r6} r7=%016VR{r7}\n"
+                                 "r8=%016VR{r8} r9=%016VR{r9} r10=%016VR{r10} r11=%016VR{r11}\n"
+                                 "pc=%016VR{pc} pstate=%016VR{pstate}\n");
+    }
+    else
+    {
+        if (f64BitMode)
+            rc = DBGFR3RegPrintf(pDbgc->pUVM, idCpu, &szDisAndRegs[0], sizeof(szDisAndRegs),
+                                 "u %016VR{pc} L 0\n"
+                                 "x0=%016VR{x0} x1=%016VR{x1} x2=%016VR{x2} x3=%016VR{x3}\n"
+                                 "x4=%016VR{x4} x5=%016VR{x5} x6=%016VR{x6} x7=%016VR{x7}\n"
+                                 "x8=%016VR{x8} x9=%016VR{x9} x10=%016VR{x10} x11=%016VR{x11}\n"
+                                 "x12=%016VR{x12} x13=%016VR{x13} x14=%016VR{x14} x15=%016VR{x15}\n"
+                                 "x16=%016VR{x16} x17=%016VR{x17} x18=%016VR{x18} x19=%016VR{x19}\n"
+                                 "x20=%016VR{x20} x21=%016VR{x21} x22=%016VR{x22} x23=%016VR{x23}\n"
+                                 "x24=%016VR{x24} x25=%016VR{x25} x26=%016VR{x26} x27=%016VR{x27}\n"
+                                 "x28=%016VR{x28} x29=%016VR{x29} x30=%016VR{x30}\n"
+                                 "pc=%016VR{pc} pstate=%016VR{pstate}\n"
+                                 "sp_el0=%016VR{sp_el0} sp_el1=%016VR{sp_el1} elr_el1=%016VR{elr_el1}\n"
+                                 "sctlr_el1=%016VR{sctlr_el1} tcr_el1=%016VR{tcr_el1}\n"
+                                 "ttbr0_el1=%016VR{ttbr0_el1} ttbr1_el1=%016VR{ttbr1_el1}\n"
+                                 "vbar_el1=%016VR{vbar_el1}\n");
+        else
+            rc = DBGFR3RegPrintf(pDbgc->pUVM, idCpu, szDisAndRegs, sizeof(szDisAndRegs),
+                                 "u %08VR{pc} L 0\n"
+                                 "r0=%016VR{r0} r1=%016VR{r1} r2=%016VR{r2} r3=%016VR{r3}\n"
+                                 "r4=%016VR{r4} r5=%016VR{r5} r6=%016VR{r6} r7=%016VR{r7}\n"
+                                 "r8=%016VR{r8} r9=%016VR{r9} r10=%016VR{r10} r11=%016VR{r11}\n"
+                                 "pc=%016VR{pc} pstate=%016VR{pstate}\n");
+    }
+#endif
     if (RT_FAILURE(rc))
         return DBGCCmdHlpVBoxError(pCmdHlp, rc, "DBGFR3RegPrintf failed");
     char *pszRegs = strchr(szDisAndRegs, '\n');
     *pszRegs++ = '\0';
     rc = DBGCCmdHlpPrintf(pCmdHlp, "%s", pszRegs);
+    if (RT_FAILURE(rc))
+        return rc;
 
     /*
      * Disassemble one instruction at cs:[r|e]ip.
      */
+#ifndef VBOX_VMM_TARGET_ARMV8
     if (!f64BitMode && strstr(pszRegs, " vm ")) /* a bit ugly... */
         return pCmdHlp->pfnExec(pCmdHlp, "uv86 %s", szDisAndRegs + 2);
+#endif
     return pCmdHlp->pfnExec(pCmdHlp, "%s", szDisAndRegs);
 }
 

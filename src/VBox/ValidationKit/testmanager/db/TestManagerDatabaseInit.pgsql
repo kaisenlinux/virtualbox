@@ -4,7 +4,7 @@
 --
 
 --
--- Copyright (C) 2012-2023 Oracle and/or its affiliates.
+-- Copyright (C) 2012-2024 Oracle and/or its affiliates.
 --
 -- This file is part of VirtualBox base platform packages, as
 -- available from https://www.virtualbox.org.
@@ -882,6 +882,8 @@ CREATE TABLE TestBoxes (
     fChipsetIoMmu       boolean     DEFAULT NULL,
     --- Set if the test box does raw-mode tests.
     fRawMode            boolean     DEFAULT NULL,
+    -- Set if the test box does native API (NEM) tests.
+    fNativeApi          boolean     DEFAULT NULL,
     --- The (approximate) memory size in megabytes (rounded down to nearest 4 MB).
     cMbMemory           bigint      DEFAULT NULL  CHECK (cMbMemory IS NULL OR cMbMemory > 0),
     --- The amount of scratch space in megabytes (rounded down to nearest 64 MB).

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,18 +31,19 @@
 
 /* GUI includes: */
 #include "UICloudNetworkingStuff.h"
-#include "UICommon.h"
 #include "UIConverter.h"
 #include "UIErrorString.h"
 #include "UIIconPool.h"
 #include "UINotificationCenter.h"
 #include "UIProgressTask.h"
+#include "UITranslationEventListener.h"
 #include "UIThreadPool.h"
 #include "UIVirtualMachineItemCloud.h"
 
 /* COM includes: */
 #include "CProgress.h"
 #include "CVirtualBoxErrorInfo.h"
+#include <VBox/com/VirtualBox.h> /* For GUEST_OS_ID_STR_X86. */
 
 
 /** UIProgressTask extension performing cloud machine refresh task.
@@ -112,7 +113,8 @@ UIVirtualMachineItemCloud::UIVirtualMachineItemCloud(UIFakeCloudVirtualMachineIt
     : UIVirtualMachineItem(UIVirtualMachineItemType_CloudFake)
     , m_enmMachineState(KCloudMachineState_Invalid)
     , m_enmFakeCloudItemState(enmState)
-    , m_fRefreshScheduled(false)
+    , m_fUpdateRequiredByGlobalReason(false)
+    , m_fUpdateRequiredByLocalReason(false)
     , m_pProgressTaskRefresh(0)
 {
     prepare();
@@ -123,7 +125,8 @@ UIVirtualMachineItemCloud::UIVirtualMachineItemCloud(const CCloudMachine &comClo
     , m_comCloudMachine(comCloudMachine)
     , m_enmMachineState(KCloudMachineState_Invalid)
     , m_enmFakeCloudItemState(UIFakeCloudVirtualMachineItemState_NotApplicable)
-    , m_fRefreshScheduled(false)
+    , m_fUpdateRequiredByGlobalReason(false)
+    , m_fUpdateRequiredByLocalReason(false)
     , m_pProgressTaskRefresh(0)
 {
     prepare();
@@ -146,31 +149,27 @@ void UIVirtualMachineItemCloud::setFakeCloudItemErrorMessage(const QString &strE
     recache();
 }
 
-void UIVirtualMachineItemCloud::updateInfoAsync(bool fDelayed, bool fSubscribe /* = false */)
+void UIVirtualMachineItemCloud::setUpdateRequiredByGlobalReason(bool fRequired)
+{
+    m_fUpdateRequiredByGlobalReason = fRequired;
+}
+
+void UIVirtualMachineItemCloud::setUpdateRequiredByLocalReason(bool fRequired)
+{
+    m_fUpdateRequiredByLocalReason = fRequired;
+}
+
+void UIVirtualMachineItemCloud::updateInfoAsync(bool fDelayed)
 {
     /* Ignore refresh request if progress-task is absent: */
     if (!m_pProgressTaskRefresh)
         return;
-
-    /* Mark update scheduled if requested: */
-    if (fSubscribe)
-        m_fRefreshScheduled = true;
 
     /* Schedule refresh request in a 10 or 0 seconds
      * if progress-task isn't already scheduled or running: */
     if (   !m_pProgressTaskRefresh->isScheduled()
         && !m_pProgressTaskRefresh->isRunning())
         m_pProgressTaskRefresh->schedule(fDelayed ? 10000 : 0);
-}
-
-void UIVirtualMachineItemCloud::stopAsyncUpdates()
-{
-    /* Ignore cancel request if progress-task is absent: */
-    if (!m_pProgressTaskRefresh)
-        return;
-
-    /* Mark update canceled in any case: */
-    m_fRefreshScheduled = false;
 }
 
 void UIVirtualMachineItemCloud::waitForAsyncInfoUpdateFinished()
@@ -180,7 +179,8 @@ void UIVirtualMachineItemCloud::waitForAsyncInfoUpdateFinished()
         return;
 
     /* Mark update canceled in any case: */
-    m_fRefreshScheduled = false;
+    m_fUpdateRequiredByGlobalReason = false;
+    m_fUpdateRequiredByLocalReason = false;
 
     /* Cancel refresh request
      * if progress-task already running: */
@@ -206,7 +206,7 @@ void UIVirtualMachineItemCloud::recache()
             m_strAccessError = m_strFakeCloudItemErrorMessage;
 
             /* Determine VM OS type: */
-            m_strOSTypeId = "Other";
+            m_strOSTypeId = GUEST_OS_ID_STR_X86("Other");
 
             /* Determine VM states: */
             m_enmMachineState = KCloudMachineState_Stopped;
@@ -244,7 +244,7 @@ void UIVirtualMachineItemCloud::recache()
             m_strAccessError = !m_fAccessible ? UIErrorString::formatErrorInfo(m_comCloudMachine.GetAccessError()) : QString();
 
             /* Determine VM OS type: */
-            m_strOSTypeId = m_fAccessible ? m_comCloudMachine.GetOSTypeId() : "Other";
+            m_strOSTypeId = m_fAccessible ? m_comCloudMachine.GetOSTypeId() : GUEST_OS_ID_STR_X86("Other");
 
             /* Determine VM states: */
             m_enmMachineState = m_fAccessible ? m_comCloudMachine.GetState() : KCloudMachineState_Stopped;
@@ -269,7 +269,9 @@ void UIVirtualMachineItemCloud::recache()
     recachePixmap();
 
     /* Retranslate finally: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIVirtualMachineItemCloud::sltRetranslateUI);
 }
 
 void UIVirtualMachineItemCloud::recachePixmap()
@@ -341,7 +343,7 @@ bool UIVirtualMachineItemCloud::isItemCanBeSwitchedTo() const
     return false;
 }
 
-void UIVirtualMachineItemCloud::retranslateUi()
+void UIVirtualMachineItemCloud::sltRetranslateUI()
 {
     /* If machine is accessible: */
     if (accessible())
@@ -398,9 +400,10 @@ void UIVirtualMachineItemCloud::sltHandleRefreshCloudMachineInfoDone()
     /* Notify listeners: */
     emit sigRefreshFinished();
 
-    /* Refresh again if scheduled: */
-    if (m_fRefreshScheduled)
-        updateInfoAsync(true /* async? */);
+    /* Refresh again if required: */
+    if (   m_fUpdateRequiredByGlobalReason
+        || m_fUpdateRequiredByLocalReason)
+        updateInfoAsync(true /* delayed? */);
 }
 
 void UIVirtualMachineItemCloud::prepare()

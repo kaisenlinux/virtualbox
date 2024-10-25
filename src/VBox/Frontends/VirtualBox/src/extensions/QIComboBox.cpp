@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -312,12 +312,13 @@ void QIComboBox::setSizeAdjustPolicy(QComboBox::SizeAdjustPolicy enmPolicy)
     m_pComboBox->setSizeAdjustPolicy(enmPolicy);
 }
 
-void QIComboBox::mark(bool fError, const QString &strErrorMessage /* = QString() */)
+void QIComboBox::mark(bool fError, const QString &strErrorMessage, const QString &strNoErrorMessage)
 {
     AssertPtrReturnVoid(m_pComboBox);
     QILineEdit *pLineEdit = isEditable() ? qobject_cast<QILineEdit*>(m_pComboBox->lineEdit()) : 0;
+    setMarkable(true);
     if (pLineEdit)
-        pLineEdit->mark(fError, strErrorMessage);
+        pLineEdit->mark(fError, strErrorMessage, strNoErrorMessage);
 }
 
 void QIComboBox::insertSeparator(int iIndex)
@@ -386,6 +387,13 @@ void QIComboBox::setItemText(int iIndex, const QString &strText) const
     m_pComboBox->setItemText(iIndex, strText);
 }
 
+void QIComboBox::setMarkable(bool fMarkable)
+{
+    QILineEdit *pLineEdit = isEditable() ? qobject_cast<QILineEdit*>(m_pComboBox->lineEdit()) : 0;
+    if (pLineEdit)
+        pLineEdit->setMarkable(fMarkable);
+}
+
 void QIComboBox::prepare()
 {
     /* Install QIComboBox accessibility interface factory: */
@@ -405,26 +413,12 @@ void QIComboBox::prepare()
         {
             /* Configure combo-box: */
             setFocusProxy(m_pComboBox);
-            connect(m_pComboBox, static_cast<void(QComboBox::*)(int)>(&QComboBox::activated),
-                    this, static_cast<void(QIComboBox::*)(int)>(&QIComboBox::activated));
-#ifdef VBOX_IS_QT6_OR_LATER /* textActivated was added in 5.14 actually */
-            connect(m_pComboBox, &QComboBox::textActivated,
-                    this, &QIComboBox::textActivated);
-#else
-            connect(m_pComboBox, static_cast<void(QComboBox::*)(const QString &)>(&QComboBox::activated),
-                    this, static_cast<void(QIComboBox::*)(const QString &)>(&QIComboBox::textActivated));
-#endif
-            connect(m_pComboBox, static_cast<void(QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
-                    this, static_cast<void(QIComboBox::*)(int)>(&QIComboBox::currentIndexChanged));
+            connect(m_pComboBox, &QComboBox::activated, this, &QIComboBox::activated);
+            connect(m_pComboBox, &QComboBox::textActivated, this, &QIComboBox::textActivated);
+            connect(m_pComboBox, &QComboBox::currentIndexChanged, this, &QIComboBox::currentIndexChanged);
             connect(m_pComboBox, &QComboBox::currentTextChanged, this, &QIComboBox::currentTextChanged);
             connect(m_pComboBox, &QComboBox::editTextChanged, this, &QIComboBox::editTextChanged);
-#ifdef VBOX_IS_QT6_OR_LATER /* textHighlighted was added in 5.14 actually */
-            connect(m_pComboBox, &QComboBox::textHighlighted,
-                    this, &QIComboBox::textHighlighted);
-#else
-            connect(m_pComboBox, static_cast<void(QComboBox::*)(const QString &)>(&QComboBox::highlighted),
-                    this, static_cast<void(QIComboBox::*)(const QString &)>(&QIComboBox::textHighlighted));
-#endif
+            connect(m_pComboBox, &QComboBox::textHighlighted, this, &QIComboBox::textHighlighted);
             /* Add combo-box into layout: */
             pLayout->addWidget(m_pComboBox);
         }

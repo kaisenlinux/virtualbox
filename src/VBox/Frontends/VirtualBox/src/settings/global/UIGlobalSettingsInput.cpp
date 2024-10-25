@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -36,7 +36,6 @@
 #include "UIShortcutConfigurationEditor.h"
 #include "UIShortcutPool.h"
 #include "UITranslator.h"
-
 
 /** Global settings: Input page data structure. */
 struct UIDataSettingsGlobalInput
@@ -106,7 +105,7 @@ void UIGlobalSettingsInput::loadToCacheFrom(QVariant &data)
     UIShortcutConfigurationList list;
     list << UIShortcutConfigurationItem(UIHostCombo::hostComboCacheKey(),
                                         QString(),
-                                        tr("Host Key Combination"),
+                                        tr("Host Key Combo"),
                                         gEDataManager->hostKeyCombination(),
                                         QString());
     const QMap<QString, UIShortcut> &shortcuts = gShortcutPool->shortcuts();
@@ -203,7 +202,7 @@ bool UIGlobalSettingsInput::validate(QList<UIValidationMessage> &messages)
     return fPass;
 }
 
-void UIGlobalSettingsInput::retranslateUi()
+void UIGlobalSettingsInput::sltRetranslateUI()
 {
 }
 
@@ -215,10 +214,9 @@ void UIGlobalSettingsInput::prepare()
 
     /* Prepare everything: */
     prepareWidgets();
-    prepareConnections();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIGlobalSettingsInput::prepareWidgets()
@@ -230,19 +228,21 @@ void UIGlobalSettingsInput::prepareWidgets()
         /* Prepare 'shortcut configuration' editor: */
         m_pEditorShortcutConfiguration = new UIShortcutConfigurationEditor(this);
         if (m_pEditorShortcutConfiguration)
+        {
+            connect(m_pEditorShortcutConfiguration, &UIShortcutConfigurationEditor::sigValueChanged,
+                    this, &UIGlobalSettingsInput::revalidate);
+            addEditor(m_pEditorShortcutConfiguration);
             pLayout->addWidget(m_pEditorShortcutConfiguration);
+        }
 
         /* Prepare 'auto capture keyboard' editor: */
         m_pEditorAutoCaptureKeyboard = new UIAutoCaptureKeyboardEditor(this);
         if (m_pEditorAutoCaptureKeyboard)
+        {
+            addEditor(m_pEditorAutoCaptureKeyboard);
             pLayout->addWidget(m_pEditorAutoCaptureKeyboard);
+        }
     }
-}
-
-void UIGlobalSettingsInput::prepareConnections()
-{
-    connect(m_pEditorShortcutConfiguration, &UIShortcutConfigurationEditor::sigValueChanged,
-            this, &UIGlobalSettingsInput::revalidate);
 }
 
 void UIGlobalSettingsInput::cleanup()

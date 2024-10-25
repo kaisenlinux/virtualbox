@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2014-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2014-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -311,8 +311,12 @@ int AudioMixerSetMasterVolume(PAUDIOMIXER pMixer, PCPDMAUDIOVOLUME pVol)
      */
     LogFlowFunc(("[%s] fMuted=%RTbool auChannels=%.*Rhxs => fMuted=%RTbool auChannels=%.*Rhxs\n", pMixer->pszName,
                  pMixer->VolMaster.fMuted, sizeof(pMixer->VolMaster.auChannels), pMixer->VolMaster.auChannels,
-                 pVol->fMuted, sizeof(pVol->auChannels), pVol->auChannels ));
+                 pVol->fMuted, sizeof(pVol->auChannels), pVol->auChannels));
     memcpy(&pMixer->VolMaster, pVol, sizeof(PDMAUDIOVOLUME));
+
+    LogRelMax(256, ("Audio Mixer: %s master volume of '%s' -- channel volumes: %.*Rhxs\n",
+                    pMixer->VolMaster.fMuted ? "MUTING" : "Setting",
+                    pMixer->pszName, sizeof(pMixer->VolMaster.auChannels), pMixer->VolMaster.auChannels));
 
     /*
      * Propagate new master volume to all sinks.
@@ -656,7 +660,7 @@ int AudioMixerSinkDrainAndStop(PAUDMIXSINK pSink, uint32_t cbComming)
 
     LogRel2(("Audio Mixer: Started draining sink '%s': %s\n", pSink->pszName, dbgAudioMixerSinkStatusToStr(pSink->fStatus, szStatus)));
     RTCritSectLeave(&pSink->CritSect);
-    return VINF_SUCCESS;
+    return rc;
 }
 
 
@@ -1108,6 +1112,11 @@ static int audioMixerSinkUpdateVolume(PAUDMIXSINK pSink, PCPDMAUDIOVOLUME pVolMa
                  pSink->Volume.fMuted, sizeof(pSink->Volume.auChannels), pSink->Volume.auChannels,
                  pSink->VolumeCombined.fMuted, sizeof(pSink->VolumeCombined.auChannels), pSink->VolumeCombined.auChannels ));
 
+    LogRelMax(256, ("Audio Mixer: %s sink '%s/%s' -- channel volumes: %.*Rhxs\n",
+                    pSink->VolumeCombined.fMuted ? "MUTING" : "Setting",
+                    pSink->pParent->pszName, pSink->pszName,
+                    sizeof(pSink->VolumeCombined.auChannels), pSink->VolumeCombined.auChannels));
+
     AudioMixBufSetVolume(&pSink->MixBuf, &pSink->VolumeCombined);
     return VINF_SUCCESS;
 }
@@ -1130,9 +1139,6 @@ int AudioMixerSinkSetVolume(PAUDMIXSINK pSink, PCPDMAUDIOVOLUME pVol)
     AssertRCReturn(rc, rc);
 
     memcpy(&pSink->Volume, pVol, sizeof(PDMAUDIOVOLUME));
-
-    LogRel2(("Audio Mixer: Setting volume of sink '%s' to fMuted=%RTbool auChannels=%.*Rhxs\n",
-              pSink->pszName, pVol->fMuted, sizeof(pVol->auChannels), pVol->auChannels));
 
     Assert(pSink->pParent);
     if (pSink->pParent)
@@ -1559,6 +1565,8 @@ static int audioMixerSinkUpdateOutput(PAUDMIXSINK pSink)
     {
         if (cFramesToRead > 0)
         {
+            PAUDIOHLPFILE pFile = pSink->Dbg.pFile; /* Beacon for writing multiplexed data only once. */
+
             /*
              * For each of the enabled streams, convert cFramesToRead frames from
              * the mixing buffer and write that to the downstream driver.
@@ -1589,6 +1597,12 @@ static int audioMixerSinkUpdateOutput(PAUDMIXSINK pSink)
                         AudioMixBufPeek(&pSink->MixBuf, offSrcFrame, cSrcFramesPeeked, &cSrcFramesPeeked,
                                         &pMixStream->PeekState, pvBuf, cbBuf, &cbDstPeeked);
                         offSrcFrame += cSrcFramesPeeked;
+
+                        if (RT_UNLIKELY(pFile))
+                        {
+                            AudioHlpFileWrite(pFile, pvBuf, cbDstPeeked);
+                            pFile = NULL;
+                        }
 
                         /* Write it to the backend.  Since've checked that there is buffer
                            space available, this should always write the whole buffer unless
@@ -2012,7 +2026,7 @@ uint64_t AudioMixerSinkTransferFromCircBuf(PAUDMIXSINK pSink, PRTCIRCBUF pCircBu
     RT_NOREF(idStream);
 
     int rc = RTCritSectEnter(&pSink->CritSect);
-    AssertRCReturn(rc, rc);
+    AssertRCReturn(rc, offStream);
 
     /*
      * Figure how much that we can push down.

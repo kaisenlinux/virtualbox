@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -426,7 +426,7 @@ static RTL_QUERY_REGISTRY_TABLE     g_aRegValues[] =
     {
         /* .QueryRoutine = */   NULL,
         /* .Flags = */          RTL_QUERY_REGISTRY_DIRECT | RTL_QUERY_REGISTRY_TYPECHECK,
-        /* .Name = */           L"ForceAsyncTsc",
+        /* .Name = */           (PWSTR)L"ForceAsyncTsc",
         /* .EntryContext = */   &g_Options.fOptForceAsyncTsc,
         /* .DefaultType = */    (REG_DWORD << RTL_QUERY_REGISTRY_TYPECHECK_SHIFT) | REG_DWORD,
         /* .DefaultData = */    &g_fOptDefaultZero,
@@ -766,17 +766,21 @@ NTSTATUS _stdcall DriverEntry(PDRIVER_OBJECT pDrvObj, PUNICODE_STRING pRegPath)
                          * Done! Returning success!
                          */
                         Log(("VBoxDrv::DriverEntry returning STATUS_SUCCESS\n"));
+                        DbgPrint("VBoxSup::DriverEntry: returning STATUS_SUCCESS\n"); /* temp for @bugref{10657} */
                         return STATUS_SUCCESS;
                     }
 
                     /*
                      * Failed. Clean up.
                      */
+                    DbgPrint("VBoxSup::DriverEntry: supdrvInitDevExit failed with vrc=%d!\n", vrc);
                     Log(("supdrvInitDevExit failed with vrc=%d!\n", vrc));
                     rcNt = VBoxDrvNtErr2NtStatus(vrc);
 
                     vboxdrvNtDestroyDevices();
                 }
+                else
+                    DbgPrint("VBoxSup::DriverEntry: vboxdrvNtCreateDevices failed with rcNt=%#x!\n", rcNt);
 #ifdef VBOXDRV_WITH_SID_TO_UID_MAPPING
                 RTSpinlockDestroy(g_hNtUserIdLock);
                 g_hNtUserIdLock = NIL_RTSPINLOCK;
@@ -784,17 +788,25 @@ NTSTATUS _stdcall DriverEntry(PDRIVER_OBJECT pDrvObj, PUNICODE_STRING pRegPath)
             }
 #ifdef VBOXDRV_WITH_SID_TO_UID_MAPPING
             else
+            {
+                DbgPrint("VBoxSup::DriverEntry: RTSpinlockCreate failed with vrc=%d!\n", vrc);
                 rcNt = VBoxDrvNtErr2NtStatus(vrc);
+            }
 #endif
 #ifdef VBOX_WITH_HARDENING
             supdrvNtProtectTerm();
 #endif
         }
+#ifdef VBOX_WITH_HARDENING
+        else
+            DbgPrint("VBoxSup::DriverEntry: supdrvNtProtectInit failed with rcNt=%#x!\n", rcNt);
+#endif
         RTTermRunCallbacks(RTTERMREASON_UNLOAD, 0);
         RTR0Term();
     }
     else
     {
+        DbgPrint("VBoxSup::DriverEntry: RTR0Init failed with vrc=%d!\n", vrc);
         Log(("RTR0Init failed with vrc=%d!\n", vrc));
         rcNt = VBoxDrvNtErr2NtStatus(vrc);
     }
@@ -5656,7 +5668,9 @@ static NTSTATUS supdrvNtProtectInit(void)
                             return STATUS_SUCCESS;
                         }
                     }
+                    DbgPrint("VBoxSup: ObRegisterCallbacks failed with rcNt=%#x\n", rcNt); /* temp for @bugref{10657} */
                     LogRel(("vboxdrv: ObRegisterCallbacks failed with rcNt=%#x\n", rcNt));
+
                     g_pvObCallbacksCookie = NULL;
                 }
                 else
@@ -5697,8 +5711,12 @@ static NTSTATUS supdrvNtProtectInit(void)
                     PsSetCreateProcessNotifyRoutine(supdrvNtProtectCallback_ProcessCreateNotify, TRUE /*fRemove*/);
             }
             else
+            {
+                DbgPrint("VBoxSup: PsSetCreateProcessNotifyRoutine%s failed with rcNt=%#x!\n",
+                         g_pfnPsSetCreateProcessNotifyRoutineEx ? "Ex" : "", rcNt); /* temp for @bugref{10657} */
                 LogRel(("vboxdrv: PsSetCreateProcessNotifyRoutine%s failed with rcNt=%#x\n",
                         g_pfnPsSetCreateProcessNotifyRoutineEx ? "Ex" : "", rcNt));
+            }
             supHardenedWinTermImageVerifier();
         }
         else

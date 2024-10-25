@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -39,19 +39,23 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <QWindow>
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
 # include <QWindowStateChangeEvent>
 #endif
 
 /* GUI includes: */
-#include "UIMiniToolBar.h"
-#include "UIAnimationFramework.h"
-#include "UIIconPool.h"
-#include "UIDesktopWidgetWatchdog.h"
 #include "UICommon.h"
-#ifdef VBOX_WS_X11
+#include "UIAnimationFramework.h"
+#include "UIDesktopWidgetWatchdog.h"
+#include "UIIconPool.h"
+#include "UILoggingDefs.h"
+#include "UIMiniToolBar.h"
+#ifdef VBOX_WS_NIX
 # include "UIExtraDataManager.h"
 #endif
+
+/* Other VBox includes: */
+#include "iprt/assert.h"
 
 
 /** QIToolBar reimplementation
@@ -96,13 +100,13 @@ public:
 protected:
 
     /** Show @a pEvent handler. */
-    virtual void showEvent(QShowEvent *pEvent);
+    virtual void showEvent(QShowEvent *pEvent) RT_OVERRIDE RT_FINAL;
     /** Polish @a pEvent handler. */
     virtual void polishEvent(QShowEvent *pEvent);
     /** Resize @a pEvent handler. */
-    virtual void resizeEvent(QResizeEvent *pEvent);
+    virtual void resizeEvent(QResizeEvent *pEvent) RT_OVERRIDE RT_FINAL;
     /** Paint @a pEvent handler. */
-    virtual void paintEvent(QPaintEvent *pEvent);
+    virtual void paintEvent(QPaintEvent *pEvent) RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -292,12 +296,12 @@ void UIMiniToolBarPrivate::prepare()
     setIconSize(QSize(iIconMetric, iIconMetric));
 
     /* Left margin: */
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     if (uiCommon().isCompositingManagerRunning())
         m_spacings << widgetForAction(addWidget(new QWidget));
-#else /* !VBOX_WS_X11 */
+#else /* !VBOX_WS_NIX */
     m_spacings << widgetForAction(addWidget(new QWidget));
-#endif /* !VBOX_WS_X11 */
+#endif /* !VBOX_WS_NIX */
 
     /* Prepare push-pin: */
     m_pAutoHideAction = new QAction(this);
@@ -347,20 +351,20 @@ void UIMiniToolBarPrivate::prepare()
     addAction(m_pCloseAction);
 
     /* Right margin: */
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     if (uiCommon().isCompositingManagerRunning())
         m_spacings << widgetForAction(addWidget(new QWidget));
-#else /* !VBOX_WS_X11 */
+#else /* !VBOX_WS_NIX */
     m_spacings << widgetForAction(addWidget(new QWidget));
-#endif /* !VBOX_WS_X11 */
+#endif /* !VBOX_WS_NIX */
 }
 
 void UIMiniToolBarPrivate::rebuildShape()
 {
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     if (!uiCommon().isCompositingManagerRunning())
         return;
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
 
     /* Rebuild shape: */
     QPainterPath shape;
@@ -408,7 +412,7 @@ Qt::WindowFlags UIMiniToolBar::defaultWindowFlags(GeometryType geometryType)
     /* Not everywhere: */
     Q_UNUSED(geometryType);
 
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     /* Depending on current WM: */
     switch (uiCommon().typeOfWindowManager())
     {
@@ -427,7 +431,7 @@ Qt::WindowFlags UIMiniToolBar::defaultWindowFlags(GeometryType geometryType)
                    Qt::Window | Qt::FramelessWindowHint;
         default: break;
     }
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
 
     /* Frameless window by default: */
     return Qt::Window | Qt::FramelessWindowHint;
@@ -453,7 +457,7 @@ UIMiniToolBar::UIMiniToolBar(QWidget *pParent,
     , m_pHoverEnterTimer(0)
     , m_pHoverLeaveTimer(0)
     , m_pAnimation(0)
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     , m_fIsParentMinimized(false)
 #endif
 {
@@ -554,10 +558,10 @@ void UIMiniToolBar::adjustGeometry()
     else
         m_pToolbar->move(m_hiddenToolbarPosition);
 
-#if defined(VBOX_WS_WIN) || defined(VBOX_WS_X11)
+#if defined(VBOX_WS_WIN) || defined(VBOX_WS_NIX)
     /* Adjust window mask: */
     setMask(m_pToolbar->geometry());
-#endif /* VBOX_WS_WIN || VBOX_WS_X11 */
+#endif /* VBOX_WS_WIN || VBOX_WS_NIX */
 }
 
 bool UIMiniToolBar::eventFilter(QObject *pWatched, QEvent *pEvent)
@@ -568,14 +572,14 @@ bool UIMiniToolBar::eventFilter(QObject *pWatched, QEvent *pEvent)
 #if   defined(VBOX_WS_WIN)
         /* Just call the method asynchronously, after possible popups opened: */
         QTimer::singleShot(0, this, SLOT(sltCheckWindowActivationSanity()));
-#elif defined(VBOX_WS_X11)
+#elif defined(VBOX_WS_NIX)
         // WORKAROUND:
         // Under certain WMs we can receive stolen activation event too early,
         // returning activation to initial source immediately makes no sense.
         // In fact, Qt is not become aware of actual window activation later,
         // so we are going to check for window activation in let's say 100ms.
         QTimer::singleShot(100, this, SLOT(sltCheckWindowActivationSanity()));
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
     }
 
     /* If that's parent window event: */
@@ -647,7 +651,7 @@ bool UIMiniToolBar::eventFilter(QObject *pWatched, QEvent *pEvent)
                 QMetaObject::invokeMethod(this, "sltShow", Qt::QueuedConnection);
                 break;
             }
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
             case QEvent::WindowStateChange:
             {
                 /* Watch for parent window state changes: */
@@ -693,7 +697,7 @@ bool UIMiniToolBar::eventFilter(QObject *pWatched, QEvent *pEvent)
                 }
                 break;
             }
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
             default:
                 break;
         }
@@ -709,11 +713,7 @@ void UIMiniToolBar::resizeEvent(QResizeEvent*)
     adjustGeometry();
 }
 
-#ifdef VBOX_IS_QT6_OR_LATER /* QWidget::enterEvent uses QEnterEvent since qt6 */
 void UIMiniToolBar::enterEvent(QEnterEvent*)
-#else
-void UIMiniToolBar::enterEvent(QEvent*)
-#endif
 {
     /* Stop the hover-leave timer if necessary: */
     if (m_pHoverLeaveTimer && m_pHoverLeaveTimer->isActive())
@@ -817,7 +817,7 @@ void UIMiniToolBar::sltHide()
     setWindowState(Qt::WindowNoState);
     hide();
 
-#elif defined(VBOX_WS_X11)
+#elif defined(VBOX_WS_NIX)
 
     /* Just hide window: */
     hide();
@@ -868,7 +868,7 @@ void UIMiniToolBar::sltShow()
         }
     }
 
-#elif defined(VBOX_WS_X11)
+#elif defined(VBOX_WS_NIX)
 
     /* Show window in necessary mode: */
     switch (m_geometryType)
@@ -978,7 +978,7 @@ void UIMiniToolBar::sltAdjust()
         }
     }
 
-#elif defined(VBOX_WS_X11)
+#elif defined(VBOX_WS_NIX)
 
     switch (m_geometryType)
     {
@@ -1072,11 +1072,11 @@ void UIMiniToolBar::prepare()
     setAttribute(Qt::WA_NoSystemBackground);
     /* Enable translucency through Qt API: */
     setAttribute(Qt::WA_TranslucentBackground);
-#elif defined(VBOX_WS_X11)
+#elif defined(VBOX_WS_NIX)
     /* Enable translucency through Qt API if supported: */
     if (uiCommon().isCompositingManagerRunning())
         setAttribute(Qt::WA_TranslucentBackground);
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
 
     /* Make sure we have no focus: */
     setFocusPolicy(Qt::NoFocus);
@@ -1146,7 +1146,7 @@ void UIMiniToolBar::prepare()
     /* Adjust geometry first time: */
     adjustGeometry();
 
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     /* Hide mini-toolbar from taskbar and pager: */
     NativeWindowSubsystem::X11SetSkipTaskBarFlag(this);
     NativeWindowSubsystem::X11SetSkipPagerFlag(this);
@@ -1190,10 +1190,10 @@ void UIMiniToolBar::setToolbarPosition(QPoint point)
     AssertPtrReturnVoid(m_pToolbar);
     m_pToolbar->move(point);
 
-#if defined(VBOX_WS_WIN) || defined(VBOX_WS_X11)
+#if defined(VBOX_WS_WIN) || defined(VBOX_WS_NIX)
     /* Update window mask: */
     setMask(m_pToolbar->geometry());
-#endif /* VBOX_WS_WIN || VBOX_WS_X11 */
+#endif /* VBOX_WS_WIN || VBOX_WS_NIX */
 }
 
 QPoint UIMiniToolBar::toolbarPosition() const
@@ -1205,7 +1205,7 @@ QPoint UIMiniToolBar::toolbarPosition() const
 
 bool UIMiniToolBar::isParentMinimized() const
 {
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     return m_fIsParentMinimized;
 #else
     return m_pParent->isMinimized();

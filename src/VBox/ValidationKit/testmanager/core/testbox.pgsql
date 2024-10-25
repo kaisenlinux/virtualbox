@@ -4,7 +4,7 @@
 --
 
 --
--- Copyright (C) 2012-2023 Oracle and/or its affiliates.
+-- Copyright (C) 2012-2024 Oracle and/or its affiliates.
 --
 -- This file is part of VirtualBox base platform packages, as
 -- available from https://www.virtualbox.org.
@@ -527,6 +527,7 @@ CREATE OR REPLACE function TestBoxLogic_updateOnSignOn(a_idTestBox          INTE
                                                        a_fCpu64BitGuest     boolean,
                                                        a_fChipsetIoMmu      boolean,
                                                        a_fRawMode           boolean,
+                                                       a_fNativeApi         boolean,
                                                        a_cMbMemory          bigint,
                                                        a_cMbScratch         bigint,
                                                        a_sReport            TEXT,
@@ -572,6 +573,7 @@ CREATE OR REPLACE function TestBoxLogic_updateOnSignOn(a_idTestBox          INTE
         v_Row.fCpu64BitGuest        := a_fCpu64BitGuest;
         v_Row.fChipsetIoMmu         := a_fChipsetIoMmu;
         v_Row.fRawMode              := a_fRawMode;
+        v_Row.fNativeApi            := a_fNativeApi;
         v_Row.cMbMemory             := a_cMbMemory;
         v_Row.cMbScratch            := a_cMbScratch;
         v_Row.idStrReport           := v_idStrReport;

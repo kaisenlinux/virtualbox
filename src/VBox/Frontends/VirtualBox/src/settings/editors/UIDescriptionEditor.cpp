@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,6 +26,7 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QTextEdit>
 #include <QVBoxLayout>
 
@@ -34,7 +35,7 @@
 
 
 UIDescriptionEditor::UIDescriptionEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent, true /* show in basic mode? */)
     , m_pTextEdit(0)
 {
     prepare();
@@ -57,11 +58,34 @@ QString UIDescriptionEditor::value() const
     return m_pTextEdit ? m_pTextEdit->toPlainText() : m_strValue;
 }
 
-void UIDescriptionEditor::retranslateUi()
+void UIDescriptionEditor::sltRetranslateUI()
 {
     if (m_pTextEdit)
+    {
         m_pTextEdit->setToolTip(tr("Holds the description of the virtual machine. The description field is useful "
                                    "for commenting on configuration details of the installed guest OS."));
+        m_pTextEdit->setProperty("description", QApplication::translate("UICommon", "Description", "DetailsElementType"));
+    }
+}
+
+QSize UIDescriptionEditor::minimumSizeHint() const
+{
+    /* Calculate on the basis of font metrics: */
+    QFontMetrics fm(m_pTextEdit->font());
+    /// @todo that's somehow glitches on arm macOS, some other widget influencing this,
+    ///       need to check why layout srinks if value set to be less ..
+    // approx. 80 symbols, not very precise:
+    const int iWidth = fm.averageCharWidth() * 80;
+    // exact. 7 symbols, quite precise:
+    const int iHeight = fm.lineSpacing() * 7
+                      + m_pTextEdit->document()->documentMargin() * 2
+                      + m_pTextEdit->frameWidth() * 2;
+    return QSize(iWidth, iHeight);
+}
+
+QSize UIDescriptionEditor::sizeHint() const
+{
+    return minimumSizeHint();
 }
 
 void UIDescriptionEditor::prepare()
@@ -77,15 +101,13 @@ void UIDescriptionEditor::prepare()
         if (m_pTextEdit)
         {
             setFocusProxy(m_pTextEdit);
+            m_pTextEdit->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Minimum);
             m_pTextEdit->setAcceptRichText(false);
-#ifdef VBOX_WS_MAC
-            m_pTextEdit->setMinimumHeight(150);
-#endif
 
             pLayout->addWidget(m_pTextEdit);
         }
     }
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -30,8 +30,10 @@
 
 /* GUI includes: */
 #include "QIDialog.h"
-#include "UICommon.h"
 #include "UIDesktopWidgetWatchdog.h"
+
+/* Other VBox includes: */
+#include "iprt/assert.h"
 
 
 QIDialog::QIDialog(QWidget *pParent /* = 0 */, Qt::WindowFlags enmFlags /* = Qt::WindowFlags() */)
@@ -144,6 +146,7 @@ void QIDialog::polishEvent(QShowEvent *)
     setFixedSize(size());
 #endif /* VBOX_WS_MAC */
 
-    /* Explicit centering according to our parent: */
-    gpDesktop->centerWidget(this, parentWidget(), false);
+    /* Explicit centering according to parent if any: */
+    if (parentWidget())
+        gpDesktop->centerWidget(this, parentWidget(), false);
 }

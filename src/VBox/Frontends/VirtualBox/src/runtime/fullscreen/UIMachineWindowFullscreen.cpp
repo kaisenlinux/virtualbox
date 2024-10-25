@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,27 +26,29 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QMenu>
 #include <QTimer>
+#include <QWindowStateChangeEvent>
 #ifdef VBOX_WS_WIN
 # include <QWindow>
 #endif
 
 /* GUI includes: */
+#include "UIActionPoolRuntime.h"
 #include "UICommon.h"
 #include "UIDesktopWidgetWatchdog.h"
 #include "UIExtraDataManager.h"
-#include "UISession.h"
-#include "UIActionPoolRuntime.h"
+#include "UILoggingDefs.h"
+#include "UIMachine.h"
+#include "UIMachineView.h"
 #include "UIMachineLogicFullscreen.h"
 #include "UIMachineWindowFullscreen.h"
-#include "UIMachineView.h"
 #include "UINotificationCenter.h"
-#if   defined(VBOX_WS_WIN) || defined(VBOX_WS_X11)
+#if   defined(VBOX_WS_WIN) || defined(VBOX_WS_NIX)
 # include "UIMachineDefs.h"
 # include "UIMiniToolBar.h"
 #elif defined(VBOX_WS_MAC)
-# include "UIFrameBuffer.h"
 # include "VBoxUtils-darwin.h"
 # include "UICocoaApplication.h"
 #endif /* VBOX_WS_MAC */
@@ -57,14 +59,14 @@
 
 UIMachineWindowFullscreen::UIMachineWindowFullscreen(UIMachineLogic *pMachineLogic, ulong uScreenId)
     : UIMachineWindow(pMachineLogic, uScreenId)
-#if defined(VBOX_WS_WIN) || defined(VBOX_WS_X11)
+#if defined(VBOX_WS_WIN) || defined(VBOX_WS_NIX)
     , m_pMiniToolBar(0)
-#endif /* VBOX_WS_WIN || VBOX_WS_X11 */
+#endif /* VBOX_WS_WIN || VBOX_WS_NIX */
 #ifdef VBOX_WS_MAC
     , m_fIsInFullscreenTransition(false)
 #endif /* VBOX_WS_MAC */
     , m_fWasMinimized(false)
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     , m_fIsMinimizationRequested(false)
     , m_fIsMinimized(false)
 #endif
@@ -126,7 +128,7 @@ void UIMachineWindowFullscreen::handleNativeNotification(const QString &strNativ
 }
 #endif /* VBOX_WS_MAC */
 
-#if defined(VBOX_WS_WIN) || defined(VBOX_WS_X11)
+#if defined(VBOX_WS_WIN) || defined(VBOX_WS_NIX)
 void UIMachineWindowFullscreen::sltMachineStateChanged()
 {
     /* Call to base-class: */
@@ -138,7 +140,7 @@ void UIMachineWindowFullscreen::sltMachineStateChanged()
 
 void UIMachineWindowFullscreen::sltRevokeWindowActivation()
 {
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     // WORKAROUND:
     // We could be asked to minimize already, but just
     // not yet executed that order to current moment.
@@ -151,9 +153,9 @@ void UIMachineWindowFullscreen::sltRevokeWindowActivation()
         return;
 
     /* Revoke stolen activation: */
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     raise();
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
     activateWindow();
 }
 
@@ -162,7 +164,7 @@ void UIMachineWindowFullscreen::sltHandleMiniToolBarAutoHideToggled(bool fEnable
     /* Save mini-toolbar settings: */
     gEDataManager->setAutoHideMiniToolbar(fEnabled, uiCommon().managedVMUuid());
 }
-#endif /* VBOX_WS_WIN || VBOX_WS_X11 */
+#endif /* VBOX_WS_WIN || VBOX_WS_NIX */
 
 #ifdef VBOX_WS_MAC
 void UIMachineWindowFullscreen::sltEnterNativeFullscreen(UIMachineWindow *pMachineWindow)
@@ -176,7 +178,7 @@ void UIMachineWindowFullscreen::sltEnterNativeFullscreen(UIMachineWindow *pMachi
     AssertPtrReturnVoid(pFullscreenLogic);
 
     /* Make sure this window should be shown and mapped to host-screen: */
-    if (!uisession()->isScreenVisible(m_uScreenId) ||
+    if (!uimachine()->isScreenVisible(m_uScreenId) ||
         !pFullscreenLogic->hasHostScreenForGuestScreen(m_uScreenId))
         return;
 
@@ -211,7 +213,7 @@ void UIMachineWindowFullscreen::sltExitNativeFullscreen(UIMachineWindow *pMachin
 
 void UIMachineWindowFullscreen::sltShowMinimized()
 {
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     /* Remember that we are asked to minimize: */
     m_fIsMinimizationRequested = true;
 #endif
@@ -237,10 +239,10 @@ void UIMachineWindowFullscreen::prepareVisualState()
     centralWidget()->setAutoFillBackground(true);
     setAutoFillBackground(true);
 
-#if defined(VBOX_WS_WIN) || defined(VBOX_WS_X11)
+#if defined(VBOX_WS_WIN) || defined(VBOX_WS_NIX)
     /* Prepare mini-toolbar: */
     prepareMiniToolbar();
-#endif /* VBOX_WS_WIN || VBOX_WS_X11 */
+#endif /* VBOX_WS_WIN || VBOX_WS_NIX */
 
 #ifdef VBOX_WS_MAC
     /* Make sure this window has fullscreen logic: */
@@ -266,7 +268,7 @@ void UIMachineWindowFullscreen::prepareVisualState()
 #endif /* VBOX_WS_MAC */
 }
 
-#if defined(VBOX_WS_WIN) || defined(VBOX_WS_X11)
+#if defined(VBOX_WS_WIN) || defined(VBOX_WS_NIX)
 void UIMachineWindowFullscreen::prepareMiniToolbar()
 {
     /* Make sure mini-toolbar is not restricted: */
@@ -295,16 +297,16 @@ void UIMachineWindowFullscreen::prepareMiniToolbar()
                 this, &UIMachineWindowFullscreen::sltHandleMiniToolBarAutoHideToggled);
     }
 }
-#endif /* VBOX_WS_WIN || VBOX_WS_X11 */
+#endif /* VBOX_WS_WIN || VBOX_WS_NIX */
 
-#if defined(VBOX_WS_WIN) || defined(VBOX_WS_X11)
+#if defined(VBOX_WS_WIN) || defined(VBOX_WS_NIX)
 void UIMachineWindowFullscreen::cleanupMiniToolbar()
 {
     /* Delete mini-toolbar: */
     delete m_pMiniToolBar;
     m_pMiniToolBar = 0;
 }
-#endif /* VBOX_WS_WIN || VBOX_WS_X11 */
+#endif /* VBOX_WS_WIN || VBOX_WS_NIX */
 
 void UIMachineWindowFullscreen::cleanupVisualState()
 {
@@ -317,10 +319,10 @@ void UIMachineWindowFullscreen::cleanupVisualState()
     UICocoaApplication::instance()->unregisterFromNotificationOfWindow("NSWindowDidFailToEnterFullScreenNotification", this);
 #endif /* VBOX_WS_MAC */
 
-#if defined(VBOX_WS_WIN) || defined(VBOX_WS_X11)
+#if defined(VBOX_WS_WIN) || defined(VBOX_WS_NIX)
     /* Cleanup mini-toolbar: */
     cleanupMiniToolbar();
-#endif /* VBOX_WS_WIN || VBOX_WS_X11 */
+#endif /* VBOX_WS_WIN || VBOX_WS_NIX */
 
     /* Call to base-class: */
     UIMachineWindow::cleanupVisualState();
@@ -362,8 +364,8 @@ void UIMachineWindowFullscreen::placeOnScreen()
         /* If normal geometry is null => use frame-buffer size: */
         if (geo.isNull())
         {
-            const UIFrameBuffer *pFrameBuffer = uisession()->frameBuffer(m_uScreenId);
-            geo = QRect(QPoint(0, 0), QSize(pFrameBuffer->width(), pFrameBuffer->height()).boundedTo(workingArea.size()));
+            const QSize guestScreenSize = uimachine()->guestScreenSize(m_uScreenId);
+            geo = QRect(QPoint(0, 0), guestScreenSize.boundedTo(workingArea.size()));
         }
         /* If normal geometry still null => use default size: */
         if (geo.isNull())
@@ -380,7 +382,7 @@ void UIMachineWindowFullscreen::placeOnScreen()
     /* Set appropriate window size: */
     resize(workingArea.size());
 
-#elif defined(VBOX_WS_X11)
+#elif defined(VBOX_WS_NIX)
 
     /* Determine whether we should use the native full-screen mode: */
     const bool fUseNativeFullScreen =    NativeWindowSubsystem::X11SupportsFullScreenMonitorsProtocol()
@@ -411,7 +413,7 @@ void UIMachineWindowFullscreen::showInNecessaryMode()
 #if defined(VBOX_WS_MAC)
 
     /* If window shouldn't be shown or mapped to some host-screen: */
-    if (!uisession()->isScreenVisible(m_uScreenId) ||
+    if (!uimachine()->isScreenVisible(m_uScreenId) ||
         !pFullscreenLogic->hasHostScreenForGuestScreen(m_uScreenId))
     {
         /* Hide window: */
@@ -436,7 +438,7 @@ void UIMachineWindowFullscreen::showInNecessaryMode()
 #elif defined(VBOX_WS_WIN)
 
     /* If window shouldn't be shown or mapped to some host-screen: */
-    if (!uisession()->isScreenVisible(m_uScreenId) ||
+    if (!uimachine()->isScreenVisible(m_uScreenId) ||
         !pFullscreenLogic->hasHostScreenForGuestScreen(m_uScreenId))
     {
         /* Remember whether the window was minimized: */
@@ -476,10 +478,10 @@ void UIMachineWindowFullscreen::showInNecessaryMode()
         m_pMachineView->setFocus();
     }
 
-#elif defined(VBOX_WS_X11)
+#elif defined(VBOX_WS_NIX)
 
     /* If window shouldn't be shown or mapped to some host-screen: */
-    if (!uisession()->isScreenVisible(m_uScreenId) ||
+    if (!uimachine()->isScreenVisible(m_uScreenId) ||
         !pFullscreenLogic->hasHostScreenForGuestScreen(m_uScreenId))
     {
         /* Remember whether the window was minimized: */
@@ -529,7 +531,7 @@ void UIMachineWindowFullscreen::showInNecessaryMode()
 #endif
 }
 
-#if defined(VBOX_WS_WIN) || defined(VBOX_WS_X11)
+#if defined(VBOX_WS_WIN) || defined(VBOX_WS_NIX)
 void UIMachineWindowFullscreen::updateAppearanceOf(int iElement)
 {
     /* Call to base-class: */
@@ -543,19 +545,22 @@ void UIMachineWindowFullscreen::updateAppearanceOf(int iElement)
         {
             /* Get snapshot(s): */
             QString strSnapshotName;
-            if (machine().GetSnapshotCount() > 0)
+            ulong uSnapshotCount = 0;
+            uimachine()->acquireSnapshotCount(uSnapshotCount);
+            if (uSnapshotCount > 0)
             {
-                CSnapshot snapshot = machine().GetCurrentSnapshot();
-                strSnapshotName = " (" + snapshot.GetName() + ")";
+                QString strCurrentSnapshotName;
+                uimachine()->acquireCurrentSnapshotName(strCurrentSnapshotName);
+                strSnapshotName = " (" + strCurrentSnapshotName + ")";
             }
             /* Update mini-toolbar text: */
             m_pMiniToolBar->setText(machineName() + strSnapshotName);
         }
     }
 }
-#endif /* VBOX_WS_WIN || VBOX_WS_X11 */
+#endif /* VBOX_WS_WIN || VBOX_WS_NIX */
 
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
 void UIMachineWindowFullscreen::changeEvent(QEvent *pEvent)
 {
     switch (pEvent->type())
@@ -595,7 +600,7 @@ void UIMachineWindowFullscreen::changeEvent(QEvent *pEvent)
     /* Call to base-class: */
     UIMachineWindow::changeEvent(pEvent);
 }
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
 
 #ifdef VBOX_WS_WIN
 void UIMachineWindowFullscreen::showEvent(QShowEvent *pEvent)

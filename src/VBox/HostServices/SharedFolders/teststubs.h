@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -100,5 +100,9 @@ extern int testRTPathQueryInfoEx(const char *pszPath, PRTFSOBJINFO pObjInfo, RTF
 extern int testRTSymlinkDelete(const char *pszSymlink, uint32_t fDelete);
 #define RTSymlinkRead        testRTSymlinkRead
 extern int testRTSymlinkRead(const char *pszSymlink, char *pszTarget, size_t cbTarget, uint32_t fRead);
+#define RTSymlinkCreate      testRTSymlinkCreate
+extern int testRTSymlinkCreate(const char *pszSymlink, const char *pszTarget, RTSYMLINKTYPE enmType, uint32_t fCreate);
+#define RTFileCopy           testRTFileCopy
+extern int testRTFileCopy(const char *pszSrc, const char *pszDst);
 
 #endif /* !VBOX_INCLUDED_SRC_SharedFolders_teststubs_h */

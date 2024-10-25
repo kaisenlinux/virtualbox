@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -34,36 +34,33 @@
 /* Qt includes: */
 #include <QItemSelectionModel>
 #include <QMutex>
+#include <QTableView>
 #include <QThread>
 #include <QWidget>
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CGuestSession.h"
+#include "KFsObjType.h"
 
 /* GUI includes: */
 #include "QIDialog.h"
-#include "QITableView.h"
-#include "QIWithRetranslateUI.h"
 #include "UIGuestControlDefs.h"
 
 /* Forward declarations: */
 class QAction;
 class QFileInfo;
-class QComboBox;
 class QILabel;
 class QILineEdit;
 class QGridLayout;
 class QSortFilterProxyModel;
-class QStackedWidget;
 class QTextEdit;
 class QHBoxLayout;
 class QVBoxLayout;
 class UIActionPool;
-class UICustomFileSystemItem;
-class UICustomFileSystemModel;
-class UICustomFileSystemProxyModel;
-class UIFileManagerNavigationWidget;
+class UIFileSystemItem;
+class UIFileSystemModel;
+class UIFileSystemProxyModel;
+class UIFileTableNavigationWidget;
 class UIGuestControlFileView;
 class QIToolBar;
 
@@ -103,9 +100,10 @@ protected:
 
     /** Read the directory with the path @p path recursively and collect #of objects and  total size */
     virtual void directoryStatisticsRecursive(const QString &path, UIDirectoryStatistics &statistics) = 0;
-    virtual void           run() RT_OVERRIDE;
+    virtual void run() RT_OVERRIDE;
     /** Returns the m_fOkToContinue flag */
-    bool                  isOkToContinue() const;
+    bool         isOkToContinue() const;
+
     /** Stores a list of paths whose statistics are accumulated, can be file, directory etc: */
     QStringList           m_pathList;
     UIDirectoryStatistics m_resultStatistics;
@@ -137,9 +135,9 @@ private:
 
 /** This class serves a base class for file table. Currently a guest version
  *  and a host version are derived from this base. Each of these children
- *  populates the UICustomFileSystemModel by scanning the file system
+ *  populates the UIFileSystemModel by scanning the file system
  *  differently. The file structure kept in this class as a tree. */
-class UIFileManagerTable : public QIWithRetranslateUI<QWidget>
+class UIFileManagerTable : public QWidget
 {
     Q_OBJECT;
 
@@ -148,6 +146,7 @@ signals:
     void sigLogOutput(QString strLog, const QString &strMachineName, FileManagerLogType eLogType);
     void sigDeleteConfirmationOptionChanged();
     void sigSelectionChanged(bool fHasSelection);
+    void sigAltDoubleClick();
 
 public:
 
@@ -165,6 +164,8 @@ public:
     /** Peroforms whatever is necessary after a UIFileManagerOptions change. */
     void optionsUpdated();
     bool hasSelection() const;
+    void setDragDropMode(QAbstractItemView::DragDropMode behavior);
+    virtual bool     isWindowsFileSystem() const = 0;
 
 public slots:
 
@@ -173,8 +174,11 @@ public slots:
     /* index is passed by the item view and represents the double clicked object's 'proxy' model index */
     void sltItemDoubleClicked(const QModelIndex &index);
     void sltItemClicked(const QModelIndex &index);
+    void sltAltDoubleClick();
     void sltGoUp();
     void sltGoHome();
+    void sltGoForward();
+    void sltGoBackward();
     void sltRefresh();
     void sltDelete();
     /** Calls the edit on the data item over m_pView. This causes setData(..) call on the model. After setting
@@ -202,18 +206,16 @@ protected:
         FileOperationType_Max
     };
 
-    void retranslateUi();
     void updateCurrentLocationEdit(const QString& strLocation);
     /* @p index is for model not for 'proxy' model */
     void changeLocation(const QModelIndex &index);
     void initializeFileTree();
-    void checkDotDot(QMap<QString,UICustomFileSystemItem*> &map, UICustomFileSystemItem *parent, bool isStartDir);
+    void checkDotDot(QMap<QString,UIFileSystemItem*> &map, UIFileSystemItem *parent, bool isStartDir);
 
-    virtual void     readDirectory(const QString& strPath, UICustomFileSystemItem *parent, bool isStartDir = false) = 0;
-    virtual void     deleteByItem(UICustomFileSystemItem *item) = 0;
-    virtual void     deleteByPath(const QStringList &pathList) = 0;
+    virtual bool     readDirectory(const QString& strPath, UIFileSystemItem *parent, bool isStartDir = false) = 0;
+    virtual void     deleteByItem(UIFileSystemItem *item) = 0;
     virtual void     goToHomeDirectory() = 0;
-    virtual bool     renameItem(UICustomFileSystemItem *item, QString newBaseName) = 0;
+    virtual bool     renameItem(UIFileSystemItem *item, const QString &strOldPath) = 0;
     virtual bool     createDirectory(const QString &path, const QString &directoryName) = 0;
     virtual QString  fsObjectPropertyString() = 0;
     virtual void     showProperties() = 0;
@@ -223,6 +225,7 @@ protected:
     virtual void     determinePathSeparator() = 0;
     virtual void     prepareToolbar() = 0;
     virtual void     createFileViewContextMenu(const QWidget *pWidget, const QPoint &point) = 0;
+    virtual void     toggleForwardBackwardActions() = 0;
     virtual bool     event(QEvent *pEvent) RT_OVERRIDE;
 
     /** @name Copy/Cut guest-to-guest (host-to-host) stuff.
@@ -240,15 +243,16 @@ protected:
     /** Follows the path trail, opens directories as it descends */
     void             goIntoDirectory(const QStringList &pathTrail);
     /** Goes into directory pointed by the @p item */
-    void             goIntoDirectory(UICustomFileSystemItem *item);
-    UICustomFileSystemItem* indexData(const QModelIndex &index) const;
+    void             goIntoDirectory(UIFileSystemItem *item);
+    UIFileSystemItem* indexData(const QModelIndex &index) const;
     bool             eventFilter(QObject *pObject, QEvent *pEvent) RT_OVERRIDE;
     CGuestFsObjInfo  guestFsObjectInfo(const QString& path, CGuestSession &comGuestSession) const;
     void             setSelectionDependentActionsEnabled(bool fIsEnabled);
-    UICustomFileSystemItem*   rootItem();
+    UIFileSystemItem*   rootItem();
     void             setPathSeparator(const QChar &separator);
     QHBoxLayout*     toolBarLayout();
     void             setSessionWidgetsEnabled(bool fEnabled);
+    void             setModelFileSystem(bool fIsWindowsFileSystem);
 
     QILabel                 *m_pLocationLabel;
     UIPropertiesDialog      *m_pPropertiesDialog;
@@ -266,6 +270,12 @@ protected:
     QStringList              m_copyCutBuffer;
     /** This name is appended to the log messages which are shown in the log panel. */
     QString          m_strTableName;
+    /** Contains m_pBreadCrumbsWidget and m_pLocationComboBox. */
+    UIFileTableNavigationWidget   *m_pNavigationWidget;
+
+protected slots:
+
+    virtual void sltRetranslateUI();
 
 private slots:
 
@@ -274,9 +284,11 @@ private slots:
     void sltSearchTextChanged(const QString &strText);
     /** m_pModel signals when an tree item is renamed. we try to apply this rename to the file system.
      *  if the file system rename fails we restore the old name of the item. See the comment of
-     *  sltRename() for more details. */
-    void sltHandleItemRenameAttempt(UICustomFileSystemItem *pItem, QString strOldName, QString strNewName);
+     *  sltRename() for more details. Note that when this slot is called item->path() has also changed. Thus strOldPath. */
+    void sltHandleItemRenameAttempt(UIFileSystemItem *pItem, const QString &strOldPath,
+                                    const QString &strOldName, const QString &strNewName);
     void sltHandleNavigationWidgetPathChange(const QString& strPath);
+    void sltHandleNavigationWidgetHistoryListChanged();
 
 private:
 
@@ -284,14 +296,14 @@ private:
     void             prepareObjects();
     /** @p itemIndex is assumed to be 'model' index not 'proxy model' index */
     void             deleteByIndex(const QModelIndex &itemIndex);
-    /** Returns the UICustomFileSystemItem for path / which is a direct (and single) child of m_pRootItem */
-    UICustomFileSystemItem *getStartDirectoryItem();
+    /** Returns the UIFileSystemItem for path / which is a direct (and single) child of m_pRootItem */
+    UIFileSystemItem *getStartDirectoryItem();
     void            deSelectUpDirectoryItem();
     void            setSelectionForAll(QItemSelectionModel::SelectionFlags flags);
     void            setSelection(const QModelIndex &indexInProxyModel);
     /** The start directory requires a special attention since on file systems with drive letters
      *  drive letter are direct children of the start directory. On other systems start directory is '/' */
-    void            populateStartDirectory(UICustomFileSystemItem *startItem);
+    void            populateStartDirectory(UIFileSystemItem *startItem);
     /** Root index of the m_pModel */
     QModelIndex     currentRootIndex() const;
     /* Searches the content of m_pSearchLineEdit within the current items' names and selects the item if found. */
@@ -304,12 +316,10 @@ private:
     /** Marks/umarks the search line edit to signal that there are no matches for the current search.
       * uses m_searchLineUnmarkColor and m_searchLineMarkColor. */
     void            markUnmarkSearchLineEdit(bool fMark);
-
-    UICustomFileSystemModel       *m_pModel;
-    UIGuestControlFileView        *m_pView;
-    UICustomFileSystemProxyModel  *m_pProxyModel;
-    /** Contains m_pBreadCrumbsWidget and m_pLocationComboBox. */
-    UIFileManagerNavigationWidget *m_pNavigationWidget;
+    QStringList     currentDirectoryListing() const;
+    UIFileSystemModel       *m_pModel;
+    UIGuestControlFileView  *m_pView;
+    UIFileSystemProxyModel  *m_pProxyModel;
 
     QILineEdit      *m_pSearchLineEdit;
     QColor           m_searchLineUnmarkColor;
@@ -317,7 +327,7 @@ private:
     QChar            m_pathSeparator;
     QHBoxLayout     *m_pToolBarLayout;
     QVector<QWidget*> m_sessionWidgets;
-    friend class     UICustomFileSystemModel;
+    friend class     UIFileSystemModel;
 };
 
 #endif /* !FEQT_INCLUDED_SRC_guestctrl_UIFileManagerTable_h */

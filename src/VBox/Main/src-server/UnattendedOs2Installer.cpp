@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -723,9 +723,9 @@ int UnattendedOs2Installer::patchOs2Ldr(uint8_t *pbFile, size_t cbFile, const ch
         {  s_abVariant1, s_abVariant1Mask, sizeof(s_abVariant1Mask), 0x840e - 0x840a, 0x8482 - 0x840a, 0, 0, 0 },
     };
 
-    PCOS2CODEPATTERN pPattern;
+    PCOS2CODEPATTERN pPattern = NULL;
     uint8_t *pbHit = findCodePattern(&s_aPatterns[0], RT_ELEMENTS(s_aPatterns), pbFile, cbFile, &pPattern);
-    if (pPattern)
+    if (pbHit)
     {
         uint8_t *pbJmpTarget = &pbHit[pPattern->uUser2];
         uint8_t *pbPatch = &pbHit[pPattern->uUser1];
@@ -1044,7 +1044,7 @@ HRESULT UnattendedOs2Installer::addFilesToAuxVisoVectors(RTCList<RTCString> &rVe
 /**
  * Helper for splitFile.
  */
-const char *splitFileLocateSubstring(const char *pszSrc, size_t cchSrc, const char *pszSubstring, size_t cchSubstring)
+static const char *splitFileLocateSubstring(const char *pszSrc, size_t cchSrc, const char *pszSubstring, size_t cchSubstring)
 {
     char const ch0 = *pszSubstring;
     while (cchSrc >= cchSubstring)

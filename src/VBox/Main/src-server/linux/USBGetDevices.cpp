@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1471,11 +1471,6 @@ static void *testDLSym(void *handle, const char *symbol)
     return (void *)(uintptr_t)testInotifyInitBad;
 }
 
-void TestUSBSetInotifyAvailable(bool fHaveInotifyLibC, bool fHaveInotifyKernel)
-{
-    s_fHaveInotifyLibC = fHaveInotifyLibC;
-    s_fHaveInotifyKernel = fHaveInotifyKernel;
-}
 # define dlsym testDLSym
 # define close(a) do {} while (0)
 

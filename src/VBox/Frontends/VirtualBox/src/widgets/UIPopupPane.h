@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -36,7 +36,6 @@
 #include <QWidget>
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
 #include "UILibraryDefs.h"
 
 /* Forward declaration: */
@@ -55,7 +54,7 @@ class UIPopupPaneMessage;
 class UIPopupPaneButtonPane;
 
 /** QWidget extension used as popup-center pane prototype. */
-class SHARED_LIBRARY_STUFF UIPopupPane : public QIWithRetranslateUI<QWidget>
+class SHARED_LIBRARY_STUFF UIPopupPane : public QWidget
 {
     Q_OBJECT;
     Q_PROPERTY(QSize hiddenSizeHint READ hiddenSizeHint);
@@ -116,7 +115,7 @@ public:
     void setDetails(const QString &strDetails);
 
     /** Returns minimum size-hint. */
-    QSize minimumSizeHint() const { return m_minimumSizeHint; }
+    QSize minimumSizeHint() const RT_OVERRIDE { return m_minimumSizeHint; }
     /** Defines @a minimumSizeHint. */
     void setMinimumSizeHint(const QSize &minimumSizeHint);
     /** Lays the content out. */
@@ -138,6 +137,9 @@ private slots:
     /** Handles a click of button with @a iButtonID. */
     void sltButtonClicked(int iButtonID);
 
+    /** Handles translation event. */
+    void sltRetranslateUI();
+
 private:
 
     /** A pair of strings. */
@@ -154,8 +156,6 @@ private:
     /** Prepares animation. */
     void prepareAnimation();
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
     /** Translats tool-tips. */
     void retranslateToolTips();
 
@@ -253,4 +253,3 @@ private:
 };
 
 #endif /* !FEQT_INCLUDED_SRC_widgets_UIPopupPane_h */
-

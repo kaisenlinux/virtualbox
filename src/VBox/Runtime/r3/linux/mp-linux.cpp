@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -51,6 +51,19 @@
 #include <iprt/string.h>
 #include <iprt/linux/sysfs.h>
 
+
+#if defined(RT_ARCH_ARM64) || defined(RT_ARCH_ARM32)
+# include <sched.h>
+
+RTDECL(RTCPUID) RTMpCpuId(void)
+{
+    int rc = sched_getcpu();
+    if (rc >= 0)
+        return (RTCPUID)rc;
+
+    return NIL_RTCPUID;
+}
+#endif
 
 /**
  * Internal worker that determines the max possible CPU count.

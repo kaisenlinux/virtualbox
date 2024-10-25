@@ -7,7 +7,7 @@
 #
 
 #
-# Copyright (C) 2013-2023 Oracle and/or its affiliates.
+# Copyright (C) 2013-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -56,9 +56,8 @@ VBOX_EFI_OUTPUT_SUBDIR = $(VBOX_EFI_BUILD_TARGET)_$(VBOX_EFI_TOOL_CHAIN)
 ## @todo r=andy Is this still needed? Or can we just use TOOL_YASM_AS?
 VBOX_YASMCMD   ?= $(firstword $(wildcard $(KBUILD_DEVTOOLS_HST)/bin/yasm$(HOSTSUFF_EXE)) yasm$(HOSTSUFF_EXE))
 
-# VBox nasm command
+# VBox nasm command (we share this with ValKit/bootsector/Config.kmk, thus the TOOL-style variable name).
 include $(KBUILD_PATH)/tools/NASM.kmk
-TOOL_VBoxNasm = Our version of the NASM tool
 ifndef TOOL_VBoxNasm_PATH
  TOOL_VBoxNasm_PATH   := $(firstword $(rsort $(wildcard $(KBUILD_DEVTOOLS_HST)/nasm/v*.*)))
  if "$(TOOL_VBoxNasm_PATH)" == "" && "$(KBUILD_DEVTOOLS_HST_ALT)" != ""
@@ -71,10 +70,6 @@ else
  VBOX_NASMCMD     ?= nasm$(HOSTSUFF_EXE)
 endif
 
-# EFI requires python v2.x, so provide a way to select that while using 3.x for the rest of VBox.
-ifndef VBOX_BLD_PYTHON_2X
- VBOX_BLD_PYTHON_2X = $(VBOX_BLD_PYTHON)
-endif
 
 #
 # Decide which tool chain to use for the EFI binaries.
@@ -117,6 +112,7 @@ if "$(VBOX_VCC_TOOL_STEM)" >= "VCC140"
  TEMPLATE_VBoxEfiBldProg_CFLAGS.win += -wd4477 # dlg\dlg_p.c(874): warning C4477: 'fprintf' : format string '%x' requires an argument of type 'unsigned int', but variadic argument 1 has type '_nfa_node *'
  TEMPLATE_VBoxEfiBldProg_CFLAGS.win += -wd4313 # dlg\dlg_p.c(874): warning C4313: 'fprintf': '%x' in format string conflicts with argument 1 of type '_nfa_node *'
  TEMPLATE_VBoxEfiBldProg_CFLAGS.win += -wd4459 # antlr\gen.c(756): warning C4459: declaration of 'output' hides global declaration
+ TEMPLATE_VBoxEfiBldProg_CFLAGS.win += -wd4668 # winioctl.h(10983): warning C4668: '_WIN32_WINNT_WIN10_TH2' is not defined as a preprocessor macro, replacing with '0' for '#if/#elif'
 endif
 TEMPLATE_VBoxEfiBldProg_CXXFLAGS.win  = $(TEMPLATE_VBoxBldProg_CXXFLAGS.win)
 TEMPLATE_VBoxEfiBldProg_CXXFLAGS.win += -wd4018 # warning C4018: '>' : signed/unsigned mismatch
@@ -137,17 +133,31 @@ if "$(VBOX_VCC_TOOL_STEM)" >= "VCC140"
  TEMPLATE_VBoxEfiBldProg_CXXFLAGS.win += -wd5033 # DLexer.h(68): warning C5033: 'register' is no longer a supported storage class (in c++17 or later mode)
 endif
 
+TEMPLATE_VBoxEfiBldProg_CFLAGS.linux  = $(TEMPLATE_VBoxBldProg_CFLAGS.linux)
+TEMPLATE_VBoxEfiBldProg_CFLAGS.linux += -Wno-misleading-indentation
+TEMPLATE_VBoxEfiBldProg_CFLAGS.linux += -Wno-error=stringop-truncation # VfrCompile/Pccts/antlr/mrhoist.c:2216:5: error: 'strncpy' specified bound 50 equals destination size
+
+TEMPLATE_VBoxEfiBldProg_CXXFLAGS.darwin.arm64  = $(TEMPLATE_VBoxBldProg_CXXFLAGS.darwin.arm64)
+TEMPLATE_VBoxEfiBldProg_CXXFLAGS.darwin.arm64 += -Wno-register # BaseTools/Source/C/VfrCompile/Pccts/h/AParser.cpp:475:2: error: ISO C++17 does not allow 'register' storage class specifier [-Wregister]
+TEMPLATE_VBoxEfiBldProg_CXXFLAGS.darwin.arm64 += -Wno-deprecated-declarations # out/darwin.arm64/debug/obj/VfrCompile/VfrSyntax.cpp:11241:3: error: 'sprintf' is deprecated: This function is provided for compatibility reasons only
+
 TEMPLATE_VBoxEfiBldProg_INCS = $(TEMPLATE_VBoxBldProg_INCS) \
-	$(VBOX_PATH_EFI_FIRMWARE)/BaseTools/Source/C/Include/IndustryStandard \
 	$(VBOX_PATH_EFI_FIRMWARE)/BaseTools/Source/C/Common \
 	$(VBOX_PATH_EFI_FIRMWARE)/BaseTools/Source/C/Include \
-	$(VBOX_PATH_EFI_FIRMWARE)/BaseTools/Source/C
+	$(VBOX_PATH_EFI_FIRMWARE)/BaseTools/Source/C \
+	$(VBOX_PATH_EFI_FIRMWARE)/MdePkg/Include
 
 TEMPLATE_VBoxEfiBldProg_INCS.x86 = $(TEMPLATE_VBoxBldProg_INCS.x86) \
-	$(VBOX_PATH_EFI_FIRMWARE)/BaseTools/Source/C/Include/IA32
+	$(VBOX_PATH_EFI_FIRMWARE)/MdePkg/Include/Ia32
 
 TEMPLATE_VBoxEfiBldProg_INCS.amd64 = $(TEMPLATE_VBoxBldProg_INCS.amd64) \
-	$(VBOX_PATH_EFI_FIRMWARE)/BaseTools/Source/C/Include/X64
+	$(VBOX_PATH_EFI_FIRMWARE)/MdePkg/Include/X64
+
+TEMPLATE_VBoxEfiBldProg_INCS.arm = $(TEMPLATE_VBoxBldProg_INCS.arm) \
+	$(VBOX_PATH_EFI_FIRMWARE)/MdePkg/Include/Arm
+
+TEMPLATE_VBoxEfiBldProg_INCS.arm64 = $(TEMPLATE_VBoxBldProg_INCS.arm64) \
+	$(VBOX_PATH_EFI_FIRMWARE)/MdePkg/Include/AArch64
 
 TEMPLATE_VBoxEfiBldProg_LIBS = \
 	$(VBOX_PATH_STAGE_EFI_BLDPROGS)/EfiBldCommonLib$(VBOX_SUFF_LIB) \

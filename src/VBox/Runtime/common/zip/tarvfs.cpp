@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -41,7 +41,7 @@
 #include "internal/iprt.h"
 #include <iprt/zip.h>
 
-#include <iprt/asm.h>
+#include <iprt/asm-mem.h>
 #include <iprt/assert.h>
 #include <iprt/ctype.h>
 #include <iprt/err.h>
@@ -871,7 +871,7 @@ static DECLCALLBACK(int) rtZipTarFssIos_QueryInfo(void *pvThis, PRTFSOBJINFO pOb
 /**
  * @interface_method_impl{RTVFSIOSTREAMOPS,pfnRead}
  */
-static DECLCALLBACK(int) rtZipTarFssIos_Read(void *pvThis, RTFOFF off, PCRTSGBUF pSgBuf, bool fBlocking, size_t *pcbRead)
+static DECLCALLBACK(int) rtZipTarFssIos_Read(void *pvThis, RTFOFF off, PRTSGBUF pSgBuf, bool fBlocking, size_t *pcbRead)
 {
     PRTZIPTARIOSTREAM pThis = (PRTZIPTARIOSTREAM)pvThis;
     Assert(pSgBuf->cSegs == 1);
@@ -905,6 +905,8 @@ static DECLCALLBACK(int) rtZipTarFssIos_Read(void *pvThis, RTFOFF off, PCRTSGBUF
         pcbRead = &cbReadStack;
     int rc = RTVfsIoStrmReadAt(pThis->hVfsIos, pThis->offStart + off, pSgBuf->paSegs[0].pvSeg, cbToRead, fBlocking, pcbRead);
     pThis->offFile = off + *pcbRead;
+    RTSgBufAdvance(pSgBuf, *pcbRead);
+
     if (pThis->offFile >= pThis->cbFile)
     {
         Assert(pThis->offFile == pThis->cbFile);
@@ -919,7 +921,7 @@ static DECLCALLBACK(int) rtZipTarFssIos_Read(void *pvThis, RTFOFF off, PCRTSGBUF
 /**
  * @interface_method_impl{RTVFSIOSTREAMOPS,pfnWrite}
  */
-static DECLCALLBACK(int) rtZipTarFssIos_Write(void *pvThis, RTFOFF off, PCRTSGBUF pSgBuf, bool fBlocking, size_t *pcbWritten)
+static DECLCALLBACK(int) rtZipTarFssIos_Write(void *pvThis, RTFOFF off, PRTSGBUF pSgBuf, bool fBlocking, size_t *pcbWritten)
 {
     /* Cannot write to a read-only I/O stream. */
     NOREF(pvThis); NOREF(off); NOREF(pSgBuf); NOREF(fBlocking); NOREF(pcbWritten);

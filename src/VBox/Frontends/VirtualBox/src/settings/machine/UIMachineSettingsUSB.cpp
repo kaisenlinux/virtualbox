@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -33,12 +33,10 @@
 #include <QLineEdit>
 #include <QMenu>
 #include <QRadioButton>
-#include <QRegExp>
 #include <QSpacerItem>
 #include <QVBoxLayout>
 
 /* GUI includes: */
-#include "QILabelSeparator.h"
 #include "QITreeWidget.h"
 #include "QIWidgetValidator.h"
 #include "UIConverter.h"
@@ -46,7 +44,6 @@
 #include "UIMachineSettingsUSB.h"
 #include "UIErrorString.h"
 #include "QIToolBar.h"
-#include "UICommon.h"
 #include "UIUSBFiltersEditor.h"
 #include "UIUSBSettingsEditor.h"
 
@@ -314,7 +311,7 @@ void UIMachineSettingsUSB::setOrderAfter(QWidget *pWidget)
     setTabOrder(pWidget, m_pEditorUsbSettings);
 }
 
-void UIMachineSettingsUSB::retranslateUi()
+void UIMachineSettingsUSB::sltRetranslateUI()
 {
 }
 
@@ -337,7 +334,7 @@ void UIMachineSettingsUSB::prepare()
     prepareConnections();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIMachineSettingsUSB::prepareWidgets()
@@ -349,7 +346,10 @@ void UIMachineSettingsUSB::prepareWidgets()
         /* Prepare settings editor: */
         m_pEditorUsbSettings = new UIUSBSettingsEditor(this);
         if (m_pEditorUsbSettings)
+        {
+            addEditor(m_pEditorUsbSettings);
             pLayout->addWidget(m_pEditorUsbSettings);
+        }
     }
 }
 

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -46,7 +46,7 @@
 #include "IEMInternal.h"
 #include <VBox/vmm/vmcc.h>
 #include <VBox/log.h>
-#include <VBox/disopcode.h> /* for OP_VMMCALL */
+#include <VBox/disopcode-x86-amd64.h> /* for OP_VMMCALL */
 #include <VBox/err.h>
 #include <VBox/param.h>
 #include <iprt/assert.h>
@@ -76,7 +76,7 @@
             Log((RT_STR(a_Instr) ": Real or v8086 mode -> #UD\n")); \
             return iemRaiseUndefinedOpcode(a_pVCpu); \
         } \
-        if ((a_pVCpu)->iem.s.uCpl != 0) \
+        if (IEM_GET_CPL(a_pVCpu) != 0) \
         { \
             Log((RT_STR(a_Instr) ": CPL != 0 -> #GP(0)\n")); \
             return iemRaiseGeneralProtectionFault0(a_pVCpu); \
@@ -123,8 +123,9 @@ IEM_STATIC uint8_t iemGetSvmEventType(uint32_t uVector, uint32_t fIemXcptFlags)
  *
  * @returns Strict VBox status code from PGMChangeMode.
  * @param   pVCpu   The cross context virtual CPU structure.
+ * @param   cbInstr The length of the current instruction.
  */
-DECLINLINE(VBOXSTRICTRC) iemSvmWorldSwitch(PVMCPUCC pVCpu)
+DECLINLINE(VBOXSTRICTRC) iemSvmWorldSwitch(PVMCPUCC pVCpu, uint8_t cbInstr)
 {
     /*
      * Inform PGM about paging mode changes.
@@ -136,13 +137,13 @@ DECLINLINE(VBOXSTRICTRC) iemSvmWorldSwitch(PVMCPUCC pVCpu)
     AssertRCReturn(rc, rc);
 
     /* Invalidate IEM TLBs now that we've forced a PGM mode change. */
-    IEMTlbInvalidateAll(pVCpu);
+    IEMTlbInvalidateAllGlobal(pVCpu);
 
     /* Inform CPUM (recompiler), can later be removed. */
     CPUMSetChangedFlags(pVCpu, CPUM_CHANGED_ALL);
 
     /* Re-initialize IEM cache/state after the drastic mode switch. */
-    iemReInitExec(pVCpu);
+    iemReInitExec(pVCpu, cbInstr);
     return rc;
 }
 
@@ -350,7 +351,7 @@ VBOXSTRICTRC iemSvmVmexit(PVMCPUCC pVCpu, uint64_t uExitCode, uint64_t uExitInfo
                 /*
                  * Update PGM, IEM and others of a world-switch.
                  */
-                rcStrict = iemSvmWorldSwitch(pVCpu);
+                rcStrict = iemSvmWorldSwitch(pVCpu, 0 /*cbInstr - whatever*/);
                 if (rcStrict == VINF_SUCCESS)
                     rcStrict = VINF_SVM_VMEXIT;
                 else if (RT_SUCCESS(rcStrict))
@@ -821,7 +822,7 @@ static VBOXSTRICTRC iemSvmVmrun(PVMCPUCC pVCpu, uint8_t cbInstr, RTGCPHYS GCPhys
         /*
          * Update PGM, IEM and others of a world-switch.
          */
-        VBOXSTRICTRC rcStrict = iemSvmWorldSwitch(pVCpu);
+        VBOXSTRICTRC rcStrict = iemSvmWorldSwitch(pVCpu, cbInstr);
         if (rcStrict == VINF_SUCCESS)
         { /* likely */ }
         else if (RT_SUCCESS(rcStrict))
@@ -948,12 +949,15 @@ static VBOXSTRICTRC iemSvmVmrun(PVMCPUCC pVCpu, uint8_t cbInstr, RTGCPHYS GCPhys
  *
  * @returns VBox strict status code.
  * @param   pVCpu       The cross context virtual CPU structure of the calling thread.
+ * @param   cbInstr     The length of the instruction in bytes triggering the
+ *                      event.
  * @param   u8Vector    The interrupt or exception vector.
  * @param   fFlags      The exception flags (see IEM_XCPT_FLAGS_XXX).
  * @param   uErr        The error-code associated with the exception.
  * @param   uCr2        The CR2 value in case of a \#PF exception.
  */
-VBOXSTRICTRC iemHandleSvmEventIntercept(PVMCPUCC pVCpu, uint8_t u8Vector, uint32_t fFlags, uint32_t uErr, uint64_t uCr2) RT_NOEXCEPT
+VBOXSTRICTRC iemHandleSvmEventIntercept(PVMCPUCC pVCpu, uint8_t cbInstr, uint8_t u8Vector, uint32_t fFlags,
+                                        uint32_t uErr, uint64_t uCr2) RT_NOEXCEPT
 {
     Assert(CPUMIsGuestInSvmNestedHwVirtMode(IEM_GET_CTX(pVCpu)));
 
@@ -980,7 +984,7 @@ VBOXSTRICTRC iemHandleSvmEventIntercept(PVMCPUCC pVCpu, uint8_t u8Vector, uint32
         && IEM_SVM_IS_CTRL_INTERCEPT_SET(pVCpu, SVM_CTRL_INTERCEPT_ICEBP))
     {
         Log2(("iemHandleSvmNstGstEventIntercept: ICEBP intercept -> #VMEXIT\n"));
-        IEM_SVM_UPDATE_NRIP(pVCpu);
+        IEM_SVM_UPDATE_NRIP(pVCpu, cbInstr);
         IEM_SVM_VMEXIT_RET(pVCpu, SVM_EXIT_ICEBP, 0 /* uExitInfo1 */, 0 /* uExitInfo2 */);
     }
 
@@ -1011,7 +1015,7 @@ VBOXSTRICTRC iemHandleSvmEventIntercept(PVMCPUCC pVCpu, uint8_t u8Vector, uint32
 # endif
         }
         if (u8Vector == X86_XCPT_BR)
-            IEM_SVM_UPDATE_NRIP(pVCpu);
+            IEM_SVM_UPDATE_NRIP(pVCpu, cbInstr);
         Log2(("iemHandleSvmNstGstEventIntercept: Xcpt intercept u32InterceptXcpt=%#RX32 u8Vector=%#x "
               "uExitInfo1=%#RX64 uExitInfo2=%#RX64 -> #VMEXIT\n", pVCpu->cpum.GstCtx.hwvirt.svm.Vmcb.ctrl.u32InterceptXcpt,
               u8Vector, uExitInfo1, uExitInfo2));
@@ -1027,7 +1031,7 @@ VBOXSTRICTRC iemHandleSvmEventIntercept(PVMCPUCC pVCpu, uint8_t u8Vector, uint32
     {
         uint64_t const uExitInfo1 = IEM_GET_GUEST_CPU_FEATURES(pVCpu)->fSvmDecodeAssists ? u8Vector : 0;
         Log2(("iemHandleSvmNstGstEventIntercept: Software INT intercept (u8Vector=%#x) -> #VMEXIT\n", u8Vector));
-        IEM_SVM_UPDATE_NRIP(pVCpu);
+        IEM_SVM_UPDATE_NRIP(pVCpu, cbInstr);
         IEM_SVM_VMEXIT_RET(pVCpu, SVM_EXIT_SWINT, uExitInfo1, 0 /* uExitInfo2 */);
     }
 
@@ -1073,7 +1077,7 @@ VBOXSTRICTRC iemSvmHandleIOIntercept(PVMCPUCC pVCpu, uint16_t u16Port, SVMIOIOTY
     if (fIntercept)
     {
         Log3(("iemSvmHandleIOIntercept: u16Port=%#x (%u) -> #VMEXIT\n", u16Port, u16Port));
-        IEM_SVM_UPDATE_NRIP(pVCpu);
+        IEM_SVM_UPDATE_NRIP(pVCpu, cbInstr);
         return iemSvmVmexit(pVCpu, SVM_EXIT_IOIO, IoExitInfo.u, pVCpu->cpum.GstCtx.rip + cbInstr);
     }
 
@@ -1102,7 +1106,7 @@ VBOXSTRICTRC iemSvmHandleIOIntercept(PVMCPUCC pVCpu, uint16_t u16Port, SVMIOIOTY
  *                      MSR read.
  * @param   cbInstr     The length of the MSR read/write instruction in bytes.
  */
-VBOXSTRICTRC iemSvmHandleMsrIntercept(PVMCPUCC pVCpu, uint32_t idMsr, bool fWrite) RT_NOEXCEPT
+VBOXSTRICTRC iemSvmHandleMsrIntercept(PVMCPUCC pVCpu, uint32_t idMsr, bool fWrite, uint8_t cbInstr) RT_NOEXCEPT
 {
     /*
      * Check if any MSRs are being intercepted.
@@ -1130,7 +1134,7 @@ VBOXSTRICTRC iemSvmHandleMsrIntercept(PVMCPUCC pVCpu, uint32_t idMsr, bool fWrit
          */
         if (pVCpu->cpum.GstCtx.hwvirt.svm.abMsrBitmap[offMsrpm] & RT_BIT(uMsrpmBit))
         {
-            IEM_SVM_UPDATE_NRIP(pVCpu);
+            IEM_SVM_UPDATE_NRIP(pVCpu, cbInstr);
             return iemSvmVmexit(pVCpu, SVM_EXIT_MSR, uExitInfo1, 0 /* uExitInfo2 */);
         }
     }
@@ -1160,7 +1164,7 @@ IEM_CIMPL_DEF_0(iemCImpl_vmrun)
     IEM_SVM_INSTR_COMMON_CHECKS(pVCpu, vmrun);
 
     /** @todo Check effective address size using address size prefix. */
-    RTGCPHYS const GCPhysVmcb = pVCpu->iem.s.enmCpuMode == IEMMODE_64BIT ? pVCpu->cpum.GstCtx.rax : pVCpu->cpum.GstCtx.eax;
+    RTGCPHYS const GCPhysVmcb = IEM_IS_64BIT_CODE(pVCpu) ? pVCpu->cpum.GstCtx.rax : pVCpu->cpum.GstCtx.eax;
     if (   (GCPhysVmcb & X86_PAGE_4K_OFFSET_MASK)
         || !PGMPhysIsGCPhysNormal(pVCpu->CTX_SUFF(pVM), GCPhysVmcb))
     {
@@ -1198,7 +1202,7 @@ VMM_INT_DECL(VBOXSTRICTRC) IEMExecDecodedVmrun(PVMCPUCC pVCpu, uint8_t cbInstr)
     IEMEXEC_ASSERT_INSTR_LEN_RETURN(cbInstr, 3);
     IEM_CTX_ASSERT(pVCpu, IEM_CPUMCTX_EXTRN_SVM_VMRUN_MASK);
 
-    iemInitExec(pVCpu, false /*fBypassHandlers*/);
+    iemInitExec(pVCpu, 0 /*fExecOpts*/);
     VBOXSTRICTRC rcStrict = IEM_CIMPL_CALL_0(iemCImpl_vmrun);
     Assert(!pVCpu->iem.s.cActiveMappings);
     return iemUninitExecAndFiddleStatusAndMaybeReenter(pVCpu, rcStrict);
@@ -1218,7 +1222,7 @@ IEM_CIMPL_DEF_0(iemCImpl_vmload)
     IEM_SVM_INSTR_COMMON_CHECKS(pVCpu, vmload);
 
     /** @todo Check effective address size using address size prefix. */
-    RTGCPHYS const GCPhysVmcb = pVCpu->iem.s.enmCpuMode == IEMMODE_64BIT ? pVCpu->cpum.GstCtx.rax : pVCpu->cpum.GstCtx.eax;
+    RTGCPHYS const GCPhysVmcb = IEM_IS_64BIT_CODE(pVCpu) ? pVCpu->cpum.GstCtx.rax : pVCpu->cpum.GstCtx.eax;
     if (   (GCPhysVmcb & X86_PAGE_4K_OFFSET_MASK)
         || !PGMPhysIsGCPhysNormal(pVCpu->CTX_SUFF(pVM), GCPhysVmcb))
     {
@@ -1272,7 +1276,7 @@ VMM_INT_DECL(VBOXSTRICTRC) IEMExecDecodedVmload(PVMCPUCC pVCpu, uint8_t cbInstr)
 {
     IEMEXEC_ASSERT_INSTR_LEN_RETURN(cbInstr, 3);
 
-    iemInitExec(pVCpu, false /*fBypassHandlers*/);
+    iemInitExec(pVCpu, 0 /*fExecOpts*/);
     VBOXSTRICTRC rcStrict = IEM_CIMPL_CALL_0(iemCImpl_vmload);
     Assert(!pVCpu->iem.s.cActiveMappings);
     return iemUninitExecAndFiddleStatusAndMaybeReenter(pVCpu, rcStrict);
@@ -1292,7 +1296,7 @@ IEM_CIMPL_DEF_0(iemCImpl_vmsave)
     IEM_SVM_INSTR_COMMON_CHECKS(pVCpu, vmsave);
 
     /** @todo Check effective address size using address size prefix. */
-    RTGCPHYS const GCPhysVmcb = pVCpu->iem.s.enmCpuMode == IEMMODE_64BIT ? pVCpu->cpum.GstCtx.rax : pVCpu->cpum.GstCtx.eax;
+    RTGCPHYS const GCPhysVmcb = IEM_IS_64BIT_CODE(pVCpu) ? pVCpu->cpum.GstCtx.rax : pVCpu->cpum.GstCtx.eax;
     if (   (GCPhysVmcb & X86_PAGE_4K_OFFSET_MASK)
         || !PGMPhysIsGCPhysNormal(pVCpu->CTX_SUFF(pVM), GCPhysVmcb))
     {
@@ -1352,7 +1356,7 @@ VMM_INT_DECL(VBOXSTRICTRC) IEMExecDecodedVmsave(PVMCPUCC pVCpu, uint8_t cbInstr)
 {
     IEMEXEC_ASSERT_INSTR_LEN_RETURN(cbInstr, 3);
 
-    iemInitExec(pVCpu, false /*fBypassHandlers*/);
+    iemInitExec(pVCpu, 0 /*fExecOpts*/);
     VBOXSTRICTRC rcStrict = IEM_CIMPL_CALL_0(iemCImpl_vmsave);
     Assert(!pVCpu->iem.s.cActiveMappings);
     return iemUninitExecAndFiddleStatusAndMaybeReenter(pVCpu, rcStrict);
@@ -1400,7 +1404,7 @@ VMM_INT_DECL(VBOXSTRICTRC) IEMExecDecodedClgi(PVMCPUCC pVCpu, uint8_t cbInstr)
 {
     IEMEXEC_ASSERT_INSTR_LEN_RETURN(cbInstr, 3);
 
-    iemInitExec(pVCpu, false /*fBypassHandlers*/);
+    iemInitExec(pVCpu, 0 /*fExecOpts*/);
     VBOXSTRICTRC rcStrict = IEM_CIMPL_CALL_0(iemCImpl_clgi);
     Assert(!pVCpu->iem.s.cActiveMappings);
     return iemUninitExecAndFiddleStatusAndMaybeReenter(pVCpu, rcStrict);
@@ -1448,7 +1452,7 @@ VMM_INT_DECL(VBOXSTRICTRC) IEMExecDecodedStgi(PVMCPUCC pVCpu, uint8_t cbInstr)
 {
     IEMEXEC_ASSERT_INSTR_LEN_RETURN(cbInstr, 3);
 
-    iemInitExec(pVCpu, false /*fBypassHandlers*/);
+    iemInitExec(pVCpu, 0 /*fExecOpts*/);
     VBOXSTRICTRC rcStrict = IEM_CIMPL_CALL_0(iemCImpl_stgi);
     Assert(!pVCpu->iem.s.cActiveMappings);
     return iemUninitExecAndFiddleStatusAndMaybeReenter(pVCpu, rcStrict);
@@ -1461,14 +1465,16 @@ VMM_INT_DECL(VBOXSTRICTRC) IEMExecDecodedStgi(PVMCPUCC pVCpu, uint8_t cbInstr)
 IEM_CIMPL_DEF_0(iemCImpl_invlpga)
 {
     /** @todo Check effective address size using address size prefix. */
-    RTGCPTR  const GCPtrPage = pVCpu->iem.s.enmCpuMode == IEMMODE_64BIT ? pVCpu->cpum.GstCtx.rax : pVCpu->cpum.GstCtx.eax;
+    RTGCPTR  const GCPtrPage = IEM_IS_64BIT_CODE(pVCpu) ? pVCpu->cpum.GstCtx.rax : pVCpu->cpum.GstCtx.eax;
     /** @todo PGM needs virtual ASID support. */
 # if 0
     uint32_t const uAsid     = pVCpu->cpum.GstCtx.ecx;
 # endif
 
     IEM_SVM_INSTR_COMMON_CHECKS(pVCpu, invlpga);
-    if (IEM_SVM_IS_CTRL_INTERCEPT_SET(pVCpu, SVM_CTRL_INTERCEPT_INVLPGA))
+    if (!IEM_SVM_IS_CTRL_INTERCEPT_SET(pVCpu, SVM_CTRL_INTERCEPT_INVLPGA))
+    { /* probable */ }
+    else
     {
         Log2(("invlpga: Guest intercept (%RGp) -> #VMEXIT\n", GCPtrPage));
         IEM_SVM_VMEXIT_RET(pVCpu, SVM_EXIT_INVLPGA, 0 /* uExitInfo1 */, 0 /* uExitInfo2 */);
@@ -1491,7 +1497,7 @@ VMM_INT_DECL(VBOXSTRICTRC) IEMExecDecodedInvlpga(PVMCPUCC pVCpu, uint8_t cbInstr
 {
     IEMEXEC_ASSERT_INSTR_LEN_RETURN(cbInstr, 3);
 
-    iemInitExec(pVCpu, false /*fBypassHandlers*/);
+    iemInitExec(pVCpu, 0 /*fExecOpts*/);
     VBOXSTRICTRC rcStrict = IEM_CIMPL_CALL_0(iemCImpl_invlpga);
     Assert(!pVCpu->iem.s.cActiveMappings);
     return iemUninitExecAndFiddleStatusAndMaybeReenter(pVCpu, rcStrict);
@@ -1551,7 +1557,7 @@ IEM_CIMPL_DEF_0(iemCImpl_svm_pause)
     }
 
     if (fCheckIntercept)
-        IEM_SVM_CHECK_INSTR_INTERCEPT(pVCpu, SVM_CTRL_INTERCEPT_PAUSE, SVM_EXIT_PAUSE, 0, 0);
+        IEM_SVM_CHECK_INSTR_INTERCEPT(pVCpu, SVM_CTRL_INTERCEPT_PAUSE, SVM_EXIT_PAUSE, 0, 0, cbInstr);
 
     return iemRegAddToRipAndFinishingClearingRF(pVCpu, cbInstr);
 }

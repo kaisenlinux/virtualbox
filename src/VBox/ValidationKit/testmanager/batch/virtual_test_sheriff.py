@@ -16,7 +16,7 @@ from __future__ import print_function;
 
 __copyright__ = \
 """
-Copyright (C) 2012-2023 Oracle and/or its affiliates.
+Copyright (C) 2012-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -45,7 +45,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 
 # Standard python imports
@@ -350,7 +350,7 @@ class VirtualTestSheriff(object): # pylint: disable=too-few-public-methods
 
         if self.oConfig.sLogFile:
             self.oLogFile = open(self.oConfig.sLogFile, "a");   # pylint: disable=consider-using-with,unspecified-encoding
-            self.oLogFile.write('VirtualTestSheriff: $Revision: 155244 $ \n');
+            self.oLogFile.write('VirtualTestSheriff: $Revision: 164827 $ \n');
 
 
     def eprint(self, sText):
@@ -618,9 +618,11 @@ class VirtualTestSheriff(object): # pylint: disable=too-few-public-methods
     ## @{
 
     ktReason_Add_Installer_Win_Failed                  = ( 'Additions',         'Win GA install' );
+    ktReason_Add_ShFl                                  = ( 'Additions',         'ShFl' );
     ktReason_Add_ShFl_Automount                        = ( 'Additions',         'Automounting' );
     ktReason_Add_ShFl_FsPerf                           = ( 'Additions',         'FsPerf' );
     ktReason_Add_ShFl_FsPerf_Abend                     = ( 'Additions',         'FsPerf abend' );
+    ktReason_Add_GstCtl                                = ( 'Additions',         'GstCtl' );
     ktReason_Add_GstCtl_Preparations                   = ( 'Additions',         'GstCtl preparations' );
     ktReason_Add_GstCtl_SessionBasics                  = ( 'Additions',         'Session basics' );
     ktReason_Add_GstCtl_SessionProcRefs                = ( 'Additions',         'Session process' );
@@ -651,16 +653,19 @@ class VirtualTestSheriff(object): # pylint: disable=too-few-public-methods
     ktReason_Host_InstallationWantReboot               = ( 'Host',              'Installation want reboot' );
     ktReason_Host_InvalidPackage                       = ( 'Host',              'ERROR_INSTALL_PACKAGE_INVALID' );
     ktReason_Host_InstallSourceAbsent                  = ( 'Host',              'ERROR_INSTALL_SOURCE_ABSENT' );
+    ktReason_Host_Install_Hang                         = ( 'Host',              'Install hang' );
     ktReason_Host_NotSignedWithBuildCert               = ( 'Host',              'Not signed with build cert' );
     ktReason_Host_DiskFull                             = ( 'Host',              'Host disk full' );
     ktReason_Host_DoubleFreeHeap                       = ( 'Host',              'Double free or corruption' );
     ktReason_Host_LeftoverService                      = ( 'Host',              'Leftover service' );
-    ktReason_Host_win32com_gen_py                      = ( 'Host',              'win32com.gen_py' );
+    ktReason_Host_win32com_gen_py_not_found            = ( 'Host',              'win32com.gen_py not found' );
     ktReason_Host_Reboot_OSX_Watchdog_Timeout          = ( 'Host Reboot',       'OSX Watchdog Timeout' );
     ktReason_Host_Modprobe_Failed                      = ( 'Host',              'Modprobe failed' );
-    ktReason_Host_Install_Hang                         = ( 'Host',              'Install hang' );
     ktReason_Host_NetworkMisconfiguration              = ( 'Host',              'Network misconfiguration' );
+    ktReason_Host_Python_vboxapi_not_found             = ( 'Host',              'Python API (vboxapi) not found' );
+    ktReason_Host_Python_xpcom_not_found               = ( 'Host',              'Python API (xpcom) not found' );
     ktReason_Host_TSTInfo_Accuracy_OOR                 = ( 'Host',              'TSTInfo accuracy out of range' );
+    ktReason_Host_UninstallationFailed                 = ( 'Host',              'Uninstallation failed' );
     ktReason_Networking_Nonexistent_host_nic           = ( 'Networking',        'Nonexistent host networking interface' );
     ktReason_Networking_VERR_INTNET_FLT_IF_NOT_FOUND   = ( 'Networking',        'VERR_INTNET_FLT_IF_NOT_FOUND' );
     ktReason_OSInstall_GRUB_hang                       = ( 'O/S Install',       'GRUB hang' );
@@ -689,6 +694,7 @@ class VirtualTestSheriff(object): # pylint: disable=too-few-public-methods
     ktReason_Unknown_VM_Terminated                     = ( 'Unknown',           'VM terminated' );
     ktReason_Unknown_VM_Start_Error                    = ( 'Unknown',           'VM Start Error' );
     ktReason_Unknown_VM_Runtime_Error                  = ( 'Unknown',           'VM Runtime Error' );
+    ktReason_VMM_Assert                                = ( 'VMM',               'Assert' );
     ktReason_VMM_kvm_lock_spinning                     = ( 'VMM',               'kvm_lock_spinning' );
     ktReason_Ignore_Buggy_Test_Driver                  = ( 'Ignore',            'Buggy test driver' );
     ktReason_Ignore_Stale_Files                        = ( 'Ignore',            'Stale files' );
@@ -758,7 +764,7 @@ class VirtualTestSheriff(object): # pylint: disable=too-few-public-methods
         for idTestResult, tReason in dReasonForResultId.items():
             oFailureReason = self.getFailureReason(tReason);
             if oFailureReason is not None:
-                sComment = 'Set by $Revision: 155244 $' # Handy for reverting later.
+                sComment = 'Set by $Revision: 164827 $' # Handy for reverting later.
                 if idTestResult in dCommentForResultId:
                     sComment += ': ' + dCommentForResultId[idTestResult];
 
@@ -923,6 +929,15 @@ class VirtualTestSheriff(object): # pylint: disable=too-few-public-methods
                     return True;
                 fFoundSomething = True;
 
+        # If we didn't find something specific, just add a general install/uninstall
+        # failure reason so it's easier to get an idea why a test failed when
+        # looking at the failure listing in the test manager.
+        if not fFoundSomething:
+            if fInstall:
+                oCaseFile.noteReasonForId(self.ktReason_Host_InstallationFailed, oFailedResult.idTestResult);
+            else:
+                oCaseFile.noteReasonForId(self.ktReason_Host_UninstallationFailed, oFailedResult.idTestResult);
+
         return fFoundSomething if fFoundSomething else None;
 
 
@@ -938,6 +953,9 @@ class VirtualTestSheriff(object): # pylint: disable=too-few-public-methods
         """
         Checks out a VBox unittest problem.
         """
+
+        # Determine if this is a host or guest run before we start.
+        fRunsInGuest = '(guest)' in oCaseFile.oTestCase.sName or 'selected VMs' in oCaseFile.oTestCase.sName;
 
         #
         # Process simple test case failures first, using their name as reason.
@@ -962,9 +980,17 @@ class VirtualTestSheriff(object): # pylint: disable=too-few-public-methods
                 cRelevantOnes += 1
 
             elif oFailedResult.oParent is not None:
-                # Get the 2nd level node because that's where we'll find the unit test name.
-                while oFailedResult.oParent.oParent is not None:
-                    oFailedResult = oFailedResult.oParent;
+                # Host:  Get the 2nd level node because that's where we'll find the unit test name.
+                # Guest: Get the 6th level node.
+                aoParents = [];
+                oParent = oFailedResult.oParent;
+                while oParent is not None:
+                    aoParents.insert(0, oParent);
+                    oParent = oParent.oParent;
+                if not fRunsInGuest:
+                    oFailedResult = aoParents[min(2, len(aoParents) - 1)];
+                else:
+                    oFailedResult = aoParents[min(5, len(aoParents) - 1)];
 
                 # Only report a failure once.
                 if oFailedResult.idTestResult not in oCaseFile.dReasonForResultId:
@@ -976,8 +1002,14 @@ class VirtualTestSheriff(object): # pylint: disable=too-few-public-methods
                         oCaseFile.noteReasonForId(tReason, oFailedResult.idTestResult);
                     else:
                         self.dprint(u'Unit test failure "%s" not found in %s;' % (sKey, self.asUnitTestReasons));
-                        tReason = ( self.ksUnitTestCategory, self.ksUnitTestAddNew );
-                        oCaseFile.noteReasonForId(tReason, oFailedResult.idTestResult, sComment = sKey);
+                        sResultLog = TestSetData.extractLogSectionElapsed(sMainLog, oFailedResult.tsCreated,
+                                                                          oFailedResult.tsElapsed);
+                        if 'AudioMixer.cpp' in sResultLog:  # Pipe drain assertion.
+                            tReason = self.ktReason_VMM_Assert;
+                            oCaseFile.noteReasonForId(tReason, oFailedResult.idTestResult, sComment = 'AudioMixer.cpp');
+                        else:
+                            tReason = ( self.ksUnitTestCategory, self.ksUnitTestAddNew );
+                            oCaseFile.noteReasonForId(tReason, oFailedResult.idTestResult, sComment = sKey);
                     cRelevantOnes += 1
             else:
                 self.vprint(u'Internal error: expected oParent to NOT be None for %s' % (oFailedResult,));
@@ -1100,8 +1132,9 @@ class VirtualTestSheriff(object): # pylint: disable=too-few-public-methods
     ## This we search a main log for to figure out why something went bust.
     katSimpleMainLogReasons = [
         # ( Whether to stop on hit, reason tuple, needle text. )
-        ( False, ktReason_Host_win32com_gen_py,                     'ModuleNotFoundError: No module named \'win32com.gen_py' ),
-
+        ( False, ktReason_Host_win32com_gen_py_not_found,           'ModuleNotFoundError: No module named \'win32com.gen_py' ),
+        ( False, ktReason_Host_Python_vboxapi_not_found,            'ImportError: No module named vboxapi' ),
+        ( False, ktReason_Host_Python_xpcom_not_found,              'ImportError: No module named xpcom' ),
     ];
 
     ## This we search a VM log  for to figure out why something went bust.
@@ -1212,6 +1245,12 @@ class VirtualTestSheriff(object): # pylint: disable=too-few-public-methods
         return fRet;
 
 
+    ## Fallback reasons based on GA test groups.
+    kdGATestFallbacks = {
+        'Guest Control':  ktReason_Add_GstCtl,
+        'Shared Folders': ktReason_Add_ShFl,
+    };
+
     def investigateGATest(self, oCaseFile, oFailedResult, sResultLog):
         """
         Investigates a failed VM run.
@@ -1253,6 +1292,14 @@ class VirtualTestSheriff(object): # pylint: disable=too-few-public-methods
 
         if enmReason is not None:
             return oCaseFile.noteReasonForId(enmReason, oFailedResult.idTestResult);
+
+        # Generalistic fallbacks:
+        for sKey in utils.iteritems(self.kdGATestFallbacks):
+            oTmpFailedResult = oFailedResult;
+            while oTmpFailedResult:
+                if oTmpFailedResult.sName == sKey:
+                    return oCaseFile.noteReasonForId(self.kdGATestFallbacks[sKey], oFailedResult.idTestResult);
+                oTmpFailedResult = oTmpFailedResult.oParent;
 
         self.vprint(u'TODO: Cannot place GA failure idTestResult=%u - %s' % (oFailedResult.idTestResult, oFailedResult.sName,));
         self.dprint(u'%s + %s <<\n%s\n<<' % (oFailedResult.tsCreated, oFailedResult.tsElapsed, sResultLog,));
@@ -1389,7 +1436,7 @@ class VirtualTestSheriff(object): # pylint: disable=too-few-public-methods
             if sInfoText:
                 for sNeedle, fnHandler in self.katInfoTextHandlers:
                     if sInfoText.find(sNeedle) > 0:
-                        (fStop, tReason) = fnHandler(self, oCaseFile, sInfoText, dLogs);
+                        (fStop, tReason) = fnHandler(self, oCaseFile, sInfoText, dLogs);# ? pylint: disable=too-many-function-args
                         if tReason is not None:
                             oCaseFile.noteReasonForId(tReason, oFailedResult.idTestResult);
                             if fStop:
@@ -1600,10 +1647,21 @@ class VirtualTestSheriff(object): # pylint: disable=too-few-public-methods
                 self.dprint(u'%s + %s <<\n%s\n<<' % (oFailedResult.tsCreated, oFailedResult.tsElapsed, sResultLog,));
 
         #
+        # Python bindings installation problem.
+        #
+        if sMainLog.find('ImportError: No module named vboxapi') > 0:
+            oCaseFile.noteReason(self.ktReason_Host_Python_vboxapi_not_found);
+            return self.caseClosed(oCaseFile);
+
+        if sMainLog.find('ImportError: No module named xpcom') > 0:
+            oCaseFile.noteReason(self.ktReason_Host_Python_xpcom_not_found);
+            return self.caseClosed(oCaseFile);
+
+        #
         # Windows python/com screwup.
         #
         if sMainLog.find('ModuleNotFoundError: No module named \'win32com.gen_py') > 0:
-            oCaseFile.noteReason(self.ktReason_Host_win32com_gen_py);
+            oCaseFile.noteReason(self.ktReason_Host_win32com_gen_py_not_found);
             return self.caseClosed(oCaseFile);
 
         #

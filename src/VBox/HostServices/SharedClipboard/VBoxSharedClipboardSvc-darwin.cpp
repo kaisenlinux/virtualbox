@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -93,9 +93,8 @@ static int vboxClipboardChanged(SHCLCONTEXT *pCtx)
     int rc = queryNewPasteboardFormats(pCtx->hPasteboard, pCtx->idGuestOwnership, pCtx->hStrOwnershipFlavor,
                                        &fFormats, &fChanged);
     if (   RT_SUCCESS(rc)
-        && fChanged
-        && ShClSvcIsBackendActive())
-        rc = ShClSvcHostReportFormats(pCtx->pClient, fFormats);
+        && fChanged)
+        rc = ShClSvcReportFormats(pCtx->pClient, fFormats);
 
     LogFlowFuncLeaveRC(rc);
     return rc;
@@ -261,7 +260,7 @@ int ShClBackendReportFormats(PSHCLBACKEND pBackend, PSHCLCLIENT pClient, SHCLFOR
     /*
      * Now, request the data from the guest.
      */
-    return ShClSvcGuestDataRequest(pClient, fFormats, NULL /* pidEvent */);
+    return ShClSvcReadDataFromGuestAsync(pClient, fFormats, NULL /* ppEvent */);
 }
 
 int ShClBackendReadData(PSHCLBACKEND pBackend, PSHCLCLIENT pClient, PSHCLCLIENTCMDCTX pCmdCtx, SHCLFORMAT fFormat,

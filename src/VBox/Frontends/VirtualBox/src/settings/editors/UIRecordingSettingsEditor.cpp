@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -39,6 +39,7 @@
 #include "UIConverter.h"
 #include "UIFilePathSelector.h"
 #include "UIFilmContainer.h"
+#include "UIGlobalSession.h"
 #include "UIRecordingSettingsEditor.h"
 
 /* COM includes: */
@@ -50,7 +51,7 @@
 
 
 UIRecordingSettingsEditor::UIRecordingSettingsEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent)
     , m_fFeatureEnabled(false)
     , m_fOptionsAvailable(false)
     , m_fScreenOptionsAvailable(false)
@@ -273,7 +274,7 @@ int UIRecordingSettingsEditor::audioQualityRate() const
     return m_pSliderAudioQuality ? m_pSliderAudioQuality->value() : m_iAudioQualityRate;
 }
 
-void UIRecordingSettingsEditor::setScreens(const QVector<BOOL> &screens)
+void UIRecordingSettingsEditor::setScreens(const QVector<bool> &screens)
 {
     /* Update cached value and
      * editor if value has changed: */
@@ -285,12 +286,12 @@ void UIRecordingSettingsEditor::setScreens(const QVector<BOOL> &screens)
     }
 }
 
-QVector<BOOL> UIRecordingSettingsEditor::screens() const
+QVector<bool> UIRecordingSettingsEditor::screens() const
 {
     return m_pScrollerScreens ? m_pScrollerScreens->value() : m_screens;
 }
 
-void UIRecordingSettingsEditor::retranslateUi()
+void UIRecordingSettingsEditor::sltRetranslateUI()
 {
     m_pCheckboxFeature->setText(tr("&Enable Recording"));
     m_pCheckboxFeature->setToolTip(tr("When checked, VirtualBox will record the virtual machine session as a video file."));
@@ -442,7 +443,7 @@ void UIRecordingSettingsEditor::prepare()
     prepareConnections();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIRecordingSettingsEditor::prepareWidgets()
@@ -510,7 +511,7 @@ void UIRecordingSettingsEditor::prepareWidgets()
                 if (m_pEditorFilePath)
                 {
                     if (m_pLabelFilePath)
-                        m_pLabelFilePath->setBuddy(m_pEditorFilePath->focusProxy());
+                        m_pLabelFilePath->setBuddy(m_pEditorFilePath);
                     m_pEditorFilePath->setEditable(false);
                     m_pEditorFilePath->setMode(UIFilePathSelector::Mode_File_Save);
 
@@ -816,21 +817,21 @@ void UIRecordingSettingsEditor::prepareConnections()
 {
     connect(m_pCheckboxFeature, &QCheckBox::toggled,
             this, &UIRecordingSettingsEditor::sltHandleFeatureToggled);
-    connect(m_pComboMode, static_cast<void(QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+    connect(m_pComboMode, &QComboBox::currentIndexChanged,
             this, &UIRecordingSettingsEditor::sltHandleModeComboChange);
-    connect(m_pComboFrameSize, static_cast<void(QComboBox::*)(int)>(&QComboBox:: currentIndexChanged),
+    connect(m_pComboFrameSize, &QComboBox:: currentIndexChanged,
             this, &UIRecordingSettingsEditor::sltHandleVideoFrameSizeComboChange);
-    connect(m_pSpinboxFrameWidth, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged),
+    connect(m_pSpinboxFrameWidth, &QSpinBox::valueChanged,
             this, &UIRecordingSettingsEditor::sltHandleVideoFrameWidthChange);
-    connect(m_pSpinboxFrameHeight, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged),
+    connect(m_pSpinboxFrameHeight, &QSpinBox::valueChanged,
             this, &UIRecordingSettingsEditor::sltHandleVideoFrameHeightChange);
     connect(m_pSliderFrameRate, &QIAdvancedSlider::valueChanged,
             this, &UIRecordingSettingsEditor::sltHandleVideoFrameRateSliderChange);
-    connect(m_pSpinboxFrameRate, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged),
+    connect(m_pSpinboxFrameRate, &QSpinBox::valueChanged,
             this, &UIRecordingSettingsEditor::sltHandleVideoFrameRateSpinboxChange);
     connect(m_pSliderVideoQuality, &QIAdvancedSlider::valueChanged,
             this, &UIRecordingSettingsEditor::sltHandleVideoBitRateSliderChange);
-    connect(m_pSpinboxVideoQuality, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged),
+    connect(m_pSpinboxVideoQuality, &QSpinBox::valueChanged,
             this, &UIRecordingSettingsEditor::sltHandleVideoBitRateSpinboxChange);
 }
 
@@ -842,7 +843,7 @@ void UIRecordingSettingsEditor::populateComboMode()
         m_pComboMode->clear();
 
         /* Load currently supported recording features: */
-        const int iSupportedFlag = uiCommon().supportedRecordingFeatures();
+        const int iSupportedFlag = gpGlobalSession->supportedRecordingFeatures();
         m_supportedValues.clear();
         if (!iSupportedFlag)
             m_supportedValues << UISettingsDefs::RecordingMode_None;
@@ -872,7 +873,7 @@ void UIRecordingSettingsEditor::populateComboMode()
             m_pComboMode->setCurrentIndex(iIndex);
 
         /* Retranslate finally: */
-        retranslateUi();
+        sltRetranslateUI();
     }
 }
 

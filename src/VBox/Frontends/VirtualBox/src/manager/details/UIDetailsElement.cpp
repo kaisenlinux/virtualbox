@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -27,6 +27,7 @@
 
 /* Qt includes: */
 #include <QActionGroup>
+#include <QApplication>
 #include <QClipboard>
 #include <QGraphicsSceneMouseEvent>
 #include <QGraphicsView>
@@ -34,6 +35,7 @@
 #include <QSignalTransition>
 #include <QStateMachine>
 #include <QStyleOptionGraphicsItem>
+#include <QWindow>
 
 /* GUI includes: */
 #include "QIDialogContainer.h"
@@ -44,8 +46,8 @@
 #include "UIBootOrderEditor.h"
 #include "UICloudMachineSettingsDialogPage.h"
 #include "UICloudNetworkingStuff.h"
+#include "UICommon.h"
 #include "UIConverter.h"
-#include "UICursor.h"
 #include "UIDetailsElement.h"
 #include "UIDetailsGenerator.h"
 #include "UIDetailsSet.h"
@@ -56,6 +58,7 @@
 #include "UIGraphicsTextPane.h"
 #include "UIIconPool.h"
 #include "UIMachineAttributeSetter.h"
+#include "UIMediumTools.h"
 #include "UINameAndSystemEditor.h"
 #include "UINetworkAttachmentEditor.h"
 #include "UITaskCloudGetSettingsForm.h"
@@ -357,12 +360,8 @@ void UIDetailsElement::setName(const QString &strName)
 {
     /* Cache name: */
     m_strName = strName;
-    QFontMetrics fm(m_nameFont, model()->paintDevice());
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
+    const QFontMetrics fm(m_nameFont, model()->paintDevice());
     m_nameSize = QSize(fm.horizontalAdvance(m_strName), fm.height());
-#else
-    m_nameSize = QSize(fm.width(m_strName), fm.height());
-#endif
 
     /* Update linked values: */
     updateMinimumHeaderWidth();
@@ -697,7 +696,7 @@ void UIDetailsElement::sltMountStorageMedium()
     const UIMediumTarget target = pAction->data().value<UIMediumTarget>();
 
     /* Update current machine mount-target: */
-    uiCommon().updateMachineStorage(machine(), target, gpManager->actionPool());
+    UIMediumTools::updateMachineStorage(machine(), target, gpManager->actionPool());
 }
 
 void UIDetailsElement::prepareElement()
@@ -819,7 +818,8 @@ void UIDetailsElement::updateIcon()
         const int iIconMetric = QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize);
         m_pixmapSize = QSize(iIconMetric, iIconMetric);
         /* Acquire the icon of corresponding size (taking top-level widget DPI into account): */
-        m_pixmap = icon.pixmap(gpManager->windowHandle(), m_pixmapSize);
+        const qreal fDevicePixelRatio = gpManager->windowHandle() ? gpManager->windowHandle()->devicePixelRatio() : 1;
+        m_pixmap = icon.pixmap(m_pixmapSize, fDevicePixelRatio);
     }
 
     /* Update linked values: */
@@ -855,9 +855,9 @@ void UIDetailsElement::handleHoverEvent(QGraphicsSceneHoverEvent *pEvent)
 void UIDetailsElement::updateNameHoverLink()
 {
     if (m_fNameHovered)
-        UICursor::setCursor(this, Qt::PointingHandCursor);
+        setCursor(Qt::PointingHandCursor);
     else
-        UICursor::unsetCursor(this);
+        unsetCursor();
     update();
 }
 
@@ -902,7 +902,7 @@ void UIDetailsElement::popupNameAndSystemEditor(bool fChooseName, bool fChoosePa
             else if (fChoosePath)
                 pEditor->setPath(strValue);
             else if (fChooseType)
-                pEditor->setTypeId(strValue);
+                pEditor->setGuestOSTypeByTypeId(strValue);
 
             /* Add to popup: */
             pPopup->setWidget(pEditor);
@@ -1077,8 +1077,8 @@ void UIDetailsElement::popupStorageEditor(const QString &strValue)
     StorageSlot storageSlot = gpConverter->fromString<StorageSlot>(strValue.section(',', 1));
 
     /* Fill storage-menu: */
-    uiCommon().prepareStorageMenu(menu, this, SLOT(sltMountStorageMedium()),
-                                  machine(), strControllerName, storageSlot);
+    UIMediumTools::prepareStorageMenu(&menu, this, SLOT(sltMountStorageMedium()),
+                                      machine(), strControllerName, storageSlot);
 
     /* Exec menu: */
     menu.exec(QCursor::pos());
@@ -1163,6 +1163,12 @@ void UIDetailsElement::popupNetworkAttachmentTypeEditor(const QString &strValue)
             pEditor->setValueNames(KNetworkAttachmentType_HostOnly, UINetworkAttachmentEditor::hostInterfaces());
             pEditor->setValueNames(KNetworkAttachmentType_Generic, UINetworkAttachmentEditor::genericDrivers());
             pEditor->setValueNames(KNetworkAttachmentType_NATNetwork, UINetworkAttachmentEditor::natNetworks());
+#ifdef VBOX_WITH_CLOUD_NET
+            pEditor->setValueNames(KNetworkAttachmentType_Cloud, UINetworkAttachmentEditor::cloudNetworks());
+#endif
+#ifdef VBOX_WITH_VMNET
+            pEditor->setValueNames(KNetworkAttachmentType_HostOnlyNetwork, UINetworkAttachmentEditor::hostOnlyNetworks());
+#endif
             pEditor->setValueType(static_cast<KNetworkAttachmentType>(strValue.section(';', 1, 1).toInt()));
             pEditor->setValueName(pEditor->valueType(), strValue.section(';', 2, 2));
             connect(pEditor, &UINetworkAttachmentEditor::sigValidChanged,

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,14 +26,19 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QCheckBox>
 #include <QDir>
+#include <QStyle>
 #include <QRegularExpression>
 #include <QVBoxLayout>
 
 /* GUI includes: */
 #include "QIRichTextLabel.h"
-#include "UICommon.h"
+#include "UIDesktopWidgetWatchdog.h"
+#include "UIGlobalSession.h"
+#include "UIIconPool.h"
+#include "UIMediumEnumerator.h"
 #include "UINameAndSystemEditor.h"
 #include "UINotificationCenter.h"
 #include "UIWizardNewVMNameOSTypePage.h"
@@ -42,6 +47,7 @@
 /* COM includes: */
 #include "CHost.h"
 #include "CUnattended.h"
+#include <VBox/com/VirtualBox.h> /* Need GUEST_OS_ID_STR_X86 and friends. */
 
 /* Defines some patterns to guess the right OS type. Should be in sync with
  * VirtualBox-settings-common.xsd in Main. The list is sorted by priority. The
@@ -55,211 +61,268 @@ struct osTypePattern
 static const osTypePattern gs_OSTypePattern[] =
 {
     /* DOS: */
-    { QRegularExpression("DOS", QRegularExpression::CaseInsensitiveOption), "DOS" },
+    { QRegularExpression("DOS", QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("DOS") },
 
     /* Windows: */
-    { QRegularExpression(  "Wi.*98",                         QRegularExpression::CaseInsensitiveOption), "Windows98" },
-    { QRegularExpression(  "Wi.*95",                         QRegularExpression::CaseInsensitiveOption), "Windows95" },
-    { QRegularExpression(  "Wi.*Me",                         QRegularExpression::CaseInsensitiveOption), "WindowsMe" },
-    { QRegularExpression( "(Wi.*NT)|(NT[-._v]*4)",           QRegularExpression::CaseInsensitiveOption), "WindowsNT4" },
-    { QRegularExpression( "NT[-._v]*3[.,]*[51x]",            QRegularExpression::CaseInsensitiveOption), "WindowsNT3x" },
-    { QRegularExpression("(Wi.*XP.*64)|(XP.*64)",            QRegularExpression::CaseInsensitiveOption), "WindowsXP_64" },
-    { QRegularExpression("(XP)",                             QRegularExpression::CaseInsensitiveOption), "WindowsXP" },
-    { QRegularExpression("((Wi.*2003)|(W2K3)|(Win2K3)).*64", QRegularExpression::CaseInsensitiveOption), "Windows2003_64" },
-    { QRegularExpression("((Wi.*2003)|(W2K3)|(Win2K3)).*32", QRegularExpression::CaseInsensitiveOption), "Windows2003" },
-    { QRegularExpression("((Wi.*Vis)|(Vista)).*64",          QRegularExpression::CaseInsensitiveOption), "WindowsVista_64" },
-    { QRegularExpression("((Wi.*Vis)|(Vista)).*32",          QRegularExpression::CaseInsensitiveOption), "WindowsVista" },
-    { QRegularExpression( "(Wi.*2016)|(W2K16)|(Win2K16)",    QRegularExpression::CaseInsensitiveOption), "Windows2016_64" },
-    { QRegularExpression( "(Wi.*2012)|(W2K12)|(Win2K12)",    QRegularExpression::CaseInsensitiveOption), "Windows2012_64" },
-    { QRegularExpression("((Wi.*2008)|(W2K8)|(Win2k8)).*64", QRegularExpression::CaseInsensitiveOption), "Windows2008_64" },
-    { QRegularExpression("((Wi.*2008)|(W2K8)|(Win2K8)).*32", QRegularExpression::CaseInsensitiveOption), "Windows2008" },
-    { QRegularExpression( "(Wi.*2000)|(W2K)|(Win2K)",        QRegularExpression::CaseInsensitiveOption), "Windows2000" },
-    { QRegularExpression( "(Wi.*7.*64)|(W7.*64)",            QRegularExpression::CaseInsensitiveOption), "Windows7_64" },
-    { QRegularExpression( "(Wi.*7.*32)|(W7.*32)",            QRegularExpression::CaseInsensitiveOption), "Windows7" },
-    { QRegularExpression( "(Wi.*8.*1.*64)|(W8.*64)",         QRegularExpression::CaseInsensitiveOption), "Windows81_64" },
-    { QRegularExpression( "(Wi.*8.*1.*32)|(W8.*32)",         QRegularExpression::CaseInsensitiveOption), "Windows81" },
-    { QRegularExpression( "(Wi.*8.*64)|(W8.*64)",            QRegularExpression::CaseInsensitiveOption), "Windows8_64" },
-    { QRegularExpression( "(Wi.*8.*32)|(W8.*32)",            QRegularExpression::CaseInsensitiveOption), "Windows8" },
-    { QRegularExpression( "(Wi.*10.*64)|(W10.*64)",          QRegularExpression::CaseInsensitiveOption), "Windows10_64" },
-    { QRegularExpression( "(Wi.*10.*32)|(W10.*32)",          QRegularExpression::CaseInsensitiveOption), "Windows10" },
-    { QRegularExpression( "(Wi.*11)|(W11)",                  QRegularExpression::CaseInsensitiveOption), "Windows11_64" },
-    { QRegularExpression(  "Wi.*3.*1",                       QRegularExpression::CaseInsensitiveOption), "Windows31" },
+    { QRegularExpression(  "Wi.*98",                         QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Windows98") },
+    { QRegularExpression(  "Wi.*95",                         QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Windows95") },
+    { QRegularExpression(  "Wi.*Me",                         QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("WindowsMe") },
+    { QRegularExpression( "(Wi.*NT)|(NT[-._v]*4)",           QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("WindowsNT4") },
+    { QRegularExpression( "NT[-._v]*3[.,]*[51x]",            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("WindowsNT3x") },
+    { QRegularExpression("(Wi.*XP.*64)|(XP.*64)",            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("WindowsXP") },
+    { QRegularExpression("(XP)",                             QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("WindowsXP") },
+    { QRegularExpression("((Wi.*2003)|(W2K3)|(Win2K3)).*64", QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Windows2003") },
+    { QRegularExpression("((Wi.*2003)|(W2K3)|(Win2K3)).*32", QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Windows2003") },
+    { QRegularExpression("((Wi.*Vis)|(Vista)).*64",          QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("WindowsVista") },
+    { QRegularExpression("((Wi.*Vis)|(Vista)).*32",          QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("WindowsVista") },
+    { QRegularExpression( "(Wi.*2016)|(W2K16)|(Win2K16)",    QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Windows2016") },
+    { QRegularExpression( "(Wi.*2012)|(W2K12)|(Win2K12)",    QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Windows2012") },
+    { QRegularExpression("((Wi.*2008)|(W2K8)|(Win2k8)).*64", QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Windows2008") },
+    { QRegularExpression("((Wi.*2008)|(W2K8)|(Win2K8)).*32", QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Windows2008") },
+    { QRegularExpression( "(Wi.*2000)|(W2K)|(Win2K)",        QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Windows2000") },
+    { QRegularExpression( "(Wi.*7.*64)|(W7.*64)",            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Windows7") },
+    { QRegularExpression( "(Wi.*7.*32)|(W7.*32)",            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Windows7") },
+    { QRegularExpression( "(Wi.*8.*1.*64)|(W8.*64)",         QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Windows81") },
+    { QRegularExpression( "(Wi.*8.*1.*32)|(W8.*32)",         QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Windows81") },
+    { QRegularExpression( "(Wi.*8.*64)|(W8.*64)",            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Windows8") },
+    { QRegularExpression( "(Wi.*8.*32)|(W8.*32)",            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Windows8") },
+    { QRegularExpression( "(Wi.*10.*64)|(W10.*64)",          QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Windows10") },
+    { QRegularExpression( "(Wi.*10.*32)|(W10.*32)",          QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Windows10") },
+    { QRegularExpression( "(Wi.*11)|(W11)",                  QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Windows11") },
+    { QRegularExpression(  "Wi.*3.*1",                       QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Windows31") },
     /* Set Windows 10 as default for "Windows". */
-    { QRegularExpression(  "Wi.*64",                         QRegularExpression::CaseInsensitiveOption), "Windows10_64" },
-    { QRegularExpression(  "Wi.*32",                         QRegularExpression::CaseInsensitiveOption), "Windows10" },
+    { QRegularExpression(  "Wi.*64",                         QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Windows10") },
+    { QRegularExpression(  "Wi.*32",                         QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Windows10") },
     /* ReactOS wants to be considered as Windows 2003 */
-    { QRegularExpression(  "Reac.*",                         QRegularExpression::CaseInsensitiveOption), "Windows2003" },
+    { QRegularExpression(  "Reac.*",                         QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Windows2003") },
 
     /* Solaris: */
-    { QRegularExpression("((Op.*Sol)|(os20[01][0-9])|(India)|(Illum)|(Neva)).*64",   QRegularExpression::CaseInsensitiveOption), "OpenSolaris_64" },
-    { QRegularExpression("((Op.*Sol)|(os20[01][0-9])|(India)|(Illum)|(Neva)).*32",   QRegularExpression::CaseInsensitiveOption), "OpenSolaris" },
-    { QRegularExpression("(Sol.*10.*(10/09)|(9/10)|(8/11)|(1/13)).*64",              QRegularExpression::CaseInsensitiveOption), "Solaris10U8_or_later_64" },
-    { QRegularExpression("(Sol.*10.*(10/09)|(9/10)|(8/11)|(1/13)).*32",              QRegularExpression::CaseInsensitiveOption), "Solaris10U8_or_later" },
-    { QRegularExpression("(Sol.*10.*(U[89])|(U1[01])).*64",                          QRegularExpression::CaseInsensitiveOption), "Solaris10U8_or_later_64" },
-    { QRegularExpression("(Sol.*10.*(U[89])|(U1[01])).*32",                          QRegularExpression::CaseInsensitiveOption), "Solaris10U8_or_later" },
-    { QRegularExpression("(Sol.*10.*(1/06)|(6/06)|(11/06)|(8/07)|(5/08)|(10/08)|(5/09)).*64",  QRegularExpression::CaseInsensitiveOption), "Solaris_64" }, // Solaris 10U7 (5/09) or earlier
-    { QRegularExpression("(Sol.*10.*(1/06)|(6/06)|(11/06)|(8/07)|(5/08)|(10/08)|(5/09)).*32",  QRegularExpression::CaseInsensitiveOption), "Solaris" }, // Solaris 10U7 (5/09) or earlier
-    { QRegularExpression("((Sol.*10.*U[1-7])|(Sol.*10)).*64",                        QRegularExpression::CaseInsensitiveOption), "Solaris_64" }, // Solaris 10U7 (5/09) or earlier
-    { QRegularExpression("((Sol.*10.*U[1-7])|(Sol.*10)).*32",                        QRegularExpression::CaseInsensitiveOption), "Solaris" }, // Solaris 10U7 (5/09) or earlier
-    { QRegularExpression("((Sol.*11)|(Sol.*)).*64",                                  QRegularExpression::CaseInsensitiveOption), "Solaris11_64" },
+    { QRegularExpression("((Op.*Sol)|(os20[01][0-9])|(India)|(Illum)|(Neva)).*64",   QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("OpenSolaris") },
+    { QRegularExpression("((Op.*Sol)|(os20[01][0-9])|(India)|(Illum)|(Neva)).*32",   QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("OpenSolaris") },
+    { QRegularExpression("(Sol.*10.*(10/09)|(9/10)|(8/11)|(1/13)).*64",              QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Solaris10U8_or_later") },
+    { QRegularExpression("(Sol.*10.*(10/09)|(9/10)|(8/11)|(1/13)).*32",              QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Solaris10U8_or_later") },
+    { QRegularExpression("(Sol.*10.*(U[89])|(U1[01])).*64",                          QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Solaris10U8_or_later") },
+    { QRegularExpression("(Sol.*10.*(U[89])|(U1[01])).*32",                          QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Solaris10U8_or_later") },
+    { QRegularExpression("(Sol.*10.*(1/06)|(6/06)|(11/06)|(8/07)|(5/08)|(10/08)|(5/09)).*64",  QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Solaris") }, // Solaris 10U7 (5/09) or earlier
+    { QRegularExpression("(Sol.*10.*(1/06)|(6/06)|(11/06)|(8/07)|(5/08)|(10/08)|(5/09)).*32",  QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Solaris") }, // Solaris 10U7 (5/09) or earlier
+    { QRegularExpression("((Sol.*10.*U[1-7])|(Sol.*10)).*64",                        QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Solaris") }, // Solaris 10U7 (5/09) or earlier
+    { QRegularExpression("((Sol.*10.*U[1-7])|(Sol.*10)).*32",                        QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Solaris") }, // Solaris 10U7 (5/09) or earlier
+    { QRegularExpression("((Sol.*11)|(Sol.*)).*64",                                  QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Solaris11") },
 
     /* OS/2: */
-    { QRegularExpression("OS[/|!-]{,1}2.*W.*4.?5", QRegularExpression::CaseInsensitiveOption), "OS2Warp45" },
-    { QRegularExpression("OS[/|!-]{,1}2.*W.*4",    QRegularExpression::CaseInsensitiveOption), "OS2Warp4" },
-    { QRegularExpression("OS[/|!-]{,1}2.*W",       QRegularExpression::CaseInsensitiveOption), "OS2Warp3" },
-    { QRegularExpression("OS[/|!-]{,1}2.*e",       QRegularExpression::CaseInsensitiveOption), "OS2eCS" },
-    { QRegularExpression("OS[/|!-]{,1}2.*Ar.*",    QRegularExpression::CaseInsensitiveOption), "OS2ArcaOS" },
-    { QRegularExpression("OS[/|!-]{,1}2",          QRegularExpression::CaseInsensitiveOption), "OS2" },
-    { QRegularExpression("(eComS.*|eCS.*)",        QRegularExpression::CaseInsensitiveOption), "OS2eCS" },
-    { QRegularExpression("Arca.*",                 QRegularExpression::CaseInsensitiveOption), "OS2ArcaOS" },
+    { QRegularExpression("OS[/|!-]{,1}2.*W.*4.?5", QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("OS2Warp45") },
+    { QRegularExpression("OS[/|!-]{,1}2.*W.*4",    QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("OS2Warp4") },
+    { QRegularExpression("OS[/|!-]{,1}2.*W",       QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("OS2Warp3") },
+    { QRegularExpression("OS[/|!-]{,1}2.*e",       QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("OS2eCS") },
+    { QRegularExpression("OS[/|!-]{,1}2.*Ar.*",    QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("OS2ArcaOS") },
+    { QRegularExpression("OS[/|!-]{,1}2",          QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("OS2") },
+    { QRegularExpression("(eComS.*|eCS.*)",        QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("OS2eCS") },
+    { QRegularExpression("Arca.*",                 QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("OS2ArcaOS") },
 
     /* Other: Must come before Ubuntu/Maverick and before Linux??? */
-    { QRegularExpression("QN", QRegularExpression::CaseInsensitiveOption), "QNX" },
+    { QRegularExpression("QN", QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("QNX") },
 
     /* Mac OS X: Must come before Ubuntu/Maverick and before Linux: */
-    { QRegularExpression("((mac.*10[.,]{0,1}4)|(os.*x.*10[.,]{0,1}4)|(mac.*ti)|(os.*x.*ti)|(Tig)).64",     QRegularExpression::CaseInsensitiveOption), "MacOS_64" },
-    { QRegularExpression("((mac.*10[.,]{0,1}4)|(os.*x.*10[.,]{0,1}4)|(mac.*ti)|(os.*x.*ti)|(Tig)).32",     QRegularExpression::CaseInsensitiveOption), "MacOS" },
-    { QRegularExpression("((mac.*10[.,]{0,1}5)|(os.*x.*10[.,]{0,1}5)|(mac.*leo)|(os.*x.*leo)|(Leop)).*64", QRegularExpression::CaseInsensitiveOption), "MacOS_64" },
-    { QRegularExpression("((mac.*10[.,]{0,1}5)|(os.*x.*10[.,]{0,1}5)|(mac.*leo)|(os.*x.*leo)|(Leop)).*32", QRegularExpression::CaseInsensitiveOption), "MacOS" },
-    { QRegularExpression("((mac.*10[.,]{0,1}6)|(os.*x.*10[.,]{0,1}6)|(mac.*SL)|(os.*x.*SL)|(Snow L)).*64", QRegularExpression::CaseInsensitiveOption), "MacOS106_64" },
-    { QRegularExpression("((mac.*10[.,]{0,1}6)|(os.*x.*10[.,]{0,1}6)|(mac.*SL)|(os.*x.*SL)|(Snow L)).*32", QRegularExpression::CaseInsensitiveOption), "MacOS106" },
-    { QRegularExpression( "(mac.*10[.,]{0,1}7)|(os.*x.*10[.,]{0,1}7)|(mac.*ML)|(os.*x.*ML)|(Mount)",       QRegularExpression::CaseInsensitiveOption), "MacOS107_64" },
-    { QRegularExpression( "(mac.*10[.,]{0,1}8)|(os.*x.*10[.,]{0,1}8)|(Lion)",                              QRegularExpression::CaseInsensitiveOption), "MacOS108_64" },
-    { QRegularExpression( "(mac.*10[.,]{0,1}9)|(os.*x.*10[.,]{0,1}9)|(mac.*mav)|(os.*x.*mav)|(Mavericks)", QRegularExpression::CaseInsensitiveOption), "MacOS109_64" },
-    { QRegularExpression( "(mac.*yos)|(os.*x.*yos)|(Yosemite)",                                            QRegularExpression::CaseInsensitiveOption), "MacOS1010_64" },
-    { QRegularExpression( "(mac.*cap)|(os.*x.*capit)|(Capitan)",                                           QRegularExpression::CaseInsensitiveOption), "MacOS1011_64" },
-    { QRegularExpression( "(mac.*hig)|(os.*x.*high.*sierr)|(High Sierra)",                                 QRegularExpression::CaseInsensitiveOption), "MacOS1013_64" },
-    { QRegularExpression( "(mac.*sie)|(os.*x.*sierr)|(Sierra)",                                            QRegularExpression::CaseInsensitiveOption), "MacOS1012_64" },
-    { QRegularExpression("((Mac)|(Tig)|(Leop)|(Yose)|(os[ ]*x)).*64",                                      QRegularExpression::CaseInsensitiveOption), "MacOS_64" },
-    { QRegularExpression("((Mac)|(Tig)|(Leop)|(Yose)|(os[ ]*x)).*32",                                      QRegularExpression::CaseInsensitiveOption), "MacOS" },
+    { QRegularExpression("((mac.*10[.,]{0,1}4)|(os.*x.*10[.,]{0,1}4)|(mac.*ti)|(os.*x.*ti)|(Tig)).64",     QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("MacOS") },
+    { QRegularExpression("((mac.*10[.,]{0,1}4)|(os.*x.*10[.,]{0,1}4)|(mac.*ti)|(os.*x.*ti)|(Tig)).32",     QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("MacOS") },
+    { QRegularExpression("((mac.*10[.,]{0,1}5)|(os.*x.*10[.,]{0,1}5)|(mac.*leo)|(os.*x.*leo)|(Leop)).*64", QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("MacOS") },
+    { QRegularExpression("((mac.*10[.,]{0,1}5)|(os.*x.*10[.,]{0,1}5)|(mac.*leo)|(os.*x.*leo)|(Leop)).*32", QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("MacOS") },
+    { QRegularExpression("((mac.*10[.,]{0,1}6)|(os.*x.*10[.,]{0,1}6)|(mac.*SL)|(os.*x.*SL)|(Snow L)).*64", QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("MacOS106") },
+    { QRegularExpression("((mac.*10[.,]{0,1}6)|(os.*x.*10[.,]{0,1}6)|(mac.*SL)|(os.*x.*SL)|(Snow L)).*32", QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("MacOS106") },
+    { QRegularExpression( "(mac.*10[.,]{0,1}7)|(os.*x.*10[.,]{0,1}7)|(mac.*ML)|(os.*x.*ML)|(Mount)",       QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("MacOS107") },
+    { QRegularExpression( "(mac.*10[.,]{0,1}8)|(os.*x.*10[.,]{0,1}8)|(Lion)",                              QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("MacOS108") },
+    { QRegularExpression( "(mac.*10[.,]{0,1}9)|(os.*x.*10[.,]{0,1}9)|(mac.*mav)|(os.*x.*mav)|(Mavericks)", QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("MacOS109") },
+    { QRegularExpression( "(mac.*yos)|(os.*x.*yos)|(Yosemite)",                                            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("MacOS1010") },
+    { QRegularExpression( "(mac.*cap)|(os.*x.*capit)|(Capitan)",                                           QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("MacOS1011") },
+    { QRegularExpression( "(mac.*hig)|(os.*x.*high.*sierr)|(High Sierra)",                                 QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("MacOS1013") },
+    { QRegularExpression( "(mac.*sie)|(os.*x.*sierr)|(Sierra)",                                            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("MacOS1012") },
+    { QRegularExpression("((Mac)|(Tig)|(Leop)|(Yose)|(os[ ]*x)).*64",                                      QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("MacOS") },
+    { QRegularExpression("((Mac)|(Tig)|(Leop)|(Yose)|(os[ ]*x)).*32",                                      QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("MacOS") },
 
     /* Code names for Linux distributions: */
-    { QRegularExpression("((bianca)|(cassandra)|(celena)|(daryna)|(elyssa)|(felicia)|(gloria)|(helena)|(isadora)|(julia)|(katya)|(lisa)|(maya)|(nadia)|(olivia)|(petra)|(qiana)|(rebecca)|(rafaela)|(rosa)).*64", QRegularExpression::CaseInsensitiveOption), "Ubuntu_64" },
-    { QRegularExpression("((bianca)|(cassandra)|(celena)|(daryna)|(elyssa)|(felicia)|(gloria)|(helena)|(isadora)|(julia)|(katya)|(lisa)|(maya)|(nadia)|(olivia)|(petra)|(qiana)|(rebecca)|(rafaela)|(rosa)).*32", QRegularExpression::CaseInsensitiveOption), "Ubuntu" },
-    { QRegularExpression("((edgy)|(feisty)|(gutsy)|(hardy)|(intrepid)|(jaunty)|(karmic)).*64",  QRegularExpression::CaseInsensitiveOption), "Ubuntu_64" },
-    { QRegularExpression("((edgy)|(feisty)|(gutsy)|(hardy)|(intrepid)|(jaunty)|(karmic)).*32",  QRegularExpression::CaseInsensitiveOption), "Ubuntu" },
-    { QRegularExpression("((eft)|(fawn)|(gibbon)|(heron)|(ibex)|(jackalope)|(koala)).*64",      QRegularExpression::CaseInsensitiveOption), "Ubuntu_64" },
-    { QRegularExpression("((eft)|(fawn)|(gibbon)|(heron)|(ibex)|(jackalope)|(koala)).*32",      QRegularExpression::CaseInsensitiveOption), "Ubuntu" },
-    { QRegularExpression("((lucid)|(lynx)).*64",                                                QRegularExpression::CaseInsensitiveOption), "Ubuntu10_LTS_64" },
-    { QRegularExpression("((lucid)|(lynx)).*32",                                                QRegularExpression::CaseInsensitiveOption), "Ubuntu10_LTS" },
-    { QRegularExpression("((maverick)|(meerkat)).*64",                                          QRegularExpression::CaseInsensitiveOption), "Ubuntu10_64" },
-    { QRegularExpression("((maverick)|(meerkat)).*32",                                          QRegularExpression::CaseInsensitiveOption), "Ubuntu10" },
-    { QRegularExpression("((natty)|(narwhal)|(oneiric)|(ocelot)).*64",                          QRegularExpression::CaseInsensitiveOption), "Ubuntu11_64" },
-    { QRegularExpression("((natty)|(narwhal)|(oneiric)|(ocelot)).*32",                          QRegularExpression::CaseInsensitiveOption), "Ubuntu11" },
-    { QRegularExpression("((precise)|(pangolin)).*64",                                          QRegularExpression::CaseInsensitiveOption), "Ubuntu12_LTS_64" },
-    { QRegularExpression("((precise)|(pangolin)).*32",                                          QRegularExpression::CaseInsensitiveOption), "Ubuntu12_LTS" },
-    { QRegularExpression("((quantal)|(quetzal)).*64",                                           QRegularExpression::CaseInsensitiveOption), "Ubuntu12_64" },
-    { QRegularExpression("((quantal)|(quetzal)).*32",                                           QRegularExpression::CaseInsensitiveOption), "Ubuntu12" },
-    { QRegularExpression("((raring)|(ringtail)|(saucy)|(salamander)).*64",                      QRegularExpression::CaseInsensitiveOption), "Ubuntu13_64" },
-    { QRegularExpression("((raring)|(ringtail)|(saucy)|(salamander)).*32",                      QRegularExpression::CaseInsensitiveOption), "Ubuntu13" },
-    { QRegularExpression("((trusty)|(tahr)).*64",                                               QRegularExpression::CaseInsensitiveOption), "Ubuntu14_LTS_64" },
-    { QRegularExpression("((trusty)|(tahr)).*32",                                               QRegularExpression::CaseInsensitiveOption), "Ubuntu14_LTS" },
-    { QRegularExpression("((utopic)|(unicorn)).*64",                                            QRegularExpression::CaseInsensitiveOption), "Ubuntu14_64" },
-    { QRegularExpression("((utopic)|(unicorn)).*32",                                            QRegularExpression::CaseInsensitiveOption), "Ubuntu14" },
-    { QRegularExpression("((vivid)|(vervet)|(wily)|(werewolf)).*64",                            QRegularExpression::CaseInsensitiveOption), "Ubuntu15_64" },
-    { QRegularExpression("((vivid)|(vervet)|(wily)|(werewolf)).*32",                            QRegularExpression::CaseInsensitiveOption), "Ubuntu15" },
-    { QRegularExpression("((xenial)|(xerus)).*64",                                              QRegularExpression::CaseInsensitiveOption), "Ubuntu16_LTS_64" },
-    { QRegularExpression("((xenial)|(xerus)).*32",                                              QRegularExpression::CaseInsensitiveOption), "Ubuntu16_LTS" },
-    { QRegularExpression("((yakkety)|(yak)).*64",                                               QRegularExpression::CaseInsensitiveOption), "Ubuntu16_64" },
-    { QRegularExpression("((yakkety)|(yak)).*32",                                               QRegularExpression::CaseInsensitiveOption), "Ubuntu16" },
-    { QRegularExpression("((zesty)|(zapus)|(artful)|(aardvark)).*64",                           QRegularExpression::CaseInsensitiveOption), "Ubuntu17_64" },
-    { QRegularExpression("((zesty)|(zapus)|(artful)|(aardvark)).*32",                           QRegularExpression::CaseInsensitiveOption), "Ubuntu17" },
-    { QRegularExpression("((bionic)|(beaver)).*64",                                             QRegularExpression::CaseInsensitiveOption), "Ubuntu18_LTS_64" },
-    { QRegularExpression("((bionic)|(beaver)).*32",                                             QRegularExpression::CaseInsensitiveOption), "Ubuntu18_LTS" },
-    { QRegularExpression("((cosmic)|(cuttlefish)).*64",                                         QRegularExpression::CaseInsensitiveOption), "Ubuntu18_64" },
-    { QRegularExpression("((cosmic)|(cuttlefish)).*32",                                         QRegularExpression::CaseInsensitiveOption), "Ubuntu18" },
-    { QRegularExpression("((disco)|(dingo)|(eoan)|(ermine)).*64",                               QRegularExpression::CaseInsensitiveOption), "Ubuntu19_64" },
-    { QRegularExpression("((disco)|(dingo)|(eoan)|(ermine)).*32",                               QRegularExpression::CaseInsensitiveOption), "Ubuntu19" },
-    { QRegularExpression("((focal)|(fossa)).*64",                                               QRegularExpression::CaseInsensitiveOption), "Ubuntu20_LTS_64" },
-    { QRegularExpression("((groovy)|(gorilla)).*64",                                            QRegularExpression::CaseInsensitiveOption), "Ubuntu20_64" },
-    { QRegularExpression("((hirsute)|(hippo)|(impish)|(indri)).*64",                            QRegularExpression::CaseInsensitiveOption), "Ubuntu21_64" },
-    { QRegularExpression("((jammy)|(jellyfish)).*64",                                           QRegularExpression::CaseInsensitiveOption), "Ubuntu22_LTS_64" },
-    { QRegularExpression("((kinetic)|(kudu)).*64",                                              QRegularExpression::CaseInsensitiveOption), "Ubuntu22_64" },
-    { QRegularExpression("((lunar)|(lobster)).*64",                                             QRegularExpression::CaseInsensitiveOption), "Ubuntu23_64" },
-    { QRegularExpression("sarge.*32",                         QRegularExpression::CaseInsensitiveOption), "Debian31" },
-    { QRegularExpression("^etch.*64",                         QRegularExpression::CaseInsensitiveOption), "Debian4_64" },
-    { QRegularExpression("^etch.*32",                         QRegularExpression::CaseInsensitiveOption), "Debian4" },
-    { QRegularExpression("lenny.*64",                         QRegularExpression::CaseInsensitiveOption), "Debian5_64" },
-    { QRegularExpression("lenny.*32",                         QRegularExpression::CaseInsensitiveOption), "Debian5" },
-    { QRegularExpression("squeeze.*64",                       QRegularExpression::CaseInsensitiveOption), "Debian6_64" },
-    { QRegularExpression("squeeze.*32",                       QRegularExpression::CaseInsensitiveOption), "Debian6" },
-    { QRegularExpression("wheezy.*64",                        QRegularExpression::CaseInsensitiveOption), "Debian7_64" },
-    { QRegularExpression("wheezy.*32",                        QRegularExpression::CaseInsensitiveOption), "Debian7" },
-    { QRegularExpression("jessie.*64",                        QRegularExpression::CaseInsensitiveOption), "Debian8_64" },
-    { QRegularExpression("jessie.*32",                        QRegularExpression::CaseInsensitiveOption), "Debian8" },
-    { QRegularExpression("stretch.*64",                       QRegularExpression::CaseInsensitiveOption), "Debian9_64" },
-    { QRegularExpression("stretch.*32",                       QRegularExpression::CaseInsensitiveOption), "Debian9" },
-    { QRegularExpression("buster.*64",                        QRegularExpression::CaseInsensitiveOption), "Debian10_64" },
-    { QRegularExpression("buster.*32",                        QRegularExpression::CaseInsensitiveOption), "Debian10" },
-    { QRegularExpression("bullseye.*64",                      QRegularExpression::CaseInsensitiveOption), "Debian11_64" },
-    { QRegularExpression("bullseye.*32",                      QRegularExpression::CaseInsensitiveOption), "Debian11" },
-    { QRegularExpression("bookworm.*64",                      QRegularExpression::CaseInsensitiveOption), "Debian12_64" },
-    { QRegularExpression("bookworm.*32",                      QRegularExpression::CaseInsensitiveOption), "Debian12" },
-    { QRegularExpression("((trixie)|(sid)).*64",              QRegularExpression::CaseInsensitiveOption), "Debian_64" },
-    { QRegularExpression("((trixie)|(sid)).*32",              QRegularExpression::CaseInsensitiveOption), "Debian" },
-    { QRegularExpression("((moonshine)|(werewolf)|(sulphur)|(cambridge)|(leonidas)|(constantine)|(goddard)|(laughlin)|(lovelock)|(verne)|(beefy)|(spherical)|(schrodinger)|(heisenberg)).*64", QRegularExpression::CaseInsensitiveOption), "Fedora_64" },
-    { QRegularExpression("((moonshine)|(werewolf)|(sulphur)|(cambridge)|(leonidas)|(constantine)|(goddard)|(laughlin)|(lovelock)|(verne)|(beefy)|(spherical)|(schrodinger)|(heisenberg)).*32", QRegularExpression::CaseInsensitiveOption), "Fedora" },
-    { QRegularExpression("((basilisk)|(emerald)|(teal)|(celadon)|(asparagus)|(mantis)|(dartmouth)|(bottle)|(harlequin)).*64", QRegularExpression::CaseInsensitiveOption), "OpenSUSE_64" },
-    { QRegularExpression("((basilisk)|(emerald)|(teal)|(celadon)|(asparagus)|(mantis)|(dartmouth)|(bottle)|(harlequin)).*32", QRegularExpression::CaseInsensitiveOption), "OpenSUSE" },
+    { QRegularExpression("((bianca)|(cassandra)|(celena)|(daryna)|(elyssa)|(felicia)|(gloria)|(helena)|(isadora)|(julia)|(katya)|(lisa)|(maya)|(nadia)|(olivia)|(petra)|(qiana)|(rebecca)|(rafaela)|(rosa)).*64", QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Ubuntu") },
+    { QRegularExpression("((bianca)|(cassandra)|(celena)|(daryna)|(elyssa)|(felicia)|(gloria)|(helena)|(isadora)|(julia)|(katya)|(lisa)|(maya)|(nadia)|(olivia)|(petra)|(qiana)|(rebecca)|(rafaela)|(rosa)).*32", QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Ubuntu") },
+    { QRegularExpression("((edgy)|(feisty)|(gutsy)|(hardy)|(intrepid)|(jaunty)|(karmic)).*64",  QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Ubuntu") },
+    { QRegularExpression("((edgy)|(feisty)|(gutsy)|(hardy)|(intrepid)|(jaunty)|(karmic)).*32",  QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Ubuntu") },
+    { QRegularExpression("((eft)|(fawn)|(gibbon)|(heron)|(ibex)|(jackalope)|(koala)).*64",      QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Ubuntu") },
+    { QRegularExpression("((eft)|(fawn)|(gibbon)|(heron)|(ibex)|(jackalope)|(koala)).*32",      QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Ubuntu") },
+    { QRegularExpression("((lucid)|(lynx)).*64",                                                QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Ubuntu10_LTS") },
+    { QRegularExpression("((lucid)|(lynx)).*32",                                                QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Ubuntu10_LTS") },
+    { QRegularExpression("((maverick)|(meerkat)).*64",                                          QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Ubuntu10") },
+    { QRegularExpression("((maverick)|(meerkat)).*32",                                          QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Ubuntu10") },
+    { QRegularExpression("((natty)|(narwhal)|(oneiric)|(ocelot)).*64",                          QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Ubuntu11") },
+    { QRegularExpression("((natty)|(narwhal)|(oneiric)|(ocelot)).*32",                          QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Ubuntu11") },
+    { QRegularExpression("((precise)|(pangolin)).*64",                                          QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Ubuntu12_LTS") },
+    { QRegularExpression("((precise)|(pangolin)).*32",                                          QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Ubuntu12_LTS") },
+    { QRegularExpression("((quantal)|(quetzal)).*64",                                           QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Ubuntu12") },
+    { QRegularExpression("((quantal)|(quetzal)).*32",                                           QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Ubuntu12") },
+    { QRegularExpression("((raring)|(ringtail)|(saucy)|(salamander)).*64",                      QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Ubuntu13") },
+    { QRegularExpression("((raring)|(ringtail)|(saucy)|(salamander)).*32",                      QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Ubuntu13") },
+    { QRegularExpression("((trusty)|(tahr)).*64",                                               QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Ubuntu14_LTS") },
+    { QRegularExpression("((trusty)|(tahr)).*32",                                               QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Ubuntu14_LTS") },
+    { QRegularExpression("((utopic)|(unicorn)).*64",                                            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Ubuntu14") },
+    { QRegularExpression("((utopic)|(unicorn)).*32",                                            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Ubuntu14") },
+    { QRegularExpression("((vivid)|(vervet)|(wily)|(werewolf)).*64",                            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Ubuntu15") },
+    { QRegularExpression("((vivid)|(vervet)|(wily)|(werewolf)).*32",                            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Ubuntu15") },
+    { QRegularExpression("((xenial)|(xerus)).*64",                                              QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Ubuntu16_LTS") },
+    { QRegularExpression("((xenial)|(xerus)).*32",                                              QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Ubuntu16_LTS") },
+    { QRegularExpression("((yakkety)|(yak)).*64",                                               QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Ubuntu16") },
+    { QRegularExpression("((yakkety)|(yak)).*32",                                               QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Ubuntu16") },
+    { QRegularExpression("((zesty)|(zapus)|(artful)|(aardvark)).*64",                           QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Ubuntu17") },
+    { QRegularExpression("((zesty)|(zapus)|(artful)|(aardvark)).*32",                           QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Ubuntu17") },
+    { QRegularExpression("((bionic)|(beaver)).*64",                                             QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Ubuntu18_LTS") },
+    { QRegularExpression("((bionic)|(beaver)).*32",                                             QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Ubuntu18_LTS") },
+    { QRegularExpression("((cosmic)|(cuttlefish)).*64",                                         QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Ubuntu18") },
+    { QRegularExpression("((cosmic)|(cuttlefish)).*32",                                         QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Ubuntu18") },
+    { QRegularExpression("((disco)|(dingo)|(eoan)|(ermine)).*64",                               QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Ubuntu19") },
+    { QRegularExpression("((disco)|(dingo)|(eoan)|(ermine)).*32",                               QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Ubuntu19") },
+    { QRegularExpression("((focal)|(fossa)).*64",                                               QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Ubuntu20_LTS") },
+    { QRegularExpression("((groovy)|(gorilla)).*64",                                            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Ubuntu20") },
+    { QRegularExpression("((hirsute)|(hippo)|(impish)|(indri)).*64",                            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Ubuntu21") },
+    { QRegularExpression("((jammy)|(jellyfish)).*64",                                           QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Ubuntu22_LTS") },
+    { QRegularExpression("((jammy)|(jellyfish)).*64",                                           QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM64("Ubuntu22_LTS") },
+    { QRegularExpression("((kinetic)|(kudu)).*64",                                              QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Ubuntu22") },
+    { QRegularExpression("((kinetic)|(kudu)).*64",                                              QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM64("Ubuntu22") },
+    { QRegularExpression("((lunar)|(lobster)).*64",                                             QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Ubuntu23") },
+    { QRegularExpression("((lunar)|(lobster)).*64",                                             QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM64("Ubuntu23") },
+    { QRegularExpression("((noble)|(numbat)).*64",                                              QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Ubuntu24_LTS") },
+    { QRegularExpression("((noble)|(numbat)).*64",                                              QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM64("Ubuntu24_LTS") },
+    { QRegularExpression("sarge.*32",                         QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Debian31") },
+    { QRegularExpression("^etch.*64",                         QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Debian4") },
+    { QRegularExpression("debian.*4.*64",                     QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Debian4") },
+    { QRegularExpression("^etch.*32",                         QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Debian4") },
+    { QRegularExpression("debian.*4.*32",                     QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Debian4") },
+    { QRegularExpression("lenny.*64",                         QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Debian5") },
+    { QRegularExpression("lenny.*32",                         QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Debian5") },
+    { QRegularExpression("squeeze.*64",                       QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Debian6") },
+    { QRegularExpression("debian.*6.*64",                     QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Debian6") },
+    { QRegularExpression("squeeze.*32",                       QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Debian6") },
+    { QRegularExpression("debian.*6.*32",                     QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Debian6") },
+    { QRegularExpression("wheezy.*64",                        QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Debian7") },
+    { QRegularExpression("debian.*7.*64",                     QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Debian7") },
+    { QRegularExpression("wheezy.*32",                        QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Debian7") },
+    { QRegularExpression("debian.*7.*32",                     QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Debian7") },
+    { QRegularExpression("jessie.*64",                        QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Debian8") },
+    { QRegularExpression("debian.*8.*64",                     QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Debian8") },
+    { QRegularExpression("jessie.*32",                        QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Debian8") },
+    { QRegularExpression("debian.*8*32",                      QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Debian8") },
+    { QRegularExpression("stretch.*64",                       QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Debian9") },
+    { QRegularExpression("debian.*9.*64",                     QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Debian9") },
+    { QRegularExpression("debian.*9.*32",                     QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Debian9") },
+    { QRegularExpression("stretch.*32",                       QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Debian9") },
+    { QRegularExpression("stretch.*64",                       QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM64("Debian9") },
+    { QRegularExpression("debian.*9.*64",                     QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM64("Debian9") },
+    { QRegularExpression("debian.*9.*32",                     QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM32("Debian9") },
+    { QRegularExpression("stretch.*32",                       QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM32("Debian9") },
+    { QRegularExpression("buster.*64",                        QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Debian10") },
+    { QRegularExpression("debian.*10.*64",                    QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Debian10") },
+    { QRegularExpression("buster.*32",                        QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Debian10") },
+    { QRegularExpression("debian.*10.*32",                    QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Debian10") },
+    { QRegularExpression("buster.*64",                        QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM64("Debian10") },
+    { QRegularExpression("debian.*10.*64",                    QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM64("Debian10") },
+    { QRegularExpression("buster.*32",                        QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM32("Debian10") },
+    { QRegularExpression("debian.*10.*32",                    QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM32("Debian10") },
+    { QRegularExpression("bullseye.*64",                      QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Debian11") },
+    { QRegularExpression("debian.*11.*64",                    QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Debian11") },
+    { QRegularExpression("bullseye.*32",                      QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Debian11") },
+    { QRegularExpression("debian.*11.*32",                    QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Debian11") },
+    { QRegularExpression("bullseye.*64",                      QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM64("Debian11") },
+    { QRegularExpression("debian.*11.*64",                    QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM64("Debian11") },
+    { QRegularExpression("bullseye.*32",                      QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM32("Debian11") },
+    { QRegularExpression("debian.*11.*32",                    QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM32("Debian11") },
+    { QRegularExpression("bookworm.*64",                      QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Debian12") },
+    { QRegularExpression("debian.*12.*64",                    QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Debian12") },
+    { QRegularExpression("debian.*12",                        QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Debian12") },
+    { QRegularExpression("bookworm.*32",                      QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Debian12") },
+    { QRegularExpression("bookworm.*64",                      QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM64("Debian12") },
+    { QRegularExpression("debian.*12.*64",                    QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM64("Debian12") },
+    { QRegularExpression("debian.*12",                        QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM32("Debian12") },
+    { QRegularExpression("bookworm.*32",                      QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM32("Debian12") },
+    { QRegularExpression("((trixie)|(sid)).*64",              QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Debian") },
+    { QRegularExpression("((trixie)|(sid)).*32",              QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Debian") },
+    { QRegularExpression("((moonshine)|(werewolf)|(sulphur)|(cambridge)|(leonidas)|(constantine)|(goddard)|(laughlin)|(lovelock)|(verne)|(beefy)|(spherical)|(schrodinger)|(heisenberg)).*64", QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Fedora") },
+    { QRegularExpression("((moonshine)|(werewolf)|(sulphur)|(cambridge)|(leonidas)|(constantine)|(goddard)|(laughlin)|(lovelock)|(verne)|(beefy)|(spherical)|(schrodinger)|(heisenberg)).*32", QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Fedora") },
+    { QRegularExpression("((basilisk)|(emerald)|(teal)|(celadon)|(asparagus)|(mantis)|(dartmouth)|(bottle)|(harlequin)).*64", QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("OpenSUSE") },
+    { QRegularExpression("((basilisk)|(emerald)|(teal)|(celadon)|(asparagus)|(mantis)|(dartmouth)|(bottle)|(harlequin)).*32", QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("OpenSUSE") },
 
     /* Regular names of Linux distributions: */
-    { QRegularExpression("Arc.*64",                           QRegularExpression::CaseInsensitiveOption), "ArchLinux_64" },
-    { QRegularExpression("Arc.*32",                           QRegularExpression::CaseInsensitiveOption), "ArchLinux" },
-    { QRegularExpression("Deb.*64",                           QRegularExpression::CaseInsensitiveOption), "Debian_64" },
-    { QRegularExpression("Deb.*32",                           QRegularExpression::CaseInsensitiveOption), "Debian" },
-    { QRegularExpression("SU.*Leap.*64",                      QRegularExpression::CaseInsensitiveOption), "OpenSUSE_Leap_64" },
-    { QRegularExpression("SU.*Tumble.*64",                    QRegularExpression::CaseInsensitiveOption), "OpenSUSE_Tumbleweed_64" },
-    { QRegularExpression("SU.*Tumble.*32",                    QRegularExpression::CaseInsensitiveOption), "OpenSUSE_Tumbleweed" },
-    { QRegularExpression("((SU)|(Nov)|(SLE)).*64",            QRegularExpression::CaseInsensitiveOption), "OpenSUSE_64" },
-    { QRegularExpression("((SU)|(Nov)|(SLE)).*32",            QRegularExpression::CaseInsensitiveOption), "OpenSUSE" },
-    { QRegularExpression("Fe.*64",                            QRegularExpression::CaseInsensitiveOption), "Fedora_64" },
-    { QRegularExpression("Fe.*32",                            QRegularExpression::CaseInsensitiveOption), "Fedora" },
-    { QRegularExpression("((Gen)|(Sab)).*64",                 QRegularExpression::CaseInsensitiveOption), "Gentoo_64" },
-    { QRegularExpression("((Gen)|(Sab)).*32",                 QRegularExpression::CaseInsensitiveOption), "Gentoo" },
-    { QRegularExpression("^Man.*64",                          QRegularExpression::CaseInsensitiveOption), "Mandriva_64" },
-    { QRegularExpression("^Man.*32",                          QRegularExpression::CaseInsensitiveOption), "Mandriva" },
-    { QRegularExpression("Op.*Man.*Lx.*64",                   QRegularExpression::CaseInsensitiveOption), "OpenMandriva_Lx_64" },
-    { QRegularExpression("Op.*Man.*Lx.*32",                   QRegularExpression::CaseInsensitiveOption), "OpenMandriva_Lx" },
-    { QRegularExpression("PCL.*OS.*64",                       QRegularExpression::CaseInsensitiveOption), "PCLinuxOS_64" },
-    { QRegularExpression("PCL.*OS.*32",                       QRegularExpression::CaseInsensitiveOption), "PCLinuxOS" },
-    { QRegularExpression("Mageia.*64",                        QRegularExpression::CaseInsensitiveOption), "Mageia_64" },
-    { QRegularExpression("Mageia.*32",                        QRegularExpression::CaseInsensitiveOption), "Mageia" },
-    { QRegularExpression("((Red)|(rhel)|(cen)).*64",          QRegularExpression::CaseInsensitiveOption), "RedHat_64" },
-    { QRegularExpression("((Red)|(rhel)|(cen)).*32",          QRegularExpression::CaseInsensitiveOption), "RedHat" },
-    { QRegularExpression("Tur.*64",                           QRegularExpression::CaseInsensitiveOption), "Turbolinux_64" },
-    { QRegularExpression("Tur.*32",                           QRegularExpression::CaseInsensitiveOption), "Turbolinux" },
-    { QRegularExpression("Lub.*64",                           QRegularExpression::CaseInsensitiveOption), "Lubuntu_64" },
-    { QRegularExpression("Lub.*32",                           QRegularExpression::CaseInsensitiveOption), "Lubuntu" },
-    { QRegularExpression("Xub.*64",                           QRegularExpression::CaseInsensitiveOption), "Xubuntu_64" },
-    { QRegularExpression("Xub.*32",                           QRegularExpression::CaseInsensitiveOption), "Xubuntu" },
-    { QRegularExpression("((Ub)|(Mint)).*64",                 QRegularExpression::CaseInsensitiveOption), "Ubuntu_64" },
-    { QRegularExpression("((Ub)|(Mint)).*32",                 QRegularExpression::CaseInsensitiveOption), "Ubuntu" },
-    { QRegularExpression("Xa.*64",                            QRegularExpression::CaseInsensitiveOption), "Xandros_64" },
-    { QRegularExpression("Xa.*32",                            QRegularExpression::CaseInsensitiveOption), "Xandros" },
-    { QRegularExpression("((Or)|(oel)|(^ol)).*64",            QRegularExpression::CaseInsensitiveOption), "Oracle_64" },
-    { QRegularExpression("((Or)|(oel)|(^ol)).*32",            QRegularExpression::CaseInsensitiveOption), "Oracle" },
-    { QRegularExpression("Knoppix",                           QRegularExpression::CaseInsensitiveOption), "Linux26" },
-    { QRegularExpression("Dsl",                               QRegularExpression::CaseInsensitiveOption), "Linux24" },
-    { QRegularExpression("((Lin)|(lnx)).*2.?2",               QRegularExpression::CaseInsensitiveOption), "Linux22" },
-    { QRegularExpression("((Lin)|(lnx)).*2.?4.*64",           QRegularExpression::CaseInsensitiveOption), "Linux24_64" },
-    { QRegularExpression("((Lin)|(lnx)).*2.?4.*32",           QRegularExpression::CaseInsensitiveOption), "Linux24" },
-    { QRegularExpression("((((Lin)|(lnx)).*2.?6)|(LFS)).*64", QRegularExpression::CaseInsensitiveOption), "Linux26_64" },
-    { QRegularExpression("((((Lin)|(lnx)).*2.?6)|(LFS)).*32", QRegularExpression::CaseInsensitiveOption), "Linux26" },
-    { QRegularExpression("((Lin)|(lnx)).*64",                 QRegularExpression::CaseInsensitiveOption), "Linux26_64" },
-    { QRegularExpression("((Lin)|(lnx)).*32",                 QRegularExpression::CaseInsensitiveOption), "Linux26" },
+    { QRegularExpression("Arc.*64",                           QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("ArchLinux") },
+    { QRegularExpression("Arc.*32",                           QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("ArchLinux") },
+    { QRegularExpression("Arc.*64",                           QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM64("ArchLinux") },
+    { QRegularExpression("Arc.*32",                           QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM32("ArchLinux") },
+    { QRegularExpression("Deb.*64",                           QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Debian") },
+    { QRegularExpression("Deb.*32",                           QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Debian") },
+    { QRegularExpression("Deb.*64",                           QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM64("Debian") },
+    { QRegularExpression("Deb.*32",                           QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM32("Debian") },
+    { QRegularExpression("SU.*Leap.*64",                      QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("OpenSUSE_Leap") },
+    { QRegularExpression("SU.*Leap.*64",                      QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM64("OpenSUSE_Leap") },
+    { QRegularExpression("SU.*Tumble.*64",                    QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("OpenSUSE_Tumbleweed") },
+    { QRegularExpression("SU.*Tumble.*32",                    QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("OpenSUSE_Tumbleweed") },
+    { QRegularExpression("SU.*Tumble.*64",                    QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM64("OpenSUSE_Tumbleweed") },
+    { QRegularExpression("SU.*Tumble.*32",                    QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM32("OpenSUSE_Tumbleweed") },
+    { QRegularExpression("((SU)|(Nov)|(SLE)).*64",            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("OpenSUSE") },
+    { QRegularExpression("((SU)|(Nov)|(SLE)).*32",            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("OpenSUSE") },
+    { QRegularExpression("Fe.*64",                            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Fedora") },
+    { QRegularExpression("Fe.*32",                            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Fedora") },
+    { QRegularExpression("Fe.*64",                            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM64("Fedora") },
+    { QRegularExpression("Fe.*32",                            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM32("Fedora") },
+    { QRegularExpression("((Gen)|(Sab)).*64",                 QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Gentoo") },
+    { QRegularExpression("((Gen)|(Sab)).*32",                 QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Gentoo") },
+    { QRegularExpression("^Man.*64",                          QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Mandriva") },
+    { QRegularExpression("^Man.*32",                          QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Mandriva") },
+    { QRegularExpression("Op.*Man.*Lx.*64",                   QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("OpenMandriva_Lx") },
+    { QRegularExpression("Op.*Man.*Lx.*32",                   QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("OpenMandriva_Lx") },
+    { QRegularExpression("PCL.*OS.*64",                       QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("PCLinuxOS") },
+    { QRegularExpression("PCL.*OS.*32",                       QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("PCLinuxOS") },
+    { QRegularExpression("Mageia.*64",                        QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Mageia") },
+    { QRegularExpression("Mageia.*32",                        QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Mageia") },
+    { QRegularExpression("((Red)|(rhel)|(cen)).*64",          QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("RedHat") },
+    { QRegularExpression("((Red)|(rhel)|(cen)).*32",          QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("RedHat") },
+    { QRegularExpression("Tur.*64",                           QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Turbolinux") },
+    { QRegularExpression("Tur.*32",                           QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Turbolinux") },
+    { QRegularExpression("Lub.*64",                           QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Lubuntu") },
+    { QRegularExpression("Lub.*32",                           QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Lubuntu") },
+    { QRegularExpression("Xub.*64",                           QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Xubuntu") },
+    { QRegularExpression("Xub.*32",                           QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Xubuntu") },
+    { QRegularExpression("((Ub)|(Mint)).*64",                 QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Ubuntu") },
+    { QRegularExpression("((Ub)|(Mint)).*32",                 QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Ubuntu") },
+    { QRegularExpression("((Ub)|(Mint)).*64",                 QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM64("Ubuntu") },
+    { QRegularExpression("((Ub)|(Mint)).*32",                 QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM32("Ubuntu") },
+    { QRegularExpression("Xa.*64",                            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Xandros") },
+    { QRegularExpression("Xa.*32",                            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Xandros") },
+    { QRegularExpression("((Or)|(oel)|(^ol)).*64",            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Oracle") },
+    { QRegularExpression("((Or)|(oel)|(^ol)).*32",            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Oracle") },
+    { QRegularExpression("((Or)|(oel)|(^ol)).*64",            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM64("Oracle") },
+    { QRegularExpression("((Or)|(oel)|(^ol)).*32",            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM32("Oracle") },
+    { QRegularExpression("Knoppix",                           QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Linux26") },
+    { QRegularExpression("Dsl",                               QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Linux24") },
+    { QRegularExpression("((Lin)|(lnx)).*2.?2",               QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Linux22") },
+    { QRegularExpression("((Lin)|(lnx)).*2.?4.*64",           QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Linux24") },
+    { QRegularExpression("((Lin)|(lnx)).*2.?4.*32",           QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Linux24") },
+    { QRegularExpression("((((Lin)|(lnx)).*2.?6)|(LFS)).*64", QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Linux26") },
+    { QRegularExpression("((((Lin)|(lnx)).*2.?6)|(LFS)).*32", QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Linux26") },
+    { QRegularExpression("((Lin)|(lnx)).*64",                 QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("Linux26") },
+    { QRegularExpression("((Lin)|(lnx)).*32",                 QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Linux26") },
 
     /* Other: */
-    { QRegularExpression("L4",                   QRegularExpression::CaseInsensitiveOption), "L4" },
-    { QRegularExpression("((Fr.*B)|(fbsd)).*64", QRegularExpression::CaseInsensitiveOption), "FreeBSD_64" },
-    { QRegularExpression("((Fr.*B)|(fbsd)).*32", QRegularExpression::CaseInsensitiveOption), "FreeBSD" },
-    { QRegularExpression("Op.*B.*64",            QRegularExpression::CaseInsensitiveOption), "OpenBSD_64" },
-    { QRegularExpression("Op.*B.*32",            QRegularExpression::CaseInsensitiveOption), "OpenBSD" },
-    { QRegularExpression("Ne.*B.*64",            QRegularExpression::CaseInsensitiveOption), "NetBSD_64" },
-    { QRegularExpression("Ne.*B.*32",            QRegularExpression::CaseInsensitiveOption), "NetBSD" },
-    { QRegularExpression("Net",                  QRegularExpression::CaseInsensitiveOption), "Netware" },
-    { QRegularExpression("Rocki",                QRegularExpression::CaseInsensitiveOption), "JRockitVE" },
-    { QRegularExpression("bs[23]{0,1}-",         QRegularExpression::CaseInsensitiveOption), "VBoxBS_64" }, /* bootsector tests */
-    { QRegularExpression("Ot",                   QRegularExpression::CaseInsensitiveOption), "Other" },
+    { QRegularExpression("L4",                   QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("L4") },
+    { QRegularExpression("((Fr.*B)|(fbsd)).*64", QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("FreeBSD") },
+    { QRegularExpression("((Fr.*B)|(fbsd)).*32", QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("FreeBSD") },
+    { QRegularExpression("((Fr.*B)|(fbsd)).*64", QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM64("FreeBSD") },
+    { QRegularExpression("((Fr.*B)|(fbsd)).*32", QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM32("FreeBSD") },
+    { QRegularExpression("Op.*B.*64",            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("OpenBSD") },
+    { QRegularExpression("Op.*B.*32",            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("OpenBSD") },
+    { QRegularExpression("Op.*B.*64",            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM64("OpenBSD") },
+    { QRegularExpression("Op.*B.*32",            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM32("OpenBSD") },
+    { QRegularExpression("Ne.*B.*64",            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("NetBSD") },
+    { QRegularExpression("Ne.*B.*32",            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("NetBSD") },
+    { QRegularExpression("Ne.*B.*64",            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM64("NetBSD") },
+    { QRegularExpression("Ne.*B.*32",            QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM32("NetBSD") },
+    { QRegularExpression("Net",                  QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Netware") },
+    { QRegularExpression("Rocki",                QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("JRockitVE") },
+    { QRegularExpression("bs[23]{0,1}-",         QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X64("VBoxBS") }, /* bootsector tests */
+    { QRegularExpression("Ot",                   QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_X86("Other") },
+    { QRegularExpression("Ot",                   QRegularExpression::CaseInsensitiveOption), GUEST_OS_ID_STR_ARM64("Other") },
 };
 
 static const QRegularExpression gs_Prefer32BitNamePatterns = QRegularExpression("(XP)", QRegularExpression::CaseInsensitiveOption);
@@ -277,10 +340,11 @@ bool UIWizardNewVMNameOSTypeCommon::guessOSTypeFromName(UINameAndSystemEditor *p
     /* Search for a matching OS type based on the string the user typed already. */
     for (size_t i = 0; i < RT_ELEMENTS(gs_OSTypePattern); ++i)
     {
-        if (strNewName.contains(gs_OSTypePattern[i].pattern))
+        if (   strNewName.contains(gs_OSTypePattern[i].pattern)
+            && gpGlobalSession->guestOSTypeManager().isGuestOSTypeIDSupported(gs_OSTypePattern[i].pcstId))
         {
-            pNameAndSystemEditor->setType(uiCommon().vmGuestOSType(gs_OSTypePattern[i].pcstId));
-            return true;
+
+            return pNameAndSystemEditor->setGuestOSTypeByTypeId(gs_OSTypePattern[i].pcstId);
         }
     }
     return false;
@@ -291,18 +355,15 @@ bool UIWizardNewVMNameOSTypeCommon::guessOSTypeDetectedOSTypeString(UINameAndSys
     AssertReturn(pNameAndSystemEditor, false);
     if (!strDetectedOSType.isEmpty())
     {
-        CGuestOSType const osType = uiCommon().vmGuestOSType(strDetectedOSType);
-        if (!osType.isNull())
+        if (!pNameAndSystemEditor->setGuestOSTypeByTypeId(strDetectedOSType))
         {
-            pNameAndSystemEditor->setType(osType);
-            return true;
+            pNameAndSystemEditor->setGuestOSTypeByTypeId(GUEST_OS_ID_STR_X86("Other"));
+            /* Return false to allow OS type guessing from name. See caller code: */
+            return false;
         }
-        /* The detectedOSType shall be a valid OS type ID. So, unless the UI is
-           out of sync with the types in main this shouldn't ever happen. */
-        AssertFailed();
+        return true;
     }
-    pNameAndSystemEditor->setType(uiCommon().vmGuestOSType("Other"));
-    /* Return false to allow OS type guessing from name. See caller code: */
+    pNameAndSystemEditor->setGuestOSTypeByTypeId(GUEST_OS_ID_STR_X86("Other"));
     return false;
 }
 
@@ -314,7 +375,7 @@ void UIWizardNewVMNameOSTypeCommon::composeMachineFilePath(UINameAndSystemEditor
     if (pNameAndSystemEditor->name().isEmpty() || pNameAndSystemEditor->path().isEmpty())
         return;
     /* Get VBox: */
-    CVirtualBox vbox = uiCommon().virtualBox();
+    CVirtualBox vbox = gpGlobalSession->virtualBox();
 
     /* Compose machine filename: */
     pWizard->setMachineFilePath(vbox.ComposeMachineFilename(pNameAndSystemEditor->name(),
@@ -469,7 +530,7 @@ void UIWizardNewVMNameOSTypePage::sltNameChanged(const QString &strNewName)
         m_pNameAndSystemEditor->blockSignals(true);
         if (UIWizardNewVMNameOSTypeCommon::guessOSTypeFromName(m_pNameAndSystemEditor, strNewName))
         {
-            wizardWindow<UIWizardNewVM>()->setGuestOSType(m_pNameAndSystemEditor->type());
+            wizardWindow<UIWizardNewVM>()->setGuestOSTypeId(m_pNameAndSystemEditor->typeId());
             m_userModifiedParameters << "GuestOSTypeFromName";
         }
         m_pNameAndSystemEditor->blockSignals(false);
@@ -489,10 +550,10 @@ void UIWizardNewVMNameOSTypePage::sltOsTypeChanged()
     AssertReturnVoid(wizardWindow<UIWizardNewVM>());
     //m_userModifiedParameters << "GuestOSType";
     if (m_pNameAndSystemEditor)
-        wizardWindow<UIWizardNewVM>()->setGuestOSType(m_pNameAndSystemEditor->type());
+        wizardWindow<UIWizardNewVM>()->setGuestOSTypeId(m_pNameAndSystemEditor->typeId());
 }
 
-void UIWizardNewVMNameOSTypePage::retranslateUi()
+void UIWizardNewVMNameOSTypePage::sltRetranslateUI()
 {
     setTitle(UIWizardNewVM::tr("Virtual machine Name and Operating System"));
 
@@ -539,7 +600,7 @@ void UIWizardNewVMNameOSTypePage::updateInfoLabel()
                                        "the guest OS will need to be installed manually.");
     else if (!pWizard->detectedOSTypeId().isEmpty())
     {
-        QString strType = uiCommon().vmGuestOSTypeDescription(pWizard->detectedOSTypeId());
+        QString strType = gpGlobalSession->guestOSTypeManager().getDescription(pWizard->detectedOSTypeId());
         if (!pWizard->isUnattendedInstallSupported())
             strMessage = UIWizardNewVM::tr("Detected OS type: %1. %2")
                                            .arg(strType)
@@ -555,7 +616,11 @@ void UIWizardNewVMNameOSTypePage::updateInfoLabel()
                                                                   "The install will start after this wizard is closed."));
     }
 
-    m_pInfoLabel->setText(QString("<img src=\":/session_info_16px.png\" style=\"vertical-align:top\"> %1").arg(strMessage));
+    const QIcon icon = UIIconPool::iconSet(":/session_info_16px.png");
+    const int iIconMetric = QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize);
+    const qreal fDevicePixelRatio = gpDesktop->devicePixelRatio(m_pInfoLabel);
+    m_pInfoLabel->registerPixmap(icon.pixmap(QSize(iIconMetric, iIconMetric), fDevicePixelRatio), "wizard://info");
+    m_pInfoLabel->setText(QString("<img src='wizard://info' style=\"vertical-align:top\"> %1").arg(strMessage));
 }
 
 void UIWizardNewVMNameOSTypePage::initializePage()
@@ -563,7 +628,7 @@ void UIWizardNewVMNameOSTypePage::initializePage()
     UIWizardNewVM *pWizard = wizardWindow<UIWizardNewVM>();
     AssertReturnVoid(pWizard);
 
-    retranslateUi();
+    sltRetranslateUI();
 
     /* Initialize this page's widgets etc: */
     {
@@ -580,7 +645,7 @@ void UIWizardNewVMNameOSTypePage::initializePage()
         if (m_pNameAndSystemEditor)
         {
             pWizard->setGuestOSFamilyId(m_pNameAndSystemEditor->familyId());
-            pWizard->setGuestOSType(m_pNameAndSystemEditor->type());
+            pWizard->setGuestOSTypeId(m_pNameAndSystemEditor->typeId());
             /* Vm name, folder, file path etc. will be initilized by composeMachineFilePath: */
         }
     }
@@ -609,7 +674,7 @@ void UIWizardNewVMNameOSTypePage::sltISOPathChanged(const QString &strPath)
     /* Update the global recent ISO path: */
     QFileInfo fileInfo(strPath);
     if (fileInfo.exists() && fileInfo.isReadable())
-        uiCommon().updateRecentlyUsedMediumListAndFolder(UIMediumDeviceType_DVD, strPath);
+        gpMediumEnumerator->updateRecentlyUsedMediumListAndFolder(UIMediumDeviceType_DVD, strPath);
 
     /* Populate the editions selector: */
     if (m_pNameAndSystemEditor)
@@ -683,7 +748,7 @@ QWidget *UIWizardNewVMNameOSTypePage::createNameOSTypeWidgets()
             m_pSkipUnattendedCheckBox = new QCheckBox;
             if (m_pSkipUnattendedCheckBox)
                 m_pNameAndSystemLayout->addWidget(m_pSkipUnattendedCheckBox, 1, 1);
-            m_pInfoLabel = new QIRichTextLabel;
+            m_pInfoLabel = new QIRichTextLabel(pContainerWidget);
             if (m_pInfoLabel)
                 m_pNameAndSystemLayout->addWidget(m_pInfoLabel, 2, 1);
         }
@@ -699,7 +764,8 @@ void UIWizardNewVMNameOSTypePage::markWidgets() const
     {
         m_pNameAndSystemEditor->markNameEditor(m_pNameAndSystemEditor->name().isEmpty());
         m_pNameAndSystemEditor->markImageEditor(!UIWizardNewVMNameOSTypeCommon::checkISOFile(m_pNameAndSystemEditor),
-                                                UIWizardNewVM::tr("Invalid file path or unreadable file"));
+                                                UIWizardNewVM::tr("Invalid file path or unreadable file"),
+                                                UIWizardNewVM::tr("File path is valid"));
     }
 }
 

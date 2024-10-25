@@ -4,7 +4,7 @@
 #
 
 #
-# Copyright (C) 2011-2023 Oracle and/or its affiliates.
+# Copyright (C) 2011-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -42,11 +42,13 @@ if defined(VBOX_WITH_TESTCASES) && !defined(VBOX_ONLY_ADDITIONS) && !defined(VBO
  tstClipboardMockHGCM_TEMPLATE = VBoxR3TstExe
  tstClipboardMockHGCM_DEFS    = VBOX_WITH_HGCM VBOX_WITH_SHARED_CLIPBOARD
  tstClipboardMockHGCM_SOURCES = \
+ 	tstClipboardMockHGCM.cpp \
  	../VBoxSharedClipboardSvc.cpp \
+ 	../../testcase/TstHGCMMock.cpp \
+ 	../../testcase/TstHGCMMockUtils.cpp \
  	$(PATH_ROOT)/src/VBox/GuestHost/SharedClipboard/clipboard-common.cpp \
  	$(PATH_ROOT)/src/VBox/Additions/common/VBoxGuest/lib/VBoxGuestR3LibClipboard.cpp \
- 	$(PATH_ROOT)/src/VBox/HostServices/common/message.cpp \
- 	tstClipboardMockHGCM.cpp
+ 	$(PATH_ROOT)/src/VBox/HostServices/common/message.cpp
  tstClipboardMockHGCM_LIBS    = $(LIB_RUNTIME)
 
  if1of ($(KBUILD_TARGET), linux solaris)
@@ -70,10 +72,23 @@ if defined(VBOX_WITH_TESTCASES) && !defined(VBOX_ONLY_ADDITIONS) && !defined(VBO
  tstClipboardMockHGCM_CLEAN = $(tstClipboardMockHGCM_0_OUTDIR)/tstClipboardMockHGCM.run
 
  if defined(VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS)
-  tstClipboardMockHGCM_DEFS   += VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS
+  tstClipboardMockHGCM_DEFS   += \
+  	VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS \
+  	$(if $(VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS_HTTP),VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS_HTTP,)
   tstClipboardMockHGCM_SOURCES += \
   	../VBoxSharedClipboardSvc-transfers.cpp \
-  	$(PATH_ROOT)/src/VBox/GuestHost/SharedClipboard/clipboard-transfers.cpp
+  	$(PATH_ROOT)/src/VBox/GuestHost/SharedClipboard/clipboard-transfers.cpp \
+  	$(PATH_ROOT)/src/VBox/GuestHost/SharedClipboard/clipboard-transfers-provider-local.cpp
+  if VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS_HTTP
+   if1of ($(KBUILD_TARGET), linux solaris)
+    tstClipboardMockHGCM_SOURCES += \
+    	$(PATH_ROOT)/src/VBox/GuestHost/SharedClipboard/clipboard-transfers-http.cpp
+   endif
+  endif
+  tstClipboardMockHGCM_SOURCES.win += \
+  	$(PATH_ROOT)/src/VBox/GuestHost/SharedClipboard/ClipboardDataObjectImpl-win.cpp \
+  	$(PATH_ROOT)/src/VBox/GuestHost/SharedClipboard/ClipboardEnumFormatEtcImpl-win.cpp \
+  	$(PATH_ROOT)/src/VBox/GuestHost/SharedClipboard/ClipboardStreamImpl-win.cpp
  endif
 
  if 0 # Enable this if you want automatic runs after compilation.
@@ -101,7 +116,8 @@ if defined(VBOX_WITH_TESTCASES) && !defined(VBOX_ONLY_ADDITIONS) && !defined(VBO
   tstClipboardServiceHost_DEFS    += VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS
   tstClipboardServiceHost_SOURCES += \
   	../VBoxSharedClipboardSvc-transfers.cpp \
-  	$(PATH_ROOT)/src/VBox/GuestHost/SharedClipboard/clipboard-transfers.cpp
+  	$(PATH_ROOT)/src/VBox/GuestHost/SharedClipboard/clipboard-transfers.cpp \
+  	$(PATH_ROOT)/src/VBox/GuestHost/SharedClipboard/clipboard-transfers-provider-local.cpp
  endif
 
  #
@@ -130,6 +146,7 @@ if defined(VBOX_WITH_TESTCASES) && !defined(VBOX_ONLY_ADDITIONS) && !defined(VBO
   tstClipboardTransfers_SOURCES  = \
   	$(PATH_ROOT)/src/VBox/GuestHost/SharedClipboard/clipboard-common.cpp \
   	$(PATH_ROOT)/src/VBox/GuestHost/SharedClipboard/clipboard-transfers.cpp \
+  	$(PATH_ROOT)/src/VBox/GuestHost/SharedClipboard/clipboard-transfers-provider-local.cpp \
   	tstClipboardTransfers.cpp
  endif
 endif

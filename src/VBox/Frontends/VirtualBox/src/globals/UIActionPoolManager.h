@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -95,7 +95,6 @@ enum UIActionIndexMN
     UIActionIndexMN_M_Group_M_Tools_T_Activity,
     UIActionIndexMN_M_Group_M_Tools_T_FileManager,
     UIActionIndexMN_M_Group_S_Discard,
-    UIActionIndexMN_M_Group_S_ShowLogDialog,
     UIActionIndexMN_M_Group_S_Refresh,
     UIActionIndexMN_M_Group_S_ShowInFileManager,
     UIActionIndexMN_M_Group_S_CreateShortcut,
@@ -141,7 +140,6 @@ enum UIActionIndexMN
     UIActionIndexMN_M_Machine_M_Tools_T_Activity,
     UIActionIndexMN_M_Machine_M_Tools_T_FileManager,
     UIActionIndexMN_M_Machine_S_Discard,
-    UIActionIndexMN_M_Machine_S_ShowLogDialog,
     UIActionIndexMN_M_Machine_S_Refresh,
     UIActionIndexMN_M_Machine_S_ShowInFileManager,
     UIActionIndexMN_M_Machine_S_CreateShortcut,
@@ -242,6 +240,11 @@ protected:
     virtual QString shortcutsExtraDataID() const RT_OVERRIDE;
     /** Updates shortcuts. */
     virtual void updateShortcuts() RT_OVERRIDE;
+
+private slots:
+
+    /** Handles signal about settings expert mode change. */
+    void sltHandleSettingsExpertModeChange();
 
 private:
 

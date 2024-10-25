@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -175,6 +175,12 @@ typedef enum STAMTYPE
     STAMTYPE_BOOL,
     /** Generic boolean value. Reset to false. */
     STAMTYPE_BOOL_RESET,
+    /** Start of the internal types. */
+    STAMTYPE_FIRST_INTERNAL_TYPE,
+    /** Sum of two or more other samples. */
+    STAMTYPE_INTERNAL_SUM = STAMTYPE_FIRST_INTERNAL_TYPE,
+    /** Percent of a sum. */
+    STAMTYPE_INTERNAL_PCT_OF_SUM,
     /** The end (exclusive). */
     STAMTYPE_END
 } STAMTYPE;
@@ -207,6 +213,8 @@ typedef enum STAMUNIT
     STAMUNIT_NONE,
     /** Number of calls. */
     STAMUNIT_CALLS,
+    /** Number of calls per translation block. */
+    STAMUNIT_CALLS_PER_TB,
     /** Count of whatever. */
     STAMUNIT_COUNT,
     /** Count of bytes. */
@@ -239,8 +247,22 @@ typedef enum STAMUNIT
     STAMUNIT_NS_PER_OCCURENCE,
     /** Percentage. */
     STAMUNIT_PCT,
+    /** Parts per thousand. */
+    STAMUNIT_PP1K,
+    /** Parts per ten thousand. */
+    STAMUNIT_PP10K,
+    /** Parts per million. */
+    STAMUNIT_PPM,
+    /** Parts per billion. */
+    STAMUNIT_PPB,
     /** Hertz. */
     STAMUNIT_HZ,
+    /** Instructions. */
+    STAMUNIT_INSTR,
+    /** Instructions per translation block. */
+    STAMUNIT_INSTR_PER_TB,
+    /** Bytes per translation block. */
+    STAMUNIT_BYTES_PER_TB,
     /** The end (exclusive). */
     STAMUNIT_END
 } STAMUNIT;
@@ -1327,6 +1349,17 @@ VMMR3DECL(int)  STAMR3RegisterRefresh(PUVM pUVM, void *pvSample, STAMTYPE enmTyp
 VMMR3DECL(int)  STAMR3RegisterRefreshV(PUVM pUVM, void *pvSample, STAMTYPE enmType, STAMVISIBILITY enmVisibility,
                                        STAMUNIT enmUnit, uint8_t iRefreshGrp, const char *pszDesc,
                                        const char *pszName, va_list va) RT_IPRT_FORMAT_ATTR(8, 0);
+
+VMMR3DECL(int)  STAMR3RegisterSum(PUVM pUVM, STAMVISIBILITY enmVisibility, const char *pszSummandPattern,
+                                  const char *pszDesc, const char *pszName, ...) RT_IPRT_FORMAT_ATTR(5, 6);
+VMMR3DECL(int)  STAMR3RegisterSumV(PUVM pUVM, STAMVISIBILITY enmVisibility, const char *pszSummandPattern,
+                                   const char *pszDesc, const char *pszName, va_list va) RT_IPRT_FORMAT_ATTR(5, 0);
+VMMR3DECL(int)  STAMR3RegisterPctOfSum(PUVM pUVM, STAMVISIBILITY enmVisibility, STAMUNIT enmUnit, const char *pszValue,
+                                       bool fAddValueToSum, const char *pszSummandPattern, const char *pszDesc,
+                                       const char *pszName, ...);
+VMMR3DECL(int)  STAMR3RegisterPctOfSumV(PUVM pUVM, STAMVISIBILITY enmVisibility, STAMUNIT enmUnit, const char *pszValue,
+                                        bool fAddValueToSum, const char *pszSummandPattern, const char *pszDesc,
+                                        const char *pszName, va_list va);
 
 VMMR3DECL(int)  STAMR3Deregister(PUVM pUVM, const char *pszPat);
 VMMR3DECL(int)  STAMR3DeregisterF(PUVM pUVM, const char *pszPatFmt, ...) RT_IPRT_FORMAT_ATTR(2, 3);

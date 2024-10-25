@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -144,7 +144,7 @@ typedef DBGFMODINMEMBUF *PDBGFMODINMEMBUF;
  * @param   pszBuf          Buffer to use if work is needed.
  * @param   cbBuf           Size of buffer.
  */
-const char *dbgfR3ModNormalizeName(const char *pszName, char *pszBuf, size_t cbBuf)
+static const char *dbgfR3ModNormalizeName(const char *pszName, char *pszBuf, size_t cbBuf)
 {
     /*
      * Skip to the filename in case someone gave us a full filename path.

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,16 +32,16 @@
 #include <QLabel>
 
 /* GUI includes: */
-#include "UICommon.h"
 #include "UIConverter.h"
+#include "UIGlobalSession.h"
 #include "UITpmEditor.h"
 
 /* COM includes: */
-#include "CSystemProperties.h"
+#include "CPlatformProperties.h"
 
 
 UITpmEditor::UITpmEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent)
     , m_enmValue(KTpmType_Max)
     , m_pLabel(0)
     , m_pCombo(0)
@@ -76,7 +76,7 @@ void UITpmEditor::setMinimumLayoutIndent(int iIndent)
         m_pLayout->setColumnMinimumWidth(0, iIndent);
 }
 
-void UITpmEditor::retranslateUi()
+void UITpmEditor::sltRetranslateUI()
 {
     if (m_pLabel)
         m_pLabel->setText(tr("&TPM:"));
@@ -89,6 +89,11 @@ void UITpmEditor::retranslateUi()
         }
         m_pCombo->setToolTip(tr("Selects the TPM type to be emulated in this virtual machine."));
     }
+}
+
+void UITpmEditor::handleFilterChange()
+{
+    populateCombo();
 }
 
 void UITpmEditor::prepare()
@@ -119,7 +124,7 @@ void UITpmEditor::prepare()
                 m_pCombo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
                 if (m_pLabel)
                     m_pLabel->setBuddy(m_pCombo);
-                connect(m_pCombo, static_cast<void(QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+                connect(m_pCombo, &QComboBox::currentIndexChanged,
                         this, &UITpmEditor::sigValueChanged);
                 pComboLayout->addWidget(m_pCombo);
             }
@@ -136,7 +141,7 @@ void UITpmEditor::prepare()
     populateCombo();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UITpmEditor::populateCombo()
@@ -147,7 +152,10 @@ void UITpmEditor::populateCombo()
         m_pCombo->clear();
 
         /* Load currently supported values: */
-        CSystemProperties comProperties = uiCommon().virtualBox().GetSystemProperties();
+        const KPlatformArchitecture enmArch = optionalFlags().contains("arch")
+                                            ? optionalFlags().value("arch").value<KPlatformArchitecture>()
+                                            : KPlatformArchitecture_x86;
+        CPlatformProperties comProperties = gpGlobalSession->virtualBox().GetPlatformProperties(enmArch);
         m_supportedValues = comProperties.GetSupportedTpmTypes();
 
         /* Make sure requested value if sane is present as well: */
@@ -165,6 +173,6 @@ void UITpmEditor::populateCombo()
             m_pCombo->setCurrentIndex(iIndex);
 
         /* Retranslate finally: */
-        retranslateUi();
+        sltRetranslateUI();
     }
 }

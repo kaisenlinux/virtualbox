@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -257,7 +257,7 @@ const Utf8Str &WIMImage::formatName(Utf8Str &r_strName) const
 Unattended::Unattended()
     : mhThreadReconfigureVM(NIL_RTNATIVETHREAD), mfRtcUseUtc(false), mfGuestOs64Bit(false)
     , mpInstaller(NULL), mpTimeZoneInfo(NULL), mfIsDefaultAuxiliaryBasePath(true), mfDoneDetectIsoOS(false)
-    , mfAvoidUpdatesOverNetwork(false)
+    , mfAvoidUpdatesOverNetwork(false), mfDoneSupportedGuestOSList(false)
 { }
 
 Unattended::~Unattended()
@@ -314,9 +314,11 @@ HRESULT Unattended::initUnattended(VirtualBox *aParent)
     try
     {
         mStrUser                    = "vboxuser";
-        mStrPassword                = "changeme";
+        mStrUserPassword            = "changeme";
+        /* Note: For mStrAdminPassword see Unattended::i_getAdminPassword(). */
         mfInstallGuestAdditions     = false;
         mfInstallTestExecService    = false;
+        mfInstallUserPayload        = false;
         midxImage                   = 1;
 
         HRESULT hrc = mParent->i_getSystemProperties()->i_getDefaultAdditionsISO(mStrAdditionsIsoPath);
@@ -338,10 +340,15 @@ HRESULT Unattended::initUnattended(VirtualBox *aParent)
 HRESULT Unattended::detectIsoOS()
 {
     HRESULT       hrc;
+
+    /* Populate list of supported guest OSs in case it has not been done yet. Do this before locking. */
+    if (!mfDoneSupportedGuestOSList)
+        i_getListOfSupportedGuestOS();
+
     AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
 
-/** @todo once UDF is implemented properly and we've tested this code a lot
- *        more, replace E_NOTIMPL with E_FAIL. */
+    /** @todo once UDF is implemented properly and we've tested this code a lot
+     *        more, replace E_NOTIMPL with E_FAIL. */
 
     /*
      * Reset output state before we start
@@ -372,6 +379,42 @@ HRESULT Unattended::detectIsoOS()
         hrc = i_innerDetectIsoOS(hVfsIso);
 
         RTVfsRelease(hVfsIso);
+
+        /* If detecting the ISO failed, print everything we got to the VBoxSVC release log,
+         * to (hopefully) provide us more clues about which distros don't work. */
+        if (FAILED(hrc))
+        {
+            Utf8Str strLangs;
+            for (size_t i = 0; i < mDetectedOSLanguages.size(); i++)
+            {
+                if (i)
+                    strLangs += ", ";
+                strLangs += mDetectedOSLanguages[i];
+            }
+
+            Utf8Str strImages;
+            for (size_t i = 0; i < mDetectedImages.size(); i++)
+            {
+                if (i)
+                    strImages += ", ";
+                strImages += mDetectedImages[i].mName;
+            }
+
+            LogRel(("Unattended: Detection summary:\n"
+                    "Unattended: OS type ID : %s\n"
+                    "Unattended: OS version : %s\n"
+                    "Unattended: OS flavor  : %s\n"
+                    "Unattended: OS language: %s\n"
+                    "Unattended: OS hints   : %s\n"
+                    "Unattended: Images     : %s\n",
+                    mStrDetectedOSTypeId.c_str(),
+                    mStrDetectedOSVersion.c_str(),
+                    mStrDetectedOSFlavor.c_str(),
+                    strLangs.c_str(),
+                    mStrDetectedOSHints.c_str(),
+                    strImages.c_str()));
+        }
+
         if (hrc == S_FALSE) /** @todo Finish the linux and windows detection code. Only OS/2 returns S_OK right now. */
             hrc = E_NOTIMPL;
     }
@@ -449,6 +492,28 @@ HRESULT Unattended::detectIsoOS()
         {
             return E_OUTOFMEMORY;
         }
+    }
+
+    /* Check if detected OS type is supported (covers platform architecture). */
+    bool fSupported = false;
+    for (size_t i = 0; i < mSupportedGuestOSTypes.size() && !fSupported; ++i)
+    {
+        ComPtr<IGuestOSType> guestOSType = mSupportedGuestOSTypes[i];
+
+        Bstr guestId;
+        guestOSType->COMGETTER(Id)(guestId.asOutParam());
+        if (guestId == mStrDetectedOSTypeId)
+            fSupported = true;
+    }
+    if (!fSupported)
+    {
+        mStrDetectedOSTypeId.setNull();
+        mStrDetectedOSVersion.setNull();
+        mStrDetectedOSFlavor.setNull();
+        mDetectedOSLanguages.clear();
+        mStrDetectedOSHints.setNull();
+        mDetectedImages.clear();
+        hrc = E_FAIL;
     }
 
     /** @todo implement actual detection logic. */
@@ -571,7 +636,7 @@ static void parseArchElement(const xml::ElementNode *pElmArch, WIMImage &rImage)
             && uArch < RT_ELEMENTS(s_aArches))
         {
             rImage.mArch   = s_aArches[uArch].pszArch;
-            rImage.mOSType = (VBOXOSTYPE)(s_aArches[uArch].enmArch | (rImage.mOSType & VBOXOSTYPE_OsTypeMask));
+            rImage.mOSType = (VBOXOSTYPE)(s_aArches[uArch].enmArch | (rImage.mOSType & VBOXOSTYPE_OsMask));
         }
         else
             LogRel(("Unattended: bogus ARCH element value: '%s'\n", pszArch));
@@ -639,35 +704,35 @@ static void parseVersionElement(const xml::ElementNode *pNode, WIMImage &image)
                             /*
                              * Convert that to a version windows OS ID (newest first!).
                              */
-                            image.mEnmOsType = VBOXOSTYPE_Unknown;
+                            VBOXOSTYPE enmVersion = VBOXOSTYPE_Unknown;
                             if (RTStrVersionCompare(image.mVersion.c_str(), "10.0.22000.0") >= 0)
-                                image.mEnmOsType = VBOXOSTYPE_Win11_x64;
+                                enmVersion = VBOXOSTYPE_Win11_x64;
                             else if (RTStrVersionCompare(image.mVersion.c_str(), "10.0") >= 0)
-                                image.mEnmOsType = VBOXOSTYPE_Win10;
+                                enmVersion = VBOXOSTYPE_Win10;
                             else if (RTStrVersionCompare(image.mVersion.c_str(), "6.3") >= 0)
-                                image.mEnmOsType = VBOXOSTYPE_Win81;
+                                enmVersion = VBOXOSTYPE_Win81;
                             else if (RTStrVersionCompare(image.mVersion.c_str(), "6.2") >= 0)
-                                image.mEnmOsType = VBOXOSTYPE_Win8;
+                                enmVersion = VBOXOSTYPE_Win8;
                             else if (RTStrVersionCompare(image.mVersion.c_str(), "6.1") >= 0)
-                                image.mEnmOsType = VBOXOSTYPE_Win7;
+                                enmVersion = VBOXOSTYPE_Win7;
                             else if (RTStrVersionCompare(image.mVersion.c_str(), "6.0") >= 0)
-                                image.mEnmOsType = VBOXOSTYPE_WinVista;
+                                enmVersion = VBOXOSTYPE_WinVista;
                             if (image.mFlavor.contains("server", Utf8Str::CaseInsensitive))
                             {
                                 if (RTStrVersionCompare(image.mVersion.c_str(), "10.0.20348") >= 0)
-                                    image.mEnmOsType = VBOXOSTYPE_Win2k22_x64;
+                                    enmVersion = VBOXOSTYPE_Win2k22_x64;
                                 else if (RTStrVersionCompare(image.mVersion.c_str(), "10.0.17763") >= 0)
-                                    image.mEnmOsType = VBOXOSTYPE_Win2k19_x64;
+                                    enmVersion = VBOXOSTYPE_Win2k19_x64;
                                 else if (RTStrVersionCompare(image.mVersion.c_str(), "10.0") >= 0)
-                                    image.mEnmOsType = VBOXOSTYPE_Win2k16_x64;
+                                    enmVersion = VBOXOSTYPE_Win2k16_x64;
                                 else if (RTStrVersionCompare(image.mVersion.c_str(), "6.2") >= 0)
-                                    image.mEnmOsType = VBOXOSTYPE_Win2k12_x64;
+                                    enmVersion = VBOXOSTYPE_Win2k12_x64;
                                 else if (RTStrVersionCompare(image.mVersion.c_str(), "6.0") >= 0)
-                                    image.mEnmOsType = VBOXOSTYPE_Win2k8;
+                                    enmVersion = VBOXOSTYPE_Win2k8;
                             }
-                            if (image.mEnmOsType != VBOXOSTYPE_Unknown)
+                            if (enmVersion != VBOXOSTYPE_Unknown)
                                 image.mOSType = (VBOXOSTYPE)(  (image.mOSType & VBOXOSTYPE_ArchitectureMask)
-                                                             | (image.mEnmOsType & VBOXOSTYPE_OsTypeMask));
+                                                             | (enmVersion    & VBOXOSTYPE_OsMask));
                             return;
                         }
                     }
@@ -840,7 +905,7 @@ HRESULT Unattended::i_innerDetectIsoOSWindows(RTVFS hVfsIso, DETECTBUFFER *pBuf)
                     vrc = RTVfsFileReadAt(hVfsFile, (RTFOFF)header.XmlData.off, pachXmlBuf, cbXmlData, NULL);
                     if (RT_SUCCESS(vrc))
                     {
-                        LogRel2(("XML Data (%#zx bytes):\n%32.*Rhxd\n", cbXmlData, cbXmlData, pachXmlBuf));
+                        LogRel2(("Unattended: XML Data (%#zx bytes):\n%32.*Rhxd\n", cbXmlData, cbXmlData, pachXmlBuf));
 
                         /* Parse the XML: */
                         xml::Document doc;
@@ -1300,19 +1365,30 @@ HRESULT Unattended::i_innerDetectIsoOSWindows(RTVFS hVfsIso, DETECTBUFFER *pBuf)
  */
 static struct { const char *pszArch; uint32_t cchArch; VBOXOSTYPE fArch; } const g_aLinuxArches[] =
 {
-    { RT_STR_TUPLE("amd64"),  VBOXOSTYPE_x64 },
-    { RT_STR_TUPLE("x86_64"), VBOXOSTYPE_x64 },
-    { RT_STR_TUPLE("x86-64"), VBOXOSTYPE_x64 }, /* just in case */
-    { RT_STR_TUPLE("x64"),    VBOXOSTYPE_x64 }, /* ditto */
+    { RT_STR_TUPLE("amd64"),   VBOXOSTYPE_x64 },
+    { RT_STR_TUPLE("x86_64"),  VBOXOSTYPE_x64 },
+    { RT_STR_TUPLE("x86-64"),  VBOXOSTYPE_x64 }, /* just in case */
+    { RT_STR_TUPLE("x64"),     VBOXOSTYPE_x64 }, /* ditto */
 
-    { RT_STR_TUPLE("x86"),    VBOXOSTYPE_x86 },
-    { RT_STR_TUPLE("i386"),   VBOXOSTYPE_x86 },
-    { RT_STR_TUPLE("i486"),   VBOXOSTYPE_x86 },
-    { RT_STR_TUPLE("i586"),   VBOXOSTYPE_x86 },
-    { RT_STR_TUPLE("i686"),   VBOXOSTYPE_x86 },
-    { RT_STR_TUPLE("i786"),   VBOXOSTYPE_x86 },
-    { RT_STR_TUPLE("i886"),   VBOXOSTYPE_x86 },
-    { RT_STR_TUPLE("i986"),   VBOXOSTYPE_x86 },
+    { RT_STR_TUPLE("arm"),     VBOXOSTYPE_arm64 },
+    { RT_STR_TUPLE("arm64"),   VBOXOSTYPE_arm64 },
+    { RT_STR_TUPLE("arm-64"),  VBOXOSTYPE_arm64 },
+    { RT_STR_TUPLE("arm_64"),  VBOXOSTYPE_arm64 },
+    { RT_STR_TUPLE("aarch64"), VBOXOSTYPE_arm64 }, /* mostly RHEL. */
+
+    { RT_STR_TUPLE("arm32"),   VBOXOSTYPE_arm32 },
+    { RT_STR_TUPLE("arm-32"),  VBOXOSTYPE_arm32 },
+    { RT_STR_TUPLE("arm_32"),  VBOXOSTYPE_arm32 },
+    { RT_STR_TUPLE("armel"),   VBOXOSTYPE_arm32 }, /* mostly Debians. */
+
+    { RT_STR_TUPLE("x86"),     VBOXOSTYPE_x86 },
+    { RT_STR_TUPLE("i386"),    VBOXOSTYPE_x86 },
+    { RT_STR_TUPLE("i486"),    VBOXOSTYPE_x86 },
+    { RT_STR_TUPLE("i586"),    VBOXOSTYPE_x86 },
+    { RT_STR_TUPLE("i686"),    VBOXOSTYPE_x86 },
+    { RT_STR_TUPLE("i786"),    VBOXOSTYPE_x86 },
+    { RT_STR_TUPLE("i886"),    VBOXOSTYPE_x86 },
+    { RT_STR_TUPLE("i986"),    VBOXOSTYPE_x86 },
 };
 
 /**
@@ -1762,7 +1838,7 @@ HRESULT Unattended::i_innerDetectIsoOSLinux(RTVFS hVfsIso, DETECTBUFFER *pBuf)
         const char *pszDiskName = NULL;
         const char *pszArch     = NULL;
         char       *psz         = pBuf->sz;
-        for (unsigned i = 0; *psz != '\0'; i++)
+        while (*psz != '\0')
         {
             while (RT_C_IS_BLANK(*psz))
                 psz++;
@@ -1869,6 +1945,8 @@ HRESULT Unattended::i_innerDetectIsoOSLinux(RTVFS hVfsIso, DETECTBUFFER *pBuf)
      *   Debian GNU/Linux 8.11.1 "Jessie" - Official amd64 CD Binary-1 20190211-02:10
      *   Kali GNU/Linux 2021.3a "Kali-last-snapshot" - Official amd64 BD Binary-1 with firmware 20211015-16:55
      *   Official Debian GNU/Linux Live 10.10.0 cinnamon 2021-06-19T12:13
+     *   Ubuntu 23.10.1 "Mantic Minotaur" - Release amd64 (20231016.1)
+     *   Ubuntu-Server 22.04.3 LTS "Jammy Jellyfish" - Release amd64 (20230810)
      */
     vrc = RTVfsFileOpen(hVfsIso, ".disk/info", RTFILE_O_READ | RTFILE_O_DENY_NONE | RTFILE_O_OPEN, &hVfsFile);
     if (RT_SUCCESS(vrc))
@@ -2043,6 +2121,8 @@ HRESULT Unattended::i_innerDetectIsoOSLinuxFedora(RTVFS hVfsIso, DETECTBUFFER *p
                             mEnmOsType = (VBOXOSTYPE)((mEnmOsType & ~VBOXOSTYPE_ArchitectureMask) | VBOXOSTYPE_x86);
                         else if (pNtHdrs->FileHeader.Machine == IMAGE_FILE_MACHINE_AMD64)
                             mEnmOsType = (VBOXOSTYPE)((mEnmOsType & ~VBOXOSTYPE_ArchitectureMask) | VBOXOSTYPE_x64);
+                        else if (pNtHdrs->FileHeader.Machine == IMAGE_FILE_MACHINE_ARM64)
+                            mEnmOsType = (VBOXOSTYPE)((mEnmOsType & ~VBOXOSTYPE_ArchitectureMask) | VBOXOSTYPE_arm64);
                         else
                             AssertFailed();
                     }
@@ -2508,15 +2588,27 @@ HRESULT Unattended::prepare()
     }
     bool const fIs64Bit = i_isGuestOSArchX64(strGuestOsTypeId);
 
+    ComPtr<IPlatform> pPlatform;
+    hrc = ptrMachine->COMGETTER(Platform)(pPlatform.asOutParam());
+    AssertComRCReturn(hrc, hrc);
+
     BOOL fRtcUseUtc = FALSE;
-    hrc = ptrMachine->COMGETTER(RTCUseUTC)(&fRtcUseUtc);
+    hrc = pPlatform->COMGETTER(RTCUseUTC)(&fRtcUseUtc);
     if (FAILED(hrc))
         return hrc;
 
+    ComPtr<IFirmwareSettings> pFirmwareSettings;
+    hrc = ptrMachine->COMGETTER(FirmwareSettings)(pFirmwareSettings.asOutParam());
+    AssertComRCReturn(hrc, hrc);
+
     FirmwareType_T enmFirmware = FirmwareType_BIOS;
-    hrc = ptrMachine->COMGETTER(FirmwareType)(&enmFirmware);
+    hrc = pFirmwareSettings->COMGETTER(FirmwareType)(&enmFirmware);
     if (FAILED(hrc))
         return hrc;
+
+    /* Populate list of supported guest OSs in case it has not been done yet. Do this before locking. */
+    if (!mfDoneSupportedGuestOSList)
+        i_getListOfSupportedGuestOS();
 
     /*
      * Write lock this object and set attributes we got from IMachine.
@@ -2548,6 +2640,9 @@ HRESULT Unattended::prepare()
     if (mfInstallTestExecService && !RTFileExists(mStrValidationKitIsoPath.c_str()))
         return setErrorBoth(E_FAIL, VERR_FILE_NOT_FOUND, tr("Could not locate the validation kit ISO file '%s'"),
                             mStrValidationKitIsoPath.c_str());
+    if (mfInstallUserPayload && !RTFileExists(mStrUserPayloadIsoPath.c_str()))
+        return setErrorBoth(E_FAIL, VERR_FILE_NOT_FOUND, tr("Could not locate the User Payload ISO file '%s'"),
+                            mStrUserPayloadIsoPath.c_str());
     if (mStrScriptTemplatePath.isNotEmpty() && !RTFileExists(mStrScriptTemplatePath.c_str()))
         return setErrorBoth(E_FAIL, VERR_FILE_NOT_FOUND, tr("Could not locate unattended installation script template '%s'"),
                             mStrScriptTemplatePath.c_str());
@@ -2587,7 +2682,7 @@ HRESULT Unattended::prepare()
      */
     uint32_t const   idxIsoOSType = Global::getOSTypeIndexFromId(mStrDetectedOSTypeId.c_str());
     VBOXOSTYPE const enmIsoOSType = idxIsoOSType < Global::cOSTypes ? Global::sOSTypes[idxIsoOSType].osType : VBOXOSTYPE_Unknown;
-    if ((enmIsoOSType & VBOXOSTYPE_OsTypeMask) == VBOXOSTYPE_Unknown)
+    if ((enmIsoOSType & VBOXOSTYPE_OsFamilyMask) == VBOXOSTYPE_Unknown)
         return setError(E_FAIL, tr("The supplied ISO file does not contain an OS currently supported for unattended installation"));
 
     /*
@@ -2596,10 +2691,14 @@ HRESULT Unattended::prepare()
     uint32_t const   idxMachineOSType = Global::getOSTypeIndexFromId(mStrGuestOsTypeId.c_str());
     VBOXOSTYPE const enmMachineOSType = idxMachineOSType < Global::cOSTypes
                                       ? Global::sOSTypes[idxMachineOSType].osType : VBOXOSTYPE_Unknown;
+#if 0 /** @todo r=bird: Unused, see below.  */
+    uint32_t const   fMachineOsHints  = idxMachineOSType < Global::cOSTypes
+                                      ? Global::sOSTypes[idxMachineOSType].osHint : 0;
+#endif
 
     /*
      * Check that the detected guest OS type for the ISO is compatible with
-     * that of the VM, boardly speaking.
+     * that of the VM, broadly speaking.
      */
     if (idxMachineOSType != idxIsoOSType)
     {
@@ -2611,6 +2710,16 @@ HRESULT Unattended::prepare()
 
         /** @todo check BIOS/EFI requirement */
     }
+
+#if 0 /** @todo r=bird: this is misleading, since it is checking the machine. */
+    /* We don't support guest OSes w/ EFI, as that requires UDF remastering support we don't have yet. */
+    if (   (fMachineOsHints & VBOXOSHINT_EFI)
+        && (enmIsoOSType & VBOXOSTYPE_ArchitectureMask) != VBOXOSTYPE_arm64)
+        return setError(E_FAIL, tr("The machine is configured with EFI which is currently not supported by unatteded installation"));
+#endif
+
+    /* Set the guest additions install package name. */
+    mStrAdditionsInstallPackage = Global::sOSTypes[idxMachineOSType].guestAdditionsInstallPkgName;
 
     /*
      * Do some default property stuff and check other properties.
@@ -3163,18 +3272,8 @@ HRESULT Unattended::i_reconfigureIsos(com::SafeIfaceArray<IStorageController> &r
         /* Do we need to add the recommended controller? */
         if (strRecommendedControllerName.isEmpty())
         {
-            switch (enmRecommendedStorageBus)
-            {
-                case StorageBus_IDE:    strRecommendedControllerName = "IDE";  break;
-                case StorageBus_SATA:   strRecommendedControllerName = "SATA"; break;
-                case StorageBus_SCSI:   strRecommendedControllerName = "SCSI"; break;
-                case StorageBus_SAS:    strRecommendedControllerName = "SAS";  break;
-                case StorageBus_USB:    strRecommendedControllerName = "USB";  break;
-                case StorageBus_PCIe:   strRecommendedControllerName = "PCIe"; break;
-                default:
-                    return setError(E_FAIL, tr("Support for recommended storage bus %d not implemented"),
-                                    (int)enmRecommendedStorageBus);
-            }
+            strRecommendedControllerName = StorageController::i_controllerNameFromBusType(enmRecommendedStorageBus);
+
             ComPtr<IStorageController> ptrControllerIgnored;
             hrc = rPtrSessionMachine->AddStorageController(Bstr(strRecommendedControllerName).raw(), enmRecommendedStorageBus,
                                                            ptrControllerIgnored.asOutParam());
@@ -3401,18 +3500,33 @@ HRESULT Unattended::setUser(const com::Utf8Str &user)
     return S_OK;
 }
 
-HRESULT Unattended::getPassword(com::Utf8Str &password)
+HRESULT Unattended::getUserPassword(com::Utf8Str &password)
 {
     AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
-    password = mStrPassword;
+    password = mStrUserPassword;
     return S_OK;
 }
 
-HRESULT Unattended::setPassword(const com::Utf8Str &password)
+HRESULT Unattended::setUserPassword(const com::Utf8Str &password)
 {
     AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
     AssertReturn(mpInstaller == NULL, setErrorBoth(E_FAIL, VERR_WRONG_ORDER, tr("Cannot change after prepare() has been called")));
-    mStrPassword = password;
+    mStrUserPassword = password;
+    return S_OK;
+}
+
+HRESULT Unattended::getAdminPassword(com::Utf8Str &password)
+{
+    AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
+    password = mStrAdminPassword;
+    return S_OK;
+}
+
+HRESULT Unattended::setAdminPassword(const com::Utf8Str &password)
+{
+    AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
+    AssertReturn(mpInstaller == NULL, setErrorBoth(E_FAIL, VERR_WRONG_ORDER, tr("Cannot change after prepare() has been called")));
+    mStrAdminPassword = password;
     return S_OK;
 }
 
@@ -3506,6 +3620,36 @@ HRESULT Unattended::setInstallTestExecService(BOOL aInstallTestExecService)
     return S_OK;
 }
 
+HRESULT Unattended::getUserPayloadIsoPath(com::Utf8Str &aUserPayloadIsoPath)
+{
+    AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
+    aUserPayloadIsoPath = mStrUserPayloadIsoPath;
+    return S_OK;
+}
+
+HRESULT Unattended::setUserPayloadIsoPath(const com::Utf8Str &aUserPayloadIsoPath)
+{
+    AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
+    AssertReturn(mpInstaller == NULL, setErrorBoth(E_FAIL, VERR_WRONG_ORDER, tr("Cannot change after prepare() has been called")));
+    mStrUserPayloadIsoPath = aUserPayloadIsoPath;
+    return S_OK;
+}
+
+HRESULT Unattended::getInstallUserPayload(BOOL *aInstallUserPayload)
+{
+    AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
+    *aInstallUserPayload = mfInstallUserPayload;
+    return S_OK;
+}
+
+HRESULT Unattended::setInstallUserPayload(BOOL aInstallUserPayload)
+{
+    AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
+    AssertReturn(mpInstaller == NULL, setErrorBoth(E_FAIL, VERR_WRONG_ORDER, tr("Cannot change after prepare() has been called")));
+    mfInstallUserPayload = aInstallUserPayload != FALSE;
+    return S_OK;
+}
+
 HRESULT Unattended::getTimeZone(com::Utf8Str &aTimeZone)
 {
     AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
@@ -3519,6 +3663,30 @@ HRESULT Unattended::setTimeZone(const com::Utf8Str &aTimezone)
     AssertReturn(mpInstaller == NULL, setErrorBoth(E_FAIL, VERR_WRONG_ORDER, tr("Cannot change after prepare() has been called")));
     mStrTimeZone = aTimezone;
     return S_OK;
+}
+
+HRESULT Unattended::getKeyboardLayout(com::Utf8Str &aKeyboardLayout)
+{
+    RT_NOREF(aKeyboardLayout);
+    return E_NOTIMPL;
+}
+
+HRESULT Unattended::setKeyboardLayout(const com::Utf8Str &aKeyboardLayout)
+{
+    RT_NOREF(aKeyboardLayout);
+    return E_NOTIMPL;
+}
+
+HRESULT Unattended::getKeyboardVariant(com::Utf8Str &aKeyboardVariant)
+{
+    RT_NOREF(aKeyboardVariant);
+    return E_NOTIMPL;
+}
+
+HRESULT Unattended::setKeyboardVariant(const com::Utf8Str &aKeyboardVariant)
+{
+    RT_NOREF(aKeyboardVariant);
+    return E_NOTIMPL;
 }
 
 HRESULT Unattended::getLocale(com::Utf8Str &aLocale)
@@ -3936,6 +4104,8 @@ HRESULT Unattended::getIsUnattendedInstallSupported(BOOL *aIsUnattendedInstallSu
     if (mStrDetectedOSTypeId.isEmpty())
         return S_OK;
 
+    /* Note! Includes the OS family and the distro (linux) or (part) of the
+             major OS version. Use with care. */
     const VBOXOSTYPE enmOsTypeMasked = (VBOXOSTYPE)(mEnmOsType & VBOXOSTYPE_OsTypeMask);
 
     /* We require a version to have been detected, except for windows where the
@@ -4031,10 +4201,19 @@ Utf8Str const &Unattended::i_getUser() const
     return mStrUser;
 }
 
-Utf8Str const &Unattended::i_getPassword() const
+Utf8Str const &Unattended::i_getUserPassword() const
 {
     Assert(isReadLockedOnCurrentThread());
-    return mStrPassword;
+    return mStrUserPassword;
+}
+
+Utf8Str const &Unattended::i_getAdminPassword() const
+{
+    Assert(isReadLockedOnCurrentThread());
+
+    /* If no Administrator / 'root' password is being set, the user password will be used instead.
+     * Also see API documentation. */
+    return mStrAdminPassword.isEmpty() ? mStrUserPassword : mStrAdminPassword;
 }
 
 Utf8Str const &Unattended::i_getFullUserName() const
@@ -4077,6 +4256,18 @@ bool           Unattended::i_getInstallTestExecService() const
 {
     Assert(isReadLockedOnCurrentThread());
     return mfInstallTestExecService;
+}
+
+Utf8Str const &Unattended::i_getUserPayloadIsoPath() const
+{
+    Assert(isReadLockedOnCurrentThread());
+    return mStrUserPayloadIsoPath;
+}
+
+bool           Unattended::i_getInstallUserPayload() const
+{
+    Assert(isReadLockedOnCurrentThread());
+    return mfInstallUserPayload;
 }
 
 Utf8Str const &Unattended::i_getTimeZone() const
@@ -4166,6 +4357,12 @@ Utf8Str const &Unattended::i_getExtraInstallKernelParameters() const
 {
     Assert(isReadLockedOnCurrentThread());
     return mStrExtraInstallKernelParameters;
+}
+
+Utf8Str const &Unattended::i_getAdditionsInstallPackage() const
+{
+    Assert(isReadLockedOnCurrentThread());
+    return mStrAdditionsInstallPackage;
 }
 
 bool Unattended::i_isRtcUsingUtc() const
@@ -4266,7 +4463,7 @@ bool Unattended::i_updateDetectedAttributeForImage(WIMImage const &rImage)
      * This is obviously a little bit bogus, but what can we do...
      */
     const char *pszOSTypeId = Global::OSTypeId(rImage.mOSType);
-    if (pszOSTypeId && strcmp(pszOSTypeId, "Other") != 0)
+    if (pszOSTypeId && !RTStrStartsWith(pszOSTypeId, GUEST_OS_ID_STR_PARTIAL("Other"))) /** @todo set x64/a64 other variants or not? */
         mStrDetectedOSTypeId = pszOSTypeId;
     else
         fRet = false;
@@ -4286,7 +4483,32 @@ bool Unattended::i_updateDetectedAttributeForImage(WIMImage const &rImage)
     else
         fRet = false;
 
-    mEnmOsType = rImage.mEnmOsType;
+    mEnmOsType = rImage.mOSType;
 
     return fRet;
+}
+
+HRESULT Unattended::i_getListOfSupportedGuestOS()
+{
+    HRESULT       hrc;
+    if (mfDoneSupportedGuestOSList)
+        return S_OK;
+    mfDoneSupportedGuestOSList = true;
+
+    /* Get a list of guest OS Type Ids supported by the host. */
+    ComPtr<ISystemProperties> pSystemProperties;
+
+    hrc = mParent->COMGETTER(SystemProperties)(pSystemProperties.asOutParam());
+    if (SUCCEEDED(hrc))
+    {
+        ComPtr<IPlatformProperties> pPlatformProperties;
+        hrc = pSystemProperties->COMGETTER(Platform)(pPlatformProperties.asOutParam());
+        if (SUCCEEDED(hrc))
+        {
+            hrc = pPlatformProperties->COMGETTER(SupportedGuestOSTypes)(ComSafeArrayAsOutParam(mSupportedGuestOSTypes));
+            if (!SUCCEEDED(hrc))
+                mSupportedGuestOSTypes.resize(0);
+        }
+    }
+    return hrc;
 }

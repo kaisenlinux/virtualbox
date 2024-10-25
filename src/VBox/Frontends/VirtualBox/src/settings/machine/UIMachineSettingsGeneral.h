@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -57,8 +57,8 @@ public:
     /** Destructs General settings page. */
     virtual ~UIMachineSettingsGeneral() RT_OVERRIDE;
 
-    /** Returns the VM OS type ID. */
-    CGuestOSType guestOSType() const;
+    /** Returns the VM OS type Id. */
+    QString guestOSTypeId() const;
 
 protected:
 
@@ -85,8 +85,8 @@ protected:
     /** Defines TAB order for passed @a pWidget. */
     virtual void setOrderAfter(QWidget *pWidget) RT_OVERRIDE;
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
+    /** Handles filter change. */
+    virtual void handleFilterChange() RT_OVERRIDE;
 
     /** Performs final page polishing. */
     virtual void polishPage() RT_OVERRIDE;
@@ -97,6 +97,8 @@ private slots:
     void sltHandleEncryptionCipherChanged();
     /** Handles encryption password change. */
     void sltHandleEncryptionPasswordChanged();
+    /** Handles translation event. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -128,6 +130,9 @@ private:
     /** Saves existing 'Encryption' data from cache. */
     bool saveEncryptionData();
 
+    /** Updates minimum layout hint. */
+    void updateMinimumLayoutHint();
+
     /** Holds whether the encryption cipher was changed.
       * We are holding that argument here because we do not know
       * the old <i>cipher</i> for sure to compare the new one with. */
@@ -146,12 +151,12 @@ private:
         QITabWidget *m_pTabWidget;
 
         /** Holds the 'Basic' tab instance. */
-        QWidget               *m_pTabBasic;
+        UIEditor              *m_pTabBasic;
         /** Holds the name and system editor instance. */
         UINameAndSystemEditor *m_pEditorNameAndSystem;
 
         /** Holds the 'Advanced' tab instance. */
-        QWidget                 *m_pTabAdvanced;
+        UIEditor                *m_pTabAdvanced;
         /** Holds the snapshot folder editor instance. */
         UISnapshotFolderEditor  *m_pEditorSnapshotFolder;
         /** Holds the shared clipboard editor instance. */
@@ -160,12 +165,12 @@ private:
         UIDragAndDropEditor     *m_pEditorDragAndDrop;
 
         /** Holds the 'Description' tab instance. */
-        QWidget             *m_pTabDescription;
+        UIEditor            *m_pTabDescription;
         /** Holds the description editor instance. */
         UIDescriptionEditor *m_pEditorDescription;
 
         /** Holds the 'Encryption' tab instance. */
-        QWidget                        *m_pTabEncryption;
+        UIEditor                       *m_pTabEncryption;
         /** Holds the cipher settings editor instance. */
         UIDiskEncryptionSettingsEditor *m_pEditorDiskEncryptionSettings;
     /** @} */

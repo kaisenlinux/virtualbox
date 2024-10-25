@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -98,6 +98,7 @@ public:
 #endif /* !VBOX_WITH_USB */
 
     static void i_generateMACAddress(Utf8Str &mac);
+    static PlatformArchitecture_T s_getPlatformArchitecture();
 
 #ifdef RT_OS_WINDOWS
     HRESULT i_updatePersistentConfigForHostOnlyAdapters(void);
@@ -108,6 +109,7 @@ public:
 private:
 
     // wrapped IHost properties
+    HRESULT getArchitecture(PlatformArchitecture_T *platformArchitecture);
     HRESULT getDVDDrives(std::vector<ComPtr<IMedium> > &aDVDDrives);
     HRESULT getFloppyDrives(std::vector<ComPtr<IMedium> > &aFloppyDrives);
     HRESULT getAudioDevices(std::vector<ComPtr<IHostAudioDevice> > &aAudioDevices);
@@ -127,7 +129,6 @@ private:
     HRESULT getOperatingSystem(com::Utf8Str &aOperatingSystem);
     HRESULT getOSVersion(com::Utf8Str &aOSVersion);
     HRESULT getUTCTime(LONG64 *aUTCTime);
-    HRESULT getAcceleration3DAvailable(BOOL *aAcceleration3DAvailable);
     HRESULT getVideoInputDevices(std::vector<ComPtr<IHostVideoInputDevice> > &aVideoInputDevices);
     HRESULT getUpdateHost(ComPtr<IUpdateAgent> &aUpdate);
     HRESULT getUpdateExtPack(ComPtr<IUpdateAgent> &aUpdate);
@@ -136,6 +137,7 @@ private:
     HRESULT getUpdateVersion(com::Utf8Str &aUpdateVersion);
     HRESULT getUpdateURL(com::Utf8Str &aUpdateURL);
     HRESULT getUpdateCheckNeeded(BOOL *aUpdateCheckNeeded);
+    HRESULT getX86(ComPtr<IHostX86> &aHostX86);
 
     // wrapped IHost methods
     HRESULT getProcessorSpeed(ULONG aCpuId,
@@ -144,13 +146,6 @@ private:
                                 BOOL *aSupported);
     HRESULT getProcessorDescription(ULONG aCpuId,
                                     com::Utf8Str &aDescription);
-    HRESULT getProcessorCPUIDLeaf(ULONG aCpuId,
-                                  ULONG aLeaf,
-                                  ULONG aSubLeaf,
-                                  ULONG *aValEax,
-                                  ULONG *aValEbx,
-                                  ULONG *aValEcx,
-                                  ULONG *aValEdx);
     HRESULT createHostOnlyNetworkInterface(ComPtr<IHostNetworkInterface> &aHostInterface,
                                            ComPtr<IProgress> &aProgress);
     HRESULT removeHostOnlyNetworkInterface(const com::Guid &aId,
@@ -180,6 +175,7 @@ private:
                                const std::vector<com::Utf8Str> &aPropertyNames, const std::vector<com::Utf8Str> &aPropertyValues);
 
     HRESULT removeUSBDeviceSource(const com::Utf8Str &aId);
+    HRESULT isExecutionEngineSupported(CPUArchitecture_T enmCpuArchitecture, VMExecutionEngine_T enmExecutionEngine, BOOL *pfIsSupported);
 
     // Internal Methods.
 
@@ -218,6 +214,10 @@ private:
     HRESULT i_getFixedDrivesFromGlobalNamespace(std::list<std::pair<com::Utf8Str, com::Utf8Str> > &aDriveList) RT_NOEXCEPT;
 #endif
     HRESULT i_getDrivesPathsList(std::list<std::pair<com::Utf8Str, com::Utf8Str> > &aDriveList) RT_NOEXCEPT;
+
+#ifdef VBOX_WITH_NATIVE_NEM
+    BOOL i_HostIsNativeApiSupported();
+#endif
 
     struct Data;        // opaque data structure, defined in HostImpl.cpp
     Data *m;

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -76,7 +76,7 @@ RTDECL(void) RTMd5Update(PRTMD5CONTEXT pCtx, const void *pvBuf, size_t cbBuf)
 RT_EXPORT_SYMBOL(RTMd5Update);
 
 
-RTDECL(void) RTMd5Final(uint8_t pabDigest[32], PRTMD5CONTEXT pCtx)
+RTDECL(void) RTMd5Final(uint8_t pabDigest[RTMD5_HASH_SIZE], PRTMD5CONTEXT pCtx)
 {
     MD5_Final((unsigned char *)&pabDigest[0], &pCtx->OsslPrivate);
 }

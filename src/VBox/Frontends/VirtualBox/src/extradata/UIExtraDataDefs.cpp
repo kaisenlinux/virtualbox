@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -64,6 +64,7 @@ const char *UIExtraDataDefs::GUI_Progress_LegacyMode = "GUI/Progress/LegacyMode"
 const char *UIExtraDataDefs::GUI_Customizations = "GUI/Customizations";
 const char *UIExtraDataDefs::GUI_RestrictedGlobalSettingsPages = "GUI/RestrictedGlobalSettingsPages";
 const char *UIExtraDataDefs::GUI_RestrictedMachineSettingsPages = "GUI/RestrictedMachineSettingsPages";
+const char *UIExtraDataDefs::GUI_Settings_ExpertMode = "GUI/Settings/ExpertMode";
 
 /* Settings: Language: */
 const char *UIExtraDataDefs::GUI_LanguageID = "GUI/LanguageID";
@@ -106,6 +107,7 @@ const char *UIExtraDataDefs::GUI_Toolbar_Text = "GUI/Toolbar/Text";
 const char *UIExtraDataDefs::GUI_Toolbar_MachineTools_Order = "GUI/Toolbar/MachineTools/Order";
 const char *UIExtraDataDefs::GUI_Toolbar_GlobalTools_Order = "GUI/Toolbar/GlobalTools/Order";
 const char *UIExtraDataDefs::GUI_Tools_LastItemsSelected = "GUI/Tools/LastItemsSelected";
+const char *UIExtraDataDefs::GUI_Tools_Detached = "GUI/Tools/Detached";
 const char *UIExtraDataDefs::GUI_Statusbar = "GUI/Statusbar";
 const char *UIExtraDataDefs::GUI_GroupDefinitions = "GUI/GroupDefinitions";
 const char *UIExtraDataDefs::GUI_LastItemSelected = "GUI/LastItemSelected";
@@ -142,9 +144,6 @@ const char *UIExtraDataDefs::GUI_ExtraDataManager_Geometry = "GUI/ExtraDataManag
 const char *UIExtraDataDefs::GUI_ExtraDataManager_SplitterHints = "GUI/ExtraDataManager/SplitterHints";
 #endif /* VBOX_GUI_WITH_EXTRADATA_MANAGER_UI */
 
-/* Wizards: */
-const char *UIExtraDataDefs::GUI_HideDescriptionForWizards = "GUI/HideDescriptionForWizards";
-
 
 /* Virtual Machine: */
 const char *UIExtraDataDefs::GUI_HideFromManager = "GUI/HideFromManager";
@@ -179,10 +178,10 @@ const char *UIExtraDataDefs::GUI_RestrictedVisualStates = "GUI/RestrictedVisualS
 const char *UIExtraDataDefs::GUI_Fullscreen = "GUI/Fullscreen";
 const char *UIExtraDataDefs::GUI_Seamless = "GUI/Seamless";
 const char *UIExtraDataDefs::GUI_Scale = "GUI/Scale";
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
 const char *UIExtraDataDefs::GUI_Fullscreen_LegacyMode = "GUI/Fullscreen/LegacyMode";
 const char *UIExtraDataDefs::GUI_DistinguishMachineWindowGroups = "GUI/DistinguishMachineWindowGroups";
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
 const char *UIExtraDataDefs::GUI_AutoresizeGuest = "GUI/AutoresizeGuest";
 const char *UIExtraDataDefs::GUI_LastVisibilityStatusForGuestScreen = "GUI/LastVisibilityStatusForGuestScreen";
 const char *UIExtraDataDefs::GUI_LastGuestSizeHint = "GUI/LastGuestSizeHint";
@@ -255,7 +254,6 @@ const char *UIExtraDataDefs::GUI_LogViewerOptions = "GUI/LogViewerOptions";
 const char *UIExtraDataDefs::GUI_LogViewerWrapLinesEnabled = "WrapLines";
 const char *UIExtraDataDefs::GUI_LogViewerShowLineNumbersDisabled = "showLineNumbersDisabled";
 const char *UIExtraDataDefs::GUI_LogViewerNoFontStyleName = "noFontStyleName";
-const char *UIExtraDataDefs::GUI_GuestControl_LogViewerVisiblePanels = "GUI/LogViewerVisiblePanels";
 
 /* Help Browser */
 const char *UIExtraDataDefs::GUI_HelpBrowser_LastURLList = "GUI/HelpBrowserLastURLList";
@@ -266,10 +264,11 @@ const char *UIExtraDataDefs::GUI_HelpBrowser_ZoomPercentage = "GUI/HelpBrowserZo
 /* VM Activity Overview: */
 const char *UIExtraDataDefs::GUI_VMActivityOverview_HiddenColumns = "GUI/VMActivityOverviewHiddenColumns";
 const char *UIExtraDataDefs::GUI_VMActivityOverview_ShowAllMachines = "GUI/VMActivityOverviewShowAllMachines";
-
+const char *UIExtraDataDefs::GUI_VMActivityMonitor_DataSeriesColors = "GUI/VMActivityMonitorDataSeriesColors";
+const char *UIExtraDataDefs::GUI_VMActivityMonitor_ShowVMExits = "GUI/VMActivityMonitorShowVMExits";
 const char *UIExtraDataDefs::GUI_MediumSelector_DialogGeometry = "GUI/MediumSelector/DialogGeometry";
 
-const int UIExtraDataDefs::iFontScaleMin = 20;
+const int UIExtraDataDefs::iFontScaleMin = 40;
 const int UIExtraDataDefs::iFontScaleMax = 200;
 
 /* Obsolete keys: */

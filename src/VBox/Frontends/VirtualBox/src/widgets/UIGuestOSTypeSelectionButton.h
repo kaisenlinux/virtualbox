@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -34,15 +34,12 @@
 /* Qt includes: */
 #include <QPushButton>
 
-/* GUI includes: */
-#include "QIWithRetranslateUI.h"
-
 /* Forward declarations: */
 class QMenu;
 class QSignalMapper;
 
 /** QPushButton sub-class for choosing guest OS family/type inside appliance editor widget. */
-class UIGuestOSTypeSelectionButton : public QIWithRetranslateUI<QPushButton>
+class UIGuestOSTypeSelectionButton : public QPushButton
 {
     Q_OBJECT;
 
@@ -62,16 +59,14 @@ public slots:
     /** Defines current guest @a strOSTypeId. */
     void setOSTypeId(const QString &strOSTypeId);
 
-protected:
-
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
 private:
 
+    /** Handles translation event. */
+    void sltRetranslateUI();
     /** Populates menu. */
     void populateMenu();
-
+    /** A help fundtion for populateMenu(). @p is the list of os type and @p pMenu is the menu to populate. */
+    void createOSTypeMenu(const QVector<QPair<QString, QString> > &typeList, QMenu *pMenu);
     /** Holds the current guest OS type ID. */
     QString  m_strOSTypeId;
 

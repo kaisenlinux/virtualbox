@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -33,22 +33,74 @@
 
 /* Qt includes: */
 #include <QRegularExpression>
+#include <QSlider>
 #include <QWidget>
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
-#include "UIDefs.h"
 #include "UILibraryDefs.h"
 
 /* Forward declarations: */
 class QLabel;
-class QSlider;
 class QString;
 class QWidget;
 class QILineEdit;
 
+/** QSlider sub-class used as logarithmic-scaled medium size editor. */
+class UIMediumSizeSlider : public QSlider
+{
+    Q_OBJECT;
+
+signals:
+
+    /** Notifies about scaled @a uValue change. */
+    void sigScaledValueChanged(qulonglong uValue);
+
+public:
+
+    /** Constructs medium size slider passing @a pParent to the base-class.
+      * @param  uSizeMax  Brings the maximum value to adjust slider scaling accordingly. */
+    UIMediumSizeSlider(qulonglong uSizeMax, QWidget *pParent = 0);
+
+    /** Defines scaled @a uMinimum. */
+    void setScaledMinimum(qulonglong uMinimum);
+    /** Defines scaled @a uMaximum. */
+    void setScaledMaximum(qulonglong uMaximum);
+    /** Defines scaled @a uValue. */
+    void setScaledValue(qulonglong uValue);
+
+    /** Returns scaled value in readable format. */
+    QString scaledValueToString();
+
+private slots:
+
+    /** Handles the signal about @a iValue change. */
+    void sltValueChanged(int iValue);
+
+private:
+
+    /** Calculates slider scale according to passed @a uMaximumMediumSize. */
+    static int calculateSliderScale(qulonglong uMaximumMediumSize);
+    /** Returns log2 for passed @a uValue. */
+    static int log2i(qulonglong uValue);
+
+    /** Converts passed bytes @a uValue to slides scaled value using @a iSliderScale. */
+    static int sizeMBToSlider(qulonglong uValue, int iSliderScale);
+    /** Converts passed slider @a uValue to bytes unscaled value using @a iSliderScale. */
+    static qulonglong sliderToSizeMB(int uValue, int iSliderScale);
+
+    /** Holds the slider scale. */
+    const int  m_iSliderScale;
+
+    /** Holds the scaled minimum. */
+    qulonglong  m_uScaledMinimum;
+    /** Holds the scaled maximum. */
+    qulonglong  m_uScaledMaximum;
+    /** Holds the scaled value. */
+    qulonglong  m_uScaledValue;
+};
+
 /** Medium size editor widget. */
-class SHARED_LIBRARY_STUFF UIMediumSizeEditor : public QIWithRetranslateUI<QWidget>
+class SHARED_LIBRARY_STUFF UIMediumSizeEditor : public QWidget
 {
     Q_OBJECT;
 
@@ -59,6 +111,9 @@ signals:
 
 public:
 
+    /* Holds the block size. We force m_uSize to be multiple of this number. */
+    static const qulonglong  s_uSectorSize;
+
     /** Constructs medium size editor passing @a pParent to the base-class. */
     UIMediumSizeEditor(QWidget *pParent = 0, qulonglong uMinimumSize = _4M);
 
@@ -67,15 +122,13 @@ public:
     /** Sets the initial medium size as the widget is created. */
     void setMediumSize(qulonglong uSize);
 
-protected:
-
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
 private slots:
 
+    /** Handles translation event. */
+    void sltRetranslateUI();
+
     /** Handles size slider change. */
-    void sltSizeSliderChanged(int iValue);
+    void sltSizeSliderChanged(qulonglong uValue);
     /** Handles size editor text edit finished signal. */
     void sltSizeEditorTextChanged();
 
@@ -84,40 +137,30 @@ private:
     /** Prepares all. */
     void prepare();
 
-    /** Calculates slider scale according to passed @a uMaximumMediumSize. */
-    static int calculateSliderScale(qulonglong uMaximumMediumSize);
-    /** Returns log2 for passed @a uValue. */
-    static int log2i(qulonglong uValue);
-    /** Converts passed bytes @a uValue to slides scaled value using @a iSliderScale. */
-    static int sizeMBToSlider(qulonglong uValue, int iSliderScale);
-    /** Converts passed slider @a uValue to bytes unscaled value using @a iSliderScale. */
-    static qulonglong sliderToSizeMB(int uValue, int iSliderScale);
     /** Updates slider/editor tool-tips. */
     void updateSizeToolTips(qulonglong uSize);
-    /** Checks if the uSize is divisible by m_uSectorSize */
+    /** Checks if the uSize is divisible by s_uSectorSize */
     qulonglong checkSectorSizeAlignment(qulonglong uSize);
+    /** Ensures there is only proper size-suffix available. */
     QString ensureSizeSuffix(const QString &strSizeString);
 
-    /* Holds the block size. We force m_uSize to be multiple of this number. */
-    static const qulonglong m_uSectorSize;
     /** Holds the minimum medium size. */
     const qulonglong  m_uSizeMin;
     /** Holds the maximum medium size. */
     const qulonglong  m_uSizeMax;
-    /** Holds the slider scale. */
-    const int         m_iSliderScale;
     /** Holds the current medium size. */
     qulonglong        m_uSize;
-    SizeSuffix        m_enmSizeSuffix;
+    /** Holds the size suffix. */
+    QString           m_strSizeSuffix;
 
     /** Holds the size slider. */
-    QSlider    *m_pSlider;
+    UIMediumSizeSlider *m_pSlider;
     /** Holds the minimum size label. */
-    QLabel     *m_pLabelMinSize;
+    QLabel             *m_pLabelMinSize;
     /** Holds the maximum size label. */
-    QLabel     *m_pLabelMaxSize;
+    QLabel             *m_pLabelMaxSize;
     /** Holds the size editor. */
-    QILineEdit *m_pEditor;
+    QILineEdit         *m_pEditor;
 
     /* A regular expression used to remove any character from a QString which is neither a digit nor decimal separator. */
     QRegularExpression m_regExNonDigitOrSeparator;

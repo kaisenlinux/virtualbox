@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2021-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2021-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -463,11 +463,8 @@ static DECLCALLBACK(int) atsTcpWaitForConnect(PATSTRANSPORTINST pThis,  RTMSINTE
     }
     else
     {
-        if (pClient)
-        {
-            atsTcpFreeClient(pThis, pClient);
-            pClient = NULL;
-        }
+        atsTcpFreeClient(pThis, pClient);
+        pClient = NULL;
     }
 
     if (RT_FAILURE(rc))
@@ -700,6 +697,7 @@ static DECLCALLBACK(int) atsTcpRecvPkt(PATSTRANSPORTINST pThis, PATSTRANSPORTCLI
         else
         {
             RTMemFree(pbData);
+            pbData = NULL;
 
             /* assume fatal connection error. */
             LogRelFunc(("RTTcpRead -> %Rrc -> atsTcpDisconnectClient(%RTsock)\n", rc, pClient->hTcpClient));
@@ -905,7 +903,7 @@ static DECLCALLBACK(int) atsTcpOption(PATSTRANSPORTINST pThis, int ch, PCRTGETOP
 /**
  * @interface_method_impl{ATSTRANSPORT,pfnUsage}
  */
-DECLCALLBACK(void) atsTcpUsage(PRTSTREAM pStream)
+static DECLCALLBACK(void) atsTcpUsage(PRTSTREAM pStream)
 {
     RTStrmPrintf(pStream,
                  "  --tcp-conn-mode <0=both|1=client|2=server>\n"

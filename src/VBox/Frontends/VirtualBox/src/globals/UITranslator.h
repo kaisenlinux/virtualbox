@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,8 +35,19 @@
 #include <QTranslator>
 
 /* GUI includes: */
-#include "UIDefs.h"
 #include "UILibraryDefs.h"
+
+/** Size suffixes. */
+enum SizeSuffix
+{
+    SizeSuffix_Byte = 0,
+    SizeSuffix_KiloByte,
+    SizeSuffix_MegaByte,
+    SizeSuffix_GigaByte,
+    SizeSuffix_TeraByte,
+    SizeSuffix_PetaByte,
+    SizeSuffix_Max
+};
 
 /** QTranslator subclass for VBox needs. */
 class SHARED_LIBRARY_STUFF UITranslator : public QTranslator
@@ -44,6 +55,14 @@ class SHARED_LIBRARY_STUFF UITranslator : public QTranslator
     Q_OBJECT;
 
 public:
+
+    /** Size formatting types. */
+    enum FormatSize
+    {
+        FormatSize_Round,
+        FormatSize_RoundDown,
+        FormatSize_RoundUp
+    };
 
     /** Loads the language by language ID.
       * @param  strLangId  Brings the language ID in in form of xx_YY.

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -69,7 +69,7 @@
 #if ADDR_SIZE == 64 || OP_SIZE == 64
 # define IS_64_BIT_CODE(a_pVCpu)    (true)
 #elif ADDR_SIZE == 32
-# define IS_64_BIT_CODE(a_pVCpu)    ((a_pVCpu)->iem.s.enmCpuMode == IEMMODE_64BIT)
+# define IS_64_BIT_CODE(a_pVCpu)    IEM_IS_64BIT_CODE(a_pVCpu)
 #else
 # define IS_64_BIT_CODE(a_pVCpu)    (false)
 #endif
@@ -91,7 +91,7 @@
         { \
             LogFlow(("%s: Leaving early (outer)! ffcpu=%#RX64 ffvm=%#x\n", \
                      __FUNCTION__, (uint64_t)(a_pVCpu)->fLocalForcedActions, (a_pVM)->fGlobalForcedActions)); \
-            return VINF_SUCCESS; \
+            return VINF_IEM_YIELD_PENDING_FF; \
         } \
     } while (0)
 
@@ -110,7 +110,7 @@
         { \
             LogFlow(("%s: Leaving early (inner)! ffcpu=%#RX64 ffvm=%#x\n", \
                      __FUNCTION__, (uint64_t)(a_pVCpu)->fLocalForcedActions, (a_pVM)->fGlobalForcedActions)); \
-            return VINF_SUCCESS; \
+            return VINF_IEM_YIELD_PENDING_FF; \
         } \
     } while (0)
 
@@ -130,7 +130,7 @@
         { \
             LogFlow(("%s: Leaving early (inner)! ffcpu=%#RX64 (ffvm=%#x)\n", \
                      __FUNCTION__, (uint64_t)(a_pVCpu)->fLocalForcedActions, (a_pVM)->fGlobalForcedActions)); \
-            return VINF_SUCCESS; \
+            return VINF_IEM_YIELD_PENDING_FF; \
         } \
     } while (0)
 
@@ -220,7 +220,7 @@ IEM_CIMPL_DEF_1(RT_CONCAT4(iemCImpl_repe_cmps_op,OP_SIZE,_addr,ADDR_SIZE), uint8
                     if (!memcmp(puSrc2Mem, puSrc1Mem, cLeftPage * (OP_SIZE / 8)))
                     {
                         /* All matches, only compare the last itme to get the right eflags. */
-                        RT_CONCAT(iemAImpl_cmp_u,OP_SIZE)((OP_TYPE *)&puSrc1Mem[cLeftPage-1], puSrc2Mem[cLeftPage-1], &uEFlags);
+                        uEFlags = RT_CONCAT(iemAImpl_cmp_u,OP_SIZE)(uEFlags, (OP_TYPE *)&puSrc1Mem[cLeftPage-1], puSrc2Mem[cLeftPage-1]);
                         uSrc1AddrReg += cLeftPage * cbIncr;
                         uSrc2AddrReg += cLeftPage * cbIncr;
                         uCounterReg  -= cLeftPage;
@@ -232,7 +232,7 @@ IEM_CIMPL_DEF_1(RT_CONCAT4(iemCImpl_repe_cmps_op,OP_SIZE,_addr,ADDR_SIZE), uint8
                         uint32_t off = 0;
                         do
                         {
-                            RT_CONCAT(iemAImpl_cmp_u,OP_SIZE)((OP_TYPE *)&puSrc1Mem[off], puSrc2Mem[off], &uEFlags);
+                            uEFlags = RT_CONCAT(iemAImpl_cmp_u,OP_SIZE)(uEFlags, (OP_TYPE *)&puSrc1Mem[off], puSrc2Mem[off]);
                             off++;
                         } while (   off < cLeftPage
                                  && (uEFlags & X86_EFL_ZF));
@@ -274,7 +274,7 @@ IEM_CIMPL_DEF_1(RT_CONCAT4(iemCImpl_repe_cmps_op,OP_SIZE,_addr,ADDR_SIZE), uint8
             rcStrict = RT_CONCAT(iemMemFetchDataU,OP_SIZE)(pVCpu, &uValue2, X86_SREG_ES, uSrc2AddrReg);
             if (rcStrict != VINF_SUCCESS)
                 return rcStrict;
-            RT_CONCAT(iemAImpl_cmp_u,OP_SIZE)(&uValue1, uValue2, &uEFlags);
+            uEFlags = RT_CONCAT(iemAImpl_cmp_u,OP_SIZE)(uEFlags, &uValue1, uValue2);
 
             pVCpu->cpum.GstCtx.ADDR_rSI = uSrc1AddrReg += cbIncr;
             pVCpu->cpum.GstCtx.ADDR_rDI = uSrc2AddrReg += cbIncr;
@@ -386,7 +386,7 @@ IEM_CIMPL_DEF_1(RT_CONCAT4(iemCImpl_repne_cmps_op,OP_SIZE,_addr,ADDR_SIZE), uint
                     if (memcmp(puSrc2Mem, puSrc1Mem, cLeftPage * (OP_SIZE / 8)))
                     {
                         /* All matches, only compare the last item to get the right eflags. */
-                        RT_CONCAT(iemAImpl_cmp_u,OP_SIZE)((OP_TYPE *)&puSrc1Mem[cLeftPage-1], puSrc2Mem[cLeftPage-1], &uEFlags);
+                        uEFlags = RT_CONCAT(iemAImpl_cmp_u,OP_SIZE)(uEFlags, (OP_TYPE *)&puSrc1Mem[cLeftPage-1], puSrc2Mem[cLeftPage-1]);
                         uSrc1AddrReg += cLeftPage * cbIncr;
                         uSrc2AddrReg += cLeftPage * cbIncr;
                         uCounterReg  -= cLeftPage;
@@ -398,7 +398,7 @@ IEM_CIMPL_DEF_1(RT_CONCAT4(iemCImpl_repne_cmps_op,OP_SIZE,_addr,ADDR_SIZE), uint
                         uint32_t off = 0;
                         do
                         {
-                            RT_CONCAT(iemAImpl_cmp_u,OP_SIZE)((OP_TYPE *)&puSrc1Mem[off], puSrc2Mem[off], &uEFlags);
+                            uEFlags = RT_CONCAT(iemAImpl_cmp_u,OP_SIZE)(uEFlags, (OP_TYPE *)&puSrc1Mem[off], puSrc2Mem[off]);
                             off++;
                         } while (   off < cLeftPage
                                  && !(uEFlags & X86_EFL_ZF));
@@ -440,7 +440,7 @@ IEM_CIMPL_DEF_1(RT_CONCAT4(iemCImpl_repne_cmps_op,OP_SIZE,_addr,ADDR_SIZE), uint
             rcStrict = RT_CONCAT(iemMemFetchDataU,OP_SIZE)(pVCpu, &uValue2, X86_SREG_ES, uSrc2AddrReg);
             if (rcStrict != VINF_SUCCESS)
                 return rcStrict;
-            RT_CONCAT(iemAImpl_cmp_u,OP_SIZE)(&uValue1, uValue2, &uEFlags);
+            uEFlags = RT_CONCAT(iemAImpl_cmp_u,OP_SIZE)(uEFlags, &uValue1, uValue2);
 
             pVCpu->cpum.GstCtx.ADDR_rSI = uSrc1AddrReg += cbIncr;
             pVCpu->cpum.GstCtx.ADDR_rDI = uSrc2AddrReg += cbIncr;
@@ -537,7 +537,7 @@ IEM_CIMPL_DEF_0(RT_CONCAT4(iemCImpl_repe_scas_,OP_rAX,_m,ADDR_SIZE))
                 } while (i < cLeftPage && !fQuit);
 
                 /* Update the regs. */
-                RT_CONCAT(iemAImpl_cmp_u,OP_SIZE)((OP_TYPE *)&uValueReg, uTmpValue, &uEFlags);
+                uEFlags = RT_CONCAT(iemAImpl_cmp_u,OP_SIZE)(uEFlags, (OP_TYPE *)&uValueReg, uTmpValue);
                 pVCpu->cpum.GstCtx.ADDR_rCX = uCounterReg -= i;
                 pVCpu->cpum.GstCtx.ADDR_rDI = uAddrReg    += i * cbIncr;
                 pVCpu->cpum.GstCtx.eflags.u = uEFlags;
@@ -569,7 +569,7 @@ IEM_CIMPL_DEF_0(RT_CONCAT4(iemCImpl_repe_scas_,OP_rAX,_m,ADDR_SIZE))
             rcStrict = RT_CONCAT(iemMemFetchDataU,OP_SIZE)(pVCpu, &uTmpValue, X86_SREG_ES, uAddrReg);
             if (rcStrict != VINF_SUCCESS)
                 return rcStrict;
-            RT_CONCAT(iemAImpl_cmp_u,OP_SIZE)((OP_TYPE *)&uValueReg, uTmpValue, &uEFlags);
+            uEFlags = RT_CONCAT(iemAImpl_cmp_u,OP_SIZE)(uEFlags, (OP_TYPE *)&uValueReg, uTmpValue);
 
             pVCpu->cpum.GstCtx.ADDR_rDI = uAddrReg += cbIncr;
             pVCpu->cpum.GstCtx.ADDR_rCX = --uCounterReg;
@@ -665,7 +665,7 @@ IEM_CIMPL_DEF_0(RT_CONCAT4(iemCImpl_repne_scas_,OP_rAX,_m,ADDR_SIZE))
                 } while (i < cLeftPage && !fQuit);
 
                 /* Update the regs. */
-                RT_CONCAT(iemAImpl_cmp_u,OP_SIZE)((OP_TYPE *)&uValueReg, uTmpValue, &uEFlags);
+                uEFlags = RT_CONCAT(iemAImpl_cmp_u,OP_SIZE)(uEFlags, (OP_TYPE *)&uValueReg, uTmpValue);
                 pVCpu->cpum.GstCtx.ADDR_rCX = uCounterReg -= i;
                 pVCpu->cpum.GstCtx.ADDR_rDI = uAddrReg    += i * cbIncr;
                 pVCpu->cpum.GstCtx.eflags.u = uEFlags;
@@ -697,7 +697,7 @@ IEM_CIMPL_DEF_0(RT_CONCAT4(iemCImpl_repne_scas_,OP_rAX,_m,ADDR_SIZE))
             rcStrict = RT_CONCAT(iemMemFetchDataU,OP_SIZE)(pVCpu, &uTmpValue, X86_SREG_ES, uAddrReg);
             if (rcStrict != VINF_SUCCESS)
                 return rcStrict;
-            RT_CONCAT(iemAImpl_cmp_u,OP_SIZE)((OP_TYPE *)&uValueReg, uTmpValue, &uEFlags);
+            uEFlags = RT_CONCAT(iemAImpl_cmp_u,OP_SIZE)(uEFlags, (OP_TYPE *)&uValueReg, uTmpValue);
             pVCpu->cpum.GstCtx.ADDR_rDI = uAddrReg += cbIncr;
             pVCpu->cpum.GstCtx.ADDR_rCX = --uCounterReg;
             pVCpu->cpum.GstCtx.eflags.u = uEFlags;
@@ -758,7 +758,7 @@ IEM_CIMPL_DEF_1(RT_CONCAT4(iemCImpl_rep_movs_op,OP_SIZE,_addr,ADDR_SIZE), uint8_
     /*
      * Be careful with handle bypassing.
      */
-    if (pVCpu->iem.s.fBypassHandlers)
+    if (pVCpu->iem.s.fExec & IEM_F_BYPASS_HANDLERS)
     {
         Log(("%s: declining because we're bypassing handlers\n", __FUNCTION__));
         return VERR_IEM_ASPECT_NOT_IMPLEMENTED;
@@ -909,7 +909,7 @@ IEM_CIMPL_DEF_0(RT_CONCAT4(iemCImpl_stos_,OP_rAX,_m,ADDR_SIZE))
      * Be careful with handle bypassing.
      */
     /** @todo Permit doing a page if correctly aligned. */
-    if (pVCpu->iem.s.fBypassHandlers)
+    if (pVCpu->iem.s.fExec & IEM_F_BYPASS_HANDLERS)
     {
         Log(("%s: declining because we're bypassing handlers\n", __FUNCTION__));
         return VERR_IEM_ASPECT_NOT_IMPLEMENTED;
@@ -1129,9 +1129,6 @@ IEM_CIMPL_DEF_1(RT_CONCAT4(iemCImpl_lods_,OP_rAX,_m,ADDR_SIZE), int8_t, iEffSeg)
             IEM_CHECK_FF_CPU_HIGH_PRIORITY_POST_REPSTR_MAYBE_RETURN(pVM, pVCpu, uCounterReg == 0);
         } while ((int32_t)cLeftPage > 0);
 
-        if (rcStrict != VINF_SUCCESS)
-            break;
-
         /*
          * Next page.  Must check for interrupts and stuff here.
          */
@@ -1160,7 +1157,7 @@ IEM_CIMPL_DEF_1(RT_CONCAT4(iemCImpl_ins_op,OP_SIZE,_addr,ADDR_SIZE), bool, fIoCh
     /*
      * Be careful with handle bypassing.
      */
-    if (pVCpu->iem.s.fBypassHandlers)
+    if (pVCpu->iem.s.fExec & IEM_F_BYPASS_HANDLERS)
     {
         Log(("%s: declining because we're bypassing handlers\n", __FUNCTION__));
         return VERR_IEM_ASPECT_NOT_IMPLEMENTED;
@@ -1211,8 +1208,9 @@ IEM_CIMPL_DEF_1(RT_CONCAT4(iemCImpl_ins_op,OP_SIZE,_addr,ADDR_SIZE), bool, fIoCh
     }
 #endif
 
+    uint8_t         bUnmapInfo;
     OP_TYPE        *puMem;
-    rcStrict = iemMemMap(pVCpu, (void **)&puMem, OP_SIZE / 8, X86_SREG_ES, pVCpu->cpum.GstCtx.ADDR_rDI,
+    rcStrict = iemMemMap(pVCpu, (void **)&puMem, &bUnmapInfo, OP_SIZE / 8, X86_SREG_ES, pVCpu->cpum.GstCtx.ADDR_rDI,
                          IEM_ACCESS_DATA_W, OP_SIZE / 8 - 1);
     if (rcStrict != VINF_SUCCESS)
         return rcStrict;
@@ -1226,9 +1224,9 @@ IEM_CIMPL_DEF_1(RT_CONCAT4(iemCImpl_ins_op,OP_SIZE,_addr,ADDR_SIZE), bool, fIoCh
          */
         *puMem = (OP_TYPE)u32Value;
 # ifdef IN_RING3
-        VBOXSTRICTRC rcStrict2 = iemMemCommitAndUnmap(pVCpu, puMem, IEM_ACCESS_DATA_W);
+        VBOXSTRICTRC rcStrict2 = iemMemCommitAndUnmap(pVCpu, bUnmapInfo);
 # else
-        VBOXSTRICTRC rcStrict2 = iemMemCommitAndUnmapPostponeTroubleToR3(pVCpu, puMem, IEM_ACCESS_DATA_W);
+        VBOXSTRICTRC rcStrict2 = iemMemCommitAndUnmapPostponeTroubleToR3(pVCpu, bUnmapInfo);
 # endif
         if (RT_LIKELY(rcStrict2 == VINF_SUCCESS))
         {
@@ -1325,7 +1323,7 @@ IEM_CIMPL_DEF_1(RT_CONCAT4(iemCImpl_rep_ins_op,OP_SIZE,_addr,ADDR_SIZE), bool, f
     /*
      * Be careful with handle bypassing.
      */
-    if (pVCpu->iem.s.fBypassHandlers)
+    if (pVCpu->iem.s.fExec & IEM_F_BYPASS_HANDLERS)
     {
         Log(("%s: declining because we're bypassing handlers\n", __FUNCTION__));
         return VERR_IEM_ASPECT_NOT_IMPLEMENTED;
@@ -1416,8 +1414,9 @@ IEM_CIMPL_DEF_1(RT_CONCAT4(iemCImpl_rep_ins_op,OP_SIZE,_addr,ADDR_SIZE), bool, f
          *        during INS. */
         do
         {
+            uint8_t  bUnmapInfo;
             OP_TYPE *puMem;
-            rcStrict = iemMemMap(pVCpu, (void **)&puMem, OP_SIZE / 8, X86_SREG_ES, uAddrReg,
+            rcStrict = iemMemMap(pVCpu, (void **)&puMem, &bUnmapInfo, OP_SIZE / 8, X86_SREG_ES, uAddrReg,
                                  IEM_ACCESS_DATA_W, OP_SIZE / 8 - 1);
             if (rcStrict != VINF_SUCCESS)
                 return rcStrict;
@@ -1432,9 +1431,9 @@ IEM_CIMPL_DEF_1(RT_CONCAT4(iemCImpl_rep_ins_op,OP_SIZE,_addr,ADDR_SIZE), bool, f
 
             *puMem = (OP_TYPE)u32Value;
 # ifdef IN_RING3
-            VBOXSTRICTRC rcStrict2 = iemMemCommitAndUnmap(pVCpu, puMem, IEM_ACCESS_DATA_W);
+            VBOXSTRICTRC rcStrict2 = iemMemCommitAndUnmap(pVCpu, bUnmapInfo);
 # else
-            VBOXSTRICTRC rcStrict2 = iemMemCommitAndUnmapPostponeTroubleToR3(pVCpu, puMem, IEM_ACCESS_DATA_W);
+            VBOXSTRICTRC rcStrict2 = iemMemCommitAndUnmapPostponeTroubleToR3(pVCpu, bUnmapInfo);
 # endif
             if (rcStrict2 == VINF_SUCCESS)
             { /* likely */ }
@@ -1612,6 +1611,7 @@ IEM_CIMPL_DEF_2(RT_CONCAT4(iemCImpl_rep_outs_op,OP_SIZE,_addr,ADDR_SIZE), uint8_
     if (uCounterReg == 0)
         return iemRegAddToRipAndFinishingClearingRF(pVCpu, cbInstr);
 
+    IEM_CTX_IMPORT_RET(pVCpu, CPUMCTX_EXTRN_SREG_FROM_IDX(iEffSeg) | CPUMCTX_EXTRN_ES);
     PCCPUMSELREGHID pHid      = iemSRegGetHid(pVCpu, iEffSeg);
     uint64_t        uBaseAddr = 0; /* gcc may not be used uninitialized */
     rcStrict = iemMemSegCheckReadAccessEx(pVCpu, pHid, iEffSeg, &uBaseAddr);

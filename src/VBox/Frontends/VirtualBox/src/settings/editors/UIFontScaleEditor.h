@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,21 +32,18 @@
 #endif
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
-#include "UILibraryDefs.h"
+#include "UIEditor.h"
 
 /* Forward declarations: */
 class QGridLayout;
 class QLabel;
-class QSpinBox;
-class QWidget;
 class QIAdvancedSlider;
 class UIFontScaleFactorSpinBox;
 
-/** QWidget reimplementation providing GUI with monitor scale factor editing functionality.
+/** UIEditor sub-class providing GUI with monitor scale factor editing functionality.
   * It includes a combo box to select a monitor, a slider, and a spinbox to display/modify values.
   * The first item in the combo box is used to change the scale factor of all monitors. */
-class SHARED_LIBRARY_STUFF UIFontScaleEditor : public QIWithRetranslateUI<QWidget>
+class SHARED_LIBRARY_STUFF UIFontScaleEditor : public UIEditor
 {
     Q_OBJECT;
 
@@ -54,9 +51,6 @@ public:
 
     /** Constructs editor passing @a pParent to the base-class. */
     UIFontScaleEditor(QWidget *pParent);
-
-    /** Defines minimum width @a iHint for internal spin-box. */
-    void setSpinBoxWidthHint(int iHint);
 
     /** Returns minimum layout hint. */
     int minimumLabelHorizontalHint() const;
@@ -66,11 +60,6 @@ public:
     void setFontScaleFactor(int iFontScaleFactor);
     int fontScaleFactor() const;
 
-protected:
-
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
 private slots:
 
     /** @name Internal slots handling respective widget's value update.
@@ -79,6 +68,9 @@ private slots:
         void sltScaleSliderValueChanged(int iValue);
         void sltMonitorComboIndexChanged(int iIndex);
     /** @} */
+
+    /** Handles translation event. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -92,16 +84,16 @@ private:
     /** Defines spinbox's @a iValue. */
     void setSpinBoxValue(int iValue);
 
-
     /** @name Member widgets.
       * @{ */
-        QGridLayout      *m_pLayout;
-        QLabel           *m_pLabel;
-        QIAdvancedSlider *m_pScaleSlider;
-        UIFontScaleFactorSpinBox         *m_pScaleSpinBox;
-        QLabel           *m_pMinScaleLabel;
-        QLabel           *m_pMaxScaleLabel;
+        QGridLayout              *m_pLayout;
+        QLabel                   *m_pLabel;
+        QIAdvancedSlider         *m_pScaleSlider;
+        UIFontScaleFactorSpinBox *m_pScaleSpinBox;
+        QLabel                   *m_pMinScaleLabel;
+        QLabel                   *m_pMaxScaleLabel;
     /** @} */
+
     /** Hold the factor by which we divided spinbox's @a range to set slider's range to make slider mouse move stop on ticks. */
     const int m_iSliderRangeDivisor;
 };

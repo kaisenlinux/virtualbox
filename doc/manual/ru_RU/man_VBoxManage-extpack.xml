@@ -3,7 +3,7 @@
     manpage, user manual, usage: VBoxManage extpack
 -->
 <!--
-    Copyright (C) 2006-2023 Oracle and/or its affiliates.
+    Copyright (C) 2006-2024 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.
@@ -31,7 +31,7 @@
 <refentry id="vboxmanage-extpack" lang="en">
 
   <refentryinfo>
-    <pubdate>$Date: 2023-01-17 15:15:46 +0100 (Tue, 17 Jan 2023) $</pubdate>
+    <pubdate>$Date: 2024-09-16 16:03:52 +0200 (Mon, 16 Sep 2024) $</pubdate>
     <title>VBoxManage extpack</title>
   </refentryinfo>
 
@@ -63,7 +63,7 @@
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-extpack-description">
     <title>Описание</title>
 
     <refsect2 id="vboxmanage-extpack-install">
@@ -133,14 +133,14 @@
 
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-extpack-examples">
     <title>Примеры</title>
     <remark role="help-scope" condition="EXTPACK_UNINSTALL,EXTPACK"/>
     <para>
           Как посмотреть список пакетов расширений:
 <screen>$ VBoxManage list extpacks
 Пакеты расширений: 1
-Пакет no. 0:   Oracle VM VirtualBox Extension Pack
+Пакет no. 0:   &extpack-name;
 Версия:      4.1.12
 Ревизия:     77218
 Редакция:
@@ -150,9 +150,9 @@ VRDE модуль:  VBoxVRDP
 Почему не годен:</screen></para>
 
     <para>Как удалить пакет расширения:
-<screen>$ VBoxManage extpack uninstall "Oracle VM VirtualBox Extension Pack"
+<screen>$ VBoxManage extpack uninstall "&extpack-name;"
 0%...10%...20%...30%...40%...50%...60%...70%...80%...90%...100%
-Успешно удалено "Oracle VM VirtualBox Extension Pack".</screen></para>
+Успешно удалено "&extpack-name;".</screen></para>
   </refsect1>
 
 </refentry>

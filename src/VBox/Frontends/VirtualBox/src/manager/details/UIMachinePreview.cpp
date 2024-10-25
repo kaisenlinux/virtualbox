@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -27,6 +27,7 @@
 
 /* Qt includes: */
 #include <QActionGroup>
+#include <QApplication>
 #include <QGraphicsSceneContextMenuEvent>
 #include <QMenu>
 #include <QPainter>
@@ -34,13 +35,13 @@
 #include <QTimer>
 
 /* GUI includes: */
-#include "UIMachinePreview.h"
-#include "UIVirtualBoxEventHandler.h"
 #include "UIExtraDataManager.h"
-#include "UIImageTools.h"
 #include "UIConverter.h"
 #include "UIIconPool.h"
-#include "UICommon.h"
+#include "UIMachinePreview.h"
+#include "UIImageTools.h"
+#include "UITranslationEventListener.h"
+#include "UIVirtualBoxEventHandler.h"
 
 /* COM includes: */
 #include "CConsole.h"
@@ -51,7 +52,7 @@
 
 
 UIMachinePreview::UIMachinePreview(QIGraphicsWidget *pParent)
-    : QIWithRetranslateUI4<QIGraphicsWidget>(pParent)
+    : QIGraphicsWidget(pParent)
     , m_pUpdateTimer(new QTimer(this))
     , m_pUpdateTimerMenu(0)
     , m_dRatio((double)QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) / 16)
@@ -90,7 +91,7 @@ CMachine UIMachinePreview::machine() const
     return m_comMachine;
 }
 
-void UIMachinePreview::retranslateUi()
+void UIMachinePreview::sltRetranslateUI()
 {
     /* Translate actions: */
     m_actions.value(PreviewUpdateIntervalType_Disabled)->setText(tr("Update disabled"));
@@ -435,7 +436,9 @@ void UIMachinePreview::prepare()
             this, &UIMachinePreview::sltMachineStateChange);
 
     /* Retranslate the UI */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIMachinePreview::sltRetranslateUI);
 }
 
 void UIMachinePreview::cleanup()

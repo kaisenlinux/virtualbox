@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -33,7 +33,6 @@
 
 /* GUI includes: */
 #include "QIMainDialog.h"
-#include "QIWithRetranslateUI.h"
 #include "QIWithRestorableGeometry.h"
 #include "UIMedium.h"
 #include "UIMediumDefs.h"
@@ -52,7 +51,7 @@ class UIMediumItem;
 class UIMediumSearchWidget;
 
 /** QIDialog extension providing GUI with a dialog to select an existing medium. */
-class SHARED_LIBRARY_STUFF UIMediumSelector : public QIWithRetranslateUI<QIWithRestorableGeometry<QIMainDialog> >
+class SHARED_LIBRARY_STUFF UIMediumSelector : public QIWithRestorableGeometry<QIMainDialog>
 {
 
     Q_OBJECT;
@@ -98,10 +97,8 @@ protected:
 
     /** @name Event-handling stuff.
       * @{ */
-        /** Handles translation event. */
-        virtual void retranslateUi() final override;
-        void showEvent(QShowEvent *pEvent) final override;
-        bool event(QEvent *pEvent) final override;
+        void showEvent(QShowEvent *pEvent) RT_OVERRIDE RT_FINAL;
+        bool event(QEvent *pEvent) RT_OVERRIDE RT_FINAL;
     /** @} */
 
 private slots:
@@ -122,6 +119,8 @@ private slots:
     void sltHandleTreeContextMenuRequest(const QPoint &point);
     void sltHandleTreeExpandAllSignal();
     void sltHandleTreeCollapseAllSignal();
+    /** Handles translation event. */
+    void sltRetranslateUI();
 
 private:
 

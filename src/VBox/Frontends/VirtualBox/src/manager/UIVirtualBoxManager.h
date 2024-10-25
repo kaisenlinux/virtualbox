@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -34,20 +34,22 @@
 /* Qt includes: */
 #include <QMainWindow>
 #include <QUrl>
+#include <QUuid>
 
 /* GUI includes: */
 #include "QIWithRestorableGeometry.h"
-#include "QIWithRetranslateUI.h"
+#include "UIAdvancedSettingsDialog.h"
 #include "UICloudMachineSettingsDialog.h"
-#include "UICommon.h"
+#include "UIDefs.h"
 #include "UIExtraDataDefs.h"
-#include "UISettingsDialog.h"
+#include "UIAdvancedSettingsDialog.h"
 
 /* Forward declarations: */
 class QMenu;
 class QIManagerDialog;
 class UIAction;
 class UIActionPool;
+class UINativeWizard;
 struct UIUnattendedInstallData;
 class UIVirtualBoxManagerWidget;
 class UIVirtualMachineItem;
@@ -56,10 +58,9 @@ class CUnattended;
 
 /* Type definitions: */
 typedef QIWithRestorableGeometry<QMainWindow> QMainWindowWithRestorableGeometry;
-typedef QIWithRetranslateUI<QMainWindowWithRestorableGeometry> QMainWindowWithRestorableGeometryAndRetranslateUi;
 
 /** Singleton QMainWindow extension used as VirtualBox Manager instance. */
-class UIVirtualBoxManager : public QMainWindowWithRestorableGeometryAndRetranslateUi
+class UIVirtualBoxManager : public QMainWindowWithRestorableGeometry
 {
     Q_OBJECT;
 
@@ -103,9 +104,6 @@ protected:
         virtual bool eventFilter(QObject *pObject, QEvent *pEvent) RT_OVERRIDE;
 #endif
 
-        /** Handles translation event. */
-        virtual void retranslateUi() RT_OVERRIDE;
-
         /** Handles any Qt @a pEvent. */
         virtual bool event(QEvent *pEvent) RT_OVERRIDE;
         /** Handles show @a pEvent. */
@@ -124,7 +122,7 @@ private slots:
 
     /** @name Common stuff.
       * @{ */
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
         /** Handles host-screen available-area change. */
         void sltHandleHostScreenAvailableAreaChange();
 #endif
@@ -144,21 +142,34 @@ private slots:
         /** Checks if USB device list can be enumerated and host produces any warning during enumeration. */
         void sltCheckUSBAccesibility();
 
-        /** Hnadles singal about Chooser-pane index change.  */
+        /** Handles signal about Chooser-pane index change.  */
         void sltHandleChooserPaneIndexChange();
         /** Handles signal about group saving progress change. */
         void sltHandleGroupSavingProgressChange();
         /** Handles signal about cloud update progress change. */
         void sltHandleCloudUpdateProgressChange();
 
-        /** Handles singal about Tool type change.  */
-        void sltHandleToolTypeChange();
+        /** Handles signal about Global Tool type change.  */
+        void sltHandleGlobalToolTypeChange();
+        /** Handles signal about Machine Tool type change.  */
+        void sltHandleMachineToolTypeChange();
+
+        /** Handles create medium request. */
+        void sltCreateMedium();
+        /** Handles copy medium request. */
+        void sltCopyMedium(const QUuid &uMediumId);
 
         /** Handles current snapshot item change. */
         void sltCurrentSnapshotItemChange();
 
+        /** Handles request to detach Log Viewer pane. */
+        void sltDetachToolPane(UIToolType enmToolType);
+
         /** Handles state change for cloud machine with certain @a uId. */
         void sltHandleCloudMachineStateChange(const QUuid &uId);
+
+        /** Handles translation event. */
+        void sltRetranslateUI();
     /** @} */
 
     /** @name CVirtualBox event handling stuff.
@@ -179,16 +190,17 @@ private slots:
         void sltOpenManagerWindow(UIToolType enmType = UIToolType_Invalid);
         /** Handles call to open Manager window by default. */
         void sltOpenManagerWindowDefault() { sltOpenManagerWindow(); }
+        /** Handles call to embed Manager window of certain @a enmType. */
+        void sltEmbedManagerWindow(UIToolType enmType = UIToolType_Invalid);
         /** Handles call to close Manager window of certain @a enmType. */
         void sltCloseManagerWindow(UIToolType enmType = UIToolType_Invalid);
+        /** Handles call to embed Manager window by default. */
+        void sltEmbedManagerWindowDefault() { sltEmbedManagerWindow(); }
         /** Handles call to close Manager window by default. */
         void sltCloseManagerWindowDefault() { sltCloseManagerWindow(); }
 
-        /** Handles call to open Import Appliance wizard.
-          * @param strFileName can bring the name of file to import appliance from. */
-        void sltOpenImportApplianceWizard(const QString &strFileName = QString());
-        /** Handles call to open Import Appliance wizard the default way. */
-        void sltOpenImportApplianceWizardDefault() { sltOpenImportApplianceWizard(); }
+        /** Handles call to open Import Appliance wizard. */
+        void sltOpenImportApplianceWizard() { openImportApplianceWizard(); }
         /** Handles call to open Export Appliance wizard. */
         void sltOpenExportApplianceWizard();
 
@@ -202,12 +214,20 @@ private slots:
         /** Handles call to close Preferences dialog. */
         void sltClosePreferencesDialog();
 
+        /** Handles call to switch to global tool corresponding to passed @a pAction. */
+        void sltPerformSwitchToGlobalTool(QAction *pAction);
+
         /** Handles call to exit application. */
         void sltPerformExit();
     /** @} */
 
     /** @name Machine menu stuff.
       * @{ */
+        /** Handles call to open wizard of specified @a enmType. */
+        void sltOpenWizard(WizardType enmType);
+        /** Handles call to close wizard of specified @a enmType. */
+        void sltCloseWizard(WizardType enmType);
+
         /** Handles call to open new machine wizard. */
         void sltOpenNewMachineWizard();
         /** Handles call to open add machine dialog. */
@@ -302,15 +322,8 @@ private slots:
           * @param  fIncludingDiscard  Brings whether machine state should be discarded. */
         void sltHandlePoweredOffMachine(bool fSuccess, bool fIncludingDiscard);
 
-        /** Handles call to show global tool corresponding to passed @a pAction. */
-        void sltPerformShowGlobalTool(QAction *pAction);
-        /** Handles call to show machine tool corresponding to passed @a pAction. */
-        void sltPerformShowMachineTool(QAction *pAction);
-
-        /** Handles call to open machine Log Viewer window. */
-        void sltOpenLogViewerWindow();
-        /** Handles call to close machine Log Viewer window. */
-        void sltCloseLogViewerWindow();
+        /** Handles call to switch to machine tool corresponding to passed @a pAction. */
+        void sltPerformSwitchToMachineTool(QAction *pAction);
 
         /** Handles call to refresh machine. */
         void sltPerformRefreshMachine();
@@ -329,6 +342,9 @@ private slots:
 
         /** Handles call to show help viewer. */
         void sltPerformShowHelpBrowser();
+
+        /** Handles signals that are emitted when an ext. pack un/installed. */
+        void sltExtensionPackInstalledUninstalled(const QString &strName);
     /** @} */
 
 private:
@@ -337,6 +353,8 @@ private:
       * @{ */
         /** Prepares window. */
         void prepare();
+        /** Prepares cloud machine manager. */
+        void prepareCloudMachineManager();
         /** Prepares icon. */
         void prepareIcon();
         /** Prepares menu-bar. */
@@ -358,6 +376,8 @@ private:
         void cleanupWidgets();
         /** Cleanups menu-bar. */
         void cleanupMenuBar();
+        /** Cleanups cloud machine manager. */
+        void cleanupCloudMachineManager();
         /** Cleanups window. */
         void cleanup();
     /** @} */
@@ -396,13 +416,18 @@ private:
         void openAddMachineDialog(const QString &strFileName = QString());
         /** Opens new machine dialog specifying initial name with @a strFileName. */
         void openNewMachineWizard(const QString &strISOFilePath = QString());
+
+        /** Opens Import Appliance wizard.
+          * @param strFileName can bring the name of file to import appliance from. */
+        void openImportApplianceWizard(const QString &strFileName = QString());
+
         /** Launches certain @a comMachine in specified @a enmLaunchMode. */
         static void launchMachine(CMachine &comMachine, UILaunchMode enmLaunchMode = UILaunchMode_Default);
         /** Launches certain @a comMachine. */
         static void launchMachine(CCloudMachine &comMachine);
 
         /** Creates an unattended installer and uses it to install guest os to newly created vm. */
-        void startUnattendedInstall(CUnattended &comUnattendedInstaller, bool fStartHeadless, const QString &strMachineId);
+        void startUnattendedInstall(const CUnattended &comUnattended, bool fStartHeadless, const QString &strMachineId);
 
         /** Launches or shows virtual machines represented by passed @a items in corresponding @a enmLaunchMode (for launch). */
         void performStartOrShowVirtualMachines(const QList<UIVirtualMachineItem*> &items, UILaunchMode enmLaunchMode);
@@ -472,7 +497,7 @@ private:
         /** Returns whether at least one of passed @a items is detachable. */
         static bool isAtLeastOneItemDetachable(const QList<UIVirtualMachineItem*> &items);
 
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
         /** Tries to guess default X11 terminal emulator.
           * @returns Data packed into Qt pair of QString(s),
           *          which is `name` and `--execute argument`. */
@@ -497,18 +522,38 @@ private:
     QMap<UIToolType, QIManagerDialog*>  m_managers;
 
     /** Holds the map of various settings dialogs. */
-    QMap<UISettingsDialog::DialogType, UISettingsDialog*>  m_settings;
-    /** Holds the cloud settings dialog instance. */
-    UISafePointerCloudMachineSettingsDialog                m_pCloudSettings;
+    QMap<UIAdvancedSettingsDialog::DialogType, UIAdvancedSettingsDialog*>  m_settings;
 
-    /** Holds the instance of UIVMLogViewerDialog. */
-    QIManagerDialog *m_pLogViewerDialog;
+    /** Holds the cloud settings dialog instance. */
+    UISafePointerCloudMachineSettingsDialog  m_pCloudSettings;
+
+    /** Holds the map of various wizards. */
+    QMap<WizardType, UINativeWizard*>  m_wizards;
 
     /** Holds the central-widget instance. */
     UIVirtualBoxManagerWidget *m_pWidget;
 
     /** Holds the geometry save timer ID. */
     int  m_iGeometrySaveTimerId;
+
+    /** Holds the ISO file path used by new VM wizard. */
+    QString  m_strISOFilePath;
+
+    /** Holds whether snapshot clone should be done by clone VM wizard. */
+    bool  m_fSnapshotCloneByDefault;
+
+    /** Holds whether OCI importing should be started by default. */
+    bool     m_fImportFromOCI;
+    /** Holds the file-name used by import wizard. */
+    QString  m_strFileName;
+
+    /** Holds whether OCI exporting should be started by default. */
+    bool         m_fExportToOCI;
+    /** Holds the list of VMs used by export wizard. */
+    QStringList  m_names;
+
+    /** Holds the ID of medium used by clone VD wizard. */
+    QUuid  m_uMediumId;
 };
 
 #define gpManager UIVirtualBoxManager::instance()

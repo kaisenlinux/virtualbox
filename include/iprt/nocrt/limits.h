@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -52,6 +52,18 @@
 # define CHAR_MAX       UCHAR_MAX
 # define CHAR_MIN       0
 #endif
+
+#if !defined(WCHAR_MIN)
+# if defined(RT_OS_WINDOWS)
+#  define WCHAR_MIN     0
+# endif
+#endif
+#if !defined(WCHAR_MAX)
+# if defined(RT_OS_WINDOWS)
+#  define WCHAR_MAX     0xffff
+# endif
+#endif
+/** @todo Define WCHAR_MIN+WCHAR_MAX on non-windows */
 
 #define WORD_BIT        16
 #define USHRT_MAX       0xffff

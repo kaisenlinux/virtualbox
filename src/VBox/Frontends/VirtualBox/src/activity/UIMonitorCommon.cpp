@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -33,12 +33,74 @@
 
 
 /* GUI includes: */
-#include "UICommon.h"
 #include "UIMonitorCommon.h"
 
 /* COM includes: */
+#include "CForm.h"
+#include "CFormValue.h"
+#include "CRangedIntegerFormValue.h"
 #include "CMachineDebugger.h"
 #include "CPerformanceCollector.h"
+#include <VBox/com/VirtualBox.h>
+
+
+/*********************************************************************************************************************************
+*   UIProgressTaskReadCloudMachineMetricList implementation.                                                                     *
+*********************************************************************************************************************************/
+
+UIProgressTaskReadCloudMachineMetricList::UIProgressTaskReadCloudMachineMetricList(QObject *pParent, CCloudMachine comCloudMachine)
+    :UIProgressTask(pParent)
+    , m_comCloudMachine(comCloudMachine)
+{
+}
+
+CProgress UIProgressTaskReadCloudMachineMetricList::createProgress()
+{
+    if (!m_comCloudMachine.isOk())
+        return CProgress();
+    return m_comCloudMachine.ListMetricNames(m_metricNamesArray);
+}
+
+void UIProgressTaskReadCloudMachineMetricList::handleProgressFinished(CProgress &comProgress)
+{
+    if (!comProgress.isOk())
+        return;
+    emit sigMetricListReceived(m_metricNamesArray.GetValues());
+}
+
+
+/*********************************************************************************************************************************
+*   UIProgressTaskReadCloudMachineMetricData implementation.                                                                     *
+*********************************************************************************************************************************/
+
+UIProgressTaskReadCloudMachineMetricData::UIProgressTaskReadCloudMachineMetricData(QObject *pParent,
+                                                                                   CCloudMachine comCloudMachine,
+                                                                                   KMetricType enmMetricType,
+                                                                                   ULONG uDataPointsCount)
+    :UIProgressTask(pParent)
+    , m_comCloudMachine(comCloudMachine)
+    , m_enmMetricType(enmMetricType)
+    , m_uDataPointsCount(uDataPointsCount)
+{
+}
+
+CProgress UIProgressTaskReadCloudMachineMetricData::createProgress()
+{
+    if (!m_comCloudMachine.isOk())
+        return CProgress();
+
+    CStringArray aUnit;
+    return m_comCloudMachine.EnumerateMetricData(m_enmMetricType, m_uDataPointsCount, m_metricData, m_timeStamps, aUnit);
+}
+
+
+void UIProgressTaskReadCloudMachineMetricData::handleProgressFinished(CProgress &comProgress)
+{
+    if (!comProgress.isOk())
+        return;
+    if (m_metricData.isOk() && m_timeStamps.isOk())
+        emit sigMetricDataReceived(m_enmMetricType, m_metricData.GetValues(), m_timeStamps.GetValues());
+}
 
 /* static */
 void UIMonitorCommon::getNetworkLoad(CMachineDebugger &debugger, quint64 &uOutNetworkReceived, quint64 &uOutNetworkTransmitted)
@@ -247,4 +309,44 @@ void UIMonitorCommon::drawDoughnutChart(QPainter &painter, quint64 iMaximum, qui
     float fAngle = 360.f * data / (float)iMaximum;
     painter.setBrush(color);
     painter.drawPath(UIMonitorCommon::doughnutSlice(chartRect, innerRect, 90, fAngle));
+}
+
+/* static */
+quint64 UIMonitorCommon::determineTotalRAMAmount(CCloudMachine &comCloudMachine)
+{
+    quint64 iTotalRAM = 0;
+    CForm comForm = comCloudMachine.GetDetailsForm();
+    /* Ignore cloud machine errors: */
+    if (comCloudMachine.isOk())
+    {
+        /* Common anchor for all fields: */
+        const QString strAnchorType = "cloud";
+
+        /* For each form value: */
+        const QVector<CFormValue> values = comForm.GetValues();
+        foreach (const CFormValue &comIteratedValue, values)
+        {
+            /* Ignore invisible values: */
+            if (!comIteratedValue.GetVisible())
+                continue;
+
+            /* Acquire label: */
+            const QString strLabel = comIteratedValue.GetLabel();
+            if (strLabel != "RAM")
+                continue;
+
+            AssertReturn((comIteratedValue.GetType() == KFormValueType_RangedInteger), 0);
+
+            CRangedIntegerFormValue comValue(comIteratedValue);
+            iTotalRAM = comValue.GetInteger();
+            QString strRAMUnit = comValue.GetSuffix();
+            if (strRAMUnit.compare("gb", Qt::CaseInsensitive) == 0)
+                iTotalRAM *= _1G / _1K;
+            else if (strRAMUnit.compare("mb", Qt::CaseInsensitive) == 0)
+                iTotalRAM *= _1M / _1K;
+            if (!comValue.isOk())
+                iTotalRAM = 0;
+        }
+    }
+    return iTotalRAM;
 }

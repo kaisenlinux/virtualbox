@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -468,7 +468,7 @@ static DECLCALLBACK(int) utsTcpOption(int ch, PCRTGETOPTUNION pVal)
 /**
  * @interface_method_impl{UTSTRANSPORT,pfnUsage}
  */
-DECLCALLBACK(void) utsTcpUsage(PRTSTREAM pStream)
+static DECLCALLBACK(void) utsTcpUsage(PRTSTREAM pStream)
 {
     RTStrmPrintf(pStream,
                  "  --tcp-bind-address <address>\n"

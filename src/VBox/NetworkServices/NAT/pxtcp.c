@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1747,8 +1747,7 @@ pxtcp_pmgr_pump(struct pollmgr_handler *handler, SOCKET fd, int revents)
 
         nread = pxtcp_sock_read(pxtcp, &stop_pollin);
         if (nread < 0) {
-            sockerr = -(int)nread;
-            DPRINTF0(("sock %d: POLLIN: %R[sockerr]\n", fd, sockerr));
+            DPRINTF0(("sock %d: POLLIN: %R[sockerr]\n", fd, -(int)nread));
             return pxtcp_schedule_reset(pxtcp);
         }
 

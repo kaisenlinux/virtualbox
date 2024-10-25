@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -38,13 +38,13 @@
 #include "QIFileDialog.h"
 #include "UICommon.h"
 #include "UILineTextEdit.h"
-
+#include "UITranslationEventListener.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 // UITextEditor
 
 UITextEditor::UITextEditor(QWidget *pParent /* = NULL */)
-  : QIWithRetranslateUI<QIDialog>(pParent)
+  : QIDialog(pParent)
 {
     QVBoxLayout *pMainLayout = new QVBoxLayout(this);
     pMainLayout->setContentsMargins(12, 12, 12, 12);
@@ -66,7 +66,9 @@ UITextEditor::UITextEditor(QWidget *pParent /* = NULL */)
             this, &UITextEditor::open);
 
     /* Applying language settings */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UITextEditor::sltRetranslateUI);
 }
 
 void UITextEditor::setText(const QString& strText)
@@ -79,7 +81,7 @@ QString UITextEditor::text() const
     return m_pTextEdit->toPlainText();
 }
 
-void UITextEditor::retranslateUi()
+void UITextEditor::sltRetranslateUI()
 {
     setWindowTitle(tr("Edit text"));
     m_pOpenButton->setText(tr("&Replace..."));
@@ -105,7 +107,7 @@ void UITextEditor::open()
 // UILineTextEdit
 
 UILineTextEdit::UILineTextEdit(QWidget *pParent /* = NULL */)
-  : QIWithRetranslateUI<QPushButton>(pParent)
+  : QPushButton(pParent)
 {
     connect(this, &UILineTextEdit::clicked,
             this, &UILineTextEdit::edit);
@@ -115,10 +117,12 @@ UILineTextEdit::UILineTextEdit(QWidget *pParent /* = NULL */)
     setDefault(false);
 
     setFocusPolicy(Qt::StrongFocus);
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+        this, &UILineTextEdit::sltRetranslateUI);
 }
 
-void UILineTextEdit::retranslateUi()
+void UILineTextEdit::sltRetranslateUI()
 {
     QPushButton::setText(tr("&Edit"));
 }

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,24 +26,27 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QGraphicsSceneMouseEvent>
 #include <QGraphicsView>
 #include <QPainter>
 #include <QStyleOptionGraphicsItem>
+#include <QWindow>
 
 /* GUI includes: */
 #include "UIChooserItemGlobal.h"
 #include "UIChooserModel.h"
 #include "UIChooserNodeGlobal.h"
 #include "UIIconPool.h"
+#include "UIImageTools.h"
+#include "UITranslationEventListener.h"
 #include "UIVirtualBoxManager.h"
 
 
 UIChooserItemGlobal::UIChooserItemGlobal(UIChooserItem *pParent, UIChooserNodeGlobal *pNode)
     : UIChooserItem(pParent, pNode)
 #ifdef VBOX_WS_MAC
-    , m_iDefaultDarknessStart(0)
-    , m_iDefaultDarknessFinal(0)
+    , m_iDefaultColorDeviation(0)
 #endif
     , m_iHoverLightnessStart(0)
     , m_iHoverLightnessFinal(0)
@@ -120,7 +123,7 @@ void UIChooserItemGlobal::setHeightHint(int iHint)
     model()->updateLayout();
 }
 
-void UIChooserItemGlobal::retranslateUi()
+void UIChooserItemGlobal::sltRetranslateUI()
 {
 }
 
@@ -340,8 +343,7 @@ void UIChooserItemGlobal::prepare()
 {
     /* Color tones: */
 #if defined(VBOX_WS_MAC)
-    m_iDefaultDarknessStart = 105;
-    m_iDefaultDarknessFinal = 115;
+    m_iDefaultColorDeviation = 105;
     m_iHoverLightnessStart = 125;
     m_iHoverLightnessFinal = 115;
     m_iHighlightLightnessStart = 115;
@@ -378,7 +380,9 @@ void UIChooserItemGlobal::prepare()
     updatePixmaps();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIChooserItemGlobal::sltRetranslateUI);
 }
 
 void UIChooserItemGlobal::cleanup()
@@ -443,7 +447,8 @@ void UIChooserItemGlobal::updatePixmap()
 
     /* Create new icon, then acquire pixmap: */
     const QIcon icon = UIIconPool::iconSet(":/tools_global_32px.png");
-    const QPixmap pixmap = icon.pixmap(gpManager->windowHandle(), pixmapSize);
+    const qreal fDevicePixelRatio = gpManager->windowHandle() ? gpManager->windowHandle()->devicePixelRatio() : 1;
+    const QPixmap pixmap = icon.pixmap(pixmapSize, fDevicePixelRatio);
 
     /* Update linked values: */
     if (m_pixmapSize != pixmapSize)
@@ -467,7 +472,8 @@ void UIChooserItemGlobal::updateToolPixmap()
     const QIcon toolIcon = UIIconPool::iconSet(":/tools_menu_24px.png");
     AssertReturnVoid(!toolIcon.isNull());
     const QSize toolPixmapSize = QSize(iIconMetric, iIconMetric);
-    const QPixmap toolPixmap = toolIcon.pixmap(gpManager->windowHandle(), toolPixmapSize);
+    const qreal fDevicePixelRatio = gpManager->windowHandle() ? gpManager->windowHandle()->devicePixelRatio() : 1;
+    const QPixmap toolPixmap = toolIcon.pixmap(toolPixmapSize, fDevicePixelRatio);
     /* Update linked values: */
     if (m_toolPixmapSize != toolPixmapSize)
     {
@@ -489,7 +495,8 @@ void UIChooserItemGlobal::updatePinPixmap()
     const QIcon pinIcon = UIIconPool::iconSet(isFavorite() ? ":/favorite_pressed_24px.png" : ":/favorite_24px.png");
     AssertReturnVoid(!pinIcon.isNull());
     const QSize pinPixmapSize = QSize(iIconMetric, iIconMetric);
-    const QPixmap pinPixmap = pinIcon.pixmap(gpManager->windowHandle(), pinPixmapSize);
+    const qreal fDevicePixelRatio = gpManager->windowHandle() ? gpManager->windowHandle()->devicePixelRatio() : 1;
+    const QPixmap pinPixmap = pinIcon.pixmap(pinPixmapSize, fDevicePixelRatio);
     /* Update linked values: */
     if (m_pinPixmapSize != pinPixmapSize)
     {
@@ -508,12 +515,8 @@ void UIChooserItemGlobal::updateMinimumNameWidth()
     /* Calculate new minimum name width: */
     QPaintDevice *pPaintDevice = model()->paintDevice();
     const QFontMetrics fm(m_nameFont, pPaintDevice);
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
     const int iMinimumNameWidth = fm.horizontalAdvance(compressText(m_nameFont, pPaintDevice, name(),
                                                                     textWidth(m_nameFont, pPaintDevice, 15)));
-#else
-    const int iMinimumNameWidth = fm.width(compressText(m_nameFont, pPaintDevice, name(), textWidth(m_nameFont, pPaintDevice, 15)));
-#endif
 
     /* Is there something changed? */
     if (m_iMinimumNameWidth == iMinimumNameWidth)
@@ -656,8 +659,8 @@ void UIChooserItemGlobal::paintBackground(QPainter *pPainter, const QRect &recta
         const QColor backgroundColor = pal.color(QPalette::Active, QPalette::Window);
         /* Draw gradient: */
         QLinearGradient bgGrad(rectangle.topLeft(), rectangle.bottomLeft());
-        bgGrad.setColorAt(0, backgroundColor.darker(m_iDefaultDarknessStart));
-        bgGrad.setColorAt(1, backgroundColor.darker(m_iDefaultDarknessFinal));
+        bgGrad.setColorAt(0, backgroundColor.lighter(m_iDefaultColorDeviation));
+        bgGrad.setColorAt(1, backgroundColor.darker(m_iDefaultColorDeviation));
         pPainter->fillRect(rectangle, bgGrad);
 #else
         /* Draw simple background: */
@@ -725,23 +728,9 @@ void UIChooserItemGlobal::paintGlobalInfo(QPainter *pPainter, const QRect &recta
                                 ? highlight.lighter(m_iHighlightLightnessStart)
                                 : highlight.lighter(m_iHoverLightnessStart);
 
-        /* Get foreground color: */
-        const QColor simpleText = pal.color(QPalette::Active, QPalette::Text);
-        const QColor highlightText = pal.color(QPalette::Active, QPalette::HighlightedText);
-        QColor lightText = simpleText.black() < highlightText.black() ? simpleText : highlightText;
-        QColor darkText = simpleText.black() > highlightText.black() ? simpleText : highlightText;
-        if (lightText.black() > 128)
-            lightText = QColor(Qt::white);
-        if (darkText.black() < 128)
-            darkText = QColor(Qt::black);
-
         /* Gather foreground color for background one: */
-        double dLuminance = (0.299 * background.red() + 0.587 * background.green() + 0.114 * background.blue()) / 255;
-        //printf("luminance = %f\n", dLuminance);
-        if (dLuminance > 0.5)
-            pPainter->setPen(darkText);
-        else
-            pPainter->setPen(lightText);
+        const QColor foreground = suitableForegroundColor(pal, background);
+        pPainter->setPen(foreground);
     }
 
     /* Calculate indents: */

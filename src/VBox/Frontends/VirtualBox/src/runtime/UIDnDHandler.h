@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -37,7 +37,6 @@
 #include <QStringList>
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CDnDTarget.h"
 #include "CDnDSource.h"
 
@@ -45,7 +44,7 @@
 class QMimeData;
 
 class UIDnDMIMEData;
-class UISession;
+class UIMachine;
 
 /**
  * Main class for implementing Drag'n'Drop in the frontend.
@@ -56,7 +55,7 @@ class UIDnDHandler: public QObject
 
 public:
 
-    UIDnDHandler(UISession *pSession, QWidget *pParent);
+    UIDnDHandler(UIMachine *pMachine, QWidget *pParent);
     virtual ~UIDnDHandler(void);
 
     /**
@@ -89,7 +88,7 @@ public:
 
     /* Data access. */
     int                        retrieveData(Qt::DropAction dropAction, const QString &strMIMEType, QVector<uint8_t> &vecData);
-    int                        retrieveData(Qt::DropAction dropAction, const QString &strMIMEType, QVariant::Type vaType, QVariant &vaData);
+    int                        retrieveData(Qt::DropAction dropAction, const QString &strMIMEType, QMetaType::Type vaType, QVariant &vaData);
 
 public:
 
@@ -111,7 +110,7 @@ public slots:
      * @param vaType                Qt's variant type of the MIME data.
      * @param vaData                Reference to QVariant where to store the retrieved data.
      */
-    int                        sltGetData(Qt::DropAction dropAction, const QString &strMIMEType, QVariant::Type vaType, QVariant &vaData);
+    int                        sltGetData(Qt::DropAction dropAction, const QString &strMIMEType, QMetaType::Type vaType, QVariant &vaData);
 
 protected:
 
@@ -132,8 +131,8 @@ protected:
 
 protected:
 
-    /** Pointer to UI session. */
-    UISession        *m_pSession;
+    /** Pointer to machine UI. */
+    UIMachine        *m_pMachine;
     /** Pointer to parent widget. */
     QWidget          *m_pParent;
     /** Drag and drop source instance. */

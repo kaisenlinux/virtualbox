@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -191,49 +191,52 @@ static void test1(RTTEST hTest)
     CHECK(copy2.length() == 100);
 
     /* printf */
-    RTCString StrFmt;
-    CHECK(StrFmt.printf("%s-%s-%d", "abc", "def", 42).equals("abc-def-42"));
-    test1Hlp1("abc-42-def", "%s-%d-%s", "abc", 42, "def");
-    test1Hlp1("", "");
-    test1Hlp1("1", "1");
-    test1Hlp1("foobar", "%s", "foobar");
+    {
+        RTCString StrFmt;
+        CHECK(StrFmt.printf("%s-%s-%d", "abc", "def", 42).equals("abc-def-42"));
+        test1Hlp1("abc-42-def", "%s-%d-%s", "abc", 42, "def");
+        test1Hlp1("", "");
+        test1Hlp1("1", "1");
+        test1Hlp1("foobar", "%s", "foobar");
+    }
 
     /* substring constructors */
-    RTCString SubStr1("", (size_t)0);
-    CHECK_EQUAL(SubStr1, "");
+    {
+        RTCString SubStr1("", (size_t)0);
+        CHECK_EQUAL(SubStr1, "");
 
-    RTCString SubStr2("abcdef", 2);
-    CHECK_EQUAL(SubStr2, "ab");
+        RTCString SubStr2("abcdef", 2);
+        CHECK_EQUAL(SubStr2, "ab");
 
-    RTCString SubStr3("abcdef", 1);
-    CHECK_EQUAL(SubStr3, "a");
+        RTCString SubStr3("abcdef", 1);
+        CHECK_EQUAL(SubStr3, "a");
 
-    RTCString SubStr4("abcdef", 6);
-    CHECK_EQUAL(SubStr4, "abcdef");
+        RTCString SubStr4("abcdef", 6);
+        CHECK_EQUAL(SubStr4, "abcdef");
 
-    RTCString SubStr5("abcdef", 7);
-    CHECK_EQUAL(SubStr5, "abcdef");
+        RTCString SubStr5("abcdef", 7);
+        CHECK_EQUAL(SubStr5, "abcdef");
 
+        RTCString SubStrBase("abcdef");
 
-    RTCString SubStrBase("abcdef");
+        RTCString SubStr10(SubStrBase, 0);
+        CHECK_EQUAL(SubStr10, "abcdef");
 
-    RTCString SubStr10(SubStrBase, 0);
-    CHECK_EQUAL(SubStr10, "abcdef");
+        RTCString SubStr11(SubStrBase, 1);
+        CHECK_EQUAL(SubStr11, "bcdef");
 
-    RTCString SubStr11(SubStrBase, 1);
-    CHECK_EQUAL(SubStr11, "bcdef");
+        RTCString SubStr12(SubStrBase, 1, 1);
+        CHECK_EQUAL(SubStr12, "b");
 
-    RTCString SubStr12(SubStrBase, 1, 1);
-    CHECK_EQUAL(SubStr12, "b");
+        RTCString SubStr13(SubStrBase, 2, 3);
+        CHECK_EQUAL(SubStr13, "cde");
 
-    RTCString SubStr13(SubStrBase, 2, 3);
-    CHECK_EQUAL(SubStr13, "cde");
+        RTCString SubStr14(SubStrBase, 2, 4);
+        CHECK_EQUAL(SubStr14, "cdef");
 
-    RTCString SubStr14(SubStrBase, 2, 4);
-    CHECK_EQUAL(SubStr14, "cdef");
-
-    RTCString SubStr15(SubStrBase, 2, 5);
-    CHECK_EQUAL(SubStr15, "cdef");
+        RTCString SubStr15(SubStrBase, 2, 5);
+        CHECK_EQUAL(SubStr15, "cdef");
+    }
 
     /* substr() and substrCP() functions */
     RTCString strTest("");
@@ -396,6 +399,76 @@ static void test1(RTTEST hTest)
     CHECK_EQUAL(StrTruncate2, "0");
     StrTruncate2.truncate(0);
     CHECK_EQUAL(StrTruncate2, "");
+
+    /* endsWith */
+    RTCString const strEmpty;
+    strTest = "qwerty";
+    CHECK(strTest.endsWith(strTest));
+    CHECK(strTest.endsWith("qwerty"));
+    CHECK(strTest.endsWith("werty"));
+    CHECK(strTest.endsWith("erty"));
+    CHECK(strTest.endsWith("rty"));
+    CHECK(strTest.endsWith("ty"));
+    CHECK(strTest.endsWith("y"));
+    CHECK(!strTest.endsWith("ty00", 3));
+    CHECK(strTest.endsWith("ty00", 2));
+    CHECK(!strTest.endsWith(""));
+    CHECK(!strTest.endsWith(NULL));
+    CHECK(!strTest.endsWith(strEmpty));
+    CHECK(!strEmpty.endsWith(""));
+    CHECK(!strEmpty.endsWith(NULL));
+    CHECK(!strEmpty.endsWith(strEmpty));
+
+    CHECK(strTest.endsWithI("qwerty"));
+    CHECK(strTest.endsWithI("QWERTY"));
+    CHECK(strTest.endsWithI("wErtY"));
+    CHECK(strTest.endsWithI("eRty"));
+    CHECK(strTest.endsWithI("rTy"));
+    CHECK(strTest.endsWithI("ty"));
+    CHECK(strTest.endsWithI("y"));
+    CHECK(!strTest.endsWithI("ty000", 3));
+    CHECK(strTest.endsWithI("ty000", 2));
+    CHECK(!strTest.endsWithI(""));
+    CHECK(!strTest.endsWithI(NULL));
+    CHECK(!strTest.endsWithI(strEmpty));
+    CHECK(!strEmpty.endsWithI(""));
+    CHECK(!strEmpty.endsWithI(NULL));
+    CHECK(!strEmpty.endsWithI(strEmpty));
+
+    /* startsWith */
+    CHECK(strTest.startsWith(strTest));
+    CHECK(strTest.startsWith("qwerty"));
+    CHECK(strTest.startsWith("qwert"));
+    CHECK(strTest.startsWith("qwer"));
+    CHECK(strTest.startsWith("qwe"));
+    CHECK(strTest.startsWith("qw"));
+    CHECK(strTest.startsWith("q"));
+    CHECK(strTest.startsWith("q00000", 1));
+    CHECK(strTest.startsWith("qw0000", 2));
+    CHECK(!strTest.startsWith("qw0000", 3));
+    CHECK(!strTest.startsWith(""));
+    CHECK(!strTest.startsWith(strEmpty));
+    CHECK(!strEmpty.startsWith(strTest));
+    CHECK(!strEmpty.startsWith(strEmpty));
+    CHECK(!strEmpty.startsWith(""));
+    CHECK(!strEmpty.startsWith(NULL));
+
+    CHECK(strTest.startsWithI(strTest));
+    CHECK(strTest.startsWithI("qWeRty"));
+    CHECK(strTest.startsWithI("qWerT"));
+    CHECK(strTest.startsWithI("qWeR"));
+    CHECK(strTest.startsWithI("qwE"));
+    CHECK(strTest.startsWithI("qW"));
+    CHECK(strTest.startsWithI("q"));
+    CHECK(strTest.startsWithI("Q00000", 1));
+    CHECK(strTest.startsWithI("qW0000", 2));
+    CHECK(!strTest.startsWithI("qW0000", 3));
+    CHECK(!strTest.startsWithI(""));
+    CHECK(!strTest.startsWithI(strEmpty));
+    CHECK(!strEmpty.startsWithI(strTest));
+    CHECK(!strEmpty.startsWithI(strEmpty));
+    CHECK(!strEmpty.startsWithI(""));
+    CHECK(!strEmpty.startsWithI(NULL));
 
 #undef CHECK
 #undef CHECK_DUMP

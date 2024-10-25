@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2017-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2017-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -316,7 +316,7 @@ VMM_INT_DECL(TRPMEVENT) HMSvmEventToTrpmEventType(PCSVMEVENT pEvent, uint8_t uVe
     {
         case SVM_EVENT_EXTERNAL_IRQ:    return TRPM_HARDWARE_INT;
         case SVM_EVENT_SOFTWARE_INT:    return TRPM_SOFTWARE_INT;
-        case SVM_EVENT_NMI:             return TRPM_TRAP;
+        case SVM_EVENT_NMI:             return TRPM_NMI;
         case SVM_EVENT_EXCEPTION:
         {
             if (   uVector == X86_XCPT_BP

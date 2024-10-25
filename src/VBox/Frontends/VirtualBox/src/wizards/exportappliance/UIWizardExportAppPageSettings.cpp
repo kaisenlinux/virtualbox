@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -30,10 +30,8 @@
 #include <QVBoxLayout>
 
 /* GUI includes: */
-#include "QILabelSeparator.h"
 #include "QIRichTextLabel.h"
 #include "UIApplianceExportEditorWidget.h"
-#include "UICommon.h"
 #include "UIFormEditorWidget.h"
 #include "UINotificationCenter.h"
 #include "UIWizardExportApp.h"
@@ -167,7 +165,7 @@ UIWizardExportApp *UIWizardExportAppPageSettings::wizard() const
     return qobject_cast<UIWizardExportApp*>(UINativeWizardPage::wizard());
 }
 
-void UIWizardExportAppPageSettings::retranslateUi()
+void UIWizardExportAppPageSettings::sltRetranslateUI()
 {
     /* Translate page: */
     setTitle(UIWizardExportApp::tr("Appliance settings"));
@@ -187,7 +185,7 @@ void UIWizardExportAppPageSettings::initializePage()
     /* Make sure form-editor knows notification-center: */
     m_pFormEditor->setNotificationCenter(wizard()->notificationCenter());
     /* Translate page: */
-    retranslateUi();
+    sltRetranslateUI();
 
     /* Refresh settings widget state: */
     refreshStackedWidget(m_pSettingsWidget2, wizard()->isFormatCloudOne());

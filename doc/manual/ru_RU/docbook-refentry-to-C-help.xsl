@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
 <!--
-    docbook-refentry-to-manual-sect1.xsl:
+    docbook-refentry-to-C-help.xsl:
         XSLT stylesheet for nicking the refsynopsisdiv bit of a
         refentry (manpage) for use in the command overview section
         in the user manual.
 -->
 <!--
-    Copyright (C) 2006-2023 Oracle and/or its affiliates.
+    Copyright (C) 2006-2024 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.

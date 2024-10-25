@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -27,6 +27,7 @@
 
 /* Qt includes: */
 #include <QVBoxLayout>
+#include <QVariant>
 
 /* GUI includes: */
 #include "UIColorThemeEditor.h"
@@ -144,7 +145,7 @@ void UIGlobalSettingsInterface::saveFromCacheTo(QVariant &data)
     UISettingsPageGlobal::uploadData(data);
 }
 
-void UIGlobalSettingsInterface::retranslateUi()
+void UIGlobalSettingsInterface::sltRetranslateUI()
 {
 }
 
@@ -158,7 +159,7 @@ void UIGlobalSettingsInterface::prepare()
     prepareWidgets();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIGlobalSettingsInterface::prepareWidgets()
@@ -170,7 +171,10 @@ void UIGlobalSettingsInterface::prepareWidgets()
         /* Prepare 'color-theme' editor: */
         m_pEditorColorTheme = new UIColorThemeEditor(this);
         if (m_pEditorColorTheme)
+        {
+            addEditor(m_pEditorColorTheme);
             pLayout->addWidget(m_pEditorColorTheme);
+        }
 
         /* Add stretch to the end: */
         pLayout->addStretch();

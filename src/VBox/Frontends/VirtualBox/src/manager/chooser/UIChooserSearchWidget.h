@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,7 +35,7 @@
 #include <QWidget>
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
+#include "UILibraryDefs.h"
 
 /* Forward declarations: */
 class QHBoxLayout;
@@ -44,7 +44,7 @@ class QIToolButton;
 class UISearchLineEdit;
 
 /** QWidget extension used as virtual machine search widget in the VM Chooser-pane. */
-class UIChooserSearchWidget : public QIWithRetranslateUI<QWidget>
+class UIChooserSearchWidget : public QWidget
 {
     Q_OBJECT;
 
@@ -73,10 +73,7 @@ protected:
 
     virtual void showEvent(QShowEvent *pEvent) RT_OVERRIDE;
     virtual void hideEvent(QHideEvent *pEvent) RT_OVERRIDE;
-    virtual void retranslateUi() RT_OVERRIDE;
     virtual bool eventFilter(QObject *pWatched, QEvent *pEvent) RT_OVERRIDE;
-
-public slots:
 
 private slots:
 
@@ -85,6 +82,7 @@ private slots:
     void sltHandleScroolToButtonClick();
     /** Emits sigToggleVisibility, */
     void sltHandleCloseButtonClick();
+    void sltRetranslateUI();
 
 private:
 

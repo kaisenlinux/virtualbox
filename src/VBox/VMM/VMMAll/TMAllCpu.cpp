@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -115,7 +115,7 @@ int tmCpuTickResume(PVMCC pVM, PVMCPUCC pVCpu)
         switch (pVM->tm.s.enmTSCMode)
         {
             case TMTSCMODE_REAL_TSC_OFFSET:
-                pVCpu->tm.s.offTSCRawSrc = SUPReadTsc() - pVCpu->tm.s.u64TSC;
+                pVCpu->tm.s.offTSCRawSrc = SUPReadTsc() * pVM->tm.s.u8TSCMultiplier - pVCpu->tm.s.u64TSC;
                 break;
             case TMTSCMODE_VIRT_TSC_EMULATED:
             case TMTSCMODE_DYNAMIC:
@@ -162,7 +162,7 @@ int tmCpuTickResumeLocked(PVMCC pVM, PVMCPUCC pVCpu)
             switch (pVM->tm.s.enmTSCMode)
             {
                 case TMTSCMODE_REAL_TSC_OFFSET:
-                    pVCpu->tm.s.offTSCRawSrc = SUPReadTsc() - pVM->tm.s.u64LastPausedTSC;
+                    pVCpu->tm.s.offTSCRawSrc = SUPReadTsc() * pVM->tm.s.u8TSCMultiplier - pVM->tm.s.u64LastPausedTSC;
                     break;
                 case TMTSCMODE_VIRT_TSC_EMULATED:
                 case TMTSCMODE_DYNAMIC:
@@ -495,7 +495,7 @@ DECLINLINE(uint64_t) tmCpuTickGetInternal(PVMCPUCC pVCpu, bool fCheckTimers)
         switch (pVM->tm.s.enmTSCMode)
         {
             case TMTSCMODE_REAL_TSC_OFFSET:
-                u64 = SUPReadTsc();
+                u64 = SUPReadTsc() * pVM->tm.s.u8TSCMultiplier;
                 break;
             case TMTSCMODE_VIRT_TSC_EMULATED:
             case TMTSCMODE_DYNAMIC:
@@ -641,7 +641,7 @@ VMMDECL(uint64_t) TMCpuTicksPerSecond(PVMCC pVM)
             uint64_t cTSCTicksPerSecond = SUPGetCpuHzFromGipBySetIndex(pGip, VMMGetCpu(pVM)->iHostCpuSet);
 #endif
             if (RT_LIKELY(cTSCTicksPerSecond != ~(uint64_t)0))
-                return cTSCTicksPerSecond;
+                return cTSCTicksPerSecond * pVM->tm.s.u8TSCMultiplier;
         }
     }
     return pVM->tm.s.cTSCTicksPerSecond;
@@ -659,3 +659,32 @@ VMM_INT_DECL(bool) TMCpuTickIsTicking(PVMCPUCC pVCpu)
     return pVCpu->tm.s.fTSCTicking;
 }
 
+
+#if defined(VBOX_VMM_TARGET_ARMV8)
+/**
+ * Sets the number of nanoseconds from now when the vTiemr is supposed to expire next.
+ *
+ * @param   pVCpu           The cross context virtual CPU structure.
+ * @param   cNanoSecs       Number of nano seconds when the timer is supposed to fire.
+ *
+ * @note This is required in order to kick the vCPU out of a halting state because the
+ *       vTimer is supposed to fire an interrupt.
+ */
+VMM_INT_DECL(void) TMCpuSetVTimerNextActivation(PVMCPUCC pVCpu, uint64_t cNanoSecs)
+{
+    pVCpu->cNsVTimerActivate = cNanoSecs;
+}
+
+
+/**
+ * Returns when the vTimer is supposed to expire next in number of nanoseconds.
+ *
+ * @returns Number of nanoseconds when the vTimer is supposed to activate.
+ * @retval  UINT64_MAX if the timer is not active.
+ * @param   pVCpu           The cross context virtual CPU structure.
+ */
+VMM_INT_DECL(uint64_t) TMCpuGetVTimerActivationNano(PVMCPUCC pVCpu)
+{
+    return pVCpu->cNsVTimerActivate;
+}
+#endif

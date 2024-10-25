@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -431,27 +431,27 @@ static int dbgDiggerLinuxDisassembleSimpleGetter(PDBGDIGGERLINUX pThis, PUVM pUV
                              * Check that the destination is either rax or eax depending on the
                              * value size.
                              *
-                             * Param1 is the destination and Param2 the source.
+                             * aParams[0] is the destination and aParams[1] the source.
                              */
-                            if (   (   (   (DisState.Param1.fUse & (DISUSE_BASE | DISUSE_REG_GEN32))
+                            if (   (   (   (DisState.aParams[0].fUse & (DISUSE_BASE | DISUSE_REG_GEN32))
                                         && cbVal == sizeof(uint32_t))
-                                    || (    (DisState.Param1.fUse & (DISUSE_BASE | DISUSE_REG_GEN64))
+                                    || (    (DisState.aParams[0].fUse & (DISUSE_BASE | DISUSE_REG_GEN64))
                                          && cbVal == sizeof(uint64_t)))
-                                && DisState.Param1.Base.idxGenReg == DISGREG_RAX)
+                                && DisState.aParams[0].x86.Base.idxGenReg == DISGREG_RAX)
                             {
                                 /* Parse the source. */
-                                if (DisState.Param2.fUse & (DISUSE_IMMEDIATE32 | DISUSE_IMMEDIATE64))
-                                    memcpy(pvVal, &DisState.Param2.uValue, cbVal);
-                                else if (DisState.Param2.fUse & (DISUSE_RIPDISPLACEMENT32|DISUSE_DISPLACEMENT32|DISUSE_DISPLACEMENT64))
+                                if (DisState.aParams[1].fUse & (DISUSE_IMMEDIATE32 | DISUSE_IMMEDIATE64))
+                                    memcpy(pvVal, &DisState.aParams[1].uValue, cbVal);
+                                else if (DisState.aParams[1].fUse & (DISUSE_RIPDISPLACEMENT32|DISUSE_DISPLACEMENT32|DISUSE_DISPLACEMENT64))
                                 {
                                     RTGCPTR GCPtrVal = 0;
 
-                                    if (DisState.Param2.fUse & DISUSE_RIPDISPLACEMENT32)
-                                        GCPtrVal = GCPtrCur + DisState.Param2.uDisp.i32 + cbInstr;
-                                    else if (DisState.Param2.fUse & DISUSE_DISPLACEMENT32)
-                                        GCPtrVal = (RTGCPTR)DisState.Param2.uDisp.u32;
-                                    else if (DisState.Param2.fUse & DISUSE_DISPLACEMENT64)
-                                        GCPtrVal = (RTGCPTR)DisState.Param2.uDisp.u64;
+                                    if (DisState.aParams[1].fUse & DISUSE_RIPDISPLACEMENT32)
+                                        GCPtrVal = GCPtrCur + DisState.aParams[1].x86.uDisp.i32 + cbInstr;
+                                    else if (DisState.aParams[1].fUse & DISUSE_DISPLACEMENT32)
+                                        GCPtrVal = (RTGCPTR)DisState.aParams[1].x86.uDisp.u32;
+                                    else if (DisState.aParams[1].fUse & DISUSE_DISPLACEMENT64)
+                                        GCPtrVal = (RTGCPTR)DisState.aParams[1].x86.uDisp.u64;
                                     else
                                         AssertMsgFailedBreakStmt(("Invalid displacement\n"), rc = VERR_INVALID_STATE);
 
@@ -569,10 +569,10 @@ static int dbgDiggerLinuxQueryAsciiLogBufferPtrs(PDBGDIGGERLINUX pThis, PUVM pUV
                              * character is stored and we can infer the base address and size of the log buffer from
                              * the source addresses.
                              */
-                            if (   (DisState.Param2.fUse & DISUSE_REG_GEN8)
-                                && (   (DisState.Param2.Base.idxGenReg == DISGREG_AL && !pThis->f64Bit)
-                                    || (DisState.Param2.Base.idxGenReg == DISGREG_DIL && pThis->f64Bit))
-                                && DISUSE_IS_EFFECTIVE_ADDR(DisState.Param1.fUse))
+                            if (   (DisState.aParams[1].fUse & DISUSE_REG_GEN8)
+                                && (   (DisState.aParams[1].x86.Base.idxGenReg == DISGREG_AL && !pThis->f64Bit)
+                                    || (DisState.aParams[1].x86.Base.idxGenReg == DISGREG_DIL && pThis->f64Bit))
+                                && DISUSE_IS_EFFECTIVE_ADDR(DisState.aParams[0].fUse))
                             {
                                 RTGCPTR GCPtrLogBuf = 0;
                                 uint32_t cbLogBuf = 0;
@@ -655,18 +655,18 @@ static int dbgDiggerLinuxQueryAsciiLogBufferPtrs(PDBGDIGGERLINUX pThis, PUVM pUV
                                  * In case of a memory to register move store the destination register index and the
                                  * source address in the relation table for later processing.
                                  */
-                                if (   (DisState.Param1.fUse & (DISUSE_BASE | DISUSE_REG_GEN32 | DISUSE_REG_GEN64))
-                                    && (DisState.Param2.cb == sizeof(uint32_t) || DisState.Param2.cb == sizeof(uint64_t))
-                                    && (DisState.Param2.fUse & (DISUSE_RIPDISPLACEMENT32|DISUSE_DISPLACEMENT32|DISUSE_DISPLACEMENT64)))
+                                if (   (DisState.aParams[0].fUse & (DISUSE_BASE | DISUSE_REG_GEN32 | DISUSE_REG_GEN64))
+                                    && (DisState.aParams[1].x86.cb == sizeof(uint32_t) || DisState.aParams[1].x86.cb == sizeof(uint64_t))
+                                    && (DisState.aParams[1].fUse & (DISUSE_RIPDISPLACEMENT32|DISUSE_DISPLACEMENT32|DISUSE_DISPLACEMENT64)))
                                 {
                                     RTGCPTR GCPtrVal = 0;
 
-                                    if (DisState.Param2.fUse & DISUSE_RIPDISPLACEMENT32)
-                                        GCPtrVal = GCPtrCur + DisState.Param2.uDisp.i32 + cbInstr;
-                                    else if (DisState.Param2.fUse & DISUSE_DISPLACEMENT32)
-                                        GCPtrVal = (RTGCPTR)DisState.Param2.uDisp.u32;
-                                    else if (DisState.Param2.fUse & DISUSE_DISPLACEMENT64)
-                                        GCPtrVal = (RTGCPTR)DisState.Param2.uDisp.u64;
+                                    if (DisState.aParams[1].fUse & DISUSE_RIPDISPLACEMENT32)
+                                        GCPtrVal = GCPtrCur + DisState.aParams[1].x86.uDisp.i32 + cbInstr;
+                                    else if (DisState.aParams[1].fUse & DISUSE_DISPLACEMENT32)
+                                        GCPtrVal = (RTGCPTR)DisState.aParams[1].x86.uDisp.u32;
+                                    else if (DisState.aParams[1].fUse & DISUSE_DISPLACEMENT64)
+                                        GCPtrVal = (RTGCPTR)DisState.aParams[1].x86.uDisp.u64;
                                     else
                                         AssertMsgFailedBreakStmt(("Invalid displacement\n"), rc = VERR_INVALID_STATE);
 
@@ -676,7 +676,7 @@ static int dbgDiggerLinuxQueryAsciiLogBufferPtrs(PDBGDIGGERLINUX pThis, PUVM pUV
                                         if (DisState.pCurInstr->uOpcode == OP_MOVSXD)
                                             aAddresses[cAddressesUsed].cb = sizeof(uint32_t);
                                         else
-                                            aAddresses[cAddressesUsed].cb = DisState.Param2.cb;
+                                            aAddresses[cAddressesUsed].cb = DisState.aParams[1].x86.cb;
                                         aAddresses[cAddressesUsed].GCPtrOrigSrc = GCPtrVal;
                                         cAddressesUsed++;
                                     }
@@ -2972,6 +2972,8 @@ static DECLCALLBACK(int)  dbgDiggerLinuxInit(PUVM pUVM, PCVMMR3VTABLE pVMM, void
         {
             static const uint8_t s_abNeedleOSuseX86[] = "nmi"; /* OpenSuSe 10.2 x86 */
             rc = dbgDiggerLinuxFindSymbolTableFromNeedle(pThis, pUVM, pVMM, s_abNeedleOSuseX86, sizeof(s_abNeedleOSuseX86) - 1);
+            if (RT_FAILURE(rc))
+                LogRel(("dbgDiggerLinuxInit: Failed to find symbol table from needle kobj, kobjec or nmi -> %Rrc\n", rc));
         }
     }
 

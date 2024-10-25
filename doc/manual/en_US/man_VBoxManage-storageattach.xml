@@ -3,7 +3,7 @@
     manpage, user manual, usage: VBoxManage storageattach
 -->
 <!--
-    Copyright (C) 2006-2023 Oracle and/or its affiliates.
+    Copyright (C) 2006-2024 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.
@@ -122,17 +122,17 @@
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-storageattach-description">
     <title>Description</title>
     <para>
-      The <command>VBoxManage storageattach</command> command enables
-      you to manage a storage medium that you connected to a storage
-      controller by using the <command>VBoxManage storagectl</command>
-      command.
+      The <command>VBoxManage storageattach</command> command
+      attaches, modifies, or removes a storage medium connected to a
+      storage controller that was previously added with the
+      <command>VBoxManage storagectl</command> command.
     </para>
     <variablelist>
       <varlistentry>
-        <term><replaceable>uuid</replaceable> | <replaceable>vmname</replaceable></term>
+        <term><option><replaceable>uuid</replaceable> | <replaceable>vmname</replaceable></option></term>
         <listitem><para>
             Specifies the Universally Unique Identifier (UUID) or the
             name of the virtual machine (VM).
@@ -188,7 +188,7 @@
               <listitem><para>
                   For a virtual DVD or floppy drive only.
                 </para><para>
-                  Makes the device slot behave like a removeable drive
+                  Makes the device slot behave like a removable drive
                   into which no media has been inserted.
                 </para></listitem>
             </varlistentry>
@@ -240,7 +240,7 @@
                 </para></listitem>
             </varlistentry>
           </variablelist><para>
-            For removeable media such as floppies and DVDs, you can make
+            For removable media such as floppies and DVDs, you can make
             configuration changes while a VM is running. Changes to
             devices or hard disk device slots require that the VM be
             powered off.
@@ -519,7 +519,7 @@
     </variablelist>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-storageattach-examples">
     <title>Examples</title>
     <remark role="help-scope" condition="GLOBAL" />
     <para>
@@ -538,7 +538,7 @@
 --type dvddrive --medium ol7-r6-dvd.iso</screen>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-storageattach-see-also">
     <title>See Also</title>
     <para>
       <xref linkend="vboxmanage-list" />,

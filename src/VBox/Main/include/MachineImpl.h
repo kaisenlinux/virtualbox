@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -42,7 +42,7 @@
 #include "AudioSettingsImpl.h"
 #include "SerialPortImpl.h"
 #include "ParallelPortImpl.h"
-#include "BIOSSettingsImpl.h"
+#include "FirmwareSettingsImpl.h"
 #include "RecordingSettingsImpl.h"
 #include "GraphicsAdapterImpl.h"
 #include "StorageControllerImpl.h"          // required for MachineImpl.h to compile on Windows
@@ -56,6 +56,8 @@
 # include "Performance.h"
 # include "PerformanceImpl.h"
 #endif
+#include "PlatformImpl.h"
+#include "PlatformPropertiesImpl.h"
 #include "ThreadTask.h"
 
 // generated header
@@ -302,39 +304,15 @@ public:
         ULONG               mMemorySize;
         ULONG               mMemoryBalloonSize;
         BOOL                mPageFusionEnabled;
-        settings::RecordingSettings mRecordSettings;
-        BOOL                mHWVirtExEnabled;
-        BOOL                mHWVirtExNestedPagingEnabled;
-        BOOL                mHWVirtExLargePagesEnabled;
-        BOOL                mHWVirtExVPIDEnabled;
-        BOOL                mHWVirtExUXEnabled;
-        BOOL                mHWVirtExForceEnabled;
-        BOOL                mHWVirtExUseNativeApi;
-        BOOL                mHWVirtExVirtVmsaveVmload;
-        BOOL                mPAEEnabled;
-        settings::Hardware::LongModeType mLongMode;
-        BOOL                mTripleFaultReset;
-        BOOL                mAPIC;
-        BOOL                mX2APIC;
-        BOOL                mIBPBOnVMExit;
-        BOOL                mIBPBOnVMEntry;
-        BOOL                mSpecCtrl;
-        BOOL                mSpecCtrlByHost;
-        BOOL                mL1DFlushOnSched;
-        BOOL                mL1DFlushOnVMEntry;
-        BOOL                mMDSClearOnSched;
-        BOOL                mMDSClearOnVMEntry;
-        BOOL                mNestedHWVirt;
+        settings::Recording mRecordSettings;
         ULONG               mCPUCount;
         BOOL                mCPUHotPlugEnabled;
         ULONG               mCpuExecutionCap;
         uint32_t            mCpuIdPortabilityLevel;
         Utf8Str             mCpuProfile;
-        BOOL                mHPETEnabled;
+        VMExecutionEngine_T mExecEngine;
 
         BOOL                mCPUAttached[SchemaDefs::MaxCPUCount];
-
-        std::list<settings::CpuIdLeaf> mCpuIdLeafList;
 
         DeviceType_T        mBootOrder[SchemaDefs::MaxBootPosition];
 
@@ -349,11 +327,8 @@ public:
         typedef std::map<Utf8Str, GuestProperty> GuestPropertyMap;
         GuestPropertyMap    mGuestProperties;
 
-        FirmwareType_T      mFirmwareType;
         KeyboardHIDType_T   mKeyboardHIDType;
         PointingHIDType_T   mPointingHIDType;
-        ChipsetType_T       mChipsetType;
-        IommuType_T         mIommuType;
         ParavirtProvider_T  mParavirtProvider;
         Utf8Str             mParavirtDebug;
         BOOL                mEmulatedUSBCardReaderEnabled;
@@ -383,6 +358,7 @@ public:
     HRESULT init(VirtualBox *aParent,
                  const Utf8Str &strConfigFile,
                  const Utf8Str &strName,
+                 PlatformArchitecture_T aArchitecture,
                  const StringsList &llGroups,
                  const Utf8Str &strOsTypeId,
                  GuestOSType *aOsType,
@@ -462,6 +438,20 @@ public:
     VirtualBox* i_getVirtualBox() const { return mParent; }
 
     /**
+     * Returns the machine's platform object.
+     *
+     * @returns Platform object.
+     */
+    Platform *i_getPlatform() const { return mPlatform; }
+
+    /**
+     * Returns the machine's platform properties object.
+     *
+     * @returns Platform properties object.
+     */
+    PlatformProperties *i_getPlatformProperties() const { return mPlatformProperties; }
+
+    /**
      * Checks if this machine is accessible, without attempting to load the
      * config file.
      *
@@ -518,7 +508,7 @@ public:
         IsModified_VRDEServer            = 0x000040,
         IsModified_AudioSettings         = 0x000080,
         IsModified_USB                   = 0x000100,
-        IsModified_BIOS                  = 0x000200,
+        IsModified_Firmware              = 0x000200,
         IsModified_SharedFolders         = 0x000400,
         IsModified_Snapshots             = 0x000800,
         IsModified_BandwidthControl      = 0x001000,
@@ -527,6 +517,7 @@ public:
         IsModified_TrustedPlatformModule = 0x008000,
         IsModified_NvramStore            = 0x010000,
         IsModified_GuestDebugControl     = 0x020000,
+        IsModified_Platform              = 0x040000,
     };
 
     /**
@@ -537,8 +528,7 @@ public:
      * for reading.
      */
     Utf8Str i_getOSTypeId() const { return mUserData->s.strOsType; }
-    ChipsetType_T i_getChipsetType() const { return mHWData->mChipsetType; }
-    FirmwareType_T i_getFirmwareType() const { return mHWData->mFirmwareType; }
+    FirmwareType_T i_getFirmwareType() const;
     ParavirtProvider_T i_getParavirtProvider() const { return mHWData->mParavirtProvider; }
     Utf8Str i_getParavirtDebug() const { return mHWData->mParavirtDebug; }
 
@@ -563,6 +553,8 @@ public:
     virtual HRESULT i_onSerialPortChange(ISerialPort * /* serialPort */) { return S_OK; }
     virtual HRESULT i_onParallelPortChange(IParallelPort * /* parallelPort */) { return S_OK; }
     virtual HRESULT i_onVRDEServerChange(BOOL /* aRestart */) { return S_OK; }
+    virtual HRESULT i_onRecordingStateChange(BOOL /* aEnable */, IProgress **) { return S_OK; }
+    virtual HRESULT i_onRecordingScreenStateChange(BOOL /* aEnable */, ULONG /* aScreen */) { return S_OK; }
     virtual HRESULT i_onUSBControllerChange() { return S_OK; }
     virtual HRESULT i_onStorageControllerChange(const com::Guid & /* aMachineId */, const com::Utf8Str & /* aControllerName */) { return S_OK; }
     virtual HRESULT i_onCPUChange(ULONG /* aCPU */, BOOL /* aRemove */) { return S_OK; }
@@ -576,7 +568,6 @@ public:
     virtual HRESULT i_onBandwidthGroupChange(IBandwidthGroup * /* aBandwidthGroup */) { return S_OK; }
     virtual HRESULT i_onStorageDeviceChange(IMediumAttachment * /* mediumAttachment */, BOOL /* remove */,
                                             BOOL /* silent */) { return S_OK; }
-    virtual HRESULT i_onRecordingChange(BOOL /* aEnable */) { return S_OK; }
     virtual HRESULT i_onGuestDebugControlChange(IGuestDebugControl * /* guestDebugControl */) { return S_OK; }
 
 
@@ -590,6 +581,7 @@ public:
     Utf8Str i_getHardeningLogFilename(void);
     Utf8Str i_getDefaultNVRAMFilename();
     Utf8Str i_getSnapshotNVRAMFilename();
+    NvramStore *i_getNVRAMStore() const { return mNvramStore; };
     SettingsVersion_T i_getSettingsVersion(void);
 
     void i_composeSavedStateFilename(Utf8Str &strStateFilePath);
@@ -693,7 +685,7 @@ protected:
                            const settings::Hardware &data,
                            const settings::Debugging *pDbg,
                            const settings::Autostart *pAutostart,
-                           const settings::RecordingSettings &recording);
+                           const settings::Recording &recording);
     HRESULT i_loadDebugging(const settings::Debugging *pDbg);
     HRESULT i_loadAutostart(const settings::Autostart *pAutostart);
     HRESULT i_loadStorageControllers(const settings::Storage &data,
@@ -732,7 +724,7 @@ protected:
     void i_copyMachineDataToSettings(settings::MachineConfigFile &config);
     HRESULT i_saveAllSnapshots(settings::MachineConfigFile &config);
     HRESULT i_saveHardware(settings::Hardware &data, settings::Debugging *pDbg,
-                           settings::Autostart *pAutostart, settings::RecordingSettings &recording);
+                           settings::Autostart *pAutostart, settings::Recording &recording);
     HRESULT i_saveStorageControllers(settings::Storage &data);
     HRESULT i_saveStorageDevices(ComObjPtr<StorageController> aStorageController,
                                  settings::StorageController &data);
@@ -808,6 +800,8 @@ protected:
     pm::CollectorGuest     *mCollectorGuest;
 #endif /* VBOX_WITH_RESOURCE_USAGE_API */
 
+    void i_platformPropertiesUpdate();
+
     Machine * const         mPeer;
 
     VirtualBox * const      mParent;
@@ -817,6 +811,11 @@ protected:
 
     Backupable<UserData>    mUserData;
     Backupable<HWData>      mHWData;
+
+    // const objectsf not requiring locking
+    /** The machine's platform properties.
+     *  We keep a (const) object around for performance reasons. */
+    const ComObjPtr<PlatformProperties> mPlatformProperties;
 
     /**
      * Hard disk and other media data.
@@ -839,7 +838,8 @@ protected:
     const ComObjPtr<ParallelPort>      mParallelPorts[SchemaDefs::ParallelPortCount];
     const ComObjPtr<AudioSettings>     mAudioSettings;
     const ComObjPtr<USBDeviceFilters>  mUSBDeviceFilters;
-    const ComObjPtr<BIOSSettings>      mBIOSSettings;
+    const ComObjPtr<Platform>          mPlatform;
+    const ComObjPtr<FirmwareSettings>  mFirmwareSettings;
     const ComObjPtr<RecordingSettings> mRecordingSettings;
     const ComObjPtr<GraphicsAdapter>   mGraphicsAdapter;
     const ComObjPtr<BandwidthControl>  mBandwidthControl;
@@ -906,9 +906,12 @@ protected:
 #endif
 
     friend class Appliance;
+    friend class Platform;
+    friend class PlatformX86;
     friend class RecordingSettings;
     friend class RecordingScreenSettings;
     friend class SessionMachine;
+    friend class SharedFolder;
     friend class SnapshotMachine;
     friend class VirtualBox;
 
@@ -917,6 +920,7 @@ protected:
 private:
     // wrapped IMachine properties
     HRESULT getParent(ComPtr<IVirtualBox> &aParent);
+    HRESULT getPlatform(ComPtr<IPlatform> &aPlatform);
     HRESULT getIcon(std::vector<BYTE> &aIcon);
     HRESULT setIcon(const std::vector<BYTE> &aIcon);
     HRESULT getAccessible(BOOL *aAccessible);
@@ -951,22 +955,14 @@ private:
     HRESULT getPageFusionEnabled(BOOL *aPageFusionEnabled);
     HRESULT setPageFusionEnabled(BOOL aPageFusionEnabled);
     HRESULT getGraphicsAdapter(ComPtr<IGraphicsAdapter> &aGraphicsAdapter);
-    HRESULT getBIOSSettings(ComPtr<IBIOSSettings> &aBIOSSettings);
+    HRESULT getFirmwareSettings(ComPtr<IFirmwareSettings> &aFirmwareSettings);
     HRESULT getTrustedPlatformModule(ComPtr<ITrustedPlatformModule> &aTrustedPlatformModule);
     HRESULT getNonVolatileStore(ComPtr<INvramStore> &aNvramStore);
     HRESULT getRecordingSettings(ComPtr<IRecordingSettings> &aRecordingSettings);
-    HRESULT getFirmwareType(FirmwareType_T *aFirmwareType);
-    HRESULT setFirmwareType(FirmwareType_T aFirmwareType);
     HRESULT getPointingHIDType(PointingHIDType_T *aPointingHIDType);
     HRESULT setPointingHIDType(PointingHIDType_T aPointingHIDType);
     HRESULT getKeyboardHIDType(KeyboardHIDType_T *aKeyboardHIDType);
     HRESULT setKeyboardHIDType(KeyboardHIDType_T aKeyboardHIDType);
-    HRESULT getHPETEnabled(BOOL *aHPETEnabled);
-    HRESULT setHPETEnabled(BOOL aHPETEnabled);
-    HRESULT getChipsetType(ChipsetType_T *aChipsetType);
-    HRESULT setChipsetType(ChipsetType_T aChipsetType);
-    HRESULT getIommuType(IommuType_T *aIommuType);
-    HRESULT setIommuType(IommuType_T aIommuType);
     HRESULT getSnapshotFolder(com::Utf8Str &aSnapshotFolder);
     HRESULT setSnapshotFolder(const com::Utf8Str &aSnapshotFolder);
     HRESULT getVRDEServer(ComPtr<IVRDEServer> &aVRDEServer);
@@ -1010,8 +1006,6 @@ private:
     HRESULT setParavirtProvider(ParavirtProvider_T aParavirtProvider);
     HRESULT getParavirtDebug(com::Utf8Str &aParavirtDebug);
     HRESULT setParavirtDebug(const com::Utf8Str &aParavirtDebug);
-    HRESULT getRTCUseUTC(BOOL *aRTCUseUTC);
-    HRESULT setRTCUseUTC(BOOL aRTCUseUTC);
     HRESULT getIOCacheEnabled(BOOL *aIOCacheEnabled);
     HRESULT setIOCacheEnabled(BOOL aIOCacheEnabled);
     HRESULT getIOCacheSize(ULONG *aIOCacheSize);
@@ -1035,6 +1029,8 @@ private:
     HRESULT getUSBProxyAvailable(BOOL *aUSBProxyAvailable);
     HRESULT getVMProcessPriority(VMProcPriority_T *aVMProcessPriority);
     HRESULT setVMProcessPriority(VMProcPriority_T aVMProcessPriority);
+    HRESULT getVMExecutionEngine(VMExecutionEngine_T *aVMExecutionEngine);
+    HRESULT setVMExecutionEngine(VMExecutionEngine_T aVMExecutionEngine);
     HRESULT getStateKeyId(com::Utf8Str &aKeyId);
     HRESULT getStateKeyStore(com::Utf8Str &aKeyStore);
     HRESULT getLogKeyId(com::Utf8Str &aKeyId);
@@ -1144,33 +1140,6 @@ private:
                          com::Utf8Str &aValue);
     HRESULT setExtraData(const com::Utf8Str &aKey,
                          const com::Utf8Str &aValue);
-    HRESULT getCPUProperty(CPUPropertyType_T aProperty,
-                           BOOL *aValue);
-    HRESULT setCPUProperty(CPUPropertyType_T aProperty,
-                           BOOL aValue);
-    HRESULT getCPUIDLeafByOrdinal(ULONG aOrdinal,
-                                  ULONG *aIdx,
-                                  ULONG *aSubIdx,
-                                  ULONG *aValEax,
-                                  ULONG *aValEbx,
-                                  ULONG *aValEcx,
-                                  ULONG *aValEdx);
-    HRESULT getCPUIDLeaf(ULONG aIdx, ULONG aSubIdx,
-                         ULONG *aValEax,
-                         ULONG *aValEbx,
-                         ULONG *aValEcx,
-                         ULONG *aValEdx);
-    HRESULT setCPUIDLeaf(ULONG aIdx, ULONG aSubIdx,
-                         ULONG aValEax,
-                         ULONG aValEbx,
-                         ULONG aValEcx,
-                         ULONG aValEdx);
-    HRESULT removeCPUIDLeaf(ULONG aIdx, ULONG aSubIdx);
-    HRESULT removeAllCPUIDLeaves();
-    HRESULT getHWVirtExProperty(HWVirtExPropertyType_T aProperty,
-                                BOOL *aValue);
-    HRESULT setHWVirtExProperty(HWVirtExPropertyType_T aProperty,
-                                BOOL aValue);
     HRESULT setSettingsFilePath(const com::Utf8Str &aSettingsFilePath,
                                 ComPtr<IProgress> &aProgress);
     HRESULT saveSettings();
@@ -1385,16 +1354,16 @@ public:
 
     // public initializer/uninitializer for internal purposes only
     HRESULT init(Machine *aMachine);
-    void uninit() { uninit(Uninit::Unexpected); }
+    void uninit() RT_OVERRIDE { uninit(Uninit::Unexpected); }
     void uninit(Uninit::Reason aReason);
 
 
     // util::Lockable interface
-    RWLockHandle *lockHandle() const;
+    RWLockHandle *lockHandle() const RT_OVERRIDE;
 
     // public methods only for internal purposes
 
-    virtual bool i_isSessionMachine() const
+    virtual bool i_isSessionMachine() const RT_OVERRIDE
     {
         return true;
     }
@@ -1410,35 +1379,37 @@ public:
     // the object cannot be deleted in the mean time, i.e. have a caller/lock.
     ClientToken *i_getClientToken();
 
-    HRESULT i_onNetworkAdapterChange(INetworkAdapter *networkAdapter, BOOL changeAdapter);
+    HRESULT i_onNetworkAdapterChange(INetworkAdapter *networkAdapter, BOOL changeAdapter) RT_OVERRIDE;
     HRESULT i_onNATRedirectRuleChanged(ULONG ulSlot, BOOL aNatRuleRemove, const Utf8Str &aRuleName,
                                        NATProtocol_T aProto, const Utf8Str &aHostIp, LONG aHostPort,
                                        const Utf8Str &aGuestIp, LONG aGuestPort) RT_OVERRIDE;
-    HRESULT i_onStorageControllerChange(const com::Guid &aMachineId, const com::Utf8Str &aControllerName);
-    HRESULT i_onMediumChange(IMediumAttachment *aMediumAttachment, BOOL aForce);
-    HRESULT i_onVMProcessPriorityChange(VMProcPriority_T aPriority);
-    HRESULT i_onAudioAdapterChange(IAudioAdapter *audioAdapter);
-    HRESULT i_onHostAudioDeviceChange(IHostAudioDevice *aDevice, BOOL aNew, AudioDeviceState_T aState, IVirtualBoxErrorInfo *aErrInfo);
-    HRESULT i_onSerialPortChange(ISerialPort *serialPort);
-    HRESULT i_onParallelPortChange(IParallelPort *parallelPort);
-    HRESULT i_onCPUChange(ULONG aCPU, BOOL aRemove);
-    HRESULT i_onVRDEServerChange(BOOL aRestart);
-    HRESULT i_onRecordingChange(BOOL aEnable);
-    HRESULT i_onUSBControllerChange();
+    HRESULT i_onStorageControllerChange(const com::Guid &aMachineId, const com::Utf8Str &aControllerName) RT_OVERRIDE;
+    HRESULT i_onMediumChange(IMediumAttachment *aMediumAttachment, BOOL aForce) RT_OVERRIDE;
+    HRESULT i_onVMProcessPriorityChange(VMProcPriority_T aPriority) RT_OVERRIDE;
+    HRESULT i_onAudioAdapterChange(IAudioAdapter *audioAdapter) RT_OVERRIDE;
+    HRESULT i_onHostAudioDeviceChange(IHostAudioDevice *aDevice, BOOL aNew, AudioDeviceState_T aState,
+                                      IVirtualBoxErrorInfo *aErrInfo) RT_OVERRIDE;
+    HRESULT i_onSerialPortChange(ISerialPort *serialPort) RT_OVERRIDE;
+    HRESULT i_onParallelPortChange(IParallelPort *parallelPort) RT_OVERRIDE;
+    HRESULT i_onCPUChange(ULONG aCPU, BOOL aRemove) RT_OVERRIDE;
+    HRESULT i_onVRDEServerChange(BOOL aRestart) RT_OVERRIDE;
+    HRESULT i_onRecordingStateChange(BOOL aEnable, IProgress **aProgress) RT_OVERRIDE;
+    HRESULT i_onRecordingScreenStateChange(BOOL aEnable, ULONG aScreen) RT_OVERRIDE;
+    HRESULT i_onUSBControllerChange() RT_OVERRIDE;
     HRESULT i_onUSBDeviceAttach(IUSBDevice *aDevice,
                                 IVirtualBoxErrorInfo *aError,
                                 ULONG aMaskedIfs,
                                 const com::Utf8Str &aCaptureFilename);
     HRESULT i_onUSBDeviceDetach(IN_BSTR aId,
                                 IVirtualBoxErrorInfo *aError);
-    HRESULT i_onSharedFolderChange();
-    HRESULT i_onClipboardModeChange(ClipboardMode_T aClipboardMode);
-    HRESULT i_onClipboardFileTransferModeChange(BOOL aEnable);
-    HRESULT i_onDnDModeChange(DnDMode_T aDnDMode);
-    HRESULT i_onBandwidthGroupChange(IBandwidthGroup *aBandwidthGroup);
-    HRESULT i_onStorageDeviceChange(IMediumAttachment *aMediumAttachment, BOOL aRemove, BOOL aSilent);
-    HRESULT i_onCPUExecutionCapChange(ULONG aCpuExecutionCap);
-    HRESULT i_onGuestDebugControlChange(IGuestDebugControl *guestDebugControl);
+    HRESULT i_onSharedFolderChange() RT_OVERRIDE;
+    HRESULT i_onClipboardModeChange(ClipboardMode_T aClipboardMode) RT_OVERRIDE;
+    HRESULT i_onClipboardFileTransferModeChange(BOOL aEnable) RT_OVERRIDE;
+    HRESULT i_onDnDModeChange(DnDMode_T aDnDMode) RT_OVERRIDE;
+    HRESULT i_onBandwidthGroupChange(IBandwidthGroup *aBandwidthGroup) RT_OVERRIDE;
+    HRESULT i_onStorageDeviceChange(IMediumAttachment *aMediumAttachment, BOOL aRemove, BOOL aSilent) RT_OVERRIDE;
+    HRESULT i_onCPUExecutionCapChange(ULONG aCpuExecutionCap) RT_OVERRIDE;
+    HRESULT i_onGuestDebugControlChange(IGuestDebugControl *guestDebugControl) RT_OVERRIDE;
 
     bool i_hasMatchingUSBFilter(const ComObjPtr<HostUSBDevice> &aDevice, ULONG *aMaskedIfs);
 
@@ -1453,36 +1424,36 @@ private:
 
     // wrapped IInternalMachineControl methods
     HRESULT setRemoveSavedStateFile(BOOL aRemove);
-    HRESULT updateState(MachineState_T aState);
-    HRESULT beginPowerUp(const ComPtr<IProgress> &aProgress);
-    HRESULT endPowerUp(LONG aResult);
-    HRESULT beginPoweringDown(ComPtr<IProgress> &aProgress);
+    HRESULT updateState(MachineState_T aState) RT_OVERRIDE;
+    HRESULT beginPowerUp(const ComPtr<IProgress> &aProgress) RT_OVERRIDE;
+    HRESULT endPowerUp(LONG aResult) RT_OVERRIDE;
+    HRESULT beginPoweringDown(ComPtr<IProgress> &aProgress) RT_OVERRIDE;
     HRESULT endPoweringDown(LONG aResult,
-                            const com::Utf8Str &aErrMsg);
+                            const com::Utf8Str &aErrMsg) RT_OVERRIDE;
     HRESULT runUSBDeviceFilters(const ComPtr<IUSBDevice> &aDevice,
                                 BOOL *aMatched,
-                                ULONG *aMaskedInterfaces);
-    HRESULT captureUSBDevice(const com::Guid &aId, const com::Utf8Str &aCaptureFilename);
+                                ULONG *aMaskedInterfaces) RT_OVERRIDE;
+    HRESULT captureUSBDevice(const com::Guid &aId, const com::Utf8Str &aCaptureFilename) RT_OVERRIDE;
     HRESULT detachUSBDevice(const com::Guid &aId,
-                            BOOL aDone);
-    HRESULT autoCaptureUSBDevices();
-    HRESULT detachAllUSBDevices(BOOL aDone);
+                            BOOL aDone) RT_OVERRIDE;
+    HRESULT autoCaptureUSBDevices() RT_OVERRIDE;
+    HRESULT detachAllUSBDevices(BOOL aDone) RT_OVERRIDE;
     HRESULT onSessionEnd(const ComPtr<ISession> &aSession,
-                         ComPtr<IProgress> &aProgress);
-    HRESULT finishOnlineMergeMedium();
+                         ComPtr<IProgress> &aProgress) RT_OVERRIDE;
+    HRESULT finishOnlineMergeMedium() RT_OVERRIDE;
     HRESULT pullGuestProperties(std::vector<com::Utf8Str> &aNames,
                                 std::vector<com::Utf8Str> &aValues,
                                 std::vector<LONG64> &aTimestamps,
-                                std::vector<com::Utf8Str> &aFlags);
+                                std::vector<com::Utf8Str> &aFlags) RT_OVERRIDE;
     HRESULT pushGuestProperty(const com::Utf8Str &aName,
                               const com::Utf8Str &aValue,
                               LONG64 aTimestamp,
                               const com::Utf8Str &aFlags,
-                              BOOL fWasDeleted);
-    HRESULT lockMedia();
-    HRESULT unlockMedia();
+                              BOOL fWasDeleted) RT_OVERRIDE;
+    HRESULT lockMedia() RT_OVERRIDE;
+    HRESULT unlockMedia() RT_OVERRIDE;
     HRESULT ejectMedium(const ComPtr<IMediumAttachment> &aAttachment,
-                        ComPtr<IMediumAttachment> &aNewAttachment);
+                        ComPtr<IMediumAttachment> &aNewAttachment) RT_OVERRIDE;
     HRESULT reportVmStatistics(ULONG aValidStats,
                                ULONG aCpuUser,
                                ULONG aCpuKernel,
@@ -1498,9 +1469,9 @@ private:
                                ULONG aMemBalloonTotal,
                                ULONG aMemSharedTotal,
                                ULONG aVmNetRx,
-                               ULONG aVmNetTx);
+                               ULONG aVmNetTx) RT_OVERRIDE;
     HRESULT authenticateExternal(const std::vector<com::Utf8Str> &aAuthParams,
-                                 com::Utf8Str &aResult);
+                                 com::Utf8Str &aResult) RT_OVERRIDE;
 
 
     struct ConsoleTaskData
@@ -1527,23 +1498,23 @@ private:
 
     // Override some functionality for SessionMachine, this is where the
     // real action happens (the Machine methods are just dummies).
-    HRESULT saveState(ComPtr<IProgress> &aProgress);
-    HRESULT adoptSavedState(const com::Utf8Str &aSavedStateFile);
-    HRESULT discardSavedState(BOOL aFRemoveFile);
+    HRESULT saveState(ComPtr<IProgress> &aProgress) RT_OVERRIDE;
+    HRESULT adoptSavedState(const com::Utf8Str &aSavedStateFile) RT_OVERRIDE;
+    HRESULT discardSavedState(BOOL aFRemoveFile) RT_OVERRIDE;
     HRESULT takeSnapshot(const com::Utf8Str &aName,
                          const com::Utf8Str &aDescription,
                          BOOL aPause,
                          com::Guid &aId,
-                         ComPtr<IProgress> &aProgress);
+                         ComPtr<IProgress> &aProgress) RT_OVERRIDE;
     HRESULT deleteSnapshot(const com::Guid &aId,
-                           ComPtr<IProgress> &aProgress);
+                           ComPtr<IProgress> &aProgress) RT_OVERRIDE;
     HRESULT deleteSnapshotAndAllChildren(const com::Guid &aId,
-                                         ComPtr<IProgress> &aProgress);
+                                         ComPtr<IProgress> &aProgress) RT_OVERRIDE;
     HRESULT deleteSnapshotRange(const com::Guid &aStartId,
                                 const com::Guid &aEndId,
-                                ComPtr<IProgress> &aProgress);
+                                ComPtr<IProgress> &aProgress) RT_OVERRIDE;
     HRESULT restoreSnapshot(const ComPtr<ISnapshot> &aSnapshot,
-                            ComPtr<IProgress> &aProgress);
+                            ComPtr<IProgress> &aProgress) RT_OVERRIDE;
 
     void i_releaseSavedStateFile(const Utf8Str &strSavedStateFile, Snapshot *pSnapshotToIgnore);
 
@@ -1588,7 +1559,7 @@ private:
                                 ComObjPtr<Progress> &aProgress,
                                 bool *pfNeedsMachineSaveSettings);
 
-    HRESULT i_setMachineState(MachineState_T aMachineState);
+    HRESULT i_setMachineState(MachineState_T aMachineState) RT_OVERRIDE;
     HRESULT i_updateMachineStateOnClient();
 
     bool mRemoveSavedState;
@@ -1644,17 +1615,17 @@ public:
                              const settings::Hardware &hardware,
                              const settings::Debugging *pDbg,
                              const settings::Autostart *pAutostart,
-                             const settings::RecordingSettings &recording,
+                             const settings::Recording &recording,
                              IN_GUID aSnapshotId,
                              const Utf8Str &aStateFilePath);
-    void uninit();
+    void uninit() RT_OVERRIDE;
 
     // util::Lockable interface
-    RWLockHandle *lockHandle() const;
+    RWLockHandle *lockHandle() const RT_OVERRIDE;
 
     // public methods only for internal purposes
 
-    virtual bool i_isSnapshotMachine() const
+    virtual bool i_isSnapshotMachine() const RT_OVERRIDE
     {
         return true;
     }

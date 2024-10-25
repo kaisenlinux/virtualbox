@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2007-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2007-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -212,6 +212,11 @@ extern VBOXSERVICE  g_PageSharing;
 #ifdef VBOX_WITH_SHARED_FOLDERS
 extern VBOXSERVICE  g_AutoMount;
 #endif
+
+#ifdef RT_OS_WINDOWS
+extern VBOXSERVICE g_DisplayConfig;
+#endif
+
 #ifdef DEBUG
 extern RTCRITSECT   g_csLog; /* For guest process stdout dumping. */
 #endif

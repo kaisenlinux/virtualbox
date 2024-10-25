@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -192,7 +192,7 @@ static RTEXITCODE gzipPushFlushAndClose(PRTVFSIOSTREAM phVfsSrc, PCRTGZIPCMDOPTS
 static RTEXITCODE gzipCompressFile(PRTVFSIOSTREAM phVfsSrc, PCRTGZIPCMDOPTS pOpts, PRTVFSIOSTREAM phVfsDst)
 {
     /*
-     * Attach the ompressor to the output stream.
+     * Attach the compressor to the output stream.
      */
     RTVFSIOSTREAM hVfsGzip;
     int rc = RTZipGzipCompressIoStream(*phVfsDst, 0 /*fFlags*/, pOpts->uLevel, &hVfsGzip);

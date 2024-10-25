@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -519,8 +519,8 @@ VMMR3DECL(int) DBGFR3OSQueryNameAndVersion(PUVM pUVM, char *pszName, size_t cchN
     /*
      * Pass it on to EMT(0).
      */
-    return VMR3ReqPriorityCallWaitU(pUVM, 0 /*idDstCpu*/,
-                                   (PFNRT)dbgfR3OSQueryNameAndVersion, 5, pUVM, pszName, cchName, pszVersion, cchVersion);
+    return VMR3ReqPriorityCallWaitU(pUVM, 0 /*idDstCpu*/, (PFNRT)dbgfR3OSQueryNameAndVersion, 5,
+                                    pUVM, pszName, cchName, pszVersion, cchVersion);
 }
 
 

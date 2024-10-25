@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2017-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2017-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -44,6 +44,7 @@
 
 #include <iprt/alloca.h>
 #include <iprt/asm.h>
+#include <iprt/asm-mem.h>
 #include <iprt/assert.h>
 #include <iprt/err.h>
 #include <iprt/crc.h>
@@ -2118,7 +2119,7 @@ static DECLCALLBACK(int) rtFsIsoFile_QueryInfo(void *pvThis, PRTFSOBJINFO pObjIn
 /**
  * @interface_method_impl{RTVFSIOSTREAMOPS,pfnRead}
  */
-static DECLCALLBACK(int) rtFsIsoFile_Read(void *pvThis, RTFOFF off, PCRTSGBUF pSgBuf, bool fBlocking, size_t *pcbRead)
+static DECLCALLBACK(int) rtFsIsoFile_Read(void *pvThis, RTFOFF off, PRTSGBUF pSgBuf, bool fBlocking, size_t *pcbRead)
 {
     PRTFSISOFILEOBJ  pThis   = (PRTFSISOFILEOBJ)pvThis;
     PRTFSISOFILESHRD pShared = pThis->pShared;
@@ -2139,6 +2140,8 @@ static DECLCALLBACK(int) rtFsIsoFile_Read(void *pvThis, RTFOFF off, PCRTSGBUF pS
 
     /* Update the file position and return. */
     pThis->offFile = off + offDelta;
+    RTSgBufAdvance(pSgBuf, offDelta);
+
     return rc;
 #else
 

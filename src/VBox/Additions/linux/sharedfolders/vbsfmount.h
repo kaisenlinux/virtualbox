@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -34,8 +34,6 @@
 # pragma once
 #endif
 
-/* Linux constrains the size of data mount argument to PAGE_SIZE - 1. */
-#define MAX_MNTOPT_STR          PAGE_SIZE
 #define MAX_HOST_NAME           256
 #define MAX_NLS_NAME            32
 #define VBSF_DEFAULT_TTL_MS     200

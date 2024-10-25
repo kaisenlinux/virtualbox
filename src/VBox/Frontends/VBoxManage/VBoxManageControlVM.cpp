@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -52,8 +52,6 @@
 #include <list>
 
 DECLARE_TRANSLATION_CONTEXT(ControlVM);
-
-VMProcPriority_T nameToVMProcPriority(const char *pszName);
 
 /**
  * Parses a number.
@@ -806,7 +804,7 @@ RTEXITCODE handleControlVM(HandlerArg *a)
         {
             setCurrentSubcommand(HELP_SCOPE_CONTROLVM_SETLINKSTATE);
             /* Get the number of network adapters */
-            ULONG NetworkAdapterCount = getMaxNics(a->virtualBox, sessionMachine);
+            ULONG NetworkAdapterCount = getMaxNics(sessionMachine);
             unsigned n = parseNum(&a->argv[1][12], NetworkAdapterCount, "NIC");
             if (!n)
             {
@@ -844,7 +842,7 @@ RTEXITCODE handleControlVM(HandlerArg *a)
         {
             setCurrentSubcommand(HELP_SCOPE_CONTROLVM_NICTRACEFILE);
             /* Get the number of network adapters */
-            ULONG NetworkAdapterCount = getMaxNics(a->virtualBox, sessionMachine);
+            ULONG NetworkAdapterCount = getMaxNics(sessionMachine);
             unsigned n = parseNum(&a->argv[1][12], NetworkAdapterCount, "NIC");
             if (!n)
             {
@@ -888,7 +886,7 @@ RTEXITCODE handleControlVM(HandlerArg *a)
         {
             setCurrentSubcommand(HELP_SCOPE_CONTROLVM_NICTRACE);
             /* Get the number of network adapters */
-            ULONG NetworkAdapterCount = getMaxNics(a->virtualBox, sessionMachine);
+            ULONG NetworkAdapterCount = getMaxNics(sessionMachine);
             unsigned n = parseNum(&a->argv[1][8], NetworkAdapterCount, "NIC");
             if (!n)
             {
@@ -929,7 +927,7 @@ RTEXITCODE handleControlVM(HandlerArg *a)
                 && !strncmp(a->argv[1], "natpf", 5))
         {
             /* Get the number of network adapters */
-            ULONG NetworkAdapterCount = getMaxNics(a->virtualBox, sessionMachine);
+            ULONG NetworkAdapterCount = getMaxNics(sessionMachine);
             unsigned n = parseNum(&a->argv[1][5], NetworkAdapterCount, "NIC");
             if (!n)
             {
@@ -1023,7 +1021,7 @@ RTEXITCODE handleControlVM(HandlerArg *a)
         {
             setCurrentSubcommand(HELP_SCOPE_CONTROLVM_NICPROPERTY);
             /* Get the number of network adapters */
-            ULONG NetworkAdapterCount = getMaxNics(a->virtualBox, sessionMachine);
+            ULONG NetworkAdapterCount = getMaxNics(sessionMachine);
             unsigned n = parseNum(&a->argv[1][11], NetworkAdapterCount, "NIC");
             if (!n)
             {
@@ -1085,7 +1083,7 @@ RTEXITCODE handleControlVM(HandlerArg *a)
         {
             setCurrentSubcommand(HELP_SCOPE_CONTROLVM_NICPROMISC);
             /* Get the number of network adapters */
-            ULONG NetworkAdapterCount = getMaxNics(a->virtualBox, sessionMachine);
+            ULONG NetworkAdapterCount = getMaxNics(sessionMachine);
             unsigned n = parseNum(&a->argv[1][10], NetworkAdapterCount, "NIC");
             if (!n)
             {
@@ -1135,7 +1133,7 @@ RTEXITCODE handleControlVM(HandlerArg *a)
         {
             setCurrentSubcommand(HELP_SCOPE_CONTROLVM_NIC);
             /* Get the number of network adapters */
-            ULONG NetworkAdapterCount = getMaxNics(a->virtualBox, sessionMachine);
+            ULONG NetworkAdapterCount = getMaxNics(sessionMachine);
             unsigned n = parseNum(&a->argv[1][3], NetworkAdapterCount, "NIC");
             if (!n)
             {
@@ -1798,6 +1796,11 @@ RTEXITCODE handleControlVM(HandlerArg *a)
         else if (   !strcmp(a->argv[1], "recording")
                  || !strcmp(a->argv[1], "videocap") /* legacy command */)
         {
+            setCurrentSubcommand(HELP_SCOPE_CONTROLVM_RECORDING);
+
+            if (!strcmp(a->argv[1], "videocap"))
+                RTMsgWarning(ControlVM::tr("Sub command 'videocap' is deprecated -- please use 'recording' instead ."));
+
             if (a->argc < 3)
             {
                 errorSyntax(ControlVM::tr("Incorrect number of parameters."));
@@ -1816,19 +1819,45 @@ RTEXITCODE handleControlVM(HandlerArg *a)
 
             /* Note: For now all screens have the same configuration. */
 
-            /*
-             * Note: Commands starting with "vcp" are the deprecated versions and are
-             *       kept to ensure backwards compatibility.
-             */
             bool fEnabled;
             if (RT_SUCCESS(parseBool(a->argv[2], &fEnabled)))
             {
-                setCurrentSubcommand(HELP_SCOPE_CONTROLVM_RECORDING);
                 CHECK_ERROR_RET(recordingSettings, COMSETTER(Enabled)(fEnabled), RTEXITCODE_FAILURE);
+
+                if (fEnabled)
+                    RTPrintf(ControlVM::tr("Recording enabled. Use 'start' to start recording.\n"));
+            }
+            else if (!strcmp(a->argv[2], "start"))
+            {
+                bool fWait = false;
+                if (a->argc >= 4 && !strcmp(a->argv[3], "--wait"))
+                    fWait = true;
+
+                ComPtr<IProgress> progress;
+                CHECK_ERROR_BREAK(recordingSettings, Start(progress.asOutParam()));
+
+                if (fWait)
+                {
+                    hrc = showProgress(progress, SHOW_PROGRESS_OPS);
+                    CHECK_PROGRESS_ERROR(progress, (ControlVM::tr("Recording failed.")));
+                }
+                else
+                    RTPrintf(ControlVM::tr("Recording started (detacted).\n"));
+            }
+            else if (!strcmp(a->argv[2], "stop"))
+            {
+                ComPtr<IProgress> progress;
+                CHECK_ERROR_BREAK(recordingSettings, COMGETTER(Progress)(progress.asOutParam()));
+                CHECK_ERROR_BREAK(progress, Cancel());
+            }
+            else if (!strcmp(a->argv[2], "attach"))
+            {
+                ComPtr<IProgress> progress;
+                CHECK_ERROR_BREAK(recordingSettings, COMGETTER(Progress)(progress.asOutParam()));
+                hrc = showProgress(progress, SHOW_PROGRESS_OPS);
             }
             else if (!strcmp(a->argv[2], "screens"))
             {
-                setCurrentSubcommand(HELP_SCOPE_CONTROLVM_RECORDING_SCREENS);
                 ULONG cMonitors = 64;
                 CHECK_ERROR_BREAK(pGraphicsAdapter, COMGETTER(MonitorCount)(&cMonitors));
                 com::SafeArray<BOOL> saScreens(cMonitors);
@@ -1850,7 +1879,6 @@ RTEXITCODE handleControlVM(HandlerArg *a)
             }
             else if (!strcmp(a->argv[2], "filename"))
             {
-                setCurrentSubcommand(HELP_SCOPE_CONTROLVM_RECORDING_FILENAME);
                 if (a->argc != 4)
                 {
                     errorSyntax(ControlVM::tr("Incorrect number of parameters."));
@@ -1864,7 +1892,6 @@ RTEXITCODE handleControlVM(HandlerArg *a)
             else if (   !strcmp(a->argv[2], "videores")
                      || !strcmp(a->argv[2], "videoresolution"))
             {
-                setCurrentSubcommand(HELP_SCOPE_CONTROLVM_RECORDING_VIDEORES);
                 if (a->argc != 5)
                 {
                     errorSyntax(ControlVM::tr("Incorrect number of parameters."));
@@ -1898,7 +1925,6 @@ RTEXITCODE handleControlVM(HandlerArg *a)
             }
             else if (!strcmp(a->argv[2], "videorate"))
             {
-                setCurrentSubcommand(HELP_SCOPE_CONTROLVM_RECORDING_VIDEORATE);
                 if (a->argc != 4)
                 {
                     errorSyntax(ControlVM::tr("Incorrect number of parameters."));
@@ -1920,7 +1946,6 @@ RTEXITCODE handleControlVM(HandlerArg *a)
             }
             else if (!strcmp(a->argv[2], "videofps"))
             {
-                setCurrentSubcommand(HELP_SCOPE_CONTROLVM_RECORDING_VIDEOFPS);
                 if (a->argc != 4)
                 {
                     errorSyntax(ControlVM::tr("Incorrect number of parameters."));
@@ -1942,7 +1967,6 @@ RTEXITCODE handleControlVM(HandlerArg *a)
             }
             else if (!strcmp(a->argv[2], "maxtime"))
             {
-                setCurrentSubcommand(HELP_SCOPE_CONTROLVM_RECORDING_MAXTIME);
                 if (a->argc != 4)
                 {
                     errorSyntax(ControlVM::tr("Incorrect number of parameters."));
@@ -1964,7 +1988,6 @@ RTEXITCODE handleControlVM(HandlerArg *a)
             }
             else if (!strcmp(a->argv[2], "maxfilesize"))
             {
-                setCurrentSubcommand(HELP_SCOPE_CONTROLVM_RECORDING_MAXFILESIZE);
                 if (a->argc != 4)
                 {
                     errorSyntax(ControlVM::tr("Incorrect number of parameters."));
@@ -1986,9 +2009,6 @@ RTEXITCODE handleControlVM(HandlerArg *a)
             }
             else if (!strcmp(a->argv[2], "opts"))
             {
-#if 0 /* Add when the corresponding documentation is enabled. */
-                setCurrentSubcommand(HELP_SCOPE_CONTROLVM_RECORDING_OPTS);
-#endif
                 if (a->argc != 4)
                 {
                     errorSyntax(ControlVM::tr("Incorrect number of parameters."));
@@ -2112,6 +2132,8 @@ RTEXITCODE handleControlVM(HandlerArg *a)
             Bstr bstrPwId(a->argv[2]);
             CHECK_ERROR_BREAK(console, RemoveEncryptionPassword(bstrPwId.raw()));
         }
+        /** @todo r=bird: 'removeallencpasswords' is very much unreadable carp. Use
+         *        dashes as word separators to make it less fishy. */
         else if (!strcmp(a->argv[1], "removeallencpasswords"))
         {
             setCurrentSubcommand(HELP_SCOPE_CONTROLVM_REMOVEALLENCPASSWORDS);

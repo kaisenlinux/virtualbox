@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2017-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2017-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -40,6 +40,7 @@
 /* Forward declarations: */
 class QHBoxLayout;
 class QStackedLayout;
+class QUuid;
 class QVBoxLayout;
 class UIActionPool;
 class UICloudProfileManagerWidget;
@@ -47,7 +48,7 @@ class UIExtensionPackManagerWidget;
 class UIMediumManagerWidget;
 class UINetworkManagerWidget;
 class UIVMActivityOverviewWidget;
-class UIVirtualMachineItem;
+class UIVirtualMachineItemCloud;
 class UIWelcomePane;
 class CMachine;
 
@@ -58,6 +59,11 @@ class UIToolPaneGlobal : public QWidget
     Q_OBJECT;
 
 signals:
+
+    /** Notifies listeners about creation procedure was requested. */
+    void sigCreateMedium();
+    /** Notifies listeners about copy procedure was requested for medium with specified @a uMediumId. */
+    void sigCopyMedium(const QUuid &uMediumId);
 
     /** Notifies listeners about request to switch to Activity pane of machine with @a uMachineId. */
     void sigSwitchToMachineActivityPane(const QUuid &uMachineId);
@@ -84,6 +90,9 @@ public:
     void closeTool(UIToolType enmType);
     /** Returns the help keyword of the current tool's widget. */
     QString currentHelpKeyword() const;
+
+    /** Defines the @a cloudItems. */
+    void setCloudMachineItems(const QList<UIVirtualMachineItemCloud*> &cloudItems);
 
 private:
 
@@ -117,6 +126,9 @@ private:
 
     /** Holds whether this pane is active. */
     bool  m_fActive;
+
+    /** Holds the cache of passed cloud machine items. */
+    QList<UIVirtualMachineItemCloud*>  m_cloudItems;
 };
 
 #endif /* !FEQT_INCLUDED_SRC_manager_UIToolPaneGlobal_h */

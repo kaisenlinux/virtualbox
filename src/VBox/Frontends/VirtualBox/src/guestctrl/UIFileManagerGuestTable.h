@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,7 +35,6 @@
 # include <QUuid>
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CEventListener.h"
 #include "CEventSource.h"
 #include "CGuest.h"
@@ -52,7 +51,7 @@
 /* Forward declarations: */
 class CGuestSessionStateChangedEvent;
 class UIActionPool;
-class UICustomFileSystemItem;
+class UIFileSystemItem;
 class UIGuestSessionWidget;
 
 /** This class scans the guest file system by using the VBox Guest Control API
@@ -76,28 +75,28 @@ public:
     QUuid machineId();
     bool isGuestSessionRunning() const;
     void setIsCurrent(bool fIsCurrent);
+    virtual bool  isWindowsFileSystem() const RT_OVERRIDE RT_FINAL;
 
 protected:
 
-    void            retranslateUi() override final;
-    virtual void    readDirectory(const QString& strPath, UICustomFileSystemItem *parent, bool isStartDir = false) override final;
-    virtual void    deleteByItem(UICustomFileSystemItem *item) override final;
-    virtual void    deleteByPath(const QStringList &pathList) override final;
-    virtual void    goToHomeDirectory() override final;
-    virtual bool    renameItem(UICustomFileSystemItem *item, QString newBaseName) override final;
-    virtual bool    createDirectory(const QString &path, const QString &directoryName) override final;
-    virtual QString fsObjectPropertyString() override final;
-    virtual void    showProperties() override final;
-    virtual void    determineDriveLetters() override final;
-    virtual void    determinePathSeparator() override final;
-    virtual void    prepareToolbar() override final;
-    virtual void    createFileViewContextMenu(const QWidget *pWidget, const QPoint &point) override final;
+    virtual bool    readDirectory(const QString& strPath, UIFileSystemItem *parent, bool isStartDir = false) RT_OVERRIDE RT_FINAL;
+    virtual void    deleteByItem(UIFileSystemItem *item) RT_OVERRIDE RT_FINAL;
+    virtual void    goToHomeDirectory() RT_OVERRIDE RT_FINAL;
+    virtual bool    renameItem(UIFileSystemItem *item, const QString &strOldPath) RT_OVERRIDE RT_FINAL;
+    virtual bool    createDirectory(const QString &path, const QString &directoryName) RT_OVERRIDE RT_FINAL;
+    virtual QString fsObjectPropertyString() RT_OVERRIDE RT_FINAL;
+    virtual void    showProperties() RT_OVERRIDE RT_FINAL;
+    virtual void    determineDriveLetters() RT_OVERRIDE RT_FINAL;
+    virtual void    determinePathSeparator() RT_OVERRIDE RT_FINAL;
+    virtual void    prepareToolbar() RT_OVERRIDE RT_FINAL;
+    virtual void    createFileViewContextMenu(const QWidget *pWidget, const QPoint &point) RT_OVERRIDE RT_FINAL;
     /** @name Copy/Cut guest-to-guest stuff.
      * @{ */
         /** Disable/enable paste action depending on the m_eFileOperationType. */
-        virtual void  setPasteActionEnabled(bool fEnabled) override final;
-        virtual void  pasteCutCopiedObjects() override final;
+        virtual void  setPasteActionEnabled(bool fEnabled) RT_OVERRIDE RT_FINAL;
+        virtual void  pasteCutCopiedObjects() RT_OVERRIDE RT_FINAL;
     /** @} */
+    virtual void  toggleForwardBackwardActions() RT_OVERRIDE RT_FINAL;
     virtual void  setState();
     virtual void  setSessionDependentWidgetsEnabled();
 
@@ -112,6 +111,7 @@ private slots:
     void sltMachineStateChange(const QUuid &uMachineId, const KMachineState state);
     void sltCommitDataSignalReceived();
     void sltAdditionsStateChange();
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 

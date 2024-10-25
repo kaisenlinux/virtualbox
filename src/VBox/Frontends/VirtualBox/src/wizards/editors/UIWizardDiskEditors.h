@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,14 +32,10 @@
 #endif
 
 /* Qt includes: */
+#include <QComboBox>
 #include <QIcon>
 #include <QGroupBox>
 #include <QVector>
-
-/* Local includes: */
-#include "QIComboBox.h"
-#include "QIWithRetranslateUI.h"
-
 
 /* Forward declarations: */
 class CMediumFormat;
@@ -58,7 +54,6 @@ class UIUserNamePasswordEditor;
 class UIMediumSizeEditor;
 
 /* Other VBox includes: */
-#include "COMEnums.h"
 #include "CMediumFormat.h"
 
 /** A set of static utility functions used by several wizard in the context of virtual media. */
@@ -78,7 +73,7 @@ namespace UIWizardDiskEditors
                                                       const QStringList &formatExtensions);
 };
 
-class SHARED_LIBRARY_STUFF UIDiskVariantWidget : public QIWithRetranslateUI<QWidget>
+class SHARED_LIBRARY_STUFF UIDiskVariantWidget : public QWidget
 {
     Q_OBJECT;
 
@@ -102,11 +97,11 @@ public:
 private slots:
 
     void sltVariantChanged();
+    void sltRetranslateUI();
 
 private:
 
     void prepare();
-    virtual void retranslateUi() /* override final */;
 
     QCheckBox *m_pFixedCheckBox;
     QCheckBox *m_pSplitBox;
@@ -116,7 +111,7 @@ private:
 };
 
 
-class SHARED_LIBRARY_STUFF UIMediumSizeAndPathGroupBox : public QIWithRetranslateUI<QGroupBox>
+class SHARED_LIBRARY_STUFF UIMediumSizeAndPathGroupBox : public QGroupBox
 {
     Q_OBJECT;
 
@@ -141,12 +136,16 @@ public:
     qulonglong mediumSize() const;
     void setMediumSize(qulonglong uSize);
 
-    bool isComplete() const;
+    bool filePathUnique() const;
+    bool pathExists() const;
+
+private slots:
+
+    void sltRetranslateUI();
 
 private:
 
     void prepare(qulonglong uMinimumMediumSize);
-    virtual void retranslateUi() /* override final */;
 
     QILineEdit *m_pLocationEditor;
     QIToolButton *m_pLocationOpenButton;
@@ -197,7 +196,7 @@ private:
     bool m_fExpertMode;
 };
 
-class SHARED_LIBRARY_STUFF UIDiskFormatsGroupBox : public QIWithRetranslateUI<QWidget>, public UIDiskFormatBase
+class SHARED_LIBRARY_STUFF UIDiskFormatsGroupBox : public QWidget, public UIDiskFormatBase
 {
     Q_OBJECT;
 
@@ -208,20 +207,23 @@ signals:
 public:
 
     UIDiskFormatsGroupBox(bool fExpertMode, KDeviceType enmDeviceType, QWidget *pParent = 0);
-    virtual CMediumFormat mediumFormat() const /* override final */;
-    virtual void setMediumFormat(const CMediumFormat &mediumFormat) /* override final */;
+    virtual CMediumFormat mediumFormat() const RT_OVERRIDE RT_FINAL;
+    virtual void setMediumFormat(const CMediumFormat &mediumFormat) RT_OVERRIDE RT_FINAL;
+
+private slots:
+
+    void sltRetranslateUI();
 
 private:
 
     void prepare();
     void createFormatWidgets();
-    virtual void retranslateUi() /* override final */;
 
     QButtonGroup *m_pFormatButtonGroup;
     QVBoxLayout *m_pMainLayout;
 };
 
-class SHARED_LIBRARY_STUFF UIDiskFormatsComboBox : public QIWithRetranslateUI<QIComboBox>, public UIDiskFormatBase
+class SHARED_LIBRARY_STUFF UIDiskFormatsComboBox : public QComboBox, public UIDiskFormatBase
 {
     Q_OBJECT;
 
@@ -232,13 +234,16 @@ signals:
 public:
 
     UIDiskFormatsComboBox(bool fExpertMode, KDeviceType enmDeviceType, QWidget *pParent = 0);
-    virtual CMediumFormat mediumFormat() const /* override final */;
-    virtual void setMediumFormat(const CMediumFormat &mediumFormat) /* override final */;
+    virtual CMediumFormat mediumFormat() const RT_OVERRIDE RT_FINAL;
+    virtual void setMediumFormat(const CMediumFormat &mediumFormat) RT_OVERRIDE RT_FINAL;
+
+private slots:
+
+    void sltRetranslateUI();
 
 private:
 
     void prepare();
-    virtual void retranslateUi() /* override final */;
 };
 
 #endif /* !FEQT_INCLUDED_SRC_wizards_editors_UIWizardDiskEditors_h */

@@ -7,7 +7,7 @@ VMM Guest OS boot tests.
 
 __copyright__ = \
 """
-Copyright (C) 2010-2023 Oracle and/or its affiliates.
+Copyright (C) 2010-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -36,7 +36,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 
 # Standard Python imports.
@@ -46,7 +46,7 @@ import time
 
 
 # Only the main script needs to modify the path.
-try:    __file__
+try:    __file__                            # pylint: disable=used-before-assignment
 except: __file__ = sys.argv[0]
 g_ksValidationKitDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(g_ksValidationKitDir)
@@ -197,16 +197,16 @@ class tdGuestOsBootTest1(vbox.TestDriver):
         fRc =         oSession.attachHd(sHddPath, sController, fImmutable=True)
 
         # Enable HW virt
-        fRc = fRc and oSession.enableVirtEx(True)
+        fRc = fRc and oSession.enableVirtExX86(True)
 
         # Enable I/O APIC
         fRc = fRc and oSession.enableIoApic(self.fEnableIOAPIC)
 
         # Enable Nested Paging
-        fRc = fRc and oSession.enableNestedPaging(self.fEnableNestedPaging)
+        fRc = fRc and oSession.enableNestedPagingX86(self.fEnableNestedPaging)
 
         # Enable PAE
-        fRc = fRc and oSession.enablePae(self.fEnablePAE)
+        fRc = fRc and oSession.enablePaeX86(self.fEnablePAE)
 
         if (sNicTraceFile is not None):
             fRc = fRc and oSession.setNicTraceEnabled(True, sNicTraceFile)

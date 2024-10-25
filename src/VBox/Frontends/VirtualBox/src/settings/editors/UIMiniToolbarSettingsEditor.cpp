@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,7 +35,7 @@
 
 
 UIMiniToolbarSettingsEditor::UIMiniToolbarSettingsEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent)
     , m_fShowMiniToolbar(false)
     , m_fMiniToolbarAtTop(false)
     , m_pLabel(0)
@@ -94,7 +94,7 @@ void UIMiniToolbarSettingsEditor::setMinimumLayoutIndent(int iIndent)
         m_pLayout->setColumnMinimumWidth(0, iIndent);
 }
 
-void UIMiniToolbarSettingsEditor::retranslateUi()
+void UIMiniToolbarSettingsEditor::sltRetranslateUI()
 {
     if (m_pLabel)
         m_pLabel->setText(tr("Mini ToolBar:"));
@@ -147,5 +147,5 @@ void UIMiniToolbarSettingsEditor::prepare()
     }
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }

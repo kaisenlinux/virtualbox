@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -44,6 +44,7 @@
 
 #include <iprt/assert.h>
 #include <iprt/asm.h>
+#include <iprt/asm-mem.h>
 #include <iprt/dbg.h>
 #include <iprt/err.h>
 #include <iprt/latin1.h>
@@ -2505,6 +2506,7 @@ static int rtLdrPE_CalcPageHashes(PRTLDRMODPE pModPe, RTDIGESTTYPE const enmDige
     uint32_t        offRawData  = 0;
     uint32_t        cbRawData   = pModPe->cbHeaders;
     uint32_t        offLastPage = 0;
+    uint32_t        cbLastPage  = 0;
 
     uint32_t const  cbScratchReadMax = cbScratch / cbPage * cbPage;
     uint32_t        cbScratchRead    = 0;
@@ -2522,6 +2524,7 @@ static int rtLdrPE_CalcPageHashes(PRTLDRMODPE pModPe, RTDIGESTTYPE const enmDige
             uint32_t const offPageInFile = offRawData + offPageInSect;
             uint32_t const cbPageInFile  = RT_MIN(cbPage, cbRawData - offPageInSect);
             offLastPage = offPageInFile;
+            cbLastPage  = cbPageInFile;
 
             /* Calculate and output the page offset. */
             *(uint32_t *)pbDst = offPageInFile;
@@ -2622,7 +2625,7 @@ static int rtLdrPE_CalcPageHashes(PRTLDRMODPE pModPe, RTDIGESTTYPE const enmDige
     /*
      * Add the terminator entry.
      */
-    *(uint32_t *)pbDst = offLastPage + cbPage;
+    *(uint32_t *)pbDst = offLastPage + cbLastPage;
     RT_BZERO(&pbDst[sizeof(uint32_t)], cbHash);
 
     return VINF_SUCCESS;
@@ -4241,6 +4244,10 @@ static int rtldrPEValidateFileHeader(PIMAGE_FILE_HEADER pFileHdr, uint32_t fFlag
         case IMAGE_FILE_MACHINE_AMD64:
             cbOptionalHeader = sizeof(IMAGE_OPTIONAL_HEADER64);
             *penmArch = RTLDRARCH_AMD64;
+            break;
+        case IMAGE_FILE_MACHINE_ARM64:
+            cbOptionalHeader = sizeof(IMAGE_OPTIONAL_HEADER64);
+            *penmArch = RTLDRARCH_ARM64;
             break;
 
         default:

@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -495,6 +495,8 @@ typedef const RTUINT64U RT_FAR *PCRTUINT64U;
 
 /**
  * 128-bit unsigned integer union.
+ *
+ * @note This is not necessarily automatically 16 byte aligned. Sorry.
  */
 #pragma pack(1)
 typedef union RTUINT128U
@@ -3194,6 +3196,13 @@ typedef RTEFISIGDB                          RT_FAR *PRTEFISIGDB;
 /** A NIL EFI signature database handle. */
 #define NIL_RTEFISIGDB                             ((RTEFISIGDB)~(uintptr_t)0)
 
+/** Flattened Devicetree handle. */
+typedef struct RTFDTINT                     RT_FAR *RTFDT;
+/** Pointer to a Flattened Devicetree handle. */
+typedef RTFDT                               RT_FAR *PRTFDT;
+/** A NIL Flattened Devicetree handle. */
+#define NIL_RTFDT                                  ((RTFDT)~(uintptr_t)0)
+
 
 /**
  * Handle type.
@@ -3289,7 +3298,7 @@ typedef struct RTERRINFO
     uint32_t    fFlags;
     /** The status code. */
     int32_t     rc;
-    /** The size of the message  */
+    /** The size of the message buffer pointed to by pszMsg. */
     size_t      cbMsg;
     /** The error buffer. */
     char       *pszMsg;
@@ -3384,13 +3393,23 @@ typedef const RTUNICP   RT_FAR *PCRTUNICP;
 
 /**
  * UTF-16 character.
- * @remark  wchar_t is not usable since it's compiler defined.
+ *
+ * @remark  wchar_t is not usable since it's compiler defined and can be 8 thru
+ *          64 bit wide.  On Windows it is 16-bit, though, and for various
+ *          reasons of convenience we need to use the native compiler type when
+ *          compling without the /Zc:wchar_t- option (only relevant for C++ and
+ *          _NATIVE_WCHAR_T_DEFINED indicates the absense of /Zc:wchar_t-).
+ *
  * @remark  When we use the term character we're not talking about unicode code point, but
  *          the basic unit of the string encoding. Thus cwc - count of wide chars - means
  *          count of RTUTF16; cuc - count of unicode chars - means count of RTUNICP;
  *          and cch means count of the typedef 'char', which is assumed to be an octet.
  */
+#if defined(_MSC_VER) && defined(__cplusplus) && defined(_NATIVE_WCHAR_T_DEFINED)
+typedef __wchar_t               RTUTF16;
+#else
 typedef uint16_t                RTUTF16;
+#endif
 /** Pointer to a UTF-16 character. */
 typedef RTUTF16         RT_FAR *PRTUTF16;
 /** Pointer to a const UTF-16 character. */
@@ -3685,6 +3704,8 @@ typedef union RTPTRUNION
     long            RT_FAR *pl;
     /** Pointer to a long value. */
     unsigned long   RT_FAR *pul;
+    /** Pointer to a byte value. */
+    uint8_t         RT_FAR *pb;
     /** Pointer to a 8-bit unsigned value. */
     uint8_t         RT_FAR *pu8;
     /** Pointer to a 16-bit unsigned value. */
@@ -3732,6 +3753,8 @@ typedef union RTCPTRUNION
     long const      RT_FAR *pl;
     /** Pointer to a long value. */
     unsigned long const RT_FAR *pul;
+    /** Pointer to a byte  value. */
+    uint8_t const   RT_FAR *pb;
     /** Pointer to a 8-bit unsigned value. */
     uint8_t const   RT_FAR *pu8;
     /** Pointer to a 16-bit unsigned value. */
@@ -3779,6 +3802,8 @@ typedef union RTVPTRUNION
     long volatile  RT_FAR *pl;
     /** Pointer to a long value. */
     unsigned long volatile RT_FAR *pul;
+    /** Pointer to a byte value. */
+    uint8_t volatile RT_FAR  *pb;
     /** Pointer to a 8-bit unsigned value. */
     uint8_t volatile RT_FAR  *pu8;
     /** Pointer to a 16-bit unsigned value. */
@@ -3826,6 +3851,8 @@ typedef union RTCVPTRUNION
     long const volatile             RT_FAR *pl;
     /** Pointer to a long value. */
     unsigned long const volatile    RT_FAR *pul;
+    /** Pointer to a byte value. */
+    uint8_t const volatile          RT_FAR *pb;
     /** Pointer to a 8-bit unsigned value. */
     uint8_t const volatile          RT_FAR *pu8;
     /** Pointer to a 16-bit unsigned value. */

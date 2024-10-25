@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -53,6 +53,201 @@
 
 
 /**
+ * Returns a stringyfied error of a guest fs error.
+ *
+ * @returns Stringyfied error.
+ * @param   guestErrorInfo      Guest error info to get stringyfied error for.
+ */
+/* static */
+Utf8Str GuestFs::guestErrorToString(const GuestErrorInfo &guestErrorInfo)
+{
+    Utf8Str strErr;
+
+    /** @todo pData->u32Flags: int vs. uint32 -- IPRT errors are *negative* !!! */
+    switch (guestErrorInfo.getVrc())
+    {
+        case VERR_ACCESS_DENIED:
+            strErr.printf(tr("Access to \"%s\" denied"), guestErrorInfo.getWhat().c_str());
+            break;
+
+        case VERR_FILE_NOT_FOUND: /* This is the most likely error. */
+            RT_FALL_THROUGH();
+        case VERR_PATH_NOT_FOUND:
+            strErr.printf(tr("No such file or directory \"%s\""), guestErrorInfo.getWhat().c_str());
+            break;
+
+        case VERR_CANT_CREATE:
+            strErr.printf(tr("File or directory \"%s\" can't be created"), guestErrorInfo.getWhat().c_str());
+            break;
+
+        case VERR_INVALID_PARAMETER:
+            strErr.printf(tr("Invalid parameter specified"));
+            break;
+
+        case VERR_INVALID_VM_HANDLE:
+            strErr.printf(tr("VMM device is not available (is the VM running?)"));
+            break;
+
+        case VERR_HGCM_SERVICE_NOT_FOUND:
+            strErr.printf(tr("The guest execution service is not available"));
+            break;
+
+        case VERR_BAD_EXE_FORMAT:
+            strErr.printf(tr("The file \"%s\" is not an executable format"), guestErrorInfo.getWhat().c_str());
+            break;
+
+        case VERR_AUTHENTICATION_FAILURE:
+            strErr.printf(tr("The user \"%s\" was not able to logon"), guestErrorInfo.getWhat().c_str());
+            break;
+
+        case VERR_INVALID_NAME:
+            strErr.printf(tr("The file \"%s\" is an invalid name"), guestErrorInfo.getWhat().c_str());
+            break;
+
+        case VERR_TIMEOUT:
+            strErr.printf(tr("The guest did not respond within time"));
+            break;
+
+        case VERR_CANCELLED:
+            strErr.printf(tr("The execution operation was canceled"));
+            break;
+
+        case VERR_GSTCTL_MAX_CID_OBJECTS_REACHED:
+            strErr.printf(tr("Maximum number of concurrent guest processes has been reached"));
+            break;
+
+        case VERR_NOT_FOUND:
+            strErr.printf(tr("The guest execution service is not ready (yet)"));
+            break;
+
+        case VERR_NOT_SUPPORTED:
+            strErr.printf(tr("Specified mode or flag is not supported on the guest"));
+            break;
+
+        default:
+            strErr.printf(tr("Unhandled error %Rrc for \"%s\" occurred on guest -- please file a bug report"),
+                          guestErrorInfo.getVrc(), guestErrorInfo.getWhat().c_str());
+            break;
+    }
+
+    return strErr;
+}
+
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+/**
+ * Sets the file system object data from a given GSTCTLDIRENTRYEX struct.
+ *
+ * @returns VBox status code.
+ * @param   pDirEntryEx         Pointer to GSTCTLDIRENTRYEX struct to use.
+ * @param   strUser             Resolved user name owning the object on the guest.
+ * @param   strGroups           Resolved user group(s) the object on the guest is associated with.
+ *                              On Windows there can be multiple groups assigned. The groups are separated with ";"
+ *                              The first group found is always the primary group.
+ */
+int GuestFsObjData::FromGuestDirEntryEx(PCGSTCTLDIRENTRYEX pDirEntryEx, const Utf8Str &strUser /* = "" */, const Utf8Str &strGroups /* = "" */)
+{
+    mName = pDirEntryEx->szName;
+
+    return FromGuestFsObjInfo(&pDirEntryEx->Info, strUser, strGroups);
+}
+
+/**
+ * Sets the file system object data from a given GSTCTLFSOBJINFO struct.
+ *
+ * @returns VBox status code.
+ * @param   pFsObjInfo          Pointer to GSTCTLFSOBJINFO struct to use.
+ * @param   strUser             Resolved user name owning the object on the guest.
+ * @param   strGroups           Resolved user group(s) the object on the guest is associated with.
+ *                              On Windows there can be multiple groups assigned. The groups are separated with ";"
+ *                              The first group found is always the primary group.
+ */
+int GuestFsObjData::FromGuestFsObjInfo(PCGSTCTLFSOBJINFO pFsObjInfo,
+                                       const Utf8Str &strUser /* = "" */, const Utf8Str &strGroups /* = "" */)
+{
+    int vrc = VINF_SUCCESS;
+
+    mType = GuestBase::fileModeToFsObjType(pFsObjInfo->Attr.fMode);
+
+    mFileAttrs = "";
+    switch (mType)
+    {
+        case FsObjType_File:      mFileAttrs += '-'; break;
+        case FsObjType_Directory: mFileAttrs += 'd'; break;
+        case FsObjType_Symlink:   mFileAttrs += 'l'; break;
+        case FsObjType_DevChar:   mFileAttrs += 'c'; break;
+        case FsObjType_DevBlock:  mFileAttrs += 'b'; break;
+        case FsObjType_Fifo:      mFileAttrs += 'f'; break;
+        case FsObjType_Socket:    mFileAttrs += 's'; break;
+        case FsObjType_WhiteOut:  mFileAttrs += 'w'; break;
+        default:
+            mFileAttrs += '?';
+            AssertFailedStmt(vrc = VERR_NOT_SUPPORTED);
+            break;
+    }
+
+#define ADD_ATTR(a_Flag, a_Set, a_Clear) \
+    mFileAttrs += pFsObjInfo->Attr.fMode & a_Flag ? a_Set : a_Clear
+
+    ADD_ATTR(RTFS_UNIX_IRUSR, 'r', '-');
+    ADD_ATTR(RTFS_UNIX_IWUSR, 'w', '-');
+    ADD_ATTR(RTFS_UNIX_IXUSR, 'x', '-');
+
+    ADD_ATTR(RTFS_UNIX_IRGRP, 'r', '-');
+    ADD_ATTR(RTFS_UNIX_IWGRP, 'w', '-');
+    ADD_ATTR(RTFS_UNIX_IXGRP, 'x', '-');
+
+    ADD_ATTR(RTFS_UNIX_IROTH, 'r', '-');
+    ADD_ATTR(RTFS_UNIX_IWOTH, 'w', '-');
+    ADD_ATTR(RTFS_UNIX_IXOTH, 'x', '-');
+
+    /** @todo Implement sticky bits. */
+    mFileAttrs += "   "; /* Reserve 3 chars for sticky bits. */
+
+    mFileAttrs += " "; /* Separator. */
+
+    ADD_ATTR(RTFS_DOS_READONLY              , 'R', '-');
+    ADD_ATTR(RTFS_DOS_HIDDEN                , 'H', '-');
+    ADD_ATTR(RTFS_DOS_SYSTEM                , 'S', '-');
+    ADD_ATTR(RTFS_DOS_DIRECTORY             , 'D', '-');
+    ADD_ATTR(RTFS_DOS_ARCHIVED              , 'A', '-');
+    ADD_ATTR(RTFS_DOS_NT_DEVICE             , 'd', '-');
+    ADD_ATTR(RTFS_DOS_NT_NORMAL             , 'N', '-');
+    ADD_ATTR(RTFS_DOS_NT_TEMPORARY          , 'T', '-');
+    ADD_ATTR(RTFS_DOS_NT_SPARSE_FILE        , 'P', '-');
+    ADD_ATTR(RTFS_DOS_NT_REPARSE_POINT      , 'J', '-');
+    ADD_ATTR(RTFS_DOS_NT_COMPRESSED         , 'C', '-');
+    ADD_ATTR(RTFS_DOS_NT_OFFLINE            , 'O', '-');
+    ADD_ATTR(RTFS_DOS_NT_NOT_CONTENT_INDEXED, 'I', '-');
+    ADD_ATTR(RTFS_DOS_NT_ENCRYPTED          , 'E', '-');
+
+#undef ADD_ATTR
+
+    mObjectSize       = pFsObjInfo->cbObject;
+    mAllocatedSize    = pFsObjInfo->cbAllocated;
+    mAccessTime       = pFsObjInfo->AccessTime.i64NanosecondsRelativeToUnixEpoch;
+    mBirthTime        = pFsObjInfo->BirthTime.i64NanosecondsRelativeToUnixEpoch;
+    mChangeTime       = pFsObjInfo->ChangeTime.i64NanosecondsRelativeToUnixEpoch;
+    mModificationTime = pFsObjInfo->ModificationTime.i64NanosecondsRelativeToUnixEpoch;
+    mUserName         = strUser;
+    mUID              = pFsObjInfo->Attr.u.Unix.uid;
+    mGID              = pFsObjInfo->Attr.u.Unix.gid;
+    mGroupName        = strGroups; /** @todo Separate multiple group. */
+    mNumHardLinks     = pFsObjInfo->Attr.u.Unix.cHardlinks;
+    mNodeIDDevice     = pFsObjInfo->Attr.u.Unix.INodeIdDevice;
+    mNodeID           = pFsObjInfo->Attr.u.Unix.INodeId;
+    mDeviceNumber     =    RTFS_IS_DEV_BLOCK(pFsObjInfo->Attr.fMode)
+                        || RTFS_IS_DEV_CHAR (pFsObjInfo->Attr.fMode) ? pFsObjInfo->Attr.u.Unix.Device : 0;
+    mGenerationID     = pFsObjInfo->Attr.u.Unix.GenerationId;
+    mUserFlags        = 0;
+
+    mACL              = ""; /** @todo Implement ACL handling. */
+
+    return vrc;
+}
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS */
+
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT
+/**
  * Extracts the timespec from a given stream block key.
  *
  * @return Pointer to handed-in timespec, or NULL if invalid / not found.
@@ -61,7 +256,7 @@
  * @param  pTimeSpec            Where to store the extracted timespec.
  */
 /* static */
-PRTTIMESPEC GuestFsObjData::TimeSpecFromKey(const GuestProcessStreamBlock &strmBlk, const Utf8Str &strKey, PRTTIMESPEC pTimeSpec)
+PRTTIMESPEC GuestFsObjData::TimeSpecFromKey(const GuestToolboxStreamBlock &strmBlk, const Utf8Str &strKey, PRTTIMESPEC pTimeSpec)
 {
     AssertPtrReturn(pTimeSpec, NULL);
 
@@ -83,7 +278,7 @@ PRTTIMESPEC GuestFsObjData::TimeSpecFromKey(const GuestProcessStreamBlock &strmB
  * @param  strKey               Key to get nanoseconds for.
  */
 /* static */
-int64_t GuestFsObjData::UnixEpochNsFromKey(const GuestProcessStreamBlock &strmBlk, const Utf8Str &strKey)
+int64_t GuestFsObjData::UnixEpochNsFromKey(const GuestToolboxStreamBlock &strmBlk, const Utf8Str &strKey)
 {
     RTTIMESPEC TimeSpec;
     if (!GuestFsObjData::TimeSpecFromKey(strmBlk, strKey, &TimeSpec))
@@ -102,7 +297,7 @@ int64_t GuestFsObjData::UnixEpochNsFromKey(const GuestProcessStreamBlock &strmBl
  * @param  strmBlk              Stream block to use for initialization.
  * @param  fLong                Whether the stream block contains long (detailed) information or not.
  */
-int GuestFsObjData::FromLs(const GuestProcessStreamBlock &strmBlk, bool fLong)
+int GuestFsObjData::FromToolboxLs(const GuestToolboxStreamBlock &strmBlk, bool fLong)
 {
     LogFlowFunc(("\n"));
 #ifdef DEBUG
@@ -252,7 +447,7 @@ int GuestFsObjData::FromLs(const GuestProcessStreamBlock &strmBlk, bool fLong)
  * @returns VBox status code.
  * @param   strmBlk             Stream block output data to parse.
  */
-int GuestFsObjData::FromRm(const GuestProcessStreamBlock &strmBlk)
+int GuestFsObjData::FromToolboxRm(const GuestToolboxStreamBlock &strmBlk)
 {
 #ifdef DEBUG
     strmBlk.DumpToLog();
@@ -271,10 +466,10 @@ int GuestFsObjData::FromRm(const GuestProcessStreamBlock &strmBlk)
  * @returns VBox status code.
  * @param   strmBlk             Stream block output data to parse.
  */
-int GuestFsObjData::FromStat(const GuestProcessStreamBlock &strmBlk)
+int GuestFsObjData::FromToolboxStat(const GuestToolboxStreamBlock &strmBlk)
 {
     /* Should be identical output. */
-    return GuestFsObjData::FromLs(strmBlk, true /*fLong*/);
+    return GuestFsObjData::FromToolboxLs(strmBlk, true /*fLong*/);
 }
 
 /**
@@ -284,7 +479,7 @@ int GuestFsObjData::FromStat(const GuestProcessStreamBlock &strmBlk)
  * @returns VBox status code.
  * @param   strmBlk             Stream block output data to parse.
  */
-int GuestFsObjData::FromMkTemp(const GuestProcessStreamBlock &strmBlk)
+int GuestFsObjData::FromToolboxMkTemp(const GuestToolboxStreamBlock &strmBlk)
 {
     LogFlowFunc(("\n"));
 
@@ -300,6 +495,8 @@ int GuestFsObjData::FromMkTemp(const GuestProcessStreamBlock &strmBlk)
     LogFlowFuncLeaveRC(vrc);
     return vrc;
 }
+
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT */
 
 /**
  * Returns the IPRT-compatible file mode.
@@ -336,257 +533,14 @@ RTFMODE GuestFsObjData::GetFileMode(void) const
 
 ///////////////////////////////////////////////////////////////////////////////
 
-/** @todo *NOT* thread safe yet! */
-/** @todo Add exception handling for STL stuff! */
-
-GuestProcessStreamBlock::GuestProcessStreamBlock(void)
-    : m_fComplete(false) { }
-
-GuestProcessStreamBlock::~GuestProcessStreamBlock()
-{
-    Clear();
-}
-
-/**
- * Clears (destroys) the currently stored stream pairs.
- */
-void GuestProcessStreamBlock::Clear(void)
-{
-    m_fComplete = false;
-    m_mapPairs.clear();
-}
-
-#ifdef DEBUG
-/**
- * Dumps the currently stored stream pairs to the (debug) log.
- */
-void GuestProcessStreamBlock::DumpToLog(void) const
-{
-    LogFlowFunc(("Dumping contents of stream block=0x%p (%ld items, fComplete=%RTbool):\n",
-                 this, m_mapPairs.size(), m_fComplete));
-
-    for (GuestCtrlStreamPairMapIterConst it = m_mapPairs.begin();
-         it != m_mapPairs.end(); ++it)
-    {
-        LogFlowFunc(("\t%s=%s\n", it->first.c_str(), it->second.mValue.c_str()));
-    }
-}
-#endif
-
-/**
- * Returns a 64-bit signed integer of a specified key.
- *
- * @return VBox status code. VERR_NOT_FOUND if key was not found.
- * @param  pszKey               Name of key to get the value for.
- * @param  piVal                Pointer to value to return.
- */
-int GuestProcessStreamBlock::GetInt64Ex(const char *pszKey, int64_t *piVal) const
-{
-    AssertPtrReturn(pszKey, VERR_INVALID_POINTER);
-    AssertPtrReturn(piVal, VERR_INVALID_POINTER);
-    const char *pszValue = GetString(pszKey);
-    if (pszValue)
-    {
-        *piVal = RTStrToInt64(pszValue);
-        return VINF_SUCCESS;
-    }
-    return VERR_NOT_FOUND;
-}
-
-/**
- * Returns a 64-bit integer of a specified key.
- *
- * @return  int64_t             Value to return, 0 if not found / on failure.
- * @param   pszKey              Name of key to get the value for.
- */
-int64_t GuestProcessStreamBlock::GetInt64(const char *pszKey) const
-{
-    int64_t iVal;
-    if (RT_SUCCESS(GetInt64Ex(pszKey, &iVal)))
-        return iVal;
-    return 0;
-}
-
-/**
- * Returns the current number of stream pairs.
- *
- * @return  uint32_t            Current number of stream pairs.
- */
-size_t GuestProcessStreamBlock::GetCount(void) const
-{
-    return m_mapPairs.size();
-}
-
-/**
- * Gets the return code (name = "rc") of this stream block.
- *
- * @return  VBox status code.
- * @retval  VERR_NOT_FOUND if the return code string ("rc") was not found.
- * @param   fSucceedIfNotFound  When set to @c true, this reports back VINF_SUCCESS when the key ("rc") is not found.
- *                              This can happen with some (older) IPRT-provided tools such as RTPathRmCmd(), which only outputs
- *                              rc on failure but not on success. Defaults to @c false.
- */
-int GuestProcessStreamBlock::GetVrc(bool fSucceedIfNotFound /* = false */) const
-{
-    const char *pszValue = GetString("rc");
-    if (pszValue)
-        return RTStrToInt16(pszValue);
-    if (fSucceedIfNotFound)
-        return VINF_SUCCESS;
-    /** @todo We probably should have a dedicated error for that, VERR_GSTCTL_GUEST_TOOLBOX_whatever. */
-    return VERR_NOT_FOUND;
-}
-
-/**
- * Returns a string value of a specified key.
- *
- * @return  uint32_t            Pointer to string to return, NULL if not found / on failure.
- * @param   pszKey              Name of key to get the value for.
- */
-const char *GuestProcessStreamBlock::GetString(const char *pszKey) const
-{
-    AssertPtrReturn(pszKey, NULL);
-
-    try
-    {
-        GuestCtrlStreamPairMapIterConst itPairs = m_mapPairs.find(pszKey);
-        if (itPairs != m_mapPairs.end())
-            return itPairs->second.mValue.c_str();
-    }
-    catch (const std::exception &ex)
-    {
-        RT_NOREF(ex);
-    }
-    return NULL;
-}
-
-/**
- * Returns a 32-bit unsigned integer of a specified key.
- *
- * @return  VBox status code. VERR_NOT_FOUND if key was not found.
- * @param   pszKey              Name of key to get the value for.
- * @param   puVal               Pointer to value to return.
- */
-int GuestProcessStreamBlock::GetUInt32Ex(const char *pszKey, uint32_t *puVal) const
-{
-    const char *pszValue = GetString(pszKey);
-    if (pszValue)
-    {
-        *puVal = RTStrToUInt32(pszValue);
-        return VINF_SUCCESS;
-    }
-    return VERR_NOT_FOUND;
-}
-
-/**
- * Returns a 32-bit signed integer of a specified key.
- *
- * @returns 32-bit signed value
- * @param   pszKey              Name of key to get the value for.
- * @param   iDefault            The default to return on error if not found.
- */
-int32_t GuestProcessStreamBlock::GetInt32(const char *pszKey, int32_t iDefault) const
-{
-    const char *pszValue = GetString(pszKey);
-    if (pszValue)
-    {
-        int32_t iRet;
-        int vrc = RTStrToInt32Full(pszValue, 0, &iRet);
-        if (RT_SUCCESS(vrc))
-            return iRet;
-        ASSERT_GUEST_MSG_FAILED(("%s=%s\n", pszKey, pszValue));
-    }
-    return iDefault;
-}
-
-/**
- * Returns a 32-bit unsigned integer of a specified key.
- *
- * @return  uint32_t            Value to return, 0 if not found / on failure.
- * @param   pszKey              Name of key to get the value for.
- * @param   uDefault            The default value to return.
- */
-uint32_t GuestProcessStreamBlock::GetUInt32(const char *pszKey, uint32_t uDefault /*= 0*/) const
-{
-    uint32_t uVal;
-    if (RT_SUCCESS(GetUInt32Ex(pszKey, &uVal)))
-        return uVal;
-    return uDefault;
-}
-
-/**
- * Sets a value to a key or deletes a key by setting a NULL value. Extended version.
- *
- * @return  VBox status code.
- * @param   pszKey              Key name to process.
- * @param   cwcKey              Maximum characters of \a pszKey to process.
- * @param   pszValue            Value to set. Set NULL for deleting the key.
- * @param   cwcValue            Maximum characters of \a pszValue to process.
- * @param   fOverwrite          Whether a key can be overwritten with a new value if it already exists. Will assert otherwise.
- */
-int GuestProcessStreamBlock::SetValueEx(const char *pszKey, size_t cwcKey, const char *pszValue, size_t cwcValue,
-                                        bool fOverwrite /* = false */)
-{
-    AssertPtrReturn(pszKey, VERR_INVALID_POINTER);
-    AssertReturn(cwcKey, VERR_INVALID_PARAMETER);
-
-    int vrc = VINF_SUCCESS;
-    try
-    {
-        Utf8Str const strKey(pszKey, cwcKey);
-
-        /* Take a shortcut and prevent crashes on some funny versions
-         * of STL if map is empty initially. */
-        if (!m_mapPairs.empty())
-        {
-            GuestCtrlStreamPairMapIter it = m_mapPairs.find(strKey);
-            if (it != m_mapPairs.end())
-            {
-                if (pszValue == NULL)
-                    m_mapPairs.erase(it);
-                else if (!fOverwrite)
-                    AssertMsgFailedReturn(("Key '%*s' already exists! Value is '%s'\n", cwcKey, pszKey, m_mapPairs[strKey].mValue.c_str()),
-                                          VERR_ALREADY_EXISTS);
-            }
-        }
-
-        if (pszValue)
-        {
-            GuestProcessStreamValue val(pszValue, cwcValue);
-            Log3Func(("strKey='%s', strValue='%s'\n", strKey.c_str(), val.mValue.c_str()));
-            m_mapPairs[strKey] = val;
-        }
-    }
-    catch (const std::exception &)
-    {
-        /** @todo set vrc?   */
-    }
-    return vrc;
-}
-
-/**
- * Sets a value to a key or deletes a key by setting a NULL value.
- *
- * @return  VBox status code.
- * @param   pszKey              Key name to process.
- * @param   pszValue            Value to set. Set NULL for deleting the key.
- */
-int GuestProcessStreamBlock::SetValue(const char *pszKey, const char *pszValue)
-{
-    return SetValueEx(pszKey, RTSTR_MAX, pszValue, RTSTR_MAX);
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-GuestProcessStream::GuestProcessStream(void)
+GuestProcessOutputStream::GuestProcessOutputStream(void)
     : m_cbMax(_32M)
     , m_cbAllocated(0)
     , m_cbUsed(0)
     , m_offBuf(0)
-    , m_pbBuffer(NULL)
-    , m_cBlocks(0) { }
+    , m_pbBuffer(NULL) { }
 
-GuestProcessStream::~GuestProcessStream(void)
+GuestProcessOutputStream::~GuestProcessOutputStream(void)
 {
     Destroy();
 }
@@ -599,7 +553,7 @@ GuestProcessStream::~GuestProcessStream(void)
  * @param   pbData              Pointer to data to add.
  * @param   cbData              Size (in bytes) of data to add.
  */
-int GuestProcessStream::AddData(const BYTE *pbData, size_t cbData)
+int GuestProcessOutputStream::AddData(const BYTE *pbData, size_t cbData)
 {
     AssertPtrReturn(pbData, VERR_INVALID_POINTER);
     AssertReturn(cbData, VERR_INVALID_PARAMETER);
@@ -670,7 +624,7 @@ int GuestProcessStream::AddData(const BYTE *pbData, size_t cbData)
 /**
  * Destroys the internal data buffer.
  */
-void GuestProcessStream::Destroy(void)
+void GuestProcessOutputStream::Destroy(void)
 {
     if (m_pbBuffer)
     {
@@ -681,7 +635,6 @@ void GuestProcessStream::Destroy(void)
     m_cbAllocated = 0;
     m_cbUsed = 0;
     m_offBuf = 0;
-    m_cBlocks = 0;
 }
 
 #ifdef DEBUG
@@ -691,7 +644,7 @@ void GuestProcessStream::Destroy(void)
  *
  * @param   pszFile             Absolute path to host file to dump the output to.
  */
-void GuestProcessStream::Dump(const char *pszFile)
+void GuestProcessOutputStream::Dump(const char *pszFile)
 {
     LogFlowFunc(("Dumping contents of stream=0x%p (cbAlloc=%u, cbSize=%u, cbOff=%u) to %s\n",
                  m_pbBuffer, m_cbAllocated, m_cbUsed, m_offBuf, pszFile));
@@ -705,6 +658,260 @@ void GuestProcessStream::Dump(const char *pszFile)
     }
 }
 #endif /* DEBUG */
+
+///////////////////////////////////////////////////////////////////////////////
+
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT
+/** @todo *NOT* thread safe yet! */
+/** @todo Add exception handling for STL stuff! */
+
+GuestToolboxStreamBlock::GuestToolboxStreamBlock(void)
+    : m_fComplete(false) { }
+
+GuestToolboxStreamBlock::~GuestToolboxStreamBlock()
+{
+    Clear();
+}
+
+/**
+ * Clears (destroys) the currently stored stream pairs.
+ */
+void GuestToolboxStreamBlock::Clear(void)
+{
+    m_fComplete = false;
+    m_mapPairs.clear();
+}
+
+#ifdef DEBUG
+/**
+ * Dumps the currently stored stream pairs to the (debug) log.
+ */
+void GuestToolboxStreamBlock::DumpToLog(void) const
+{
+    LogFlowFunc(("Dumping contents of stream block=0x%p (%ld items, fComplete=%RTbool):\n",
+                 this, m_mapPairs.size(), m_fComplete));
+
+    for (GuestCtrlStreamPairMapIterConst it = m_mapPairs.begin();
+         it != m_mapPairs.end(); ++it)
+    {
+        LogFlowFunc(("\t%s=%s\n", it->first.c_str(), it->second.mValue.c_str()));
+    }
+}
+#endif
+
+/**
+ * Returns a 64-bit signed integer of a specified key.
+ *
+ * @return VBox status code. VERR_NOT_FOUND if key was not found.
+ * @param  pszKey               Name of key to get the value for.
+ * @param  piVal                Pointer to value to return.
+ */
+int GuestToolboxStreamBlock::GetInt64Ex(const char *pszKey, int64_t *piVal) const
+{
+    AssertPtrReturn(pszKey, VERR_INVALID_POINTER);
+    AssertPtrReturn(piVal, VERR_INVALID_POINTER);
+    const char *pszValue = GetString(pszKey);
+    if (pszValue)
+    {
+        *piVal = RTStrToInt64(pszValue);
+        return VINF_SUCCESS;
+    }
+    return VERR_NOT_FOUND;
+}
+
+/**
+ * Returns a 64-bit integer of a specified key.
+ *
+ * @return  int64_t             Value to return, 0 if not found / on failure.
+ * @param   pszKey              Name of key to get the value for.
+ */
+int64_t GuestToolboxStreamBlock::GetInt64(const char *pszKey) const
+{
+    int64_t iVal;
+    if (RT_SUCCESS(GetInt64Ex(pszKey, &iVal)))
+        return iVal;
+    return 0;
+}
+
+/**
+ * Returns the current number of stream pairs.
+ *
+ * @return  uint32_t            Current number of stream pairs.
+ */
+size_t GuestToolboxStreamBlock::GetCount(void) const
+{
+    return m_mapPairs.size();
+}
+
+/**
+ * Gets the return code (name = "rc") of this stream block.
+ *
+ * @return  VBox status code.
+ * @retval  VERR_NOT_FOUND if the return code string ("rc") was not found.
+ * @param   fSucceedIfNotFound  When set to @c true, this reports back VINF_SUCCESS when the key ("rc") is not found.
+ *                              This can happen with some (older) IPRT-provided tools such as RTPathRmCmd(), which only outputs
+ *                              rc on failure but not on success. Defaults to @c false.
+ */
+int GuestToolboxStreamBlock::GetVrc(bool fSucceedIfNotFound /* = false */) const
+{
+    const char *pszValue = GetString("rc");
+    if (pszValue)
+        return RTStrToInt16(pszValue);
+    if (fSucceedIfNotFound)
+        return VINF_SUCCESS;
+    /** @todo We probably should have a dedicated error for that, VERR_GSTCTL_GUEST_TOOLBOX_whatever. */
+    return VERR_NOT_FOUND;
+}
+
+/**
+ * Returns a string value of a specified key.
+ *
+ * @return  uint32_t            Pointer to string to return, NULL if not found / on failure.
+ * @param   pszKey              Name of key to get the value for.
+ */
+const char *GuestToolboxStreamBlock::GetString(const char *pszKey) const
+{
+    AssertPtrReturn(pszKey, NULL);
+
+    try
+    {
+        GuestCtrlStreamPairMapIterConst itPairs = m_mapPairs.find(pszKey);
+        if (itPairs != m_mapPairs.end())
+            return itPairs->second.mValue.c_str();
+    }
+    catch (const std::exception &ex)
+    {
+        RT_NOREF(ex);
+    }
+    return NULL;
+}
+
+/**
+ * Returns a 32-bit unsigned integer of a specified key.
+ *
+ * @return  VBox status code. VERR_NOT_FOUND if key was not found.
+ * @param   pszKey              Name of key to get the value for.
+ * @param   puVal               Pointer to value to return.
+ */
+int GuestToolboxStreamBlock::GetUInt32Ex(const char *pszKey, uint32_t *puVal) const
+{
+    const char *pszValue = GetString(pszKey);
+    if (pszValue)
+    {
+        *puVal = RTStrToUInt32(pszValue);
+        return VINF_SUCCESS;
+    }
+    return VERR_NOT_FOUND;
+}
+
+/**
+ * Returns a 32-bit signed integer of a specified key.
+ *
+ * @returns 32-bit signed value
+ * @param   pszKey              Name of key to get the value for.
+ * @param   iDefault            The default to return on error if not found.
+ */
+int32_t GuestToolboxStreamBlock::GetInt32(const char *pszKey, int32_t iDefault) const
+{
+    const char *pszValue = GetString(pszKey);
+    if (pszValue)
+    {
+        int32_t iRet;
+        int vrc = RTStrToInt32Full(pszValue, 0, &iRet);
+        if (RT_SUCCESS(vrc))
+            return iRet;
+        ASSERT_GUEST_MSG_FAILED(("%s=%s\n", pszKey, pszValue));
+    }
+    return iDefault;
+}
+
+/**
+ * Returns a 32-bit unsigned integer of a specified key.
+ *
+ * @return  uint32_t            Value to return, 0 if not found / on failure.
+ * @param   pszKey              Name of key to get the value for.
+ * @param   uDefault            The default value to return.
+ */
+uint32_t GuestToolboxStreamBlock::GetUInt32(const char *pszKey, uint32_t uDefault /*= 0*/) const
+{
+    uint32_t uVal;
+    if (RT_SUCCESS(GetUInt32Ex(pszKey, &uVal)))
+        return uVal;
+    return uDefault;
+}
+
+/**
+ * Sets a value to a key or deletes a key by setting a NULL value. Extended version.
+ *
+ * @return  VBox status code.
+ * @param   pszKey              Key name to process.
+ * @param   cwcKey              Maximum characters of \a pszKey to process.
+ * @param   pszValue            Value to set. Set NULL for deleting the key.
+ * @param   cwcValue            Maximum characters of \a pszValue to process.
+ * @param   fOverwrite          Whether a key can be overwritten with a new value if it already exists. Will assert otherwise.
+ */
+int GuestToolboxStreamBlock::SetValueEx(const char *pszKey, size_t cwcKey, const char *pszValue, size_t cwcValue,
+                                        bool fOverwrite /* = false */)
+{
+    AssertPtrReturn(pszKey, VERR_INVALID_POINTER);
+    AssertReturn(cwcKey, VERR_INVALID_PARAMETER);
+
+    int vrc = VINF_SUCCESS;
+    try
+    {
+        Utf8Str const strKey(pszKey, cwcKey);
+
+        /* Take a shortcut and prevent crashes on some funny versions
+         * of STL if map is empty initially. */
+        if (!m_mapPairs.empty())
+        {
+            GuestCtrlStreamPairMapIter it = m_mapPairs.find(strKey);
+            if (it != m_mapPairs.end())
+            {
+                if (pszValue == NULL)
+                    m_mapPairs.erase(it);
+                else if (!fOverwrite)
+                    AssertMsgFailedReturn(("Key '%*s' already exists! Value is '%s'\n", cwcKey, pszKey, m_mapPairs[strKey].mValue.c_str()),
+                                          VERR_ALREADY_EXISTS);
+            }
+        }
+
+        if (pszValue)
+        {
+            GuestToolboxStreamValue val(pszValue, cwcValue);
+            Log3Func(("strKey='%s', strValue='%s'\n", strKey.c_str(), val.mValue.c_str()));
+            m_mapPairs[strKey] = val;
+        }
+    }
+    catch (const std::exception &)
+    {
+        /** @todo set vrc?   */
+    }
+    return vrc;
+}
+
+/**
+ * Sets a value to a key or deletes a key by setting a NULL value.
+ *
+ * @return  VBox status code.
+ * @param   pszKey              Key name to process.
+ * @param   pszValue            Value to set. Set NULL for deleting the key.
+ */
+int GuestToolboxStreamBlock::SetValue(const char *pszKey, const char *pszValue)
+{
+    return SetValueEx(pszKey, RTSTR_MAX, pszValue, RTSTR_MAX);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+GuestToolboxStream::GuestToolboxStream(void)
+    : m_cBlocks(0)
+{
+}
+
+GuestToolboxStream::~GuestToolboxStream(void)
+{
+}
 
 /**
  * Tries to parse the next upcoming pair block within the internal buffer.
@@ -724,7 +931,7 @@ void GuestProcessStream::Dump(const char *pszFile)
  * @retval VINF_EOF if the stream reached its end.
  * @param  streamBlock              Reference to guest stream block to fill
  */
-int GuestProcessStream::ParseBlock(GuestProcessStreamBlock &streamBlock)
+int GuestToolboxStream::ParseBlock(GuestToolboxStreamBlock &streamBlock)
 {
     AssertMsgReturn(streamBlock.m_fComplete == false, ("Block object already marked as being completed\n"), VERR_WRONG_ORDER);
 
@@ -847,6 +1054,7 @@ int GuestProcessStream::ParseBlock(GuestProcessStreamBlock &streamBlock)
 
     return vrc;
 }
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT */
 
 GuestBase::GuestBase(void)
     : mConsole(NULL)
@@ -1450,12 +1658,14 @@ int GuestBase::waitForEvent(GuestWaitEvent *pWaitEvt, uint32_t msTimeout, VBoxEv
 
     Utf8Str strErr;
 
-#define CASE_TOOL_ERROR(a_eType, a_strTool) \
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT
+# define CASE_TOOL_ERROR(a_eType, a_strTool) \
     case a_eType: \
     { \
-        strErr = GuestProcessTool::guestErrorToString(a_strTool, guestErrorInfo); \
+        strErr = GuestProcessToolbox::guestErrorToString(a_strTool, guestErrorInfo); \
         break; \
     }
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT */
 
     switch (guestErrorInfo.getType())
     {
@@ -1475,13 +1685,17 @@ int GuestBase::waitForEvent(GuestWaitEvent *pWaitEvt, uint32_t msTimeout, VBoxEv
             strErr = GuestDirectory::i_guestErrorToString(guestErrorInfo.getVrc(), guestErrorInfo.getWhat().c_str());
             break;
 
-        CASE_TOOL_ERROR(GuestErrorInfo::Type_ToolCat,    VBOXSERVICE_TOOL_CAT);
+        case GuestErrorInfo::Type_Fs:
+            strErr = GuestFs::guestErrorToString(guestErrorInfo);
+            break;
+
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT
         CASE_TOOL_ERROR(GuestErrorInfo::Type_ToolLs,     VBOXSERVICE_TOOL_LS);
         CASE_TOOL_ERROR(GuestErrorInfo::Type_ToolMkDir,  VBOXSERVICE_TOOL_MKDIR);
         CASE_TOOL_ERROR(GuestErrorInfo::Type_ToolMkTemp, VBOXSERVICE_TOOL_MKTEMP);
         CASE_TOOL_ERROR(GuestErrorInfo::Type_ToolRm,     VBOXSERVICE_TOOL_RM);
         CASE_TOOL_ERROR(GuestErrorInfo::Type_ToolStat,   VBOXSERVICE_TOOL_STAT);
-
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT */
         default:
             AssertMsgFailed(("Type not implemented (type=%RU32, vrc=%Rrc)\n", guestErrorInfo.getType(), guestErrorInfo.getVrc()));
             strErr = Utf8StrFmt("Unknown / Not implemented -- Please file a bug report (type=%RU32, vrc=%Rrc)\n",
@@ -1503,9 +1717,14 @@ int GuestBase::waitForEvent(GuestWaitEvent *pWaitEvt, uint32_t msTimeout, VBoxEv
 /* static */
 FsObjType_T GuestBase::fileModeToFsObjType(RTFMODE fMode)
 {
-    if (RTFS_IS_FILE(fMode))           return FsObjType_File;
+         if (RTFS_IS_FIFO(fMode))      return FsObjType_Fifo;
+    else if (RTFS_IS_DEV_CHAR(fMode))  return FsObjType_DevChar;
     else if (RTFS_IS_DIRECTORY(fMode)) return FsObjType_Directory;
+    else if (RTFS_IS_DEV_BLOCK(fMode)) return FsObjType_DevBlock;
+    else if (RTFS_IS_FILE(fMode))      return FsObjType_File;
     else if (RTFS_IS_SYMLINK(fMode))   return FsObjType_Symlink;
+    else if (RTFS_IS_SOCKET(fMode))    return FsObjType_Socket;
+    else if (RTFS_IS_WHITEOUT(fMode))  return FsObjType_WhiteOut;
 
     return FsObjType_Unknown;
 }
@@ -1713,7 +1932,7 @@ int GuestWaitEventBase::SignalInternal(int vrc, int vrcGuest, const GuestWaitEve
  *
  * @returns VBox status code.
  * @retval  VERR_GSTCTL_GUEST_ERROR may be returned, call GuestResult() to get
- *          the actual result.
+ *          the actual result from the guest side.
  *
  * @param   msTimeout           Timeout (in ms) to wait.
  *                              Specifiy 0 to wait indefinitely.
@@ -1871,8 +2090,8 @@ int GuestPath::BuildDestinationPath(const Utf8Str &strSrcPath, PathStyle_T enmSr
             RTPATHSPLIT     Split;
             uint8_t         ab[4096];
         } u;
-        vrc = RTPathParse(strDstPath.c_str(), &u.Parsed, sizeof(u),  enmDstPathStyle == PathStyle_DOS
-                                                                   ? RTPATH_STR_F_STYLE_DOS : RTPATH_STR_F_STYLE_UNIX);
+        vrc = RTPathParse(strDstPath.c_str(), &u.Parsed, sizeof(u),
+                          enmDstPathStyle == PathStyle_DOS ? RTPATH_STR_F_STYLE_DOS : RTPATH_STR_F_STYLE_UNIX);
         if (RT_SUCCESS(vrc))
         {
             if (u.Parsed.fProps & RTPATH_PROP_DOTDOT_REFS) /* #4 */

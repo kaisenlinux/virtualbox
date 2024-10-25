@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,6 +26,7 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QDateTime>
 #include <QFileInfo>
 #include <QHBoxLayout>
@@ -37,18 +38,22 @@
 #include "UIActionPool.h"
 #include "UIConverter.h"
 #include "UICommon.h"
-#include "UICustomFileSystemModel.h"
 #include "UIErrorString.h"
+#include "UIFileSystemModel.h"
 #include "UIFileManager.h"
 #include "UIFileManagerHostTable.h"
 #include "UIFileManagerGuestTable.h"
+#include "UIFileTableNavigationWidget.h"
+#include "UIGlobalSession.h"
 #include "UIIconPool.h"
+#include "UILocalMachineStuff.h"
 #include "UIMessageCenter.h"
 #include "UIPathOperations.h"
 #include "UIUserNamePasswordEditor.h"
 #include "UIVirtualBoxEventHandler.h"
 #include "QILineEdit.h"
 #include "QIToolBar.h"
+#include "UITranslationEventListener.h"
 
 /* COM includes: */
 #include "CConsole.h"
@@ -58,7 +63,7 @@
 #include "CProgress.h"
 #include "CGuestSessionStateChangedEvent.h"
 
-#include <iprt/path.h>
+/* Other VBox includes: */
 #include <iprt/err.h>
 
 /*********************************************************************************************************************************
@@ -66,7 +71,7 @@
 *********************************************************************************************************************************/
 /** A QWidget extension containing text entry fields for password and username and buttons to
   *  start/stop a guest session. */
-class UIGuestSessionWidget : public QIWithRetranslateUI<QWidget>
+class UIGuestSessionWidget : public QWidget
 {
     Q_OBJECT;
 
@@ -88,12 +93,12 @@ public:
 
 protected:
 
-    void retranslateUi() RT_OVERRIDE;
     void keyPressEvent(QKeyEvent * pEvent) RT_OVERRIDE;
     void showEvent(QShowEvent *pEvent) RT_OVERRIDE;
 
 private slots:
 
+    void sltRetranslateUI();
     void sltButtonClick();
     void sltHandleTextChanged(const QString &strText);
 
@@ -125,7 +130,7 @@ private:
 *********************************************************************************************************************************/
 
 UIGuestSessionWidget::UIGuestSessionWidget(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_enmButtonMode(ButtonMode_Open)
     , m_pUserNameEdit(0)
     , m_pPasswordEdit(0)
@@ -183,7 +188,9 @@ void UIGuestSessionWidget::prepareWidgets()
 
     m_pMainLayout->insertStretch(-1, 1);
     switchSessionOpenMode();
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIGuestSessionWidget::sltRetranslateUI);
 }
 
 void UIGuestSessionWidget::sltButtonClick()
@@ -200,7 +207,7 @@ void UIGuestSessionWidget::sltHandleTextChanged(const QString &strText)
     markForError(false);
 }
 
-void UIGuestSessionWidget::retranslateUi()
+void UIGuestSessionWidget::sltRetranslateUI()
 {
     if (m_pUserNameEdit)
     {
@@ -243,7 +250,7 @@ void UIGuestSessionWidget::keyPressEvent(QKeyEvent * pEvent)
 
 void UIGuestSessionWidget::showEvent(QShowEvent *pEvent)
 {
-    QIWithRetranslateUI<QWidget>::showEvent(pEvent);
+    QWidget::showEvent(pEvent);
     if (m_pUserNameEdit)
         m_pUserNameEdit->setFocus();
 }
@@ -255,7 +262,7 @@ void UIGuestSessionWidget::switchSessionOpenMode()
     if (m_pPasswordEdit)
         m_pPasswordEdit->setEnabled(true);
     m_enmButtonMode = ButtonMode_Open;
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIGuestSessionWidget::switchSessionCloseMode()
@@ -265,7 +272,7 @@ void UIGuestSessionWidget::switchSessionCloseMode()
     if (m_pPasswordEdit)
         m_pPasswordEdit->setEnabled(false);
     m_enmButtonMode = ButtonMode_Close;
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIGuestSessionWidget::markForError(bool fMarkForError)
@@ -425,12 +432,12 @@ UIFileManagerGuestTable::UIFileManagerGuestTable(UIActionPool *pActionPool, cons
     , m_fIsCurrent(false)
     , pszMinimumGuestAdditionVersion("6.1")
 {
+    setModelFileSystem(isWindowsFileSystem());
     if (!m_comMachine.isNull())
         m_strTableName = m_comMachine.GetName();
     prepareToolbar();
     prepareGuestSessionPanel();
     prepareActionConnections();
-
     connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigMachineStateChange,
             this, &UIFileManagerGuestTable::sltMachineStateChange);
     connect(&uiCommon(), &UICommon::sigAskToCommitData,
@@ -443,7 +450,9 @@ UIFileManagerGuestTable::UIFileManagerGuestTable(UIActionPool *pActionPool, cons
         openMachineSession();
     setStateAndEnableWidgets();
 
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIFileManagerGuestTable::sltRetranslateUI);
 }
 
 UIFileManagerGuestTable::~UIFileManagerGuestTable()
@@ -460,7 +469,7 @@ void UIFileManagerGuestTable::initFileTable()
     initializeFileTree();
 }
 
-void UIFileManagerGuestTable::retranslateUi()
+void UIFileManagerGuestTable::sltRetranslateUI()
 {
     if (m_pLocationLabel)
         m_pLocationLabel->setText(UIFileManager::tr("Guest File System:"));
@@ -509,14 +518,14 @@ void UIFileManagerGuestTable::retranslateUi()
         m_pGuestSessionWidget->setStatusLabelIconAndToolTip(icon, strWarningText);
     }
 
-    UIFileManagerTable::retranslateUi();
+    UIFileManagerTable::sltRetranslateUI();
 }
 
-void UIFileManagerGuestTable::readDirectory(const QString& strPath,
-                                     UICustomFileSystemItem *parent, bool isStartDir /*= false*/)
+bool UIFileManagerGuestTable::readDirectory(const QString& strPath,
+                                     UIFileSystemItem *parent, bool isStartDir /*= false*/)
 {
     if (!parent)
-        return;
+        return false;
 
     CGuestDirectory directory;
     QVector<KDirectoryOpenFlag> flag;
@@ -526,48 +535,84 @@ void UIFileManagerGuestTable::readDirectory(const QString& strPath,
     if (!m_comGuestSession.isOk())
     {
         emit sigLogOutput(UIErrorString::formatErrorInfo(m_comGuestSession), m_strTableName, FileManagerLogType_Error);
-        return;
+        return false;
     }
 
     parent->setIsOpened(true);
     if (directory.isOk())
     {
-        CFsObjInfo fsInfo = directory.Read();
-        QMap<QString, UICustomFileSystemItem*> fileObjects;
+        int const cMaxEntries = _4K;   /* Maximum number of entries to read at once per List() call. */
+        bool      fUseRead    = false; /* Whether to use the Read() API or the newer (faster) List() call. */
 
-        while (fsInfo.isOk())
+        QVector<CFsObjInfo> vecFsInfo = directory.List(cMaxEntries);
+        /* IGuestDirectory::List() will return VBOX_E_NOT_SUPPORTED if older Guest Additions are installed. */
+        if (directory.rc() == VBOX_E_NOT_SUPPORTED)
         {
-            if (fsInfo.GetName() != "." && fsInfo.GetName() != "..")
+            CFsObjInfo fsInfo = directory.Read();
+            if (directory.isOk())
             {
-                QVector<QVariant> data;
-                QDateTime changeTime = QDateTime::fromMSecsSinceEpoch(fsInfo.GetChangeTime()/RT_NS_1MS);
-                KFsObjType fsObjectType = fileType(fsInfo);
-                UICustomFileSystemItem *item = new UICustomFileSystemItem(fsInfo.GetName(), parent, fsObjectType);
-                if (!item)
-                    continue;
-                item->setData(static_cast<qulonglong>(fsInfo.GetObjectSize()), UICustomFileSystemModelColumn_Size);
-                item->setData(changeTime, UICustomFileSystemModelColumn_ChangeTime);
-                item->setData(fsInfo.GetUserName(), UICustomFileSystemModelColumn_Owner);
-                item->setData(permissionString(fsInfo), UICustomFileSystemModelColumn_Permissions);
-                item->setPath(UIPathOperations::removeTrailingDelimiters(UIPathOperations::mergePaths(strPath, fsInfo.GetName())));
-                item->setIsOpened(false);
-                item->setIsHidden(isFileObjectHidden(fsInfo));
-                fileObjects.insert(fsInfo.GetName(), item);
-                /* @todo. We will need to wait a fully implemented SymlinkRead function
-                 * to be able to handle sym links properly: */
-                // QString path = UIPathOperations::mergePaths(strPath, fsInfo.GetName());
-                // QVector<KSymlinkReadFlag> aFlags;
-                // printf("%s %s %s\n", qPrintable(fsInfo.GetName()), qPrintable(path),
-                //        qPrintable(m_comGuestSession.SymlinkRead(path, aFlags)));
+                vecFsInfo.push_back(fsInfo);
+                fUseRead = true;
             }
-            fsInfo = directory.Read();
         }
+
+        QMap<QString, UIFileSystemItem*> fileObjects;
+
+        while (directory.isOk())
+        {
+            for (int i = 0; i < vecFsInfo.size(); i++)
+            {
+                CFsObjInfo const &fsInfo = vecFsInfo[i];
+
+                if (fsInfo.GetName() != "." && fsInfo.GetName() != "..")
+                {
+                    QVector<QVariant> data;
+                    QDateTime changeTime = QDateTime::fromMSecsSinceEpoch(fsInfo.GetChangeTime()/RT_NS_1MS);
+                    KFsObjType fsObjectType = fileType(fsInfo);
+                    UIFileSystemItem *item = new UIFileSystemItem(fsInfo.GetName(), parent, fsObjectType);
+                    if (!item)
+                        continue;
+                    item->setData(static_cast<qulonglong>(fsInfo.GetObjectSize()), UIFileSystemModelData_Size);
+                    item->setData(changeTime, UIFileSystemModelData_ChangeTime);
+                    item->setData(fsInfo.GetUserName(), UIFileSystemModelData_Owner);
+                    item->setData(permissionString(fsInfo), UIFileSystemModelData_Permissions);
+                    item->setIsOpened(false);
+                    item->setIsHidden(isFileObjectHidden(fsInfo));
+                    fileObjects.insert(fsInfo.GetName(), item);
+                    /* @todo. We will need to wait a fully implemented SymlinkRead function
+                     * to be able to handle sym links properly: */
+                    // QString path = UIPathOperations::mergePaths(strPath, fsInfo.GetName());
+                    // QVector<KSymlinkReadFlag> aFlags;
+                    // printf("%s %s %s\n", qPrintable(fsInfo.GetName()), qPrintable(path),
+                    //        qPrintable(m_comGuestSession.SymlinkRead(path, aFlags)));
+                }
+            }
+
+            if (fUseRead)
+            {
+                CFsObjInfo fsInfo = directory.Read();
+                if (directory.isOk())
+                {
+                    vecFsInfo.clear();
+                    vecFsInfo.push_back(fsInfo);
+                }
+            }
+            else
+                vecFsInfo = directory.List(cMaxEntries);
+        }
+
         checkDotDot(fileObjects, parent, isStartDir);
     }
+    else
+    {
+        directory.Close();
+        return false;
+    }
     directory.Close();
+    return true;
 }
 
-void UIFileManagerGuestTable::deleteByItem(UICustomFileSystemItem *item)
+void UIFileManagerGuestTable::deleteByItem(UIFileSystemItem *item)
 {
     if (!item)
         return;
@@ -577,32 +622,14 @@ void UIFileManagerGuestTable::deleteByItem(UICustomFileSystemItem *item)
     if (item->isDirectory())
     {
         QVector<KDirectoryRemoveRecFlag> aFlags(1, KDirectoryRemoveRecFlag_ContentAndDir);
-        m_comGuestSession.DirectoryRemoveRecursive(item->path(), aFlags);
+        m_comGuestSession.DirectoryRemoveRecursive(UIPathOperations::removeTrailingDelimiters(item->path()), aFlags);
     }
     else
-        m_comGuestSession.FsObjRemove(item->path());
+        m_comGuestSession.FsObjRemove(UIPathOperations::removeTrailingDelimiters(item->path()));
     if (!m_comGuestSession.isOk())
     {
         emit sigLogOutput(QString(item->path()).append(" could not be deleted"), m_strTableName, FileManagerLogType_Error);
         emit sigLogOutput(UIErrorString::formatErrorInfo(m_comGuestSession), m_strTableName, FileManagerLogType_Error);
-    }
-}
-
-void UIFileManagerGuestTable::deleteByPath(const QStringList &pathList)
-{
-    foreach (const QString &strPath, pathList)
-    {
-        CGuestFsObjInfo fileInfo = m_comGuestSession.FsObjQueryInfo(strPath, true);
-        KFsObjType eType = fileType(fileInfo);
-        if (eType == KFsObjType_File || eType == KFsObjType_Symlink)
-        {
-              m_comGuestSession.FsObjRemove(strPath);
-        }
-        else if (eType == KFsObjType_Directory)
-        {
-            QVector<KDirectoryRemoveRecFlag> aFlags(1, KDirectoryRemoveRecFlag_ContentAndDir);
-            m_comGuestSession.DirectoryRemoveRecursive(strPath, aFlags);
-        }
     }
 }
 
@@ -612,40 +639,34 @@ void UIFileManagerGuestTable::goToHomeDirectory()
         return;
     if (!rootItem() || rootItem()->childCount() <= 0)
         return;
-    UICustomFileSystemItem *startDirItem = rootItem()->child(0);
+    UIFileSystemItem *startDirItem = rootItem()->child(0);
     if (!startDirItem)
         return;
 
-    QString userHome = UIPathOperations::sanitize(m_comGuestSession.GetUserHome());
+    const QString strUserHome = UIPathOperations::sanitize(m_comGuestSession.GetUserHome());
     if (!m_comGuestSession.isOk())
     {
         emit sigLogOutput(UIErrorString::formatErrorInfo(m_comGuestSession), m_strTableName, FileManagerLogType_Error);
         return;
     }
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
-    QStringList pathList = userHome.split(UIPathOperations::delimiter, Qt::SkipEmptyParts);
-#else
-    QStringList pathList = userHome.split(UIPathOperations::delimiter, QString::SkipEmptyParts);
-#endif
-    goIntoDirectory(UIPathOperations::pathTrail(userHome));
+    goIntoDirectory(UIPathOperations::pathTrail(strUserHome));
 }
 
-bool UIFileManagerGuestTable::renameItem(UICustomFileSystemItem *item, QString newBaseName)
+bool UIFileManagerGuestTable::renameItem(UIFileSystemItem *item, const QString &strOldPath)
 {
-
-    if (!item || item->isUpDirectory() || newBaseName.isEmpty())
+    if (!item || item->isUpDirectory())
         return false;
-    QString newPath = UIPathOperations::removeTrailingDelimiters(UIPathOperations::constructNewItemPath(item->path(), newBaseName));
+    //QString newPath = UIPathOperations::removeTrailingDelimiters(UIPathOperations::constructNewItemPath(item->path(), newBaseName));
     QVector<KFsObjRenameFlag> aFlags(1, KFsObjRenameFlag_Replace);
 
-    m_comGuestSession.FsObjRename(item->path(), newPath, aFlags);
+    m_comGuestSession.FsObjRename(strOldPath, item->path(), aFlags);
 
     if (!m_comGuestSession.isOk())
     {
         emit sigLogOutput(UIErrorString::formatErrorInfo(m_comGuestSession), m_strTableName, FileManagerLogType_Error);
         return false;
     }
-    item->setPath(newPath);
+
     return true;
 }
 
@@ -672,15 +693,14 @@ void UIFileManagerGuestTable::copyHostToGuest(const QStringList &hostSourcePathL
     if (!checkGuestSession())
         return;
     QVector<QString> sourcePaths = hostSourcePathList.toVector();
-    QVector<QString> aFilters;
-    QVector<QString> aFlags;
-    QString strDestinationPath = strDestination;
-
     /* Remove empty source paths. Typically happens when up directory is selected: */
     sourcePaths.removeAll(QString());
 
+    QVector<QString> aFilters;
+    QVector<QString> aFlags;
+    QString strDestinationPath = UIPathOperations::addTrailingDelimiters(strDestination);
     if (strDestinationPath.isEmpty())
-        strDestinationPath = currentDirectoryPath();
+        strDestinationPath = UIPathOperations::addTrailingDelimiters(currentDirectoryPath());
 
     if (strDestinationPath.isEmpty())
     {
@@ -694,26 +714,19 @@ void UIFileManagerGuestTable::copyHostToGuest(const QStringList &hostSourcePathL
     }
     QString strDirectoryFlags("CopyIntoExisting,Recursive,FollowLinks");
     QString strFileFlags("FollowLinks");
-    foreach (const QString &strSource, sourcePaths)
+
+    for (int i = 0; i < sourcePaths.size(); ++i)
     {
-        KFsObjType enmFileType = UIFileManagerHostTable::fileType(strSource);
+        sourcePaths[i] = UIPathOperations::removeTrailingDelimiters(sourcePaths[i]);
+        KFsObjType enmFileType = UIFileManagerHostTable::fileType(sourcePaths[i]);
         if (enmFileType == KFsObjType_Unknown)
-            emit sigLogOutput(QString("Querying information for host item %1 failed.").arg(strSource), m_strTableName, FileManagerLogType_Error);
+            emit sigLogOutput(QString("Querying information for host item %1 failed.").arg(sourcePaths[i]), m_strTableName, FileManagerLogType_Error);
         /* If the source is an directory, make sure to add the appropriate flag to make copying work
          * into existing directories on the guest. This otherwise would fail (default): */
         else if (enmFileType == KFsObjType_Directory)
-        {
-            /* Make sure that if the source is a directory, that we append a trailing delimiter to it,
-             * so that it gets copied *into* the destination directory as a whole, and not just it's contents. */
-            strDestinationPath = UIPathOperations::addTrailingDelimiters(strDestinationPath);
             aFlags << strDirectoryFlags;
-        }
         else
-        {
-            /* Ditto goes for source files, as the destination always is a directory path. */
-            strDestinationPath = UIPathOperations::addTrailingDelimiters(strDestinationPath);
             aFlags << strFileFlags;
-        }
     }
 
     CProgress progress = m_comGuestSession.CopyToGuest(sourcePaths, aFilters, aFlags, strDestinationPath);
@@ -764,16 +777,18 @@ void UIFileManagerGuestTable::copyGuestToHost(const QString& hostDestinationPath
         return;
     }
 
-    QString strDestinationPath = hostDestinationPath;
+    QString strDestinationPath = UIPathOperations::addTrailingDelimiters(hostDestinationPath);
     QString strDirectoryFlags("CopyIntoExisting,Recursive,FollowLinks");
     QString strFileFlags;
-    foreach (const QString &strSource, sourcePaths)
+    //foreach (const QString &strSource, sourcePaths)
+    for (int i = 0; i < sourcePaths.size(); ++i)
     {
+        sourcePaths[i] = UIPathOperations::removeTrailingDelimiters(sourcePaths[i]);
         /** @todo Cache this info and use the item directly, which has this info already? */
 
         /* If the source is an directory, make sure to add the appropriate flag to make copying work
          * into existing directories on the guest. This otherwise would fail (default). */
-        CGuestFsObjInfo fileInfo = m_comGuestSession.FsObjQueryInfo(strSource, true);
+        CGuestFsObjInfo fileInfo = m_comGuestSession.FsObjQueryInfo(sourcePaths[i], true);
         if (!m_comGuestSession.isOk())
         {
             emit sigLogOutput(UIErrorString::formatErrorInfo(m_comGuestSession), m_strTableName, FileManagerLogType_Error);
@@ -781,19 +796,10 @@ void UIFileManagerGuestTable::copyGuestToHost(const QString& hostDestinationPath
         }
 
         if (fileType(fileInfo) == KFsObjType_Directory)
-        {
-            /* Make sure that if the source is a directory, that we append a trailing delimiter to the destination,
-             * so that the source directory gets copied *into* the destination directory as a whole, and not
-             * just it's contents. */
-            strDestinationPath = UIPathOperations::addTrailingDelimiters(strDestinationPath);
             aFlags << strDirectoryFlags;
-        }
         else
-        {
-            /* Ditto goes for source files, as the destination always is a directory path. */
-            strDestinationPath = UIPathOperations::addTrailingDelimiters(strDestinationPath);
             aFlags << strFileFlags;
-        }
+
     }
 
     CProgress progress = m_comGuestSession.CopyFromGuest(sourcePaths, aFilters, aFlags, strDestinationPath);
@@ -987,20 +993,29 @@ void UIFileManagerGuestTable::determineDriveLetters()
 {
     if (m_comGuestSession.isNull())
         return;
+
     KPathStyle pathStyle = m_comGuestSession.GetPathStyle();
     if (pathStyle != KPathStyle_DOS)
         return;
 
-    /** @todo Currently API lacks a way to query windows drive letters.
-     *  so we enumarate them by using CGuestSession::DirectoryExists() */
     m_driveLetterList.clear();
-    for (int i = 'A'; i <= 'Z'; ++i)
+
+    QVector<QString> mountPoints = m_comGuestSession.GetMountPoints();
+    if (m_comGuestSession.isOk())
     {
-        QString path((char)i);
-        path += ":/";
-        bool exists = m_comGuestSession.DirectoryExists(path, false /* aFollowSymlinks */);
-        if (exists)
-            m_driveLetterList.push_back(path);
+        foreach (const QString &strPoint, mountPoints)
+            m_driveLetterList.push_back(UIPathOperations::replaceDosDelimeter(strPoint));
+    }
+    else
+    {
+        for (int i = 'A'; i <= 'Z'; ++i)
+        {
+            QString path((char)i);
+            path += ":/";
+            bool exists = m_comGuestSession.DirectoryExists(path, false /* aFollowSymlinks */);
+            if (exists)
+                m_driveLetterList.push_back(path);
+        }
     }
 }
 
@@ -1017,6 +1032,8 @@ void UIFileManagerGuestTable::prepareToolbar()
 {
     if (m_pToolBar && m_pActionPool)
     {
+        m_pToolBar->addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Guest_GoBackward));
+        m_pToolBar->addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Guest_GoForward));
         m_pToolBar->addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Guest_GoUp));
         m_pToolBar->addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Guest_GoHome));
         m_pToolBar->addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Guest_Refresh));
@@ -1058,6 +1075,8 @@ void UIFileManagerGuestTable::createFileViewContextMenu(const QWidget *pWidget, 
         return;
 
     QMenu menu;
+    menu.addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Guest_GoBackward));
+    menu.addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Guest_GoForward));
     menu.addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Guest_GoUp));
 
     menu.addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Guest_GoHome));
@@ -1110,6 +1129,8 @@ void UIFileManagerGuestTable::prepareActionConnections()
 
     manageConnection(m_fIsCurrent, m_pActionPool->action(UIActionIndex_M_FileManager_S_Guest_GoUp), &UIFileManagerTable::sltGoUp);
     manageConnection(m_fIsCurrent, m_pActionPool->action(UIActionIndex_M_FileManager_S_Guest_GoHome), &UIFileManagerTable::sltGoHome);
+    manageConnection(m_fIsCurrent, m_pActionPool->action(UIActionIndex_M_FileManager_S_Guest_GoBackward), &UIFileManagerTable::sltGoBackward);
+    manageConnection(m_fIsCurrent, m_pActionPool->action(UIActionIndex_M_FileManager_S_Guest_GoForward), &UIFileManagerTable::sltGoForward);
     manageConnection(m_fIsCurrent, m_pActionPool->action(UIActionIndex_M_FileManager_S_Guest_Refresh), &UIFileManagerTable::sltRefresh);
     manageConnection(m_fIsCurrent, m_pActionPool->action(UIActionIndex_M_FileManager_S_Guest_Delete), &UIFileManagerTable::sltDelete);
     manageConnection(m_fIsCurrent, m_pActionPool->action(UIActionIndex_M_FileManager_S_Guest_Rename), &UIFileManagerTable::sltRename);
@@ -1120,6 +1141,9 @@ void UIFileManagerGuestTable::prepareActionConnections()
     manageConnection(m_fIsCurrent, m_pActionPool->action(UIActionIndex_M_FileManager_S_Guest_InvertSelection), &UIFileManagerTable::sltInvertSelection);
     manageConnection(m_fIsCurrent, m_pActionPool->action(UIActionIndex_M_FileManager_S_Guest_ShowProperties), &UIFileManagerTable::sltShowProperties);
     manageConnection(m_fIsCurrent, m_pActionPool->action(UIActionIndex_M_FileManager_S_Guest_CreateNewDirectory), &UIFileManagerTable::sltCreateNewDirectory);
+
+    /* Also disable/enable go forward/backward actions: */
+    toggleForwardBackwardActions();
 }
 
 void UIFileManagerGuestTable::prepareGuestSessionPanel()
@@ -1221,7 +1245,7 @@ bool UIFileManagerGuestTable::openMachineSession()
         emit sigLogOutput("Invalid machine reference", m_strTableName, FileManagerLogType_Error);
         return false;
     }
-    m_comSession = uiCommon().openSession(m_comMachine.GetId(), KLockType_Shared);
+    m_comSession = openSession(m_comMachine.GetId(), KLockType_Shared);
     if (m_comSession.isNull())
     {
         emit sigLogOutput("Could not open machine session", m_strTableName, FileManagerLogType_Error);
@@ -1354,7 +1378,7 @@ void UIFileManagerGuestTable::cleanupListener(ComObjPtr<UIMainEventListenerImpl>
     QtListener->getWrapped()->unregisterSources();
     QtListener.setNull();
     /* Make sure VBoxSVC is available: */
-    if (!uiCommon().isVBoxSVCAvailable())
+    if (!gpGlobalSession->isVBoxSVCAvailable())
         return;
 
     /* Unregister event listener for CProgress event source: */
@@ -1443,6 +1467,16 @@ void UIFileManagerGuestTable::sltOpenGuestSession(QString strUserName, QString s
     openGuestSession(strUserName, strPassword);
 }
 
+void UIFileManagerGuestTable::toggleForwardBackwardActions()
+{
+    if (!m_pNavigationWidget)
+        return;
+    if (m_pActionPool->action(UIActionIndex_M_FileManager_S_Guest_GoForward))
+        m_pActionPool->action(UIActionIndex_M_FileManager_S_Guest_GoForward)->setEnabled(m_pNavigationWidget->canGoForward());
+    if (m_pActionPool->action(UIActionIndex_M_FileManager_S_Guest_GoBackward))
+        m_pActionPool->action(UIActionIndex_M_FileManager_S_Guest_GoBackward)->setEnabled(m_pNavigationWidget->canGoBackward());
+}
+
 void UIFileManagerGuestTable::setState()
 {
     if (m_comMachine.isNull())
@@ -1490,7 +1524,7 @@ void UIFileManagerGuestTable::setStateAndEnableWidgets()
 {
     setState();
     setSessionDependentWidgetsEnabled();
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIFileManagerGuestTable::sltHandleCloseSessionRequest()
@@ -1537,6 +1571,13 @@ void UIFileManagerGuestTable::setSessionDependentWidgetsEnabled()
     setSessionWidgetsEnabled(m_enmState == State_SessionRunning);
 
     emit sigStateChanged(m_enmState == State_SessionRunning);
+}
+
+bool UIFileManagerGuestTable::isWindowsFileSystem() const
+{
+    if (!m_comMachine.isOk())
+        return false;
+    return m_comMachine.GetOSTypeId().contains("windows", Qt::CaseInsensitive);
 }
 
 bool UIFileManagerGuestTable::openGuestSession(const QString &strUserName, const QString &strPassword)
@@ -1608,6 +1649,5 @@ void UIFileManagerGuestTable::cleanAll()
     closeGuestSession();
     closeMachineSession();
 }
-
 
 #include "UIFileManagerGuestTable.moc"

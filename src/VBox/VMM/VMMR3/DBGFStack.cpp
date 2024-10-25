@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -81,6 +81,9 @@ typedef struct DBGFUNWINDCTX
         RT_ZERO(m_State.u);
         if (pInitialCtx)
         {
+#if defined(VBOX_VMM_TARGET_ARMV8)
+            AssertFailed();
+#else
             m_State.u.x86.auRegs[X86_GREG_xAX] = pInitialCtx->rax;
             m_State.u.x86.auRegs[X86_GREG_xCX] = pInitialCtx->rcx;
             m_State.u.x86.auRegs[X86_GREG_xDX] = pInitialCtx->rdx;
@@ -106,6 +109,7 @@ typedef struct DBGFUNWINDCTX
             m_State.u.x86.auSegs[X86_SREG_GS]  = pInitialCtx->gs.Sel;
             m_State.u.x86.auSegs[X86_SREG_FS]  = pInitialCtx->fs.Sel;
             m_State.u.x86.fRealOrV86           = CPUMIsGuestInRealOrV86ModeEx(pInitialCtx);
+#endif
         }
         else if (hAs == DBGF_AS_R0)
             VMMR3InitR0StackUnwindState(pUVM, idCpu, &m_State);
@@ -798,10 +802,11 @@ static DECLCALLBACK(int) dbgfR3StackWalkCtxFull(PUVM pUVM, VMCPUID idCpu, PCCPUM
                                                 PCDBGFADDRESS pAddrFrame,
                                                 PCDBGFADDRESS pAddrStack,
                                                 PCDBGFADDRESS pAddrPC,
-                                                RTDBGRETURNTYPE enmReturnType,
+                                                RTDBGRETURNTYPE const *penmReturnType,
                                                 PCDBGFSTACKFRAME *ppFirstFrame)
 {
-    DBGFUNWINDCTX UnwindCtx(pUVM, idCpu, pCtx, hAs);
+    RTDBGRETURNTYPE const enmReturnType = *penmReturnType; /* darwin/arm64 fun, see @bugref{10725} */
+    DBGFUNWINDCTX         UnwindCtx(pUVM, idCpu, pCtx, hAs);
 
     /* alloc first frame. */
     PDBGFSTACKFRAME pCur = (PDBGFSTACKFRAME)MMR3HeapAllocZU(pUVM, MM_TAG_DBGF_STACK, sizeof(*pCur));
@@ -815,12 +820,19 @@ static DECLCALLBACK(int) dbgfR3StackWalkCtxFull(PUVM pUVM, VMCPUID idCpu, PCCPUM
     pCur->pFirstInternal = pCur;
 
     int rc = VINF_SUCCESS;
+#if defined(VBOX_VMM_TARGET_ARMV8)
+    if (pAddrPC)
+        pCur->AddrPC = *pAddrPC;
+    else
+        DBGFR3AddrFromFlat(pUVM, &pCur->AddrPC, pCtx->Pc.u64);
+#else
     if (pAddrPC)
         pCur->AddrPC = *pAddrPC;
     else if (enmCodeType != DBGFCODETYPE_GUEST)
         DBGFR3AddrFromFlat(pUVM, &pCur->AddrPC, pCtx->rip);
     else
         rc = DBGFR3AddrFromSelOff(pUVM, idCpu, &pCur->AddrPC, pCtx->cs.Sel, pCtx->rip);
+#endif
     if (RT_SUCCESS(rc))
     {
         uint64_t fAddrMask;
@@ -836,8 +848,8 @@ static DECLCALLBACK(int) dbgfR3StackWalkCtxFull(PUVM pUVM, VMCPUID idCpu, PCCPUM
             fAddrMask = UINT64_MAX;
         else
         {
-            PVMCPU pVCpu = VMMGetCpuById(pUVM->pVM, idCpu);
-            CPUMMODE enmCpuMode = CPUMGetGuestMode(pVCpu);
+            PVMCPU const   pVCpu      = pUVM->pVM->apCpusR3[idCpu];
+            CPUMMODE const enmCpuMode = CPUMGetGuestMode(pVCpu);
             if (enmCpuMode == CPUMMODE_REAL)
             {
                 fAddrMask = UINT16_MAX;
@@ -874,6 +886,11 @@ static DECLCALLBACK(int) dbgfR3StackWalkCtxFull(PUVM pUVM, VMCPUID idCpu, PCCPUM
             }
 
 
+#if defined(VBOX_VMM_TARGET_ARMV8)
+        RT_NOREF(pAddrFrame, pAddrStack);
+        AssertFailed();
+        rc = VERR_NOT_IMPLEMENTED;
+#else
         if (pAddrStack)
             pCur->AddrStack = *pAddrStack;
         else if (enmCodeType != DBGFCODETYPE_GUEST)
@@ -888,6 +905,7 @@ static DECLCALLBACK(int) dbgfR3StackWalkCtxFull(PUVM pUVM, VMCPUID idCpu, PCCPUM
             DBGFR3AddrFromFlat(pUVM, &pCur->AddrFrame, pCtx->rbp & fAddrMask);
         else if (RT_SUCCESS(rc))
             rc = DBGFR3AddrFromSelOff(pUVM, idCpu, &pCur->AddrFrame, pCtx->ss.Sel, pCtx->rbp & fAddrMask);
+#endif
 
         /*
          * Try unwind and get a better frame pointer and state.
@@ -1011,11 +1029,11 @@ static int dbgfR3StackWalkBeginCommon(PUVM pUVM,
     switch (enmCodeType)
     {
         case DBGFCODETYPE_GUEST:
-            pCtx = CPUMQueryGuestCtxPtr(VMMGetCpuById(pVM, idCpu));
+            pCtx = CPUMQueryGuestCtxPtr(pVM->apCpusR3[idCpu]);
             hAs  = DBGF_AS_GLOBAL;
             break;
         case DBGFCODETYPE_HYPER:
-            pCtx = CPUMQueryGuestCtxPtr(VMMGetCpuById(pVM, idCpu));
+            pCtx = CPUMQueryGuestCtxPtr(pVM->apCpusR3[idCpu]);
             hAs  = DBGF_AS_RC_AND_GC_GLOBAL;
             break;
         case DBGFCODETYPE_RING0:
@@ -1025,9 +1043,9 @@ static int dbgfR3StackWalkBeginCommon(PUVM pUVM,
         default:
             AssertFailedReturn(VERR_INVALID_PARAMETER);
     }
-    return VMR3ReqPriorityCallWaitU(pUVM, idCpu, (PFNRT)dbgfR3StackWalkCtxFull, 10,
-                                    pUVM, idCpu, pCtx, hAs, enmCodeType,
-                                    pAddrFrame, pAddrStack, pAddrPC, enmReturnType, ppFirstFrame);
+    return VMR3ReqPriorityCallWaitU(pUVM, idCpu, (PFNRT)dbgfR3StackWalkCtxFull, 10 | VMREQ_F_EXTRA_ARGS_ALL_PTRS,
+                                    pUVM, idCpu, pCtx, hAs, enmCodeType, pAddrFrame, pAddrStack, pAddrPC,
+                                    &enmReturnType, ppFirstFrame);
 }
 
 

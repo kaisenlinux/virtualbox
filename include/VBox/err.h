@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -109,6 +109,8 @@
 #define VERR_VM_RESTORED                    (-1025)
 /** The requested feature is not supported by NEM. */
 #define VERR_NOT_SUP_BY_NEM                 (-1026)
+/** Reserved page table bits set. */
+#define VERR_RESERVED_PAGE_TABLE_BITS       (-1027)
 /** @} */
 
 
@@ -176,23 +178,22 @@
 #define VINF_EM_NO_MEMORY                   1114
 /** The fatal variant of VINF_EM_NO_MEMORY. */
 #define VERR_EM_NO_MEMORY                   (-1114)
-/** Indicating that a rescheduling to recompiled execution.
- * Typically caused by raw-mode executing code which is difficult/slow
- * to virtualize rawly.
+/** Indicating that we should reschedule to recompiled execution.
+ * Typically caused by the main execution engine not being capable of executing
+ * code in the current CPU state, or would be doing it too slowly, and we must
+ * fall back to recompiled execution.
  * @remarks Important to have a higher priority (lower number) than the other rescheduling status codes. */
 #define VINF_EM_RESCHEDULE_REM              1115
-/** Indicating that a rescheduling to vmx-mode execution (HM/NEM).
- * Typically caused by REM detecting that hardware-accelerated raw-mode execution is possible. */
-#define VINF_EM_RESCHEDULE_HM               1116
-/** Indicating that a rescheduling to raw-mode execution.
- * Typically caused by REM detecting that raw-mode execution is possible.
- * @remarks Important to have a higher priority (lower number) than VINF_EM_RESCHEDULE. */
-#define VINF_EM_RESCHEDULE_RAW              1117
+/** Indicating that we should reschedule to the main execution engine.
+ * Mainly triggered in recompiled execution mode to switch back to the main
+ * execution engine when the CPU state is compatible with it again (or we're
+ * past the expensive portion of code that is deemed faster to recompile). */
+#define VINF_EM_RESCHEDULE_EXEC_ENGINE      1116
+/* VINF_EM_RESCHEDULE_RAW was 1117 */
 /** Indicating that a rescheduling now is required. Typically caused by
  * interrupts having changed the EIP. */
 #define VINF_EM_RESCHEDULE                  1118
-/** PARAV call */
-#define VINF_EM_RESCHEDULE_PARAV            1119
+/* VINF_EM_RESCHEDULE_PARAV was 1119 */
 /** Go back into wait for SIPI mode */
 #define VINF_EM_WAIT_SIPI                   1120
 /** Last scheduling related status code. (inclusive) */
@@ -273,7 +274,9 @@
 #define VINF_EM_PENDING_R3_IOPORT_WRITE      1160
 /** Trick for resuming EMHistoryExec after a VMCPU_FF_IOM is handled. */
 #define VINF_EM_RESUME_R3_HISTORY_EXEC       1161
-/** Emulate split-lock access on SMP. */
+/** Emulate split-lock access on SMP.
+ * This is also used for dealing with locked alignment conflicts with the host
+ * in general from IEM. */
 #define VINF_EM_EMULATE_SPLIT_LOCK           1162
 /** @} */
 
@@ -660,6 +663,12 @@
 #define VERR_PGM_PAE_PDPE_RSVD                  (-1688)
 /** Attemted illegal operation in simplified memory management mode. */
 #define VERR_PGM_NOT_SUPPORTED_FOR_NEM_MODE     (-1689)
+/** Too many RAM ranges. */
+#define VERR_PGM_TOO_MANY_RAM_RANGES            (-1690)
+/** Internal processing error in the PGM physical RAM range lookup code. */
+#define VERR_PGM_PHYS_RAM_LOOKUP_IPE            (-1691)
+/** Too many ROM ranges. */
+#define VERR_PGM_TOO_MANY_ROM_RANGES            (-1692)
 /** @} */
 
 
@@ -875,6 +884,8 @@
 /** A field contained an transformation that should only be used when loading
  * old states. */
 #define VERR_SSM_FIELD_LOAD_ONLY_TRANSFORMATION (-1879)
+/** Out of range enum value. */
+#define VERR_SSM_ENUM_VALUE_OUT_OF_RANGE        (-1880)
 /** @} */
 
 
@@ -1070,25 +1081,6 @@
 #define VERR_TM_IPE_8                       (-2298)
 /** TM internal processing error \#9. */
 #define VERR_TM_IPE_9                       (-2299)
-/** @} */
-
-
-/** @name Recompiled Execution Manager (REM) Status Codes
- * @{
- */
-/** Fatal error in virtual hardware. */
-#define VERR_REM_VIRTUAL_HARDWARE_ERROR     (-2300)
-/** Fatal error in the recompiler cpu. */
-#define VERR_REM_VIRTUAL_CPU_ERROR          (-2301)
-/** Recompiler execution was interrupted by forced action. */
-#define VINF_REM_INTERRUPED_FF              2302
-/** Too many similar traps. This is a very useful debug only
- * check (we don't do double/triple faults in REM). */
-#define VERR_REM_TOO_MANY_TRAPS             (-2304)
-/** The REM is out of breakpoint slots. */
-#define VERR_REM_NO_MORE_BP_SLOTS           (-2305)
-/** The REM could not find any breakpoint on the specified address. */
-#define VERR_REM_BP_NOT_FOUND               (-2306)
 /** @} */
 
 
@@ -2516,6 +2508,142 @@
 /** Internal status code for indicating that a selector isn't valid (LAR, LSL,
  *  VERR, VERW).  This is not used outside the instruction implementations. */
 #define VINF_IEM_SELECTOR_NOT_OK                    (5305)
+/** Returns by rep-prefixed string instruction if they yield because of
+ *  pending FFs.  The status code is internal to IEM. */
+#define VINF_IEM_YIELD_PENDING_FF                   (5306)
+
+/** Recompiled execution: Break out of current TB execution. */
+#define VINF_IEM_REEXEC_BREAK                       (5310)
+/** Recompiled execution: Breaking out because of FFs or/and IRQs. */
+#define VINF_IEM_REEXEC_BREAK_FF                    (5311)
+/** Recompiled execution: Debug related (hidden) EFLAGS are set and needs
+ *  handling. */
+#define VINF_IEM_REEXEC_FINISH_WITH_FLAGS           (5312)
+/** Recompiled execution: Jump back in the same TB. */
+#define VINF_IEM_REEXEC_JUMP                        (5313)
+
+/** Recompilation: End translation block. */
+#define VINF_IEM_RECOMPILE_END_TB                   (5319)
+/** Recompiler: Translation block allocation failed. */
+#define VERR_IEM_TB_ALLOC_FAILED                    (-5320)
+/** Recompiler: Too deeply nested conditionals. */
+#define VERR_IEM_COND_TOO_DEEPLY_NESTED             (-5321)
+/** Recompiler: Failed to reconcile the register/variable state on endif. */
+#define VERR_IEM_COND_ENDIF_RECONCILIATION_FAILED   (-5322)
+/** Recompiler: Failed to allocate more memory for debug info. */
+#define VERR_IEM_DBGINFO_OUT_OF_MEMORY              (-5323)
+/** Recompiler: Debug info internal processing error \#1. */
+#define VERR_IEM_DBGINFO_IPE_1                      (-5324)
+/** Recompiler: Debug info internal processing error \#2. */
+#define VERR_IEM_DBGINFO_IPE_2                      (-5325)
+/** Recompiler: Fixup internal processing error \#1. */
+#define VERR_IEM_FIXUP_IPE_1                        (-5326)
+/** Recompiler: Too many fixups. */
+#define VERR_IEM_FIXUP_TOO_MANY                     (-5327)
+/** Recompiler: Out of memory for fixups. */
+#define VERR_IEM_FIXUP_OUT_OF_MEMORY                (-5328)
+/** Recompiler: Wrong jump instruction targeting label at end of TB. */
+#define VERR_IEM_FIXUP_SHORT_JMP_TO_TAIL_LABEL      (-5329)
+/** Recompiler: Hit instruction buffer size limit. */
+#define VERR_IEM_INSTR_BUF_TOO_LARGE                (-5330)
+/** Recompiler: Out of memory for the instruction buffer (regular heap). */
+#define VERR_IEM_INSTR_BUF_OUT_OF_MEMORY            (-5331)
+/** Recompiler: Too many labels. */
+#define VERR_IEM_LABEL_TOO_MANY                     (-5332)
+/** Recompiler: Out of memory for labels.   */
+#define VERR_IEM_LABEL_OUT_OF_MEMORY                (-5333)
+/** Recompiler: Label internal processing error \#1. */
+#define VERR_IEM_LABEL_IPE_1                        (-5334)
+/** Recompiler: Label internal processing error \#2. */
+#define VERR_IEM_LABEL_IPE_2                        (-5335)
+/** Recompiler: Label internal processing error \#3. */
+#define VERR_IEM_LABEL_IPE_3                        (-5336)
+/** Recompiler: Label internal processing error \#4. */
+#define VERR_IEM_LABEL_IPE_4                        (-5337)
+/** Recompiler: Label internal processing error \#5. */
+#define VERR_IEM_LABEL_IPE_5                        (-5338)
+/** Recompiler: Label internal processing error \#6. */
+#define VERR_IEM_LABEL_IPE_6                        (-5339)
+
+/** Recompiler: No temporary host register available. */
+#define VERR_IEM_REG_ALLOCATOR_NO_FREE_TMP          (-5340)
+/** Recompiler: No host register available for variables. */
+#define VERR_IEM_REG_ALLOCATOR_NO_FREE_VAR          (-5341)
+/** Recompiler: Register allocator internal processing error \#1. */
+#define VERR_IEM_REG_IPE_1                          (-5343)
+/** Recompiler: Register allocator internal processing error \#2. */
+#define VERR_IEM_REG_IPE_2                          (-5344)
+/** Recompiler: Register allocator internal processing error \#3. */
+#define VERR_IEM_REG_IPE_3                          (-5345)
+/** Recompiler: Register allocator internal processing error \#4. */
+#define VERR_IEM_REG_IPE_4                          (-5346)
+/** Recompiler: Register allocator internal processing error \#5. */
+#define VERR_IEM_REG_IPE_5                          (-5347)
+/** Recompiler: Register allocator internal processing error \#6. */
+#define VERR_IEM_REG_IPE_6                          (-5348)
+/** Recompiler: Register allocator internal processing error \#7. */
+#define VERR_IEM_REG_IPE_7                          (-5349)
+/** Recompiler: Register allocator internal processing error \#8. */
+#define VERR_IEM_REG_IPE_8                          (-5350)
+/** Recompiler: Register allocator internal processing error \#9. */
+#define VERR_IEM_REG_IPE_9                          (-5351)
+/** Recompiler: Register allocator internal processing error \#10. */
+#define VERR_IEM_REG_IPE_10                         (-5352)
+/** Recompiler: Register allocator internal processing error \#11. */
+#define VERR_IEM_REG_IPE_11                         (-5353)
+/** Recompiler: Register allocator internal processing error \#12. */
+#define VERR_IEM_REG_IPE_12                         (-5354)
+/** Recompiler: Register allocator internal processing error \#13. */
+#define VERR_IEM_REG_IPE_13                         (-5355)
+
+/** Recompiler: Out of variables. */
+#define VERR_IEM_VAR_EXHAUSTED                      (-5360)
+/** Recompiler: Duplicate argument variable number. */
+#define VERR_IEM_VAR_DUP_ARG_NO                     (-5361)
+/** Recompiler: Out of stack slots. */
+#define VERR_IEM_VAR_OUT_OF_STACK_SLOTS             (-5362)
+/** Recompiler: Unexpected kind of variable. */
+#define VERR_IEM_VAR_UNEXPECTED_KIND                (-5363)
+/** Recompiler: Uninitialized variable. */
+#define VERR_IEM_VAR_NOT_INITIALIZED                (-5364)
+/** Recompiler: Variable management internal processing error \#1. */
+#define VERR_IEM_VAR_IPE_1                          (-5365)
+/** Recompiler: Variable management internal processing error \#2. */
+#define VERR_IEM_VAR_IPE_2                          (-5366)
+/** Recompiler: Variable management internal processing error \#3. */
+#define VERR_IEM_VAR_IPE_3                          (-5367)
+/** Recompiler: Variable management internal processing error \#4. */
+#define VERR_IEM_VAR_IPE_4                          (-5368)
+/** Recompiler: Variable management internal processing error \#5. */
+#define VERR_IEM_VAR_IPE_5                          (-5369)
+/** Recompiler: Variable management internal processing error \#6. */
+#define VERR_IEM_VAR_IPE_6                          (-5370)
+/** Recompiler: Variable management internal processing error \#7. */
+#define VERR_IEM_VAR_IPE_7                          (-5371)
+/** Recompiler: Variable management internal processing error \#8. */
+#define VERR_IEM_VAR_IPE_8                          (-5372)
+/** Recompiler: Variable management internal processing error \#9. */
+#define VERR_IEM_VAR_IPE_9                          (-5373)
+/** Recompiler: Variable management internal processing error \#10. */
+#define VERR_IEM_VAR_IPE_10                         (-5374)
+/** Recompiler: Variable management internal processing error \#11. */
+#define VERR_IEM_VAR_IPE_11                         (-5375)
+/** Recompiler: Variable management internal processing error \#12. */
+#define VERR_IEM_VAR_IPE_12                         (-5376)
+/** Recompiler: Variable management internal processing error \#13. */
+#define VERR_IEM_VAR_IPE_13                         (-5377)
+
+/** Recompiler: Unimplemented case. */
+#define VERR_IEM_EMIT_CASE_NOT_IMPLEMENTED_1        (-5380)
+/** Recompiler: Totally unexpected memory size. */
+#define VERR_IEM_EMIT_BAD_MEM_SIZE                  (-5381)
+/** Recompiler: Bad segment register number for memory access. */
+#define VERR_IEM_EMIT_BAD_SEG_REG_NO                (-5382)
+/** Recompiler: Fixed jump is out of range. */
+#define VERR_IEM_EMIT_FIXED_JUMP_OUT_OF_RANGE       (-5383)
+/** Recompiler: Unexpected register assignment. */
+#define VERR_IEM_EMIT_UNEXPECTED_VAR_REGISTER       (-5384)
+
 /** Restart the current instruction. For testing only. */
 #define VERR_IEM_RESTART_INSTRUCTION                (-5389)
 /** This particular aspect of the instruction is not yet implemented by IEM. */
@@ -3043,6 +3171,8 @@
  */
 /** Codec was not found. */
 #define VERR_RECORDING_CODEC_NOT_FOUND              (-6900)
+/** Recording initialization failed. */
+#define VERR_RECORDING_INIT_FAILED                  (-6901)
 /** Codec initialization failed. */
 #define VERR_RECORDING_CODEC_INIT_FAILED            (-6902)
 /** Codec is not supported. */
@@ -3065,6 +3195,10 @@
 #define VERR_RECORDING_THROTTLED                    (-6907)
 /** Encoding data failed. */
 #define VERR_RECORDING_ENCODING_FAILED              (-6908)
+/** Encoding skipped.
+ *  Can happen if e.g. a frame is not visible or does
+ *  not need to be encoded for whatever reason. */
+#define VWRN_RECORDING_ENCODING_SKIPPED             (6908)
 /** @} */
 
 /** @name Shared Clipboard Status Codes
@@ -3086,6 +3220,12 @@
 #define VERR_SHCLPB_MAX_EVENTS_REACHED              (-7106)
 /** Shared Clipboard transfer ID not found. */
 #define VERR_SHCLPB_TRANSFER_ID_NOT_FOUND           (-7150)
+/** Shared Clipboard guest error. */
+#define VERR_SHCLPB_GUEST_ERROR                     (-7151)
+/** Shared Clipboard event failed error. */
+#define VERR_SHCLPB_EVENT_FAILED                    (-7152)
+/** No clipboard data available for requested format. */
+#define VERR_SHCLPB_NO_DATA                         (-7153)
 /** @} */
 
 /** @name Virtual IOMMU Status Codes
@@ -3137,6 +3277,25 @@
 #define VERR_IOMMU_IPE_8                            (-7398)
 /** IOMMU Internal processing error \#9. */
 #define VERR_IOMMU_IPE_9                            (-7399)
+/** @} */
+
+/** @name Platform Status Codes
+ * @{
+ */
+/** The selected platform architecture is not supported.
+ *  Depends on the context (host / VM). */
+#define VERR_PLATFORM_ARCH_NOT_SUPPORTED            (-7400)
+/** @} */
+
+/** @name Guest Compatibility Manage Status Codes.
+ * @{
+ */
+/** The intercepted situation was completely handled, continue execution. */
+#define VINF_GCM_HANDLED                            (7600)
+/** The intercepted instruction handled, advance RIP and continue execution. */
+#define VINF_GCM_HANDLED_ADVANCE_RIP                (7601)
+/** The intercepted operation was not handled, take default action. */
+#define VERR_GCM_NOT_HANDLED                        (-7602)
 /** @} */
 
 /* SED-END */

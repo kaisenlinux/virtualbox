@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2007-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2007-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -44,6 +44,8 @@
 #include <VBox/HostServices/VBoxClipboardSvc.h>
 #include <VBox/GuestHost/clipboard-helper.h>
 #include "VBoxClientInternal.h"
+
+RT_GCC_NO_WARN_DEPRECATED_BEGIN /* Much here is deprecated since 12.0 */
 
 /**
  * Walk through pasteboard items and report currently available item types.
@@ -231,7 +233,7 @@ static int vbclClipboardHostPasteText(uint32_t u32ClientId, PRTUTF16 pwszData, u
     AssertPtrReturn(pwszData, VERR_INVALID_POINTER);
 
     size_t cwcTmp; /* (includes a schwarzenegger character) */
-    int rc = ShClUtf16LFLenUtf8(pwszData, cbData / sizeof(RTUTF16), &cwcTmp);
+    int rc = ShClUtf16CalcNormalizedEolToCRLFLength(pwszData, cbData / sizeof(RTUTF16), &cwcTmp);
     AssertRCReturn(rc, rc);
 
     cwcTmp++; /* Add space for terminator. */
@@ -388,3 +390,5 @@ int vbclClipboardForwardToHost(uint32_t u32ClientId, PasteboardRef pPasteboard, 
 
     return rc; /** @todo r=bird: If there are multiple formats available, which rc is returned here? Does it matter? */
 }
+
+RT_GCC_NO_WARN_DEPRECATED_END

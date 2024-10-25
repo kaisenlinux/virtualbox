@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -434,9 +434,18 @@ HRESULT MachineDebugger::getExecutionEngine(VMExecutionEngine_T *apenmEngine)
             switch (bEngine)
             {
                 case VM_EXEC_ENGINE_NOT_SET:    *apenmEngine = VMExecutionEngine_NotSet; break;
-                case VM_EXEC_ENGINE_IEM:        *apenmEngine = VMExecutionEngine_Emulated; break;
                 case VM_EXEC_ENGINE_HW_VIRT:    *apenmEngine = VMExecutionEngine_HwVirt; break;
                 case VM_EXEC_ENGINE_NATIVE_API: *apenmEngine = VMExecutionEngine_NativeApi; break;
+                case VM_EXEC_ENGINE_IEM:
+                {
+                    bool fForced = false;
+                    vrc = ptrVM.vtable()->pfnEMR3QueryExecutionPolicy(ptrVM.rawUVM(), EMEXECPOLICY_IEM_RECOMPILED, &fForced);
+                    if (RT_SUCCESS(vrc) && fForced)
+                        *apenmEngine = VMExecutionEngine_Recompiler;
+                    else
+                        *apenmEngine = VMExecutionEngine_Interpreter;
+                    break;
+                }
                 default: AssertMsgFailed(("bEngine=%d\n", bEngine));
             }
     }
@@ -1114,15 +1123,25 @@ HRESULT MachineDebugger::getRegisters(ULONG aCpuId, std::vector<com::Utf8Str> &a
                     {
                         aValues.resize(cRegs);
                         aNames.resize(cRegs);
-                        for (uint32_t iReg = 0; iReg < cRegs; iReg++)
+                        uint32_t iDst = 0;
+                        for (uint32_t iSrc = 0; iSrc < cRegs; iSrc++)
+                            if (paRegs[iSrc].pszName) /* skip padding entries */
+                            {
+                                char szHex[160];
+                                szHex[159] = szHex[0] = '\0';
+                                ssize_t cch = ptrVM.vtable()->pfnDBGFR3RegFormatValue(szHex, sizeof(szHex), &paRegs[iSrc].Val,
+                                                                                      paRegs[iSrc].enmType, true /*fSpecial*/);
+                                Assert(cch > 0); NOREF(cch);
+                                aNames[iDst]  = paRegs[iSrc].pszName;
+                                aValues[iDst] = szHex;
+                                iDst++;
+                            }
+
+                        /* If we skipped padding entries, resize the return arrays to the actual return size. */
+                        if (iDst < cRegs)
                         {
-                            char szHex[160];
-                            szHex[159] = szHex[0] = '\0';
-                            ssize_t cch = ptrVM.vtable()->pfnDBGFR3RegFormatValue(szHex, sizeof(szHex), &paRegs[iReg].Val,
-                                                                                  paRegs[iReg].enmType, true /*fSpecial*/);
-                            Assert(cch > 0); NOREF(cch);
-                            aNames[iReg]  = paRegs[iReg].pszName;
-                            aValues[iReg] = szHex;
+                            aValues.resize(iDst);
+                            aNames.resize(iDst);
                         }
                     }
                     catch (std::bad_alloc &)

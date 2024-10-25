@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -27,11 +27,11 @@
 
 /* Qt includes: */
 #include <QActionGroup>
+#include <QApplication>
 #include <QHelpEvent>
 #include <QToolTip>
 
 /* GUI includes: */
-#include "UICommon.h"
 #include "UIActionPool.h"
 #include "UIActionPoolManager.h"
 #include "UIActionPoolRuntime.h"
@@ -40,12 +40,19 @@
 #include "UIMessageCenter.h"
 #include "UIShortcutPool.h"
 #include "UITranslator.h"
+#include "UITranslationEventListener.h"
 #ifdef VBOX_GUI_WITH_NETWORK_MANAGER
 # include "UIExtraDataManager.h"
 # include "UINetworkRequestManager.h"
 # include "UIUpdateManager.h"
 #endif /* VBOX_GUI_WITH_NETWORK_MANAGER */
 
+
+/** Additional Qt event types. */
+enum UIEventTypeActionPool
+{
+    UIEventTypeActionPool_ActivateAction = QEvent::User + 101,
+};
 
 /** QEvent extension
   * representing action-activation event. */
@@ -55,7 +62,7 @@ public:
 
     /** Constructs @a pAction event. */
     ActivateActionEvent(QAction *pAction)
-        : QEvent((QEvent::Type)ActivateActionEventType)
+        : QEvent((QEvent::Type)UIEventTypeActionPool_ActivateAction)
         , m_pAction(pAction)
     {}
 
@@ -167,7 +174,7 @@ void UIAction::setName(const QString &strName)
 void UIAction::setShortcuts(const QList<QKeySequence> &shortcuts)
 {
     /* Only for manager's action-pool: */
-    if (m_enmActionPoolType == UIActionPoolType_Manager)
+    if (m_enmActionPoolType == UIType_ManagerUI)
     {
         /* If primary shortcut should be visible: */
         if (!m_fShortcutHidden)
@@ -200,9 +207,9 @@ QString UIAction::nameInMenu() const
     switch (m_enmActionPoolType)
     {
         /* Unchanged name for Manager UI: */
-        case UIActionPoolType_Manager: return name();
+        case UIType_ManagerUI: return name();
         /* Filtered name for Runtime UI: */
-        case UIActionPoolType_Runtime: return UITranslator::removeAccelMark(name());
+        case UIType_RuntimeUI: return UITranslator::removeAccelMark(name());
     }
     /* Nothing by default: */
     return QString();
@@ -230,13 +237,13 @@ void UIAction::updateText()
             switch (m_enmActionPoolType)
             {
                 /* The same as menu name for Manager UI: */
-                case UIActionPoolType_Manager:
+                case UIType_ManagerUI:
                 {
                     setText(nameInMenu());
                     break;
                 }
                 /* With shortcut appended for Runtime UI: */
-                case UIActionPoolType_Runtime:
+                case UIType_RuntimeUI:
                 {
                     if (m_fMachineMenuAction)
                         setText(UITranslator::insertKeyToActionText(nameInMenu(),
@@ -512,12 +519,12 @@ protected:
     }
 
     /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType actionPoolType) const RT_OVERRIDE
+    virtual QKeySequence defaultShortcut(UIType enmActionPoolType) const RT_OVERRIDE
     {
-        switch (actionPoolType)
+        switch (enmActionPoolType)
         {
-            case UIActionPoolType_Manager: break;
-            case UIActionPoolType_Runtime: return QKeySequence("Q");
+            case UIType_ManagerUI: break;
+            case UIType_RuntimeUI: return QKeySequence("Q");
         }
         return QKeySequence();
     }
@@ -690,13 +697,13 @@ protected:
         return QString("Help");
     }
 
-    /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType actionPoolType) const RT_OVERRIDE
+    /** Returns standard shortcut. */
+    virtual QKeySequence standardShortcut(UIType enmActionPoolType) const RT_OVERRIDE
     {
-        switch (actionPoolType)
+        switch (enmActionPoolType)
         {
-            case UIActionPoolType_Manager: return QKeySequence(QKeySequence::HelpContents);
-            case UIActionPoolType_Runtime: break;
+            case UIType_ManagerUI: return UIShortcutPool::standardSequence(QKeySequence::HelpContents);
+            case UIType_RuntimeUI: break;
         }
         return QKeySequence();
     }
@@ -706,6 +713,52 @@ protected:
     {
         setName(QApplication::translate("UIActionPool", "&Contents..."));
         setStatusTip(QApplication::translate("UIActionPool", "Show help contents"));
+    }
+};
+
+/** Simple action extension, used as 'Online Documentation' action class. */
+class UIActionSimpleOnlineDocumentation : public UIActionSimple
+{
+    Q_OBJECT;
+
+public:
+
+    /** Constructs action passing @a pParent to the base-class. */
+    UIActionSimpleOnlineDocumentation(UIActionPool *pParent)
+        : UIActionSimple(pParent, ":/site_oracle_16px.png", ":/site_oracle_16px.png", true)
+    {
+        retranslateUi();
+    }
+
+protected:
+
+    /** Returns action extra-data ID. */
+    virtual int extraDataID() const RT_OVERRIDE
+    {
+        return UIExtraDataMetaDefs::MenuHelpActionType_OnlineDocumentation;
+    }
+    /** Returns action extra-data key. */
+    virtual QString extraDataKey() const RT_OVERRIDE
+    {
+        return gpConverter->toInternalString(UIExtraDataMetaDefs::MenuHelpActionType_OnlineDocumentation);
+    }
+    /** Returns whether action is allowed. */
+    virtual bool isAllowed() const RT_OVERRIDE
+    {
+        return actionPool()->isAllowedInMenuHelp(UIExtraDataMetaDefs::MenuHelpActionType_OnlineDocumentation);
+    }
+
+    /** Returns shortcut extra-data ID. */
+    virtual QString shortcutExtraDataID() const RT_OVERRIDE
+    {
+        return QString("OnlineDocumentation");
+    }
+
+    /** Handles translation event. */
+    virtual void retranslateUi() RT_OVERRIDE
+    {
+        setName(QApplication::translate("UIActionPool", "&Online Documentation..."));
+        setStatusTip(QApplication::translate("UIActionPool", "Open the browser and go to the VirtualBox user guide"));
     }
 };
 
@@ -847,7 +900,6 @@ protected:
     }
 };
 
-
 /** Simple action extension, used as 'Oracle' action class. */
 class UIActionSimpleOracle : public UIActionSimple
 {
@@ -891,53 +943,6 @@ protected:
     {
         setName(QApplication::translate("UIActionPool", "&Oracle Web Site..."));
         setStatusTip(QApplication::translate("UIActionPool", "Open the browser and go to the Oracle web site"));
-    }
-};
-
-
-/** Simple action extension, used as 'Online Documentation' action class. */
-class UIActionSimpleOnlineDocumentation : public UIActionSimple
-{
-    Q_OBJECT;
-
-public:
-
-    /** Constructs action passing @a pParent to the base-class. */
-    UIActionSimpleOnlineDocumentation(UIActionPool *pParent)
-        : UIActionSimple(pParent, ":/site_oracle_16px.png", ":/site_oracle_16px.png", true)
-    {
-        retranslateUi();
-    }
-
-protected:
-
-    /** Returns action extra-data ID. */
-    virtual int extraDataID() const RT_OVERRIDE
-    {
-        return UIExtraDataMetaDefs::MenuHelpActionType_OnlineDocumentation;
-    }
-    /** Returns action extra-data key. */
-    virtual QString extraDataKey() const RT_OVERRIDE
-    {
-        return gpConverter->toInternalString(UIExtraDataMetaDefs::MenuHelpActionType_OnlineDocumentation);
-    }
-    /** Returns whether action is allowed. */
-    virtual bool isAllowed() const RT_OVERRIDE
-    {
-        return actionPool()->isAllowedInMenuHelp(UIExtraDataMetaDefs::MenuHelpActionType_OnlineDocumentation);
-    }
-
-    /** Returns shortcut extra-data ID. */
-    virtual QString shortcutExtraDataID() const RT_OVERRIDE
-    {
-        return QString("OnlineDocumentation");
-    }
-
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE
-    {
-        setName(QApplication::translate("UIActionPool", "&Online Documentation..."));
-        setStatusTip(QApplication::translate("UIActionPool", "Open the browser and go to the VirtualBox user manual"));
     }
 };
 
@@ -1139,12 +1144,12 @@ protected:
     }
 
     /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
+    virtual QKeySequence defaultShortcut(UIType enmActionPoolType) const RT_OVERRIDE
     {
-        switch (actionPool()->type())
+        switch (enmActionPoolType)
         {
-            case UIActionPoolType_Manager: return QKeySequence("Ctrl+G");
-            case UIActionPoolType_Runtime: break;
+            case UIType_ManagerUI: return QKeySequence("Ctrl+G");
+            case UIType_RuntimeUI: break;
         }
         return QKeySequence();
     }
@@ -1172,12 +1177,6 @@ public:
     {}
 
 protected:
-
-    /** Returns shortcut extra-data ID. */
-    virtual QString shortcutExtraDataID() const RT_OVERRIDE
-    {
-        return QString("LogViewerMenu");
-    }
 
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
@@ -1211,7 +1210,7 @@ protected:
     }
 
     /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
+    virtual QKeySequence defaultShortcut(UIType) const RT_OVERRIDE
     {
         return QKeySequence("Ctrl+Shift+F");
     }
@@ -1252,7 +1251,7 @@ protected:
     }
 
     /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
+    virtual QKeySequence defaultShortcut(UIType) const RT_OVERRIDE
     {
         return QKeySequence("Ctrl+Shift+T");
     }
@@ -1293,7 +1292,7 @@ protected:
     }
 
     /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
+    virtual QKeySequence defaultShortcut(UIType) const RT_OVERRIDE
     {
         return QKeySequence("Ctrl+Shift+D");
     }
@@ -1309,15 +1308,15 @@ protected:
     }
 };
 
-/** Simple action extension, used as 'Toggle Pane Options' action class. */
-class UIActionMenuSelectorLogTogglePaneOptions : public UIActionToggle
+/** Simple action extension, used as 'Toggle Pane Preferences' action class. */
+class UIActionMenuSelectorLogTogglePanePreferences : public UIActionToggle
 {
     Q_OBJECT;
 
 public:
 
     /** Constructs action passing @a pParent to the base-class. */
-    UIActionMenuSelectorLogTogglePaneOptions(UIActionPool *pParent)
+    UIActionMenuSelectorLogTogglePanePreferences(UIActionPool *pParent)
         : UIActionToggle(pParent)
     {
         setShortcutContext(Qt::WidgetWithChildrenShortcut);
@@ -1330,11 +1329,11 @@ protected:
     /** Returns shortcut extra-data ID. */
     virtual QString shortcutExtraDataID() const RT_OVERRIDE
     {
-        return QString("ToggleLogOptions");
+        return QString("ToggleLogPreferences");
     }
 
     /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
+    virtual QKeySequence defaultShortcut(UIType) const RT_OVERRIDE
     {
         return QKeySequence("Ctrl+Shift+P");
     }
@@ -1342,10 +1341,10 @@ protected:
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
-        setName(QApplication::translate("UIActionPool", "&Options"));
+        setName(QApplication::translate("UIActionPool", "&Preferences"));
         setShortcutScope(QApplication::translate("UIActionPool", "Log Viewer"));
-        setStatusTip(QApplication::translate("UIActionPool", "Open pane with log viewer options"));
-        setToolTip(  QApplication::translate("UIActionPool", "Open Options Pane")
+        setStatusTip(QApplication::translate("UIActionPool", "Open pane with log viewer preferences"));
+        setToolTip(  QApplication::translate("UIActionPool", "Open Preferences Pane")
                    + (shortcut().isEmpty() ? QString() : QString(" (%1)").arg(shortcut().toString())));
     }
 };
@@ -1375,13 +1374,13 @@ protected:
     }
 
     /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
+    virtual QKeySequence defaultShortcut(UIType) const RT_OVERRIDE
     {
         return QKeySequence("Ctrl+Shift+R");
     }
 
     /** Returns standard shortcut. */
-    virtual QKeySequence standardShortcut(UIActionPoolType) const RT_OVERRIDE
+    virtual QKeySequence standardShortcut(UIType) const RT_OVERRIDE
     {
         return actionPool()->isTemporary() ? QKeySequence() : QKeySequence(QKeySequence::Refresh);
     }
@@ -1421,18 +1420,6 @@ protected:
         return QString("ReloadAllLogs");
     }
 
-    /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
-    {
-        return QKeySequence();
-    }
-
-    /** Returns standard shortcut. */
-    virtual QKeySequence standardShortcut(UIActionPoolType) const RT_OVERRIDE
-    {
-        return QKeySequence();
-    }
-
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
@@ -1469,7 +1456,7 @@ protected:
     }
 
     /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
+    virtual QKeySequence defaultShortcut(UIType) const RT_OVERRIDE
     {
         return QKeySequence("Ctrl+Shift+S");
     }
@@ -1499,12 +1486,6 @@ public:
 
 protected:
 
-    /** Returns shortcut extra-data ID. */
-    virtual QString shortcutExtraDataID() const RT_OVERRIDE
-    {
-        return QString("FileManagerMenu");
-    }
-
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
@@ -1525,12 +1506,6 @@ public:
 
 protected:
 
-    /** Returns shortcut extra-data ID. */
-    virtual QString shortcutExtraDataID() const RT_OVERRIDE
-    {
-        return QString("FileManagerHostSubmenu");
-    }
-
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
@@ -1550,12 +1525,6 @@ public:
     {}
 
 protected:
-
-    /** Returns shortcut extra-data ID. */
-    virtual QString shortcutExtraDataID() const RT_OVERRIDE
-    {
-        return QString("FileManagerGuestSubmenu");
-    }
 
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
@@ -1583,12 +1552,6 @@ protected:
     virtual QString shortcutExtraDataID() const RT_OVERRIDE
     {
         return QString("FileManagerCopyToGuest");
-    }
-
-    /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
-    {
-        return QKeySequence();
     }
 
     /** Handles translation event. */
@@ -1623,12 +1586,6 @@ protected:
         return QString("FileManagerCopyToHost");
     }
 
-    /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
-    {
-        return QKeySequence();
-    }
-
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
@@ -1640,15 +1597,15 @@ protected:
     }
 };
 
-/** Toggle action extension, used to toggle 'File Manager Options' panel in file manager. */
-class UIActionMenuFileManagerOptions : public UIActionToggle
+/** Toggle action extension, used to toggle 'File Manager Preferences' panel in file manager. */
+class UIActionMenuFileManagerPreferences : public UIActionToggle
 {
     Q_OBJECT;
 
 public:
 
     /** Constructs action passing @a pParent to the base-class. */
-    UIActionMenuFileManagerOptions(UIActionPool *pParent)
+    UIActionMenuFileManagerPreferences(UIActionPool *pParent)
         : UIActionToggle(pParent)
     {
         setShortcutContext(Qt::WidgetWithChildrenShortcut);
@@ -1664,19 +1621,13 @@ protected:
         return QString("ToggleFileManagerOptionsPanel");
     }
 
-    /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
-    {
-        return QKeySequence();
-    }
-
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
-        setName(QApplication::translate("UIActionPool", "Options"));
+        setName(QApplication::translate("UIActionPool", "&Preferences"));
         setShortcutScope(QApplication::translate("UIActionPool", "File Manager"));
-        setStatusTip(QApplication::translate("UIActionPool", "Open panel with file manager options"));
-        setToolTip(  QApplication::translate("UIActionPool", "Open Options Pane")
+        setStatusTip(QApplication::translate("UIActionPool", "Open pane with file manager preferences"));
+        setToolTip(  QApplication::translate("UIActionPool", "Open Preferences Pane")
                    + (shortcut().isEmpty() ? QString() : QString(" (%1)").arg(shortcut().toString())));
     }
 };
@@ -1705,18 +1656,12 @@ protected:
         return QString("ToggleFileManagerLogPanel");
     }
 
-    /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
-    {
-        return QKeySequence();
-    }
-
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
         setName(QApplication::translate("UIActionPool", "Log"));
         setShortcutScope(QApplication::translate("UIActionPool", "File Manager"));
-        setStatusTip(QApplication::translate("UIActionPool", "Open panel with file manager log"));
+        setStatusTip(QApplication::translate("UIActionPool", "Open pane with file manager log"));
         setToolTip(  QApplication::translate("UIActionPool", "Open Log Pane")
                    + (shortcut().isEmpty() ? QString() : QString(" (%1)").arg(shortcut().toString())));
     }
@@ -1746,18 +1691,12 @@ protected:
         return QString("ToggleFileManagerOperationsPanel");
     }
 
-    /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
-    {
-        return QKeySequence();
-    }
-
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
         setName(QApplication::translate("UIActionPool", "Operations"));
         setShortcutScope(QApplication::translate("UIActionPool", "File Manager"));
-        setStatusTip(QApplication::translate("UIActionPool", "Open panel with file manager operations"));
+        setStatusTip(QApplication::translate("UIActionPool", "Open pane with file manager operations"));
         setToolTip(  QApplication::translate("UIActionPool", "Open Operations Pane")
                    + (shortcut().isEmpty() ? QString() : QString(" (%1)").arg(shortcut().toString())));
     }
@@ -1785,12 +1724,6 @@ protected:
     virtual QString shortcutExtraDataID() const RT_OVERRIDE
     {
         return QString("ToggleFileManagerGuestSessionPanel");
-    }
-
-    /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
-    {
-        return QKeySequence();
     }
 
     /** Handles translation event. */
@@ -1826,12 +1759,6 @@ protected:
         return QString("FileManagerGoUp");
     }
 
-    /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
-    {
-        return QKeySequence();
-    }
-
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
@@ -1865,12 +1792,6 @@ protected:
         return QString("FileManagerGoHome");
     }
 
-    /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
-    {
-        return QKeySequence();
-    }
-
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
@@ -1878,6 +1799,72 @@ protected:
         setShortcutScope(QApplication::translate("UIActionPool", "File Manager"));
         setStatusTip(QApplication::translate("UIActionPool", "Go to home folder"));
         setToolTip(  QApplication::translate("UIActionPool", "Go to Home Folder")
+                   + (shortcut().isEmpty() ? QString() : QString(" (%1)").arg(shortcut().toString())));
+    }
+};
+
+/** Simple action extension, used as 'Perform GoForward' in file manager action class. */
+class UIActionMenuFileManagerGoForward : public UIActionSimple
+{
+    Q_OBJECT;
+
+public:
+
+    /** Constructs action passing @a pParent to the base-class. */
+    UIActionMenuFileManagerGoForward(UIActionPool *pParent)
+        : UIActionSimple(pParent,
+                         ":/file_manager_go_forward_24px.png", ":/file_manager_go_forward_16px.png",
+                         ":/file_manager_go_forward_disabled_24px.png", ":/file_manager_go_forward_disabled_16px.png")
+    {}
+
+protected:
+
+    /** Returns shortcut extra-data ID. */
+    virtual QString shortcutExtraDataID() const RT_OVERRIDE
+    {
+        return QString("FileManagerGoForward");
+    }
+
+    /** Handles translation event. */
+    virtual void retranslateUi() RT_OVERRIDE
+    {
+        setName(QApplication::translate("UIActionPool", "Go Forward"));
+        setShortcutScope(QApplication::translate("UIActionPool", "File Manager"));
+        setStatusTip(QApplication::translate("UIActionPool", "Go forward"));
+        setToolTip(  QApplication::translate("UIActionPool", "Go Forward")
+                   + (shortcut().isEmpty() ? QString() : QString(" (%1)").arg(shortcut().toString())));
+    }
+};
+
+/** Simple action extension, used as 'Perform GoBackward' in file manager action class. */
+class UIActionMenuFileManagerGoBackward : public UIActionSimple
+{
+    Q_OBJECT;
+
+public:
+
+    /** Constructs action passing @a pParent to the base-class. */
+    UIActionMenuFileManagerGoBackward(UIActionPool *pParent)
+        : UIActionSimple(pParent,
+                         ":/file_manager_go_backward_24px.png", ":/file_manager_go_backward_16px.png",
+                         ":/file_manager_go_backward_disabled_24px.png", ":/file_manager_go_backward_disabled_16px.png")
+    {}
+
+protected:
+
+    /** Returns shortcut extra-data ID. */
+    virtual QString shortcutExtraDataID() const RT_OVERRIDE
+    {
+        return QString("FileManagerGoBackward");
+    }
+
+    /** Handles translation event. */
+    virtual void retranslateUi() RT_OVERRIDE
+    {
+        setName(QApplication::translate("UIActionPool", "Go Backward"));
+        setShortcutScope(QApplication::translate("UIActionPool", "File Manager"));
+        setStatusTip(QApplication::translate("UIActionPool", "Go backward"));
+        setToolTip(  QApplication::translate("UIActionPool", "Go Backward")
                    + (shortcut().isEmpty() ? QString() : QString(" (%1)").arg(shortcut().toString())));
     }
 };
@@ -1902,12 +1889,6 @@ protected:
     virtual QString shortcutExtraDataID() const RT_OVERRIDE
     {
         return QString("FileManagerDelete");
-    }
-
-    /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
-    {
-        return QKeySequence();
     }
 
     /** Handles translation event. */
@@ -1943,12 +1924,6 @@ protected:
         return QString("FileManagerRefresh");
     }
 
-    /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
-    {
-        return QKeySequence();
-    }
-
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
@@ -1979,12 +1954,6 @@ protected:
     virtual QString shortcutExtraDataID() const RT_OVERRIDE
     {
         return QString("FileManagerRename");
-    }
-
-    /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
-    {
-        return QKeySequence();
     }
 
     /** Handles translation event. */
@@ -2019,12 +1988,6 @@ protected:
         return QString("FileManagerCreateNewDirectory");
     }
 
-    /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
-    {
-        return QKeySequence();
-    }
-
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
@@ -2055,12 +2018,6 @@ protected:
     virtual QString shortcutExtraDataID() const RT_OVERRIDE
     {
         return QString("FileManagerCopy");
-    }
-
-    /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
-    {
-        return QKeySequence();
     }
 
     /** Handles translation event. */
@@ -2095,12 +2052,6 @@ protected:
         return QString("FileManagerCut");
     }
 
-    /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
-    {
-        return QKeySequence();
-    }
-
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
@@ -2131,12 +2082,6 @@ protected:
     virtual QString shortcutExtraDataID() const RT_OVERRIDE
     {
         return QString("FileManagerPaste");
-    }
-
-    /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
-    {
-        return QKeySequence();
     }
 
     /** Handles translation event. */
@@ -2171,12 +2116,6 @@ protected:
         return QString("FileManagerSelectAll");
     }
 
-    /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
-    {
-        return QKeySequence();
-    }
-
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
@@ -2207,12 +2146,6 @@ protected:
     virtual QString shortcutExtraDataID() const RT_OVERRIDE
     {
         return QString("FileManagerInvertSelection");
-    }
-
-    /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
-    {
-        return QKeySequence();
     }
 
     /** Handles translation event. */
@@ -2247,12 +2180,6 @@ protected:
         return QString("FileManagerShowProperties");
     }
 
-    /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
-    {
-        return QKeySequence();
-    }
-
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
@@ -2278,12 +2205,6 @@ public:
 
 protected:
 
-    /** Returns shortcut extra-data ID. */
-    virtual QString shortcutExtraDataID() const RT_OVERRIDE
-    {
-        return QString("VISOCreatorMenu");
-    }
-
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
@@ -2291,15 +2212,15 @@ protected:
     }
 };
 
-/** Toggle action extension, used to toggle 'VISO Creator configuration' panel in file manager. */
-class UIActionMenuVISOCreatorToggleConfigPanel : public UIActionToggle
+/** Toggle action extension, used to toggle 'VISO Creator Preferences' pane in VISO Creator. */
+class UIActionToggleVISOCreatorPreferences : public UIActionToggle
 {
     Q_OBJECT;
 
 public:
 
     /** Constructs action passing @a pParent to the base-class. */
-    UIActionMenuVISOCreatorToggleConfigPanel(UIActionPool *pParent)
+    UIActionToggleVISOCreatorPreferences(UIActionPool *pParent)
         : UIActionToggle(pParent)
     {
         setShortcutContext(Qt::WidgetWithChildrenShortcut);
@@ -2314,76 +2235,28 @@ protected:
     /** Returns shortcut extra-data ID. */
     virtual QString shortcutExtraDataID() const RT_OVERRIDE
     {
-        return QString("ToggleVISOCreatorConfigurationPanel");
-    }
-
-    /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
-    {
-        return QKeySequence();
+        return QString("ToggleVISOCreatorPreferences");
     }
 
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
-        setName(QApplication::translate("UIActionPool", "Configuration"));
+        setName(QApplication::translate("UIActionPool", "&Preferences"));
         setShortcutScope(QApplication::translate("UIActionPool", "VISO Creator"));
-        setStatusTip(QApplication::translate("UIActionPool", "Open panel for VISO Creator configuration"));
-        setToolTip(QApplication::translate("UIActionPool", "Open Configuration Panel")
+        setStatusTip(QApplication::translate("UIActionPool", "Open pane with VISO Creator preferences"));
+        setToolTip(QApplication::translate("UIActionPool", "Open Preferences Pane")
                    + (shortcut().isEmpty() ? QString() : QString(" (%1)").arg(shortcut().toString())));
     }
 };
 
-/** Toggle action extension, used to toggle 'VISO Creator options' panel in file manager. */
-class UIActionMenuVISOCreatorToggleOptionsPanel : public UIActionToggle
+class UIActionSimpleVISOCreatorAdd : public UIActionSimple
 {
     Q_OBJECT;
 
 public:
 
     /** Constructs action passing @a pParent to the base-class. */
-    UIActionMenuVISOCreatorToggleOptionsPanel(UIActionPool *pParent)
-        : UIActionToggle(pParent)
-    {
-        setShortcutContext(Qt::WidgetWithChildrenShortcut);
-        setIcon(UIIconPool::iconSetFull(":/file_manager_options_32px.png",
-                                        ":/%file_manager_options_16px.png",
-                                        ":/file_manager_options_disabled_32px.png",
-                                        ":/file_manager_options_disabled_16px.png"));
-    }
-
-protected:
-
-    /** Returns shortcut extra-data ID. */
-    virtual QString shortcutExtraDataID() const RT_OVERRIDE
-    {
-        return QString("ToggleVISOCreatorOptionsPanel");
-    }
-
-    /** Returns default shortcut. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const RT_OVERRIDE
-    {
-        return QKeySequence();
-    }
-
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE
-    {
-        setName(QApplication::translate("UIActionPool", "Options"));
-        setShortcutScope(QApplication::translate("UIActionPool", "VISO Creator"));
-        setStatusTip(QApplication::translate("UIActionPool", "Open panel for VISO Creator options"));
-        setToolTip(QApplication::translate("UIActionPool", "Open Options Panel")
-                   + (shortcut().isEmpty() ? QString() : QString(" (%1)").arg(shortcut().toString())));
-    }
-};
-
-class UIActionMenuVISOCreatorAdd : public UIActionSimple
-{
-    Q_OBJECT;
-
-public:
-    /** Constructs action passing @a pParent to the base-class. */
-    UIActionMenuVISOCreatorAdd(UIActionPool *pParent)
+    UIActionSimpleVISOCreatorAdd(UIActionPool *pParent)
         : UIActionSimple(pParent,
                          ":/file_manager_copy_to_guest_24px.png",
                          ":/file_manager_copy_to_guest_16px.png",
@@ -2412,13 +2285,14 @@ protected:
     }
 };
 
-class UIActionMenuVISOCreatorRemove : public UIActionSimple
+class UIActionSimpleVISOCreatorRemove : public UIActionSimple
 {
     Q_OBJECT;
 
 public:
+
     /** Constructs action passing @a pParent to the base-class. */
-    UIActionMenuVISOCreatorRemove(UIActionPool *pParent)
+    UIActionSimpleVISOCreatorRemove(UIActionPool *pParent)
         : UIActionSimple(pParent,
                          ":/file_manager_delete_24px.png",
                          ":/file_manager_delete_16px.png",
@@ -2442,18 +2316,55 @@ protected:
         setName(QApplication::translate("UIActionPool", "&Remove"));
         setShortcutScope(QApplication::translate("UIActionPool", "VISO Creator"));
         setStatusTip(QApplication::translate("UIActionPool", "Remove selected item(s) from VISO"));
-        setToolTip(QApplication::translate("UIActionPool", "Remove Item(s) from VISO")
+        setToolTip(QApplication::translate("UIActionPool", "Remove Selected Item(s) From VISO")
                    + (shortcut().isEmpty() ? QString() : QString(" (%1)").arg(shortcut().toString())));
     }
 };
 
-class UIActionMenuVISOCreatorCreateNewDirectory : public UIActionSimple
+class UIActionSimpleVISOCreatorRestore : public UIActionSimple
 {
     Q_OBJECT;
 
 public:
+
     /** Constructs action passing @a pParent to the base-class. */
-    UIActionMenuVISOCreatorCreateNewDirectory(UIActionPool *pParent)
+    UIActionSimpleVISOCreatorRestore(UIActionPool *pParent)
+        : UIActionSimple(pParent,
+                         ":/file_manager_restore_24px.png",
+                         ":/file_manager_restore_16px.png",
+                         ":/file_manager_restore_disabled_24px.png",
+                         ":/file_manager_restore_disabled_16px.png")
+    {
+        setShortcutContext(Qt::WidgetWithChildrenShortcut);
+    }
+
+protected:
+
+    /** Returns shortcut extra-data ID. */
+    virtual QString shortcutExtraDataID() const RT_OVERRIDE
+    {
+        return QString("VISORestoreItem");
+    }
+
+    /** Handles translation event. */
+    virtual void retranslateUi() RT_OVERRIDE
+    {
+        setName(QApplication::translate("UIActionPool", "&Restore"));
+        setShortcutScope(QApplication::translate("UIActionPool", "VISO Creator"));
+        setStatusTip(QApplication::translate("UIActionPool", "Restore selected item(s)"));
+        setToolTip(QApplication::translate("UIActionPool", "Restore Selected Item(s)")
+                   + (shortcut().isEmpty() ? QString() : QString(" (%1)").arg(shortcut().toString())));
+    }
+};
+
+class UIActionSimpleVISOCreatorCreateNewDirectory : public UIActionSimple
+{
+    Q_OBJECT;
+
+public:
+
+    /** Constructs action passing @a pParent to the base-class. */
+    UIActionSimpleVISOCreatorCreateNewDirectory(UIActionPool *pParent)
         : UIActionSimple(pParent,
                          ":/file_manager_new_directory_24px.png",
                          ":/file_manager_new_directory_16px.png",
@@ -2482,13 +2393,14 @@ protected:
     }
 };
 
-class UIActionMenuVISOCreatorRename : public UIActionSimple
+class UIActionSimpleVISOCreatorRename : public UIActionSimple
 {
     Q_OBJECT;
 
 public:
+
     /** Constructs action passing @a pParent to the base-class. */
-    UIActionMenuVISOCreatorRename(UIActionPool *pParent)
+    UIActionSimpleVISOCreatorRename(UIActionPool *pParent)
         : UIActionSimple(pParent,
                          ":/file_manager_rename_24px.png",
                          ":/file_manager_rename_16px.png",
@@ -2512,18 +2424,19 @@ protected:
         setName(QApplication::translate("UIActionPool", "&Rename"));
         setShortcutScope(QApplication::translate("UIActionPool", "VISO Creator"));
         setStatusTip(QApplication::translate("UIActionPool", "Rename the selected object"));
-        setToolTip(QApplication::translate("UIActionPool", "Rename Object")
+        setToolTip(QApplication::translate("UIActionPool", "Rename Selected VISO File Object")
                    + (shortcut().isEmpty() ? QString() : QString(" (%1)").arg(shortcut().toString())));
     }
 };
 
-class UIActionMenuVISOCreatorReset : public UIActionSimple
+class UIActionSimpleVISOCreatorReset : public UIActionSimple
 {
     Q_OBJECT;
 
 public:
+
     /** Constructs action passing @a pParent to the base-class. */
-    UIActionMenuVISOCreatorReset(UIActionPool *pParent)
+    UIActionSimpleVISOCreatorReset(UIActionPool *pParent)
         : UIActionSimple(pParent,
                          ":/cd_remove_16px.png", ":/cd_remove_disabled_16px.png")
     {
@@ -2543,8 +2456,272 @@ protected:
     {
         setName(QApplication::translate("UIActionPool", "R&eset"));
         setShortcutScope(QApplication::translate("UIActionPool", "VISO Creator"));
-        setStatusTip(QApplication::translate("UIActionPool", "Reset the VISO content."));
-        setToolTip(QApplication::translate("UIActionPool", "Reset the VISO content.")
+        setStatusTip(QApplication::translate("UIActionPool", "Reset the VISO content"));
+        setToolTip(QApplication::translate("UIActionPool", "Reset the VISO Content")
+                   + (shortcut().isEmpty() ? QString() : QString(" (%1)").arg(shortcut().toString())));
+    }
+};
+
+class UIActionSimpleVISOCreatorOpen : public UIActionSimple
+{
+    Q_OBJECT;
+
+public:
+
+    /** Constructs action passing @a pParent to the base-class. */
+    UIActionSimpleVISOCreatorOpen(UIActionPool *pParent)
+        : UIActionSimple(pParent,
+                         ":/cd_remove_16px.png", ":/cd_remove_32px.png")
+    {
+        setShortcutContext(Qt::WidgetWithChildrenShortcut);
+    }
+
+protected:
+
+    /** Returns shortcut extra-data ID. */
+    virtual QString shortcutExtraDataID() const RT_OVERRIDE
+    {
+        return QString("VISOOpen");
+    }
+
+    /** Handles translation event. */
+    virtual void retranslateUi() RT_OVERRIDE
+    {
+        setName(QApplication::translate("UIActionPool", "Open"));
+        setShortcutScope(QApplication::translate("UIActionPool", "VISO Creator"));
+        setStatusTip(QApplication::translate("UIActionPool", "Open the VISO content"));
+        setToolTip(QApplication::translate("UIActionPool", "Open the VISO Content")
+                   + (shortcut().isEmpty() ? QString() : QString(" (%1)").arg(shortcut().toString())));
+    }
+};
+
+class UIActionSimpleVISOCreatorSaveAs : public UIActionSimple
+{
+    Q_OBJECT;
+
+public:
+
+    /** Constructs action passing @a pParent to the base-class. */
+    UIActionSimpleVISOCreatorSaveAs(UIActionPool *pParent)
+        : UIActionSimple(pParent,
+                         ":/cd_write_16px.png", ":/cd_write_32px.png")
+    {
+        setShortcutContext(Qt::WidgetWithChildrenShortcut);
+    }
+
+protected:
+
+    /** Returns shortcut extra-data ID. */
+    virtual QString shortcutExtraDataID() const RT_OVERRIDE
+    {
+        return QString("VISOSaveAs");
+    }
+
+    /** Handles translation event. */
+    virtual void retranslateUi() RT_OVERRIDE
+    {
+        setName(QApplication::translate("UIActionPool", "Save As"));
+        setShortcutScope(QApplication::translate("UIActionPool", "VISO Creator"));
+        setStatusTip(QApplication::translate("UIActionPool", "Save the VISO content"));
+        setToolTip(QApplication::translate("UIActionPool", "Save the VISO Content")
+                   + (shortcut().isEmpty() ? QString() : QString(" (%1)").arg(shortcut().toString())));
+    }
+};
+
+class UIActionSimpleVISOCreatorImportISO : public UIActionSimple
+{
+    Q_OBJECT;
+
+public:
+
+    /** Constructs action passing @a pParent to the base-class. */
+    UIActionSimpleVISOCreatorImportISO(UIActionPool *pParent)
+        : UIActionSimple(pParent,
+                         ":/cd_add_16px.png", ":/cd_add_32px.png", ":/cd_add_disabled_16px.png", ":/cd_add_disabled_32px.png")
+    {
+        setShortcutContext(Qt::WidgetWithChildrenShortcut);
+    }
+
+protected:
+
+    /** Returns shortcut extra-data ID. */
+    virtual QString shortcutExtraDataID() const RT_OVERRIDE
+    {
+        return QString("ISOImport");
+    }
+
+    /** Handles translation event. */
+    virtual void retranslateUi() RT_OVERRIDE
+    {
+        setName(QApplication::translate("UIActionPool", "Import ISO"));
+        setShortcutScope(QApplication::translate("UIActionPool", "VISO Creator"));
+        setStatusTip(QApplication::translate("UIActionPool", "Import ISO into the VISO content"));
+        setToolTip(QApplication::translate("UIActionPool", "Import Selected ISO Into the VISO Content")
+                   + (shortcut().isEmpty() ? QString() : QString(" (%1)").arg(shortcut().toString())));
+    }
+};
+
+class UIActionSimpleVISOCreatorRemoveISO : public UIActionSimple
+{
+    Q_OBJECT;
+
+public:
+
+    /** Constructs action passing @a pParent to the base-class. */
+    UIActionSimpleVISOCreatorRemoveISO(UIActionPool *pParent)
+        : UIActionSimple(pParent,
+                         ":/cd_remove_16px.png", ":/cd_remove_32px.png", ":/cd_remove_disabled_16px.png", ":/cd_remove_disabled_32px.png")
+    {
+        setShortcutContext(Qt::WidgetWithChildrenShortcut);
+    }
+
+protected:
+
+    /** Returns shortcut extra-data ID. */
+    virtual QString shortcutExtraDataID() const RT_OVERRIDE
+    {
+        return QString("ISORemove");
+    }
+
+    /** Handles translation event. */
+    virtual void retranslateUi() RT_OVERRIDE
+    {
+        setName(QApplication::translate("UIActionPool", "Remove ISO"));
+        setShortcutScope(QApplication::translate("UIActionPool", "VISO Creator"));
+        setStatusTip(QApplication::translate("UIActionPool", "Remove the imported ISO from the VISO content"));
+        setToolTip(QApplication::translate("UIActionPool", "Remove the Imported ISO From the VISO Content")
+                   + (shortcut().isEmpty() ? QString() : QString(" (%1)").arg(shortcut().toString())));
+    }
+};
+
+/** Simple action extension, used as 'Perform GoUp' in VISO creator action class. */
+class UIActionSimpleVISOCreatorGoUp : public UIActionSimple
+{
+    Q_OBJECT;
+
+public:
+
+    /** Constructs action passing @a pParent to the base-class. */
+    UIActionSimpleVISOCreatorGoUp(UIActionPool *pParent)
+        : UIActionSimple(pParent,
+                         ":/file_manager_go_up_24px.png", ":/file_manager_go_up_16px.png",
+                         ":/file_manager_go_up_disabled_24px.png", ":/file_manager_go_up_disabled_16px.png")
+    {}
+
+protected:
+
+    /** Returns shortcut extra-data ID. */
+    virtual QString shortcutExtraDataID() const RT_OVERRIDE
+    {
+        return QString("VISOCreatorGoUp");
+    }
+
+    /** Handles translation event. */
+    virtual void retranslateUi() RT_OVERRIDE
+    {
+        setName(QApplication::translate("UIActionPool", "Go Up"));
+        setShortcutScope(QApplication::translate("UIActionPool", "VISO Creator"));
+        setStatusTip(QApplication::translate("UIActionPool", "Go one level up to parent folder"));
+        setToolTip(  QApplication::translate("UIActionPool", "Go One Level Up")
+                   + (shortcut().isEmpty() ? QString() : QString(" (%1)").arg(shortcut().toString())));
+    }
+};
+
+/** Simple action extension, used as 'Perform GoHome' in VISO creator action class. */
+class UIActionSimpleVISOCreatorGoHome : public UIActionSimple
+{
+    Q_OBJECT;
+
+public:
+
+    /** Constructs action passing @a pParent to the base-class. */
+    UIActionSimpleVISOCreatorGoHome(UIActionPool *pParent)
+        : UIActionSimple(pParent,
+                         ":/file_manager_go_home_24px.png", ":/file_manager_go_home_16px.png",
+                         ":/file_manager_go_home_disabled_24px.png", ":/file_manager_go_home_disabled_16px.png")
+    {}
+
+protected:
+
+    /** Returns shortcut extra-data ID. */
+    virtual QString shortcutExtraDataID() const RT_OVERRIDE
+    {
+        return QString("VISOCreatorGoHome");
+    }
+
+    /** Handles translation event. */
+    virtual void retranslateUi() RT_OVERRIDE
+    {
+        setName(QApplication::translate("UIActionPool", "Go Home"));
+        setShortcutScope(QApplication::translate("UIActionPool", "VISO Creator"));
+        setStatusTip(QApplication::translate("UIActionPool", "Go to home folder"));
+        setToolTip(  QApplication::translate("UIActionPool", "Go to Home Folder")
+                   + (shortcut().isEmpty() ? QString() : QString(" (%1)").arg(shortcut().toString())));
+    }
+};
+
+/** Simple action extension, used as 'Perform GoForward' in VISO creator action class. */
+class UIActionSimpleVISOCreatorGoForward : public UIActionSimple
+{
+    Q_OBJECT;
+
+public:
+
+    /** Constructs action passing @a pParent to the base-class. */
+    UIActionSimpleVISOCreatorGoForward(UIActionPool *pParent)
+        : UIActionSimple(pParent,
+                         ":/file_manager_go_forward_24px.png", ":/file_manager_go_forward_16px.png",
+                         ":/file_manager_go_forward_disabled_24px.png", ":/file_manager_go_forward_disabled_16px.png")
+    {}
+
+protected:
+
+    /** Returns shortcut extra-data ID. */
+    virtual QString shortcutExtraDataID() const RT_OVERRIDE
+    {
+        return QString("VISOCreatorGoForward");
+    }
+
+    /** Handles translation event. */
+    virtual void retranslateUi() RT_OVERRIDE
+    {
+        setName(QApplication::translate("UIActionPool", "Go Forward"));
+        setShortcutScope(QApplication::translate("UIActionPool", "VISO Creator"));
+        setStatusTip(QApplication::translate("UIActionPool", "Go forward"));
+        setToolTip(  QApplication::translate("UIActionPool", "Go Forward")
+                   + (shortcut().isEmpty() ? QString() : QString(" (%1)").arg(shortcut().toString())));
+    }
+};
+
+/** Simple action extension, used as 'Perform GoBackward' in VISO creator action class. */
+class UIActionSimpleVISOCreatorGoBackward : public UIActionSimple
+{
+    Q_OBJECT;
+
+public:
+
+    /** Constructs action passing @a pParent to the base-class. */
+    UIActionSimpleVISOCreatorGoBackward(UIActionPool *pParent)
+        : UIActionSimple(pParent,
+                         ":/file_manager_go_backward_24px.png", ":/file_manager_go_backward_16px.png",
+                         ":/file_manager_go_backward_disabled_24px.png", ":/file_manager_go_backward_disabled_16px.png")
+    {}
+
+protected:
+
+    /** Returns shortcut extra-data ID. */
+    virtual QString shortcutExtraDataID() const RT_OVERRIDE
+    {
+        return QString("VISOCreatorGoBackward");
+    }
+
+    /** Handles translation event. */
+    virtual void retranslateUi() RT_OVERRIDE
+    {
+        setName(QApplication::translate("UIActionPool", "Go Backward"));
+        setShortcutScope(QApplication::translate("UIActionPool", "VISO Creator"));
+        setStatusTip(QApplication::translate("UIActionPool", "Go backward"));
+        setToolTip(  QApplication::translate("UIActionPool", "Go Backward")
                    + (shortcut().isEmpty() ? QString() : QString(" (%1)").arg(shortcut().toString())));
     }
 };
@@ -2562,12 +2739,6 @@ public:
     {}
 
 protected:
-
-    /** Returns shortcut extra-data ID. */
-    virtual QString shortcutExtraDataID() const RT_OVERRIDE
-    {
-        return QString("MediumSelector");
-    }
 
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
@@ -2828,12 +2999,6 @@ public:
 
 protected:
 
-    /** Returns shortcut extra-data ID. */
-    virtual QString shortcutExtraDataID() const RT_OVERRIDE
-    {
-        return QString("VMActivityMonitorMenu");
-    }
-
     /** Handles translation event. */
     virtual void retranslateUi() RT_OVERRIDE
     {
@@ -2911,19 +3076,60 @@ protected:
     }
 };
 
+/** Simple action extension, used as 'Toggle Pane Preferences' action class. */
+class UIActionMenuActivityPreferences : public UIActionToggle
+{
+    Q_OBJECT;
+
+public:
+
+    /** Constructs action passing @a pParent to the base-class. */
+    UIActionMenuActivityPreferences(UIActionPool *pParent)
+        : UIActionToggle(pParent)
+    {
+        setShortcutContext(Qt::WidgetWithChildrenShortcut);
+        setIcon(UIIconPool::iconSetFull(":/performance_monitor_preferences_32px.png",          ":/performance_monitor_preferences_16px.png",
+                                        ":/performance_monitor_preferences_disabled_32px.png", ":/performance_monitor_preferences_disabled_16px.png"));
+    }
+
+protected:
+
+    /** Returns shortcut extra-data ID. */
+    virtual QString shortcutExtraDataID() const RT_OVERRIDE
+    {
+        return QString("ToggleActivityMonitorPreferences");
+    }
+
+    /** Returns default shortcut. */
+    virtual QKeySequence defaultShortcut(UIType) const RT_OVERRIDE
+    {
+        return QKeySequence("");
+    }
+
+    /** Handles translation event. */
+    virtual void retranslateUi() RT_OVERRIDE
+    {
+        setName(QApplication::translate("UIActionPool", "&Preferences"));
+        setShortcutScope(QApplication::translate("UIActionPool", "Activity Monitor"));
+        setStatusTip(QApplication::translate("UIActionPool", "Open pane with activity monitor preferences"));
+        setToolTip(  QApplication::translate("UIActionPool", "Open Preferences Pane")
+                   + (shortcut().isEmpty() ? QString() : QString(" (%1)").arg(shortcut().toString())));
+    }
+};
+
 
 /*********************************************************************************************************************************
 *   Class UIActionPool implementation.                                                                                           *
 *********************************************************************************************************************************/
 
 /* static */
-UIActionPool *UIActionPool::create(UIActionPoolType enmType)
+UIActionPool *UIActionPool::create(UIType enmType)
 {
     UIActionPool *pActionPool = 0;
     switch (enmType)
     {
-        case UIActionPoolType_Manager: pActionPool = new UIActionPoolManager; break;
-        case UIActionPoolType_Runtime: pActionPool = new UIActionPoolRuntime; break;
+        case UIType_ManagerUI: pActionPool = new UIActionPoolManager; break;
+        case UIType_RuntimeUI: pActionPool = new UIActionPoolRuntime; break;
         default: AssertFailedReturn(0);
     }
     AssertPtrReturn(pActionPool, 0);
@@ -2940,13 +3146,13 @@ void UIActionPool::destroy(UIActionPool *pActionPool)
 }
 
 /* static */
-void UIActionPool::createTemporary(UIActionPoolType enmType)
+void UIActionPool::createTemporary(UIType enmType)
 {
     UIActionPool *pActionPool = 0;
     switch (enmType)
     {
-        case UIActionPoolType_Manager: pActionPool = new UIActionPoolManager(true); break;
-        case UIActionPoolType_Runtime: pActionPool = new UIActionPoolRuntime(true); break;
+        case UIType_ManagerUI: pActionPool = new UIActionPoolManager(true); break;
+        case UIType_RuntimeUI: pActionPool = new UIActionPoolRuntime(true); break;
         default: AssertFailedReturnVoid();
     }
     AssertPtrReturnVoid(pActionPool);
@@ -3105,7 +3311,7 @@ void UIActionPool::sltActionHovered()
 }
 #endif /* VBOX_WS_MAC */
 
-UIActionPool::UIActionPool(UIActionPoolType enmType, bool fTemporary /* = false */)
+UIActionPool::UIActionPool(UIType enmType, bool fTemporary /* = false */)
     : m_enmType(enmType)
     , m_fTemporary(fTemporary)
 {
@@ -3134,11 +3340,11 @@ void UIActionPool::preparePool()
     /* Create 'Help' actions: */
     m_pool[UIActionIndex_Menu_Help] = new UIActionMenuHelp(this);
     m_pool[UIActionIndex_Simple_Contents] = new UIActionSimpleContents(this);
+    m_pool[UIActionIndex_Simple_OnlineDocumentation] = new UIActionSimpleOnlineDocumentation(this);
     m_pool[UIActionIndex_Simple_WebSite] = new UIActionSimpleWebSite(this);
     m_pool[UIActionIndex_Simple_BugTracker] = new UIActionSimpleBugTracker(this);
     m_pool[UIActionIndex_Simple_Forums] = new UIActionSimpleForums(this);
     m_pool[UIActionIndex_Simple_Oracle] = new UIActionSimpleOracle(this);
-    m_pool[UIActionIndex_Simple_OnlineDocumentation] = new UIActionSimpleOnlineDocumentation(this);
 #ifndef VBOX_WS_MAC
     m_pool[UIActionIndex_Simple_About] = new UIActionSimpleAbout(this);
 #endif
@@ -3149,7 +3355,7 @@ void UIActionPool::preparePool()
     m_pool[UIActionIndex_M_Log_T_Find] = new UIActionMenuSelectorLogTogglePaneFind(this);
     m_pool[UIActionIndex_M_Log_T_Filter] = new UIActionMenuSelectorLogTogglePaneFilter(this);
     m_pool[UIActionIndex_M_Log_T_Bookmark] = new UIActionMenuSelectorLogTogglePaneBookmark(this);
-    m_pool[UIActionIndex_M_Log_T_Options] = new UIActionMenuSelectorLogTogglePaneOptions(this);
+    m_pool[UIActionIndex_M_Log_T_Preferences] = new UIActionMenuSelectorLogTogglePanePreferences(this);
     m_pool[UIActionIndex_M_Log_S_Refresh] = new UIActionMenuSelectorLogPerformRefresh(this);
     m_pool[UIActionIndex_M_Log_S_Reload] = new UIActionMenuSelectorLogPerformReload(this);
     m_pool[UIActionIndex_M_Log_S_Save] = new UIActionMenuSelectorLogPerformSave(this);
@@ -3158,6 +3364,7 @@ void UIActionPool::preparePool()
     m_pool[UIActionIndex_M_Activity] = new UIActionMenuSelectorActivity(this);
     m_pool[UIActionIndex_M_Activity_S_Export] = new UIActionMenuSelectorActivityPerformExport(this);
     m_pool[UIActionIndex_M_Activity_S_ToVMActivityOverview] = new UIActionMenuSelectorActivityToVMActivityOverview(this);
+    m_pool[UIActionIndex_M_Activity_T_Preferences] = new UIActionMenuActivityPreferences(this);
 
     /* Create 'File Manager' actions: */
     m_pool[UIActionIndex_M_FileManager] = new UIActionMenuFileManager(this);
@@ -3165,7 +3372,7 @@ void UIActionPool::preparePool()
     m_pool[UIActionIndex_M_FileManager_M_GuestSubmenu] = new UIActionMenuFileManagerGuestSubmenu(this);
     m_pool[UIActionIndex_M_FileManager_S_CopyToGuest] = new  UIActionMenuFileManagerCopyToGuest(this);
     m_pool[UIActionIndex_M_FileManager_S_CopyToHost] = new  UIActionMenuFileManagerCopyToHost(this);
-    m_pool[UIActionIndex_M_FileManager_T_Options] = new UIActionMenuFileManagerOptions(this);
+    m_pool[UIActionIndex_M_FileManager_T_Preferences] = new UIActionMenuFileManagerPreferences(this);
     m_pool[UIActionIndex_M_FileManager_T_Log] = new UIActionMenuFileManagerLog(this);
     m_pool[UIActionIndex_M_FileManager_T_Operations] = new UIActionMenuFileManagerOperations(this);
     m_pool[UIActionIndex_M_FileManager_T_GuestSession] = new UIActionMenuFileManagerGuestSession(this);
@@ -3173,6 +3380,10 @@ void UIActionPool::preparePool()
     m_pool[UIActionIndex_M_FileManager_S_Guest_GoUp] = new UIActionMenuFileManagerGoUp(this);
     m_pool[UIActionIndex_M_FileManager_S_Host_GoHome] = new UIActionMenuFileManagerGoHome(this);
     m_pool[UIActionIndex_M_FileManager_S_Guest_GoHome] = new UIActionMenuFileManagerGoHome(this);
+    m_pool[UIActionIndex_M_FileManager_S_Host_GoForward] = new UIActionMenuFileManagerGoForward(this);
+    m_pool[UIActionIndex_M_FileManager_S_Guest_GoForward] = new UIActionMenuFileManagerGoForward(this);
+    m_pool[UIActionIndex_M_FileManager_S_Host_GoBackward] = new UIActionMenuFileManagerGoBackward(this);
+    m_pool[UIActionIndex_M_FileManager_S_Guest_GoBackward] = new UIActionMenuFileManagerGoBackward(this);
     m_pool[UIActionIndex_M_FileManager_S_Host_Refresh] = new UIActionMenuFileManagerRefresh(this);
     m_pool[UIActionIndex_M_FileManager_S_Guest_Refresh] = new UIActionMenuFileManagerRefresh(this);
     m_pool[UIActionIndex_M_FileManager_S_Host_Delete] = new UIActionMenuFileManagerDelete(this);
@@ -3196,13 +3407,25 @@ void UIActionPool::preparePool()
 
     /* Create VISO Creator actions: */
     m_pool[UIActionIndex_M_VISOCreator] = new UIActionMenuVISOCreator(this);
-    m_pool[UIActionIndex_M_VISOCreator_ToggleConfigPanel] = new UIActionMenuVISOCreatorToggleConfigPanel(this);
-    m_pool[UIActionIndex_M_VISOCreator_ToggleOptionsPanel] = new UIActionMenuVISOCreatorToggleOptionsPanel(this);
-    m_pool[UIActionIndex_M_VISOCreator_Add] = new UIActionMenuVISOCreatorAdd(this);
-    m_pool[UIActionIndex_M_VISOCreator_Remove] = new UIActionMenuVISOCreatorRemove(this);
-    m_pool[UIActionIndex_M_VISOCreator_CreateNewDirectory] = new UIActionMenuVISOCreatorCreateNewDirectory(this);
-    m_pool[UIActionIndex_M_VISOCreator_Rename] = new UIActionMenuVISOCreatorRename(this);
-    m_pool[UIActionIndex_M_VISOCreator_Reset] = new UIActionMenuVISOCreatorReset(this);
+    m_pool[UIActionIndex_M_VISOCreator_TogglePreferences] = new UIActionToggleVISOCreatorPreferences(this);
+    m_pool[UIActionIndex_M_VISOCreator_Add] = new UIActionSimpleVISOCreatorAdd(this);
+    m_pool[UIActionIndex_M_VISOCreator_Remove] = new UIActionSimpleVISOCreatorRemove(this);
+    m_pool[UIActionIndex_M_VISOCreator_Restore] = new UIActionSimpleVISOCreatorRestore(this);
+    m_pool[UIActionIndex_M_VISOCreator_CreateNewDirectory] = new UIActionSimpleVISOCreatorCreateNewDirectory(this);
+    m_pool[UIActionIndex_M_VISOCreator_Rename] = new UIActionSimpleVISOCreatorRename(this);
+    m_pool[UIActionIndex_M_VISOCreator_Reset] = new UIActionSimpleVISOCreatorReset(this);
+    m_pool[UIActionIndex_M_VISOCreator_Open] = new UIActionSimpleVISOCreatorOpen(this);
+    m_pool[UIActionIndex_M_VISOCreator_SaveAs] = new UIActionSimpleVISOCreatorSaveAs(this);
+    m_pool[UIActionIndex_M_VISOCreator_ImportISO] = new UIActionSimpleVISOCreatorImportISO(this);
+    m_pool[UIActionIndex_M_VISOCreator_RemoveISO] = new UIActionSimpleVISOCreatorRemoveISO(this);
+    m_pool[UIActionIndex_M_VISOCreator_VisoContent_GoHome] = new UIActionSimpleVISOCreatorGoHome(this);
+    m_pool[UIActionIndex_M_VISOCreator_VisoContent_GoUp] = new UIActionSimpleVISOCreatorGoUp(this);
+    m_pool[UIActionIndex_M_VISOCreator_VisoContent_GoForward] = new UIActionSimpleVISOCreatorGoForward(this);
+    m_pool[UIActionIndex_M_VISOCreator_VisoContent_GoBackward] = new UIActionSimpleVISOCreatorGoBackward(this);
+    m_pool[UIActionIndex_M_VISOCreator_Host_GoHome] = new UIActionSimpleVISOCreatorGoHome(this);
+    m_pool[UIActionIndex_M_VISOCreator_Host_GoUp] = new UIActionSimpleVISOCreatorGoUp(this);
+    m_pool[UIActionIndex_M_VISOCreator_Host_GoForward] = new UIActionSimpleVISOCreatorGoForward(this);
+    m_pool[UIActionIndex_M_VISOCreator_Host_GoBackward] = new UIActionSimpleVISOCreatorGoBackward(this);
 
     /* Medium Selector actions: */
     m_pool[UIActionIndex_M_MediumSelector] = new UIActionMenuMediumSelector(this);
@@ -3226,15 +3449,13 @@ void UIActionPool::preparePool()
     m_menuUpdateHandlers[UIActionIndex_M_FileManager].ptf = &UIActionPool::updateMenuFileManager;
 
     /* Invalidate all known menus: */
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
-    QList<int> const updateHandlerKeys = m_menuUpdateHandlers.keys();
+    const QList<int> updateHandlerKeys = m_menuUpdateHandlers.keys();
     m_invalidations.unite(QSet<int>(updateHandlerKeys.begin(), updateHandlerKeys.end()));
-#else
-    m_invalidations.unite(m_menuUpdateHandlers.keys().toSet());
-#endif
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIActionPool::sltRetranslateUI);
 }
 
 void UIActionPool::prepareConnections()
@@ -3251,8 +3472,10 @@ void UIActionPool::prepareConnections()
     connect(action(UIActionIndex_M_Application_S_ResetWarnings), &UIAction::triggered,
             &msgCenter(), &UIMessageCenter::sltResetSuppressedMessages, Qt::UniqueConnection);
 
-    /* 'Help' menu connections. Note that connections for UIActionIndex_Simple_Contents is done
-     *   in manager and runtime uis separately in their respective classes: */
+    /* 'Help' menu connections. Note that connections for UIActionIndex_Simple_Contents
+     * are done in manager and runtime UIs separately in their respective classes: */
+    connect(action(UIActionIndex_Simple_OnlineDocumentation), &UIAction::triggered,
+            &msgCenter(), &UIMessageCenter::sltShowOnlineDocumentation, Qt::UniqueConnection);
     connect(action(UIActionIndex_Simple_WebSite), &UIAction::triggered,
             &msgCenter(), &UIMessageCenter::sltShowHelpWebDialog, Qt::UniqueConnection);
     connect(action(UIActionIndex_Simple_BugTracker), &UIAction::triggered,
@@ -3261,8 +3484,6 @@ void UIActionPool::prepareConnections()
             &msgCenter(), &UIMessageCenter::sltShowForums, Qt::UniqueConnection);
     connect(action(UIActionIndex_Simple_Oracle), &UIAction::triggered,
             &msgCenter(), &UIMessageCenter::sltShowOracle, Qt::UniqueConnection);
-    connect(action(UIActionIndex_Simple_OnlineDocumentation), &UIAction::triggered,
-            &msgCenter(), &UIMessageCenter::sltShowOnlineDocumentation, Qt::UniqueConnection);
 #ifndef VBOX_WS_MAC
     connect(action(UIActionIndex_Simple_About), &UIAction::triggered,
             &msgCenter(), &UIMessageCenter::sltShowHelpAboutDialog, Qt::UniqueConnection);
@@ -3319,9 +3540,9 @@ void UIActionPool::updateShortcuts()
 bool UIActionPool::event(QEvent *pEvent)
 {
     /* Depending on event-type: */
-    switch ((UIEventType)pEvent->type())
+    switch ((UIEventTypeActionPool)pEvent->type())
     {
-        case ActivateActionEventType:
+        case UIEventTypeActionPool_ActivateAction:
         {
             /* Process specific event: */
             ActivateActionEvent *pActionEvent = static_cast<ActivateActionEvent*>(pEvent);
@@ -3336,7 +3557,7 @@ bool UIActionPool::event(QEvent *pEvent)
     return QObject::event(pEvent);
 }
 
-void UIActionPool::retranslateUi()
+void UIActionPool::sltRetranslateUI()
 {
     /* Translate all the actions: */
     foreach (const int iActionPoolKey, m_pool.keys())
@@ -3529,6 +3750,7 @@ void UIActionPool::updateMenuHelp()
     /* 'Oracle' action: */
     fSeparator = addAction(pMenu, action(UIActionIndex_Simple_Oracle)) || fSeparator;
 
+#ifndef VBOX_WS_MAC
     /* Separator? */
     if (fSeparator)
     {
@@ -3536,7 +3758,6 @@ void UIActionPool::updateMenuHelp()
         fSeparator = false;
     }
 
-#ifndef VBOX_WS_MAC
     /* 'About' action: */
     fSeparator = addAction(pMenu, action(UIActionIndex_Simple_About)) || fSeparator;
 #endif
@@ -3587,8 +3808,8 @@ void UIActionPool::updateMenuLogViewerWrapper(UIMenu *pMenu)
     fSeparator = addAction(pMenu, action(UIActionIndex_M_Log_T_Filter)) || fSeparator;
     /* 'Bookmarks' action: */
     fSeparator = addAction(pMenu, action(UIActionIndex_M_Log_T_Bookmark)) || fSeparator;
-    /* 'Options' action: */
-    fSeparator = addAction(pMenu, action(UIActionIndex_M_Log_T_Options)) || fSeparator;
+    /* 'Preferences' action: */
+    fSeparator = addAction(pMenu, action(UIActionIndex_M_Log_T_Preferences)) || fSeparator;
 
     /* Separator? */
     if (fSeparator)
@@ -3613,6 +3834,8 @@ void UIActionPool::updateMenuVMActivityMonitor()
     /* 'Export' and 'Switch to VM Activity Overview" actions: */
     pMenu->addAction(action(UIActionIndex_M_Activity_S_Export));
     pMenu->addAction(action(UIActionIndex_M_Activity_S_ToVMActivityOverview));
+    /* 'Preferences' action: */
+    pMenu->addAction(action(UIActionIndex_M_Activity_T_Preferences));
 
     /* Mark menu as valid: */
     m_invalidations.remove(UIActionIndex_M_Activity);
@@ -3628,7 +3851,7 @@ void UIActionPool::updateMenuFileManager()
 
 void UIActionPool::updateMenuFileManagerWrapper(UIMenu *pMenu)
 {
-    addAction(pMenu, action(UIActionIndex_M_FileManager_T_Options));
+    addAction(pMenu, action(UIActionIndex_M_FileManager_T_Preferences));
     addAction(pMenu, action(UIActionIndex_M_FileManager_T_Operations));
     addAction(pMenu, action(UIActionIndex_M_FileManager_T_Log));
 

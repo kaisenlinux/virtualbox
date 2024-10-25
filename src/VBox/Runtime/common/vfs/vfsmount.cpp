@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -41,7 +41,9 @@
 #define LOG_GROUP RTLOGGROUP_VFS
 #include <iprt/vfs.h>
 
-#include <iprt/asm.h>
+#define RT_ASM_INCLUDE_PAGE_SIZE
+#include <iprt/asm-mem.h>
+#include <iprt/asm.h> /* ASMByteSwapU32/U16 on sparc */
 #include <iprt/assert.h>
 #include <iprt/err.h>
 #include <iprt/file.h>

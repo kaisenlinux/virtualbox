@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,13 +31,18 @@
 # pragma once
 #endif
 
+/* Qt includes: */
+#include <QUuid>
+
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
+#include "UIEditor.h"
 #include "UIMediumDefs.h"
 #include "UISettingsDefs.h"
 
 /* COM includes: */
-#include "COMEnums.h"
+#include "KChipsetType.h"
+#include "KPlatformArchitecture.h"
+#include "KStorageControllerType.h"
 
 /* Using declarations: */
 using namespace UISettingsDefs;
@@ -48,6 +53,7 @@ class QComboBox;
 class QHBoxLayout;
 class QLabel;
 class QLineEdit;
+class QMenu;
 class QSpinBox;
 class QStackedWidget;
 class QVBoxLayout;
@@ -101,9 +107,9 @@ struct UIDataStorageAttachment
     /** Holds the device type. */
     KDeviceType  m_enmDeviceType;
     /** Holds the port. */
-    LONG         m_iPort;
+    qint32       m_iPort;
     /** Holds the device. */
-    LONG         m_iDevice;
+    qint32       m_iDevice;
     /** Holds the medium ID. */
     QUuid        m_uMediumId;
     /** Holds whether the attachment being passed through. */
@@ -163,8 +169,8 @@ struct UIDataStorageController
     QString                 m_strKey;
 };
 
-/** QWidget subclass used as acceleration features editor. */
-class SHARED_LIBRARY_STUFF UIStorageSettingsEditor : public QIWithRetranslateUI<QWidget>
+/** UIEditor sub-class used as acceleration features editor. */
+class SHARED_LIBRARY_STUFF UIStorageSettingsEditor : public UIEditor
 {
     Q_OBJECT;
 
@@ -179,6 +185,9 @@ public:
     UIStorageSettingsEditor(QWidget *pParent = 0);
     /** Destructs editor. */
     virtual ~UIStorageSettingsEditor() RT_OVERRIDE;
+
+    /** Returns platform architecture. */
+    KPlatformArchitecture arch() const;
 
     /** Defines @a pActionPool. */
     void setActionPool(UIActionPool *pActionPool);
@@ -214,14 +223,16 @@ public:
 
 protected:
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
     /** Handles show @a pEvent. */
     virtual void showEvent(QShowEvent *pEvent) RT_OVERRIDE;
 
+    /** Handles filter change. */
+    virtual void handleFilterChange() RT_OVERRIDE;
+
 private slots:
 
+    /** Handles translation event. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
     /** Handles enumeration of medium with @a uMediumId. */
     void sltHandleMediumEnumerated(const QUuid &uMediumId);
     /** Handles removing of medium with @a uMediumId. */
@@ -340,13 +351,13 @@ private:
     /** Cleanups all. */
     void cleanup();
 
+    /** Updates root and current index most suitable for this editor. */
+    void updateRootAndCurrentIndexes();
+
     /** Adds controller with @a strName, @a enmBus and @a enmType. */
     void addControllerWrapper(const QString &strName, KStorageBus enmBus, KStorageControllerType enmType);
     /** Adds attachment with @a enmDevice. */
     void addAttachmentWrapper(KDeviceType enmDevice);
-
-    /** Updates additions details according to passed @a enmType. */
-    void updateAdditionalDetails(KDeviceType enmType);
 
     /** Generates unique controller name based on passed @a strTemplate. */
     QString generateUniqueControllerName(const QString &strTemplate) const;
@@ -387,6 +398,9 @@ private:
 
         /** Holds configuration access level. */
         ConfigurationAccessLevel  m_enmConfigurationAccessLevel;
+
+        /** Holds whether we are showing full contents. */
+        bool  m_fShowFullContents;
 
         /** Holds the last mouse-press position. */
         QPoint  m_mousePressPosition;
@@ -440,10 +454,12 @@ private:
 
         /** Holds the right pane instance. */
         QStackedWidget   *m_pStackRightPane;
+
         /** Holds the right pane empty widget separator instance. */
         QILabelSeparator *m_pLabelSeparatorEmpty;
         /** Holds the info label instance. */
         QLabel           *m_pLabelInfo;
+
         /** Holds the right pane controller widget separator instance. */
         QILabelSeparator *m_pLabelSeparatorParameters;
         /** Holds the name label instance. */
@@ -460,14 +476,25 @@ private:
         QSpinBox         *m_pSpinboxPortCount;
         /** Holds the IO cache check-box instance. */
         QCheckBox        *m_pCheckBoxIoCache;
+
         /** Holds the right pane attachment widget separator instance. */
         QILabelSeparator *m_pLabelSeparatorAttributes;
-        /** Holds the medium label instance. */
-        QLabel           *m_pLabelMedium;
+        /** Holds the medium label container instance. */
+        QStackedWidget   *m_pContainerMediumLabels;
+        /** Holds the HD label instance. */
+        QLabel           *m_pLabelHD;
+        /** Holds the CD label instance. */
+        QLabel           *m_pLabelCD;
+        /** Holds the FD label instance. */
+        QLabel           *m_pLabelFD;
         /** Holds the slot combo instance. */
         QComboBox        *m_pComboSlot;
         /** Holds the open tool-button instance. */
         QIToolButton     *m_pToolButtonOpen;
+        /** Holds the 1st check-box container instance. */
+        QStackedWidget   *m_pContainerForCheckBoxes1;
+        /** Holds the 2nd check-box container instance. */
+        QStackedWidget   *m_pContainerForCheckBoxes2;
         /** Holds the passthrough check-box instance. */
         QCheckBox        *m_pCheckBoxPassthrough;
         /** Holds the temporary eject check-box instance. */
@@ -476,16 +503,15 @@ private:
         QCheckBox        *m_pCheckBoxNonRotational;
         /** Holds the hot-pluggable check-box instance. */
         QCheckBox        *m_pCheckBoxHotPluggable;
+
         /** Holds the right pane attachment widget separator instance. */
         QILabelSeparator *m_pLabelSeparatorInformation;
+        /** Holds the information container instance. */
+        QStackedWidget   *m_pContainerInformation;
         /** Holds the HD format label instance. */
         QLabel           *m_pLabelHDFormat;
         /** Holds the HD format field instance. */
         QILabel          *m_pFieldHDFormat;
-        /** Holds the CD/FD type label instance. */
-        QLabel           *m_pLabelCDFDType;
-        /** Holds the CD/FD type field instance. */
-        QILabel          *m_pFieldCDFDType;
         /** Holds the HD virtual size label instance. */
         QLabel           *m_pLabelHDVirtualSize;
         /** Holds the HD virtual size field instance. */
@@ -494,26 +520,54 @@ private:
         QLabel           *m_pLabelHDActualSize;
         /** Holds the HD actual size field instance. */
         QILabel          *m_pFieldHDActualSize;
-        /** Holds the CD/FD size label instance. */
-        QLabel           *m_pLabelCDFDSize;
-        /** Holds the CD/FD size field instance. */
-        QILabel          *m_pFieldCDFDSize;
         /** Holds the HD details label instance. */
         QLabel           *m_pLabelHDDetails;
         /** Holds the HD details field instance. */
         QILabel          *m_pFieldHDDetails;
-        /** Holds the location label instance. */
-        QLabel           *m_pLabelLocation;
-        /** Holds the location field instance. */
-        QILabel          *m_pFieldLocation;
-        /** Holds the usage label instance. */
-        QLabel           *m_pLabelUsage;
-        /** Holds the usage field instance. */
-        QILabel          *m_pFieldUsage;
-        /** Holds the encryption label instance. */
-        QLabel           *m_pLabelEncryption;
-        /** Holds the encryption field instance. */
-        QILabel          *m_pFieldEncryption;
+        /** Holds the HD location label instance. */
+        QLabel           *m_pLabelHDLocation;
+        /** Holds the HD location field instance. */
+        QILabel          *m_pFieldHDLocation;
+        /** Holds the HD usage label instance. */
+        QLabel           *m_pLabelHDUsage;
+        /** Holds the HD usage field instance. */
+        QILabel          *m_pFieldHDUsage;
+        /** Holds the HD encryption label instance. */
+        QLabel           *m_pLabelHDEncryption;
+        /** Holds the HD encryption field instance. */
+        QILabel          *m_pFieldHDEncryption;
+        /** Holds the CD type label instance. */
+        QLabel           *m_pLabelCDType;
+        /** Holds the CD type field instance. */
+        QILabel          *m_pFieldCDType;
+        /** Holds the CD size label instance. */
+        QLabel           *m_pLabelCDSize;
+        /** Holds the CD size field instance. */
+        QILabel          *m_pFieldCDSize;
+        /** Holds the CD location label instance. */
+        QLabel           *m_pLabelCDLocation;
+        /** Holds the CD location field instance. */
+        QILabel          *m_pFieldCDLocation;
+        /** Holds the CD usage label instance. */
+        QLabel           *m_pLabelCDUsage;
+        /** Holds the CD usage field instance. */
+        QILabel          *m_pFieldCDUsage;
+        /** Holds the FD type label instance. */
+        QLabel           *m_pLabelFDType;
+        /** Holds the FD type field instance. */
+        QILabel          *m_pFieldFDType;
+        /** Holds the FD size label instance. */
+        QLabel           *m_pLabelFDSize;
+        /** Holds the FD size field instance. */
+        QILabel          *m_pFieldFDSize;
+        /** Holds the FD location label instance. */
+        QLabel           *m_pLabelFDLocation;
+        /** Holds the FD location field instance. */
+        QILabel          *m_pFieldFDLocation;
+        /** Holds the FD usage label instance. */
+        QLabel           *m_pLabelFDUsage;
+        /** Holds the FD usage field instance. */
+        QILabel          *m_pFieldFDUsage;
     /** @} */
 };
 

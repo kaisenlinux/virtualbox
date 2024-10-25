@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,19 +26,23 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QGridLayout>
 #include <QLabel>
 #include <QStyle>
 #include <QVBoxLayout>
+#include <QWindow>
 
 /* GUI includes: */
 #include "QILineEdit.h"
 #include "QIRichTextLabel.h"
 #include "QIToolButton.h"
-#include "UICursor.h"
 #include "UIIconPool.h"
 #include "UIUserNamePasswordEditor.h"
-#include "UIWizardNewVM.h"
+#include "UITranslationEventListener.h"
+
+/* Other VBox includes: */
+#include "iprt/assert.h"
 
 
 UIPasswordLineEdit::UIPasswordLineEdit(QWidget *pParent /*= 0 */)
@@ -88,7 +92,8 @@ void UIPasswordLineEdit::mark(bool fError, const QString &strErrorToolTip)
         /* Update label content, visibility & position: */
         const int iIconMetric = QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize) * .625;
         const int iShift = height() > iIconMetric ? (height() - iIconMetric) / 2 : 0;
-        m_pErrorIconLabel->setPixmap(m_markIcon.pixmap(windowHandle(), QSize(iIconMetric, iIconMetric)));
+        const qreal fDevicePixelRatio = window() && window()->windowHandle() ? window()->windowHandle()->devicePixelRatio() : 1;
+        m_pErrorIconLabel->setPixmap(m_markIcon.pixmap(QSize(iIconMetric, iIconMetric), fDevicePixelRatio));
         m_pErrorIconLabel->setToolTip(m_strErrorToolTip);
         int iIconX = width() - iIconMetric - iShift;
         if (m_pTextVisibilityButton)
@@ -113,7 +118,7 @@ void UIPasswordLineEdit::prepare()
     {
         m_pTextVisibilityButton->setIconSize(QSize(10, 10));
         m_pTextVisibilityButton->setFocusPolicy(Qt::ClickFocus);
-        UICursor::setCursor(m_pTextVisibilityButton, Qt::ArrowCursor);
+        m_pTextVisibilityButton->setCursor(Qt::ArrowCursor);
         m_pTextVisibilityButton->show();
         connect(m_pTextVisibilityButton, &QToolButton::clicked, this, &UIPasswordLineEdit::sltHandleTextVisibilityChange);
     }
@@ -177,7 +182,7 @@ void UIPasswordLineEdit::sltHandleTextVisibilityChange()
 *********************************************************************************************************************************/
 
 UIUserNamePasswordEditor::UIUserNamePasswordEditor(QWidget *pParent /*  = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_pUserNameLineEdit(0)
     , m_pPasswordLineEdit(0)
     , m_pPasswordRepeatLineEdit(0)
@@ -222,7 +227,8 @@ bool UIUserNamePasswordEditor::isUserNameComplete()
 {
     bool fComplete = (m_pUserNameLineEdit && !m_pUserNameLineEdit->text().isEmpty());
     if (m_pUserNameLineEdit)
-        m_pUserNameLineEdit->mark(!fComplete, UIUserNamePasswordEditor::tr("Invalid username"));
+        m_pUserNameLineEdit->mark(!fComplete, UIUserNamePasswordEditor::tr("Username cannot be an empty string"),
+                                  UIUserNamePasswordEditor::tr("Username is valid"));
     return fComplete;
 }
 
@@ -253,7 +259,7 @@ void UIUserNamePasswordEditor::setPlaceholderTextEnabled(bool fEnabled)
     if (m_fShowPlaceholderText == fEnabled)
         return;
     m_fShowPlaceholderText = fEnabled;
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIUserNamePasswordEditor::setLabelsVisible(bool fVisible)
@@ -267,7 +273,7 @@ void UIUserNamePasswordEditor::setLabelsVisible(bool fVisible)
 
 }
 
-void UIUserNamePasswordEditor::retranslateUi()
+void UIUserNamePasswordEditor::sltRetranslateUI()
 {
     QString strPassword = tr("Pass&word");
     QString strRepeatPassword = tr("&Repeat Password");
@@ -340,9 +346,11 @@ void UIUserNamePasswordEditor::prepare()
         return;
     setLayout(pMainLayout);
     int iRow = 0;
-    addLineEdit<UIMarkableLineEdit>(iRow, m_pUserNameLabel, m_pUserNameLineEdit, pMainLayout);
+    addLineEdit<QILineEdit>(iRow, m_pUserNameLabel, m_pUserNameLineEdit, pMainLayout);
     addLineEdit<UIPasswordLineEdit>(iRow, m_pPasswordLabel, m_pPasswordLineEdit, pMainLayout);
     addLineEdit<UIPasswordLineEdit>(iRow, m_pPasswordRepeatLabel, m_pPasswordRepeatLineEdit, pMainLayout);
+
+    m_pUserNameLineEdit->setMarkable(true);
 
     connect(m_pPasswordLineEdit, &UIPasswordLineEdit::sigTextVisibilityToggled,
             this, &UIUserNamePasswordEditor::sltHandlePasswordVisibility);
@@ -352,10 +360,12 @@ void UIUserNamePasswordEditor::prepare()
             this, &UIUserNamePasswordEditor::sltPasswordChanged);
     connect(m_pPasswordRepeatLineEdit, &UIPasswordLineEdit::textChanged,
             this, &UIUserNamePasswordEditor::sltPasswordChanged);
-    connect(m_pUserNameLineEdit, &UIMarkableLineEdit::textChanged,
+    connect(m_pUserNameLineEdit, &QILineEdit::textChanged,
             this, &UIUserNamePasswordEditor::sltUserNameChanged);
 
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIUserNamePasswordEditor::sltRetranslateUI);
 }
 
 void UIUserNamePasswordEditor::sltHandlePasswordVisibility(bool fPasswordVisible)

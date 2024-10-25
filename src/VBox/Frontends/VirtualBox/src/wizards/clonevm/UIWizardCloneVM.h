@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -80,11 +80,14 @@ public:
 
 protected:
 
-    virtual void populatePages() /* final override */;
+    virtual void populatePages() RT_OVERRIDE RT_FINAL;
+
+private slots:
+
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 
-    void retranslateUi();
     void prepare();
 
     CMachine  m_machine;

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -29,21 +29,21 @@
 #if defined(RT_OS_SOLARIS)
 # include <QFontDatabase>
 #endif
-#include <QDialogButtonBox>
-#include <QKeyEvent>
-#include <QLabel>
-#include <QPlainTextEdit>
+#include <QAbstractButton>
 #include <QPushButton>
-#include <QScrollBar>
 #include <QVBoxLayout>
 
 /* GUI includes: */
+#include "QIDialogButtonBox.h"
 #include "UIDesktopWidgetWatchdog.h"
 #include "UIExtraDataManager.h"
 #include "UIIconPool.h"
+#include "UILoggingDefs.h"
+#include "UIShortcutPool.h"
+#include "UITranslationEventListener.h"
+#include "UIVMLogViewerDialog.h"
 #include "UIVMLogViewerDialog.h"
 #include "UIVMLogViewerWidget.h"
-#include "UICommon.h"
 #ifdef VBOX_WS_MAC
 # include "VBoxUtils-darwin.h"
 #endif
@@ -54,17 +54,17 @@
 *********************************************************************************************************************************/
 
 UIVMLogViewerDialogFactory::UIVMLogViewerDialogFactory(UIActionPool *pActionPool /* = 0 */,
-                                                       const QUuid &uMachineId /* = QUuid()*/,
+                                                       const QList<QUuid> &machineIDs /* = QList<QUuid>() */,
                                                        const QString &strMachineName /* = QString() */)
     : m_pActionPool(pActionPool)
-    , m_uMachineId(uMachineId)
+    , m_machineIDs(machineIDs)
     , m_strMachineName(strMachineName)
 {
 }
 
 void UIVMLogViewerDialogFactory::create(QIManagerDialog *&pDialog, QWidget *pCenterWidget)
 {
-    pDialog = new UIVMLogViewerDialog(pCenterWidget, m_pActionPool, m_uMachineId, m_strMachineName);
+    pDialog = new UIVMLogViewerDialog(pCenterWidget, m_pActionPool, m_machineIDs, m_strMachineName);
 }
 
 
@@ -73,14 +73,16 @@ void UIVMLogViewerDialogFactory::create(QIManagerDialog *&pDialog, QWidget *pCen
 *********************************************************************************************************************************/
 
 UIVMLogViewerDialog::UIVMLogViewerDialog(QWidget *pCenterWidget, UIActionPool *pActionPool,
-                                         const QUuid &uMachineId /* = QUuid()*/,
+                                         const QList<QUuid> &machineIDs /* = QList<QUuid>() */,
                                          const QString &strMachineName /* = QString() */)
-    : QIWithRetranslateUI<QIManagerDialog>(pCenterWidget)
+    : QIManagerDialog(pCenterWidget)
     , m_pActionPool(pActionPool)
-    , m_uMachineId(uMachineId)
+    , m_machineIDs(machineIDs)
     , m_iGeometrySaveTimerId(-1)
     , m_strMachineName(strMachineName)
 {
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIVMLogViewerDialog::sltRetranslateUI);
 }
 
 UIVMLogViewerDialog::~UIVMLogViewerDialog()
@@ -95,15 +97,7 @@ void UIVMLogViewerDialog::setSelectedVMListItems(const QList<UIVirtualMachineIte
         pLogViewerWidget->setSelectedVMListItems(items);
 }
 
-void UIVMLogViewerDialog::addSelectedVMListItems(const QList<UIVirtualMachineItem*> &items)
-{
-    Q_UNUSED(items);
-    UIVMLogViewerWidget *pLogViewerWidget = qobject_cast<UIVMLogViewerWidget*>(widget());
-    if (pLogViewerWidget)
-        pLogViewerWidget->addSelectedVMListItems(items);
-}
-
-void UIVMLogViewerDialog::retranslateUi()
+void UIVMLogViewerDialog::sltRetranslateUI()
 {
     /* Translate window title: */
     if (!m_strMachineName.isEmpty())
@@ -114,12 +108,15 @@ void UIVMLogViewerDialog::retranslateUi()
     /* Translate buttons: */
     button(ButtonType_Close)->setText(UIVMLogViewerWidget::tr("Close"));
     button(ButtonType_Help)->setText(UIVMLogViewerWidget::tr("Help"));
+    button(ButtonType_Embed)->setText(UIVMLogViewerWidget::tr("Embed"));
     button(ButtonType_Close)->setStatusTip(UIVMLogViewerWidget::tr("Close dialog"));
     button(ButtonType_Help)->setStatusTip(UIVMLogViewerWidget::tr("Show dialog help"));
+    button(ButtonType_Embed)->setStatusTip(UIVMLogViewerWidget::tr("Embed to manager window"));
     button(ButtonType_Close)->setShortcut(Qt::Key_Escape);
-    button(ButtonType_Help)->setShortcut(QKeySequence::HelpContents);
+    button(ButtonType_Help)->setShortcut(UIShortcutPool::standardSequence(QKeySequence::HelpContents));
     button(ButtonType_Close)->setToolTip(UIVMLogViewerWidget::tr("Close Window (%1)").arg(button(ButtonType_Close)->shortcut().toString()));
     button(ButtonType_Help)->setToolTip(UIVMLogViewerWidget::tr("Show Help (%1)").arg(button(ButtonType_Help)->shortcut().toString()));
+    button(ButtonType_Embed)->setToolTip(UIVMLogViewerWidget::tr("Embed to Manager Window"));
 }
 
 bool UIVMLogViewerDialog::event(QEvent *pEvent)
@@ -148,7 +145,7 @@ bool UIVMLogViewerDialog::event(QEvent *pEvent)
         default:
             break;
     }
-    return QIWithRetranslateUI<QIManagerDialog>::event(pEvent);
+    return QIManagerDialog::event(pEvent);
 }
 
 void UIVMLogViewerDialog::configure()
@@ -162,7 +159,7 @@ void UIVMLogViewerDialog::configure()
 void UIVMLogViewerDialog::configureCentralWidget()
 {
     /* Create widget: */
-    UIVMLogViewerWidget *pWidget = new UIVMLogViewerWidget(EmbedTo_Dialog, m_pActionPool, true /* show toolbar */, m_uMachineId, this);
+    UIVMLogViewerWidget *pWidget = new UIVMLogViewerWidget(EmbedTo_Dialog, m_pActionPool, true /* show toolbar */, m_machineIDs, this);
     if (pWidget)
     {
         /* Configure widget: */
@@ -179,11 +176,21 @@ void UIVMLogViewerDialog::configureCentralWidget()
     }
 }
 
+void UIVMLogViewerDialog::configureButtonBox()
+{
+    /* General handler for the button being clicked: */
+    connect(buttonBox(), &QIDialogButtonBox::clicked,
+            this, &UIVMLogViewerDialog::sltHandleButtonBoxClick);
+
+    /* Show/Enable Embed button depending for Manager, not for Runtime: */
+    button(ButtonType_Embed)->setVisible(m_strMachineName.isEmpty());
+    button(ButtonType_Embed)->setEnabled(m_strMachineName.isEmpty());
+}
+
 void UIVMLogViewerDialog::finalize()
 {
     /* Apply language settings: */
-    retranslateUi();
-    manageEscapeShortCut();
+    sltRetranslateUI();
     loadDialogGeometry();
 }
 
@@ -230,10 +237,12 @@ void UIVMLogViewerDialog::sltSetCloseButtonShortCut(QKeySequence shortcut)
         button(ButtonType_Close)->setShortcut(shortcut);
 }
 
-void UIVMLogViewerDialog::manageEscapeShortCut()
+void UIVMLogViewerDialog::sltHandleButtonBoxClick(QAbstractButton *pButton)
 {
-    UIVMLogViewerWidget *pWidget = qobject_cast<UIVMLogViewerWidget*>(widget());
-    if (!pWidget)
-        return;
-    pWidget->manageEscapeShortCut();
+    /* Disable all buttons first of all: */
+    button(ButtonType_Embed)->setEnabled(false);
+
+    /* Compare with known buttons: */
+    if (pButton == button(ButtonType_Embed))
+        emit sigEmbed();
 }

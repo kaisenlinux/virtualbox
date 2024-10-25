@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -516,7 +516,7 @@ void OVFReader::HandleVirtualSystemContent(const xml::ElementNode *pelmVirtualSy
                         break;
 
                     case ResourceType_Memory:        // 4
-                        /* It's always stored in bytes in VSD according to the old internal agreement within the team */
+                        /* It's alway stored in bytes in VSD according to the old internal agreement within the team */
                         if (    i.strAllocationUnits == "MegaBytes"           // found in OVF created by OVF toolkit
                              || i.strAllocationUnits == "MB"                  // found in MS docs
                              || i.strAllocationUnits == "byte * 2^20"         // suggested by OVF spec DSP0243 page 21
@@ -922,7 +922,7 @@ void VirtualHardwareItem::fillItem(const xml::ElementNode *item)
 void VirtualHardwareItem::_checkConsistencyAndCompliance() RT_THROW(OVFLogicError)
 {
     RTCString name = getItemName();
-    if (resourceType == 0)
+    if (resourceType == ResourceType_Invalid)
         throw OVFLogicError(N_("Empty element ResourceType under %s element, line %d. see DMTF Schema Documentation %s"),
                             name.c_str(), m_iLineNumber, DTMF_SPECS_URI);
 

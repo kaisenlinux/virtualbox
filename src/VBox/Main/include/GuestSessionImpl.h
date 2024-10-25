@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -86,6 +86,7 @@ private:
     HRESULT setCurrentDirectory(const com::Utf8Str &aCurrentDirectory);
     HRESULT getUserDocuments(com::Utf8Str &aUserDocuments);
     HRESULT getUserHome(com::Utf8Str &aUserHome);
+    HRESULT getMountPoints(std::vector<com::Utf8Str> &aMountPoints);
     HRESULT getDirectories(std::vector<ComPtr<IGuestDirectory> > &aDirectories);
     HRESULT getFiles(std::vector<ComPtr<IGuestFile> > &aFiles);
     HRESULT getEventSource(ComPtr<IEventSource> &aEventSource);
@@ -212,12 +213,14 @@ private:
                         ULONG aMode);
     HRESULT processCreate(const com::Utf8Str &aCommand,
                           const std::vector<com::Utf8Str> &aArguments,
+                          const com::Utf8Str &aCwd,
                           const std::vector<com::Utf8Str> &aEnvironment,
                           const std::vector<ProcessCreateFlag_T> &aFlags,
                           ULONG aTimeoutMS,
                           ComPtr<IGuestProcess> &aGuestProcess);
     HRESULT processCreateEx(const com::Utf8Str &aCommand,
                             const std::vector<com::Utf8Str> &aArguments,
+                            const com::Utf8Str &aCwd,
                             const std::vector<com::Utf8Str> &aEnvironment,
                             const std::vector<ProcessCreateFlag_T> &aFlags,
                             ULONG aTimeoutMS,
@@ -315,15 +318,20 @@ public:
     int                     i_fileQuerySize(const Utf8Str &strPath, bool fFollowSymlinks, int64_t *pllSize, int *pvrcGuest);
     int                     i_fsCreateTemp(const Utf8Str &strTemplate, const Utf8Str &strPath, bool fDirectory,
                                            Utf8Str &strName, uint32_t fMode, bool fSecure, int *pvrcGuest);
-    int                     i_fsQueryInfo(const Utf8Str &strPath, bool fFollowSymlinks, GuestFsObjData &objData, int *pvrcGuest);
+    int                     i_fsQueryInfo(const Utf8Str &strPath, PGSTCTLFSINFO pFsInfo, int *pvrcGuest);
+    int                     i_fsObjQueryInfo(const Utf8Str &strPath, bool fFollowSymlinks, GuestFsObjData &objData, int *pvrcGuest);
     const GuestCredentials &i_getCredentials(void);
     EventSource            *i_getEventSource(void) { return mEventSource; }
     Utf8Str                 i_getName(void);
     ULONG                   i_getId(void) { return mData.mSession.mID; }
     bool                    i_isStarted(void) const;
     HRESULT                 i_isStartedExternal(void);
+    bool                    i_isReady(void);
     bool                    i_isTerminated(void) const;
     int                     i_onRemove(void);
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+    int                     i_onFsNotify(PVBOXGUESTCTRLHOSTCBCTX pCbCtx, PVBOXGUESTCTRLHOSTCALLBACK pSvcCbData);
+#endif
     int                     i_onSessionStatusChange(PVBOXGUESTCTRLHOSTCBCTX pCbCtx, PVBOXGUESTCTRLHOSTCALLBACK pSvcCbData);
     PathStyle_T             i_getGuestPathStyle(void);
     static PathStyle_T      i_getHostPathStyle(void);
@@ -337,6 +345,7 @@ public:
     int                     i_objectsNotifyAboutStatusChange(GuestSessionStatus_T enmSessionStatus);
     int                     i_pathRename(const Utf8Str &strSource, const Utf8Str &strDest, uint32_t uFlags, int *pvrcGuest);
     int                     i_pathUserDocuments(Utf8Str &strPath, int *pvrcGuest);
+    int                     i_getMountPoints(std::vector<com::Utf8Str> &vecMountPoints, int *pvrcGuest);
     int                     i_pathUserHome(Utf8Str &strPath, int *pvrcGuest);
     int                     i_processUnregister(GuestProcess *pProcess);
     int                     i_processCreateEx(GuestProcessStartupInfo &procInfo, ComObjPtr<GuestProcess> &pProgress);
@@ -353,6 +362,18 @@ public:
                                                   GuestSessionStatus_T *pSessionStatus, int *pvrcGuest);
     /** @}  */
 
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT
+    /** @name Public internal methods for supporting older Guest Additions via
+     *        VBoxService' built-in toolbox (< 7.1). Deprecated, do not use anymore.
+     * @{  */
+    int                     i_directoryCreateViaToolbox(const Utf8Str &strPath, uint32_t uMode, uint32_t uFlags, int *pvrcGuest);
+    int                     i_fileRemoveViaToolbox(const Utf8Str &strPath, int *pvrcGuest);
+    int                     i_fsCreateTempViaToolbox(const Utf8Str &strTemplate, const Utf8Str &strPath, bool fDirectory, Utf8Str &strName,
+                                                     uint32_t fMode, bool fSecure, int *pvrcGuest);
+    int                     i_fsObjQueryInfoViaToolbox(const Utf8Str &strPath, bool fFollowSymlinks, GuestFsObjData &objData, int *pvrcGuest);
+    /** @}  */
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT */
+
 public:
 
     /** @name Static helper methods.
@@ -364,8 +385,10 @@ public:
 
 private:
 
-    /** Pointer to the parent (Guest). */
-    Guest                          *mParent;
+    /* Console object. */
+    ComObjPtr<Console>              mConsole;
+    /* Guest object. */
+    ComObjPtr<Guest>                mParent;
     /**
      * The session's event source. This source is used for
      * serving the internal listener as well as all other
@@ -412,8 +435,8 @@ private:
         /** Map of registered session objects (files, directories, ...). */
         SessionObjects              mObjects;
         /** Guest control protocol version to be used.
-         *  Guest Additions < VBox 4.3 have version 1,
-         *  any newer version will have version 2. */
+         * Guest Additions < VBox 4.3 have version 1, any newer version will have version 2.
+         * Set to 0 if a valid Guest Additions version was not found (yet). */
         uint32_t                    mProtocolVersion;
         /** Session timeout (in ms). */
         uint32_t                    mTimeout;

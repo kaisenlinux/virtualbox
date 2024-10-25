@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -262,7 +262,7 @@ QFont UIPopupPaneDetails::tuneFont(QFont font)
 {
 #if defined(VBOX_WS_MAC)
     font.setPointSize(font.pointSize() - 2);
-#elif defined(VBOX_WS_X11)
+#elif defined(VBOX_WS_NIX)
     font.setPointSize(font.pointSize() - 1);
 #endif
     return font;

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -39,11 +39,9 @@
 #include "UIMediumDefs.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CProgress.h"
 
 /* Forward declarations: */
-class UIHelpBrowserDialog;
 class UIMedium;
 struct StorageSlot;
 #ifdef VBOX_WITH_DRAG_AND_DROP
@@ -363,8 +361,9 @@ public:
       * @{ */
         bool confirmMediumRelease(const UIMedium &medium, bool fInduced, QWidget *pParent = 0) const;
         bool confirmMediumRemoval(const UIMedium &medium, QWidget *pParent = 0) const;
-        int confirmDeleteHardDiskStorage(const QString &strLocation, QWidget *pParent = 0) const;
+        int  confirmDeleteHardDiskStorage(const QString &strLocation, QWidget *pParent = 0) const;
         bool confirmInaccesibleMediaClear(const QStringList &mediaNameList, UIMediumDeviceType enmType, QWidget *pParent = 0);
+        bool confirmVisoDiscard(QWidget *pParent = 0) const;
     /** @} */
 
     /** @name VirtualBox Manager / Network Manager warnings.
@@ -420,7 +419,7 @@ public:
 
         void warnAboutVBoxSVCUnavailable() const;
         bool warnAboutGuruMeditation(const QString &strLogFolder);
-        void showRuntimeError(const CConsole &console, bool fFatal, const QString &strErrorId, const QString &strErrorMsg) const;
+        void showRuntimeError(MessageType emnMessageType, const QString &strErrorId, const QString &strErrorMsg) const;
 
         bool confirmInputCapture(bool &fAutoConfirmed) const;
         bool confirmGoingFullscreen(const QString &strHotKey) const;
@@ -464,14 +463,7 @@ public slots:
     void sltShowOracle();
     void sltShowOnlineDocumentation();
     void sltShowHelpAboutDialog();
-    void sltShowHelpHelpDialog();
     void sltResetSuppressedMessages();
-    void sltShowUserManual(const QString &strLocation);
-
-    /// @todo move it away ..
-    void sltHelpBrowserClosed();
-    void sltHandleHelpRequest();
-    void sltHandleHelpRequestWithKeyword(const QString &strHelpKeyword);
 
 private slots:
 
@@ -525,14 +517,8 @@ private:
                        const QString &strButtonText1, const QString &strButtonText2, const QString &strButtonText3,
                        const QString &strAutoConfirmId, const QString &strHelpKeyword) const;
 
-    /// @todo move it away ..
-    void showHelpBrowser(const QString &strHelpFilePath, QWidget *pParent = 0);
-
     /** Holds the list of shown warnings. */
     mutable QStringList m_warnings;
-
-    /** Holds UIHelpBrowserDialog instance. */
-    UIHelpBrowserDialog *m_pHelpBrowserDialog;
 
     /** Holds the singleton message-center instance. */
     static UIMessageCenter *s_pInstance;

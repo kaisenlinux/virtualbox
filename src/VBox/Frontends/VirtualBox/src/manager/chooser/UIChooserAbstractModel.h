@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -41,12 +41,14 @@
 #include "UIManagerDefs.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CCloudMachine.h" /* required for Qt6 / c++17 */
+#include "KMachineState.h"
+#include "KSessionState.h"
 
 /* Forward declaration: */
 class UIChooser;
 class UIChooserNode;
+class UIVirtualMachineItemCloud;
 class CMachine;
 
 /** QObject extension used as VM Chooser-pane abstract model.
@@ -58,12 +60,6 @@ class UIChooserAbstractModel : public QObject
 
 signals:
 
-    /** @name Cloud machine stuff.
-      * @{ */
-        /** Notifies listeners about state change for cloud machine with certain @a uId. */
-        void sigCloudMachineStateChange(const QUuid &uId);
-    /** @} */
-
     /** @name Group saving stuff.
       * @{ */
         /** Issues request to save settings. */
@@ -74,6 +70,15 @@ signals:
 
     /** @name Cloud update stuff.
       * @{ */
+        /** Notifies listeners about cloud profile state change.
+          * @param  strProviderShortName  Brings the cloud provider short name.
+          * @param  strProfileName        Brings the cloud profile name. */
+        void sigCloudProfileStateChange(const QString &strProviderShortName,
+                                        const QString &strProfileName);
+        /** Notifies listeners about cloud machine state change.
+          * @param  uId  Brings the cloud machine ID. */
+        void sigCloudMachineStateChange(const QUuid &uId);
+
         /** Notifies listeners about cloud update state changed. */
         void sigCloudUpdateStateChanged();
     /** @} */
@@ -142,6 +147,11 @@ public:
 
     /** @name Cloud update stuff.
       * @{ */
+        /** Returns whether real cloud nodes should be kept updated. */
+        bool isKeepCloudNodesUpdated() const { return m_fKeepCloudNodesUpdated; }
+        /** Defines whether real cloud nodes should be kept updated. */
+        void setKeepCloudNodesUpdated(bool fUpdate);
+
         /** Inserts cloud entity @a key into a set of keys currently being updated. */
         void insertCloudEntityKey(const UICloudEntityKey &key);
         /** Removes cloud entity @a key from a set of keys currently being updated. */
@@ -151,6 +161,9 @@ public:
 
         /** Returns whether at least one cloud profile currently being updated. */
         bool isCloudProfileUpdateInProgress() const;
+
+        /** Returns a list of real cloud machine items. */
+        QList<UIVirtualMachineItemCloud*> cloudMachineItems() const;
     /** @} */
 
 public slots:
@@ -368,6 +381,9 @@ private:
 
     /** @name Cloud update stuff.
       * @{ */
+        /** Enumerates all cloud machine nodes. */
+        QList<UIChooserNode*> enumerateCloudMachineNodes() const;
+
         /** Stops all cloud updates.
           * @param  fForced  Brings whether cloud updates should be killed. */
         void stopCloudUpdates(bool fForced = false);
@@ -399,6 +415,9 @@ private:
 
     /** @name Cloud update stuff.
       * @{ */
+        /** Holds whether real cloud nodes should be kept updated. */
+        bool  m_fKeepCloudNodesUpdated;
+
         /** Holds the set of cloud entity keys currently being updated. */
         QSet<UICloudEntityKey>  m_cloudEntityKeysBeingUpdated;
     /** @} */

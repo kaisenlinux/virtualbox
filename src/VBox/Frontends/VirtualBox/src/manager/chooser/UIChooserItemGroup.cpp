@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,6 +26,7 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QGraphicsLinearLayout>
 #include <QGraphicsScene>
 #include <QGraphicsSceneDragDropEvent>
@@ -47,6 +48,8 @@
 #include "UIGraphicsRotatorButton.h"
 #include "UIGraphicsScrollArea.h"
 #include "UIIconPool.h"
+#include "UIImageTools.h"
+#include "UITranslationEventListener.h"
 #include "UIVirtualBoxManager.h"
 #include "UIVirtualMachineItem.h"
 
@@ -204,7 +207,7 @@ QString UIChooserItemGroup::className()
     return "UIChooserItemGroup";
 }
 
-void UIChooserItemGroup::retranslateUi()
+void UIChooserItemGroup::sltRetranslateUI()
 {
     updateToggleButtonToolTip();
 }
@@ -1182,7 +1185,9 @@ void UIChooserItemGroup::prepare()
     copyContents(nodeToGroupType());
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIChooserItemGroup::sltRetranslateUI);
 
     /* Initialize non-root items: */
     if (!isRoot())
@@ -1540,10 +1545,11 @@ void UIChooserItemGroup::updateVisibleName()
 void UIChooserItemGroup::updatePixmaps()
 {
     const int iIconMetric = QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize);
-    m_groupsPixmap = UIIconPool::iconSet(":/group_abstract_16px.png").pixmap(gpManager->windowHandle(),
-                                                                             QSize(iIconMetric, iIconMetric));
-    m_machinesPixmap = UIIconPool::iconSet(":/machine_abstract_16px.png").pixmap(gpManager->windowHandle(),
-                                                                                 QSize(iIconMetric, iIconMetric));
+    const qreal fDevicePixelRatio = gpManager->windowHandle() ? gpManager->windowHandle()->devicePixelRatio() : 1;
+    m_groupsPixmap = UIIconPool::iconSet(":/group_abstract_16px.png").pixmap(QSize(iIconMetric, iIconMetric),
+                                                                             fDevicePixelRatio);
+    m_machinesPixmap = UIIconPool::iconSet(":/machine_abstract_16px.png").pixmap(QSize(iIconMetric, iIconMetric),
+                                                                                 fDevicePixelRatio);
     m_pixmapSizeGroups = m_groupsPixmap.size() / m_groupsPixmap.devicePixelRatio();
     m_pixmapSizeMachines = m_machinesPixmap.size() / m_machinesPixmap.devicePixelRatio();
 }
@@ -1555,19 +1561,15 @@ void UIChooserItemGroup::updateMinimumHeaderSize()
         return;
 
     /* Prepare variables: */
-    int iHeaderSpacing = data(GroupItemData_HeaderSpacing).toInt();
+    const int iHeaderSpacing = data(GroupItemData_HeaderSpacing).toInt();
 
     /* Calculate minimum visible name size: */
     QPaintDevice *pPaintDevice = model()->paintDevice();
-    QFontMetrics fm(m_nameFont, pPaintDevice);
-    int iMaximumNameWidth = textWidth(m_nameFont, pPaintDevice, 20);
-    QString strCompressedName = compressText(m_nameFont, pPaintDevice, name(), iMaximumNameWidth);
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
-    int iMinimumNameWidth = fm.horizontalAdvance(strCompressedName);
-#else
-    int iMinimumNameWidth = fm.width(strCompressedName);
-#endif
-    int iMinimumNameHeight = fm.height();
+    const QFontMetrics fm(m_nameFont, pPaintDevice);
+    const int iMaximumNameWidth = textWidth(m_nameFont, pPaintDevice, 20);
+    const QString strCompressedName = compressText(m_nameFont, pPaintDevice, name(), iMaximumNameWidth);
+    const int iMinimumNameWidth = fm.horizontalAdvance(strCompressedName);
+    const int iMinimumNameHeight = fm.height();
 
     /* Calculate minimum width: */
     int iHeaderWidth = 0;
@@ -1604,7 +1606,7 @@ void UIChooserItemGroup::updateMinimumHeaderSize()
         iHeaderHeight = qMax(iHeaderHeight, iHeight);
 
     /* Calculate new minimum header size: */
-    QSize minimumHeaderSize = QSize(iHeaderWidth, iHeaderHeight);
+    const QSize minimumHeaderSize = QSize(iHeaderWidth, iHeaderHeight);
 
     /* Is there something changed? */
     if (m_minimumHeaderSize == minimumHeaderSize)
@@ -1767,23 +1769,9 @@ void UIChooserItemGroup::paintHeader(QPainter *pPainter, const QRect &rect)
         /* Get background color: */
         const QColor background = pal.color(QPalette::Active, QPalette::Highlight).lighter(m_iHighlightLightness);
 
-        /* Get foreground color: */
-        const QColor simpleText = pal.color(QPalette::Active, QPalette::Text);
-        const QColor highlightText = pal.color(QPalette::Active, QPalette::HighlightedText);
-        QColor lightText = simpleText.black() < highlightText.black() ? simpleText : highlightText;
-        QColor darkText = simpleText.black() > highlightText.black() ? simpleText : highlightText;
-        if (lightText.black() > 128)
-            lightText = QColor(Qt::white);
-        if (darkText.black() < 128)
-            darkText = QColor(Qt::black);
-
         /* Gather foreground color for background one: */
-        double dLuminance = (0.299 * background.red() + 0.587 * background.green() + 0.114 * background.blue()) / 255;
-        //printf("luminance = %f\n", dLuminance);
-        if (dLuminance > 0.5)
-            pPainter->setPen(darkText);
-        else
-            pPainter->setPen(lightText);
+        const QColor foreground = suitableForegroundColor(pal, background);
+        pPainter->setPen(foreground);
     }
 
     /* Paint name: */

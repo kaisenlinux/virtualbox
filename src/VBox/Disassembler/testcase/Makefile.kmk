@@ -4,7 +4,7 @@
 #
 
 #
-# Copyright (C) 2006-2023 Oracle and/or its affiliates.
+# Copyright (C) 2006-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -59,6 +59,55 @@ ifdef VBOX_WITH_TESTCASES
  	$(PATH_STAGE_LIB)/DisasmR3$(VBOX_SUFF_LIB) \
  	$(LIB_RUNTIME)
 
+
+ ifeq ($(KBUILD_TARGET_ARCH),arm64)
+  #
+  # tstDisasmArmv8-1 assembly files -> .cpp
+  #
+  TST_DISASM_ARMV8_1_FILE = $(tstDisasmArmv8-1_0_OUTDIR)/tstDisasmArmv8-1-asm.cpp
+  TST_DISASM_ARMV8_1_SOURCES := \
+  	tstDisasmArmv8_1=tstDisasmArmv8-1-asm.S
+
+  TST_DISASM_ARMV8_1_NAMES := $(foreach cert,$(VBOX_SVC_CERTS),$(firstword $(subst =,$(SP),$(cert))))
+  TST_DISASM_ARMV8_1_PATH_SOURCES := $(PATH_SUB_CURRENT)
+
+  $$(TST_DISASM_ARMV8_1_FILE): $(MAKEFILE_CURRENT) \
+  		$(foreach source,$(TST_DISASM_ARMV8_1_SOURCES),$(TST_DISASM_ARMV8_1_PATH_SOURCES)/$(lastword $(subst =,$(SP),$(source)))) \
+  		$(VBOX_BIN2C) \
+  		| $$(dir $$@)
+	$(QUIET)$(RM) -f -- $@
+	$(QUIET)$(APPEND) -n "$@" \
+        	'' \
+        	'#include "tstDisasmArmv8-1-tests.h"' \
+                ''
+	$(foreach source,$(TST_DISASM_ARMV8_1_SOURCES), $(NLTAB)$(VBOX_BIN2C) -ascii --append \
+		"$(firstword $(subst =,$(SP),$(source)))" \
+		"$(TST_DISASM_ARMV8_1_PATH_SOURCES)/$(lastword $(subst =,$(SP),$(source)))" \
+		"$@")
+
+  OTHER_CLEAN += $(TST_DISASM_ARMV8_1_FILE)
+
+  PROGRAMS += tstDisasmArmv8-1
+  tstDisasmArmv8-1_TEMPLATE   = VBoxR3TstExe
+  tstDisasmArmv8-1_DEFS       = IN_DIS
+  tstDisasmArmv8-1_INCS = \
+  	.
+  tstDisasmArmv8-1_SOURCES    = \
+  	$(TST_DISASM_ARMV8_1_FILE) \
+  	tstDisasmArmv8-1-asm.S \
+  	tstDisasmArmv8-1.cpp
+  tstDisasmArmv8-1_LIBS       = \
+  	$(PATH_STAGE_LIB)/DisasmR3$(VBOX_SUFF_LIB) \
+  	$(LIB_RUNTIME)
+
+  if defined(TST_DISASM_WITH_CAPSTONE_DISASSEMBLER)
+   tstDisasmArmv8-1_DEFS        += TST_DISASM_WITH_CAPSTONE_DISASSEMBLER
+   tstDisasmArmv8-1_LIBS.darwin += /opt/homebrew/lib/libcapstone.dylib
+   tstDisasmArmv8-1_LIBS.linux  += capstone
+  endif
+
+ endif
+
  # Tests that will be build, disassembled and re-build from disassembly.
  VBOX_DISAS_TESTS_BUILD = \
  	tstAsmFnstsw-1.asm \
@@ -109,9 +158,9 @@ ifdef VBOX_WITH_TESTCASES
  # Generate the rules for creating the .bin files.
  VBOX_DISAS_TESTS_BIN = $(VBOX_DISAS_TESTS_BUILD) $(VBOX_DISAS_TESTS_INVALID)
  VBOX_DISAS_TEST_CLEAN += $(addprefix $(VBOX_DISAS_TEST_OUT_DIR)/, \
- 	$(VBOX_DISAS_TESTS_BIN:.asm=-16.bin) \
- 	$(VBOX_DISAS_TESTS_BIN:.asm=-32.bin) \
- 	$(VBOX_DISAS_TESTS_BIN:.asm=-64.bin))
+ 		$(VBOX_DISAS_TESTS_BIN:.asm=-16.bin) \
+ 		$(VBOX_DISAS_TESTS_BIN:.asm=-32.bin) \
+ 		$(VBOX_DISAS_TESTS_BIN:.asm=-64.bin))
 
  $(addprefix $(VBOX_DISAS_TEST_OUT_DIR)/, $(VBOX_DISAS_TESTS_BIN:.asm=-16.bin)): $(PATH_SUB_CURRENT)/$$(patsubst %-16.bin,%.asm,$$(notdir $$(@))) | $$(dir $$@)
 	@$(ECHO) "Assembling: $(<F) into $(@F)"
@@ -128,9 +177,9 @@ ifdef VBOX_WITH_TESTCASES
 
  # Generate the rules for the 'build' tests.
  VBOX_DISAS_TEST_CLEAN += $(addprefix $(VBOX_DISAS_TEST_OUT_DIR)/, \
- 	$(VBOX_DISAS_TESTS_BUILD:.asm=-16-disas.asm) \
- 	$(VBOX_DISAS_TESTS_BUILD:.asm=-32-disas.asm) \
- 	$(VBOX_DISAS_TESTS_BUILD:.asm=-64-disas.asm))
+ 		$(VBOX_DISAS_TESTS_BUILD:.asm=-16-disas.asm) \
+ 		$(VBOX_DISAS_TESTS_BUILD:.asm=-32-disas.asm) \
+ 		$(VBOX_DISAS_TESTS_BUILD:.asm=-64-disas.asm))
 
  $(addprefix $(VBOX_DISAS_TEST_OUT_DIR)/, $(VBOX_DISAS_TESTS_BUILD:.asm=-16-disas.asm)): $$(subst -disas.asm,.bin,$$@) $$(tstDisasm-2_1_STAGE_TARGET) | $$(dir $$@)
 	@$(ECHO) "Generating: $(@F) from $(<F)"
@@ -146,9 +195,9 @@ ifdef VBOX_WITH_TESTCASES
 
 
  VBOX_DISAS_TEST_CLEAN += $(addprefix $(VBOX_DISAS_TEST_OUT_DIR)/, \
- 	$(VBOX_DISAS_TESTS_BUILD:.asm=-16-disas.bin) \
- 	$(VBOX_DISAS_TESTS_BUILD:.asm=-32-disas.bin) \
- 	$(VBOX_DISAS_TESTS_BUILD:.asm=-64-disas.bin))
+ 		$(VBOX_DISAS_TESTS_BUILD:.asm=-16-disas.bin) \
+ 		$(VBOX_DISAS_TESTS_BUILD:.asm=-32-disas.bin) \
+ 		$(VBOX_DISAS_TESTS_BUILD:.asm=-64-disas.bin))
 
  $(addprefix $(VBOX_DISAS_TEST_OUT_DIR)/, $(VBOX_DISAS_TESTS_BUILD:.asm=-16-disas.bin)): $$(subst .bin,.asm,$$@) | $$(dir $$@)
 	@$(ECHO) "Re-assembling: $(<F) into $(@F)"

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2015-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2015-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -34,19 +34,28 @@
 /* Qt includes: */
 #include <QObject>
 #include <QWindow>
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
 # include <QRect>
 # include <QVector>
 #endif
 
 /* GUI includes: */
 #include "UILibraryDefs.h"
-#if defined(VBOX_WS_X11) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
-# include "UIDefs.h"
-#endif
 
 /* Forward declarations: */
 class QScreen;
+
+#if defined(VBOX_WS_NIX) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
+/** Desktop Watchdog / Synthetic Test policy type. */
+enum DesktopWatchdogPolicy_SynthTest
+{
+    DesktopWatchdogPolicy_SynthTest_Disabled,
+    DesktopWatchdogPolicy_SynthTest_ManagerOnly,
+    DesktopWatchdogPolicy_SynthTest_MachineOnly,
+    DesktopWatchdogPolicy_SynthTest_Both
+};
+Q_DECLARE_METATYPE(DesktopWatchdogPolicy_SynthTest);
+#endif /* VBOX_WS_NIX && !VBOX_GUI_WITH_CUSTOMIZATIONS1 */
 
 /** Singleton QObject extension used as desktop-widget
   * watchdog aware of the host-screen geometry changes. */
@@ -70,7 +79,7 @@ signals:
     /** Notifies about work-area resize for the host-screen with @a iHostScreenIndex. */
     void sigHostScreenWorkAreaResized(int iHostScreenIndex);
 
-#if defined(VBOX_WS_X11) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
+#if defined(VBOX_WS_NIX) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
     /** Notifies about work-area recalculated for the host-screen with @a iHostScreenIndex. */
     void sigHostScreenWorkAreaRecalculated(int iHostScreenIndex);
 #endif
@@ -120,7 +129,7 @@ public:
     /** Returns overall region unifying all the host-screen available-geometries. */
     static QRegion overallAvailableRegion();
 
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     /** Qt5: X11: Returns whether no or fake screen detected. */
     static bool isFakeScreenDetected();
 #endif
@@ -174,7 +183,7 @@ private slots:
     /** Handles host-screen work-area resize to passed @a availableGeometry. */
     void sltHandleHostScreenWorkAreaResized(const QRect &availableGeometry);
 
-#if defined(VBOX_WS_X11) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
+#if defined(VBOX_WS_NIX) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
     /** Handles @a availableGeometry calculation result for the host-screen with @a iHostScreenIndex. */
     void sltHandleHostScreenAvailableGeometryCalculated(int iHostScreenIndex, QRect availableGeometry);
 #endif
@@ -195,7 +204,7 @@ private:
     /** Holds the static instance of the desktop-widget watchdog. */
     static UIDesktopWidgetWatchdog *s_pInstance;
 
-#if defined(VBOX_WS_X11) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
+#if defined(VBOX_WS_NIX) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
     /** Returns whether Synthetic Test is restricted according to cached policy. */
     bool isSynchTestRestricted() const;
 
@@ -209,6 +218,9 @@ private:
     /** Cleanups existing workers. */
     void cleanupExistingWorkers();
 
+    /** Holds environment variable name for Desktop Watchdog / Synthetic Test policy type. */
+    static const QString s_strVBoxDesktopWatchdogPolicySynthTest;
+
     /** Holds the cached Synthetic Test policy. */
     DesktopWatchdogPolicy_SynthTest  m_enmSynthTestPolicy;
 
@@ -216,7 +228,7 @@ private:
     QVector<QRect>    m_availableGeometryData;
     /** Holds current workers determining host-screen available-geometries. */
     QVector<QWidget*> m_availableGeometryWorkers;
-#endif /* VBOX_WS_X11 && !VBOX_GUI_WITH_CUSTOMIZATIONS1 */
+#endif /* VBOX_WS_NIX && !VBOX_GUI_WITH_CUSTOMIZATIONS1 */
 };
 
 /** 'Official' name for the desktop-widget watchdog singleton. */

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -27,6 +27,7 @@
 
 /* Qt includes: */
 #include <QAction>
+#include <QApplication>
 #include <QHeaderView>
 #include <QMenuBar>
 #include <QVBoxLayout>
@@ -37,22 +38,24 @@
 #include "QIFileDialog.h"
 #include "QIMessageBox.h"
 #include "QITabWidget.h"
+#include "QIToolBar.h"
 #include "QIToolButton.h"
 #include "UIActionPool.h"
-#include "UICommon.h"
 #include "UIDesktopWidgetWatchdog.h"
 #include "UIExtraDataManager.h"
+#include "UILoggingDefs.h"
+#include "UIMediumEnumerator.h"
 #include "UIMediumSearchWidget.h"
 #include "UIMediumSelector.h"
+#include "UIMediumTools.h"
 #include "UIMessageCenter.h"
 #include "UIModalWindowManager.h"
 #include "UIIconPool.h"
 #include "UIMedium.h"
 #include "UIMediumItem.h"
-#include "QIToolBar.h"
+#include "UITranslationEventListener.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CMachine.h"
 #include "CMediumAttachment.h"
 #include "CMediumFormat.h"
@@ -67,7 +70,7 @@
 UIMediumSelector::UIMediumSelector(const QUuid &uCurrentMediumId, UIMediumDeviceType enmMediumType, const QString &machineName,
                                    const QString &machineSettingsFilePath, const QString &strMachineGuestOSTypeId,
                                    const QUuid &uMachineID, QWidget *pParent, UIActionPool *pActionPool)
-    :QIWithRetranslateUI<QIWithRestorableGeometry<QIMainDialog> >(pParent)
+    : QIWithRestorableGeometry<QIMainDialog>(pParent)
     , m_pCentralWidget(0)
     , m_pMainLayout(0)
     , m_pTreeWidget(0)
@@ -94,8 +97,8 @@ UIMediumSelector::UIMediumSelector(const QUuid &uCurrentMediumId, UIMediumDevice
     , m_iGeometrySaveTimerId(-1)
 {
     /* Start full medium-enumeration (if necessary): */
-    if (!uiCommon().isFullMediumEnumerationRequested())
-        uiCommon().enumerateMedia();
+    if (!gpMediumEnumerator->isFullMediumEnumerationRequested())
+        gpMediumEnumerator->enumerateMedia();
     configure();
     finalize();
     selectMedium(uCurrentMediumId);
@@ -161,14 +164,15 @@ int UIMediumSelector::openMediumSelectorDialog(QWidget *pParent, UIMediumDeviceT
         else
         {
             uSelectedMediumUuid = selectedMediumIds[0];
-            uiCommon().updateRecentlyUsedMediumListAndFolder(enmMediumType, uiCommon().medium(uSelectedMediumUuid).location());
+            gpMediumEnumerator->updateRecentlyUsedMediumListAndFolder(enmMediumType,
+                                                                      gpMediumEnumerator->medium(uSelectedMediumUuid).location());
         }
     }
     delete pSelector;
     return static_cast<int>(returnCode);
 }
 
-void UIMediumSelector::retranslateUi()
+void UIMediumSelector::sltRetranslateUI()
 {
     if (m_pCancelButton)
     {
@@ -189,6 +193,7 @@ void UIMediumSelector::retranslateUi()
 
     if (m_pTreeWidget)
     {
+        m_pTreeWidget->setWhatsThis(tr("Shows a list of all registered media"));
         m_pTreeWidget->headerItem()->setText(0, tr("Name"));
         m_pTreeWidget->headerItem()->setText(1, tr("Virtual Size"));
         m_pTreeWidget->headerItem()->setText(2, tr("Actual Size"));
@@ -213,7 +218,7 @@ bool UIMediumSelector::event(QEvent *pEvent)
             saveDialogGeometry();
         }
     }
-    return QIWithRetranslateUI<QIWithRestorableGeometry<QIMainDialog> >::event(pEvent);
+    return QIWithRestorableGeometry<QIMainDialog>::event(pEvent);
 }
 
 void UIMediumSelector::configure()
@@ -277,13 +282,13 @@ void UIMediumSelector::prepareMenuAndToolBar()
 void UIMediumSelector::prepareConnections()
 {
     /* Configure medium-enumeration connections: */
-    connect(&uiCommon(), &UICommon::sigMediumCreated,
+    connect(gpMediumEnumerator, &UIMediumEnumerator::sigMediumCreated,
             this, &UIMediumSelector::sltHandleMediumCreated);
-    connect(&uiCommon(), &UICommon::sigMediumEnumerationStarted,
+    connect(gpMediumEnumerator, &UIMediumEnumerator::sigMediumEnumerationStarted,
             this, &UIMediumSelector::sltHandleMediumEnumerationStart);
-    connect(&uiCommon(), &UICommon::sigMediumEnumerated,
+    connect(gpMediumEnumerator, &UIMediumEnumerator::sigMediumEnumerated,
             this, &UIMediumSelector::sltHandleMediumEnumerated);
-    connect(&uiCommon(), &UICommon::sigMediumEnumerationFinished,
+    connect(gpMediumEnumerator, &UIMediumEnumerator::sigMediumEnumerationFinished,
             this, &UIMediumSelector::sltHandleMediumEnumerationFinish);
     if (m_pActionAdd)
         connect(m_pActionAdd, &QAction::triggered, this, &UIMediumSelector::sltAddMedium);
@@ -352,7 +357,7 @@ UIMediumItem* UIMediumSelector::createHardDiskItem(const UIMedium &medium, QITre
         if (!pParentMediumItem)
         {
             /* Make sure corresponding parent medium is already cached! */
-            UIMedium parentMedium = uiCommon().medium(medium.parentID());
+            UIMedium parentMedium = gpMediumEnumerator->medium(medium.parentID());
             if (parentMedium.isNull())
                 AssertMsgFailed(("Parent medium with ID={%s} was not found!\n", medium.parentID().toString().toUtf8().constData()));
             /* Try to create parent medium-item: */
@@ -488,7 +493,8 @@ void UIMediumSelector::sltButtonLeaveEmpty()
 
 void UIMediumSelector::sltAddMedium()
 {
-    QUuid uMediumID = uiCommon().openMediumWithFileOpenDialog(m_enmMediumType, this, m_strMachineFolder, true /* fUseLastFolder */);
+    QUuid uMediumID = UIMediumTools::openMediumWithFileOpenDialog(m_enmMediumType, this, m_strMachineFolder,
+                                                                  true /* fUseLastFolder */);
     if (uMediumID.isNull())
         return;
     repopulateTreeWidget();
@@ -497,8 +503,8 @@ void UIMediumSelector::sltAddMedium()
 
 void UIMediumSelector::sltCreateMedium()
 {
-    QUuid uMediumId = uiCommon().openMediumCreatorDialog(m_pActionPool, this, m_enmMediumType, m_strMachineFolder,
-                                                         m_strMachineName, m_strMachineGuestOSTypeId);
+    QUuid uMediumId = UIMediumTools::openMediumCreatorDialog(m_pActionPool, this, m_enmMediumType, m_strMachineFolder,
+                                                             m_strMachineName, m_strMachineGuestOSTypeId);
     /* Make sure that the data structure is updated and newly created medium is selected and visible: */
     sltHandleMediumCreated(uMediumId);
 }
@@ -549,7 +555,7 @@ void UIMediumSelector::sltHandleMediumEnumerationFinish()
 void UIMediumSelector::sltHandleRefresh()
 {
     /* Restart full medium-enumeration: */
-    uiCommon().enumerateMedia();
+    gpMediumEnumerator->enumerateMedia();
     /* Update the search: */
     m_pSearchWidget->search(m_pTreeWidget);
 }
@@ -609,7 +615,7 @@ void UIMediumSelector::selectMedium(const QUuid &uMediumID)
         m_pTreeWidget->setCurrentItem(pMediumItem);
         QModelIndex itemIndex = m_pTreeWidget->itemIndex(pMediumItem);
         if (itemIndex.isValid())
-            m_pTreeWidget->scrollTo(itemIndex, QAbstractItemView::EnsureVisible);
+            m_pTreeWidget->scrollTo(itemIndex, QAbstractItemView::PositionAtCenter);
     }
 }
 
@@ -640,7 +646,9 @@ void UIMediumSelector::updateChooseButton()
 void UIMediumSelector::finalize()
 {
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIMediumSelector::sltRetranslateUI);
 }
 
 void UIMediumSelector::showEvent(QShowEvent *pEvent)
@@ -665,9 +673,9 @@ void UIMediumSelector::repopulateTreeWidget()
     m_pAttachedSubTreeRoot = 0;
     m_pNotAttachedSubTreeRoot = 0;
     QVector<UIMediumItem*> menuItemVector;
-    foreach (const QUuid &uMediumID, uiCommon().mediumIDs())
+    foreach (const QUuid &uMediumID, gpMediumEnumerator->mediumIDs())
     {
-        UIMedium medium = uiCommon().medium(uMediumID);
+        UIMedium medium = gpMediumEnumerator->medium(uMediumID);
         if (medium.type() == m_enmMediumType)
         {
             bool isMediumAttached = !(medium.medium().GetMachineIds().isEmpty());

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -38,7 +38,7 @@
 
 
 UIDiskEncryptionSettingsEditor::UIDiskEncryptionSettingsEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent)
     , m_fFeatureEnabled(false)
     , m_enmCipherType(UIDiskEncryptionCipherType_Max)
     , m_pCheckboxFeature(0)
@@ -99,7 +99,7 @@ QString UIDiskEncryptionSettingsEditor::password2() const
     return m_pEditorPassword2 ? m_pEditorPassword2->text() : m_strPassword2;
 }
 
-void UIDiskEncryptionSettingsEditor::retranslateUi()
+void UIDiskEncryptionSettingsEditor::sltRetranslateUI()
 {
     if (m_pCheckboxFeature)
     {
@@ -149,7 +149,7 @@ void UIDiskEncryptionSettingsEditor::prepare()
     prepareConnections();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIDiskEncryptionSettingsEditor::prepareWidgets()
@@ -249,7 +249,7 @@ void UIDiskEncryptionSettingsEditor::prepareConnections()
         connect(m_pCheckboxFeature, &QCheckBox::toggled,
                 this, &UIDiskEncryptionSettingsEditor::sltHandleFeatureToggled);
     if (m_pComboCipherType)
-        connect(m_pComboCipherType, static_cast<void(QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+        connect(m_pComboCipherType, &QComboBox::currentIndexChanged,
                 this, &UIDiskEncryptionSettingsEditor::sigCipherChanged);
     if (m_pEditorPassword1)
         connect(m_pEditorPassword1, &QLineEdit::textEdited,

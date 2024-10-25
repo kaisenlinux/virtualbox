@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,44 +32,60 @@
 
 /* GUI includes: */
 #include "UIBootOrderEditor.h"
-#include "UICommon.h"
 #include "UIConverter.h"
 #include "UIDetailsGenerator.h"
 #include "UIErrorString.h"
+#include "UIGlobalSession.h"
+#include "UIGuestOSType.h"
+#include "UIMedium.h"
+#include "UIMediumTools.h"
 #include "UITranslator.h"
+#include "UIUSBTools.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CAudioAdapter.h"
 #include "CAudioSettings.h"
 #include "CBooleanFormValue.h"
 #include "CChoiceFormValue.h"
 #include "CCloudMachine.h"
+#include "CConsole.h"
+#include "CFirmwareSettings.h"
 #include "CForm.h"
 #include "CFormValue.h"
 #include "CGraphicsAdapter.h"
+#include "CGuest.h"
 #include "CMachine.h"
 #include "CMediumAttachment.h"
 #include "CNetworkAdapter.h"
 #include "CNvramStore.h"
+#include "CPlatform.h"
+#include "CPlatformX86.h"
+#include "CPlatformProperties.h"
 #include "CProgress.h"
 #include "CRangedIntegerFormValue.h"
+#include "CRangedInteger64FormValue.h"
 #include "CRecordingScreenSettings.h"
 #include "CRecordingSettings.h"
 #include "CSerialPort.h"
 #include "CSharedFolder.h"
 #include "CStorageController.h"
 #include "CStringFormValue.h"
-#include "CSystemProperties.h"
 #include "CTrustedPlatformModule.h"
 #include "CUefiVariableStore.h"
 #include "CUSBController.h"
+#include "CUSBDevice.h"
 #include "CUSBDeviceFilter.h"
 #include "CUSBDeviceFilters.h"
 #include "CVRDEServer.h"
 
 /* VirtualBox interface declarations: */
+#include <iprt/time.h>
 #include <VBox/com/VirtualBox.h>
+
+
+const QString UIDetailsGenerator::e_strTableRow1 = QString("<tr><td colspan='2'><nobr><b>%1</b></nobr></td></tr>");
+const QString UIDetailsGenerator::e_strTableRow2 = QString("<tr><td><nobr>%1:</nobr></td><td><nobr>%2</nobr></td></tr>");
+const QString UIDetailsGenerator::e_strTableRow3 = QString("<tr><td><nobr>&nbsp;%1:</nobr></td><td><nobr>%2</nobr></td></tr>");
 
 
 UITextTable UIDetailsGenerator::generateMachineInformationGeneral(CMachine &comMachine,
@@ -108,7 +124,7 @@ UITextTable UIDetailsGenerator::generateMachineInformationGeneral(CMachine &comM
                                  QString("<a href=#%1,%2>%3</a>")
                                      .arg(strAnchorType,
                                           strOsTypeId,
-                                          uiCommon().vmGuestOSTypeDescription(strOsTypeId)));
+                                          gpGlobalSession->guestOSTypeManager().getDescription(strOsTypeId)));
     }
 
     /* Settings file location: */
@@ -228,7 +244,15 @@ QString UIDetailsGenerator::generateFormValueInformation(const CFormValue &comFo
             CRangedIntegerFormValue comValue(comFormValue);
             strResult = QString("%1 %2")
                             .arg(comValue.GetInteger())
-                            .arg(QApplication::translate("UICommon", comValue.GetSuffix().toUtf8().constData()));
+                            .arg(QApplication::translate("UITranslator", comValue.GetSuffix().toUtf8().constData()));
+            break;
+        }
+        case KFormValueType_RangedInteger64:
+        {
+            CRangedInteger64FormValue comValue(comFormValue);
+            strResult = QString("%1 %2")
+                            .arg(comValue.GetInteger())
+                            .arg(QApplication::translate("UITranslator", comValue.GetSuffix().toUtf8().constData()));
             break;
         }
         default:
@@ -299,7 +323,8 @@ UITextTable UIDetailsGenerator::generateMachineInformationSystem(CMachine &comMa
     /* Chipset type: */
     if (fOptions & UIExtraDataMetaDefs::DetailsElementOptionTypeSystem_ChipsetType)
     {
-        const KChipsetType enmChipsetType = comMachine.GetChipsetType();
+        CPlatform comPlatform = comMachine.GetPlatform();
+        const KChipsetType enmChipsetType = comPlatform.GetChipsetType();
         if (enmChipsetType == KChipsetType_ICH9)
             table << UITextTableLine(QApplication::translate("UIDetails", "Chipset Type", "details (system)"),
                                      gpConverter->toString(enmChipsetType));
@@ -318,7 +343,8 @@ UITextTable UIDetailsGenerator::generateMachineInformationSystem(CMachine &comMa
     /* EFI: */
     if (fOptions & UIExtraDataMetaDefs::DetailsElementOptionTypeSystem_Firmware)
     {
-        switch (comMachine.GetFirmwareType())
+        CFirmwareSettings comFirmwareSettings = comMachine.GetFirmwareSettings();
+        switch (comFirmwareSettings.GetFirmwareType())
         {
             case KFirmwareType_EFI:
             case KFirmwareType_EFI32:
@@ -330,11 +356,7 @@ UITextTable UIDetailsGenerator::generateMachineInformationSystem(CMachine &comMa
                 break;
             }
             default:
-            {
-                // For NLS purpose:
-                QApplication::translate("UIDetails", "Disabled", "details (system/EFI)");
                 break;
-            }
         }
     }
 
@@ -359,30 +381,51 @@ UITextTable UIDetailsGenerator::generateMachineInformationSystem(CMachine &comMa
     /* Acceleration: */
     if (fOptions & UIExtraDataMetaDefs::DetailsElementOptionTypeSystem_Acceleration)
     {
-        QStringList acceleration;
-        if (uiCommon().virtualBox().GetHost().GetProcessorFeature(KProcessorFeature_HWVirtEx))
+        const CPlatform comPlatform = comMachine.GetPlatform();
+        switch (comPlatform.GetArchitecture())
         {
-            /* Nested Paging: */
-            if (comMachine.GetHWVirtExProperty(KHWVirtExPropertyType_NestedPaging))
-                acceleration << QApplication::translate("UIDetails", "Nested Paging", "details (system)");
+            case KPlatformArchitecture_x86:
+            {
+                CPlatformX86 comPlatformX86 = comPlatform.GetX86();
+                QStringList acceleration;
+                if (gpGlobalSession->virtualBox().GetHost().GetProcessorFeature(KProcessorFeature_HWVirtEx))
+                {
+                    /* Nested Paging: */
+                    if (comPlatformX86.GetHWVirtExProperty(KHWVirtExPropertyType_NestedPaging))
+                        acceleration << QApplication::translate("UIDetails", "Nested Paging", "details (system)");
+                }
+                /* Nested VT-x/AMD-V: */
+                if (comPlatformX86.GetCPUProperty(KCPUPropertyTypeX86_HWVirt))
+                    acceleration << QApplication::translate("UIDetails", "Nested VT-x/AMD-V", "details (system)");
+                /* PAE/NX: */
+                if (comPlatformX86.GetCPUProperty(KCPUPropertyTypeX86_PAE))
+                    acceleration << QApplication::translate("UIDetails", "PAE/NX", "details (system)");
+
+                /* Paravirtualization provider: */
+                switch (comMachine.GetEffectiveParavirtProvider())
+                {
+                    case KParavirtProvider_Minimal: acceleration << QApplication::translate("UIDetails", "Minimal Paravirtualization", "details (system)"); break;
+                    case KParavirtProvider_HyperV:  acceleration << QApplication::translate("UIDetails", "Hyper-V Paravirtualization", "details (system)"); break;
+                    case KParavirtProvider_KVM:     acceleration << QApplication::translate("UIDetails", "KVM Paravirtualization", "details (system)"); break;
+                    default: break;
+                }
+                if (!acceleration.isEmpty())
+                    table << UITextTableLine(QApplication::translate("UIDetails", "Acceleration", "details (system)"),
+                                             acceleration.join(", "));
+                break;
+            }
+
+#ifdef VBOX_WITH_VIRT_ARMV8
+            case KPlatformArchitecture_ARM:
+            {
+                /** @todo BUGBUG ARM stuff goes here. */
+                break;
+            }
+#endif
+
+            default:
+                break;
         }
-        /* Nested VT-x/AMD-V: */
-        if (comMachine.GetCPUProperty(KCPUPropertyType_HWVirt))
-            acceleration << QApplication::translate("UIDetails", "Nested VT-x/AMD-V", "details (system)");
-        /* PAE/NX: */
-        if (comMachine.GetCPUProperty(KCPUPropertyType_PAE))
-            acceleration << QApplication::translate("UIDetails", "PAE/NX", "details (system)");
-        /* Paravirtualization provider: */
-        switch (comMachine.GetEffectiveParavirtProvider())
-        {
-            case KParavirtProvider_Minimal: acceleration << QApplication::translate("UIDetails", "Minimal Paravirtualization", "details (system)"); break;
-            case KParavirtProvider_HyperV:  acceleration << QApplication::translate("UIDetails", "Hyper-V Paravirtualization", "details (system)"); break;
-            case KParavirtProvider_KVM:     acceleration << QApplication::translate("UIDetails", "KVM Paravirtualization", "details (system)"); break;
-            default: break;
-        }
-        if (!acceleration.isEmpty())
-            table << UITextTableLine(QApplication::translate("UIDetails", "Acceleration", "details (system)"),
-                                     acceleration.join(", "));
     }
 
     return table;
@@ -456,16 +499,12 @@ UITextTable UIDetailsGenerator::generateMachineInformationDisplay(CMachine &comM
                                      .arg(gpConverter->toString(enmType)));
     }
 
-    /* Acceleration: */
     if (fOptions & UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay_Acceleration)
     {
-        QStringList acceleration;
         /* 3D acceleration: */
-        if (comGraphics.GetAccelerate3DEnabled())
-            acceleration << QApplication::translate("UIDetails", "3D", "details (display)");
-        if (!acceleration.isEmpty())
-            table << UITextTableLine(QApplication::translate("UIDetails", "Acceleration", "details (display)"),
-                                     acceleration.join(", "));
+        if (comGraphics.IsFeatureEnabled(KGraphicsFeature_Acceleration3D))
+            table << UITextTableLine(QApplication::translate("UIDetails", "3D Acceleration", "details (display)"),
+                                     QApplication::translate("UIDetails", "Enabled", "details (display/3D Acceleration)"));
     }
 
     /* Remote desktop server: */
@@ -487,7 +526,9 @@ UITextTable UIDetailsGenerator::generateMachineInformationDisplay(CMachine &comM
     if (fOptions & UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay_Recording)
     {
         CRecordingSettings comRecordingSettings = comMachine.GetRecordingSettings();
-        if (comRecordingSettings.GetEnabled())
+        CProgress comProgress = comRecordingSettings.GetProgress(); /** @todo r=andy Revamp this. */
+        /** @r=andy Check if recording is running: if not completed AND not canceled. */
+        if (comProgress.isOk() && !comProgress.GetCompleted() && !comProgress.GetCanceled())
         {
             /* For now all screens have the same config: */
             const CRecordingScreenSettings comRecordingScreen0Settings = comRecordingSettings.GetScreenSettings(0);
@@ -501,10 +542,8 @@ UITextTable UIDetailsGenerator::generateMachineInformationDisplay(CMachine &comM
                                      .arg(comRecordingScreen0Settings.GetVideoFPS()).arg(comRecordingScreen0Settings.GetVideoRate()));
         }
         else
-        {
             table << UITextTableLine(QApplication::translate("UIDetails", "Recording", "details (display/recording)"),
                                      QApplication::translate("UIDetails", "Disabled", "details (display/recording)"));
-        }
     }
 
     return table;
@@ -529,7 +568,7 @@ UITextTable UIDetailsGenerator::generateMachineInformationStorage(CMachine &comM
     foreach (const CStorageController &comController, comMachine.GetStorageControllers())
     {
         /* Add controller information: */
-        const QString strControllerName = QApplication::translate("UIMachineSettingsStorage", "Controller: %1");
+        const QString strControllerName = QApplication::translate("UIStorageSettingsEditor", "Controller: %1");
         table << UITextTableLine(strControllerName.arg(comController.GetName()), QString());
         /* Populate map (its sorted!): */
         QMap<StorageSlot, QString> attachmentsMap;
@@ -556,10 +595,10 @@ UITextTable UIDetailsGenerator::generateMachineInformationStorage(CMachine &comM
                 continue;
 
             /* Prepare attachment information: */
-            QString strAttachmentInfo = uiCommon().storageDetails(attachment.GetMedium(), false, false);
+            QString strAttachmentInfo = UIMediumTools::storageDetails(attachment.GetMedium(), false, false);
             /* That hack makes sure 'Inaccessible' word is always bold: */
             { // hack
-                const QString strInaccessibleString(UICommon::tr("Inaccessible", "medium"));
+                const QString strInaccessibleString(QApplication::translate("UIMedium", "Inaccessible", "medium"));
                 const QString strBoldInaccessibleString(QString("<b>%1</b>").arg(strInaccessibleString));
                 strAttachmentInfo.replace(strInaccessibleString, strBoldInaccessibleString);
             } // hack
@@ -670,21 +709,6 @@ UITextTable UIDetailsGenerator::generateMachineInformationAudio(CMachine &comMac
     return table;
 }
 
-QString summarizeGenericProperties(const CNetworkAdapter &comAdapter)
-{
-    QVector<QString> names;
-    QVector<QString> props;
-    props = comAdapter.GetProperties(QString(), names);
-    QString strResult;
-    for (int i = 0; i < names.size(); ++i)
-    {
-        strResult += names[i] + "=" + props[i];
-        if (i < names.size() - 1)
-            strResult += ", ";
-    }
-    return strResult;
-}
-
 UITextTable UIDetailsGenerator::generateMachineInformationNetwork(CMachine &comMachine,
                                                                   const UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork &fOptions)
 {
@@ -700,8 +724,12 @@ UITextTable UIDetailsGenerator::generateMachineInformationNetwork(CMachine &comM
     }
 
     /* Iterate over all the adapters: */
-    const ulong uCount = uiCommon().virtualBox().GetSystemProperties().GetMaxNetworkAdapters(comMachine.GetChipsetType());
-    for (ulong uSlot = 0; uSlot < uCount; ++uSlot)
+    CPlatform comPlatform = comMachine.GetPlatform();
+    const KPlatformArchitecture enmArch = comPlatform.GetArchitecture();
+    const KChipsetType enmChipsetType = comPlatform.GetChipsetType();
+    CPlatformProperties comProperties = gpGlobalSession->virtualBox().GetPlatformProperties(enmArch);
+    const ulong cMaxNetworkAdapters = comProperties.GetMaxNetworkAdapters(enmChipsetType);
+    for (ulong uSlot = 0; uSlot < cMaxNetworkAdapters; ++uSlot)
     {
         const QString strAnchorType = QString("network_attachment_type");
         const CNetworkAdapter comAdapter = comMachine.GetNetworkAdapter(uSlot);
@@ -829,6 +857,23 @@ UITextTable UIDetailsGenerator::generateMachineInformationNetwork(CMachine &comM
                 }
                 break;
             }
+#ifdef VBOX_WITH_CLOUD_NET
+            case KNetworkAttachmentType_Cloud:
+            {
+                if (fOptions & UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork_CloudNetwork)
+                {
+                    const QString strName = comAdapter.GetCloudNetwork();
+                    strAttachmentType = strAttachmentTemplate
+                                            .arg(strAnchorType)
+                                            .arg(uSlot)
+                                            .arg((int)KNetworkAttachmentType_Cloud)
+                                            .arg(strName)
+                                            .arg(QApplication::translate("UIDetails", "Cloud Network, '%1'", "details (network)")
+                                                 .arg(strName));
+                }
+                break;
+            }
+#endif /* VBOX_WITH_CLOUD_NET */
             default:
             {
                 if (fOptions & UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork_NotAttached)
@@ -865,8 +910,11 @@ UITextTable UIDetailsGenerator::generateMachineInformationSerial(CMachine &comMa
     }
 
     /* Iterate over all the ports: */
-    const ulong uCount = uiCommon().virtualBox().GetSystemProperties().GetSerialPortCount();
-    for (ulong uSlot = 0; uSlot < uCount; ++uSlot)
+    CPlatform comPlatform = comMachine.GetPlatform();
+    const KPlatformArchitecture enmArch = comPlatform.GetArchitecture();
+    CPlatformProperties comProperties = gpGlobalSession->virtualBox().GetPlatformProperties(enmArch);
+    const ulong cMaxSerialPorts = comProperties.GetSerialPortCount();
+    for (ulong uSlot = 0; uSlot < cMaxSerialPorts; ++uSlot)
     {
         const CSerialPort comPort = comMachine.GetSerialPort(uSlot);
 
@@ -876,7 +924,7 @@ UITextTable UIDetailsGenerator::generateMachineInformationSerial(CMachine &comMa
 
         /* Gather port information: */
         const KPortMode enmMode = comPort.GetHostMode();
-        const QString strModeTemplate = UITranslator::toCOMPortName(comPort.GetIRQ(), comPort.GetIOBase()) + ", ";
+        const QString strModeTemplate = UITranslator::toCOMPortName(comPort.GetIRQ(), comPort.GetIOAddress()) + ", ";
         QString strModeType;
         switch (enmMode)
         {
@@ -1167,4 +1215,354 @@ UITextTable UIDetailsGenerator::generateMachineInformationDescription(CMachine &
         table << UITextTableLine(QApplication::translate("UIDetails", "None", "details (description)"), QString());
 
     return table;
+}
+
+void UIDetailsGenerator::acquireHardDiskStatusInfo(CMachine &comMachine, QString &strInfo,
+                                                   uint &cAttachmentsCount)
+{
+    /* Enumerate all the controllers: */
+    foreach (const CStorageController &comController, comMachine.GetStorageControllers())
+    {
+        /* Enumerate all the attachments: */
+        QString strAttData;
+        foreach (const CMediumAttachment &comAttachment, comMachine.GetMediumAttachmentsOfController(comController.GetName()))
+        {
+            /* Skip unrelated attachments: */
+            if (comAttachment.GetType() != KDeviceType_HardDisk)
+                continue;
+            /* Append attachment data: */
+            strAttData += e_strTableRow3
+                .arg(gpConverter->toString(StorageSlot(comController.GetBus(), comAttachment.GetPort(), comAttachment.GetDevice())))
+                .arg(UIMedium(comAttachment.GetMedium(), UIMediumDeviceType_HardDisk).location());
+            ++cAttachmentsCount;
+        }
+        /* Append controller data: */
+        if (!strAttData.isNull())
+            strInfo += e_strTableRow1.arg(comController.GetName()) + strAttData;
+    }
+}
+
+void UIDetailsGenerator::acquireOpticalDiskStatusInfo(CMachine &comMachine, QString &strInfo,
+                                                      uint &cAttachmentsCount, uint &cAttachmentsMountedCount)
+{
+    /* Enumerate all the controllers: */
+    foreach (const CStorageController &comController, comMachine.GetStorageControllers())
+    {
+        QString strAttData;
+        /* Enumerate all the attachments: */
+        foreach (const CMediumAttachment &comAttachment, comMachine.GetMediumAttachmentsOfController(comController.GetName()))
+        {
+            /* Skip unrelated attachments: */
+            if (comAttachment.GetType() != KDeviceType_DVD)
+                continue;
+            /* Append attachment data: */
+            UIMedium vboxMedium(comAttachment.GetMedium(), UIMediumDeviceType_DVD);
+            strAttData += e_strTableRow3
+                .arg(gpConverter->toString(StorageSlot(comController.GetBus(), comAttachment.GetPort(), comAttachment.GetDevice())))
+                .arg(vboxMedium.isNull() || vboxMedium.isHostDrive() ? vboxMedium.name() : vboxMedium.location());
+            ++cAttachmentsCount;
+            if (!vboxMedium.isNull())
+                ++cAttachmentsMountedCount;
+        }
+        /* Append controller data: */
+        if (!strAttData.isNull())
+            strInfo += e_strTableRow1.arg(comController.GetName()) + strAttData;
+    }
+}
+
+void UIDetailsGenerator::acquireFloppyDiskStatusInfo(CMachine &comMachine, QString &strInfo,
+                                                     uint &cAttachmentsCount, uint &cAttachmentsMountedCount)
+{
+    /* Enumerate all the controllers: */
+    foreach (const CStorageController &comController, comMachine.GetStorageControllers())
+    {
+        QString strAttData;
+        /* Enumerate all the attachments: */
+        foreach (const CMediumAttachment &comAttachment, comMachine.GetMediumAttachmentsOfController(comController.GetName()))
+        {
+            /* Skip unrelated attachments: */
+            if (comAttachment.GetType() != KDeviceType_Floppy)
+                continue;
+            /* Append attachment data: */
+            UIMedium vboxMedium(comAttachment.GetMedium(), UIMediumDeviceType_Floppy);
+            strAttData += e_strTableRow3
+                .arg(gpConverter->toString(StorageSlot(comController.GetBus(), comAttachment.GetPort(), comAttachment.GetDevice())))
+                .arg(vboxMedium.isNull() || vboxMedium.isHostDrive() ? vboxMedium.name() : vboxMedium.location());
+            ++cAttachmentsCount;
+            if (!vboxMedium.isNull())
+                ++cAttachmentsMountedCount;
+        }
+        /* Append controller data: */
+        if (!strAttData.isNull())
+            strInfo += e_strTableRow1.arg(comController.GetName()) + strAttData;
+    }
+}
+
+void UIDetailsGenerator::acquireAudioStatusInfo(CMachine &comMachine, QString &strInfo,
+                                                bool &fAudioEnabled, bool &fEnabledOutput, bool &fEnabledInput)
+{
+    /* Get audio settings & adapter: */
+    const CAudioSettings comAudioSettings = comMachine.GetAudioSettings();
+    const CAudioAdapter comAdapter = comAudioSettings.GetAdapter();
+    fAudioEnabled = comAdapter.GetEnabled();
+    if (fAudioEnabled)
+    {
+        fEnabledOutput = comAdapter.GetEnabledOut();
+        fEnabledInput = comAdapter.GetEnabledIn();
+        strInfo = QString(e_strTableRow2).arg(QApplication::translate("UIDetails", "Audio Output", "details (audio)"),
+                                              fEnabledOutput ?
+                                              QApplication::translate("UIDetails", "Enabled", "details (audio/output)") :
+                                              QApplication::translate("UIDetails", "Disabled", "details (audio/output)"))
+                + QString(e_strTableRow2).arg(QApplication::translate("UIDetails", "Audio Input", "details (audio)"),
+                                              fEnabledInput ?
+                                              QApplication::translate("UIDetails", "Enabled", "details (audio/input)") :
+                                              QApplication::translate("UIDetails", "Disabled", "details (audio/input)"));
+    }
+}
+
+void UIDetailsGenerator::acquireNetworkStatusInfo(CMachine &comMachine, QString &strInfo,
+                                                  bool &fAdaptersPresent, bool &fCablesDisconnected)
+{
+    /* Determine max amount of network adapters: */
+    CPlatform comPlatform = comMachine.GetPlatform();
+    const KPlatformArchitecture enmArch = comPlatform.GetArchitecture();
+    const KChipsetType enmChipsetType = comPlatform.GetChipsetType();
+    CPlatformProperties comProperties = gpGlobalSession->virtualBox().GetPlatformProperties(enmArch);
+    const ulong cMaxNetworkAdapters = comProperties.GetMaxNetworkAdapters(enmChipsetType);
+
+    /* Gather adapter properties: */
+    RTTIMESPEC time;
+    uint64_t u64Now = RTTimeSpecGetNano(RTTimeNow(&time));
+    QString strFlags, strCount;
+    LONG64 iTimestamp;
+    comMachine.GetGuestProperty("/VirtualBox/GuestInfo/Net/Count", strCount, iTimestamp, strFlags);
+    bool fPropsValid = (u64Now - iTimestamp < UINT64_C(60000000000)); /* timeout beacon */
+    QStringList ipList, macList;
+    if (fPropsValid)
+    {
+        const ulong cAdapters = qMin(strCount.toULong(), cMaxNetworkAdapters);
+        for (ulong i = 0; i < cAdapters; ++i)
+        {
+            ipList << comMachine.GetGuestPropertyValue(QString("/VirtualBox/GuestInfo/Net/%1/V4/IP").arg(i));
+            macList << comMachine.GetGuestPropertyValue(QString("/VirtualBox/GuestInfo/Net/%1/MAC").arg(i));
+        }
+    }
+
+    /* Enumerate up to cMaxNetworkAdapters adapters: */
+    for (ulong uSlot = 0; uSlot < cMaxNetworkAdapters; ++uSlot)
+    {
+        const CNetworkAdapter &comAdapter = comMachine.GetNetworkAdapter(uSlot);
+        if (comMachine.isOk() && !comAdapter.isNull() && comAdapter.GetEnabled())
+        {
+            fAdaptersPresent = true;
+            QString strGuestIp;
+            if (fPropsValid)
+            {
+                const QString strGuestMac = comAdapter.GetMACAddress();
+                const int iIp = macList.indexOf(strGuestMac);
+                if (iIp >= 0)
+                    strGuestIp = ipList.at(iIp);
+            }
+            /* Check if the adapter's cable is connected: */
+            const bool fCableConnected = comAdapter.GetCableConnected();
+            if (fCablesDisconnected && fCableConnected)
+                fCablesDisconnected = false;
+            /* Append adapter data: */
+            strInfo += e_strTableRow1
+                .arg(QApplication::translate("UIIndicatorNetwork", "Adapter %1 (%2)")
+                        .arg(uSlot + 1).arg(gpConverter->toString(comAdapter.GetAttachmentType())));
+            if (!strGuestIp.isEmpty())
+                strInfo += e_strTableRow3
+                    .arg(QApplication::translate("UIIndicatorNetwork", "IP"), strGuestIp);
+            strInfo += e_strTableRow3
+                .arg(QApplication::translate("UIIndicatorNetwork", "Cable"))
+                .arg(fCableConnected ?
+                     QApplication::translate("UIIndicatorNetwork", "Connected", "cable") :
+                     QApplication::translate("UIIndicatorNetwork", "Disconnected", "cable"));
+        }
+    }
+}
+
+void UIDetailsGenerator::acquireUsbStatusInfo(CMachine &comMachine, CConsole &comConsole,
+                                              QString &strInfo, bool &fUsbEnabled, uint &cUsbFilterCount)
+{
+    /* Check whether there is at least one USB controller with an available proxy: */
+    fUsbEnabled =    !comMachine.GetUSBDeviceFilters().isNull()
+                  && !comMachine.GetUSBControllers().isEmpty()
+                  && comMachine.GetUSBProxyAvailable();
+    if (fUsbEnabled)
+    {
+        /* Enumerate all the USB devices: */
+        foreach (const CUSBDevice &comUsbDevice, comConsole.GetUSBDevices())
+        {
+            ++cUsbFilterCount;
+            strInfo += e_strTableRow1.arg(usbDetails(comUsbDevice));
+        }
+        /* Handle 'no-usb-devices' case: */
+        if (strInfo.isNull())
+            strInfo = e_strTableRow1
+                .arg(QApplication::translate("UIIndicatorUSB", "No USB devices attached"));
+    }
+}
+
+void UIDetailsGenerator::acquireSharedFoldersStatusInfo(CMachine &comMachine, CConsole &comConsole, CGuest &comGuest,
+                                                        QString &strInfo, uint &cFoldersCount)
+{
+    /* Enumerate all the folders: */
+    QMap<QString, QString> folders;
+    foreach (const CSharedFolder &comPermanentFolder, comMachine.GetSharedFolders())
+        folders.insert(comPermanentFolder.GetName(), comPermanentFolder.GetHostPath());
+    foreach (const CSharedFolder &comTemporaryFolder, comConsole.GetSharedFolders())
+        folders.insert(comTemporaryFolder.GetName(), comTemporaryFolder.GetHostPath());
+    cFoldersCount = folders.size();
+
+    /* Append attachment data: */
+    for (QMap<QString, QString>::const_iterator it = folders.constBegin(); it != folders.constEnd(); ++it)
+    {
+        /* Select slashes depending on the OS type: */
+        if (UIGuestOSTypeManager::isDOSType(comGuest.GetOSTypeId()))
+            strInfo += e_strTableRow2.arg(QString("<b>\\\\vboxsvr\\%1</b>").arg(it.key()), it.value());
+        else
+            strInfo += e_strTableRow2.arg(QString("<b>%1</b>").arg(it.key()), it.value());
+    }
+
+    /* Handle 'no-folders' case: */
+    if (!cFoldersCount)
+        strInfo = e_strTableRow1
+            .arg(QApplication::translate("UIIndicatorSharedFolders", "No shared folders"));
+}
+
+void UIDetailsGenerator::acquireDisplayStatusInfo(CMachine &comMachine, QString &strInfo,
+                                                  uint &uVRAMSize, uint &cMonitorCount, bool &fAcceleration3D)
+{
+    /* Get graphics adapter: */
+    CGraphicsAdapter comGraphics = comMachine.GetGraphicsAdapter();
+
+    /* Video Memory: */
+    uVRAMSize = comGraphics.GetVRAMSize();
+    const QString strVRAMSize = QApplication::translate("UIIndicatorDisplay", "%1 MB").arg(uVRAMSize);
+    strInfo += e_strTableRow2
+        .arg(QApplication::translate("UIDetails", "Video Memory", "details (display)"), strVRAMSize);
+
+    /* Monitor Count: */
+    cMonitorCount = comGraphics.GetMonitorCount();
+    if (cMonitorCount > 1)
+        strInfo += e_strTableRow2
+            .arg(QApplication::translate("UIDetails", "Screens", "details (display)"), QString::number(cMonitorCount));
+
+    /* 3D acceleration: */
+    fAcceleration3D = comGraphics.IsFeatureEnabled(KGraphicsFeature_Acceleration3D);
+    if (fAcceleration3D)
+        strInfo += e_strTableRow2
+            .arg(QApplication::translate("UIDetails", "3D Acceleration", "details (display)"),
+                 QApplication::translate("UIDetails", "Enabled", "details (display/3D Acceleration)"));
+}
+
+void UIDetailsGenerator::acquireRecordingStatusInfo(CMachine &comMachine, QString &strInfo,
+                                                    bool &fRecordingEnabled)
+{
+    /* Get recording settings: */
+    CRecordingSettings comRecordingSettings = comMachine.GetRecordingSettings();
+    CProgress comProgress = comRecordingSettings.GetProgress(); /** r=andy Revamp this. */
+    /** @r=andy Check if recording is running: if not completed AND not canceled. */
+    fRecordingEnabled = comProgress.isOk() && !comProgress.GetCompleted() && !comProgress.GetCanceled();
+    if (fRecordingEnabled)
+    {
+        /* For now all screens have the same config: */
+        CRecordingScreenSettings comRecordingScreen0Settings = comRecordingSettings.GetScreenSettings(0);
+        const bool fVideoEnabled = comRecordingScreen0Settings.IsFeatureEnabled(KRecordingFeature_Video);
+        const bool fAudioEnabled = comRecordingScreen0Settings.IsFeatureEnabled(KRecordingFeature_Audio);
+
+        /* Compose tool-tip: */
+        QString strToolTip;
+        if (fVideoEnabled && fAudioEnabled)
+            strToolTip = QApplication::translate("UIIndicatorRecording", "Video/audio recording file");
+        else if (fAudioEnabled)
+            strToolTip = QApplication::translate("UIIndicatorRecording", "Audio recording file");
+        else if (fVideoEnabled)
+            strToolTip = QApplication::translate("UIIndicatorRecording", "Video recording file");
+        strInfo += e_strTableRow2
+            .arg(strToolTip)
+            .arg(comRecordingScreen0Settings.GetFilename());
+    }
+    /* Handle 'no-recording' case: */
+    else
+    {
+        strInfo += e_strTableRow1
+            .arg(QApplication::translate("UIIndicatorRecording", "Recording disabled"));
+    }
+}
+
+void UIDetailsGenerator::acquireFeaturesStatusInfo(CMachine &comMachine, QString &strInfo,
+                                                   KVMExecutionEngine &enmEngine,
+                                                   bool fNestedPagingEnabled, bool fUxEnabled,
+                                                   KParavirtProvider enmProvider)
+{
+    /* VT-x/AMD-V feature: */
+    QString strExecutionEngine;
+    switch (enmEngine)
+    {
+        case KVMExecutionEngine_Interpreter:
+            strExecutionEngine = "IEM (Interpreter)"; /* no translation */
+            break;
+        case KVMExecutionEngine_Recompiler:
+            strExecutionEngine = "IEM (Recompiler)"; /* no translation */
+            break;
+        case KVMExecutionEngine_HwVirt:
+            strExecutionEngine = "VT-x/AMD-V";  /* no translation */
+            break;
+        case KVMExecutionEngine_NativeApi:
+            strExecutionEngine = "native API";  /* no translation */
+            break;
+        default:
+            AssertFailed();
+            enmEngine = KVMExecutionEngine_NotSet;
+            RT_FALL_THRU();
+        case KVMExecutionEngine_NotSet:
+            strExecutionEngine = QApplication::translate("UIIndicatorFeatures", "not set", "Execution engine");
+            break;
+    }
+
+    /* Nested Paging feature: */
+    const QString strNestedPaging = fNestedPagingEnabled
+                                  ? QApplication::translate("UIIndicatorFeatures", "Active", "Nested paging")
+                                  : QApplication::translate("UIIndicatorFeatures", "Inactive", "Nested paging");
+
+    /* Unrestricted Execution feature: */
+    const QString strUnrestrictExec = fUxEnabled
+                                    ? QApplication::translate("UIIndicatorFeatures", "Active", "Unrestricted execution")
+                                    : QApplication::translate("UIIndicatorFeatures", "Inactive", "Unrestricted execution");
+
+    /* CPU Execution Cap feature: */
+    const QString strCPUExecCap = QString::number(comMachine.GetCPUExecutionCap());
+
+    /* Paravirtualization feature: */
+    const QString strParavirt = gpConverter->toString(enmProvider);
+
+    /* Compose tool-tip: */
+    strInfo += e_strTableRow2.arg(QApplication::translate("UIIndicatorFeatures", "Execution Engine"), strExecutionEngine);
+    strInfo += e_strTableRow2.arg(QApplication::translate("UIDetails", "Nested Paging", "details (system)"), strNestedPaging);
+    strInfo += e_strTableRow2.arg(QApplication::translate("UIIndicatorFeatures", "Unrestricted Execution"), strUnrestrictExec);
+    strInfo += e_strTableRow2.arg(QApplication::translate("UIDetails", "Execution Cap", "details (system)"), strCPUExecCap);
+    strInfo += e_strTableRow2.arg(QApplication::translate("UIIndicatorFeatures", "Paravirtualization Interface"), strParavirt);
+
+    /* Add CPU count optional info: */
+    const int cCpuCount = comMachine.GetCPUCount();
+    if (cCpuCount > 1)
+        strInfo += e_strTableRow2.arg(QApplication::translate("UIDetails", "Processors", "details (system)"), QString::number(cCpuCount));
+}
+
+QString UIDetailsGenerator::summarizeGenericProperties(const CNetworkAdapter &comAdapter)
+{
+    QVector<QString> names;
+    QVector<QString> props;
+    props = comAdapter.GetProperties(QString(), names);
+    QString strResult;
+    for (int i = 0; i < names.size(); ++i)
+    {
+        strResult += names[i] + "=" + props[i];
+        if (i < names.size() - 1)
+            strResult += ", ";
+    }
+    return strResult;
 }

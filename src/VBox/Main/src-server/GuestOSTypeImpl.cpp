@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -97,27 +97,29 @@ HRESULT GuestOSType::init(const Global::OSType &ostype)
     AutoInitSpan autoInitSpan(this);
     AssertReturn(autoInitSpan.isOk(), E_FAIL);
 
-    unconst(mFamilyID)                  = ostype.familyId;
-    unconst(mFamilyDescription)         = ostype.familyDescription;
-    unconst(mID)                        = ostype.id;
-    unconst(mDescription)               = ostype.description;
-    unconst(mOSType)                    = ostype.osType;
-    unconst(mOSHint)                    = ostype.osHint;
-    unconst(mRAMSize)                   = ostype.recommendedRAM;
-    unconst(mCPUCount)                  = ostype.recommendedCPUCount;
-    unconst(mGraphicsControllerType)    = ostype.graphicsControllerType;
-    unconst(mVRAMSize)                  = ostype.recommendedVRAM;
-    unconst(mHDDSize)                   = ostype.recommendedHDD;
-    unconst(mNetworkAdapterType)        = ostype.networkAdapterType;
-    unconst(mNumSerialEnabled)          = ostype.numSerialEnabled;
-    unconst(mDVDStorageControllerType)  = ostype.dvdStorageControllerType;
-    unconst(mDVDStorageBusType)         = ostype.dvdStorageBusType;
-    unconst(mHDStorageControllerType)   = ostype.hdStorageControllerType;
-    unconst(mHDStorageBusType)          = ostype.hdStorageBusType;
-    unconst(mChipsetType)               = ostype.chipsetType;
-    unconst(mIommuType)                 = ostype.iommuType;
-    unconst(mAudioControllerType)       = ostype.audioControllerType;
-    unconst(mAudioCodecType)            = ostype.audioCodecType;
+    unconst(mFamilyID)                          = ostype.familyId;
+    unconst(mFamilyDescription)                 = ostype.familyDescription;
+    unconst(mOSSubtype)                         = ostype.subtype;
+    unconst(mID)                                = ostype.id;
+    unconst(mDescription)                       = ostype.description;
+    unconst(mOSType)                            = ostype.osType;
+    unconst(mOSHint)                            = ostype.osHint;
+    unconst(mRAMSize)                           = ostype.recommendedRAM;
+    unconst(mCPUCount)                          = ostype.recommendedCPUCount;
+    unconst(mHDDSize)                           = ostype.recommendedHDD;
+    unconst(mGraphicsControllerType)            = ostype.graphicsControllerType;
+    unconst(mVRAMSize)                          = ostype.recommendedVRAM;
+    unconst(mNetworkAdapterType)                = ostype.networkAdapterType;
+    unconst(mNumSerialEnabled)                  = ostype.numSerialEnabled;
+    unconst(mDVDStorageControllerType)          = ostype.dvdStorageControllerType;
+    unconst(mDVDStorageBusType)                 = ostype.dvdStorageBusType;
+    unconst(mHDStorageControllerType)           = ostype.hdStorageControllerType;
+    unconst(mHDStorageBusType)                  = ostype.hdStorageBusType;
+    unconst(mChipsetType)                       = ostype.chipsetType;
+    unconst(mIommuType)                         = ostype.iommuType;
+    unconst(mAudioControllerType)               = ostype.audioControllerType;
+    unconst(mAudioCodecType)                    = ostype.audioCodecType;
+    unconst(mGuestAdditionsInstallPackageName)  = ostype.guestAdditionsInstallPkgName;
 
     /* Confirm a successful initialization when it's the case */
     autoInitSpan.setSucceeded();
@@ -157,6 +159,15 @@ HRESULT GuestOSType::getFamilyDescription(com::Utf8Str &aFamilyDescription)
 }
 
 
+HRESULT GuestOSType::getSubtype(com::Utf8Str &aSubtype)
+{
+    /* mOSSubtype is constant during life time, no need to lock */
+    aSubtype = mOSSubtype;
+
+    return S_OK;
+}
+
+
 HRESULT GuestOSType::getId(com::Utf8Str &aId)
 {
     /* mID is constant during life time, no need to lock */
@@ -182,10 +193,31 @@ HRESULT GuestOSType::getIs64Bit(BOOL *aIs64Bit)
     return S_OK;
 }
 
+PlatformArchitecture_T GuestOSType::i_platformArchitecture() const
+{
+    /* mOSType constant during life time, no need to lock */
+    VBOXOSTYPE const osTypePlatformArchitectureMasked = VBOXOSTYPE(mOSType & VBOXOSTYPE_ArchitectureMask);
+    if (   osTypePlatformArchitectureMasked == VBOXOSTYPE_x86
+        || osTypePlatformArchitectureMasked == VBOXOSTYPE_x64)
+        return PlatformArchitecture_x86;
+    else if (   osTypePlatformArchitectureMasked == VBOXOSTYPE_arm32
+             || osTypePlatformArchitectureMasked == VBOXOSTYPE_arm64)
+        return PlatformArchitecture_ARM;
+
+    /* Will happen when called before being properly initialized(). */
+    return PlatformArchitecture_None;
+}
+
+HRESULT GuestOSType::getPlatformArchitecture(PlatformArchitecture_T *aPlatformArchitecture)
+{
+    *aPlatformArchitecture = i_platformArchitecture();
+    return S_OK;
+}
+
 HRESULT GuestOSType::getRecommendedIOAPIC(BOOL *aRecommendedIOAPIC)
 {
     /* mRecommendedIOAPIC is constant during life time, no need to lock */
-    *aRecommendedIOAPIC = !!(mOSHint & VBOXOSHINT_IOAPIC);
+    *aRecommendedIOAPIC = !!(mOSHint & VBOXOSHINT_X86_IOAPIC);
 
     return S_OK;
 }
@@ -194,7 +226,7 @@ HRESULT GuestOSType::getRecommendedIOAPIC(BOOL *aRecommendedIOAPIC)
 HRESULT GuestOSType::getRecommendedVirtEx(BOOL *aRecommendedVirtEx)
 {
     /* mRecommendedVirtEx is constant during life time, no need to lock */
-    *aRecommendedVirtEx = !!(mOSHint & VBOXOSHINT_HWVIRTEX);
+    *aRecommendedVirtEx = !!(mOSHint & VBOXOSHINT_X86_HWVIRTEX);
 
     return S_OK;
 }
@@ -265,7 +297,7 @@ HRESULT GuestOSType::getAdapterType(NetworkAdapterType_T *aNetworkAdapterType)
 HRESULT GuestOSType::getRecommendedPAE(BOOL *aRecommendedPAE)
 {
     /* recommended PAE is constant during life time, no need to lock */
-    *aRecommendedPAE = !!(mOSHint & VBOXOSHINT_PAE);
+    *aRecommendedPAE = !!(mOSHint & VBOXOSHINT_X86_PAE);
 
     return S_OK;
 }
@@ -331,7 +363,7 @@ HRESULT GuestOSType::getRecommendedUSBHID(BOOL *aRecommendedUSBHID)
 HRESULT GuestOSType::getRecommendedHPET(BOOL *aRecommendedHPET)
 {
     /* HPET recommendation is constant during life time, no need to lock */
-    *aRecommendedHPET = !!(mOSHint & VBOXOSHINT_HPET);
+    *aRecommendedHPET = !!(mOSHint & VBOXOSHINT_X86_HPET);
 
     return S_OK;
 }
@@ -425,7 +457,7 @@ HRESULT GuestOSType::getRecommendedTFReset(BOOL *aRecommendedTFReset)
 HRESULT GuestOSType::getRecommendedX2APIC(BOOL *aRecommendedX2APIC)
 {
     /* mRecommendedX2APIC is constant during life time, no need to lock */
-    *aRecommendedX2APIC = !!(mOSHint & VBOXOSHINT_X2APIC);
+    *aRecommendedX2APIC = !!(mOSHint & VBOXOSHINT_X86_X2APIC);
 
     return S_OK;
 }
@@ -464,6 +496,13 @@ HRESULT GuestOSType::getRecommendedWDDMGraphics(BOOL *aRecommendedWDDMGraphics)
     /* Value is constant during life time, no need to lock */
     *aRecommendedWDDMGraphics = !!(mOSHint & VBOXOSHINT_WDDM_GRAPHICS);
 
+    return S_OK;
+}
+
+HRESULT GuestOSType::getGuestAdditionsInstallPackageName(com::Utf8Str &aGuestAdditionsInstallPkgName)
+{
+    /* mGuestAdditionsInstallPackageName is constant during life time, no need to lock */
+    aGuestAdditionsInstallPkgName = mGuestAdditionsInstallPackageName;
     return S_OK;
 }
 

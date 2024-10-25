@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2020-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2020-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -61,6 +61,78 @@ static int dxMobWrite(PVMSVGAR3STATE pSvgaR3State, SVGAMobId mobid, uint32_t off
     return vmsvgaR3MobWrite(pSvgaR3State, pMob, off, pvData, cbData);
 }
 
+void vmsvga3dDXInitContextMobData(SVGADXContextMobFormat *p)
+{
+    /* 0xFFFFFFFF (SVGA_ID_INVALID) is a better initial value than 0 for most of svgaDXContext fields. */
+    memset(p, 0xFF, sizeof(*p));
+
+    p->inputAssembly.layoutId = SVGA3D_INVALID_ID;
+    for (uint32_t i = 0; i < RT_ELEMENTS(p->inputAssembly.vertexBuffers); ++i)
+    {
+        p->inputAssembly.vertexBuffers[i].bufferId = SVGA3D_INVALID_ID;
+        p->inputAssembly.vertexBuffers[i].stride = 0;
+        p->inputAssembly.vertexBuffers[i].offset = 0;
+    }
+    p->inputAssembly.indexBufferSid = SVGA3D_INVALID_ID;
+    p->inputAssembly.indexBufferOffset = 0;
+    p->inputAssembly.indexBufferFormat = SVGA3D_FORMAT_INVALID;
+    p->inputAssembly.topology = SVGA3D_PRIMITIVE_INVALID;
+
+    p->renderState.blendStateId = SVGA3D_INVALID_ID;
+    RT_ZERO(p->renderState.blendFactor);
+    p->renderState.sampleMask = 0;
+    p->renderState.depthStencilStateId = SVGA3D_INVALID_ID;
+    p->renderState.stencilRef = 0;
+    p->renderState.rasterizerStateId = SVGA3D_INVALID_ID;
+    p->renderState.depthStencilViewId = SVGA3D_INVALID_ID;
+    for (uint32_t i = 0; i < RT_ELEMENTS(p->renderState.renderTargetViewIds); ++i)
+        p->renderState.renderTargetViewIds[i] = SVGA3D_INVALID_ID;
+
+    for (uint32_t i = 0; i < RT_ELEMENTS(p->streamOut.targets); ++i)
+        p->streamOut.targets[i] = SVGA3D_INVALID_ID;
+    p->streamOut.soid = SVGA3D_INVALID_ID;
+
+    p->uavSpliceIndex = 0;
+    p->numViewports = 0;
+    p->numScissorRects = 0;
+
+    RT_ZERO(p->viewports);
+    RT_ZERO(p->scissorRects);
+
+    p->predication.queryID = SVGA3D_INVALID_ID;
+    p->predication.value = 0;
+
+    p->shaderIfaceMobid = SVGA3D_INVALID_ID;
+    p->shaderIfaceOffset = 0;
+
+    for (uint32_t i = 0; i < RT_ELEMENTS(p->shaderState); ++i)
+    {
+        p->shaderState[i].shaderId = SVGA3D_INVALID_ID;
+        for (uint32_t j = 0; j < RT_ELEMENTS(p->shaderState[0].constantBuffers); ++j)
+        {
+            SVGA3dConstantBufferBinding *cbb = &p->shaderState[i].constantBuffers[j];
+            cbb->sid = SVGA3D_INVALID_ID;
+            cbb->offsetInBytes = 0;
+            cbb->sizeInBytes = 0;
+        }
+        for (uint32_t j = 0; j < RT_ELEMENTS(p->shaderState[0].shaderResources); ++j)
+            p->shaderState[i].shaderResources[j] = SVGA3D_INVALID_ID;
+        for (uint32_t j = 0; j < RT_ELEMENTS(p->shaderState[0].samplers); ++j)
+            p->shaderState[i].samplers[j] = SVGA3D_INVALID_ID;
+    }
+
+    for (uint32_t i = 0; i < RT_ELEMENTS(p->queryID); ++i)
+        p->queryID[i] = SVGA3D_INVALID_ID;
+
+    for (uint32_t i = 0; i < RT_ELEMENTS(p->cotables); ++i)
+        p->cotables[i].mobid = SVGA3D_INVALID_ID;
+
+    for (uint32_t i = 0; i < RT_ELEMENTS(p->uaViewIds); ++i)
+        p->uaViewIds[i] = SVGA3D_INVALID_ID;
+
+    for (uint32_t i = 0; i < RT_ELEMENTS(p->csuaViewIds); ++i)
+        p->csuaViewIds[i] = SVGA3D_INVALID_ID;
+}
 
 /*
  *
@@ -108,8 +180,6 @@ int vmsvga3dDXSwitchContext(PVGASTATECC pThisCC, uint32_t cid)
     /* It is not necessary to restore SVGADXContextMobFormat::shaderState::shaderResources
      * because they are applied by the backend before each Draw call.
      */
-    #define DX_STATE_VS                0x00000001
-    #define DX_STATE_PS                0x00000002
     #define DX_STATE_SAMPLERS          0x00000004
     #define DX_STATE_INPUTLAYOUT       0x00000008
     #define DX_STATE_TOPOLOGY          0x00000010
@@ -119,11 +189,7 @@ int vmsvga3dDXSwitchContext(PVGASTATECC pThisCC, uint32_t cid)
     #define DX_STATE_VIEWPORTS         0x00000400
     #define DX_STATE_SCISSORRECTS      0x00000800
     #define DX_STATE_RASTERIZERSTATE   0x00001000
-    #define DX_STATE_RENDERTARGETS     0x00002000
-    #define DX_STATE_GS                0x00004000
     uint32_t u32TrackedState = 0
-        | DX_STATE_VS
-        | DX_STATE_PS
         | DX_STATE_SAMPLERS
         | DX_STATE_INPUTLAYOUT
         | DX_STATE_TOPOLOGY
@@ -133,53 +199,9 @@ int vmsvga3dDXSwitchContext(PVGASTATECC pThisCC, uint32_t cid)
         | DX_STATE_VIEWPORTS
         | DX_STATE_SCISSORRECTS
         | DX_STATE_RASTERIZERSTATE
-        | DX_STATE_RENDERTARGETS
-        | DX_STATE_GS
         ;
 
     LogFunc(("cid = %d, state = 0x%08X\n", cid, u32TrackedState));
-
-    if (u32TrackedState & DX_STATE_VS)
-    {
-        u32TrackedState &= ~DX_STATE_VS;
-
-        SVGA3dShaderType const shaderType = SVGA3D_SHADERTYPE_VS;
-
-        uint32_t const idxShaderState = shaderType - SVGA3D_SHADERTYPE_MIN;
-        SVGA3dShaderId shaderId = pDXContext->svgaDXContext.shaderState[idxShaderState].shaderId;
-
-        rc = pSvgaR3State->pFuncsDX->pfnDXSetShader(pThisCC, pDXContext, shaderId, shaderType);
-        AssertRC(rc);
-    }
-
-
-    if (u32TrackedState & DX_STATE_PS)
-    {
-        u32TrackedState &= ~DX_STATE_PS;
-
-        SVGA3dShaderType const shaderType = SVGA3D_SHADERTYPE_PS;
-
-        uint32_t const idxShaderState = shaderType - SVGA3D_SHADERTYPE_MIN;
-        SVGA3dShaderId shaderId = pDXContext->svgaDXContext.shaderState[idxShaderState].shaderId;
-
-        rc = pSvgaR3State->pFuncsDX->pfnDXSetShader(pThisCC, pDXContext, shaderId, shaderType);
-        AssertRC(rc);
-    }
-
-
-    if (u32TrackedState & DX_STATE_GS)
-    {
-        u32TrackedState &= ~DX_STATE_GS;
-
-        SVGA3dShaderType const shaderType = SVGA3D_SHADERTYPE_GS;
-
-        uint32_t const idxShaderState = shaderType - SVGA3D_SHADERTYPE_MIN;
-        SVGA3dShaderId shaderId = pDXContext->svgaDXContext.shaderState[idxShaderState].shaderId;
-
-        rc = pSvgaR3State->pFuncsDX->pfnDXSetShader(pThisCC, pDXContext, shaderId, shaderType);
-        AssertRC(rc);
-    }
-
 
     if (u32TrackedState & DX_STATE_SAMPLERS)
     {
@@ -302,19 +324,6 @@ int vmsvga3dDXSwitchContext(PVGASTATECC pThisCC, uint32_t cid)
         AssertRC(rc);
     }
 
-
-    if (u32TrackedState & DX_STATE_RENDERTARGETS)
-    {
-        u32TrackedState &= ~DX_STATE_RENDERTARGETS;
-
-        SVGA3dDepthStencilViewId const depthStencilViewId = (SVGA3dDepthStencilViewId)pDXContext->svgaDXContext.renderState.depthStencilViewId;
-        uint32_t const cRenderTargetViewId = SVGA3D_MAX_SIMULTANEOUS_RENDER_TARGETS;
-        SVGA3dRenderTargetViewId const *paRenderTargetViewId = (SVGA3dRenderTargetViewId *)&pDXContext->svgaDXContext.renderState.renderTargetViewIds[0];
-
-        rc = pSvgaR3State->pFuncsDX->pfnDXSetRenderTargets(pThisCC, pDXContext, depthStencilViewId, cRenderTargetViewId, paRenderTargetViewId);
-        AssertRC(rc);
-    }
-
     Assert(u32TrackedState == 0);
 
     return rc;
@@ -364,11 +373,7 @@ int vmsvga3dDXDefineContext(PVGASTATECC pThisCC, uint32_t cid)
     pDXContext = p3dState->papDXContexts[cid];
     memset(pDXContext, 0, sizeof(*pDXContext));
 
-    /* 0xFFFFFFFF (SVGA_ID_INVALID) is a better initial value than 0 for most of svgaDXContext fields. */
-    memset(&pDXContext->svgaDXContext, 0xFF, sizeof(pDXContext->svgaDXContext));
-    pDXContext->svgaDXContext.inputAssembly.topology = SVGA3D_PRIMITIVE_INVALID;
-    pDXContext->svgaDXContext.numViewports = 0;
-    pDXContext->svgaDXContext.numScissorRects = 0;
+    vmsvga3dDXInitContextMobData(&pDXContext->svgaDXContext);
     pDXContext->cid = cid;
 
     /* Init the backend specific data. */
@@ -1167,6 +1172,9 @@ int vmsvga3dDXSetPredication(PVGASTATECC pThisCC, uint32_t idDXContext, SVGA3dCm
                         || queryId < pDXContext->cot.cQuery, VERR_INVALID_PARAMETER);
     RT_UNTRUSTED_VALIDATED_FENCE();
 
+    pDXContext->svgaDXContext.predication.queryID = queryId;
+    pDXContext->svgaDXContext.predication.value = pCmd->predicateValue;
+
     rc = pSvgaR3State->pFuncsDX->pfnDXSetPredication(pThisCC, pDXContext, queryId, pCmd->predicateValue);
     return rc;
 }
@@ -1737,7 +1745,7 @@ int vmsvga3dDXDestroyDepthStencilState(PVGASTATECC pThisCC, uint32_t idDXContext
 }
 
 
-int vmsvga3dDXDefineRasterizerState(PVGASTATECC pThisCC, uint32_t idDXContext, SVGA3dCmdDXDefineRasterizerState const *pCmd)
+int vmsvga3dDXDefineRasterizerState(PVGASTATECC pThisCC, uint32_t idDXContext, SVGA3dCmdDXDefineRasterizerState_v2 const *pCmd)
 {
     int rc;
     PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
@@ -1771,7 +1779,7 @@ int vmsvga3dDXDefineRasterizerState(PVGASTATECC pThisCC, uint32_t idDXContext, S
     pEntry->lineStippleEnable     = pCmd->lineStippleEnable;
     pEntry->lineStippleFactor     = pCmd->lineStippleFactor;
     pEntry->lineStipplePattern    = pCmd->lineStipplePattern;
-    pEntry->forcedSampleCount     = 0; /** @todo Not in pCmd. */
+    pEntry->forcedSampleCount     = pCmd->forcedSampleCount;
     RT_ZERO(pEntry->mustBeZero);
 
     rc = pSvgaR3State->pFuncsDX->pfnDXDefineRasterizerState(pThisCC, pDXContext, rasterizerId, pEntry);
@@ -2157,12 +2165,18 @@ int vmsvga3dDXSetStreamOutput(PVGASTATECC pThisCC, uint32_t idDXContext, SVGA3dC
 
 
 static int dxSetOrGrowCOTable(PVGASTATECC pThisCC, PVMSVGA3DDXCONTEXT pDXContext, PVMSVGAMOB pMob,
-                              SVGACOTableType type, uint32_t validSizeInBytes, bool fGrow)
+                              SVGACOTableType enmType, uint32_t validSizeInBytes, bool fGrow)
 {
     PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
     int rc = VINF_SUCCESS;
 
-    ASSERT_GUEST_RETURN(type < RT_ELEMENTS(pDXContext->aCOTMobs), VERR_INVALID_PARAMETER);
+    uint32_t idxCOTable;
+    if (enmType < SVGA_COTABLE_MAX)
+        idxCOTable = enmType;
+    else if (enmType >= VBSVGA_COTABLE_MIN && enmType < VBSVGA_COTABLE_MAX)
+        idxCOTable = SVGA_COTABLE_MAX + (enmType - VBSVGA_COTABLE_MIN);
+    else
+        ASSERT_GUEST_FAILED_RETURN(VERR_INVALID_PARAMETER);
     RT_UNTRUSTED_VALIDATED_FENCE();
 
     uint32_t cbCOT;
@@ -2182,14 +2196,14 @@ static int dxSetOrGrowCOTable(PVGASTATECC pThisCC, PVMSVGA3DDXCONTEXT pDXContext
         /* Unbind. */
         validSizeInBytes = 0;
         cbCOT = 0;
-        vmsvgaR3MobBackingStoreDelete(pSvgaR3State, pDXContext->aCOTMobs[type]);
+        vmsvgaR3MobBackingStoreDelete(pSvgaR3State, pDXContext->aCOTMobs[idxCOTable]);
     }
 
     uint32_t cEntries = 0;
     uint32_t cValidEntries = 0;
     if (RT_SUCCESS(rc))
     {
-        static uint32_t const s_acbEntry[SVGA_COTABLE_MAX] =
+        static uint32_t const s_acbEntry[] =
         {
             sizeof(SVGACOTableDXRTViewEntry),
             sizeof(SVGACOTableDXDSViewEntry),
@@ -2203,20 +2217,26 @@ static int dxSetOrGrowCOTable(PVGASTATECC pThisCC, PVMSVGA3DDXCONTEXT pDXContext
             sizeof(SVGACOTableDXQueryEntry),
             sizeof(SVGACOTableDXShaderEntry),
             sizeof(SVGACOTableDXUAViewEntry),
+            sizeof(VBSVGACOTableDXVideoProcessorEntry),
+            sizeof(VBSVGACOTableDXVideoDecoderOutputViewEntry),
+            sizeof(VBSVGACOTableDXVideoDecoderEntry),
+            sizeof(VBSVGACOTableDXVideoProcessorInputViewEntry),
+            sizeof(VBSVGACOTableDXVideoProcessorOutputViewEntry),
         };
+        AssertCompile(RT_ELEMENTS(s_acbEntry) == VBSVGA_NUM_COTABLES);
 
-        cEntries = cbCOT / s_acbEntry[type];
-        cValidEntries = validSizeInBytes / s_acbEntry[type];
+        cEntries = cbCOT / s_acbEntry[idxCOTable];
+        cValidEntries = validSizeInBytes / s_acbEntry[idxCOTable];
     }
 
     if (RT_SUCCESS(rc))
     {
         if (   fGrow
-            && pDXContext->aCOTMobs[type]
+            && pDXContext->aCOTMobs[idxCOTable]
             && cValidEntries)
         {
             /* Copy entries from the current mob to the new mob. */
-            void const *pvSrc = vmsvgaR3MobBackingStorePtr(pDXContext->aCOTMobs[type], 0);
+            void const *pvSrc = vmsvgaR3MobBackingStorePtr(pDXContext->aCOTMobs[idxCOTable], 0);
             void *pvDst = vmsvgaR3MobBackingStorePtr(pMob, 0);
             if (pvSrc && pvDst)
                 memcpy(pvDst, pvSrc, validSizeInBytes);
@@ -2227,10 +2247,10 @@ static int dxSetOrGrowCOTable(PVGASTATECC pThisCC, PVMSVGA3DDXCONTEXT pDXContext
 
     if (RT_SUCCESS(rc))
     {
-        pDXContext->aCOTMobs[type] = pMob;
+        pDXContext->aCOTMobs[idxCOTable] = pMob;
 
         void *pvCOT = vmsvgaR3MobBackingStorePtr(pMob, 0);
-        switch (type)
+        switch (enmType)
         {
             case SVGA_COTABLE_RTVIEW:
                 pDXContext->cot.paRTView          = (SVGACOTableDXRTViewEntry *)pvCOT;
@@ -2281,6 +2301,30 @@ static int dxSetOrGrowCOTable(PVGASTATECC pThisCC, PVMSVGA3DDXCONTEXT pDXContext
                 pDXContext->cot.cUAView           = cEntries;
                 break;
             case SVGA_COTABLE_MAX: break; /* Compiler warning */
+            case VBSVGA_COTABLE_VIDEOPROCESSOR:
+                pDXContext->cot.paVideoProcessor  = (VBSVGACOTableDXVideoProcessorEntry *)pvCOT;
+                pDXContext->cot.cVideoProcessor   = cEntries;
+                break;
+            case VBSVGA_COTABLE_VDOV:
+                pDXContext->cot.paVideoDecoderOutputView  = (VBSVGACOTableDXVideoDecoderOutputViewEntry *)pvCOT;
+                pDXContext->cot.cVideoDecoderOutputView   = cEntries;
+                break;
+            case VBSVGA_COTABLE_VIDEODECODER:
+                pDXContext->cot.paVideoDecoder  = (VBSVGACOTableDXVideoDecoderEntry *)pvCOT;
+                pDXContext->cot.cVideoDecoder   = cEntries;
+                break;
+            case VBSVGA_COTABLE_VPIV:
+                pDXContext->cot.paVideoProcessorInputView  = (VBSVGACOTableDXVideoProcessorInputViewEntry *)pvCOT;
+                pDXContext->cot.cVideoProcessorInputView   = cEntries;
+                break;
+            case VBSVGA_COTABLE_VPOV:
+                pDXContext->cot.paVideoProcessorOutputView  = (VBSVGACOTableDXVideoProcessorOutputViewEntry *)pvCOT;
+                pDXContext->cot.cVideoProcessorOutputView   = cEntries;
+                break;
+            case VBSVGA_COTABLE_MAX: break; /* Compiler warning */
+#ifndef DEBUG_sunlover
+            default: break; /* Compiler warning. */
+#endif
         }
     }
     else
@@ -2288,7 +2332,7 @@ static int dxSetOrGrowCOTable(PVGASTATECC pThisCC, PVMSVGA3DDXCONTEXT pDXContext
 
     /* Notify the backend. */
     if (RT_SUCCESS(rc))
-        rc = pSvgaR3State->pFuncsDX->pfnDXSetCOTable(pThisCC, pDXContext, type, cValidEntries);
+        rc = pSvgaR3State->pFuncsDX->pfnDXSetCOTable(pThisCC, pDXContext, enmType, cValidEntries);
 
     return rc;
 }
@@ -2579,7 +2623,7 @@ int vmsvga3dIntraSurfaceCopy(PVGASTATECC pThisCC, uint32_t idDXContext, SVGA3dCm
 }
 
 
-int vmsvga3dDXResolveCopy(PVGASTATECC pThisCC, uint32_t idDXContext)
+int vmsvga3dDXResolveCopy(PVGASTATECC pThisCC, uint32_t idDXContext, SVGA3dCmdDXResolveCopy const *pCmd)
 {
     int rc;
     PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
@@ -2591,7 +2635,8 @@ int vmsvga3dDXResolveCopy(PVGASTATECC pThisCC, uint32_t idDXContext)
     rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
     AssertRCReturn(rc, rc);
 
-    rc = pSvgaR3State->pFuncsDX->pfnDXResolveCopy(pThisCC, pDXContext);
+    rc = pSvgaR3State->pFuncsDX->pfnDXResolveCopy(pThisCC, pDXContext, pCmd->dstSid, pCmd->dstSubResource,
+                                                  pCmd->srcSid, pCmd->srcSubResource, pCmd->copyFormat);
     return rc;
 }
 
@@ -3254,3 +3299,1162 @@ int vmsvga3dVBDXClearRenderTargetViewRegion(PVGASTATECC pThisCC, uint32_t idDXCo
     return rc;
 }
 
+
+int vmsvga3dVBDXDefineVideoProcessor(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXDefineVideoProcessor const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXDefineVideoProcessor, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorId const videoProcessorId = pCmd->videoProcessorId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessor, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoProcessorId < pDXContext->cot.cVideoProcessor, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    VBSVGACOTableDXVideoProcessorEntry *pEntry = &pDXContext->cot.paVideoProcessor[videoProcessorId];
+    pEntry->desc                    = pCmd->desc;
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXDefineVideoProcessor(pThisCC, pDXContext, videoProcessorId, pEntry);
+    return rc;
+}
+
+
+int vmsvga3dVBDXDefineVideoDecoderOutputView(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXDefineVideoDecoderOutputView const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXDefineVideoDecoderOutputView, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoDecoderOutputViewId const videoDecoderOutputViewId = pCmd->videoDecoderOutputViewId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoDecoderOutputView, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoDecoderOutputViewId < pDXContext->cot.cVideoDecoderOutputView, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    VBSVGACOTableDXVideoDecoderOutputViewEntry *pEntry = &pDXContext->cot.paVideoDecoderOutputView[videoDecoderOutputViewId];
+    pEntry->sid                     = pCmd->sid;
+    pEntry->desc                    = pCmd->desc;
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXDefineVideoDecoderOutputView(pThisCC, pDXContext, videoDecoderOutputViewId, pEntry);
+    return rc;
+}
+
+
+int vmsvga3dVBDXDefineVideoDecoder(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXDefineVideoDecoder const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXDefineVideoDecoder, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoDecoderId const videoDecoderId = pCmd->videoDecoderId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoDecoder, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoDecoderId < pDXContext->cot.cVideoDecoder, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    VBSVGACOTableDXVideoDecoderEntry *pEntry = &pDXContext->cot.paVideoDecoder[videoDecoderId];
+    pEntry->desc   = pCmd->desc;
+    pEntry->config = pCmd->config;
+    pEntry->vdovId = SVGA3D_INVALID_ID;
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXDefineVideoDecoder(pThisCC, pDXContext, videoDecoderId, pEntry);
+    return rc;
+}
+
+
+int vmsvga3dVBDXVideoDecoderBeginFrame(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXVideoDecoderBeginFrame const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoDecoderBeginFrame, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoDecoderId const videoDecoderId = pCmd->videoDecoderId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoDecoder, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoDecoderId < pDXContext->cot.cVideoDecoder, VERR_INVALID_PARAMETER);
+
+    VBSVGA3dVideoDecoderOutputViewId const videoDecoderOutputViewId = pCmd->videoDecoderOutputViewId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoDecoderOutputView, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoDecoderOutputViewId < pDXContext->cot.cVideoDecoderOutputView, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    VBSVGACOTableDXVideoDecoderEntry *pEntry = &pDXContext->cot.paVideoDecoder[videoDecoderId];
+    pEntry->vdovId = videoDecoderOutputViewId;
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoDecoderBeginFrame(pThisCC, pDXContext, videoDecoderId, videoDecoderOutputViewId);
+    return rc;
+}
+
+
+int vmsvga3dVBDXVideoDecoderSubmitBuffers(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXVideoDecoderSubmitBuffers const *pCmd, uint32_t cBuffer, VBSVGA3dVideoDecoderBufferDesc const *paBufferDesc)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoDecoderSubmitBuffers, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoDecoderId const videoDecoderId = pCmd->videoDecoderId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoDecoder, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoDecoderId < pDXContext->cot.cVideoDecoder, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoDecoderSubmitBuffers(pThisCC, pDXContext, videoDecoderId, cBuffer, paBufferDesc);
+    return rc;
+}
+
+
+int vmsvga3dVBDXVideoDecoderEndFrame(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXVideoDecoderEndFrame const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoDecoderEndFrame, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoDecoderId const videoDecoderId = pCmd->videoDecoderId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoDecoder, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoDecoderId < pDXContext->cot.cVideoDecoder, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    VBSVGACOTableDXVideoDecoderEntry *pEntry = &pDXContext->cot.paVideoDecoder[videoDecoderId];
+    pEntry->vdovId = SVGA3D_INVALID_ID;
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoDecoderEndFrame(pThisCC, pDXContext, videoDecoderId);
+    return rc;
+}
+
+
+int vmsvga3dVBDXDefineVideoProcessorInputView(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXDefineVideoProcessorInputView const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXDefineVideoProcessorInputView, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorInputViewId const videoProcessorInputViewId = pCmd->videoProcessorInputViewId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessorInputView, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoProcessorInputViewId < pDXContext->cot.cVideoProcessorInputView, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    VBSVGACOTableDXVideoProcessorInputViewEntry *pEntry = &pDXContext->cot.paVideoProcessorInputView[videoProcessorInputViewId];
+    pEntry->sid         = pCmd->sid;
+    pEntry->contentDesc = pCmd->contentDesc;
+    pEntry->desc        = pCmd->desc;
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXDefineVideoProcessorInputView(pThisCC, pDXContext, videoProcessorInputViewId, pEntry);
+    return rc;
+}
+
+
+int vmsvga3dVBDXDefineVideoProcessorOutputView(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXDefineVideoProcessorOutputView const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXDefineVideoProcessorOutputView, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorOutputViewId const videoProcessorOutputViewId = pCmd->videoProcessorOutputViewId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessorOutputView, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoProcessorOutputViewId < pDXContext->cot.cVideoProcessorOutputView, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    VBSVGACOTableDXVideoProcessorOutputViewEntry *pEntry = &pDXContext->cot.paVideoProcessorOutputView[videoProcessorOutputViewId];
+    pEntry->sid         = pCmd->sid;
+    pEntry->contentDesc = pCmd->contentDesc;
+    pEntry->desc        = pCmd->desc;
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXDefineVideoProcessorOutputView(pThisCC, pDXContext, videoProcessorOutputViewId, pEntry);
+    return rc;
+}
+
+
+int vmsvga3dVBDXVideoProcessorBlt(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXVideoProcessorBlt const *pCmd, uint32_t cbCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorBlt, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorId const videoProcessorId = pCmd->videoProcessorId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessor, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoProcessorId < pDXContext->cot.cVideoProcessor, VERR_INVALID_PARAMETER);
+
+    VBSVGA3dVideoProcessorOutputViewId const videoProcessorOutputViewId = pCmd->videoProcessorOutputViewId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessorOutputView, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoProcessorOutputViewId < pDXContext->cot.cVideoProcessorOutputView, VERR_INVALID_PARAMETER);
+
+    ASSERT_GUEST_RETURN(pCmd->streamCount < VBSVGA3D_MAX_VIDEO_STREAMS, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    VBSVGA3dVideoProcessorStream const *pVPS = (VBSVGA3dVideoProcessorStream *)&pCmd[1];
+    uint32_t cbLeft = cbCmd - sizeof(*pCmd);
+    for (uint32_t i = 0; i <  pCmd->streamCount; ++i)
+    {
+        ASSERT_GUEST_RETURN(cbLeft >= sizeof(VBSVGA3dVideoProcessorStream), VERR_INVALID_PARAMETER);
+        RT_UNTRUSTED_VALIDATED_FENCE();
+        cbLeft -= sizeof(VBSVGA3dVideoProcessorStream);
+
+        uint32_t const cMaxIds = cbLeft / sizeof(VBSVGA3dVideoProcessorInputViewId);
+        ASSERT_GUEST_RETURN(pVPS->PastFrames < cMaxIds, VERR_INVALID_PARAMETER);
+        ASSERT_GUEST_RETURN(pVPS->FutureFrames < cMaxIds, VERR_INVALID_PARAMETER);
+        RT_UNTRUSTED_VALIDATED_FENCE();
+
+        uint32_t const cIds = (pVPS->StereoFormatSeparate == 0 ? 1 : 2) * (pVPS->PastFrames + 1 + pVPS->FutureFrames);
+        ASSERT_GUEST_RETURN(cIds <= cMaxIds, VERR_INVALID_PARAMETER);
+        RT_UNTRUSTED_VALIDATED_FENCE();
+
+        VBSVGA3dVideoProcessorInputViewId const *pId = (VBSVGA3dVideoProcessorInputViewId *)&pVPS[1];
+        for (uint32_t j = 0; j < cIds; ++j)
+        {
+            VBSVGA3dVideoProcessorInputViewId const videoProcessorInputViewId = pId[j];
+
+            ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessorInputView, VERR_INVALID_STATE);
+            ASSERT_GUEST_RETURN(videoProcessorInputViewId < pDXContext->cot.cVideoProcessorInputView, VERR_INVALID_PARAMETER);
+            RT_UNTRUSTED_VALIDATED_FENCE();
+        }
+
+        pVPS = (VBSVGA3dVideoProcessorStream *)((uint8_t *)&pVPS[1] + cIds * sizeof(VBSVGA3dVideoProcessorInputViewId));
+        cbLeft -= cIds * sizeof(VBSVGA3dVideoProcessorInputViewId);
+    }
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorBlt(pThisCC, pDXContext,
+                                                               videoProcessorId, videoProcessorOutputViewId,
+                                                               pCmd->outputFrame, pCmd->streamCount,
+                                                               (VBSVGA3dVideoProcessorStream *)&pCmd[1]);
+    return rc;
+}
+
+
+int vmsvga3dVBDXDestroyVideoDecoder(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXDestroyVideoDecoder const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXDestroyVideoDecoder, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoDecoderId const videoDecoderId = pCmd->videoDecoderId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoDecoder, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoDecoderId < pDXContext->cot.cVideoDecoder, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXDestroyVideoDecoder(pThisCC, pDXContext, videoDecoderId);
+
+    VBSVGACOTableDXVideoDecoderEntry *pEntry = &pDXContext->cot.paVideoDecoder[videoDecoderId];
+    RT_ZERO(*pEntry);
+
+    return rc;
+}
+
+
+int vmsvga3dVBDXDestroyVideoDecoderOutputView(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXDestroyVideoDecoderOutputView const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXDestroyVideoDecoderOutputView, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoDecoderOutputViewId const videoDecoderOutputViewId = pCmd->videoDecoderOutputViewId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoDecoderOutputView, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoDecoderOutputViewId < pDXContext->cot.cVideoDecoderOutputView, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXDestroyVideoDecoderOutputView(pThisCC, pDXContext, videoDecoderOutputViewId);
+
+    VBSVGACOTableDXVideoDecoderOutputViewEntry *pEntry = &pDXContext->cot.paVideoDecoderOutputView[videoDecoderOutputViewId];
+    RT_ZERO(*pEntry);
+
+    return rc;
+}
+
+
+int vmsvga3dVBDXDestroyVideoProcessor(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXDestroyVideoProcessor const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXDestroyVideoProcessor, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorId const videoProcessorId = pCmd->videoProcessorId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessor, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoProcessorId < pDXContext->cot.cVideoProcessor, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXDestroyVideoProcessor(pThisCC, pDXContext, videoProcessorId);
+
+    VBSVGACOTableDXVideoProcessorEntry *pEntry = &pDXContext->cot.paVideoProcessor[videoProcessorId];
+    RT_ZERO(*pEntry);
+
+    return rc;
+}
+
+
+int vmsvga3dVBDXDestroyVideoProcessorInputView(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXDestroyVideoProcessorInputView const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXDestroyVideoProcessorInputView, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorInputViewId const videoProcessorInputViewId = pCmd->videoProcessorInputViewId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessorInputView, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoProcessorInputViewId < pDXContext->cot.cVideoProcessorInputView, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXDestroyVideoProcessorInputView(pThisCC, pDXContext, videoProcessorInputViewId);
+
+    VBSVGACOTableDXVideoProcessorInputViewEntry *pEntry = &pDXContext->cot.paVideoProcessorInputView[videoProcessorInputViewId];
+    RT_ZERO(*pEntry);
+
+    return rc;
+}
+
+
+int vmsvga3dVBDXDestroyVideoProcessorOutputView(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXDestroyVideoProcessorOutputView const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXDestroyVideoProcessorOutputView, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorOutputViewId const videoProcessorOutputViewId = pCmd->videoProcessorOutputViewId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessorOutputView, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoProcessorOutputViewId < pDXContext->cot.cVideoProcessorOutputView, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXDestroyVideoProcessorOutputView(pThisCC, pDXContext, videoProcessorOutputViewId);
+
+    VBSVGACOTableDXVideoProcessorOutputViewEntry *pEntry = &pDXContext->cot.paVideoProcessorOutputView[videoProcessorOutputViewId];
+    RT_ZERO(*pEntry);
+
+    return rc;
+}
+
+
+int vmsvga3dVBDXVideoProcessorSetOutputTargetRect(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXVideoProcessorSetOutputTargetRect const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetOutputTargetRect, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorId const videoProcessorId = pCmd->videoProcessorId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessor, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoProcessorId < pDXContext->cot.cVideoProcessor, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    VBSVGACOTableDXVideoProcessorEntry *pEntry = &pDXContext->cot.paVideoProcessor[videoProcessorId];
+    pEntry->output.SetMask |= VBSVGA3D_VP_SET_OUTPUT_TARGET_RECT;
+    pEntry->output.TargetRectEnable = RT_BOOL(pCmd->enable);
+    pEntry->output.TargetRect = pCmd->outputRect;
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetOutputTargetRect(pThisCC, pDXContext, videoProcessorId,
+                                                                               pCmd->enable, pCmd->outputRect);
+    return rc;
+}
+
+
+int vmsvga3dVBDXVideoProcessorSetOutputBackgroundColor(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXVideoProcessorSetOutputBackgroundColor const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetOutputBackgroundColor, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorId const videoProcessorId = pCmd->videoProcessorId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessor, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoProcessorId < pDXContext->cot.cVideoProcessor, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    VBSVGACOTableDXVideoProcessorEntry *pEntry = &pDXContext->cot.paVideoProcessor[videoProcessorId];
+    pEntry->output.SetMask |= VBSVGA3D_VP_SET_OUTPUT_BACKGROUND_COLOR;
+    pEntry->output.BackgroundColorYCbCr = pCmd->ycbcr;
+    pEntry->output.BackgroundColor = pCmd->color;
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetOutputBackgroundColor(pThisCC, pDXContext, videoProcessorId, pCmd->ycbcr, pCmd->color);
+    return rc;
+}
+
+
+int vmsvga3dVBDXVideoProcessorSetOutputColorSpace(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXVideoProcessorSetOutputColorSpace const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetOutputColorSpace, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorId const videoProcessorId = pCmd->videoProcessorId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessor, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoProcessorId < pDXContext->cot.cVideoProcessor, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    VBSVGACOTableDXVideoProcessorEntry *pEntry = &pDXContext->cot.paVideoProcessor[videoProcessorId];
+    pEntry->output.SetMask |= VBSVGA3D_VP_SET_OUTPUT_COLOR_SPACE;
+    pEntry->output.ColorSpace = pCmd->colorSpace;
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetOutputColorSpace(pThisCC, pDXContext, videoProcessorId, pCmd->colorSpace);
+    return rc;
+}
+
+
+int vmsvga3dVBDXVideoProcessorSetOutputAlphaFillMode(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXVideoProcessorSetOutputAlphaFillMode const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetOutputAlphaFillMode, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorId const videoProcessorId = pCmd->videoProcessorId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessor, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoProcessorId < pDXContext->cot.cVideoProcessor, VERR_INVALID_PARAMETER);
+    ASSERT_GUEST_RETURN(pCmd->streamIndex < VBSVGA3D_MAX_VIDEO_STREAMS, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    VBSVGACOTableDXVideoProcessorEntry *pEntry = &pDXContext->cot.paVideoProcessor[videoProcessorId];
+    pEntry->output.SetMask |= VBSVGA3D_VP_SET_OUTPUT_ALPHA_FILL_MODE;
+    pEntry->output.AlphaFillMode = pCmd->fillMode;
+    pEntry->output.AlphaFillStreamIndex = pCmd->streamIndex;
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetOutputAlphaFillMode(pThisCC, pDXContext, videoProcessorId, pCmd->fillMode, pCmd->streamIndex);
+    return rc;
+}
+
+
+int vmsvga3dVBDXVideoProcessorSetOutputConstriction(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXVideoProcessorSetOutputConstriction const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetOutputConstriction, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorId const videoProcessorId = pCmd->videoProcessorId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessor, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoProcessorId < pDXContext->cot.cVideoProcessor, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    VBSVGACOTableDXVideoProcessorEntry *pEntry = &pDXContext->cot.paVideoProcessor[videoProcessorId];
+    pEntry->output.SetMask |= VBSVGA3D_VP_SET_OUTPUT_CONSTRICTION;
+    pEntry->output.ConstrictionEnable = RT_BOOL(pCmd->enabled);
+    pEntry->output.ConstrictionWidth = pCmd->width;
+    pEntry->output.ConstrictionHeight = pCmd->height;
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetOutputConstriction(pThisCC, pDXContext, videoProcessorId, pCmd->enabled, pCmd->width, pCmd->height);
+    return rc;
+}
+
+
+int vmsvga3dVBDXVideoProcessorSetOutputStereoMode(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXVideoProcessorSetOutputStereoMode const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetOutputStereoMode, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorId const videoProcessorId = pCmd->videoProcessorId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessor, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoProcessorId < pDXContext->cot.cVideoProcessor, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    VBSVGACOTableDXVideoProcessorEntry *pEntry = &pDXContext->cot.paVideoProcessor[videoProcessorId];
+    pEntry->output.SetMask |= VBSVGA3D_VP_SET_OUTPUT_STEREO_MODE;
+    pEntry->output.StereoModeEnable = RT_BOOL(pCmd->enable);
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetOutputStereoMode(pThisCC, pDXContext, videoProcessorId, pCmd->enable);
+    return rc;
+}
+
+
+int vmsvga3dVBDXVideoProcessorSetStreamFrameFormat(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXVideoProcessorSetStreamFrameFormat const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetStreamFrameFormat, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorId const videoProcessorId = pCmd->videoProcessorId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessor, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoProcessorId < pDXContext->cot.cVideoProcessor, VERR_INVALID_PARAMETER);
+    ASSERT_GUEST_RETURN(pCmd->streamIndex < VBSVGA3D_MAX_VIDEO_STREAMS, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    VBSVGACOTableDXVideoProcessorEntry *pEntry = &pDXContext->cot.paVideoProcessor[videoProcessorId];
+    VBSVGA3dVideoProcessorStreamState *pStreamState = &pEntry->aStreamState[pCmd->streamIndex];
+    pStreamState->SetMask |= VBSVGA3D_VP_SET_STREAM_FRAME_FORMAT;
+    pStreamState->FrameFormat = pCmd->format;
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetStreamFrameFormat(pThisCC, pDXContext, videoProcessorId, pCmd->streamIndex, pCmd->format);
+    return rc;
+}
+
+
+int vmsvga3dVBDXVideoProcessorSetStreamColorSpace(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXVideoProcessorSetStreamColorSpace const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetStreamColorSpace, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorId const videoProcessorId = pCmd->videoProcessorId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessor, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoProcessorId < pDXContext->cot.cVideoProcessor, VERR_INVALID_PARAMETER);
+    ASSERT_GUEST_RETURN(pCmd->streamIndex < VBSVGA3D_MAX_VIDEO_STREAMS, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    VBSVGACOTableDXVideoProcessorEntry *pEntry = &pDXContext->cot.paVideoProcessor[videoProcessorId];
+    VBSVGA3dVideoProcessorStreamState *pStreamState = &pEntry->aStreamState[pCmd->streamIndex];
+    pStreamState->SetMask |= VBSVGA3D_VP_SET_STREAM_COLOR_SPACE;
+    pStreamState->ColorSpace = pCmd->colorSpace;
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetStreamColorSpace(pThisCC, pDXContext, videoProcessorId, pCmd->streamIndex, pCmd->colorSpace);
+    return rc;
+}
+
+
+int vmsvga3dVBDXVideoProcessorSetStreamOutputRate(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXVideoProcessorSetStreamOutputRate const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetStreamOutputRate, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorId const videoProcessorId = pCmd->videoProcessorId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessor, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoProcessorId < pDXContext->cot.cVideoProcessor, VERR_INVALID_PARAMETER);
+    ASSERT_GUEST_RETURN(pCmd->streamIndex < VBSVGA3D_MAX_VIDEO_STREAMS, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    VBSVGACOTableDXVideoProcessorEntry *pEntry = &pDXContext->cot.paVideoProcessor[videoProcessorId];
+    VBSVGA3dVideoProcessorStreamState *pStreamState = &pEntry->aStreamState[pCmd->streamIndex];
+    pStreamState->SetMask |= VBSVGA3D_VP_SET_STREAM_OUTPUT_RATE;
+    pStreamState->OutputRate = pCmd->outputRate;
+    pStreamState->RepeatFrame = pCmd->repeatFrame;
+    pStreamState->CustomRate = pCmd->customRate;
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetStreamOutputRate(pThisCC, pDXContext, videoProcessorId,
+                                                                                pCmd->streamIndex, pCmd->outputRate, pCmd->repeatFrame, pCmd->customRate);
+    return rc;
+}
+
+
+int vmsvga3dVBDXVideoProcessorSetStreamSourceRect(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXVideoProcessorSetStreamSourceRect const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetStreamSourceRect, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorId const videoProcessorId = pCmd->videoProcessorId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessor, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoProcessorId < pDXContext->cot.cVideoProcessor, VERR_INVALID_PARAMETER);
+    ASSERT_GUEST_RETURN(pCmd->streamIndex < VBSVGA3D_MAX_VIDEO_STREAMS, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    VBSVGACOTableDXVideoProcessorEntry *pEntry = &pDXContext->cot.paVideoProcessor[videoProcessorId];
+    VBSVGA3dVideoProcessorStreamState *pStreamState = &pEntry->aStreamState[pCmd->streamIndex];
+    pStreamState->SetMask |= VBSVGA3D_VP_SET_STREAM_SOURCE_RECT;
+    pStreamState->SourceRectEnable = RT_BOOL(pCmd->enable);
+    pStreamState->SourceRect = pCmd->sourceRect;
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetStreamSourceRect(pThisCC, pDXContext, videoProcessorId,
+                                                                               pCmd->streamIndex, pCmd->enable, pCmd->sourceRect);
+    return rc;
+}
+
+
+int vmsvga3dVBDXVideoProcessorSetStreamDestRect(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXVideoProcessorSetStreamDestRect const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetStreamDestRect, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorId const videoProcessorId = pCmd->videoProcessorId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessor, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoProcessorId < pDXContext->cot.cVideoProcessor, VERR_INVALID_PARAMETER);
+    ASSERT_GUEST_RETURN(pCmd->streamIndex < VBSVGA3D_MAX_VIDEO_STREAMS, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    VBSVGACOTableDXVideoProcessorEntry *pEntry = &pDXContext->cot.paVideoProcessor[videoProcessorId];
+    VBSVGA3dVideoProcessorStreamState *pStreamState = &pEntry->aStreamState[pCmd->streamIndex];
+    pStreamState->SetMask |= VBSVGA3D_VP_SET_STREAM_DEST_RECT;
+    pStreamState->DestRectEnable = RT_BOOL(pCmd->enable);
+    pStreamState->DestRect = pCmd->destRect;
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetStreamDestRect(pThisCC, pDXContext, videoProcessorId,
+                                                                             pCmd->streamIndex, pCmd->enable, pCmd->destRect);
+    return rc;
+}
+
+
+int vmsvga3dVBDXVideoProcessorSetStreamAlpha(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXVideoProcessorSetStreamAlpha const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetStreamAlpha, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorId const videoProcessorId = pCmd->videoProcessorId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessor, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoProcessorId < pDXContext->cot.cVideoProcessor, VERR_INVALID_PARAMETER);
+    ASSERT_GUEST_RETURN(pCmd->streamIndex < VBSVGA3D_MAX_VIDEO_STREAMS, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    VBSVGACOTableDXVideoProcessorEntry *pEntry = &pDXContext->cot.paVideoProcessor[videoProcessorId];
+    VBSVGA3dVideoProcessorStreamState *pStreamState = &pEntry->aStreamState[pCmd->streamIndex];
+    pStreamState->SetMask |= VBSVGA3D_VP_SET_STREAM_ALPHA;
+    pStreamState->AlphaEnable = RT_BOOL(pCmd->enable);
+    pStreamState->Alpha = pCmd->alpha;
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetStreamAlpha(pThisCC, pDXContext, videoProcessorId,
+                                                                          pCmd->streamIndex, pCmd->enable, pCmd->alpha);
+    return rc;
+}
+
+
+int vmsvga3dVBDXVideoProcessorSetStreamPalette(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXVideoProcessorSetStreamPalette const *pCmd, uint32_t cEntries, uint32_t const *paEntries)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetStreamPalette, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorId const videoProcessorId = pCmd->videoProcessorId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessor, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoProcessorId < pDXContext->cot.cVideoProcessor, VERR_INVALID_PARAMETER);
+    ASSERT_GUEST_RETURN(cEntries <= VBSVGA3D_MAX_VIDEO_PALETTE_ENTRIES, VERR_INVALID_PARAMETER);
+    ASSERT_GUEST_RETURN(pCmd->streamIndex < VBSVGA3D_MAX_VIDEO_STREAMS, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    VBSVGACOTableDXVideoProcessorEntry *pEntry = &pDXContext->cot.paVideoProcessor[videoProcessorId];
+    VBSVGA3dVideoProcessorStreamState *pStreamState = &pEntry->aStreamState[pCmd->streamIndex];
+    pStreamState->SetMask |= VBSVGA3D_VP_SET_STREAM_PALETTE;
+    pStreamState->PaletteCount = cEntries;
+    memcpy(pStreamState->aPalette, paEntries, cEntries * sizeof(paEntries[0]));
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetStreamPalette(pThisCC, pDXContext, videoProcessorId,
+                                                                            pCmd->streamIndex, cEntries, paEntries);
+    return rc;
+}
+
+
+int vmsvga3dVBDXVideoProcessorSetStreamPixelAspectRatio(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXVideoProcessorSetStreamPixelAspectRatio const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetStreamPixelAspectRatio, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorId const videoProcessorId = pCmd->videoProcessorId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessor, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoProcessorId < pDXContext->cot.cVideoProcessor, VERR_INVALID_PARAMETER);
+    ASSERT_GUEST_RETURN(pCmd->streamIndex < VBSVGA3D_MAX_VIDEO_STREAMS, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    VBSVGACOTableDXVideoProcessorEntry *pEntry = &pDXContext->cot.paVideoProcessor[videoProcessorId];
+    VBSVGA3dVideoProcessorStreamState *pStreamState = &pEntry->aStreamState[pCmd->streamIndex];
+    pStreamState->SetMask |= VBSVGA3D_VP_SET_STREAM_ASPECT_RATIO;
+    pStreamState->AspectRatioEnable = RT_BOOL(pCmd->enable);
+    pStreamState->AspectSourceRatio = pCmd->sourceRatio;
+    pStreamState->AspectDestRatio = pCmd->destRatio;
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetStreamPixelAspectRatio(pThisCC, pDXContext, videoProcessorId,
+                                                                                     pCmd->streamIndex, pCmd->enable, pCmd->sourceRatio, pCmd->destRatio);
+    return rc;
+}
+
+
+int vmsvga3dVBDXVideoProcessorSetStreamLumaKey(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXVideoProcessorSetStreamLumaKey const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetStreamLumaKey, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorId const videoProcessorId = pCmd->videoProcessorId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessor, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoProcessorId < pDXContext->cot.cVideoProcessor, VERR_INVALID_PARAMETER);
+    ASSERT_GUEST_RETURN(pCmd->streamIndex < VBSVGA3D_MAX_VIDEO_STREAMS, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    VBSVGACOTableDXVideoProcessorEntry *pEntry = &pDXContext->cot.paVideoProcessor[videoProcessorId];
+    VBSVGA3dVideoProcessorStreamState *pStreamState = &pEntry->aStreamState[pCmd->streamIndex];
+    pStreamState->SetMask |= VBSVGA3D_VP_SET_STREAM_LUMA_KEY;
+    pStreamState->LumaKeyEnable = RT_BOOL(pCmd->enable);
+    pStreamState->LumaKeyLower = pCmd->lower;
+    pStreamState->LumaKeyUpper = pCmd->upper;
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetStreamLumaKey(pThisCC, pDXContext, videoProcessorId,
+                                                                            pCmd->streamIndex, pCmd->enable, pCmd->lower, pCmd->upper);
+    return rc;
+}
+
+
+int vmsvga3dVBDXVideoProcessorSetStreamStereoFormat(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXVideoProcessorSetStreamStereoFormat const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetStreamStereoFormat, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorId const videoProcessorId = pCmd->videoProcessorId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessor, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoProcessorId < pDXContext->cot.cVideoProcessor, VERR_INVALID_PARAMETER);
+    ASSERT_GUEST_RETURN(pCmd->streamIndex < VBSVGA3D_MAX_VIDEO_STREAMS, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    VBSVGACOTableDXVideoProcessorEntry *pEntry = &pDXContext->cot.paVideoProcessor[videoProcessorId];
+    VBSVGA3dVideoProcessorStreamState *pStreamState = &pEntry->aStreamState[pCmd->streamIndex];
+    pStreamState->SetMask |= VBSVGA3D_VP_SET_STREAM_STEREO_FORMAT;
+    pStreamState->StereoFormatEnable = RT_BOOL(pCmd->enable);
+    pStreamState->StereoFormat = pCmd->stereoFormat;
+    pStreamState->LeftViewFrame0 = pCmd->leftViewFrame0;
+    pStreamState->BaseViewFrame0 = pCmd->baseViewFrame0;
+    pStreamState->FlipMode = pCmd->flipMode;
+    pStreamState->MonoOffset = pCmd->monoOffset;
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetStreamStereoFormat(pThisCC, pDXContext, videoProcessorId,
+                                                                                 pCmd->streamIndex, pCmd->enable, pCmd->stereoFormat,
+                                                                                 pCmd->leftViewFrame0, pCmd->baseViewFrame0, pCmd->flipMode, pCmd->monoOffset);
+    return rc;
+}
+
+
+int vmsvga3dVBDXVideoProcessorSetStreamAutoProcessingMode(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXVideoProcessorSetStreamAutoProcessingMode const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetStreamAutoProcessingMode, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorId const videoProcessorId = pCmd->videoProcessorId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessor, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoProcessorId < pDXContext->cot.cVideoProcessor, VERR_INVALID_PARAMETER);
+    ASSERT_GUEST_RETURN(pCmd->streamIndex < VBSVGA3D_MAX_VIDEO_STREAMS, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    VBSVGACOTableDXVideoProcessorEntry *pEntry = &pDXContext->cot.paVideoProcessor[videoProcessorId];
+    VBSVGA3dVideoProcessorStreamState *pStreamState = &pEntry->aStreamState[pCmd->streamIndex];
+    pStreamState->SetMask |= VBSVGA3D_VP_SET_STREAM_AUTO_PROCESSING_MODE;
+    pStreamState->AutoProcessingModeEnable = RT_BOOL(pCmd->enable);
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetStreamAutoProcessingMode(pThisCC, pDXContext, videoProcessorId,
+                                                                                       pCmd->streamIndex, pCmd->enable);
+    return rc;
+}
+
+
+int vmsvga3dVBDXVideoProcessorSetStreamFilter(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXVideoProcessorSetStreamFilter const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetStreamFilter, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorId const videoProcessorId = pCmd->videoProcessorId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessor, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoProcessorId < pDXContext->cot.cVideoProcessor, VERR_INVALID_PARAMETER);
+    ASSERT_GUEST_RETURN(pCmd->streamIndex < VBSVGA3D_MAX_VIDEO_STREAMS, VERR_INVALID_PARAMETER);
+    ASSERT_GUEST_RETURN(pCmd->filter < VBSVGA3D_VP_MAX_FILTER_COUNT, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    VBSVGACOTableDXVideoProcessorEntry *pEntry = &pDXContext->cot.paVideoProcessor[videoProcessorId];
+    VBSVGA3dVideoProcessorStreamState *pStreamState = &pEntry->aStreamState[pCmd->streamIndex];
+    pStreamState->SetMask |= VBSVGA3D_VP_SET_STREAM_FILTER;
+    if (pCmd->enable)
+        pStreamState->FilterEnableMask |= 1 << pCmd->filter;
+    else
+        pStreamState->FilterEnableMask &= ~(1 << pCmd->filter);
+    pStreamState->aFilter[pCmd->filter].Level = pCmd->level;
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetStreamFilter(pThisCC, pDXContext, videoProcessorId,
+                                                                           pCmd->streamIndex, pCmd->enable, pCmd->filter, pCmd->level);
+    return rc;
+}
+
+
+int vmsvga3dVBDXVideoProcessorSetStreamRotation(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXVideoProcessorSetStreamRotation const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetStreamFilter, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorId const videoProcessorId = pCmd->videoProcessorId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessor, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(videoProcessorId < pDXContext->cot.cVideoProcessor, VERR_INVALID_PARAMETER);
+    ASSERT_GUEST_RETURN(pCmd->streamIndex < VBSVGA3D_MAX_VIDEO_STREAMS, VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    VBSVGACOTableDXVideoProcessorEntry *pEntry = &pDXContext->cot.paVideoProcessor[videoProcessorId];
+    VBSVGA3dVideoProcessorStreamState *pStreamState = &pEntry->aStreamState[pCmd->streamIndex];
+    pStreamState->SetMask |= VBSVGA3D_VP_SET_STREAM_ROTATION;
+    pStreamState->RotationEnable = RT_BOOL(pCmd->enable);
+    pStreamState->Rotation = pCmd->rotation;
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXVideoProcessorSetStreamRotation(pThisCC, pDXContext, videoProcessorId,
+                                                                           pCmd->streamIndex, pCmd->enable, pCmd->rotation);
+    return rc;
+}
+
+
+int vmsvga3dVBDXGetVideoCapability(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXGetVideoCapability const *pCmd)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXGetVideoCapability, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    PVMSVGAMOB pMob = vmsvgaR3MobGet(pSvgaR3State, pCmd->mobid);
+    ASSERT_GUEST_RETURN(pMob, VERR_INVALID_PARAMETER);
+
+    uint32_t const cbMob = vmsvgaR3MobSize(pMob);
+    ASSERT_GUEST_RETURN(   pCmd->offsetInBytes < cbMob
+                        && pCmd->sizeInBytes <= cbMob - pCmd->offsetInBytes, VERR_INVALID_PARAMETER);
+
+    ASSERT_GUEST_RETURN(pCmd->sizeInBytes >= RT_UOFFSETOF(VBSVGA3dVideoCapabilityMobLayout, data), VERR_INVALID_PARAMETER);
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    /* Create a memory pointer for the MOB, which is accessible by host. */
+    rc = vmsvgaR3MobBackingStoreCreate(pSvgaR3State, pMob, cbMob);
+    AssertReturn(RT_SUCCESS(rc), rc);
+
+    /* Get pointer to the data. This will also verify the offset. */
+    VBSVGA3dVideoCapabilityMobLayout *pCap = (VBSVGA3dVideoCapabilityMobLayout *)vmsvgaR3MobBackingStorePtr(pMob, pCmd->offsetInBytes);
+    AssertReturnStmt(pCap, vmsvgaR3MobBackingStoreDelete(pSvgaR3State, pMob), VERR_INTERNAL_ERROR);
+
+    pCap->cbDataOut = 0;
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXGetVideoCapability(pThisCC, pDXContext, pCmd->capability, &pCap->data,
+                                                                pCmd->sizeInBytes - RT_UOFFSETOF(VBSVGA3dVideoCapabilityMobLayout, data),
+                                                                &pCap->cbDataOut);
+
+    pCap->fenceValue = pCmd->fenceValue;
+    if (RT_SUCCESS(rc))
+        vmsvgaR3MobBackingStoreWriteToGuest(pSvgaR3State, pMob);
+
+    vmsvgaR3MobBackingStoreDelete(pSvgaR3State, pMob);
+    return rc;
+}
+
+
+int vmsvga3dVBDXClearRTV(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXClearView const *pCmd, uint32_t cRect, SVGASignedRect const *paRect)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDX && pSvgaR3State->pFuncsDX->pfnVBDXClearRenderTargetViewRegion, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    SVGA3dRenderTargetViewId const renderTargetViewId = pCmd->viewId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paRTView, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(renderTargetViewId < pDXContext->cot.cRTView, VERR_INVALID_PARAMETER);
+    ASSERT_GUEST_RETURN(cRect <= 65536, VERR_INVALID_PARAMETER); /* Arbitrary limit. */
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    rc = pSvgaR3State->pFuncsDX->pfnVBDXClearRenderTargetViewRegion(pThisCC, pDXContext, renderTargetViewId, &pCmd->color, cRect, paRect);
+    return rc;
+}
+
+
+int vmsvga3dVBDXClearUAV(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXClearView const *pCmd, uint32_t cRect, SVGASignedRect const *paRect)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDX && pSvgaR3State->pFuncsDX->pfnVBDXClearUAV, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    SVGA3dUAViewId const viewId = pCmd->viewId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paUAView, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(viewId < pDXContext->cot.cUAView, VERR_INVALID_PARAMETER);
+    ASSERT_GUEST_RETURN(cRect <= 65536, VERR_INVALID_PARAMETER); /* Arbitrary limit. */
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    rc = pSvgaR3State->pFuncsDX->pfnVBDXClearUAV(pThisCC, pDXContext, viewId, &pCmd->color, cRect, paRect);
+    return rc;
+}
+
+
+int vmsvga3dVBDXClearVDOV(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXClearView const *pCmd, uint32_t cRect, SVGASignedRect const *paRect)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXClearVDOV, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoDecoderOutputViewId const viewId = pCmd->viewId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoDecoderOutputView, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(viewId < pDXContext->cot.cVideoDecoderOutputView, VERR_INVALID_PARAMETER);
+    ASSERT_GUEST_RETURN(cRect <= 65536, VERR_INVALID_PARAMETER); /* Arbitrary limit. */
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXClearVDOV(pThisCC, pDXContext, viewId, &pCmd->color, cRect, paRect);
+    return rc;
+}
+
+
+int vmsvga3dVBDXClearVPIV(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXClearView const *pCmd, uint32_t cRect, SVGASignedRect const *paRect)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXClearVPIV, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorInputViewId const viewId = pCmd->viewId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessorInputView, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(viewId < pDXContext->cot.cVideoProcessorInputView, VERR_INVALID_PARAMETER);
+    ASSERT_GUEST_RETURN(cRect <= 65536, VERR_INVALID_PARAMETER); /* Arbitrary limit. */
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXClearVPIV(pThisCC, pDXContext, viewId, &pCmd->color, cRect, paRect);
+    return rc;
+}
+
+
+int vmsvga3dVBDXClearVPOV(PVGASTATECC pThisCC, uint32_t idDXContext, VBSVGA3dCmdDXClearView const *pCmd, uint32_t cRect, SVGASignedRect const *paRect)
+{
+    int rc;
+    PVMSVGAR3STATE const pSvgaR3State = pThisCC->svga.pSvgaR3State;
+    AssertReturn(pSvgaR3State->pFuncsDXVideo && pSvgaR3State->pFuncsDXVideo->pfnVBDXClearVPOV, VERR_INVALID_STATE);
+    PVMSVGA3DSTATE p3dState = pThisCC->svga.p3dState;
+    AssertReturn(p3dState, VERR_INVALID_STATE);
+
+    PVMSVGA3DDXCONTEXT pDXContext;
+    rc = vmsvga3dDXContextFromCid(p3dState, idDXContext, &pDXContext);
+    AssertRCReturn(rc, rc);
+
+    VBSVGA3dVideoProcessorOutputViewId const viewId = pCmd->viewId;
+
+    ASSERT_GUEST_RETURN(pDXContext->cot.paVideoProcessorOutputView, VERR_INVALID_STATE);
+    ASSERT_GUEST_RETURN(viewId < pDXContext->cot.cVideoProcessorOutputView, VERR_INVALID_PARAMETER);
+    ASSERT_GUEST_RETURN(cRect <= 65536, VERR_INVALID_PARAMETER); /* Arbitrary limit. */
+    RT_UNTRUSTED_VALIDATED_FENCE();
+
+    rc = pSvgaR3State->pFuncsDXVideo->pfnVBDXClearVPOV(pThisCC, pDXContext, viewId, &pCmd->color, cRect, paRect);
+    return rc;
+}

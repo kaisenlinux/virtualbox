@@ -43,11 +43,14 @@
 #include "nsDependentString.h"
 #include "nsString.h"
 
+#include <iprt/env.h>
+#include <iprt/file.h>
+#include <iprt/sort.h>
+
 #define NS_ZIPLOADER_CONTRACTID NS_XPTLOADER_CONTRACTID_PREFIX "zip"
 
-NS_IMPL_THREADSAFE_ISUPPORTS2(xptiInterfaceInfoManager, 
-                              nsIInterfaceInfoManager,
-                              nsIInterfaceInfoSuperManager)
+NS_IMPL_THREADSAFE_ISUPPORTS1(xptiInterfaceInfoManager, 
+                              nsIInterfaceInfoManager);
 
 static xptiInterfaceInfoManager* gInterfaceInfoManager = nsnull;
 #ifdef DEBUG
@@ -110,52 +113,32 @@ PRBool
 xptiInterfaceInfoManager::IsValid()
 {
     return mWorkingSet.IsValid() &&
-           mResolveLock &&
-           mAutoRegLock &&
-           mInfoMonitor &&
-           mAdditionalManagersLock;
+           mResolveLock != NIL_RTSEMFASTMUTEX &&
+           mAutoRegLock != NIL_RTSEMFASTMUTEX &&
+           mInfoMonitor;
 }        
 
 xptiInterfaceInfoManager::xptiInterfaceInfoManager(nsISupportsArray* aSearchPath)
     :   mWorkingSet(aSearchPath),
         mOpenLogFile(nsnull),
-        mResolveLock(PR_NewLock()),
-        mAutoRegLock(PR_NewLock()),
+        mResolveLock(NIL_RTSEMFASTMUTEX),
+        mAutoRegLock(NIL_RTSEMFASTMUTEX),
         mInfoMonitor(nsAutoMonitor::NewMonitor("xptiInfoMonitor")),
-        mAdditionalManagersLock(PR_NewLock()),
         mSearchPath(aSearchPath)
 {
-    const char* statsFilename = PR_GetEnv("MOZILLA_XPTI_STATS");
-    if(statsFilename)
-    {
-        mStatsLogFile = do_CreateInstance(NS_LOCAL_FILE_CONTRACTID);         
-        if(mStatsLogFile && 
-           NS_SUCCEEDED(mStatsLogFile->InitWithNativePath(nsDependentCString(statsFilename))))
-        {
-            printf("* Logging xptinfo stats to: %s\n", statsFilename);
-        }
-        else
-        {
-            printf("* Failed to create xptinfo stats file: %s\n", statsFilename);
-            mStatsLogFile = nsnull;
-        }
-    }
+    int vrc = RTSemFastMutexCreate(&mResolveLock);
+    AssertRC(vrc); RT_NOREF(vrc);
 
-    const char* autoRegFilename = PR_GetEnv("MOZILLA_XPTI_REGLOG");
-    if(autoRegFilename)
-    {
-        mAutoRegLogFile = do_CreateInstance(NS_LOCAL_FILE_CONTRACTID);         
-        if(mAutoRegLogFile && 
-           NS_SUCCEEDED(mAutoRegLogFile->InitWithNativePath(nsDependentCString(autoRegFilename))))
-        {
-            printf("* Logging xptinfo autoreg to: %s\n", autoRegFilename);
-        }
-        else
-        {
-            printf("* Failed to create xptinfo autoreg file: %s\n", autoRegFilename);
-            mAutoRegLogFile = nsnull;
-        }
-    }
+    vrc = RTSemFastMutexCreate(&mAutoRegLock);
+    AssertRC(vrc); RT_NOREF(vrc);
+
+    mStatsLogFile = RTEnvGet("MOZILLA_XPTI_STATS");
+    if (mStatsLogFile)
+        printf("* Logging xptinfo stats to: %s\n", mStatsLogFile);
+
+    mAutoRegLogFile = RTEnvGet("MOZILLA_XPTI_REGLOG");
+    if (mAutoRegLogFile)
+        printf("* Logging xptinfo autoreg to: %s\n", mAutoRegLogFile);
 }
 
 xptiInterfaceInfoManager::~xptiInterfaceInfoManager()
@@ -163,14 +146,12 @@ xptiInterfaceInfoManager::~xptiInterfaceInfoManager()
     // We only do this on shutdown of the service.
     mWorkingSet.InvalidateInterfaceInfos();
 
-    if(mResolveLock)
-        PR_DestroyLock(mResolveLock);
+    if(mResolveLock != NIL_RTSEMFASTMUTEX)
+        RTSemFastMutexDestroy(mResolveLock);
     if(mAutoRegLock)
-        PR_DestroyLock(mAutoRegLock);
+        RTSemFastMutexDestroy(mAutoRegLock);
     if(mInfoMonitor)
         nsAutoMonitor::DestroyMonitor(mInfoMonitor);
-    if(mAdditionalManagersLock)
-        PR_DestroyLock(mAdditionalManagersLock);
 
     gInterfaceInfoManager = nsnull;
 #ifdef DEBUG
@@ -372,42 +353,43 @@ xptiInterfaceInfoManager::ReadXPTFile(nsILocalFile* aFile,
 
     XPTHeader *header = nsnull;
     char *whole = nsnull;
-    PRFileDesc*   fd = nsnull;
     XPTState *state = nsnull;
     XPTCursor cursor;
-    PRInt32 flen;
-    PRInt64 fileSize;
-    
-    PRBool saveFollowLinks;
-    aFile->GetFollowLinks(&saveFollowLinks);
-    aFile->SetFollowLinks(PR_TRUE);
 
-    if(NS_FAILED(aFile->GetFileSize(&fileSize)) || !(flen = nsInt64(fileSize)))
-    {
-        aFile->SetFollowLinks(saveFollowLinks);
+    nsCAutoString pathName;
+    if (NS_FAILED(aFile->GetNativePath(pathName)))
         return nsnull;
-    }
 
-    whole = new char[flen];
-    if (!whole)
-    {
-        aFile->SetFollowLinks(saveFollowLinks);
-        return nsnull;
-    }
 
     // all exits from on here should be via 'goto out' 
+    RTFILE hFile = NIL_RTFILE;
 
-    if(NS_FAILED(aFile->OpenNSPRFileDesc(PR_RDONLY, 0444, &fd)) || !fd)
+    int vrc = RTFileOpen(&hFile, pathName.get(),
+                         RTFILE_O_OPEN | RTFILE_O_READ | RTFILE_O_DENY_NONE);
+    if (RT_FAILURE(vrc))
+        return nsnull;
+
+    uint64_t cbFile = 0;
+    vrc = RTFileQuerySize(hFile, &cbFile);
+    if (RT_FAILURE(vrc) || cbFile >= 128 * _1M)
     {
-        goto out;
+        RTFileClose(hFile);
+        return nsnull;
     }
 
-    if(flen > PR_Read(fd, whole, flen))
+    whole = new char[cbFile];
+    if (!whole)
     {
-        goto out;
+        RTFileClose(hFile);
+        return nsnull;
     }
 
-    if(!(state = XPT_NewXDRState(XPT_DECODE, whole, flen)))
+    size_t cbRead = 0;
+    vrc = RTFileRead(hFile, whole, cbFile, &cbRead);
+    if(RT_FAILURE(vrc) || cbRead < cbFile)
+        goto out;
+
+    if(!(state = XPT_NewXDRState(XPT_DECODE, whole, cbFile)))
     {
         goto out;
     }
@@ -423,14 +405,13 @@ xptiInterfaceInfoManager::ReadXPTFile(nsILocalFile* aFile,
         goto out;
     }
 
- out:
-    if(fd)
-        PR_Close(fd);
+out:
+    RTFileClose(hFile);
+
     if(state)
         XPT_DestroyXDRState(state);
-    if(whole)
-        delete [] whole;
-    aFile->SetFollowLinks(saveFollowLinks);
+
+    delete [] whole;
     return header;
 }
 
@@ -602,7 +583,7 @@ IndexOfFileWithName(const char* aName, const xptiWorkingSet* aWorkingSet)
 
     for(PRUint32 i = 0; i < aWorkingSet->GetFileCount(); ++i)
     {
-        if(0 == PL_strcmp(aName, aWorkingSet->GetFileAt(i).GetName()))
+        if(0 == RTStrCmp(aName, aWorkingSet->GetFileAt(i).GetName()))
             return i;     
     }
     return -1;        
@@ -639,8 +620,7 @@ struct SortData
     xptiWorkingSet*   mWorkingSet;
 };
 
-PR_STATIC_CALLBACK(int)
-xptiSortFileList(const void * p1, const void *p2, void * closure)
+static DECLCALLBACK(int) xptiSortFileList(const void * p1, const void *p2, void * closure)
 {
     nsILocalFile* pFile1 = *((nsILocalFile**) p1);
     nsILocalFile* pFile2 = *((nsILocalFile**) p2);
@@ -763,8 +743,8 @@ xptiInterfaceInfoManager::BuildOrderedFileArray(nsISupportsArray* aSearchPath,
     // sort the filelist
 
     SortData sortData = {aSearchPath, aWorkingSet};
-    NS_QuickSort(orderedFileList, countOfFilesInFileList, sizeof(nsILocalFile*),
-                 xptiSortFileList, &sortData);
+    RTSortShell(orderedFileList, countOfFilesInFileList, sizeof(nsILocalFile*),
+                xptiSortFileList, &sortData);
      
     return orderedFileList;
 }
@@ -1373,14 +1353,14 @@ xpti_Merger(PLDHashTable *table, PLDHashEntryHdr *hdr,
         const char* srcFilename = 
             aSrcWorkingSet->GetTypelibFileName(srcEntry->GetTypelibRecord());
     
-        if(0 == PL_strcmp(destFilename, srcFilename) && 
+        if(0 == RTStrCmp(destFilename, srcFilename) && 
            (destEntry->GetTypelibRecord().GetZipItemIndex() ==
             srcEntry->GetTypelibRecord().GetZipItemIndex()))
         {
             // This is the same item.
             // But... Let's make sure they didn't change the interface name.
             // There are wacky developers that do stuff like that!
-            if(0 == PL_strcmp(destEntry->GetTheName(), srcEntry->GetTheName()))
+            if(0 == RTStrCmp(destEntry->GetTheName(), srcEntry->GetTheName()))
                 return PL_DHASH_NEXT;
         }
     }
@@ -1612,12 +1592,12 @@ xptiInterfaceInfoManager::WriteToLog(const char *fmt, ...)
     if(!gInterfaceInfoManager)
         return;
 
-    PRFileDesc* fd = gInterfaceInfoManager->GetOpenLogFile();
+    PRTSTREAM fd = gInterfaceInfoManager->GetOpenLogFile();
     if(fd)
     {
         va_list ap;
         va_start(ap, fmt);
-        PR_vfprintf(fd, fmt, ap);
+        RTStrmPrintfV(fd, fmt, ap);
         va_end(ap);
     }
 }        
@@ -1632,7 +1612,7 @@ xpti_ResolvedFileNameLogger(PLDHashTable *table, PLDHashEntryHdr *hdr,
     if(entry->IsFullyResolved())
     {
         xptiWorkingSet*  aWorkingSet = mgr->GetWorkingSet();
-        PRFileDesc* fd = mgr->GetOpenLogFile();
+        PRTSTREAM fd = mgr->GetOpenLogFile();
 
         const xptiTypelib& typelib = entry->GetTypelibRecord();
         const char* filename = 
@@ -1642,13 +1622,13 @@ xpti_ResolvedFileNameLogger(PLDHashTable *table, PLDHashEntryHdr *hdr,
         {
             const char* zipItemName = 
                 aWorkingSet->GetZipItemAt(typelib.GetZipItemIndex()).GetName();
-            PR_fprintf(fd, "xpti used interface: %s from %s::%s\n", 
-                       entry->GetTheName(), filename, zipItemName);
+            RTStrmPrintf(fd, "xpti used interface: %s from %s::%s\n", 
+                         entry->GetTheName(), filename, zipItemName);
         }    
         else
         {
-            PR_fprintf(fd, "xpti used interface: %s from %s\n", 
-                       entry->GetTheName(), filename);
+            RTStrmPrintf(fd, "xpti used interface: %s from %s\n", 
+                         entry->GetTheName(), filename);
         }
     }
     return PL_DHASH_NEXT;
@@ -1662,7 +1642,7 @@ xptiInterfaceInfoManager::LogStats()
     // This sets what will be returned by GetOpenLogFile().
     xptiAutoLog autoLog(this, mStatsLogFile, PR_FALSE);
 
-    PRFileDesc* fd = GetOpenLogFile();
+    PRTSTREAM fd = GetOpenLogFile();
     if(!fd)
         return;
 
@@ -1674,10 +1654,10 @@ xptiInterfaceInfoManager::LogStats()
     {
         xptiFile& f = mWorkingSet.GetFileAt(i);
         if(f.GetGuts())
-            PR_fprintf(fd, "xpti used file: %s\n", f.GetName());
+            RTStrmPrintf(fd, "xpti used file: %s\n", f.GetName());
     }
 
-    PR_fprintf(fd, "\n");
+    RTStrmPrintf(fd, "\n");
 
     // Show names of xptfiles loaded from zips from which at least 
     // one interface was resolved.
@@ -1687,10 +1667,10 @@ xptiInterfaceInfoManager::LogStats()
     {
         xptiZipItem& zi = mWorkingSet.GetZipItemAt(i);
         if(zi.GetGuts())                           
-            PR_fprintf(fd, "xpti used file from zip: %s\n", zi.GetName());
+            RTStrmPrintf(fd, "xpti used file from zip: %s\n", zi.GetName());
     }
 
-    PR_fprintf(fd, "\n");
+    RTStrmPrintf(fd, "\n");
 
     // Show name of each interface that was fully resolved and the name
     // of the file and (perhaps) zip from which it was loaded.
@@ -1827,44 +1807,6 @@ NS_IMETHODIMP xptiInterfaceInfoManager::EnumerateInterfaces(nsIEnumerator **_ret
     return array->Enumerate(_retval);
 }
 
-struct ArrayAndPrefix
-{
-    nsISupportsArray* array;
-    const char*       prefix;
-    PRUint32          length;
-};
-
-PR_STATIC_CALLBACK(PLDHashOperator)
-xpti_ArrayPrefixAppender(PLDHashTable *table, PLDHashEntryHdr *hdr,
-                         PRUint32 number, void *arg)
-{
-    xptiInterfaceEntry* entry = ((xptiHashEntry*)hdr)->value;
-    ArrayAndPrefix* args = (ArrayAndPrefix*) arg;
-
-    const char* name = entry->GetTheName();
-    if(name != PL_strnstr(name, args->prefix, args->length))
-        return PL_DHASH_NEXT;
-
-    nsCOMPtr<nsIInterfaceInfo> ii;
-    if(NS_SUCCEEDED(EntryToInfo(entry, getter_AddRefs(ii))))
-        args->array->AppendElement(ii);
-    return PL_DHASH_NEXT;
-}
-
-/* nsIEnumerator enumerateInterfacesWhoseNamesStartWith (in string prefix); */
-NS_IMETHODIMP xptiInterfaceInfoManager::EnumerateInterfacesWhoseNamesStartWith(const char *prefix, nsIEnumerator **_retval)
-{
-    nsCOMPtr<nsISupportsArray> array;
-    NS_NewISupportsArray(getter_AddRefs(array));
-    if(!array)
-        return NS_ERROR_UNEXPECTED;
-
-    ArrayAndPrefix args = {array, prefix, PL_strlen(prefix)};
-    PL_DHashTableEnumerate(mWorkingSet.mNameTable, xpti_ArrayPrefixAppender, &args);
-    
-    return array->Enumerate(_retval);
-}
-
 /* void autoRegisterInterfaces (); */
 NS_IMETHODIMP xptiInterfaceInfoManager::AutoRegisterInterfaces()
 {
@@ -1947,163 +1889,6 @@ NS_IMETHODIMP xptiInterfaceInfoManager::AutoRegisterInterfaces()
 
     LOG_AUTOREG(("successful end of AutoRegister\n"));
 
-    return NS_OK;
-}
-
-/***************************************************************************/
-
-class xptiAdditionalManagersEnumerator : public nsISimpleEnumerator 
-{
-public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSISIMPLEENUMERATOR
-
-    xptiAdditionalManagersEnumerator();
-
-    PRBool SizeTo(PRUint32 likelyCount) {return mArray.SizeTo(likelyCount);}
-    PRBool AppendElement(nsIInterfaceInfoManager* element);
-
-private:
-    ~xptiAdditionalManagersEnumerator() {}
-
-    nsSupportsArray mArray;
-    PRUint32        mIndex;
-    PRUint32        mCount;
-};
-
-NS_IMPL_ISUPPORTS1(xptiAdditionalManagersEnumerator, nsISimpleEnumerator)
-
-xptiAdditionalManagersEnumerator::xptiAdditionalManagersEnumerator()
-    : mIndex(0), mCount(0)
-{
-}
-
-PRBool xptiAdditionalManagersEnumerator::AppendElement(nsIInterfaceInfoManager* element)
-{
-    if(!mArray.AppendElement(NS_STATIC_CAST(nsISupports*, element)))
-        return PR_FALSE;
-    mCount++;
-    return PR_TRUE;
-}
-
-/* boolean hasMoreElements (); */
-NS_IMETHODIMP xptiAdditionalManagersEnumerator::HasMoreElements(PRBool *_retval)
-{
-    *_retval = mIndex < mCount;
-    return NS_OK;
-}
-
-/* nsISupports getNext (); */
-NS_IMETHODIMP xptiAdditionalManagersEnumerator::GetNext(nsISupports **_retval)
-{
-    if(!(mIndex < mCount))
-    {
-        NS_ERROR("Bad nsISimpleEnumerator caller!");
-        return NS_ERROR_FAILURE;    
-    }
-
-    *_retval = mArray.ElementAt(mIndex++);
-    return *_retval ? NS_OK : NS_ERROR_FAILURE;
-}
-
-/***************************************************************************/
-
-/* void addAdditionalManager (in nsIInterfaceInfoManager manager); */
-NS_IMETHODIMP xptiInterfaceInfoManager::AddAdditionalManager(nsIInterfaceInfoManager *manager)
-{
-    nsCOMPtr<nsIWeakReference> weakRef = do_GetWeakReference(manager);
-    nsISupports* ptrToAdd = weakRef ? 
-                    NS_STATIC_CAST(nsISupports*, weakRef) :
-                    NS_STATIC_CAST(nsISupports*, manager);
-    { // scoped lock...
-        nsAutoLock lock(mAdditionalManagersLock);
-        PRInt32 index;
-        nsresult rv = mAdditionalManagers.GetIndexOf(ptrToAdd, &index);
-        if(NS_FAILED(rv) || -1 != index)
-            return NS_ERROR_FAILURE;
-        if(!mAdditionalManagers.AppendElement(ptrToAdd))
-            return NS_ERROR_OUT_OF_MEMORY;
-    }
-    return NS_OK;
-}
-
-/* void removeAdditionalManager (in nsIInterfaceInfoManager manager); */
-NS_IMETHODIMP xptiInterfaceInfoManager::RemoveAdditionalManager(nsIInterfaceInfoManager *manager)
-{
-    nsCOMPtr<nsIWeakReference> weakRef = do_GetWeakReference(manager);
-    nsISupports* ptrToRemove = weakRef ? 
-                    NS_STATIC_CAST(nsISupports*, weakRef) :
-                    NS_STATIC_CAST(nsISupports*, manager);
-    { // scoped lock...
-        nsAutoLock lock(mAdditionalManagersLock);
-        if(!mAdditionalManagers.RemoveElement(ptrToRemove))
-            return NS_ERROR_FAILURE;
-    }
-    return NS_OK;
-}
-
-/* PRBool hasAdditionalManagers (); */
-NS_IMETHODIMP xptiInterfaceInfoManager::HasAdditionalManagers(PRBool *_retval)
-{
-    PRUint32 count;
-    nsresult rv = mAdditionalManagers.Count(&count);
-    *_retval = count != 0;
-    return rv;
-}
-
-/* nsISimpleEnumerator enumerateAdditionalManagers (); */
-NS_IMETHODIMP xptiInterfaceInfoManager::EnumerateAdditionalManagers(nsISimpleEnumerator **_retval)
-{
-    nsAutoLock lock(mAdditionalManagersLock);
-
-    PRUint32 count;
-    nsresult rv = mAdditionalManagers.Count(&count);
-    if(NS_FAILED(rv))
-        return rv;
-
-    nsCOMPtr<xptiAdditionalManagersEnumerator> enumerator = 
-        new xptiAdditionalManagersEnumerator();
-    if(!enumerator)
-        return NS_ERROR_OUT_OF_MEMORY;
-
-    enumerator->SizeTo(count);
-
-    for(PRUint32 i = 0; i < count; /* i incremented in the loop body */)
-    {
-        nsCOMPtr<nsISupports> raw = 
-            dont_AddRef(mAdditionalManagers.ElementAt(i++));
-        if(!raw)
-            return NS_ERROR_FAILURE;
-        nsCOMPtr<nsIWeakReference> weakRef = do_QueryInterface(raw);
-        if(weakRef)
-        {
-            nsCOMPtr<nsIInterfaceInfoManager> manager = 
-                do_QueryReferent(weakRef);
-            if(manager)
-            {
-                if(!enumerator->AppendElement(manager))
-                    return NS_ERROR_FAILURE;
-            }
-            else
-            {
-                // The manager is no more. Remove the element.
-                if(!mAdditionalManagers.RemoveElementAt(--i))
-                    return NS_ERROR_FAILURE;
-                count--;
-            }
-        }
-        else
-        {
-            // We *know* we put a pointer to either a nsIWeakReference or
-            // an nsIInterfaceInfoManager into the array, so we can avoid an
-            // extra QI here and just do a cast.
-            if(!enumerator->AppendElement(
-                    NS_REINTERPRET_CAST(nsIInterfaceInfoManager*, raw.get())))
-                return NS_ERROR_FAILURE;
-        }
-    }
-    
-    NS_ADDREF(*_retval = enumerator);
     return NS_OK;
 }
 

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -38,7 +38,7 @@
 
 
 UIUpdateSettingsEditor::UIUpdateSettingsEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent, true /* show in basic mode? */)
     , m_pCheckBox(0)
     , m_pWidgetUpdateSettings(0)
     , m_pLabelUpdatePeriod(0)
@@ -53,32 +53,11 @@ UIUpdateSettingsEditor::UIUpdateSettingsEditor(QWidget *pParent /* = 0 */)
 
 void UIUpdateSettingsEditor::setValue(const VBoxUpdateData &guiValue)
 {
-    /* Update cached value and
-     * widgets if value has changed: */
+    /* Update cached value and fetch it: */
     if (m_guiValue != guiValue)
     {
         m_guiValue = guiValue;
-
-        if (m_pCheckBox)
-        {
-            m_pCheckBox->setChecked(m_guiValue.isCheckEnabled());
-
-            foreach (const KUpdateChannel &enmUpdateChannel, m_mapRadioButtons.keys())
-                if (m_mapRadioButtons.value(enmUpdateChannel))
-                    m_mapRadioButtons.value(enmUpdateChannel)->setVisible(
-                           m_guiValue.updateChannel() == enmUpdateChannel
-                        || m_guiValue.supportedUpdateChannels().contains(enmUpdateChannel));
-
-            if (m_pCheckBox->isChecked())
-            {
-                if (m_pComboUpdatePeriod)
-                    m_pComboUpdatePeriod->setCurrentIndex(m_guiValue.updatePeriod());
-                if (m_mapRadioButtons.value(m_guiValue.updateChannel()))
-                    m_mapRadioButtons.value(m_guiValue.updateChannel())->setChecked(true);
-            }
-
-            sltHandleUpdateToggle(m_pCheckBox->isChecked());
-        }
+        fetchValue();
     }
 }
 
@@ -87,7 +66,7 @@ VBoxUpdateData UIUpdateSettingsEditor::value() const
     return VBoxUpdateData(isCheckEnabled(), updatePeriod(), updateChannel());
 }
 
-void UIUpdateSettingsEditor::retranslateUi()
+void UIUpdateSettingsEditor::sltRetranslateUI()
 {
     /* Translate check-box: */
     if (m_pCheckBox)
@@ -144,6 +123,12 @@ void UIUpdateSettingsEditor::retranslateUi()
     }
 }
 
+void UIUpdateSettingsEditor::handleFilterChange()
+{
+    /* This stuff is for Expert mode only: */
+    m_pWidgetUpdateSettings->setVisible(m_fInExpertMode);
+}
+
 void UIUpdateSettingsEditor::sltHandleUpdateToggle(bool fEnabled)
 {
     /* Update activity status: */
@@ -174,7 +159,7 @@ void UIUpdateSettingsEditor::prepare()
     prepareConnections();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIUpdateSettingsEditor::prepareWidgets()
@@ -237,7 +222,10 @@ void UIUpdateSettingsEditor::prepareWidgets()
                 /* Prepare update date field: */
                 m_pFieldUpdateDate = new QLabel(m_pWidgetUpdateSettings);
                 if (m_pFieldUpdateDate)
+                {
+                    m_pLabelUpdateDate->setBuddy(m_pFieldUpdateDate);
                     pLayoutUpdateSettings->addWidget(m_pFieldUpdateDate, 1, 1);
+                }
 
                 /* Prepare update date label: */
                 m_pLabelUpdateFilter = new QLabel(m_pWidgetUpdateSettings);
@@ -295,7 +283,7 @@ void UIUpdateSettingsEditor::prepareConnections()
     if (m_pCheckBox)
         connect(m_pCheckBox, &QCheckBox::toggled, this, &UIUpdateSettingsEditor::sltHandleUpdateToggle);
     if (m_pComboUpdatePeriod)
-        connect(m_pComboUpdatePeriod, static_cast<void(QComboBox::*)(int)>(&QComboBox::activated),
+        connect(m_pComboUpdatePeriod, &QComboBox::activated,
                 this, &UIUpdateSettingsEditor::sltHandleUpdatePeriodChange);
 }
 
@@ -313,4 +301,28 @@ KUpdateChannel UIUpdateSettingsEditor::updateChannel() const
 {
     QAbstractButton *pCheckedButton = m_pRadioButtonGroup ? m_pRadioButtonGroup->checkedButton() : 0;
     return m_mapRadioButtons.key(pCheckedButton, m_guiValue.updateChannel());
+}
+
+void UIUpdateSettingsEditor::fetchValue()
+{
+    if (m_pCheckBox)
+    {
+        m_pCheckBox->setChecked(m_guiValue.isCheckEnabled());
+
+        foreach (KUpdateChannel enmChannel, m_mapRadioButtons.keys())
+            if (m_mapRadioButtons.value(enmChannel))
+                m_mapRadioButtons.value(enmChannel)
+                    ->setVisible(   m_guiValue.updateChannel() == enmChannel
+                                 || m_guiValue.supportedUpdateChannels().contains(enmChannel));
+
+        if (m_pCheckBox->isChecked())
+        {
+            if (m_pComboUpdatePeriod)
+                m_pComboUpdatePeriod->setCurrentIndex(m_guiValue.updatePeriod());
+            if (m_mapRadioButtons.value(m_guiValue.updateChannel()))
+                m_mapRadioButtons.value(m_guiValue.updateChannel())->setChecked(true);
+        }
+
+        sltHandleUpdateToggle(m_pCheckBox->isChecked());
+    }
 }

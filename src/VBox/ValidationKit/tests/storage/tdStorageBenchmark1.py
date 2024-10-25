@@ -8,7 +8,7 @@ VirtualBox Validation Kit - Storage benchmark.
 
 __copyright__ = \
 """
-Copyright (C) 2012-2023 Oracle and/or its affiliates.
+Copyright (C) 2012-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -37,7 +37,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 
 # Standard Python imports.
@@ -50,7 +50,7 @@ else:
     from StringIO import StringIO as StringIO;      # pylint: disable=import-error,no-name-in-module,useless-import-alias
 
 # Only the main script needs to modify the path.
-try:    __file__
+try:    __file__                            # pylint: disable=used-before-assignment
 except: __file__ = sys.argv[0];
 g_ksValidationKitDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))));
 sys.path.append(g_ksValidationKitDir);
@@ -274,8 +274,9 @@ class IoPerfTest(object):
         self.sQueueDepth  = str(dCfg.get('QueueDepth',  32));
         self.sFilePath    = dCfg.get('FilePath',    '/mnt');
         self.fDirectIo    = True;
+        self.fReportIoStats = dCfg.get('ReportIoStats', True);
         self.asGstIoPerfPaths   = [
-            '${CDROM}/vboxvalidationkit/${OS/ARCH}/IoPerf${EXESUFF}',
+            '${CDROM}/validationkit/${OS/ARCH}/IoPerf${EXESUFF}',
             '${CDROM}/${OS/ARCH}/IoPerf${EXESUFF}',
         ];
 
@@ -304,6 +305,8 @@ class IoPerfTest(object):
                    '--maximum-requests', self.sQueueDepth, '--dir', self.sFilePath + '/ioperfdir-1');
         if self.fDirectIo:
             tupArgs += ('--use-cache', 'off');
+        if not self.fReportIoStats:
+            tupArgs += ('--report-io-stats', 'off');
         fRc, sOutput, sError = self.oExecutor.execBinary(self._locateGstIoPerf(), tupArgs, cMsTimeout = cMsTimeout);
         if fRc:
             self.sResult = sOutput;
@@ -490,7 +493,7 @@ class tdStorageBenchmark(vbox.TestDriver):                                      
         # Testbox configs (Flag whether to test raw mode on the testbox, disk configuration)
         'testboxstor1.de.oracle.com': (True, storagecfg.DiskCfg('solaris', storagecfg.g_ksDiskCfgRegExp, r'c[3-9]t\dd0\Z')),
         # Windows testbox doesn't return testboxstor2.de.oracle.com from socket.getfqdn()
-        'testboxstor2':               (False, storagecfg.DiskCfg('win',     storagecfg.g_ksDiskCfgStatic, 'D:\\StorageTest')),
+        'testboxstor2':               (False, storagecfg.DiskCfg('win', storagecfg.g_ksDiskCfgStatic, 'D:/StorageTest')),
 
         # Local test configs for the testcase developer
         'adaris':                     (True, storagecfg.DiskCfg('linux',   storagecfg.g_ksDiskCfgStatic, \
@@ -833,6 +836,8 @@ class tdStorageBenchmark(vbox.TestDriver):                                      
     def prepareStorage(self, oStorCfg, fRamDisk = False, cbPool = None):
         """
         Prepares the host storage for disk images or direct testing on the host.
+
+        Will return the created mount point path on success, or None on failure.
         """
         # Create a basic pool with the default configuration.
         sMountPoint = None;
@@ -843,6 +848,11 @@ class tdStorageBenchmark(vbox.TestDriver):                                      
                 sMountPoint = None;
                 oStorCfg.cleanup();
 
+        if not fRc:
+            if cbPool is None:
+                reporter.error('Failed to prepare host storage (fRamDisk=%s)' % (fRamDisk,));
+            else:
+                reporter.error('Failed to prepare host storage (fRamDisk=%s, cbPool=%d)' % (fRamDisk, cbPool,));
         return sMountPoint;
 
     def cleanupStorage(self, oStorCfg):
@@ -1045,8 +1055,9 @@ class tdStorageBenchmark(vbox.TestDriver):                                      
         Runs the given benchmark on the test host.
         """
 
-        dTestSet['FilePath'] = sMountpoint;
-        dTestSet['TargetOs'] = sTargetOs;
+        dTestSet['FilePath']      = sMountpoint;
+        dTestSet['TargetOs']      = sTargetOs;
+        dTestSet['ReportIoStats'] = self.fReportBenchmarkResults;
 
         oTst = None;
         if sBenchmark == 'iozone':
@@ -1269,8 +1280,8 @@ class tdStorageBenchmark(vbox.TestDriver):                                      
                     except:
                         reporter.logXcpt();
 
-                fRc = fRc and oSession.enableVirtEx(fHwVirt);
-                fRc = fRc and oSession.enableNestedPaging(fNestedPaging);
+                fRc = fRc and oSession.enableVirtExX86(fHwVirt);
+                fRc = fRc and oSession.enableNestedPagingX86(fNestedPaging);
                 fRc = fRc and oSession.setCpuCount(cCpus);
                 fRc = fRc and oSession.saveSettings();
                 fRc = oSession.close() and fRc and True; # pychecker hack.
@@ -1444,11 +1455,20 @@ class tdStorageBenchmark(vbox.TestDriver):                                      
                 elif not self.fRecreateStorCfg:
                     reporter.testStart('Create host storage');
                     sMountPoint = self.prepareStorage(self.oStorCfg);
-                    if sMountPoint is None:
-                        reporter.testFailure('Failed to prepare host storage');
+                    if sMountPoint:
+                        fMode = 0o777;
+                        sDir  = os.path.join(sMountPoint, 'test');
+                        fDirExist = os.path.exists(sDir)
+                        fMountPointExist = os.path.exists(sMountPoint)
+                        reporter.log("fExist for sMountPoint: %s, fExist for sDir (test folder): %s" % \
+                                                                                                    (fMountPointExist,
+                                                                                                     fDirExist))
+                        if fDirExist or self.oStorCfg.mkDirOnVolume(sMountPoint, 'test', fMode):
+                            sMountPoint = sDir
+                        else:
+                            reporter.error('Creating volume directory "%s" (mode %x) failed' % (sDir, fMode,));
+                    else:
                         fRc = False;
-                    self.oStorCfg.mkDirOnVolume(sMountPoint, 'test', 0o777);
-                    sMountPoint = sMountPoint + '/test';
                     reporter.testDone();
 
                 if fRc:

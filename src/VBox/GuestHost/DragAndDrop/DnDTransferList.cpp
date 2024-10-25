@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2014-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2014-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -542,6 +542,8 @@ static int dndTransferListAppendDirectory(PDNDTRANSFERLIST pList, char* pszPathA
                 && fPathIsRoot)
             {
                 rc = dndTransferListRootEntryAdd(pList, pszPathAbs);
+                if (RT_FAILURE(rc))
+                    break;
             }
         }
         else if (rc == VERR_NO_MORE_FILES)

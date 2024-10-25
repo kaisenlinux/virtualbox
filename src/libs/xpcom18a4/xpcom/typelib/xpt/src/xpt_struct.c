@@ -240,7 +240,6 @@ XPT_DoHeaderPrologue(XPTArena *arena, XPTCursor *cursor, XPTHeader **headerp, PR
 XPT_PUBLIC_API(PRBool)
 XPT_DoHeader(XPTArena *arena, XPTCursor *cursor, XPTHeader **headerp)
 {
-    const int HEADER_SIZE = 24;
     XPTMode mode = cursor->state->mode;
     XPTHeader * header;
     PRUint32 ide_offset;
@@ -280,7 +279,7 @@ XPT_DoHeader(XPTArena *arena, XPTCursor *cursor, XPTHeader **headerp)
      * Iterate through the annotations rather than recurring, to avoid blowing
      * the stack on large xpt files.
      */
-    ann = next = header->annotations;
+    next = header->annotations;
     annp = &header->annotations;
     do {
         ann = next;
@@ -937,13 +936,12 @@ XPT_GetInterfaceIndexByName(XPTInterfaceDirectoryEntry *ide_block,
 }
 
 static XPT_TYPELIB_VERSIONS_STRUCT versions[] = XPT_TYPELIB_VERSIONS;
-#define XPT_TYPELIB_VERSIONS_COUNT (sizeof(versions) / sizeof(versions[0]))
 
 XPT_PUBLIC_API(PRUint16)
 XPT_ParseVersionString(const char* str, PRUint8* major, PRUint8* minor)
 {
-    int i;
-    for (i = 0; i < XPT_TYPELIB_VERSIONS_COUNT; i++) {
+    uint32_t i;
+    for (i = 0; i < RT_ELEMENTS(versions); i++) {
         if (!strcmp(versions[i].str, str)) {
             *major = versions[i].major;
             *minor = versions[i].minor;

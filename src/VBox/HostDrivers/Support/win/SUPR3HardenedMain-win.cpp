@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -3102,7 +3102,7 @@ static void supR3HardenedWinInstallHooks(void)
         int rc = DISInstr(pbLdrLoadDll + offJmpBack, DISCPUMODE_64BIT, &Dis, &cbInstr);
         if (   RT_FAILURE(rc)
             || (Dis.pCurInstr->fOpType & (DISOPTYPE_CONTROLFLOW))
-            || (Dis.ModRM.Bits.Mod == 0 && Dis.ModRM.Bits.Rm == 5 /* wrt RIP */) )
+            || (Dis.x86.ModRM.Bits.Mod == 0 && Dis.x86.ModRM.Bits.Rm == 5 /* wrt RIP */) )
             supR3HardenedWinHookFailed("LdrLoadDll", pbLdrLoadDll);
         offJmpBack += cbInstr;
     }
@@ -3189,7 +3189,7 @@ static void supR3HardenedWinInstallHooks(void)
         int rc = DISInstr(pbKiUserApcDispatcher + offJmpBack, DISCPUMODE_64BIT, &Dis, &cbInstr);
         if (   RT_FAILURE(rc)
             || (Dis.pCurInstr->fOpType & (DISOPTYPE_CONTROLFLOW))
-            || (Dis.ModRM.Bits.Mod == 0 && Dis.ModRM.Bits.Rm == 5 /* wrt RIP */) )
+            || (Dis.x86.ModRM.Bits.Mod == 0 && Dis.x86.ModRM.Bits.Rm == 5 /* wrt RIP */) )
             supR3HardenedWinHookFailed("KiUserApcDispatcher", pbKiUserApcDispatcher);
         offJmpBack += cbInstr;
     }
@@ -4815,8 +4815,8 @@ static DECL_NO_RETURN(void) supR3HardenedWinDoReSpawn(int iWhich)
                         &ProcessInfoW32))
         supR3HardenedFatalMsg("supR3HardenedWinReSpawn", kSupInitOp_Misc, VERR_INVALID_NAME,
                               "Error relaunching VirtualBox VM process: %u\n"
-                              "Command line: '%ls'",
-                              RtlGetLastWin32Error(), pwszCmdLine);
+                              "Command line: '%ls %ls'",
+                              RtlGetLastWin32Error(), g_wszSupLibHardenedExePath, pwszCmdLine);
     supR3HardenedWinDisableThreadCreation();
 
     SUP_DPRINTF(("supR3HardenedWinDoReSpawn(%d): New child %x.%x [kernel32].\n",

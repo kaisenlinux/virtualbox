@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -528,9 +528,6 @@ static void dbgDiggerSolarisProcessModCtl32(PUVM pUVM, PCVMMR3VTABLE pVMM, PDBGD
     if (Module.hdr.e_shentsize != sizeof(Elf32_Shdr))
         return;
 
-    if (Module.hdr.e_shentsize != sizeof(Elf32_Shdr))
-        return;
-
     /* Basic validations of the rest of the stuff. */
     if (    !SOL32_VALID_ADDRESS(Module.shdrs)
         ||  !SOL32_VALID_ADDRESS(Module.symhdr)
@@ -677,9 +674,6 @@ static void dbgDiggerSolarisProcessModCtl64(PUVM pUVM, PCVMMR3VTABLE pVMM, PDBGD
     if (    Module.hdr.e_phentsize != sizeof(Elf64_Phdr)
         &&  Module.hdr.e_phentsize) //??
         return;
-    if (Module.hdr.e_shentsize != sizeof(Elf64_Shdr))
-        return;
-
     if (Module.hdr.e_shentsize != sizeof(Elf64_Shdr))
         return;
 

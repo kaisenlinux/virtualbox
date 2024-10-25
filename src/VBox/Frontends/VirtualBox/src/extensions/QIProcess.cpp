@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -29,7 +29,7 @@
 #include "QIProcess.h"
 
 /* External includes: */
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
 # include <sys/wait.h>
 #endif
 
@@ -61,10 +61,10 @@ QByteArray QIProcess::singleShot(const QString &strProcessName, int iTimeout /* 
     if (firstShotReady)
         result = process.readAllStandardOutput();
     process.setProcessState(QProcess::NotRunning);
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     int iStatus;
     if (process.processId() > 0)
         waitpid(process.processId(), &iStatus, 0);
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
     return result;
 }

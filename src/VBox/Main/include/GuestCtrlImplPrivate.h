@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -34,6 +34,7 @@
 #include "ConsoleImpl.h"
 #include "Global.h"
 
+#include <iprt/asm-mem.h>
 #include <iprt/asm.h>
 #include <iprt/env.h>
 #include <iprt/semaphore.h>
@@ -57,11 +58,11 @@ using namespace guestControl;
 #endif
 
 /** Vector holding a process' CPU affinity. */
-typedef std::vector <LONG> ProcessAffinity;
+typedef std::vector<LONG> ProcessAffinity;
 /** Vector holding process startup arguments. */
-typedef std::vector <Utf8Str> ProcessArguments;
+typedef std::vector<Utf8Str> ProcessArguments;
 
-class GuestProcessStreamBlock;
+class GuestToolboxStreamBlock;
 class GuestSession;
 
 
@@ -638,8 +639,9 @@ public:
         Type_File,
         /** Guest error is from a guest directory object. */
         Type_Directory,
-        /** Guest error is from a the built-in toolbox "vbox_cat" command. */
-        Type_ToolCat,
+        /** Guest error is from a file system operation. */
+        Type_Fs,
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT
         /** Guest error is from a the built-in toolbox "vbox_ls" command. */
         Type_ToolLs,
         /** Guest error is from a the built-in toolbox "vbox_rm" command. */
@@ -650,6 +652,7 @@ public:
         Type_ToolMkTemp,
         /** Guest error is from a the built-in toolbox "vbox_stat" command. */
         Type_ToolStat,
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT */
         /** The usual 32-bit hack. */
         Type_32BIT_HACK = 0x7fffffff
     };
@@ -723,13 +726,16 @@ protected:
 struct GuestDirectoryOpenInfo
 {
     GuestDirectoryOpenInfo(void)
-        : mFlags(0) { }
+        : menmFilter(GSTCTLDIRFILTER_NONE)
+        , mFlags(GSTCTLDIR_F_NONE) { }
 
     /** The directory path. */
     Utf8Str                 mPath;
-    /** Then open filter. */
+    /** The filter to use (wildcard style). */
     Utf8Str                 mFilter;
-    /** Opening flags. */
+    /** The filter option to use. */
+    GSTCTLDIRFILTER         menmFilter;
+    /** Opening flags (of type GSTCTLDIR_F_XXX). */
     uint32_t                mFlags;
 };
 
@@ -801,12 +807,30 @@ struct GuestFileOpenInfo
 
 
 /**
+ * Helper class for guest file system operations.
+ */
+class GuestFs
+{
+    DECLARE_TRANSLATE_METHODS(GuestFs)
+
+private:
+
+    /* Not directly instantiable. */
+    GuestFs(void) { }
+
+public:
+
+    static Utf8Str guestErrorToString(const GuestErrorInfo &guestErrorInfo);
+};
+
+
+/**
  * Structure representing information of a
  * file system object.
  */
 struct GuestFsObjData
 {
-    GuestFsObjData(void)
+    GuestFsObjData(const Utf8Str &strName = "")
         : mType(FsObjType_Unknown)
         , mObjectSize(0)
         , mAllocatedSize(0)
@@ -821,21 +845,32 @@ struct GuestFsObjData
         , mNumHardLinks(0)
         , mDeviceNumber(0)
         , mGenerationID(0)
-        , mUserFlags(0) { }
+        , mUserFlags(0) { mName = strName; }
 
+    void Init(const Utf8Str &strName) { mName = strName; }
+
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+    int FromGuestDirEntryEx(PCGSTCTLDIRENTRYEX pDirEntryEx, const Utf8Str &strUser = "", const Utf8Str &strGroups = "");
+    int FromGuestFsObjInfo(PCGSTCTLFSOBJINFO pFsObjInfo, const Utf8Str &strUser = "", const Utf8Str &strGroups = "");
+#endif
+
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT
     /** @name Helper functions to extract the data from a certin VBoxService tool's guest stream block.
      * @{ */
-    int FromLs(const GuestProcessStreamBlock &strmBlk, bool fLong);
-    int FromRm(const GuestProcessStreamBlock &strmBlk);
-    int FromStat(const GuestProcessStreamBlock &strmBlk);
-    int FromMkTemp(const GuestProcessStreamBlock &strmBlk);
+    int FromToolboxLs(const GuestToolboxStreamBlock &strmBlk, bool fLong);
+    int FromToolboxRm(const GuestToolboxStreamBlock &strmBlk);
+    int FromToolboxStat(const GuestToolboxStreamBlock &strmBlk);
+    int FromToolboxMkTemp(const GuestToolboxStreamBlock &strmBlk);
     /** @}  */
+#endif
 
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT
     /** @name Static helper functions to work with time from stream block keys.
      * @{ */
-    static PRTTIMESPEC TimeSpecFromKey(const GuestProcessStreamBlock &strmBlk, const Utf8Str &strKey, PRTTIMESPEC pTimeSpec);
-    static int64_t UnixEpochNsFromKey(const GuestProcessStreamBlock &strmBlk, const Utf8Str &strKey);
+    static PRTTIMESPEC TimeSpecFromKey(const GuestToolboxStreamBlock &strmBlk, const Utf8Str &strKey, PRTTIMESPEC pTimeSpec);
+    static int64_t UnixEpochNsFromKey(const GuestToolboxStreamBlock &strmBlk, const Utf8Str &strKey);
     /** @}  */
+#endif
 
     /** @name helper functions to work with IPRT stuff.
      * @{ */
@@ -876,7 +911,7 @@ public:
     GuestSessionStartupInfo(void)
         : mID(UINT32_MAX)
         , mIsInternal(false /* Non-internal session */)
-        , mOpenTimeoutMS(30 * 1000 /* 30s opening timeout */)
+        , mOpenTimeoutMS(GSTCTL_DEFAULT_TIMEOUT_MS)
         , mOpenFlags(0 /* No opening flags set */) { }
 
     /** The session's friendly name. Optional. */
@@ -913,6 +948,8 @@ public:
     Utf8Str                     mName;
     /** The executable. */
     Utf8Str                     mExecutable;
+    /** The working directory. Optional, can be empty if not used. */
+    Utf8Str                     mCwd;
     /** Arguments vector (starting with argument \#0). */
     ProcessArguments            mArguments;
     /** The process environment change record.  */
@@ -930,23 +967,64 @@ public:
     uint64_t                    mAffinity;
 };
 
+/**
+ * Generic class for handling a guest process output (i.e. stdout / stderr) stream.
+ */
+class GuestProcessOutputStream
+{
+public:
+
+    GuestProcessOutputStream();
+
+    virtual ~GuestProcessOutputStream();
+
+public:
+
+    int AddData(const BYTE *pbData, size_t cbData);
+
+    void Destroy();
+
+#ifdef DEBUG
+    void Dump(const char *pszFile);
+#endif
+
+    size_t GetOffset(void) const { return m_offBuf; }
+
+    size_t GetSize(void) const { return m_cbUsed; }
+
+    const BYTE *GetData(void) const { return m_pbBuffer; }
+
+protected:
+
+    /** Maximum allowed size the stream buffer can grow to.
+     *  Defaults to 32 MB. */
+    size_t m_cbMax;
+    /** Currently allocated size of internal stream buffer. */
+    size_t m_cbAllocated;
+    /** Currently used size at m_offBuffer. */
+    size_t m_cbUsed;
+    /** Current byte offset within the internal stream buffer. */
+    size_t m_offBuf;
+    /** Internal stream buffer. */
+    BYTE  *m_pbBuffer;
+};
 
 /**
  * Class representing the "value" side of a "key=value" pair.
  */
-class GuestProcessStreamValue
+class GuestToolboxStreamValue
 {
 public:
 
-    GuestProcessStreamValue(void) { }
-    GuestProcessStreamValue(const char *pszValue, size_t cwcValue = RTSTR_MAX)
+    GuestToolboxStreamValue(void) { }
+    GuestToolboxStreamValue(const char *pszValue, size_t cwcValue = RTSTR_MAX)
         : mValue(pszValue, cwcValue) {}
 
-    GuestProcessStreamValue(const GuestProcessStreamValue& aThat)
+    GuestToolboxStreamValue(const GuestToolboxStreamValue& aThat)
            : mValue(aThat.mValue) { }
 
     /** Copy assignment operator. */
-    GuestProcessStreamValue &operator=(GuestProcessStreamValue const &a_rThat) RT_NOEXCEPT
+    GuestToolboxStreamValue &operator=(GuestToolboxStreamValue const &a_rThat) RT_NOEXCEPT
     {
         mValue = a_rThat.mValue;
 
@@ -957,12 +1035,12 @@ public:
 };
 
 /** Map containing "key=value" pairs of a guest process stream. */
-typedef std::pair< Utf8Str, GuestProcessStreamValue > GuestCtrlStreamPair;
-typedef std::map < Utf8Str, GuestProcessStreamValue > GuestCtrlStreamPairMap;
-typedef std::map < Utf8Str, GuestProcessStreamValue >::iterator GuestCtrlStreamPairMapIter;
-typedef std::map < Utf8Str, GuestProcessStreamValue >::const_iterator GuestCtrlStreamPairMapIterConst;
+typedef std::pair< Utf8Str, GuestToolboxStreamValue > GuestCtrlStreamPair;
+typedef std::map < Utf8Str, GuestToolboxStreamValue > GuestCtrlStreamPairMap;
+typedef std::map < Utf8Str, GuestToolboxStreamValue >::iterator GuestCtrlStreamPairMapIter;
+typedef std::map < Utf8Str, GuestToolboxStreamValue >::const_iterator GuestCtrlStreamPairMapIterConst;
 
-class GuestProcessStream;
+class GuestToolboxStream;
 
 /**
  * Class representing a block of stream pairs (key=value). Each block in a raw guest
@@ -972,17 +1050,18 @@ class GuestProcessStream;
  * An empty stream block will be treated as being incomplete.
  *
  * Only used for the busybox-like toolbox commands within VBoxService.
+ *
  * Deprecated, do not use anymore.
  */
-class GuestProcessStreamBlock
+class GuestToolboxStreamBlock
 {
-    friend GuestProcessStream;
+    friend GuestToolboxStream;
 
 public:
 
-    GuestProcessStreamBlock(void);
+    GuestToolboxStreamBlock(void);
 
-    virtual ~GuestProcessStreamBlock(void);
+    virtual ~GuestToolboxStreamBlock(void);
 
 public:
 
@@ -1017,9 +1096,9 @@ protected:
 };
 
 /** Vector containing multiple allocated stream pair objects. */
-typedef std::vector< GuestProcessStreamBlock > GuestCtrlStreamObjects;
-typedef std::vector< GuestProcessStreamBlock >::iterator GuestCtrlStreamObjectsIter;
-typedef std::vector< GuestProcessStreamBlock >::const_iterator GuestCtrlStreamObjectsIterConst;
+typedef std::vector< GuestToolboxStreamBlock > GuestCtrlStreamObjects;
+typedef std::vector< GuestToolboxStreamBlock >::iterator GuestCtrlStreamObjectsIter;
+typedef std::vector< GuestToolboxStreamBlock >::const_iterator GuestCtrlStreamObjectsIterConst;
 
 /** Defines a single terminator as a single char. */
 #define GUESTTOOLBOX_STRM_TERM                      '\0'
@@ -1041,47 +1120,26 @@ typedef std::vector< GuestProcessStreamBlock >::const_iterator GuestCtrlStreamOb
 /**
  * Class for parsing machine-readable guest process output by VBoxService'
  * toolbox commands ("vbox_ls", "vbox_stat" etc), aka "guest stream".
+ *
+ * Deprecated, do not use anymore.
  */
-class GuestProcessStream
+class GuestToolboxStream : public GuestProcessOutputStream
 {
 
 public:
 
-    GuestProcessStream();
+    GuestToolboxStream();
 
-    virtual ~GuestProcessStream();
+    virtual ~GuestToolboxStream();
 
 public:
 
-    int AddData(const BYTE *pbData, size_t cbData);
-
-    void Destroy();
-
-#ifdef DEBUG
-    void Dump(const char *pszFile);
-#endif
-
-    size_t GetOffset(void) const { return m_offBuf; }
-
-    size_t GetSize(void) const { return m_cbUsed; }
-
     size_t GetBlocks(void) const { return m_cBlocks; }
 
-    int ParseBlock(GuestProcessStreamBlock &streamBlock);
+    int ParseBlock(GuestToolboxStreamBlock &streamBlock);
 
 protected:
 
-    /** Maximum allowed size the stream buffer can grow to.
-     *  Defaults to 32 MB. */
-    size_t m_cbMax;
-    /** Currently allocated size of internal stream buffer. */
-    size_t m_cbAllocated;
-    /** Currently used size at m_offBuffer. */
-    size_t m_cbUsed;
-    /** Current byte offset within the internal stream buffer. */
-    size_t m_offBuf;
-    /** Internal stream buffer. */
-    BYTE  *m_pbBuffer;
     /** How many completed stream blocks already were processed. */
     size_t m_cBlocks;
 };
@@ -1172,6 +1230,56 @@ public:
         return Utf8Str(pszStr, cbStr);
     }
 
+    /**
+     * Returns the payload as a vector of strings, validated.
+     *
+     * The payload data must contain the strings separated by a string zero terminator each,
+     * ending with a separate zero terminator. Incomplete data will considered as invalid data.
+     *
+     * Example: 'foo\0bar\0baz\0\0'.
+     *
+     * @returns VBox status code.
+     * @param   vecStrings      Where to return the vector of strings on success.
+     */
+    int ToStringVector(std::vector<Utf8Str> &vecStrings)
+    {
+        int vrc = VINF_SUCCESS;
+
+        vecStrings.clear();
+
+        const char *psz = (const char *)pvData;
+        if (psz)
+        {
+            size_t cb  = cbData;
+            while (cb)
+            {
+                size_t const cch = strnlen(psz, cb);
+                if (!cch)
+                    break;
+                size_t const cbStr = RT_MIN(cb, cch + 1 /* String terminator */);
+                vrc = RTStrValidateEncodingEx(psz, cbStr,
+                                              RTSTR_VALIDATE_ENCODING_ZERO_TERMINATED | RTSTR_VALIDATE_ENCODING_EXACT_LENGTH);
+                if (RT_FAILURE(vrc))
+                    break;
+                try
+                {
+                    vecStrings.push_back(Utf8Str(psz, cch));
+                }
+                catch (std::bad_alloc &)
+                {
+                    AssertFailedBreakStmt(vrc = VERR_NO_MEMORY);
+                }
+                AssertBreakStmt(cb >= cbStr, vrc = VERR_INVALID_PARAMETER);
+                cb  -= cbStr;
+                psz += cbStr;
+            }
+
+            if (RT_SUCCESS(vrc))
+                AssertStmt(cb <= 1 /* Ending terminator */, vrc = VERR_INVALID_PARAMETER);
+        }
+        return vrc;
+    }
+
 protected:
 
     int copyFrom(uint32_t uTypePayload, const void *pvPayload, uint32_t cbPayload)
@@ -1226,12 +1334,13 @@ protected:
 
 public:
 
-    uint32_t                ContextID(void) { return mCID; };
-    int                     GuestResult(void) { return mGuestRc; }
-    int                     Result(void) { return mVrc; }
-    GuestWaitEventPayload  &Payload(void) { return mPayload; }
-    int                     SignalInternal(int vrc, int vrcGuest, const GuestWaitEventPayload *pPayload);
-    int                     Wait(RTMSINTERVAL uTimeoutMS);
+    uint32_t               ContextID(void) const { return mCID; };
+    int                    GuestResult(void) const { return mGuestRc; }
+    bool                   HasGuestError(void) const { return mVrc == VERR_GSTCTL_GUEST_ERROR; }
+    int                    Result(void) const { return mVrc; }
+    GuestWaitEventPayload &Payload(void) { return mPayload; }
+    int                    SignalInternal(int vrc, int vrcGuest, const GuestWaitEventPayload *pPayload);
+    int                    Wait(RTMSINTERVAL uTimeoutMS);
 
 protected:
 
@@ -1272,12 +1381,10 @@ public:
     int                              Init(uint32_t uCID);
     int                              Init(uint32_t uCID, const GuestEventTypes &lstEvents);
     int                              Cancel(void);
-    const ComPtr<IEvent>             Event(void) { return mEvent; }
-    bool                             HasGuestError(void) const { return mVrc == VERR_GSTCTL_GUEST_ERROR; }
-    int                              GetGuestError(void) const { return mGuestRc; }
+    const ComPtr<IEvent>             Event(void) const { return mEvent; }
     int                              SignalExternal(IEvent *pEvent);
-    const GuestEventTypes           &Types(void) { return mEventTypes; }
-    size_t                           TypeCount(void) { return mEventTypes.size(); }
+    const GuestEventTypes           &Types(void) const { return mEventTypes; }
+    size_t                           TypeCount(void) const { return mEventTypes.size(); }
 
 protected:
 
@@ -1426,7 +1533,7 @@ protected:
 };
 
 /** Returns the path separator based on \a a_enmPathStyle as a C-string. */
-#define PATH_STYLE_SEP_STR(a_enmPathStyle) a_enmPathStyle == PathStyle_DOS ? "\\" : "/"
+#define PATH_STYLE_SEP_STR(a_enmPathStyle) (a_enmPathStyle == PathStyle_DOS ? "\\" : "/")
 #if defined(RT_OS_WINDOWS) || defined(RT_OS_OS2)
 # define PATH_STYLE_NATIVE               PathStyle_DOS
 #else
@@ -1455,5 +1562,292 @@ public:
     static int Translate(Utf8Str &strPath, PathStyle_T enmSrcPathStyle, PathStyle_T enmDstPathStyle, bool fForce = false);
     /** @}  */
 };
+
+
+/*********************************************************************************************************************************
+ * Callback data structures.                                                                                                     *
+ *                                                                                                                               *
+ * These structures make up the actual low level HGCM callback data sent from                                                    *
+ * the guest back to the host.                                                                                                   *
+ ********************************************************************************************************************************/
+
+/**
+ * The guest control callback data header. Must come first
+ * on each callback structure defined below this struct.
+ */
+typedef struct CALLBACKDATA_HEADER
+{
+    /** Context ID to identify callback data. This is
+     *  and *must* be the very first parameter in this
+     *  structure to still be backwards compatible. */
+    uint32_t uContextID;
+} CALLBACKDATA_HEADER;
+/** Pointer to a CALLBACKDATA_HEADER struct. */
+typedef CALLBACKDATA_HEADER *PCALLBACKDATA_HEADER;
+
+/**
+ * Host service callback data when a HGCM client disconnected.
+ */
+typedef struct CALLBACKDATA_CLIENT_DISCONNECTED
+{
+    /** Callback data header. */
+    CALLBACKDATA_HEADER hdr;
+} CALLBACKDATA_CLIENT_DISCONNECTED;
+/** Pointer to a CALLBACKDATA_CLIENT_DISCONNECTED struct. */
+typedef CALLBACKDATA_CLIENT_DISCONNECTED *PCALLBACKDATA_CLIENT_DISCONNECTED;
+
+/**
+ * Host service callback data for a generic guest reply.
+ */
+typedef struct CALLBACKDATA_MSG_REPLY
+{
+    /** Callback data header. */
+    CALLBACKDATA_HEADER hdr;
+    /** Notification type. */
+    uint32_t uType;
+    /** Notification result. Note: int vs. uint32! */
+    uint32_t rc;
+    /** Pointer to optional payload. */
+    void *pvPayload;
+    /** Payload size (in bytes). */
+    uint32_t cbPayload;
+} CALLBACKDATA_MSG_REPLY;
+/** Pointer to a CALLBACKDATA_MSG_REPLY struct. */
+typedef CALLBACKDATA_MSG_REPLY *PCALLBACKDATA_MSG_REPLY;
+
+/**
+ * Host service callback data for guest session notifications.
+ */
+typedef struct CALLBACKDATA_SESSION_NOTIFY
+{
+    /** Callback data header. */
+    CALLBACKDATA_HEADER hdr;
+    /** Notification type. */
+    uint32_t uType;
+    /** Notification result. Note: int vs. uint32! */
+    uint32_t uResult;
+} CALLBACKDATA_SESSION_NOTIFY;
+/** Pointer to a CALLBACKDATA_SESSION_NOTIFY struct. */
+typedef CALLBACKDATA_SESSION_NOTIFY *PCALLBACKDATA_SESSION_NOTIFY;
+
+/**
+ * Host service callback data for guest process status notifications.
+ */
+typedef struct CALLBACKDATA_PROC_STATUS
+{
+    /** Callback data header. */
+    CALLBACKDATA_HEADER hdr;
+    /** The process ID (PID). */
+    uint32_t uPID;
+    /** The process status. */
+    uint32_t uStatus;
+    /** Optional flags, varies, based on u32Status. */
+    uint32_t uFlags;
+    /** Optional data buffer (not used atm). */
+    void *pvData;
+    /** Size of optional data buffer (not used atm). */
+    uint32_t cbData;
+} CALLBACKDATA_PROC_STATUS;
+/** Pointer to a CALLBACKDATA_PROC_OUTPUT struct. */
+typedef CALLBACKDATA_PROC_STATUS* PCALLBACKDATA_PROC_STATUS;
+
+/**
+ * Host service callback data for guest process output notifications.
+ */
+typedef struct CALLBACKDATA_PROC_OUTPUT
+{
+    /** Callback data header. */
+    CALLBACKDATA_HEADER hdr;
+    /** The process ID (PID). */
+    uint32_t uPID;
+    /** The handle ID (stdout/stderr). */
+    uint32_t uHandle;
+    /** Optional flags (not used atm). */
+    uint32_t uFlags;
+    /** Optional data buffer. */
+    void *pvData;
+    /** Size (in bytes) of optional data buffer. */
+    uint32_t cbData;
+} CALLBACKDATA_PROC_OUTPUT;
+/** Pointer to a CALLBACKDATA_PROC_OUTPUT struct. */
+typedef CALLBACKDATA_PROC_OUTPUT *PCALLBACKDATA_PROC_OUTPUT;
+
+/**
+ * Host service callback data guest process input notifications.
+ */
+typedef struct CALLBACKDATA_PROC_INPUT
+{
+    /** Callback data header. */
+    CALLBACKDATA_HEADER hdr;
+    /** The process ID (PID). */
+    uint32_t uPID;
+    /** Current input status. */
+    uint32_t uStatus;
+    /** Optional flags. */
+    uint32_t uFlags;
+    /** Size (in bytes) of processed input data. */
+    uint32_t uProcessed;
+} CALLBACKDATA_PROC_INPUT;
+/** Pointer to a CALLBACKDATA_PROC_INPUT struct. */
+typedef CALLBACKDATA_PROC_INPUT *PCALLBACKDATA_PROC_INPUT;
+
+/**
+ * General guest file notification callback.
+ */
+typedef struct CALLBACKDATA_FILE_NOTIFY
+{
+    /** Callback data header. */
+    CALLBACKDATA_HEADER hdr;
+    /** Notification type. */
+    uint32_t uType;
+    /** IPRT result of overall operation. */
+    uint32_t rc;
+    union
+    {
+        struct
+        {
+            /** Guest file handle. */
+            uint32_t uHandle;
+        } open;
+        /** Note: Close does not have any additional data (yet). */
+        struct
+        {
+            /** How much data (in bytes) have been read. */
+            uint32_t cbData;
+            /** Actual data read (if any). */
+            void *pvData;
+        } read;
+        struct
+        {
+            /** How much data (in bytes) have been successfully written. */
+            uint32_t cbWritten;
+        } write;
+        struct
+        {
+            /** New file offset after successful seek. */
+            uint64_t uOffActual;
+        } seek;
+        struct
+        {
+            /** New file offset after successful tell. */
+            uint64_t uOffActual;
+        } tell;
+        struct
+        {
+            /** The new file siz.e */
+            uint64_t cbSize;
+        } SetSize;
+    } u;
+} CALLBACKDATA_FILE_NOTIFY;
+/** Pointer to a CALLBACKDATA_FILE_NOTIFY, struct. */
+typedef CALLBACKDATA_FILE_NOTIFY *PCALLBACKDATA_FILE_NOTIFY;
+
+/**
+ * Callback data for a single GSTCTLDIRENTRYEX entry.
+ */
+typedef struct CALLBACKDATA_DIR_ENTRY
+{
+    /** Pointer to directory entry information. */
+    PGSTCTLDIRENTRYEX pDirEntryEx;
+    /** Size (in bytes) of directory entry information. */
+    uint32_t          cbDirEntryEx;
+    /** Resolved user name.
+     *  This is the object owner for UNIX-y Oses. */
+    char             *pszUser;
+    /** Size (in bytes) of \a pszUser. */
+    uint32_t          cbUser;
+    /** Resolved user group(s). */
+    char             *pszGroups;
+    /** Size (in bytes) of \a pszGroups. */
+    uint32_t          cbGroups;
+} CALLBACKDATA_DIR_ENTRY;
+/** Pointer to a CALLBACKDATA_DIR_ENTRY struct. */
+typedef CALLBACKDATA_DIR_ENTRY *PCALLBACKDATA_DIR_ENTRY;
+
+/**
+ * Callback data for guest directory operations.
+ */
+typedef struct CALLBACKDATA_DIR_NOTIFY
+{
+    /** Callback data header. */
+    CALLBACKDATA_HEADER hdr;
+    /** Notification type. */
+    uint32_t uType;
+    /** IPRT result of overall operation. */
+    uint32_t rc;
+    union
+    {
+        struct
+        {
+            /** Pointer to directory information. */
+            PGSTCTLFSOBJINFO pObjInfo;
+        } info;
+        struct
+        {
+            /** Guest directory handle. */
+            uint32_t uHandle;
+        } open;
+        /** Note: Close does not have any additional data (yet). */
+        struct
+        {
+            /** Single entry read. */
+            CALLBACKDATA_DIR_ENTRY Entry;
+        } read;
+        struct
+        {
+            /** Number of entries in \a paEntries. */
+            uint32_t                 cEntries;
+            /** Array of entries read. */
+            CALLBACKDATA_DIR_ENTRY **paEntries;
+        } list;
+    } u;
+} CALLBACKDATA_DIR_NOTIFY;
+/** Pointer to a CALLBACKDATA_DIR_NOTIFY struct. */
+typedef CALLBACKDATA_DIR_NOTIFY *PCALLBACKDATA_DIR_NOTIFY;
+
+/**
+ * Callback data for guest file system operations.
+ */
+typedef struct CALLBACKDATA_FS_NOTIFY
+{
+    /** Callback data header. */
+    CALLBACKDATA_HEADER hdr;
+    /** Notification type (of type GUEST_FS_NOTIFYTYPE_XXX). */
+    uint32_t uType;
+    /** IPRT result of overall operation. */
+    uint32_t rc;
+    union
+    {
+        /** Holds information for GUEST_FS_NOTIFYTYPE_CREATE_TEMP. */
+        struct
+        {
+            /** Path of created temporary file / directory. */
+            char    *pszPath;
+            /** Size (in bytes) of \a pszPath. */
+            uint32_t cbPath;
+        } CreateTemp;
+        /** Holds information for GUEST_FS_NOTIFYTYPE_QUERY_OBJ_INFO. */
+        struct
+        {
+            GSTCTLFSOBJINFO objInfo;
+            /** Resolved user name. */
+            char           *pszUser;
+            /** Size (in bytes) of \a pszUser. */
+            uint32_t        cbUser;
+            /** Resolved user group(s). */
+            char           *pszGroups;
+            /** Size (in bytes) of \a pszGroups. */
+            uint32_t        cbGroups;
+        } QueryObjInfo;
+        /** Holds information for GUEST_FS_NOTIFYTYPE_QUERY_INFO. */
+        struct
+        {
+            /** The actual filesystem information. */
+            GSTCTLFSINFO    fsInfo;
+        } QueryInfo;
+    } u;
+} CALLBACKDATA_FS_NOTIFY;
+/** Pointer to a CALLBACKDATA_FS_NOTIFY struct. */
+typedef CALLBACKDATA_FS_NOTIFY *PCALLBACKDATA_FS_NOTIFY;
 #endif /* !MAIN_INCLUDED_GuestCtrlImplPrivate_h */
 

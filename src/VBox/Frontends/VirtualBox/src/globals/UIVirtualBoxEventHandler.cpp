@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,8 +26,8 @@
  */
 
 /* GUI includes: */
-#include "UICommon.h"
 #include "UIExtraDataManager.h"
+#include "UIGlobalSession.h"
 #include "UIMainEventListener.h"
 #include "UIVirtualBoxEventHandler.h"
 
@@ -89,6 +89,12 @@ signals:
       * @param  enmMediumType  Brings corresponding medium type.
       * @param  fRegistered    Brings whether medium is registered or unregistered. */
     void sigMediumRegistered(const QUuid &uMediumId, KDeviceType enmMediumType, bool fRegistered);
+    /** Notifies extension pack. install.
+     *  @param  strName      Passes extension pack name. */
+    void sigExtensionPackInstalled(const QString &strName);
+    /** Notifies extension pack. unnstall.
+     *  @param  strName      Passes extension pack name. */
+    void sigExtensionPackUninstalled(const QString &strName);
 
 public:
 
@@ -160,11 +166,10 @@ void UIVirtualBoxEventHandlerProxy::prepareListener()
     m_comEventListener = CEventListener(m_pQtListener);
 
     /* Get VirtualBox: */
-    const CVirtualBox comVBox = uiCommon().virtualBox();
-    AssertWrapperOk(comVBox);
+    const CVirtualBox comVBox = gpGlobalSession->virtualBox();
     /* Get VirtualBox event source: */
     m_comEventSource = comVBox.GetEventSource();
-    AssertWrapperOk(m_comEventSource);
+    Assert(comVBox.isOk());
 
     /* Enumerate all the required event-types: */
     QVector<KVBoxEventType> eventTypes;
@@ -186,11 +191,12 @@ void UIVirtualBoxEventHandlerProxy::prepareListener()
         << KVBoxEventType_OnStorageDeviceChanged
         << KVBoxEventType_OnMediumChanged
         << KVBoxEventType_OnMediumConfigChanged
-        << KVBoxEventType_OnMediumRegistered;
+        << KVBoxEventType_OnMediumRegistered
+        << KVBoxEventType_OnExtPackInstalled;
 
     /* Register event listener for event source aggregator: */
     m_comEventSource.RegisterListener(m_comEventListener, eventTypes, FALSE /* active? */);
-    AssertWrapperOk(m_comEventSource);
+    Assert(m_comEventSource.isOk());
 
     /* Register event sources in their listeners as well: */
     m_pQtListener->getWrapped()->registerSource(m_comEventSource, m_comEventListener);
@@ -253,6 +259,12 @@ void UIVirtualBoxEventHandlerProxy::prepareConnections()
             Qt::DirectConnection);
     connect(m_pQtListener->getWrapped(), SIGNAL(sigMediumRegistered(QUuid, KDeviceType, bool)),
             this, SIGNAL(sigMediumRegistered(QUuid, KDeviceType, bool)),
+            Qt::DirectConnection);
+    connect(m_pQtListener->getWrapped(), SIGNAL(sigExtensionPackInstalled(QString)),
+            this, SIGNAL(sigExtensionPackInstalled(QString)),
+            Qt::DirectConnection);
+    connect(m_pQtListener->getWrapped(), SIGNAL(sigExtensionPackUninstalled(QString)),
+            this, SIGNAL(sigExtensionPackUninstalled(QString)),
             Qt::DirectConnection);
 }
 
@@ -375,8 +387,13 @@ void UIVirtualBoxEventHandler::prepareConnections()
     connect(m_pProxy, SIGNAL(sigMediumRegistered(QUuid, KDeviceType, bool)),
             this, SIGNAL(sigMediumRegistered(QUuid, KDeviceType, bool)),
             Qt::QueuedConnection);
+    connect(m_pProxy, SIGNAL(sigExtensionPackInstalled(QString)),
+            this, SIGNAL(sigExtensionPackInstalled(QString)),
+            Qt::QueuedConnection);
+    connect(m_pProxy, SIGNAL(sigExtensionPackUninstalled(QString)),
+            this, SIGNAL(sigExtensionPackUninstalled(QString)),
+            Qt::QueuedConnection);
 }
 
 
 #include "UIVirtualBoxEventHandler.moc"
-

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,7 +35,6 @@
 #include "UIVirtualMachineItem.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CCloudMachine.h"
 
 /* Forward declarations: */
@@ -72,6 +71,7 @@ public:
       * @{ */
         /** Returns cached machine state. */
         KCloudMachineState machineState() const { return m_enmMachineState; }
+        QUuid machineId() const { return m_comCloudMachine.isOk() ? m_comCloudMachine.GetId() : QUuid(); }
 
         /** Defines fake cloud item @a enmState. */
         void setFakeCloudItemState(UIFakeCloudVirtualMachineItemState enmState);
@@ -83,11 +83,12 @@ public:
         /** Returns fake cloud item error message. */
         QString fakeCloudItemErrorMessage() const { return m_strFakeCloudItemErrorMessage; }
 
-        /** Updates cloud VM info async way, @a fDelayed if requested or instant otherwise.
-          * @param  fSubscribe  Brings whether this update should be performed periodically. */
-        void updateInfoAsync(bool fDelayed, bool fSubscribe = false);
-        /** Stop periodical updates previously requested. */
-        void stopAsyncUpdates();
+        /** Defines whether update is @a fRequired by global reason. */
+        void setUpdateRequiredByGlobalReason(bool fRequired);
+        /** Defines whether update is @a fRequired by local reason. */
+        void setUpdateRequiredByLocalReason(bool fRequired);
+        /** Updates cloud VM info async way, @a fDelayed if requested or instantly otherwise. */
+        void updateInfoAsync(bool fDelayed);
         /** Makes sure async info update is finished.
           * @note  This method creates own event-loop to avoid blocking calling thread event processing,
           *        so it's safe to call it from the GUI thread, ofc the method itself will be blocked. */
@@ -126,18 +127,16 @@ public:
         virtual bool isItemCanBeSwitchedTo() const RT_OVERRIDE;
     /** @} */
 
-protected:
+private slots:
 
     /** @name Event handling.
       * @{ */
         /** Handles translation event. */
-        virtual void retranslateUi() RT_OVERRIDE;
+        void sltRetranslateUI();
     /** @} */
 
-private slots:
-
-        /** Handles signal about cloud VM info refresh progress is done. */
-        void sltHandleRefreshCloudMachineInfoDone();
+    /** Handles signal about cloud VM info refresh progress is done. */
+    void sltHandleRefreshCloudMachineInfoDone();
 
 private:
 
@@ -165,8 +164,10 @@ private:
         /** Holds fake cloud item error message. */
         QString                             m_strFakeCloudItemErrorMessage;
 
-        /** Holds whether we plan to refresh info. */
-        bool            m_fRefreshScheduled;
+        /** Holds whether update is required by global reason. */
+        bool            m_fUpdateRequiredByGlobalReason;
+        /** Holds whether update is required by local reason. */
+        bool            m_fUpdateRequiredByLocalReason;
         /** Holds the refresh progress-task instance. */
         UIProgressTask *m_pProgressTaskRefresh;
     /** @} */

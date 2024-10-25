@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,7 +35,6 @@
 #include <QRegularExpression>
 
 /* GUI includes: */
-#include "UICursor.h"
 #include "UIGraphicsTextPane.h"
 #include "UIRichTextString.h"
 
@@ -99,7 +98,7 @@ public:
 
         /* Return the description: */
         if (enmTextRole == QAccessible::Description)
-            return UIGraphicsTextPane::tr("%1: %2", "'key: value', like 'Name: MyVM'").arg(line()->string1(), line()->string2());
+            return QString("%1: %2").arg(line()->string1(), line()->string2());
 
         /* Null-string by default: */
         return QString();
@@ -206,18 +205,13 @@ void UIGraphicsTextPane::updateTextLayout(bool fFull /* = false */)
     bool fSingleColumnText = true;
     foreach (const UITextTableLine &line, m_text)
     {
-        bool fRightColumnPresent = !line.string2().isEmpty();
+        const bool fRightColumnPresent = !line.string2().isEmpty();
         if (fRightColumnPresent)
             fSingleColumnText = false;
-        QString strLeftLine = fRightColumnPresent ? line.string1() + ":" : line.string1();
-        QString strRightLine = line.string2();
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
+        const QString strLeftLine = fRightColumnPresent ? line.string1() + ":" : line.string1();
+        const QString strRightLine = line.string2();
         iMaximumLeftColumnWidth = qMax(iMaximumLeftColumnWidth, fm.horizontalAdvance(strLeftLine));
         iMaximumRightColumnWidth = qMax(iMaximumRightColumnWidth, fm.horizontalAdvance(strRightLine));
-#else
-        iMaximumLeftColumnWidth = qMax(iMaximumLeftColumnWidth, fm.width(strLeftLine));
-        iMaximumRightColumnWidth = qMax(iMaximumRightColumnWidth, fm.width(strRightLine));
-#endif
     }
     iMaximumLeftColumnWidth += 1;
     iMaximumRightColumnWidth += 1;
@@ -398,9 +392,9 @@ void UIGraphicsTextPane::updateHoverStuff()
 {
     /* Update mouse-cursor: */
     if (m_strHoveredAnchor.isNull())
-        UICursor::unsetCursor(this);
+        unsetCursor();
     else
-        UICursor::setCursor(this, Qt::PointingHandCursor);
+        setCursor(Qt::PointingHandCursor);
 
     /* Update text-layout: */
     updateTextLayout();
@@ -521,11 +515,7 @@ QString UIGraphicsTextPane::searchForHoveredAnchor(QPaintDevice *pPaintDevice, c
                 int iSymbolX = (int)layoutLine.cursorToX(iTextPosition);
                 QRect symbolRect = QRect(layoutPosition.x() + linePosition.x() + iSymbolX,
                                          layoutPosition.y() + linePosition.y(),
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
                                          fm.horizontalAdvance(strLayoutText[iTextPosition]) + 1,
-#else
-                                         fm.width(strLayoutText[iTextPosition]) + 1,
-#endif
                                          fm.height());
                 formatRegion += symbolRect;
             }

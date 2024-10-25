@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2017-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2017-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,6 +26,7 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QStackedLayout>
 #ifndef VBOX_WS_MAC
 # include <QStyle>
@@ -165,6 +166,10 @@ void UIToolPaneGlobal::openTool(UIToolType enmType)
 
                     /* Configure pane: */
                     m_pPaneMedia->setProperty("ToolType", QVariant::fromValue(UIToolType_Media));
+                    connect(m_pPaneMedia, &UIMediumManagerWidget::sigCreateMedium,
+                            this, &UIToolPaneGlobal::sigCreateMedium);
+                    connect(m_pPaneMedia, &UIMediumManagerWidget::sigCopyMedium,
+                            this, &UIToolPaneGlobal::sigCopyMedium);
 
                     /* Add into layout: */
                     m_pLayout->addWidget(m_pPaneMedia);
@@ -227,6 +232,7 @@ void UIToolPaneGlobal::openTool(UIToolType enmType)
                     m_pPaneVMActivityOverview->setProperty("ToolType", QVariant::fromValue(UIToolType_VMActivityOverview));
                     connect(m_pPaneVMActivityOverview, &UIVMActivityOverviewWidget::sigSwitchToMachineActivityPane,
                             this, &UIToolPaneGlobal::sigSwitchToMachineActivityPane);
+                    m_pPaneVMActivityOverview->setCloudMachineItems(m_cloudItems);
 
                     /* Add into layout: */
                     m_pLayout->addWidget(m_pPaneVMActivityOverview);
@@ -258,11 +264,12 @@ void UIToolPaneGlobal::closeTool(UIToolType enmType)
         /* Forget corresponding widget: */
         switch (enmType)
         {
-            case UIToolType_Welcome:    m_pPaneWelcome = 0; break;
-            case UIToolType_Extensions: m_pPaneExtensions = 0; break;
-            case UIToolType_Media:      m_pPaneMedia = 0; break;
-            case UIToolType_Network:    m_pPaneNetwork = 0; break;
-            case UIToolType_Cloud:      m_pPaneCloud = 0; break;
+            case UIToolType_Welcome:            m_pPaneWelcome = 0; break;
+            case UIToolType_Extensions:         m_pPaneExtensions = 0; break;
+            case UIToolType_Media:              m_pPaneMedia = 0; break;
+            case UIToolType_Network:            m_pPaneNetwork = 0; break;
+            case UIToolType_Cloud:              m_pPaneCloud = 0; break;
+            case UIToolType_VMActivityOverview: m_pPaneVMActivityOverview = 0; break;
             default: break;
         }
         /* Delete corresponding widget: */
@@ -303,6 +310,19 @@ QString UIToolPaneGlobal::currentHelpKeyword() const
             break;
     }
     return uiCommon().helpKeyword(pCurrentToolWidget);
+}
+
+void UIToolPaneGlobal::setCloudMachineItems(const QList<UIVirtualMachineItemCloud*> &cloudItems)
+{
+    /* Cache passed value: */
+    m_cloudItems = cloudItems;
+
+    /* Update activity overview pane if open: */
+    if (isToolOpened(UIToolType_VMActivityOverview))
+    {
+        AssertPtrReturnVoid(m_pPaneVMActivityOverview);
+        m_pPaneVMActivityOverview->setCloudMachineItems(m_cloudItems);
+    }
 }
 
 void UIToolPaneGlobal::prepare()

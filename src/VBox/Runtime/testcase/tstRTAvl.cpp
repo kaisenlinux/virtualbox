@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -41,7 +41,6 @@
 #include <iprt/avl.h>
 #include <iprt/cpp/hardavlrange.h>
 
-#include <iprt/asm.h>
 #include <iprt/initterm.h>
 #include <iprt/mem.h>
 #include <iprt/rand.h>
@@ -565,7 +564,7 @@ static DECLCALLBACK(int) avlogcphysCallbackCounter(PAVLOGCPHYSNODECORE pNode, vo
     return 0;
 }
 
-int avlogcphysRand(unsigned cMax, unsigned cMax2, uint32_t fCountMask)
+static int avlogcphysRand(unsigned cMax, unsigned cMax2, uint32_t fCountMask)
 {
     PAVLOGCPHYSTREE pTree = (PAVLOGCPHYSTREE)RTMemAllocZ(sizeof(*pTree));
     unsigned i;
@@ -681,7 +680,7 @@ int avlogcphysRand(unsigned cMax, unsigned cMax2, uint32_t fCountMask)
 
 
 
-int avlrogcphys(void)
+static int avlrogcphys(void)
 {
     unsigned            i;
     unsigned            j;
@@ -985,7 +984,7 @@ int avlrogcphys(void)
 }
 
 
-int avlul(void)
+static int avlul(void)
 {
     RTTestISubF("RTAvlUL");
 
@@ -1216,7 +1215,7 @@ static uint32_t PickSetBitAndClearIt(uint64_t *pbm, uint32_t cItems)
 /**
  * @return meaningless value, just for shortening 'return RTTestIFailed();'.
  */
-int hardAvlRangeTreeGCPhys(RTTEST hTest)
+static int hardAvlRangeTreeGCPhys(RTTEST hTest)
 {
     RTTestISubF("RTCHardAvlRangeTreeGCPhys");
 

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1020,7 +1020,7 @@ RTR3DECL(int) RTFileSetSize(RTFILE hFile, uint64_t cbSize)
     if (hDupFile != INVALID_HANDLE_VALUE)
         NtClose(hDupFile);
 
-    if (RT_SUCCESS(rcNt))
+    if (NT_SUCCESS(rcNt))
         return VINF_SUCCESS;
     return RTErrConvertFromNtStatus(rcNt);
 
@@ -1485,7 +1485,7 @@ RTR3DECL(int) RTFileSetMode(RTFILE hFile, RTFMODE fMode)
 
 /* RTFileQueryFsSizes is implemented by ../nt/RTFileQueryFsSizes-nt.cpp */
 
-
+#if 0 /* RTFileDelete is implemented by ../nt/RTFileDelete-r3-nt.cpp */
 RTR3DECL(int)  RTFileDelete(const char *pszFilename)
 {
     PRTUTF16 pwszFilename;
@@ -1499,6 +1499,7 @@ RTR3DECL(int)  RTFileDelete(const char *pszFilename)
 
     return rc;
 }
+#endif
 
 
 RTDECL(int) RTFileRename(const char *pszSrc, const char *pszDst, unsigned fRename)

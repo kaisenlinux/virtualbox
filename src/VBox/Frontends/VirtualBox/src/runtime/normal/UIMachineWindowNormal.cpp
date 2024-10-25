@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,7 +31,7 @@
 #include <QContextMenuEvent>
 #include <QResizeEvent>
 #include <QScrollBar>
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
 # include <QTimer>
 #endif
 
@@ -43,12 +43,13 @@
 #include "UIExtraDataManager.h"
 #include "UIIndicatorsPool.h"
 #include "UIKeyboardHandler.h"
+#include "UILoggingDefs.h"
+#include "UIMachine.h"
 #include "UIMouseHandler.h"
 #include "UIMachineLogic.h"
 #include "UIMachineView.h"
 #include "UINotificationCenter.h"
 #include "UIIconPool.h"
-#include "UISession.h"
 #include "QIStatusBar.h"
 #include "QIStatusBarIndicator.h"
 #ifndef VBOX_WS_MAC
@@ -57,6 +58,7 @@
 # include "VBoxUtils.h"
 # include "UIImageTools.h"
 # include "UICocoaApplication.h"
+# include "UIVersion.h"
 #endif /* VBOX_WS_MAC */
 
 /* COM includes: */
@@ -79,70 +81,7 @@ void UIMachineWindowNormal::sltMachineStateChanged()
     UIMachineWindow::sltMachineStateChanged();
 
     /* Update indicator-pool and virtualization stuff: */
-    updateAppearanceOf(UIVisualElement_IndicatorPoolStuff | UIVisualElement_Recording | UIVisualElement_FeaturesStuff);
-}
-
-void UIMachineWindowNormal::sltMediumChange(const CMediumAttachment &attachment)
-{
-    /* Update corresponding medium stuff: */
-    KDeviceType type = attachment.GetType();
-    if (type == KDeviceType_HardDisk)
-        updateAppearanceOf(UIVisualElement_HDStuff);
-    if (type == KDeviceType_DVD)
-        updateAppearanceOf(UIVisualElement_CDStuff);
-    if (type == KDeviceType_Floppy)
-        updateAppearanceOf(UIVisualElement_FDStuff);
-}
-
-void UIMachineWindowNormal::sltUSBControllerChange()
-{
-    /* Update USB stuff: */
-    updateAppearanceOf(UIVisualElement_USBStuff);
-}
-
-void UIMachineWindowNormal::sltUSBDeviceStateChange()
-{
-    /* Update USB stuff: */
-    updateAppearanceOf(UIVisualElement_USBStuff);
-}
-
-void UIMachineWindowNormal::sltAudioAdapterChange()
-{
-    /* Update audio stuff: */
-    updateAppearanceOf(UIVisualElement_AudioStuff);
-}
-
-void UIMachineWindowNormal::sltNetworkAdapterChange()
-{
-    /* Update network stuff: */
-    updateAppearanceOf(UIVisualElement_NetworkStuff);
-}
-
-void UIMachineWindowNormal::sltSharedFolderChange()
-{
-    /* Update shared-folders stuff: */
-    updateAppearanceOf(UIVisualElement_SharedFolderStuff);
-}
-
-void UIMachineWindowNormal::sltRecordingChange()
-{
-    /* Update video-capture stuff: */
-    updateAppearanceOf(UIVisualElement_Recording);
-}
-
-void UIMachineWindowNormal::sltCPUExecutionCapChange()
-{
-    /* Update virtualization stuff: */
-    updateAppearanceOf(UIVisualElement_FeaturesStuff);
-}
-
-void UIMachineWindowNormal::sltHandleSessionInitialized()
-{
-    /* Update virtualization stuff: */
-    updateAppearanceOf(  UIVisualElement_FeaturesStuff
-                       | UIVisualElement_HDStuff
-                       | UIVisualElement_CDStuff
-                       | UIVisualElement_FDStuff);
+    updateAppearanceOf(UIVisualElement_IndicatorPool);
 }
 
 #ifndef RT_OS_DARWIN
@@ -201,7 +140,7 @@ void UIMachineWindowNormal::sltHandleStatusBarConfigurationChange(const QUuid &u
     statusBar()->setVisible(pActionStatusBarSwitch->isChecked());
     /* Update status-bar indicators-pool: */
     if (m_pIndicatorsPool)
-        m_pIndicatorsPool->setAutoUpdateIndicatorStates(statusBar()->isVisible() && uisession()->isRunning());
+        m_pIndicatorsPool->setAutoUpdateIndicatorStates(statusBar()->isVisible() && uimachine()->isRunning());
 
     /* Normalize geometry without moving: */
     normalizeGeometry(false /* adjust position */, shouldResizeToGuestDisplay());
@@ -248,32 +187,6 @@ void UIMachineWindowNormal::sltActionHovered(UIAction *pAction)
 }
 #endif /* VBOX_WS_MAC */
 
-void UIMachineWindowNormal::prepareSessionConnections()
-{
-    /* Call to base-class: */
-    UIMachineWindow::prepareSessionConnections();
-
-    /* We should watch for console events: */
-    connect(machineLogic()->uisession(), &UISession::sigMediumChange,
-        this, &UIMachineWindowNormal::sltMediumChange);
-    connect(machineLogic()->uisession(), &UISession::sigUSBControllerChange,
-            this, &UIMachineWindowNormal::sltUSBControllerChange);
-    connect(machineLogic()->uisession(), &UISession::sigUSBDeviceStateChange,
-            this, &UIMachineWindowNormal::sltUSBDeviceStateChange);
-    connect(machineLogic()->uisession(), &UISession::sigAudioAdapterChange,
-            this, &UIMachineWindowNormal::sltAudioAdapterChange);
-    connect(machineLogic()->uisession(), &UISession::sigNetworkAdapterChange,
-            this, &UIMachineWindowNormal::sltNetworkAdapterChange);
-    connect(machineLogic()->uisession(), &UISession::sigSharedFolderChange,
-            this, &UIMachineWindowNormal::sltSharedFolderChange);
-    connect(machineLogic()->uisession(), &UISession::sigRecordingChange,
-            this, &UIMachineWindowNormal::sltRecordingChange);
-    connect(machineLogic()->uisession(), &UISession::sigCPUExecutionCapChange,
-            this, &UIMachineWindowNormal::sltCPUExecutionCapChange);
-    connect(machineLogic()->uisession(), &UISession::sigInitialized,
-            this, &UIMachineWindowNormal::sltHandleSessionInitialized);
-}
-
 #ifndef VBOX_WS_MAC
 void UIMachineWindowNormal::prepareMenu()
 {
@@ -307,7 +220,7 @@ void UIMachineWindowNormal::prepareStatusBar()
         connect(statusBar(), &QIStatusBar::customContextMenuRequested,
                 this, &UIMachineWindowNormal::sltHandleStatusBarContextMenuRequest);
         /* Create indicator-pool: */
-        m_pIndicatorsPool = new UIIndicatorsPool(machineLogic()->uisession());
+        m_pIndicatorsPool = new UIIndicatorsPool(machineLogic()->uimachine());
         AssertPtrReturnVoid(m_pIndicatorsPool);
         {
             /* Configure indicator-pool: */
@@ -354,7 +267,7 @@ void UIMachineWindowNormal::prepareVisualState()
 
 #ifdef VBOX_WS_MAC
     /* Beta label? */
-    if (uiCommon().showBetaLabel())
+    if (UIVersionInfo::showBetaLabel())
     {
         QPixmap betaLabel = ::betaLabel(QSize(74, darwinWindowTitleHeight(this) - 1));
         ::darwinLabelWindow(this, &betaLabel);
@@ -383,7 +296,7 @@ void UIMachineWindowNormal::loadSettings()
         /* Update status-bar visibility: */
         statusBar()->setVisible(actionPool()->action(UIActionIndexRT_M_View_M_StatusBar_T_Visibility)->isChecked());
         if (m_pIndicatorsPool)
-            m_pIndicatorsPool->setAutoUpdateIndicatorStates(statusBar()->isVisible() && uisession()->isRunning());
+            m_pIndicatorsPool->setAutoUpdateIndicatorStates(statusBar()->isVisible() && uimachine()->isRunning());
     }
 
 #ifndef VBOX_GUI_WITH_CUSTOMIZATIONS1
@@ -400,8 +313,10 @@ void UIMachineWindowNormal::loadSettings()
             m_geometry = geo;
             UIDesktopWidgetWatchdog::setTopLevelGeometry(this, m_geometry);
 
-            /* If previous machine-state was NOT SAVED => normalize window to the optimal-size: */
-            if (machine().GetState() != KMachineState_Saved && machine().GetState() != KMachineState_AbortedSaved)
+            /* If actual machine-state is NOT saved => normalize window to the optimal-size: */
+            KMachineState enmActualState = KMachineState_Null;
+            uimachine()->acquireLiveMachineState(enmActualState);
+            if (enmActualState != KMachineState_Saved && enmActualState != KMachineState_AbortedSaved)
                 normalizeGeometry(false /* adjust position */, shouldResizeToGuestDisplay());
 
             /* Maximize window (if necessary): */
@@ -422,11 +337,11 @@ void UIMachineWindowNormal::loadSettings()
         }
 
         /* Normalize to the optimal size: */
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
         QTimer::singleShot(0, this, SLOT(sltNormalizeGeometry()));
-#else /* !VBOX_WS_X11 */
+#else /* !VBOX_WS_NIX */
         normalizeGeometry(true /* adjust position */, shouldResizeToGuestDisplay());
-#endif /* !VBOX_WS_X11 */
+#endif /* !VBOX_WS_NIX */
     }
 #endif /* VBOX_GUI_WITH_CUSTOMIZATIONS1 */
 }
@@ -451,41 +366,17 @@ void UIMachineWindowNormal::cleanupStatusBar()
     m_pIndicatorsPool = 0;
 }
 
-void UIMachineWindowNormal::cleanupSessionConnections()
-{
-    /* We should stop watching for console events: */
-    disconnect(machineLogic()->uisession(), &UISession::sigMediumChange,
-               this, &UIMachineWindowNormal::sltMediumChange);
-    disconnect(machineLogic()->uisession(), &UISession::sigUSBControllerChange,
-               this, &UIMachineWindowNormal::sltUSBControllerChange);
-    disconnect(machineLogic()->uisession(), &UISession::sigUSBDeviceStateChange,
-               this, &UIMachineWindowNormal::sltUSBDeviceStateChange);
-    disconnect(machineLogic()->uisession(), &UISession::sigNetworkAdapterChange,
-               this, &UIMachineWindowNormal::sltNetworkAdapterChange);
-    disconnect(machineLogic()->uisession(), &UISession::sigAudioAdapterChange,
-               this, &UIMachineWindowNormal::sltAudioAdapterChange);
-    disconnect(machineLogic()->uisession(), &UISession::sigSharedFolderChange,
-               this, &UIMachineWindowNormal::sltSharedFolderChange);
-    disconnect(machineLogic()->uisession(), &UISession::sigRecordingChange,
-               this, &UIMachineWindowNormal::sltRecordingChange);
-    disconnect(machineLogic()->uisession(), &UISession::sigCPUExecutionCapChange,
-               this, &UIMachineWindowNormal::sltCPUExecutionCapChange);
-
-    /* Call to base-class: */
-    UIMachineWindow::cleanupSessionConnections();
-}
-
 bool UIMachineWindowNormal::event(QEvent *pEvent)
 {
     switch (pEvent->type())
     {
         case QEvent::Resize:
         {
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
             /* Prevent handling if fake screen detected: */
             if (UIDesktopWidgetWatchdog::isFakeScreenDetected())
                 break;
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
 
             QResizeEvent *pResizeEvent = static_cast<QResizeEvent*>(pEvent);
             if (!isMaximizedChecked())
@@ -508,11 +399,11 @@ bool UIMachineWindowNormal::event(QEvent *pEvent)
         }
         case QEvent::Move:
         {
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
             /* Prevent handling if fake screen detected: */
             if (UIDesktopWidgetWatchdog::isFakeScreenDetected())
                 break;
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
 
             if (!isMaximizedChecked())
             {
@@ -609,7 +500,7 @@ bool UIMachineWindowNormal::event(QEvent *pEvent)
 void UIMachineWindowNormal::showInNecessaryMode()
 {
     /* Make sure this window should be shown at all: */
-    if (!uisession()->isScreenVisible(m_uScreenId))
+    if (!uimachine()->isScreenVisible(m_uScreenId))
         return hide();
 
     /* Make sure this window is not minimized: */
@@ -661,7 +552,7 @@ void UIMachineWindowNormal::normalizeGeometry(bool fAdjustPosition, bool fResize
          * or guest-additions doesn't support graphics
          * we should deduce widget's size-hint on visible scroll-bar's hint: */
         if (   !machineView()->isGuestAutoresizeEnabled()
-            || !uisession()->isGuestSupportsGraphics())
+            || !uimachine()->isGuestSupportsGraphics())
         {
             if (machineView()->verticalScrollBar()->isVisible())
                 sh -= QSize(machineView()->verticalScrollBar()->sizeHint().width(), 0);
@@ -685,7 +576,7 @@ void UIMachineWindowNormal::normalizeGeometry(bool fAdjustPosition, bool fResize
      * we should take scroll-bars size-hints into account: */
     if (   frGeoNew != frGeo
         && (   !machineView()->isGuestAutoresizeEnabled()
-            || !uisession()->isGuestSupportsGraphics()))
+            || !uimachine()->isGuestSupportsGraphics()))
     {
         /* Determine whether we need additional space for one or both scroll-bars: */
         QSize addition;
@@ -721,41 +612,8 @@ void UIMachineWindowNormal::updateAppearanceOf(int iElement)
 
     /* Set status-bar indicator-pool auto update timer: */
     if (   m_pIndicatorsPool
-        && iElement & UIVisualElement_IndicatorPoolStuff)
-        m_pIndicatorsPool->setAutoUpdateIndicatorStates(statusBar()->isVisible() && uisession()->isRunning());
-    /* Update status-bar indicator-pool appearance only when status-bar is visible: */
-    if (   m_pIndicatorsPool
-        && statusBar()->isVisible())
-    {
-        /* If VM is running: */
-        if (uisession()->isRunning())
-        {
-            if (iElement & UIVisualElement_HDStuff)
-                m_pIndicatorsPool->updateAppearance(IndicatorType_HardDisks);
-            if (iElement & UIVisualElement_CDStuff)
-                m_pIndicatorsPool->updateAppearance(IndicatorType_OpticalDisks);
-            if (iElement & UIVisualElement_FDStuff)
-                m_pIndicatorsPool->updateAppearance(IndicatorType_FloppyDisks);
-            if (iElement & UIVisualElement_AudioStuff)
-                m_pIndicatorsPool->updateAppearance(IndicatorType_Audio);
-            if (iElement & UIVisualElement_NetworkStuff)
-                m_pIndicatorsPool->updateAppearance(IndicatorType_Network);
-            if (iElement & UIVisualElement_USBStuff)
-                m_pIndicatorsPool->updateAppearance(IndicatorType_USB);
-            if (iElement & UIVisualElement_SharedFolderStuff)
-                m_pIndicatorsPool->updateAppearance(IndicatorType_SharedFolders);
-            if (iElement & UIVisualElement_Display)
-                m_pIndicatorsPool->updateAppearance(IndicatorType_Display);
-            if (iElement & UIVisualElement_FeaturesStuff)
-                m_pIndicatorsPool->updateAppearance(IndicatorType_Features);
-        }
-        /* If VM is running or paused: */
-        if (uisession()->isRunning() || uisession()->isPaused())
-        {
-            if (iElement & UIVisualElement_Recording)
-                m_pIndicatorsPool->updateAppearance(IndicatorType_Recording);
-        }
-    }
+        && iElement & UIVisualElement_IndicatorPool)
+        m_pIndicatorsPool->setAutoUpdateIndicatorStates(statusBar()->isVisible() && uimachine()->isRunning());
 }
 
 #ifndef VBOX_WS_MAC

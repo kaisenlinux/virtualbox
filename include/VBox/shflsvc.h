@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -268,8 +268,8 @@ DECLINLINE(PSHFLSTRING) ShflStringInitBuffer(void *pvBuffer, uint32_t u32Size)
         pString = (PSHFLSTRING)pvBuffer;
         pString->u16Size = (uint16_t)(u32Size - u32HeaderSize);
         pString->u16Length = 0;
-        if (pString->u16Size >= sizeof(pString->String.ucs2[0]))
-            pString->String.ucs2[0] = 0;
+        if (pString->u16Size >= sizeof(pString->String.utf16[0]))
+            pString->String.utf16[0] = 0;
         else if (pString->u16Size >= sizeof(pString->String.utf8[0]))
             pString->String.utf8[0] = 0;
     }
@@ -399,7 +399,7 @@ DECLINLINE(PSHFLSTRING) ShflStringDupUtf8AsUtf16(const char *pszSrc)
         PSHFLSTRING pDst = (PSHFLSTRING)RTMemAlloc(SHFLSTRING_HEADER_SIZE + (cwcConversion + 1) * sizeof(RTUTF16));
         if (pDst)
         {
-            PRTUTF16 pwszDst = pDst->String.ucs2;
+            PRTUTF16 pwszDst = pDst->String.utf16;
             pDst->u16Size = (uint16_t)((cwcConversion + 1) * sizeof(RTUTF16));
             rc = RTStrToUtf16Ex(pszSrc, RTSTR_MAX, &pwszDst, cwcConversion + 1, &cwcConversion);
             AssertRC(rc);
@@ -544,7 +544,7 @@ DECLINLINE(bool) ShflStringIsValidIn(PCSHFLSTRING pString, uint32_t cbBuf, bool 
                 {
                     if (RT_LIKELY((uint32_t)sizeof(RTUTF16) + pString->u16Length <= pString->u16Size))
                     {
-                        rc = RTUtf16ValidateEncodingEx(&pString->String.ucs2[0], pString->u16Length / 2 + 1,
+                        rc = RTUtf16ValidateEncodingEx(&pString->String.utf16[0], pString->u16Length / 2 + 1,
                                                        RTSTR_VALIDATE_ENCODING_EXACT_LENGTH
                                                        | RTSTR_VALIDATE_ENCODING_ZERO_TERMINATED);
                         if (RT_SUCCESS(rc))
@@ -2122,7 +2122,7 @@ typedef struct VBoxSFParmSetErrorStyle
 /** mapping is actually missing on the host */
 #define SHFL_ADD_MAPPING_F_MISSING          (RT_BIT_32(3))
 
-#define SHFL_CPARMS_ADD_MAPPING  (4)
+#define SHFL_CPARMS_ADD_MAPPING  (5)
 /** @} */
 
 

@@ -7,7 +7,7 @@ Test Manager - Scheduling Group.
 
 __copyright__ = \
 """
-Copyright (C) 2012-2023 Oracle and/or its affiliates.
+Copyright (C) 2012-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -36,7 +36,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 
 # Standard python imports.
@@ -407,8 +407,7 @@ class SchedGroupDataEx(SchedGroupData):
                     asErrors.append(str(dErrors));
 
             if not asErrors:
-                for i, _ in enumerate(aoNewMembers):
-                    idTestGroup = aoNewMembers[i];
+                for i, idTestGroup in enumerate(aoNewMembers):
                     for j in range(i + 1, len(aoNewMembers)):
                         if aoNewMembers[j].idTestGroup == idTestGroup:
                             asErrors.append('Duplicate test group #%d!' % (idTestGroup, ));
@@ -427,8 +426,7 @@ class SchedGroupDataEx(SchedGroupData):
                     asErrors.append(str(dErrors));
 
             if not asErrors:
-                for i, _ in enumerate(aoNewMembers):
-                    idTestBox = aoNewMembers[i];
+                for i, idTestBox in enumerate(aoNewMembers):
                     for j in range(i + 1, len(aoNewMembers)):
                         if aoNewMembers[j].idTestBox == idTestBox:
                             asErrors.append('Duplicate test box #%d!' % (idTestBox, ));

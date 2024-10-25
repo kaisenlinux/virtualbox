@@ -3,7 +3,7 @@
     manpage, user manual, usage: vboximg-mount
 -->
 <!--
-    Copyright (C) 2006-2023 Oracle and/or its affiliates.
+    Copyright (C) 2006-2024 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.
@@ -42,7 +42,7 @@
   <refnamediv>
     <refname>vboximg-mount</refname>
     <refpurpose>FUSE mount a virtual disk image for Mac OS and Linux hosts</refpurpose>
-    <refclass>Oracle VM VirtualBox</refclass>
+    <refclass>&product-name;</refclass>
   </refnamediv>
 
   <refsynopsisdiv>
@@ -60,7 +60,7 @@
       <command>vboximg-mount</command>
       <arg choice="req">--image=<replaceable>image-UUID</replaceable></arg>
       <arg>--guest-filesystem</arg>
-      <arg>-o=<replaceable>FUSE-option</replaceable>[,<replaceable>FUSE-option</replaceable>]</arg>
+      <arg>-o=<replaceable>FUSE-option</replaceable><arg rep="repeat">,<replaceable>FUSE-option</replaceable></arg></arg>
       <arg>--root</arg>
       <arg>--rw</arg>
       <arg choice="req"><replaceable>mountpoint</replaceable></arg>
@@ -77,7 +77,7 @@
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1 id="vboximg-mount-intro">
+  <refsect1 id="vboximg-mount-description">
     <title>Description</title>
     <para>
       The <command>vboximg-mount</command> command enables you to make
@@ -307,7 +307,7 @@
     </refsect2>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboximg-mount-examples">
     <title>Examples</title>
     <remark role="help-scope" condition="MOUNT-MOUNT,MOUNT-LIST"/>
     <para>

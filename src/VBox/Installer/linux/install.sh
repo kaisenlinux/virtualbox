@@ -1,10 +1,10 @@
 #!/bin/sh
 #
-# Oracle VM VirtualBox
+# Oracle VirtualBox
 # VirtualBox linux installation script
 
 #
-# Copyright (C) 2007-2023 Oracle and/or its affiliates.
+# Copyright (C) 2007-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -161,6 +161,9 @@ case "$cpu" in
     ;;
   x86_64)
     cpu="amd64"
+    ;;
+  aarch64|arm64)
+    cpu="arm64"
     ;;
 esac
 if [ "$cpu" != "$ARCH" ]; then
@@ -327,10 +330,16 @@ if [ "$ACTION" = "install" ]; then
     ln -sf $INSTALLATION_DIR/VBox.sh /usr/bin/VBoxSDL
     ln -sf $INSTALLATION_DIR/VBox.sh /usr/bin/VBoxVRDP
     ln -sf $INSTALLATION_DIR/VBox.sh /usr/bin/VBoxHeadless
-    ln -sf $INSTALLATION_DIR/VBox.sh /usr/bin/VBoxBalloonCtrl
-    ln -sf $INSTALLATION_DIR/VBox.sh /usr/bin/VBoxBugReport
+    if [ -f $INSTALLATION_DIR/VBoxBalloonCtrl ]; then
+        ln -sf $INSTALLATION_DIR/VBox.sh /usr/bin/VBoxBalloonCtrl
+    fi
+    if [ -f $INSTALLATION_DIR/VBoxBugReport ]; then
+        ln -sf $INSTALLATION_DIR/VBox.sh /usr/bin/VBoxBugReport
+    fi
     ln -sf $INSTALLATION_DIR/VBox.sh /usr/bin/VBoxAutostart
-    ln -sf $INSTALLATION_DIR/VBox.sh /usr/bin/vboxwebsrv
+    if [ -f $INSTALLATION_DIR/vboxwebsrv ]; then
+        ln -sf $INSTALLATION_DIR/VBox.sh /usr/bin/vboxwebsrv
+    fi
     ln -sf $INSTALLATION_DIR/vbox-img /usr/bin/vbox-img
     ln -sf $INSTALLATION_DIR/vboximg-mount /usr/bin/vboximg-mount
     if [ -d /usr/share/pixmaps/ ]; then
@@ -361,7 +370,9 @@ if [ "$ACTION" = "install" ]; then
     ln -sf VBoxManage /usr/bin/vboxmanage > /dev/null 2>&1
     ln -sf VBoxSDL /usr/bin/vboxsdl > /dev/null 2>&1
     ln -sf VBoxHeadless /usr/bin/vboxheadless > /dev/null 2>&1
-    ln -sf VBoxBugReport /usr/bin/vboxbugreport > /dev/null 2>&1
+    if [ -f $INSTALLATION_DIR/VBoxBugReport ]; then
+        ln -sf VBoxBugReport /usr/bin/vboxbugreport > /dev/null 2>&1
+    fi
     if [ -f $INSTALLATION_DIR/VBoxDTrace ]; then
         ln -sf VBoxDTrace /usr/bin/vboxdtrace > /dev/null 2>&1
     fi

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -34,25 +34,25 @@
 #include "UIWizardNewVD.h"
 #include "QIRichTextLabel.h"
 
-UIWizardNewVDFileTypePage::UIWizardNewVDFileTypePage()
+UIWizardNewVDFileTypePage::UIWizardNewVDFileTypePage(KDeviceType enmDeviceType)
     : m_pLabel(0)
     , m_pFormatButtonGroup(0)
 {
-    prepare();
+    prepare(enmDeviceType);
 }
 
-void UIWizardNewVDFileTypePage::prepare()
+void UIWizardNewVDFileTypePage::prepare(KDeviceType enmDeviceType)
 {
     QVBoxLayout *pMainLayout = new QVBoxLayout(this);
     m_pLabel = new QIRichTextLabel(this);
     pMainLayout->addWidget(m_pLabel);
-    m_pFormatButtonGroup = new UIDiskFormatsGroupBox(false, KDeviceType_HardDisk, 0);
+    m_pFormatButtonGroup = new UIDiskFormatsGroupBox(false, enmDeviceType, 0);
     pMainLayout->addWidget(m_pFormatButtonGroup, false);
 
     pMainLayout->addStretch();
     connect(m_pFormatButtonGroup, &UIDiskFormatsGroupBox::sigMediumFormatChanged,
             this, &UIWizardNewVDFileTypePage::sltMediumFormatChanged);
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIWizardNewVDFileTypePage::sltMediumFormatChanged()
@@ -62,9 +62,9 @@ void UIWizardNewVDFileTypePage::sltMediumFormatChanged()
     emit completeChanged();
 }
 
-void UIWizardNewVDFileTypePage::retranslateUi()
+void UIWizardNewVDFileTypePage::sltRetranslateUI()
 {
-    setTitle(UIWizardNewVD::tr("Virtual Hard disk file type"));
+    setTitle(UIWizardNewVD::tr("Virtual hard disk file type"));
     m_pLabel->setText(UIWizardNewVD::tr("Please choose the type of file that you would like to use "
                                         "for the new virtual hard disk. If you do not need to use it "
                                         "with other virtualization software you can leave this setting unchanged."));
@@ -73,7 +73,7 @@ void UIWizardNewVDFileTypePage::retranslateUi()
 void UIWizardNewVDFileTypePage::initializePage()
 {
     AssertReturnVoid(wizardWindow<UIWizardNewVD>());
-    retranslateUi();
+    sltRetranslateUI();
     if (m_pFormatButtonGroup)
         wizardWindow<UIWizardNewVD>()->setMediumFormat(m_pFormatButtonGroup->mediumFormat());
 }

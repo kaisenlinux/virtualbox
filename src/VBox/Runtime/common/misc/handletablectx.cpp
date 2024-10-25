@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -48,6 +48,7 @@
 #include <iprt/param.h>
 #include <iprt/string.h>
 #include <iprt/asm.h>
+#include <iprt/system.h>
 #include "internal/magics.h"
 #include "handletable.h"
 
@@ -117,7 +118,7 @@ RTDECL(int)     RTHandleTableAllocWithCtx(RTHANDLETABLE hHandleTable, void *pvOb
              */
             uint32_t const  iLevel1 = pThis->cCur / RTHT_LEVEL2_ENTRIES;
             uint32_t        cLevel1 = iLevel1 >= pThis->cLevel1
-                                    ? pThis->cLevel1 + PAGE_SIZE / sizeof(void *)
+                                    ? pThis->cLevel1 + RTSystemGetPageSize() / sizeof(void *)
                                     : 0;
             if (cLevel1 > pThis->cMax / RTHT_LEVEL2_ENTRIES)
                 cLevel1 = pThis->cMax / RTHT_LEVEL2_ENTRIES;

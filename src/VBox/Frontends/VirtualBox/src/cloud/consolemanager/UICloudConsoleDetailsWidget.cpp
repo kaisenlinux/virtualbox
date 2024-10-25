@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,6 +26,7 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QGridLayout>
 #include <QLabel>
 #include <QLineEdit>
@@ -38,13 +39,14 @@
 #include "QIDialogButtonBox.h"
 #include "UICloudConsoleDetailsWidget.h"
 #include "UICloudConsoleManager.h"
+#include "UITranslationEventListener.h"
 
 /* Other VBox includes: */
 #include "iprt/assert.h"
 
 
 UICloudConsoleDetailsWidget::UICloudConsoleDetailsWidget(EmbedTo enmEmbedding, QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_enmEmbedding(enmEmbedding)
     , m_pStackedLayout(0)
     , m_pLabelApplicationName(0)
@@ -110,7 +112,7 @@ void UICloudConsoleDetailsWidget::clearData()
     m_newProfileData = m_oldProfileData;
 }
 
-void UICloudConsoleDetailsWidget::retranslateUi()
+void UICloudConsoleDetailsWidget::sltRetranslateUI()
 {
     /* Translate editor labels: */
     m_pLabelApplicationName->setText(UICloudConsoleManager::tr("Name:"));
@@ -225,7 +227,9 @@ void UICloudConsoleDetailsWidget::prepare()
     prepareWidgets();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UICloudConsoleDetailsWidget::sltRetranslateUI);
 
     /* Update button states finally: */
     updateButtonStates();

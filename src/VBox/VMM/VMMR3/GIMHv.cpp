@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2014-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2014-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -2232,43 +2232,42 @@ VMMR3_INT_DECL(int) gimR3HvHypercallExtGetBootZeroedMem(PVM pVM, int *prcHv)
     /*
      * Perform the hypercall.
      */
-    uint32_t const cRanges = PGMR3PhysGetRamRangeCount(pVM);
-    pOut->cPages = 0;
-    for (uint32_t iRange = 0; iRange < cRanges; iRange++)
-    {
-        RTGCPHYS GCPhysStart;
-        RTGCPHYS GCPhysEnd;
-        int rc = PGMR3PhysGetRange(pVM, iRange, &GCPhysStart, &GCPhysEnd, NULL /* pszDesc */, NULL /* fIsMmio */);
-        if (RT_FAILURE(rc))
-        {
-            LogRelMax(10, ("GIM: HyperV: HvHypercallExtGetBootZeroedMem: PGMR3PhysGetRange failed for iRange(%u) rc=%Rrc\n",
-                           iRange, rc));
-            *prcHv = GIM_HV_STATUS_OPERATION_DENIED;
-            return rc;
-        }
+    AssertCompileMembersSameSizeAndOffset(PGMPHYSRANGES, cRanges, GIMHVEXTGETBOOTZEROMEM, cRanges);
+    AssertCompileMembersAtSameOffset(PGMPHYSRANGES,      aRanges, GIMHVEXTGETBOOTZEROMEM, aRanges);
+    AssertCompileMembersSameSizeAndOffset(PGMPHYSRANGE, GCPhysStart, GIMHVEXTMEMRANGE, GCPhysStart);
+    AssertCompileMembersSameSizeAndOffset(PGMPHYSRANGE, cPages,      GIMHVEXTMEMRANGE, cPages);
+    AssertCompile(RT_ELEMENTS(pOut->aRanges) == GIM_HV_MAX_BOOT_ZEROED_MEM_RANGES);
 
-        RTGCPHYS const cbRange = RT_ALIGN(GCPhysEnd - GCPhysStart + 1, GUEST_PAGE_SIZE);
-        pOut->cPages += cbRange >> GIM_HV_PAGE_SHIFT;
-        if (iRange == 0)
-            pOut->GCPhysStart = GCPhysStart;
-    }
-
-    /*
-     * Update the guest memory with result.
-     */
     int rcHv;
-    int rc = PGMPhysSimpleWriteGCPhys(pVM, pHv->GCPhysHypercallOut, pHv->pbHypercallOut, sizeof(GIMHVEXTGETBOOTZEROMEM));
-    if (RT_SUCCESS(rc))
+    int rc = PGMR3PhysGetRamBootZeroedRanges(pVM, (PPGMPHYSRANGES)pOut, RT_ELEMENTS(pOut->aRanges));
+    if (   RT_SUCCESS(rc)
+        || rc == VERR_BUFFER_OVERFLOW)
     {
-        LogRel(("GIM: HyperV: Queried boot zeroed guest memory range (starting at %#RGp spanning %u pages) at %#RGp\n",
-                pOut->GCPhysStart, pOut->cPages, pHv->GCPhysHypercallOut));
-        rcHv = GIM_HV_STATUS_SUCCESS;
+        /*
+         * Update the guest memory with result.
+         */
+        rc = PGMPhysSimpleWriteGCPhys(pVM, pHv->GCPhysHypercallOut, pHv->pbHypercallOut, sizeof(GIMHVEXTGETBOOTZEROMEM));
+        if (RT_SUCCESS(rc))
+        {
+            LogRel(("GIM: HyperV: Queried boot zeroed guest memory as %u ranges\n", pOut->cRanges));
+            for (uint32_t i = 0; i < pOut->cRanges; i++)
+                LogRel(("GIM: HyperV: RAM range [%u] from %#RGp to %#RGp (%u pages, %' Rhcb)\n", i, pOut->aRanges[i].GCPhysStart,
+                        pOut->aRanges[i].GCPhysStart + pOut->aRanges[i].cPages * GUEST_PAGE_SIZE - 1, pOut->aRanges[i].cPages,
+                        pOut->aRanges[i].cPages * GUEST_PAGE_SIZE));
+            rcHv = GIM_HV_STATUS_SUCCESS;
+        }
+        else
+        {
+            LogRelMax(10, ("GIM: HyperV: HvHypercallExtGetBootZeroedMem hypercall failed to update guest memory. rc=%Rrc\n", rc));
+            rcHv = GIM_HV_STATUS_OPERATION_DENIED;
+            rc   = VERR_GIM_HYPERCALL_MEMORY_WRITE_FAILED;
+        }
     }
     else
     {
+        LogRelMax(10, ("GIM: HyperV: HvHypercallExtGetBootZeroedMem failed. rc=%Rrc\n", rc));
         rcHv = GIM_HV_STATUS_OPERATION_DENIED;
-        LogRelMax(10, ("GIM: HyperV: HvHypercallExtGetBootZeroedMem failed to update guest memory. rc=%Rrc\n", rc));
-        rc = VERR_GIM_HYPERCALL_MEMORY_WRITE_FAILED;
+        rc   = VERR_GIM_HYPERCALL_FAILED;
     }
 
     *prcHv = rcHv;

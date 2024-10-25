@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -88,8 +88,7 @@ RT_C_DECLS_BEGIN
                              || (   (rc) <= VINF_EM_LAST \
                                  && (rc) != VINF_EM_RESCHEDULE_REM \
                                  && (rc) >= VINF_EM_FIRST \
-                                 && (rc) != VINF_EM_RESCHEDULE_RAW \
-                                 && (rc) != VINF_EM_RESCHEDULE_HM \
+                                 && (rc) != VINF_EM_RESCHEDULE_EXEC_ENGINE \
                                 ) \
                             )
 #else
@@ -97,8 +96,7 @@ RT_C_DECLS_BEGIN
                              || (   (rc) <= VINF_EM_LAST \
                                  && (rc) != VINF_EM_RESCHEDULE_REM \
                                  && (rc) >= VINF_EM_FIRST \
-                                 && (rc) != VINF_EM_RESCHEDULE_RAW \
-                                 && (rc) != VINF_EM_RESCHEDULE_HM \
+                                 && (rc) != VINF_EM_RESCHEDULE_EXEC_ENGINE \
                                 ) \
                              || (rc) == VINF_IOM_R3_IOPORT_COMMIT_WRITE \
                              || (rc) == VINF_IOM_R3_MMIO_COMMIT_WRITE \
@@ -505,8 +503,8 @@ VMMR3_INT_DECL(uint32_t) IOMR3IoPortGetMappingAddress(PVM pVM, PPDMDEVINS pDevIn
 VMMR3_INT_DECL(int)  IOMR3MmioCreate(PVM pVM, PPDMDEVINS pDevIns, RTGCPHYS cbRegion, uint32_t fFlags, PPDMPCIDEV pPciDev,
                                      uint32_t iPciRegion, PFNIOMMMIONEWWRITE pfnWrite, PFNIOMMMIONEWREAD pfnRead,
                                      PFNIOMMMIONEWFILL pfnFill, void *pvUser, const char *pszDesc, PIOMMMIOHANDLE phRegion);
-VMMR3_INT_DECL(int)  IOMR3MmioMap(PVM pVM, PPDMDEVINS pDevIns, IOMMMIOHANDLE hRegion, RTGCPHYS GCPhys);
-VMMR3_INT_DECL(int)  IOMR3MmioUnmap(PVM pVM, PPDMDEVINS pDevIns, IOMMMIOHANDLE hRegion);
+VMMR3_INT_DECL(int)  IOMR3MmioMap(PVM pVM, PVMCPU pVCpu, PPDMDEVINS pDevIns, IOMMMIOHANDLE hRegion, RTGCPHYS GCPhys);
+VMMR3_INT_DECL(int)  IOMR3MmioUnmap(PVM pVM, PVMCPU pVCpu, PPDMDEVINS pDevIns, IOMMMIOHANDLE hRegion);
 VMMR3_INT_DECL(int)  IOMR3MmioReduce(PVM pVM, PPDMDEVINS pDevIns, IOMMMIOHANDLE hRegion, RTGCPHYS cbRegion);
 VMMR3_INT_DECL(int)  IOMR3MmioValidateHandle(PVM pVM, PPDMDEVINS pDevIns, IOMMMIOHANDLE hRegion);
 VMMR3_INT_DECL(RTGCPHYS) IOMR3MmioGetMappingAddress(PVM pVM, PPDMDEVINS pDevIns, IOMMMIOHANDLE hRegion);

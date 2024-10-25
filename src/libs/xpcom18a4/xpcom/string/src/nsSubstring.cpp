@@ -49,10 +49,9 @@
 #include "nsString.h"
 #include "nsDependentString.h"
 #include "nsMemory.h"
-#include "pratom.h"
-#ifdef VBOX_USE_IPRT_IN_XPCOM
-# include <iprt/mem.h>
-#endif
+
+#include <iprt/asm.h>
+#include <iprt/mem.h>
 
 // ---------------------------------------------------------------------------
 
@@ -97,15 +96,15 @@ class nsStringStats
 #endif
         }
 
-      PRInt32 mAllocCount;
-      PRInt32 mReallocCount;
-      PRInt32 mFreeCount;
-      PRInt32 mShareCount;
-      PRInt32 mAdoptCount;
-      PRInt32 mAdoptFreeCount;
+      volatile uint32_t mAllocCount;
+      volatile uint32_t mReallocCount;
+      volatile uint32_t mFreeCount;
+      volatile uint32_t mShareCount;
+      volatile uint32_t mAdoptCount;
+      volatile uint32_t mAdoptFreeCount;
   };
 static nsStringStats gStringStats;
-#define STRING_STAT_INCREMENT(_s) PR_AtomicIncrement(&gStringStats.m ## _s ## Count)
+#define STRING_STAT_INCREMENT(_s) ASMAtomicIncU32(&gStringStats.m ## _s ## Count)
 #else
 #define STRING_STAT_INCREMENT(_s)
 #endif
@@ -125,27 +124,23 @@ class nsStringHeader
   {
     private:
 
-      PRInt32  mRefCount;
+      volatile uint32_t mRefCount;
       PRUint32 mStorageSize;
 
     public:
 
       void AddRef()
         {
-          PR_AtomicIncrement(&mRefCount);
+          ASMAtomicIncU32(&mRefCount);
           STRING_STAT_INCREMENT(Share);
         }
 
       void Release()
         {
-          if (PR_AtomicDecrement(&mRefCount) == 0)
+          if (ASMAtomicDecU32(&mRefCount) == 0)
             {
               STRING_STAT_INCREMENT(Free);
-#ifdef VBOX_USE_IPRT_IN_XPCOM
               RTMemFree(this); // we were allocated with |malloc|
-#else
-              free(this); // we were allocated with |malloc|
-#endif
             }
         }
 
@@ -159,11 +154,7 @@ class nsStringHeader
           NS_ASSERTION(size != 0, "zero capacity allocation not allowed");
 
           nsStringHeader *hdr =
-#ifdef VBOX_USE_IPRT_IN_XPCOM
               (nsStringHeader *) RTMemAlloc(sizeof(nsStringHeader) + size);
-#else
-              (nsStringHeader *) malloc(sizeof(nsStringHeader) + size);
-#endif
           if (hdr)
             {
               hdr->mRefCount = 1;
@@ -181,11 +172,7 @@ class nsStringHeader
           // no point in trying to save ourselves if we hit this assertion
           NS_ASSERTION(!hdr->IsReadonly(), "|Realloc| attempted on readonly string");
 
-#ifdef VBOX_USE_IPRT_IN_XPCOM
           hdr = (nsStringHeader*) RTMemRealloc(hdr, sizeof(nsStringHeader) + size);
-#else
-          hdr = (nsStringHeader*) realloc(hdr, sizeof(nsStringHeader) + size);
-#endif
           if (hdr)
             hdr->mStorageSize = size;
 

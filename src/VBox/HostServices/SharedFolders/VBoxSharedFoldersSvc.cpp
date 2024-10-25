@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -163,7 +163,7 @@ static STAMPROFILE g_StatMsgStage1;
 
 
 
-static DECLCALLBACK(int) svcUnload (void *)
+static DECLCALLBACK(int) svcUnload(void *)
 {
     int rc = VINF_SUCCESS;
 
@@ -175,7 +175,7 @@ static DECLCALLBACK(int) svcUnload (void *)
     return rc;
 }
 
-static DECLCALLBACK(int) svcConnect (void *, uint32_t u32ClientID, void *pvClient, uint32_t fRequestor, bool fRestoring)
+static DECLCALLBACK(int) svcConnect(void *, uint32_t u32ClientID, void *pvClient, uint32_t fRequestor, bool fRestoring)
 {
     RT_NOREF(u32ClientID, fRequestor, fRestoring);
     SHFLCLIENTDATA *pClient = (SHFLCLIENTDATA *)pvClient;
@@ -186,7 +186,7 @@ static DECLCALLBACK(int) svcConnect (void *, uint32_t u32ClientID, void *pvClien
     return VINF_SUCCESS;
 }
 
-static DECLCALLBACK(int) svcDisconnect (void *, uint32_t u32ClientID, void *pvClient)
+static DECLCALLBACK(int) svcDisconnect(void *, uint32_t u32ClientID, void *pvClient)
 {
     RT_NOREF1(u32ClientID);
     SHFLCLIENTDATA *pClient = (SHFLCLIENTDATA *)pvClient;
@@ -358,7 +358,7 @@ static DECLCALLBACK(int) svcLoadState(void *, uint32_t u32ClientID, void *pvClie
                                                         "Bad folder name string: %#x/%#x cb=%#x",
                                                         pFolderName->u16Size, pFolderName->u16Length, cb));
 
-                rc = RTUtf16ToUtf8(pFolderName->String.ucs2, &pszFolderName);
+                rc = RTUtf16ToUtf8(pFolderName->String.utf16, &pszFolderName);
                 RTMemFree(pFolderName);
                 AssertRCReturn(rc, rc);
             }
@@ -432,7 +432,7 @@ static DECLCALLBACK(int) svcLoadState(void *, uint32_t u32ClientID, void *pvClie
             if (RT_FAILURE(rc))
             {
                 LogRel(("SharedFolders host service: %Rrc loading %d [%ls] -> [%s]\n",
-                        rc, i, pMapName->String.ucs2, pszFolderName));
+                        rc, i, pMapName->String.utf16, pszFolderName));
             }
 
             RTMemFree(pAutoMountPoint);
@@ -454,8 +454,8 @@ static DECLCALLBACK(int) svcLoadState(void *, uint32_t u32ClientID, void *pvClie
     return VINF_SUCCESS;
 }
 
-static DECLCALLBACK(void) svcCall (void *, VBOXHGCMCALLHANDLE callHandle, uint32_t u32ClientID, void *pvClient,
-                                   uint32_t u32Function, uint32_t cParms, VBOXHGCMSVCPARM paParms[], uint64_t tsArrival)
+static DECLCALLBACK(void) svcCall(void *, VBOXHGCMCALLHANDLE callHandle, uint32_t u32ClientID, void *pvClient,
+                                  uint32_t u32Function, uint32_t cParms, VBOXHGCMSVCPARM paParms[], uint64_t tsArrival)
 {
     RT_NOREF(u32ClientID, tsArrival);
 #ifndef VBOX_WITHOUT_RELEASE_STATISTICS
@@ -617,7 +617,7 @@ static DECLCALLBACK(void) svcCall (void *, VBOXHGCMCALLHANDLE callHandle, uint32
                     || (cbParms != sizeof (SHFLCREATEPARMS))
                    )
                 {
-                    AssertMsgFailed (("Invalid parameters cbPath or cbParms (%x, %x - expected >=%x, %x)\n",
+                    AssertMsgFailed(("Invalid parameters cbPath or cbParms (%x, %x - expected >=%x, %x)\n",
                                       cbPath, cbParms, sizeof(SHFLSTRING), sizeof (SHFLCREATEPARMS)));
                     rc = VERR_INVALID_PARAMETER;
                 }
@@ -630,7 +630,7 @@ static DECLCALLBACK(void) svcCall (void *, VBOXHGCMCALLHANDLE callHandle, uint32
                     }
 
                     /* Execute the function. */
-                    rc = vbsfCreate (pClient, root, pPath, cbPath, pParms);
+                    rc = vbsfCreate(pClient, root, pPath, cbPath, pParms);
 
                     if (RT_SUCCESS(rc))
                     {
@@ -679,7 +679,7 @@ static DECLCALLBACK(void) svcCall (void *, VBOXHGCMCALLHANDLE callHandle, uint32
                 else
                 {
                     /* Execute the function. */
-                    rc = vbsfClose (pClient, root, Handle);
+                    rc = vbsfClose(pClient, root, Handle);
 
                     if (RT_SUCCESS(rc))
                     {
@@ -844,7 +844,7 @@ static DECLCALLBACK(void) svcCall (void *, VBOXHGCMCALLHANDLE callHandle, uint32
                      *       blocking, it must be processed by another thread and when it is
                      *       completed, the another thread must call
                      *
-                     *           g_pHelpers->pfnCallComplete (callHandle, rc);
+                     *           g_pHelpers->pfnCallComplete(callHandle, rc);
                      *
                      * The operation is async.
                      * fAsynchronousProcessing = true;
@@ -938,7 +938,7 @@ static DECLCALLBACK(void) svcCall (void *, VBOXHGCMCALLHANDLE callHandle, uint32
                     }
 
                     /* Execute the function. */
-                    rc = vbsfDirList (pClient, root, Handle, pPath, flags, &length, pBuffer, &resumePoint, &cFiles);
+                    rc = vbsfDirList(pClient, root, Handle, pPath, flags, &length, pBuffer, &resumePoint, &cFiles);
 
                     if (g_pStatusLed)
                         g_pStatusLed->Actual.s.fReading = 0;
@@ -1001,7 +1001,7 @@ static DECLCALLBACK(void) svcCall (void *, VBOXHGCMCALLHANDLE callHandle, uint32
                 else
                 {
                     /* Execute the function. */
-                    rc = vbsfReadLink (pClient, root, pPath, cbPath, pBuffer, cbBuffer);
+                    rc = vbsfReadLink(pClient, root, pPath, cbPath, pBuffer, cbBuffer);
 
                     if (RT_SUCCESS(rc))
                     {
@@ -1047,7 +1047,7 @@ static DECLCALLBACK(void) svcCall (void *, VBOXHGCMCALLHANDLE callHandle, uint32
                 else
                 {
                     /* Execute the function. */
-                    rc = vbsfMapFolder (pClient, pszMapName, delimiter, false,  &root);
+                    rc = vbsfMapFolder(pClient, pszMapName, delimiter, false,  &root);
 
                     if (RT_SUCCESS(rc))
                     {
@@ -1069,7 +1069,7 @@ static DECLCALLBACK(void) svcCall (void *, VBOXHGCMCALLHANDLE callHandle, uint32
                      ((PSHFLSTRING)paParms[0].u.pointer.addr)->String.utf8));
             else
                 Log(("SharedFolders host service: request to map folder '%ls'\n",
-                     ((PSHFLSTRING)paParms[0].u.pointer.addr)->String.ucs2));
+                     ((PSHFLSTRING)paParms[0].u.pointer.addr)->String.utf16));
 
             /* Verify parameter count and types. */
             if (cParms != SHFL_CPARMS_MAP_FOLDER)
@@ -1105,7 +1105,7 @@ static DECLCALLBACK(void) svcCall (void *, VBOXHGCMCALLHANDLE callHandle, uint32
                     if (   !(pClient->fu32Flags & SHFL_CF_UTF8)
                         && paParms[0].u.pointer.size >= sizeof(SHFLSTRING)
                         && pszMapName->u16Length >= 2
-                        && pszMapName->String.ucs2[pszMapName->u16Length / 2 - 1] == 0x0000)
+                        && pszMapName->String.utf16[pszMapName->u16Length / 2 - 1] == 0x0000)
                     {
                         pszMapName->u16Length -= 2;
                         if (ShflStringIsValidIn(pszMapName, paParms[0].u.pointer.size, false /*fUtf8Not16*/))
@@ -1117,7 +1117,7 @@ static DECLCALLBACK(void) svcCall (void *, VBOXHGCMCALLHANDLE callHandle, uint32
 
                 /* Execute the function. */
                 if (RT_SUCCESS(rc))
-                    rc = vbsfMapFolder (pClient, pszMapName, delimiter, fCaseSensitive, &root);
+                    rc = vbsfMapFolder(pClient, pszMapName, delimiter, fCaseSensitive, &root);
 
                 if (RT_SUCCESS(rc))
                 {
@@ -1155,7 +1155,7 @@ static DECLCALLBACK(void) svcCall (void *, VBOXHGCMCALLHANDLE callHandle, uint32
                 SHFLROOT    root       = (SHFLROOT)paParms[0].u.uint32;
 
                 /* Execute the function. */
-                rc = vbsfUnmapFolder (pClient, root);
+                rc = vbsfUnmapFolder(pClient, root);
 
                 if (RT_SUCCESS(rc))
                 {
@@ -1207,7 +1207,7 @@ static DECLCALLBACK(void) svcCall (void *, VBOXHGCMCALLHANDLE callHandle, uint32
                     /* Execute the function. */
                     if (flags & SHFL_INFO_SET)
                     {
-                        rc = vbsfSetFSInfo (pClient, root, Handle, flags, &length, pBuffer);
+                        rc = vbsfSetFSInfo(pClient, root, Handle, flags, &length, pBuffer);
 
                         if (flags & SHFL_INFO_FILE)
                         {
@@ -1222,7 +1222,7 @@ static DECLCALLBACK(void) svcCall (void *, VBOXHGCMCALLHANDLE callHandle, uint32
                     }
                     else /* SHFL_INFO_GET */
                     {
-                        rc = vbsfQueryFSInfo (pClient, root, Handle, flags, &length, pBuffer);
+                        rc = vbsfQueryFSInfo(pClient, root, Handle, flags, &length, pBuffer);
 
                         if (flags & SHFL_INFO_FILE)
                         {
@@ -1338,7 +1338,7 @@ static DECLCALLBACK(void) svcCall (void *, VBOXHGCMCALLHANDLE callHandle, uint32
                 else
                 {
                     /* Execute the function. */
-                    rc = vbsfRename (pClient, root, pSrc, pDest, flags);
+                    rc = vbsfRename(pClient, root, pSrc, pDest, flags);
                     if (RT_SUCCESS(rc))
                     {
                         /* Update parameters.*/
@@ -1388,7 +1388,7 @@ static DECLCALLBACK(void) svcCall (void *, VBOXHGCMCALLHANDLE callHandle, uint32
                 {
                     /* Execute the function. */
 
-                    rc = vbsfFlush (pClient, root, Handle);
+                    rc = vbsfFlush(pClient, root, Handle);
 
                     if (RT_SUCCESS(rc))
                     {
@@ -1446,7 +1446,7 @@ static DECLCALLBACK(void) svcCall (void *, VBOXHGCMCALLHANDLE callHandle, uint32
                 else
                 {
                     /* Execute the function. */
-                    rc = vbsfSymlink (pClient, root, pNewPath, pOldPath, pInfo);
+                    rc = vbsfSymlink(pClient, root, pNewPath, pOldPath, pInfo);
                     if (RT_SUCCESS(rc))
                     {
                         /* Update parameters.*/
@@ -1645,7 +1645,7 @@ static DECLCALLBACK(void) svcCall (void *, VBOXHGCMCALLHANDLE callHandle, uint32
         /* Complete the operation if it was unsuccessful or
          * it was processed synchronously.
          */
-        g_pHelpers->pfnCallComplete (callHandle, rc);
+        g_pHelpers->pfnCallComplete(callHandle, rc);
     }
 
 #ifndef VBOX_WITHOUT_RELEASE_STATISTICS
@@ -1667,7 +1667,7 @@ static DECLCALLBACK(void) svcCall (void *, VBOXHGCMCALLHANDLE callHandle, uint32
  * for the host. The guest is not allowed to add or remove mappings for obvious
  * security reasons.
  */
-static DECLCALLBACK(int) svcHostCall (void *, uint32_t u32Function, uint32_t cParms, VBOXHGCMSVCPARM paParms[])
+static DECLCALLBACK(int) svcHostCall(void *, uint32_t u32Function, uint32_t cParms, VBOXHGCMSVCPARM paParms[])
 {
     int rc = VINF_SUCCESS;
 
@@ -1699,6 +1699,7 @@ static DECLCALLBACK(int) svcHostCall (void *, uint32_t u32Function, uint32_t cPa
                  || paParms[1].type != VBOX_HGCM_SVC_PARM_PTR     /* map name */
                  || paParms[2].type != VBOX_HGCM_SVC_PARM_32BIT   /* fFlags */
                  || paParms[3].type != VBOX_HGCM_SVC_PARM_PTR     /* auto mount point */
+                 || paParms[4].type != VBOX_HGCM_SVC_PARM_32BIT   /* symlink policy */
                 )
         {
             rc = VERR_INVALID_PARAMETER;
@@ -1710,6 +1711,7 @@ static DECLCALLBACK(int) svcHostCall (void *, uint32_t u32Function, uint32_t cPa
             SHFLSTRING *pMapName        = (SHFLSTRING *)paParms[1].u.pointer.addr;
             uint32_t fFlags             = paParms[2].u.uint32;
             SHFLSTRING *pAutoMountPoint = (SHFLSTRING *)paParms[3].u.pointer.addr;
+            SymlinkPolicy_T enmSymlinkPolicy = (SymlinkPolicy_T)paParms[4].u.uint32;
 
             /* Verify parameters values. */
             if (    !ShflStringIsValidIn(pHostPath, paParms[0].u.pointer.size, false /*fUtf8Not16*/)
@@ -1730,7 +1732,7 @@ static DECLCALLBACK(int) svcHostCall (void *, uint32_t u32Function, uint32_t cPa
                         RT_BOOL(fFlags & SHFL_ADD_MAPPING_F_MISSING) ? "true" : "false"));
 
                 char *pszHostPath;
-                rc = RTUtf16ToUtf8(pHostPath->String.ucs2, &pszHostPath);
+                rc = RTUtf16ToUtf8(pHostPath->String.utf16, &pszHostPath);
                 if (RT_SUCCESS(rc))
                 {
                     /* Execute the function. */
@@ -1740,7 +1742,8 @@ static DECLCALLBACK(int) svcHostCall (void *, uint32_t u32Function, uint32_t cPa
                                          pAutoMountPoint,
                                          RT_BOOL(fFlags & SHFL_ADD_MAPPING_F_CREATE_SYMLINKS),
                                          RT_BOOL(fFlags & SHFL_ADD_MAPPING_F_MISSING),
-                                         /* fPlaceholder = */ false);
+                                         /* fPlaceholder = */ false,
+                                         enmSymlinkPolicy);
                     if (RT_SUCCESS(rc))
                     {
                         /* Update parameters.*/
@@ -1759,7 +1762,7 @@ static DECLCALLBACK(int) svcHostCall (void *, uint32_t u32Function, uint32_t cPa
     {
         Log(("SharedFolders host service: svcCall: SHFL_FN_REMOVE_MAPPING\n"));
         LogRel(("SharedFolders host service: Removing host mapping '%ls'\n",
-                ((SHFLSTRING *)paParms[0].u.pointer.addr)->String.ucs2));
+                ((SHFLSTRING *)paParms[0].u.pointer.addr)->String.utf16));
 
         /* Verify parameter count and types. */
         if (cParms != SHFL_CPARMS_REMOVE_MAPPING)
@@ -1784,7 +1787,7 @@ static DECLCALLBACK(int) svcHostCall (void *, uint32_t u32Function, uint32_t cPa
             else
             {
                 /* Execute the function. */
-                rc = vbsfMappingsRemove (pString);
+                rc = vbsfMappingsRemove(pString);
 
                 if (RT_SUCCESS(rc))
                 {
@@ -1843,7 +1846,7 @@ static DECLCALLBACK(int) svcHostCall (void *, uint32_t u32Function, uint32_t cPa
     return rc;
 }
 
-extern "C" DECLCALLBACK(DECLEXPORT(int)) VBoxHGCMSvcLoad (VBOXHGCMSVCFNTABLE *ptable)
+extern "C" DECLCALLBACK(DECLEXPORT(int)) VBoxHGCMSvcLoad(VBOXHGCMSVCFNTABLE *ptable)
 {
     int rc = VINF_SUCCESS;
 

@@ -3,7 +3,7 @@
     manpage, user manual, usage: VBoxManage guestcontrol
 -->
 <!--
-    Copyright (C) 2006-2023 Oracle and/or its affiliates.
+    Copyright (C) 2006-2024 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.
@@ -30,7 +30,7 @@
 ]>
 <refentry id="vboxmanage-guestcontrol" lang="en">
   <refentryinfo>
-    <pubdate>$Date: 2023-08-08 17:18:00 +0200 (Tue, 08 Aug 2023) $</pubdate>
+    <pubdate>$Date: 2024-09-16 16:03:52 +0200 (Mon, 16 Sep 2024) $</pubdate>
     <title>VBoxManage guestcontrol</title>
   </refentryinfo>
 
@@ -78,6 +78,7 @@
       <arg>--unix2dos</arg>
       <arg>--unquoted-args</arg>
       <arg>--username=<replaceable>username</replaceable></arg>
+      <arg>--cwd=<replaceable>directory</replaceable></arg>
       <arg>--verbose</arg>
       <arg choice="req">--<arg rep="repeat"><replaceable>argument</replaceable></arg></arg>
     </cmdsynopsis>
@@ -103,6 +104,7 @@
       <arg>--timeout=<replaceable>msec</replaceable></arg>
       <arg>--unquoted-args</arg>
       <arg>--username=<replaceable>username</replaceable></arg>
+      <arg>--cwd=<replaceable>directory</replaceable></arg>
       <arg>--verbose</arg>
       <arg choice="req">--<arg rep="repeat"><replaceable>argument</replaceable></arg></arg>
     </cmdsynopsis>
@@ -255,6 +257,41 @@
       <arg choice="req"><replaceable>template-name</replaceable></arg>
     </cmdsynopsis>
 
+    <cmdsynopsis id="synopsis-vboxmanage-guestcontrol-mount">
+      <command>VBoxManage guestcontrol</command>
+      <group choice="req">
+        <arg choice="plain"><replaceable>uuid</replaceable></arg>
+        <arg choice="plain"><replaceable>vmname</replaceable></arg>
+      </group>
+      <arg choice="plain">mount</arg>
+      <group>
+        <arg choice="plain">--passwordfile=<replaceable>password-file</replaceable></arg>
+        <arg choice="plain">--password=<replaceable>password</replaceable></arg>
+      </group>
+      <arg>--username=<replaceable>username</replaceable></arg>
+      <arg>--verbose</arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis id="synopsis-vboxmanage-guestcontrol-fsinfo">
+      <command>VBoxManage guestcontrol</command>
+      <group choice="req">
+        <arg choice="plain"><replaceable>uuid</replaceable></arg>
+        <arg choice="plain"><replaceable>vmname</replaceable></arg>
+      </group>
+      <arg choice="plain">fsinfo</arg>
+      <arg>--domain=<replaceable>domainname</replaceable></arg>
+      <group>
+        <arg choice="plain">--passwordfile=<replaceable>password-file</replaceable></arg>
+        <arg choice="plain">--password=<replaceable>password</replaceable></arg>
+      </group>
+      <arg>--human-readable</arg>
+      <arg>--quiet</arg>
+      <arg>--total</arg>
+      <arg>--username=<replaceable>username</replaceable></arg>
+      <arg>--verbose</arg>
+      <arg choice="req"><replaceable>path</replaceable></arg>
+    </cmdsynopsis>
+
     <cmdsynopsis id="synopsis-vboxmanage-guestcontrol-stat">
       <command>VBoxManage guestcontrol</command>
       <group choice="req">
@@ -333,7 +370,7 @@
       <arg>--verbose</arg>
       <arg>--source=<replaceable>guest-additions.ISO</replaceable></arg>
       <arg>--wait-start</arg>
-      <arg>-- <arg rep="repeat"><replaceable>argument</replaceable></arg></arg>
+      <arg>--<arg rep="repeat"><replaceable>argument</replaceable></arg></arg>
     </cmdsynopsis>
 
     <cmdsynopsis id="synopsis-vboxmanage-guestcontrol-watch">
@@ -348,14 +385,14 @@
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-guestcontrol-description">
     <title>Description</title>
     <para>
       The <command>VBoxManage guestcontrol</command> command enables you
       to control a guest (VM) from the host system. See
       <xref linkend="guestadd-guestcontrol" />.
     </para>
-    <refsect2>
+    <refsect2 id="vboxmanage-guestcontrol-common">
       <title>Common Options and Operands</title>
       <para>
         The following options can be used by any of the
@@ -363,7 +400,7 @@
       </para>
       <variablelist>
         <varlistentry>
-          <term><replaceable>uuid</replaceable>|<replaceable>vmname</replaceable></term>
+          <term><option><replaceable>uuid</replaceable> | <replaceable>vmname</replaceable></option></term>
           <listitem><para>
               Specifies the Universally Unique Identifier (UUID) or name
               of the VM.
@@ -391,7 +428,9 @@
         subcommands require that you provide guest credentials for
         authentication. The subcommands are:
         <command>copyfrom</command>, <command>copyto</command>,
+        <command>fsinfo</command>,
         <command>mkdir</command>, <command>mktemp</command>,
+        <command>mount</command>,
         <command>mv</command>, <command>rmdir</command>,
         <command>rm</command>, <command>run</command>,
         <command>start</command>, and <command>stat</command>.
@@ -402,7 +441,7 @@
         policy. If a user account does not have an associated password,
         specify an empty password. On OSes such as Windows, you might
         need to adjust the security policy to permit user accounts with
-        an empty password. In additional, global domain rules might
+        an empty password. In addition, global domain rules might
         apply and therefore cannot be changed.
       </para>
       <para>
@@ -421,14 +460,14 @@
           <listitem><para>
               Specifies the password for the specified user. If you do
               not specify a password on the command line or if the
-              password file is empty, the specified user needs to have
+              password is empty, the specified user needs to have
               an empty password.
             </para></listitem>
         </varlistentry>
         <varlistentry>
           <term><option>--passwordfile=<replaceable>filename</replaceable></option></term>
           <listitem><para>
-              Specifies the absolute path to a file on the guest OS that
+              Specifies the absolute path to a file on the host system that
               contains the password for the specified user. If the
               password file is empty or if you do not specify a password
               on the command line, the specified user needs to have an
@@ -438,62 +477,42 @@
         <varlistentry>
           <term><option>--username=<replaceable>username</replaceable></option></term>
           <listitem><para>
-              Specifies an existing user on the guest OS that runs the
-              process. If unspecified, the host user runs the process.
+              Specifies an existing user in the guest OS that runs the
+              process. If unspecified, the name of the user on the host
+              invoking the <command>VBoxManage</command> command will be
+              used as the username for the guest OS login.
             </para></listitem>
         </varlistentry>
       </variablelist>
     </refsect2>
-    <refsect2>
+    <refsect2 id="vboxmanage-guestcontrol-process-restrictions">
       <title>Guest Process Restrictions</title>
       <para>
-        By default, you can run up to five guest processes
-        simultaneously. If a new guest process starts and would exceed
-        this limit, the oldest not-running guest process is discarded to
-        run the new process. You cannot retrieve output from a discarded
-        guest process. If all five guest processes are active and
-        running, attempting to start a new guest process fails.
-      </para>
-      <para>
-        You can modify the guest process execution limit in two ways:
-      </para>
-      <itemizedlist>
-        <listitem><para>
-            Use the <command>VBoxManage setproperty</command> command to
-            update the
-            <literal>/VirtualBox/GuestAdd/VBoxService/--control-procs-max-kept</literal>
-            guest property value.
-          </para></listitem>
-        <listitem><para>
-            Use the <command>VBoxService</command> command and specify
-            the
-            <option>--control-procs-max-kept=<replaceable>value</replaceable></option>
-            option.
-          </para></listitem>
-      </itemizedlist>
-      <para>
-        After you change the limit, you must restart the guest OS.
-      </para>
-      <para>
-        You can serve an unlimited number guest processes by specifing a
-        value of <literal>0</literal>, however this action is not
-        recommended.
+        By default, you can run up to 255 guest processes simultaneously.
+        If attempting to start a new guest process would exceed
+        this limit and there are inactive guest processes then the the
+        oldest inactive guest process is discarded to run the new process.
+        You cannot retrieve the output from a discarded guest process. If
+        all 255 guest processes are active and running, attempting to start
+        a new guest process fails.
       </para>
     </refsect2>
     <refsect2 id="vboxmanage-guestcontrol-run">
-      <title>Run a Command on the guest</title>
+      <title>Run a Command in the guest</title>
       <remark role="help-copy-synopsis"/>
       <para>
         The <command>VBoxManage guestcontrol
         <replaceable>vmname</replaceable> run</command> command enables
-        you to execute a program on the guest VM. Standard input,
+        you to execute a program in the guest VM. Standard input,
         standard output, and standard error are redirected from the VM
         to the host system until the program completes.
       </para>
       <note>
         <para>
-          The Windows OS imposes certain limitations for graphical
-          applications. See <xref linkend="KnownIssues" />.
+          Microsoft Windows imposes certain limitations when running
+          graphical user interface applications launched using
+          <command>VBoxManage guestcontrol run</command>. See
+          <xref linkend="KnownIssues" />.
         </para>
       </note>
       <variablelist>
@@ -501,8 +520,26 @@
           <term><option>--exe=<replaceable>path-to-executable</replaceable></option></term>
           <listitem><para>
               Specifies the absolute path of the executable program to
-              run on the guest VM. For example:
+              run in the guest VM. For example:
               <filename>C:\Windows\System32\calc.exe</filename>.
+            </para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><option>--arg0=<replaceable>alternate-executable-name</replaceable></option></term>
+          <listitem><para>
+              Specifies an alternate name (i.e. arg0 or argv[0]) for the
+              executable being run in the guest.
+            </para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><option>--cwd=<replaceable>path-to-directory</replaceable></option></term>
+          <listitem><para>
+              Specifies the absolute path of a directory in which
+              to start the program. Optional. The directory must
+              exist and be accessible to the guest user. For example:
+              <filename>C:\Users\production\work_area</filename>.
+            </para><para>
+              The short form of this option is <option>-C</option>.
             </para></listitem>
         </varlistentry>
         <varlistentry>
@@ -533,7 +570,7 @@
               by <replaceable>NAME</replaceable>.
             </para><para>
               Use the
-              <option>--putenv=<replaceable>NAME</replaceable>=[<replaceable>value</replaceable>]</option>
+              <option>--putenv=<replaceable>NAME</replaceable>=</option>
               option to unset the environment variable specified by
               <replaceable>NAME</replaceable>.
             </para><para>
@@ -618,10 +655,10 @@
             </para></listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--[<replaceable>argument</replaceable>...]</option></term>
+          <term><option>-- [<replaceable>argument</replaceable>...]</option></term>
           <listitem><para>
-              Specifies the name of the program and any arguments to
-              pass to the program.
+              Specifies one or more arguments to pass to the program
+              being run in the guest.
             </para><para>
               Ensure that any command argument that includes spaces is
               enclosed by quotes.
@@ -635,12 +672,17 @@
       <para>
         The <command>VBoxManage guestcontrol
         <replaceable>vmname</replaceable> start</command> command
-        enables you to execute a guest program until it completes.
+        enables you to execute a guest program and returns after
+        the command has been successfully started.  The invoked
+        command doesn't wait until all data from stdout or stderr
+        has been read before returning.
       </para>
       <note>
         <para>
-          The Windows OS imposes certain limitations for graphical
-          applications. See <xref linkend="KnownIssues" />.
+          Microsoft Windows imposes certain limitations when running
+          graphical user interface applications launched using
+          <command>VBoxManage guestcontrol start</command>. See
+          <xref linkend="KnownIssues" />.
         </para>
       </note>
     </refsect2>
@@ -765,6 +807,41 @@
         </varlistentry>
       </variablelist>
     </refsect2>
+    <refsect2 id="vboxmanage-guestcontrol-fsinfo">
+      <title>Show guest filesystem information.</title>
+      <remark role="help-copy-synopsis"/>
+      <para>
+        The <command>VBoxManage guestcontrol
+        <replaceable>vmname</replaceable> fsinfo</command> command
+        enables you to show filesystem information of the guest VM.
+      </para>
+      <para>
+        An alternate form of this subcommand is <command>df</command>.
+      </para>
+      <variablelist>
+        <varlistentry>
+          <term><option>--human-readable</option></term>
+          <listitem><para>
+              Shows the disk sizes in a human readable form.
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><option>--total</option></term>
+          <listitem><para>
+              Produces a grand total of all disk sizes.
+            </para>
+          </listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><literal><replaceable>guest-path</replaceable> [<replaceable>guest-path</replaceable>...]</literal></term>
+          <listitem><para>
+              Specifies an absolute path to show guest filesystem
+              information for.
+            </para></listitem>
+        </varlistentry>
+      </variablelist>
+    </refsect2>
     <refsect2 id="vboxmanage-guestcontrol-mkdir">
       <title>Create a directory on the guest.</title>
       <remark role="help-copy-synopsis"/>
@@ -884,7 +961,7 @@
         <varlistentry>
           <term><literal><replaceable>guest-file</replaceable> [<replaceable>guest-file</replaceable>...]</literal></term>
           <listitem><para>
-              Specifies an absolute path of one or more file to remove
+              Specifies an absolute path of one or more files to remove
               from the guest VM. You can use wildcards to specify the
               file names. For example,
               <filename>D:\Foo\Bar\text*.txt</filename>.
@@ -996,6 +1073,16 @@
             </para></listitem>
         </varlistentry>
       </variablelist>
+    </refsect2>
+    <refsect2 id="vboxmanage-guestcontrol-mount">
+      <title>Shows mount points on the guest</title>
+      <remark role="help-copy-synopsis"/>
+      <para>
+        The <command>VBoxManage guestcontrol
+        <replaceable>vmname</replaceable> mount</command> command
+        enables you to the current mount points on
+        the guest VM. For Windows guests this shows the mapped drives.
+      </para>
     </refsect2>
     <refsect2 id="vboxmanage-guestcontrol-stat">
       <title>Show a file or File System Status on the guest</title>
@@ -1221,7 +1308,7 @@
     </refsect2>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-guestcontrol-examples">
     <title>Examples</title>
     <remark role="help-scope" condition="GLOBAL"/>
     <para>
@@ -1334,18 +1421,10 @@ $ VBoxManage --nologo guestcontrol "My OL VM" run --exe "/usr/bin/busybox" \
       The <option>--arg0</option> option explicitly specifies the argument 0
       to use for the command to execute.
     </para>
-    <note>
-      <para>If this option is not set, argument 0 will be taken from
-        the value of <option>--exe</option>, or, if
-        <option>--exe</option> is also not set, the first value
-        passed after <option>--</option>.</para>
-      <para>Use <option>--verbose</option> to see the effective
-        command line passed to the guest.</para>
-    </note>
   <para>
-    The default behavior of argument 0 is to either use
-    the value from <option>--exe</option>, or, if not set, the first
-    value passed after <option>--</option>.
+    The default value of argument 0 (i.e. arg0 or argv[0]) is the value
+    from the <option>--exe</option> option unless the <option>--arg0</option>
+    option has been supplied.
   </para>
   </refsect1>
 </refentry>

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2014-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2014-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -38,7 +38,6 @@
 #include <QVariant>
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CDndSource.h"
 #include "CSession.h"
 

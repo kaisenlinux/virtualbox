@@ -48,10 +48,11 @@
 #include "nsThreadUtils.h"
 #include "nsProxyRelease.h"
 
+#include <iprt/string.h>
+
 static nsID nullID =  {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 
 #ifdef VBOX
-#include "nsIThread.h"
 static nsresult
 NS_InvokeByIndex(nsISupports* that, PRUint32 methodIndex,
                  PRUint32 paramCount, nsXPTCVariant* params)
@@ -1503,8 +1504,8 @@ static void makeErrorMessage(nsresult r, char* msg, size_t msgSize)
                 {
                     nsXPIDLCString emsg;
                     ex->GetMessage(getter_Copies(emsg));
-                    PR_snprintf(msg, msgSize, "%s",
-                                emsg.get());
+                    RTStrPrintf2(msg, msgSize, "%s",
+                                 emsg.get());
                     gotMsg = true;
                 }
             }
@@ -1516,16 +1517,16 @@ static void makeErrorMessage(nsresult r, char* msg, size_t msgSize)
         const RTCOMERRMSG* pMsg = RTErrCOMGet(r);
         if (strncmp(pMsg->pszMsgFull, "Unknown", 7) != 0)
         {
-            PR_snprintf(msg, msgSize, "%s (%s)",
-                        pMsg->pszMsgFull, pMsg->pszDefine);
+            RTStrPrintf2(msg, msgSize, "%s (%s)",
+                         pMsg->pszMsgFull, pMsg->pszDefine);
             gotMsg = true;
         }
     }
 
     if (!gotMsg)
     {
-        PR_snprintf(msg, msgSize, "Error 0x%x in module 0x%x",
-                    NS_ERROR_GET_CODE(r), NS_ERROR_GET_MODULE(r));
+        RTStrPrintf2(msg, msgSize, "Error 0x%x in module 0x%x",
+                     NS_ERROR_GET_CODE(r), NS_ERROR_GET_MODULE(r));
     }
 }
 #endif
@@ -1782,7 +1783,7 @@ JAVAPROXY_NATIVE(callXPCOMMethod) (JNIEnv *env, jclass that, jobject aJavaProxy,
   }
 
   if (params) {
-    delete params;
+    delete[] params;
   }
 
   // If the XPCOM method invocation failed, we don't immediately throw an
@@ -2008,13 +2009,6 @@ LOCKPROXY_NATIVE(release) (JNIEnv *env, jclass that, jlong aLockObject)
 {
   // Need to release object on the main thread.
   nsresult rv = NS_ERROR_FAILURE;
-#ifdef VBOX
   rv = NS_ProxyRelease(do_GetMainThreadQueue().get(), reinterpret_cast<nsISupports*>(aLockObject));
-#else
-  nsCOMPtr<nsIThread> thread = do_GetMainThread();
-  if (thread) {
-      rv = NS_ProxyRelease(thread, reinterpret_cast<nsISupports*>(aLockObject));
-  }
-#endif
   NS_ASSERTION(NS_SUCCEEDED(rv), "Failed to release using NS_ProxyRelease");
 }

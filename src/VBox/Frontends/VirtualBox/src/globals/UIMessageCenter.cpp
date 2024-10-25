@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -27,11 +27,13 @@
 
 /* Qt includes: */
 #include <QAbstractButton>
+#include <QApplication>
 #include <QDir>
 #include <QFileInfo>
 #include <QLocale>
 #include <QProcess>
 #include <QThread>
+#include <QWindow>
 #ifdef VBOX_WS_MAC
 # include <QPushButton>
 #endif
@@ -42,6 +44,7 @@
 #include "UIConverter.h"
 #include "UIErrorString.h"
 #include "UIExtraDataManager.h"
+#include "UIGlobalSession.h"
 #include "UIHelpBrowserDialog.h"
 #include "UIHostComboEditor.h"
 #include "UIIconPool.h"
@@ -51,6 +54,7 @@
 #include "UINotificationCenter.h"
 #include "UIProgressDialog.h"
 #include "UITranslator.h"
+#include "UIVersion.h"
 #include "VBoxAboutDlg.h"
 #ifdef VBOX_GUI_WITH_NETWORK_MANAGER
 # include "UINetworkRequestManager.h"
@@ -388,9 +392,10 @@ bool UIMessageCenter::showModalProgressDialog(CProgress &progress,
     /* Prepare pixmap: */
     QPixmap pixmap;
     if (!strImage.isEmpty())
-        pixmap = pDlgParent
-               ? UIIconPool::iconSet(strImage).pixmap(pDlgParent->windowHandle(), QSize(90, 90))
-               : UIIconPool::iconSet(strImage).pixmap(QSize(90, 90));
+    {
+        const qreal fDevicePixelRatio = pDlgParent && pDlgParent->windowHandle() ? pDlgParent->windowHandle()->devicePixelRatio() : 1;
+        pixmap = UIIconPool::iconSet(strImage).pixmap(QSize(90, 90), fDevicePixelRatio);
+    }
 
     /* Create progress-dialog: */
     QPointer<UIProgressDialog> pProgressDlg = new UIProgressDialog(progress, strTitle, &pixmap, cMinDuration, pDlgParent);
@@ -512,7 +517,7 @@ void UIMessageCenter::cannotAcquireVirtualBox(const CVirtualBoxClient &comClient
 {
     QString err = tr("<p>Failed to acquire the VirtualBox COM object.</p>"
                      "<p>The application will now terminate.</p>");
-#if defined(VBOX_WS_X11) || defined(VBOX_WS_MAC)
+#if defined(VBOX_WS_NIX) || defined(VBOX_WS_MAC)
     if (comClient.lastRC() == NS_ERROR_SOCKET_FAIL)
         err += tr("<p>The reason for this error are most likely wrong permissions of the IPC "
                   "daemon socket due to an installation problem. Please check the permissions of "
@@ -814,7 +819,7 @@ int UIMessageCenter::confirmRemovingOfLastDVDDevice(QWidget *pParent /* = 0*/) c
                              "<p>You will not be able to insert any optical disks or ISO images "
                              "or install the Guest Additions without it!</p>"),
                           0 /* auto-confirm id */,
-                          tr("&Remove", "medium") /* ok button text */,
+                          tr("Remove", "medium") /* ok button text */,
                           QString() /* cancel button text */,
                           false /* ok button by default? */);
 }
@@ -889,7 +894,7 @@ bool UIMessageCenter::confirmCancelingPortForwardingDialog(QWidget *pParent /* =
 bool UIMessageCenter::confirmRestoringDefaultKeys(QWidget *pParent /* = 0 */) const
 {
     return questionBinary(pParent, MessageType_Question,
-                          tr("<p>Are you going to restore default secure boot keys.</p>"
+                          tr("<p>You are going to restore default secure boot keys.</p>"
                              "<p>If you proceed your current keys will be rewritten. "
                              "You may not be able to boot affected VM anymore.</p>"),
                           0 /* auto-confirm id */,
@@ -1247,7 +1252,7 @@ bool UIMessageCenter::confirmRemoveExtensionPack(const QString &strPackName, QWi
                              "<p>Are you sure you want to proceed?</p>")
                              .arg(strPackName),
                           0 /* auto-confirm id */,
-                          tr("&Remove") /* ok button text */,
+                          tr("Remove") /* ok button text */,
                           QString() /* cancel button text */,
                           false /* ok button by default? */);
 }
@@ -1256,7 +1261,7 @@ bool UIMessageCenter::confirmMediumRelease(const UIMedium &medium, bool fInduced
 {
     /* Prepare the usage: */
     QStringList usage;
-    CVirtualBox vbox = uiCommon().virtualBox();
+    CVirtualBox vbox = gpGlobalSession->virtualBox();
     foreach (const QUuid &uMachineID, medium.curStateMachineIds())
     {
         CMachine machine = vbox.FindMachine(uMachineID.toString());
@@ -1414,6 +1419,17 @@ bool UIMessageCenter::confirmInaccesibleMediaClear(const QStringList &mediaNameL
                        QString() /* cancel button text */,
                        QString() /* 3rd button text */,
                        QString() /* help keyword */);
+}
+
+bool UIMessageCenter::confirmVisoDiscard(QWidget *pParent /* = 0*/) const
+{
+    return questionBinary(pParent, MessageType_Question,
+                          tr("<p>To open a VISO file you will have to discard the current content.</p>"
+                             "<p>Are you sure you want to proceed?</p>"),
+                          0 /* auto-confirm id */,
+                          tr("Discard") /* ok button text */,
+                          QString() /* cancel button text */,
+                          false /* ok button by default? */);
 }
 
 bool UIMessageCenter::confirmCloudNetworkRemoval(const QString &strName, QWidget *pParent /* = 0*/) const
@@ -1577,16 +1593,16 @@ bool UIMessageCenter::proposeMountGuestAdditions(const QString &strUrl, const QS
                           tr("<p>The <b>VirtualBox Guest Additions</b> disk image file has been successfully downloaded "
                              "from <nobr><a href=\"%1\">%1</a></nobr> "
                              "and saved locally as <nobr><b>%2</b>.</nobr></p>"
-                             "<p>Do you wish to register this disk image file and insert it into the virtual optical drive?</p>")
+                             "<p>Do you wish to continue with Guest Additions installation?</p>")
                              .arg(strUrl, strSrc),
                           0 /* auto-confirm id */,
-                          tr("Insert", "additions"));
+                          tr("Continue", "agree with additions installation"));
 }
 
 bool UIMessageCenter::confirmLookingForUserManual(const QString &strMissedLocation) const
 {
     return questionBinary(0, MessageType_Question,
-                          tr("<p>Could not find the <b>VirtualBox User Manual</b> <nobr><b>%1</b>.</nobr></p>"
+                          tr("<p>Could not find the <b>VirtualBox User Guide</b> <nobr><b>%1</b>.</nobr></p>"
                              "<p>Do you wish to download this file from the Internet?</p>")
                              .arg(strMissedLocation),
                           0 /* auto-confirm id */,
@@ -1596,7 +1612,7 @@ bool UIMessageCenter::confirmLookingForUserManual(const QString &strMissedLocati
 bool UIMessageCenter::confirmDownloadUserManual(const QString &strURL, qulonglong uSize) const
 {
     return questionBinary(windowManager().mainWindowShown(), MessageType_Question,
-                          tr("<p>Are you sure you want to download the <b>VirtualBox User Manual</b> "
+                          tr("<p>Are you sure you want to download the <b>VirtualBox User Guide</b> "
                              "from <nobr><a href=\"%1\">%1</a></nobr> (size %2 bytes)?</p>")
                              .arg(strURL, QLocale(UITranslator::languageId()).toString(uSize)),
                           0 /* auto-confirm id */,
@@ -1606,7 +1622,7 @@ bool UIMessageCenter::confirmDownloadUserManual(const QString &strURL, qulonglon
 void UIMessageCenter::cannotSaveUserManual(const QString &strURL, const QString &strTarget) const
 {
     alert(windowManager().mainWindowShown(), MessageType_Error,
-          tr("<p>The VirtualBox User Manual has been successfully downloaded "
+          tr("<p>The VirtualBox User Guide has been successfully downloaded "
              "from <nobr><a href=\"%1\">%1</a></nobr> "
              "but can't be saved locally as <nobr><b>%2</b>.</nobr></p>"
              "<p>Please choose another location for that file.</p>")
@@ -1765,47 +1781,34 @@ bool UIMessageCenter::warnAboutGuruMeditation(const QString &strLogFolder)
                           tr("Ignore"));
 }
 
-void UIMessageCenter::showRuntimeError(const CConsole &console, bool fFatal, const QString &strErrorId, const QString &strErrorMsg) const
+void UIMessageCenter::showRuntimeError(MessageType emnMessageType, const QString &strErrorId, const QString &strErrorMsg) const
 {
-    /* Prepare auto-confirm id: */
+    /* Gather suitable severity and confirm id: */
+    QString strSeverity;
     QByteArray autoConfimId = "showRuntimeError.";
-
-    /* Prepare variables: */
-    CConsole console1 = console;
-    KMachineState state = console1.GetState();
-    MessageType enmType;
-    QString severity;
-
-    /// @todo Move to Runtime UI!
-    /* Preprocessing: */
-    if (fFatal)
+    switch (emnMessageType)
     {
-        /* The machine must be paused on fFatal errors: */
-        Assert(state == KMachineState_Paused);
-        if (state != KMachineState_Paused)
-            console1.Pause();
+        case MessageType_Warning:
+        {
+            strSeverity = tr("<nobr>Warning</nobr>", "runtime error info");
+            autoConfimId += "warning.";
+            break;
+        }
+        case MessageType_Error:
+        {
+            strSeverity = tr("<nobr>Non-Fatal Error</nobr>", "runtime error info");
+            autoConfimId += "error.";
+            break;
+        }
+        case MessageType_Critical:
+        {
+            strSeverity = tr("<nobr>Fatal Error</nobr>", "runtime error info");
+            autoConfimId += "fatal.";
+            break;
+        }
+        default:
+            break;
     }
-
-    /* Compose type, severity, advance confirm id: */
-    if (fFatal)
-    {
-        enmType = MessageType_Critical;
-        severity = tr("<nobr>Fatal Error</nobr>", "runtime error info");
-        autoConfimId += "fatal.";
-    }
-    else if (state == KMachineState_Paused)
-    {
-        enmType = MessageType_Error;
-        severity = tr("<nobr>Non-Fatal Error</nobr>", "runtime error info");
-        autoConfimId += "error.";
-    }
-    else
-    {
-        enmType = MessageType_Warning;
-        severity = tr("<nobr>Warning</nobr>", "runtime error info");
-        autoConfimId += "warning.";
-    }
-    /* Advance auto-confirm id: */
     autoConfimId += strErrorId.toUtf8();
 
     /* Format error-details: */
@@ -1820,62 +1823,61 @@ void UIMessageCenter::showRuntimeError(const CConsole &console, bool fFatal, con
                              "</table>")
                              .arg(QApplication::palette().color(QPalette::Active, QPalette::Window).name(QColor::HexRgb))
                              .arg(tr("<nobr>Error ID:</nobr>", "runtime error info"), strErrorId)
-                             .arg(tr("Severity:", "runtime error info"), severity);
+                             .arg(tr("Severity:", "runtime error info"), strSeverity);
     if (!formatted.isEmpty())
         formatted = "<qt>" + formatted + "</qt>";
 
     /* Show the error: */
-    if (enmType == MessageType_Critical)
+    switch (emnMessageType)
     {
-        error(0, enmType,
-              tr("<p>A fatal error has occurred during virtual machine execution! "
-                 "The virtual machine will be powered off. Please copy the following error message "
-                 "using the clipboard to help diagnose the problem:</p>"),
-              formatted, autoConfimId.data());
-    }
-    else if (enmType == MessageType_Error)
-    {
-        error(0, enmType,
-              tr("<p>An error has occurred during virtual machine execution! "
-                 "The error details are shown below. You may try to correct the error "
-                 "and resume the virtual machine execution.</p>"),
-              formatted, autoConfimId.data());
-    }
-    else
-    {
-        /** @todo r=bird: This is a very annoying message as it refers to invisible text
-         * below.  User have to expand "Details" to see what actually went wrong.
-         * Probably a good idea to check strErrorId and see if we can come up with better
-         * messages here, at least for common stuff like DvdOrFloppyImageInaccesssible... */
-        error(0, enmType,
-              tr("<p>The virtual machine execution ran into a non-fatal problem as described below. "
-                 "We suggest that you take appropriate action to prevent the problem from recurring.</p>"),
-              formatted, autoConfimId.data());
-    }
-
-    /// @todo Move to Runtime UI!
-    /* Postprocessing: */
-    if (fFatal)
-    {
-        /* Power off after a fFatal error: */
-        LogRel(("GUI: Powering VM off after a fatal runtime error...\n"));
-        console1.PowerDown();
+        case MessageType_Warning:
+        {
+            /** @todo r=bird: This is a very annoying message as it refers to invisible text
+             * below.  User have to expand "Details" to see what actually went wrong.
+             * Probably a good idea to check strErrorId and see if we can come up with better
+             * messages here, at least for common stuff like DvdOrFloppyImageInaccesssible... */
+            error(0, emnMessageType,
+                  tr("<p>The virtual machine execution ran into a non-fatal problem as described below. "
+                     "We suggest that you take appropriate action to prevent the problem from recurring.</p>"),
+                  formatted, autoConfimId.data());
+            break;
+        }
+        case MessageType_Error:
+        {
+            error(0, emnMessageType,
+                  tr("<p>An error has occurred during virtual machine execution! "
+                     "The error details are shown below. You may try to correct the error "
+                     "and resume the virtual machine execution.</p>"),
+                  formatted, autoConfimId.data());
+            break;
+        }
+        case MessageType_Critical:
+        {
+            error(0, emnMessageType,
+                  tr("<p>A fatal error has occurred during virtual machine execution! "
+                     "The virtual machine will be powered off. Please copy the following error message "
+                     "using the clipboard to help diagnose the problem:</p>"),
+                  formatted, autoConfimId.data());
+            break;
+        }
+        default:
+            break;
     }
 }
 
 bool UIMessageCenter::confirmInputCapture(bool &fAutoConfirmed) const
 {
     int rc = question(0, MessageType_Info,
-                      tr("<p>You have <b>clicked the mouse</b> inside the Virtual Machine display or pressed the <b>host key</b>. "
+                      tr("<p>You have <b>clicked the mouse</b> inside the Virtual Machine display or pressed the <b>host key combo</b>. "
                          "This will cause the Virtual Machine to <b>capture</b> the host mouse pointer (only if the mouse pointer "
                          "integration is not currently supported by the guest OS) and the keyboard, which will make them "
                          "unavailable to other applications running on your host machine.</p>"
-                         "<p>You can press the <b>host key</b> at any time to <b>uncapture</b> the keyboard and mouse "
+                         "<p>You can press the <b>host key combo</b> at any time to <b>uncapture</b> the keyboard and mouse "
                          "(if it is captured) and return them to normal operation. "
-                         "The currently assigned host key is shown on the status bar at the bottom of the Virtual Machine window, "
+                         "The currently assigned host key combo is shown on the status bar at the bottom of the Virtual Machine window, "
                          "next to the&nbsp;<img src=:/hostkey_16px.png/>&nbsp;icon. "
                          "This icon, together with the mouse icon placed nearby, indicate the current keyboard and mouse capture state.</p>") +
-                      tr("<p>The host key is currently defined as <b>%1</b>.</p>", "additional message box paragraph")
+                      tr("<p>The host key combo is currently defined as <b>%1</b>.</p>", "additional message box paragraph")
                          .arg(UIHostCombo::toReadableString(gEDataManager->hostKeyCombination())),
                       "confirmInputCapture",
                       AlertButton_Ok | AlertButtonOption_Default,
@@ -2007,8 +2009,8 @@ bool UIMessageCenter::confirmHardDisklessMachine(QWidget *pParent /* = 0*/) cons
                              "until you add one. In the mean time you will only be able to start the "
                              "machine using a virtual optical disk or from the network."),
                           0 /* auto-confirm id */,
-                          tr("Continue", "no hard disk attached"),
-                          tr("Go Back", "no hard disk attached"));
+                          tr("Continue", "agree to create VM with no hard disk attached"),
+                          tr("Go Back", "reject to create VM with no hard disk attached"));
 }
 
 bool UIMessageCenter::confirmExportMachinesInSaveState(const QStringList &machineNames, QWidget *pParent /* = 0*/) const
@@ -2022,7 +2024,7 @@ bool UIMessageCenter::confirmExportMachinesInSaveState(const QStringList &machin
                              "how many machines are in the list and doesn't need to be told).", machineNames.size())
                              .arg(machineNames.join(", ")),
                           0 /* auto-confirm id */,
-                          tr("Continue"));
+                          tr("Continue", "agree to export VMs without saved-state"));
 }
 
 bool UIMessageCenter::confirmOverridingFile(const QString &strPath, QWidget *pParent /* = 0*/) const
@@ -2092,116 +2094,20 @@ void UIMessageCenter::sltShowOnlineDocumentation()
 
 void UIMessageCenter::sltShowHelpAboutDialog()
 {
-    CVirtualBox vbox = uiCommon().virtualBox();
-    QString strFullVersion;
-    if (uiCommon().brandingIsActive())
-    {
-        strFullVersion = QString("%1 r%2 - %3").arg(vbox.GetVersion())
-                                               .arg(vbox.GetRevision())
-                                               .arg(uiCommon().brandingGetKey("Name"));
-    }
-    else
-    {
-        strFullVersion = QString("%1 r%2").arg(vbox.GetVersion())
-                                          .arg(vbox.GetRevision());
-    }
-    AssertWrapperOk(vbox);
-
+    CVirtualBox vbox = gpGlobalSession->virtualBox();
+    const QString strFullVersion = UIVersionInfo::brandingIsActive()
+                                 ? QString("%1 r%2 - %3").arg(vbox.GetVersion())
+                                                         .arg(vbox.GetRevision())
+                                                         .arg(UIVersionInfo::brandingGetKey("Name"))
+                                 : QString("%1 r%2").arg(vbox.GetVersion())
+                                                    .arg(vbox.GetRevision());
     (new VBoxAboutDlg(windowManager().mainWindowShown(), strFullVersion))->show();
-}
-
-void UIMessageCenter::sltShowHelpHelpDialog()
-{
-    /* Currently I am sure how this logic should be changed. I will just disable it for now: */
-    sltShowUserManual(uiCommon().helpFile());
-#if 0
-#ifndef VBOX_OSE
-    /* For non-OSE version we just open it: */
-    sltShowUserManual(uiCommon().helpFile());
-#else /* #ifndef VBOX_OSE */
-    /* For OSE version we have to check if it present first: */
-    QString strUserManualFileName1 = uiCommon().helpFile();
-    QString strShortFileName = QFileInfo(strUserManualFileName1).fileName();
-    QString strUserManualFileName2 = QDir(uiCommon().homeFolder()).absoluteFilePath(strShortFileName);
-    /* Show if user manual already present: */
-    if (QFile::exists(strUserManualFileName1))
-        sltShowUserManual(strUserManualFileName1);
-    else if (QFile::exists(strUserManualFileName2))
-        sltShowUserManual(strUserManualFileName2);
-# ifdef VBOX_GUI_WITH_NETWORK_MANAGER
-    /* If downloader is running already: */
-    else if (UINotificationDownloaderUserManual::exists())
-        gpNotificationCenter->invoke();
-    /* Else propose to download user manual: */
-    else if (confirmLookingForUserManual(strUserManualFileName1))
-    {
-        /* Download user manual: */
-        UINotificationDownloaderUserManual *pNotification = UINotificationDownloaderUserManual::instance(UICommon::helpFile());
-        /* After downloading finished => show User Manual: */
-        connect(pNotification, &UINotificationDownloaderUserManual::sigUserManualDownloaded,
-                this, &UIMessageCenter::sltShowUserManual);
-        /* Append and start notification: */
-        gpNotificationCenter->append(pNotification);
-    }
-# endif /* VBOX_GUI_WITH_NETWORK_MANAGER */
-#endif /* #ifdef VBOX_OSE */
-#endif
 }
 
 void UIMessageCenter::sltResetSuppressedMessages()
 {
     /* Nullify suppressed message list: */
     gEDataManager->setSuppressedMessages(QStringList());
-}
-
-void UIMessageCenter::sltShowUserManual(const QString &strLocation)
-{
-    Q_UNUSED(strLocation);
-#if defined (VBOX_WITH_QHELP_VIEWER)
-    showHelpBrowser(strLocation);
-#else
- #if defined (VBOX_WS_WIN)
-        HtmlHelp(GetDesktopWindow(), strLocation.utf16(), HH_DISPLAY_TOPIC, NULL);
- #endif
-
- #if !defined(VBOX_OSE)
-    char szViewerPath[RTPATH_MAX];
-    int rc;
-    rc = RTPathAppPrivateArch(szViewerPath, sizeof(szViewerPath));
-    AssertRC(rc);
-    QProcess::startDetached(QString(szViewerPath) + "/kchmviewer", QStringList(strLocation));
- # else /* #ifndef VBOX_OSE */
-    uiCommon().openURL("file://" + strLocation);
- # endif /* #ifdef VBOX_OSE */
- #if defined (VBOX_WS_MAC)
-    uiCommon().openURL("file://" + strLocation);
- #endif
-#endif
-}
-
-void UIMessageCenter::sltHelpBrowserClosed()
-{
-    m_pHelpBrowserDialog = 0;
-}
-
-void UIMessageCenter::sltHandleHelpRequest()
-{
-#if defined(VBOX_WITH_QHELP_VIEWER)
-    sltHandleHelpRequestWithKeyword(uiCommon().helpKeyword(sender()));
-#endif /* #if (QT_VERSION >= QT_VERSION_CHECK(5, 9, 0))&& (QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)) */
-}
-
-void UIMessageCenter::sltHandleHelpRequestWithKeyword(const QString &strHelpKeyword)
-{
-#if defined(VBOX_WITH_QHELP_VIEWER)
-    /* First open or show the help browser: */
-    showHelpBrowser(uiCommon().helpFile());
-    /* Show the help page for the @p strHelpKeyword: */
-    if (m_pHelpBrowserDialog)
-        m_pHelpBrowserDialog->showHelpForKeyword(strHelpKeyword);
-#else
-    Q_UNUSED(strHelpKeyword);
-# endif /* #if (QT_VERSION >= QT_VERSION_CHECK(5, 9, 0))&& (QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)) */
 }
 
 void UIMessageCenter::sltShowMessageBox(QWidget *pParent, MessageType enmType,
@@ -2219,7 +2125,6 @@ void UIMessageCenter::sltShowMessageBox(QWidget *pParent, MessageType enmType,
 }
 
 UIMessageCenter::UIMessageCenter()
-    : m_pHelpBrowserDialog(0)
 {
     /* Assign instance: */
     s_pInstance = this;
@@ -2262,8 +2167,8 @@ void UIMessageCenter::prepare()
     /* Translations for Main.
      * Please make sure they corresponds to the strings coming from Main one-by-one symbol! */
     tr("Could not load the Host USB Proxy Service (VERR_FILE_NOT_FOUND). The service might not be installed on the host computer");
-    tr("VirtualBox is not currently allowed to access USB devices.  You can change this by adding your user to the 'vboxusers' group.  Please see the user manual for a more detailed explanation");
-    tr("VirtualBox is not currently allowed to access USB devices.  You can change this by allowing your user to access the 'usbfs' folder and files.  Please see the user manual for a more detailed explanation");
+    tr("VirtualBox is not currently allowed to access USB devices.  You can change this by adding your user to the 'vboxusers' group.  Please see the user guide for a more detailed explanation");
+    tr("VirtualBox is not currently allowed to access USB devices.  You can change this by allowing your user to access the 'usbfs' folder and files.  Please see the user guide for a more detailed explanation");
     tr("The USB Proxy Service has not yet been ported to this host");
     tr("Could not load the Host USB Proxy service");
 }
@@ -2287,7 +2192,7 @@ int UIMessageCenter::showMessageBox(QWidget *pParent, MessageType enmType,
     QStringList confirmedMessageList;
     if (!strAutoConfirmId.isEmpty())
     {
-        const QUuid uID = uiCommon().uiType() == UICommon::UIType_RuntimeUI
+        const QUuid uID = uiCommon().uiType() == UIType_RuntimeUI
                         ? uiCommon().managedVMUuid()
                         : UIExtraDataManager::GlobalID;
         confirmedMessageList = gEDataManager->suppressedMessages(uID);
@@ -2386,28 +2291,4 @@ int UIMessageCenter::showMessageBox(QWidget *pParent, MessageType enmType,
 
     /* Return result-code: */
     return iResultCode;
-}
-
-void UIMessageCenter::showHelpBrowser(const QString &strHelpFilePath, QWidget *pParent /* = 0 */)
-{
-    Q_UNUSED(pParent);
-#if defined(VBOX_WITH_QHELP_VIEWER)
-    if (!QFileInfo(strHelpFilePath).exists())
-    {
-        UINotificationMessage::cannotFindHelpFile(strHelpFilePath);
-        return;
-    }
-    if (!m_pHelpBrowserDialog)
-    {
-        m_pHelpBrowserDialog = new UIHelpBrowserDialog(0 /* parent */, 0 /* Center Widget */, strHelpFilePath);
-        AssertReturnVoid(m_pHelpBrowserDialog);
-        connect(m_pHelpBrowserDialog, &QMainWindow::destroyed, this, &UIMessageCenter::sltHelpBrowserClosed);
-    }
-
-    m_pHelpBrowserDialog->show();
-    m_pHelpBrowserDialog->setWindowState(m_pHelpBrowserDialog->windowState() & ~Qt::WindowMinimized);
-    m_pHelpBrowserDialog->activateWindow();
-#else
-    Q_UNUSED(strHelpFilePath);
-#endif
 }

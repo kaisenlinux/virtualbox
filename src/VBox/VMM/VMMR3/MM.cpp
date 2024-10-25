@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -170,6 +170,9 @@ Hypervisor Memory Area (HMA) Layout: Base 00000000a0000000, 0x00800000 bytes
 #include <iprt/alloc.h>
 #include <iprt/assert.h>
 #include <iprt/string.h>
+#if defined(VBOX_VMM_TARGET_ARMV8)
+# include <iprt/file.h>
+#endif
 
 
 /*********************************************************************************************************************************
@@ -268,6 +271,140 @@ VMMR3DECL(int) MMR3Init(PVM pVM)
 }
 
 
+#if defined(VBOX_VMM_TARGET_ARMV8)
+/**
+ * Initializes the given RAM range with data from the given file.
+ *
+ * @returns VBox status code.
+ * @param   pVM         The cross context VM structure.
+ * @param   GCPhysStart Where to start putting the file content.
+ * @param   pszFilename The file to read the data from.
+ */
+static int mmR3RamRegionInitFromFile(PVM pVM, RTGCPHYS GCPhysStart, const char *pszFilename)
+{
+    RTFILE hFile = NIL_RTFILE;
+    int rc = RTFileOpen(&hFile, pszFilename, RTFILE_O_READ | RTFILE_O_OPEN | RTFILE_O_DENY_WRITE);
+    if (RT_SUCCESS(rc))
+    {
+        uint8_t abRead[GUEST_PAGE_SIZE];
+        RTGCPHYS GCPhys = GCPhysStart;
+
+        for (;;)
+        {
+            size_t cbThisRead = 0;
+            rc = RTFileRead(hFile, &abRead[0], sizeof(abRead), &cbThisRead);
+            if (RT_FAILURE(rc))
+                break;
+
+            rc = PGMPhysSimpleWriteGCPhys(pVM, GCPhys, &abRead[0], cbThisRead);
+            if (RT_FAILURE(rc))
+                break;
+
+            GCPhys += cbThisRead;
+            if (cbThisRead < sizeof(abRead))
+                break;
+        }
+
+        RTFileClose(hFile);
+    }
+
+    if (RT_FAILURE(rc))
+        LogRel(("RAM#%RGp: Loading file %s failed -> %Rrc\n", GCPhysStart, pszFilename, rc));
+
+    return rc;
+}
+
+
+/**
+ * This sets up the RAM ranges from the VM config.
+ *
+ * @returns VBox status code.
+ * @param   pVM         The cross context VM structure.
+ * @param   pMMCfg      Pointer to the CFGM node holding the RAM config.
+ *
+ * @note On ARM there is no "standard" way to handle RAM like on x86.
+ *       Every SoC can have multiple RAM regions scattered across the whole
+ *       address space so we have to be much more flexible here.
+ */
+static int mmR3InitRamArmV8(PVM pVM, PCFGMNODE pMMCfg)
+{
+    int rc = VINF_SUCCESS;
+    PCFGMNODE pMemRegions = CFGMR3GetChild(pMMCfg, "MemRegions");
+
+    pVM->mm.s.cbRamBase     = 0;
+    pVM->mm.s.cbRamHole     = 0;
+    pVM->mm.s.cbRamBelow4GB = 0;
+    pVM->mm.s.cbRamAbove4GB = 0;
+
+    for (PCFGMNODE pCur = CFGMR3GetFirstChild(pMemRegions); pCur; pCur = CFGMR3GetNextChild(pCur))
+    {
+        char szMemRegion[512]; RT_ZERO(szMemRegion);
+        rc = CFGMR3GetName(pCur, &szMemRegion[0], sizeof(szMemRegion));
+        if (RT_FAILURE(rc))
+        {
+            LogRel(("Failed to query memory region name -> %Rrc\n", rc));
+            break;
+        }
+
+        uint64_t u64GCPhysStart = 0;
+        rc = CFGMR3QueryU64(pCur, "GCPhysStart", &u64GCPhysStart);
+        if (RT_FAILURE(rc))
+        {
+            LogRel(("Failed to query \"GCPhysStart\" for memory region %s -> %Rrc\n", szMemRegion, rc));
+            break;
+        }
+
+        uint64_t u64MemSize = 0;
+        rc = CFGMR3QueryU64(pCur, "Size", &u64MemSize);
+        if (RT_FAILURE(rc))
+        {
+            LogRel(("Failed to query \"Size\" for memory region %s -> %Rrc\n", szMemRegion, rc));
+            break;
+        }
+
+        rc = PGMR3PhysRegisterRam(pVM, u64GCPhysStart, u64MemSize, "Conventional RAM");
+        if (RT_FAILURE(rc))
+        {
+            LogRel(("Failed to register memory region '%s' GCPhysStart=%RGp Size=%#RX64 -> %Rrc\n",
+                    szMemRegion, u64GCPhysStart, u64MemSize));
+            break;
+        }
+
+        char *pszFilename = NULL;
+        rc = CFGMR3QueryStringAlloc(pCur, "PrepopulateFromFile", &pszFilename);
+        if (RT_SUCCESS(rc))
+        {
+            rc = mmR3RamRegionInitFromFile(pVM, u64GCPhysStart, pszFilename);
+            MMR3HeapFree(pszFilename);
+            if (RT_FAILURE(rc))
+                break;
+        }
+        else if (rc != VERR_CFGM_VALUE_NOT_FOUND)
+        {
+            LogRel(("Failed to query \"PrepopulateFromFile\" for memory region %s -> %Rrc\n", szMemRegion, rc));
+            break;
+        }
+        else
+            rc = VINF_SUCCESS;
+
+        pVM->mm.s.cbRamBase += u64MemSize;
+        if (u64GCPhysStart >= _4G)
+            pVM->mm.s.cbRamAbove4GB += u64MemSize;
+        else if (u64GCPhysStart + u64MemSize > _4G)
+        {
+            uint64_t cbRamAbove4GB = (u64GCPhysStart + u64MemSize) - _4G;
+            pVM->mm.s.cbRamAbove4GB += cbRamAbove4GB;
+            pVM->mm.s.cbRamBelow4GB += (u64MemSize - cbRamAbove4GB);
+        }
+        else
+            pVM->mm.s.cbRamBelow4GB += (uint32_t)u64MemSize;
+    }
+
+    return rc;
+}
+#endif
+
+
 /**
  * Initializes the MM parts which depends on PGM being initialized.
  *
@@ -290,6 +427,9 @@ VMMR3DECL(int) MMR3InitPaging(PVM pVM)
         AssertRCReturn(rc, rc);
     }
 
+#if defined(VBOX_VMM_TARGET_ARMV8)
+    rc = mmR3InitRamArmV8(pVM, pMMCfg);
+#else
     /** @cfgm{/RamSize, uint64_t, 0, 16TB, 0}
      * Specifies the size of the base RAM that is to be set up during
      * VM initialization.
@@ -315,7 +455,7 @@ VMMR3DECL(int) MMR3InitPaging(PVM pVM)
     AssertLogRelMsgReturn(cbRamHole <= 4032U * _1M,
                           ("Configuration error: \"RamHoleSize\"=%#RX32 is too large.\n", cbRamHole), VERR_OUT_OF_RANGE);
     AssertLogRelMsgReturn(cbRamHole > 16 * _1M,
-                          ("Configuration error: \"RamHoleSize\"=%#RX32 is too large.\n", cbRamHole), VERR_OUT_OF_RANGE);
+                          ("Configuration error: \"RamHoleSize\"=%#RX32 is too small.\n", cbRamHole), VERR_OUT_OF_RANGE);
     AssertLogRelMsgReturn(!(cbRamHole & (_4M - 1)),
                           ("Configuration error: \"RamHoleSize\"=%#RX32 is misaligned.\n", cbRamHole), VERR_OUT_OF_RANGE);
     uint64_t const offRamHole = _4G - cbRamHole;
@@ -420,13 +560,16 @@ VMMR3DECL(int) MMR3InitPaging(PVM pVM)
                 rc = PGMR3PhysRegisterRam(pVM, _4G, cbRam - offRamHole, "Above 4GB Base RAM");
         }
     }
+#endif /* !VBOX_VMM_TARGET_ARMV8 */
 
     /*
      * Enabled mmR3UpdateReservation here since we don't want the
      * PGMR3PhysRegisterRam calls above mess things up.
      */
     pVM->mm.s.fDoneMMR3InitPaging = true;
+#if !defined(VBOX_VMM_TARGET_ARMV8)
     AssertMsg(pVM->mm.s.cBasePages == cBasePages || RT_FAILURE(rc), ("%RX64 != %RX64\n", pVM->mm.s.cBasePages, cBasePages));
+#endif
 
     LogFlow(("MMR3InitPaging: returns %Rrc\n", rc));
     return rc;

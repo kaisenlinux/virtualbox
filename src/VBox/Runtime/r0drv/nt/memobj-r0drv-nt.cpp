@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -257,7 +257,6 @@ DECLHIDDEN(int) rtR0MemObjNativeFree(RTR0MEMOBJ pMem)
 
 DECLHIDDEN(int) rtR0MemObjNativeAllocPage(PPRTR0MEMOBJINTERNAL ppMem, size_t cb, bool fExecutable, const char *pszTag)
 {
-    AssertMsgReturn(cb <= _1G, ("%#x\n", cb), VERR_OUT_OF_RANGE); /* for safe size_t -> ULONG */
     RT_NOREF1(fExecutable);
 
     /*
@@ -315,6 +314,24 @@ DECLHIDDEN(int) rtR0MemObjNativeAllocPage(PPRTR0MEMOBJINTERNAL ppMem, size_t cb,
             ExFreePool(pMdl);
         }
     }
+
+    /*
+     * There are serveral limiting factors here.  First there the ULONG length
+     * parameter in the IoAllocateMdl call that means the absolute maximum is
+     * 4GiB - PAGE_SIZE.  That API is documented to limit the max length
+     * differently for the windows versions:
+     *  - Pre-vista: (65535 - sizeof(MLD)/sizeof(ULONG_PTR)) * PAGE_SIZE
+     *  - Vista & Server 2008: 2GiB - PAGE_SIZE.
+     *  - Windows 7 & Server 2008 R2 and higher: 4GiB - PAGE_SIZE.
+     *
+     * Before that we've got the limitations of the pool code and available
+     * kernel mapping space (32-bit).
+     */
+#if ARCH_BITS == 32
+    AssertMsgReturn(cb < _512M, ("%#x\n", cb), VERR_OUT_OF_RANGE);
+#else
+    AssertMsgReturn(cb < _4G, ("%#x\n", cb), VERR_OUT_OF_RANGE);
+#endif
 
     /*
      * Try allocate the memory and create an MDL for them so
@@ -564,7 +581,7 @@ DECLHIDDEN(int) rtR0MemObjNativeAllocLow(PPRTR0MEMOBJINTERNAL ppMem, size_t cb, 
     /*
      * Fall back on contiguous memory...
      */
-    return rtR0MemObjNativeAllocCont(ppMem, cb, fExecutable, pszTag);
+    return rtR0MemObjNativeAllocCont(ppMem, cb, _4G - 1, fExecutable, pszTag);
 }
 
 
@@ -635,9 +652,10 @@ static int rtR0MemObjNativeAllocContEx(PPRTR0MEMOBJINTERNAL ppMem, size_t cb, bo
 }
 
 
-DECLHIDDEN(int) rtR0MemObjNativeAllocCont(PPRTR0MEMOBJINTERNAL ppMem, size_t cb, bool fExecutable, const char *pszTag)
+DECLHIDDEN(int) rtR0MemObjNativeAllocCont(PPRTR0MEMOBJINTERNAL ppMem, size_t cb, RTHCPHYS PhysHighest,
+                                          bool fExecutable, const char *pszTag)
 {
-    return rtR0MemObjNativeAllocContEx(ppMem, cb, fExecutable, _4G-1, PAGE_SIZE /* alignment */, pszTag);
+    return rtR0MemObjNativeAllocContEx(ppMem, cb, fExecutable, PhysHighest, PAGE_SIZE /* alignment */, pszTag);
 }
 
 
@@ -1280,5 +1298,12 @@ DECLHIDDEN(RTHCPHYS) rtR0MemObjNativeGetPagePhysAddr(PRTR0MEMOBJINTERNAL pMem, s
         case RTR0MEMOBJTYPE_RES_VIRT:
             return NIL_RTHCPHYS;
     }
+}
+
+
+DECLHIDDEN(int) rtR0MemObjNativeZeroInitWithoutMapping(PRTR0MEMOBJINTERNAL pMem)
+{
+    RT_NOREF(pMem);
+    return VERR_NOT_IMPLEMENTED;
 }
 

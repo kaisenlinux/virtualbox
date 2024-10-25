@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -719,7 +719,9 @@ int FwCommonPlantDMITable(PPDMDEVINS pDevIns, uint8_t *pTable, unsigned cbMax, P
         pBIOSInf->u8CharacteristicsByte1 = RT_BIT(0)   /* ACPI is supported */
                                          /* any more?? */
                                          ;
-        pBIOSInf->u8CharacteristicsByte2 = fUefi ? RT_BIT(3) : 0
+        pBIOSInf->u8CharacteristicsByte2 = RT_BIT(2)   /* Enable targeted content distribution, needed by Windows to populate registry, see
+                                                          https://download.microsoft.com/download/5/D/6/5D6EAF2B-7DDF-476B-93DC-7CF0072878E6/SMBIOS.doc */
+                                         | (fUefi ? RT_BIT(3) : 0)
                                          /* any more?? */
                                          ;
         DMI_TERM_STRUCT;

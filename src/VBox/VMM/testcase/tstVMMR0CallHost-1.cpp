@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -61,7 +61,7 @@ static intptr_t volatile    g_cbFooUsed;
 static bool                 g_fInLongJmp;
 
 
-int foo(int i, int iZero, int iMinusOne)
+static int foo(int i, int iZero, int iMinusOne)
 {
     NOREF(iZero);
 
@@ -94,7 +94,7 @@ int foo(int i, int iZero, int iMinusOne)
 }
 
 
-DECLCALLBACK(int) tst2(intptr_t i, intptr_t i2)
+static DECLCALLBACK(int) tst2(intptr_t i, intptr_t i2)
 {
     RTTESTI_CHECK_MSG_RET(i >= 0 && i <= 8192, ("i=%d is out of range [0..8192]\n", i),      1);
     RTTESTI_CHECK_MSG_RET(i2 == 0,             ("i2=%d is out of range [0]\n", i2),          1);
@@ -105,7 +105,7 @@ DECLCALLBACK(int) tst2(intptr_t i, intptr_t i2)
 }
 
 
-DECLCALLBACK(DECL_NO_INLINE(RT_NOTHING, int)) stackRandom(PVMMR0JMPBUF pJmpBuf, PFNVMMR0SETJMP pfn, PVM pVM, PVMCPU pVCpu)
+static DECLCALLBACK(DECL_NO_INLINE(RT_NOTHING, int)) stackRandom(PVMMR0JMPBUF pJmpBuf, PFNVMMR0SETJMP pfn, PVM pVM, PVMCPU pVCpu)
 {
 #ifdef RT_ARCH_AMD64
     uint32_t            cbRand  = RTRandU32Ex(1, 96);
@@ -120,7 +120,7 @@ DECLCALLBACK(DECL_NO_INLINE(RT_NOTHING, int)) stackRandom(PVMMR0JMPBUF pJmpBuf, 
 }
 
 
-void tst(int iFrom, int iTo, int iInc)
+static void tst(int iFrom, int iTo, int iInc)
 {
     RT_BZERO(&g_Jmp, RT_UOFFSETOF(VMMR0JMPBUF, cbStackBuf));
     g_Jmp.cbStackValid = _1M;

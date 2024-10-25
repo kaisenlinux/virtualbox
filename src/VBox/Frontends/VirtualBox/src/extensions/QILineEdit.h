@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,12 +32,12 @@
 #endif
 
 /* Qt includes */
-#include <QIcon>
 #include <QLineEdit>
 
 /* GUI includes: */
 #include "UILibraryDefs.h"
 
+/* Forward declarations: */
 class QLabel;
 
 /** QLineEdit extension with advanced functionality. */
@@ -61,16 +61,15 @@ public:
     /** Forces line-edit to adjust fixed width acording to passed @a strText. */
     void setFixedWidthByText(const QString &strText);
 
+    /** Defines whether line-edit is @a fMarkable. */
+    void setMarkable(bool fMarkable);
     /** Puts an icon to mark some error on the right hand side of the line edit. @p is used as tooltip of the icon. */
-    void mark(bool fError, const QString &strErrorMessage = QString());
+    void mark(bool fError, const QString &strErrorMessage, const QString &strNoErrorMessage);
 
 protected:
 
     /** Handles any Qt @a pEvent. */
     virtual bool event(QEvent *pEvent) RT_OVERRIDE;
-
-    /** Handles resize @a pEvent. */
-    virtual void resizeEvent(QResizeEvent *pResizeEvent) RT_OVERRIDE;
 
 private slots:
 
@@ -85,45 +84,24 @@ private:
     /** Calculates suitable @a strText size. */
     QSize fitTextWidth(const QString &strText) const;
 
+    /** Sets the geometry of the icon label. */
+    void moveIconLabel();
+
     /** Holds whether this is allowed to copy contents when disabled. */
     bool     m_fAllowToCopyContentsWhenDisabled;
     /** Holds the copy to clipboard action. */
     QAction *m_pCopyAction;
 
-    QLabel *m_pIconLabel;
-    QIcon   m_markIcon;
-    bool    m_fMarkForError;
-    QString m_strErrorMessage;
-};
-
-class SHARED_LIBRARY_STUFF UIMarkableLineEdit : public QWidget
-{
-    Q_OBJECT;
-
-signals:
-
-    void textChanged(const QString &strText);
-
-public:
-
-    UIMarkableLineEdit(QWidget *pParent = 0);
-    void mark(bool fError, const QString &strErrorMessage = QString());
-
-    /** @name Pass through functions for QILineEdit.
-      * @{ */
-        void setText(const QString &strText);
-        QString text() const;
-        void setValidator(const QValidator *pValidator);
-        bool hasAcceptableInput() const;
-        void setPlaceholderText(const QString &strText);
-    /** @} */
-
-private:
-
-    void prepare();
-
-    QILineEdit *m_pLineEdit;
-    QLabel *m_pIconLabel;
+    /** Holds whether line-edit is markable. */
+    bool     m_fMarkable;
+    /** Holds whether line-edit is marked for error. */
+    bool     m_fMarkForError;
+    /** Holds the icon label instance. */
+    QLabel  *m_pLabelIcon;
+    /** Holds last error message. */
+    QString  m_strErrorMessage;
+    /** Holds cached icon margin. */
+    int      m_iIconMargin;
 };
 
 #endif /* !FEQT_INCLUDED_SRC_extensions_QILineEdit_h */

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -93,6 +93,8 @@ private slots:
     void sltProductKeyChanged(const QString &strProductKey);
     void sltStartHeadlessChanged(bool fStartHeadless);
     void sltSelectedEditionChanged(ulong uEditionIndex);
+    /** Translation stuff. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -104,12 +106,9 @@ private:
         ExpertToolboxItems_Disk
     };
 
-    /** Translation stuff. */
-    void retranslateUi();
-
     /** Prepare stuff. */
     void createConnections();
-    void initializePage();
+    void initializePage() RT_OVERRIDE;
     void initializeWidgets();
     /** Set the values of the widget if they depend on OS
       * type like recommended RAM size. The widgets whose values are
@@ -118,8 +117,8 @@ private:
     void cleanupPage();
 
     /** Validation stuff. */
-    bool isComplete() const;
-    bool validatePage();
+    bool isComplete() const RT_OVERRIDE;
+    bool validatePage() RT_OVERRIDE;
 
     bool isProductKeyWidgetEnabled() const;
     void disableEnableUnattendedRelatedWidgets(bool fEnabled);

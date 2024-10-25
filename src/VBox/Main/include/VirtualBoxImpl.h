@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -226,6 +226,11 @@ public:
     void i_onUpdateAgentSettingsChanged(IUpdateAgent *aAgent, const Utf8Str &aAttributeHint);
 #endif /* VBOX_WITH_UPDATE_AGENT */
 
+#ifdef VBOX_WITH_EXTPACK
+    void i_onExtPackInstalled(const Utf8Str &aExtPackName);
+    void i_onExtPackUninstalled(const Utf8Str &aExtPackName);
+#endif
+
 #ifdef VBOX_WITH_CLOUD_NET
     HRESULT i_findCloudNetworkByName(const com::Utf8Str &aNetworkName,
                                      ComObjPtr<CloudNetwork> *aNetwork = NULL);
@@ -316,8 +321,8 @@ public:
     HRESULT i_retainCryptoIf(PCVBOXCRYPTOIF *ppCryptoIf);
     HRESULT i_releaseCryptoIf(PCVBOXCRYPTOIF pCryptoIf);
     HRESULT i_unloadCryptoIfModule(void);
-
-
+    HRESULT i_getSupportedGuestOSTypes(std::vector<PlatformArchitecture_T> aArchitectures,
+                                       std::vector<ComPtr<IGuestOSType> > &aGuestOSTypes);
 
 private:
     class ClientWatcher;
@@ -332,6 +337,7 @@ private:
     HRESULT getHomeFolder(com::Utf8Str &aHomeFolder);
     HRESULT getSettingsFilePath(com::Utf8Str &aSettingsFilePath);
     HRESULT getHost(ComPtr<IHost> &aHost);
+    HRESULT getPlatformProperties(PlatformArchitecture_T platformArchitecture, ComPtr<IPlatformProperties> &aPlatformProperties);
     HRESULT getSystemProperties(ComPtr<ISystemProperties> &aSystemProperties);
     HRESULT getMachines(std::vector<ComPtr<IMachine> > &aMachines);
     HRESULT getMachineGroups(std::vector<com::Utf8Str> &aMachineGroups);
@@ -339,6 +345,7 @@ private:
     HRESULT getDVDImages(std::vector<ComPtr<IMedium> > &aDVDImages);
     HRESULT getFloppyImages(std::vector<ComPtr<IMedium> > &aFloppyImages);
     HRESULT getProgressOperations(std::vector<ComPtr<IProgress> > &aProgressOperations);
+    HRESULT getGuestOSFamilies(std::vector<com::Utf8Str> &aOSFamilies);
     HRESULT getGuestOSTypes(std::vector<ComPtr<IGuestOSType> > &aGuestOSTypes);
     HRESULT getSharedFolders(std::vector<ComPtr<ISharedFolder> > &aSharedFolders);
     HRESULT getPerformanceCollector(ComPtr<IPerformanceCollector> &aPerformanceCollector);
@@ -360,6 +367,7 @@ private:
                                    com::Utf8Str &aFile);
     HRESULT createMachine(const com::Utf8Str &aSettingsFile,
                           const com::Utf8Str &aName,
+                          PlatformArchitecture_T aArchitecture,
                           const std::vector<com::Utf8Str> &aGroups,
                           const com::Utf8Str &aOsTypeId,
                           const com::Utf8Str &aFlags,
@@ -391,6 +399,10 @@ private:
                        ComPtr<IMedium> &aMedium);
     HRESULT getGuestOSType(const com::Utf8Str &aId,
                            ComPtr<IGuestOSType> &aType);
+    HRESULT getGuestOSSubtypesByFamilyId(const Utf8Str &strOSFamily,
+                                         std::vector<com::Utf8Str> &aOSSubtypes);
+    HRESULT getGuestOSDescsBySubtype(const Utf8Str &strOSSubtype,
+                                     std::vector<com::Utf8Str> &aGuestOSDescs);
     HRESULT createSharedFolder(const com::Utf8Str &aName,
                                const com::Utf8Str &aHostPath,
                                BOOL aWritable,
@@ -425,7 +437,8 @@ private:
     HRESULT findCloudNetworkByName(const com::Utf8Str &aNetworkName,
                                    ComPtr<ICloudNetwork> &aNetwork);
     HRESULT removeCloudNetwork(const ComPtr<ICloudNetwork> &aNetwork);
-    HRESULT checkFirmwarePresent(FirmwareType_T aFirmwareType,
+    HRESULT checkFirmwarePresent(PlatformArchitecture_T aPlatformArchitecture,
+                                 FirmwareType_T aFirmwareType,
                                  const com::Utf8Str &aVersion,
                                  com::Utf8Str &aUrl,
                                  com::Utf8Str &aFile,
@@ -499,4 +512,3 @@ private:
 ////////////////////////////////////////////////////////////////////////////////
 
 #endif /* !MAIN_INCLUDED_VirtualBoxImpl_h */
-

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,7 +35,6 @@
 #include "UINativeWizard.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CMedium.h"
 #include "CMediumFormat.h"
 
@@ -47,8 +46,12 @@ class SHARED_LIBRARY_STUFF UIWizardNewVD : public UINativeWizard
 public:
 
     UIWizardNewVD(QWidget *pParent,
-                  const QString &strDefaultName, const QString &strDefaultPath,
-                  qulonglong uDefaultSize, WizardMode mode = WizardMode_Auto);
+                  const QString &strDefaultName,
+                  const QString &strDefaultPath,
+                  qulonglong uDefaultSize);
+
+    /** Constructs wizard to clone medium referenced by @a uMediumId, passing @a pParent to the base-class. */
+    UIWizardNewVD(QWidget *pParent, const QUuid &uMediumId);
 
     bool createVirtualDisk();
 
@@ -80,15 +83,26 @@ public:
        QUuid mediumId() const;
     /** @} */
 
+       const QString &defaultPath() const;
+       const QString &defaultName() const;
+       qulonglong defaultSize() const;
+       KDeviceType deviceType() const;
+
 protected:
 
-    virtual void populatePages() /* final override */;
+    virtual void populatePages() RT_OVERRIDE RT_FINAL;
+
+private slots:
+
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 
-    void retranslateUi();
     /** Check medium capabilities and decide if medium variant page should be hidden. */
     void setMediumVariantPageVisibility();
+    qulonglong diskMinimumSize() const;
+    bool isClonning() const;
+
     qulonglong m_uMediumVariant;
     CMediumFormat m_comMediumFormat;
     QString m_strMediumPath;
@@ -98,6 +112,9 @@ private:
     qulonglong  m_uDefaultSize;
     int m_iMediumVariantPageIndex;
     QUuid m_uMediumId;
+    /** Holds the source virtual disk wrapper. */
+    CMedium m_comSourceVirtualDisk;
+    KDeviceType m_enmDeviceType;
 };
 
 typedef QPointer<UIWizardNewVD> UISafePointerWizardNewVD;

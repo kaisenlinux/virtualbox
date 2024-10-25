@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2021-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2021-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -73,14 +73,14 @@ typedef struct PDMDRVINSINT
  *
  * @{  */
 
-VMMR3DECL(PCFGMNODE) audioTestDrvHlp_CFGMR3GetChild(PCFGMNODE pNode, const char *pszPath)
+static DECLCALLBACK(PCFGMNODE) audioTestDrvHlp_CFGMR3GetChild(PCFGMNODE pNode, const char *pszPath)
 {
     RT_NOREF(pNode, pszPath);
     return NULL;
 }
 
 
-VMMR3DECL(int) audioTestDrvHlp_CFGMR3QueryString(PCFGMNODE pNode, const char *pszName, char *pszString, size_t cchString)
+static DECLCALLBACK(int) audioTestDrvHlp_CFGMR3QueryString(PCFGMNODE pNode, const char *pszName, char *pszString, size_t cchString)
 {
     if (pNode != NULL)
     {
@@ -104,7 +104,7 @@ VMMR3DECL(int) audioTestDrvHlp_CFGMR3QueryString(PCFGMNODE pNode, const char *ps
 }
 
 
-VMMR3DECL(int) audioTestDrvHlp_CFGMR3QueryStringAlloc(PCFGMNODE pNode, const char *pszName, char **ppszString)
+static DECLCALLBACK(int) audioTestDrvHlp_CFGMR3QueryStringAlloc(PCFGMNODE pNode, const char *pszName, char **ppszString)
 {
     char szStr[128];
     int rc = audioTestDrvHlp_CFGMR3QueryString(pNode, pszName, szStr, sizeof(szStr));
@@ -115,7 +115,7 @@ VMMR3DECL(int) audioTestDrvHlp_CFGMR3QueryStringAlloc(PCFGMNODE pNode, const cha
 }
 
 
-VMMR3DECL(void) audioTestDrvHlp_MMR3HeapFree(PPDMDRVINS pDrvIns, void *pv)
+static DECLCALLBACK(void) audioTestDrvHlp_MMR3HeapFree(PPDMDRVINS pDrvIns, void *pv)
 {
     RT_NOREF(pDrvIns);
 
@@ -124,7 +124,7 @@ VMMR3DECL(void) audioTestDrvHlp_MMR3HeapFree(PPDMDRVINS pDrvIns, void *pv)
 }
 
 
-VMMR3DECL(int) audioTestDrvHlp_CFGMR3QueryStringDef(PCFGMNODE pNode, const char *pszName, char *pszString, size_t cchString, const char *pszDef)
+static DECLCALLBACK(int) audioTestDrvHlp_CFGMR3QueryStringDef(PCFGMNODE pNode, const char *pszName, char *pszString, size_t cchString, const char *pszDef)
 {
     PCPDMDRVREG pDrvReg = (PCPDMDRVREG)pNode;
     if (RT_VALID_PTR(pDrvReg))
@@ -149,7 +149,7 @@ VMMR3DECL(int) audioTestDrvHlp_CFGMR3QueryStringDef(PCFGMNODE pNode, const char 
 }
 
 
-VMMR3DECL(int) audioTestDrvHlp_CFGMR3QueryBoolDef(PCFGMNODE pNode, const char *pszName, bool *pf, bool fDef)
+static DECLCALLBACK(int) audioTestDrvHlp_CFGMR3QueryBoolDef(PCFGMNODE pNode, const char *pszName, bool *pf, bool fDef)
 {
     PCPDMDRVREG pDrvReg = (PCPDMDRVREG)pNode;
     if (RT_VALID_PTR(pDrvReg))
@@ -168,23 +168,23 @@ VMMR3DECL(int) audioTestDrvHlp_CFGMR3QueryBoolDef(PCFGMNODE pNode, const char *p
 }
 
 
-VMMR3DECL(int) audioTestDrvHlp_CFGMR3QueryU8(PCFGMNODE pNode, const char *pszName, uint8_t *pu8)
+static DECLCALLBACK(int) audioTestDrvHlp_CFGMR3QueryU8(PCFGMNODE pNode, const char *pszName, uint8_t *pu8)
 {
     RT_NOREF(pNode, pszName, pu8);
     return VERR_CFGM_VALUE_NOT_FOUND;
 }
 
 
-VMMR3DECL(int) audioTestDrvHlp_CFGMR3QueryU32(PCFGMNODE pNode, const char *pszName, uint32_t *pu32)
+static DECLCALLBACK(int) audioTestDrvHlp_CFGMR3QueryU32(PCFGMNODE pNode, const char *pszName, uint32_t *pu32)
 {
     RT_NOREF(pNode, pszName, pu32);
     return VERR_CFGM_VALUE_NOT_FOUND;
 }
 
 
-VMMR3DECL(int) audioTestDrvHlp_CFGMR3ValidateConfig(PCFGMNODE pNode, const char *pszNode,
-                                                    const char *pszValidValues, const char *pszValidNodes,
-                                                    const char *pszWho, uint32_t uInstance)
+static DECLCALLBACK(int) audioTestDrvHlp_CFGMR3ValidateConfig(PCFGMNODE pNode, const char *pszNode,
+                                                              const char *pszValidValues, const char *pszValidNodes,
+                                                              const char *pszWho, uint32_t uInstance)
 {
     RT_NOREF(pNode, pszNode, pszValidValues, pszValidNodes, pszWho, uInstance);
     return VINF_SUCCESS;
@@ -320,7 +320,7 @@ static DECLCALLBACK(int) audioTestIHostAudioPort_DoOnWorkerThread(PPDMIHOSTAUDIO
 }
 
 
-DECLCALLBACK(void) audioTestIHostAudioPort_NotifyDeviceChanged(PPDMIHOSTAUDIOPORT pInterface, PDMAUDIODIR enmDir, void *pvUser)
+static DECLCALLBACK(void) audioTestIHostAudioPort_NotifyDeviceChanged(PPDMIHOSTAUDIOPORT pInterface, PDMAUDIODIR enmDir, void *pvUser)
 {
     RT_NOREF(pInterface, enmDir, pvUser);
     RTMsgWarning("audioTestIHostAudioPort_NotifyDeviceChanged was called\n");
@@ -610,30 +610,36 @@ int audioTestDriverStackInit(PAUDIOTESTDRVSTACK pDrvStack, PCPDMDRVREG pDrvReg, 
  *
  * @returns VBox status code.
  * @param   pDrvStack       The driver stack to initialize.
- * @param   pDrvReg         The backend driver to use.
  * @param   fEnabledIn      Whether input is enabled or not on creation time.
  * @param   fEnabledOut     Whether output is enabled or not on creation time.
  * @param   fWithDrvAudio   Whether to include DrvAudio in the stack or not.
  */
-int audioTestDriverStackProbe(PAUDIOTESTDRVSTACK pDrvStack, PCPDMDRVREG pDrvReg, bool fEnabledIn, bool fEnabledOut, bool fWithDrvAudio)
+int audioTestDriverStackProbe(PAUDIOTESTDRVSTACK pDrvStack, bool fEnabledIn, bool fEnabledOut, bool fWithDrvAudio)
 {
     int rc = VERR_IPE_UNINITIALIZED_STATUS; /* Shut up MSVC. */
 
+    PCPDMDRVREG pDrvLast = NULL; /* Last probed backend. */
+
     for (size_t i = 0; i < g_cBackends; i++)
     {
-        pDrvReg = g_aBackends[i].pDrvReg;
-        RTTestPrintf(g_hTest, RTTESTLVL_ALWAYS, "Probing for backend '%s' ...\n", g_aBackends[i].pszName);
+        PCPDMDRVREG pDrvReg = g_aBackends[i].pDrvReg;
+
+        if (   pDrvLast
+            && pDrvLast == pDrvReg) /* Check if we already probed the backend by another alias and skip if so. */
+            continue;
+
+        pDrvLast = pDrvReg;
+
+        RTTestPrintf(g_hTest, RTTESTLVL_ALWAYS, "Probing for backend '%s' ...\n", pDrvReg->szName);
 
         rc = audioTestDriverStackInitEx(pDrvStack, pDrvReg, fEnabledIn, fEnabledOut, fWithDrvAudio); /** @todo Make in/out configurable, too. */
         if (RT_SUCCESS(rc))
         {
-            RTTestPrintf(g_hTest, RTTESTLVL_ALWAYS, "Probing backend '%s' successful\n", g_aBackends[i].pszName);
+            RTTestPrintf(g_hTest, RTTESTLVL_ALWAYS, "Probing backend '%s' successful\n", pDrvReg->szName);
             return rc;
         }
 
-        RTTestPrintf(g_hTest, RTTESTLVL_ALWAYS, "Probing backend '%s' failed with %Rrc, trying next one\n",
-                     g_aBackends[i].pszName, rc);
-        continue;
+        RTTestPrintf(g_hTest, RTTESTLVL_ALWAYS, "Probing backend '%s' failed with %Rrc, trying next one\n", pDrvReg->szName, rc);
     }
 
     RTTestPrintf(g_hTest, RTTESTLVL_ALWAYS, "Probing all backends failed\n");
@@ -1354,7 +1360,7 @@ static int audioTestMixStreamTransfer(PAUDIOTESTDRVMIXSTREAM pMix)
                 cbToRead = PDMAudioPropsFramesToBytes(&pMix->pStream->Cfg.Props, cDstFrames);
             else
                 cbToRead = PDMAudioPropsFramesToBytes(&pMix->pStream->Cfg.Props,
-                                                        (uint64_t)cDstFrames * PDMAudioPropsHz(&pMix->pStream->Cfg.Props)
+                                                        cDstFrames * PDMAudioPropsHz(&pMix->pStream->Cfg.Props)
                                                       / PDMAudioPropsHz(&pMix->MixBuf.Props));
             cbToRead = RT_MIN(cbToRead, RT_MIN(cbReadable, cbBuf));
             if (!cbToRead)

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -528,6 +528,7 @@ typedef struct DBGCFLOWBRANCHTBLDUMP
 /** Pointer to control flow graph branch table state. */
 typedef DBGCFLOWBRANCHTBLDUMP *PDBGCFLOWBRANCHTBLDUMP;
 
+
 /*******************************************************************************
 *   Internal Functions                                                         *
 *******************************************************************************/
@@ -641,6 +642,10 @@ DECLHIDDEN(PCDBGCSXEVT) dbgcEventLookup(DBGFEVENTTYPE enmType);
 
 DECL_HIDDEN_CALLBACK(int) dbgcGdbStubRunloop(PUVM pUVM, PCDBGCIO pIo, unsigned fFlags);
 DECL_HIDDEN_CALLBACK(int) dbgcKdStubRunloop(PUVM pUVM, PCDBGCIO pIo, unsigned fFlags);
+
+
+extern FNDBGCCMD dbgcCmdDumpImage;
+extern FNDBGCCMD dbgcCmdNtRbTree;
 
 
 /*******************************************************************************

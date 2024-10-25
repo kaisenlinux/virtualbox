@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -51,12 +51,13 @@
 #include <VBox/vmm/gim.h>
 #include <VBox/vmm/cpumdis.h>
 #include <VBox/dis.h>
-#include <VBox/disopcode.h>
 #include <VBox/err.h>
 #include <VBox/vmm/dbgf.h>
 #include "VMMTracing.h"
 
 #include <iprt/asm.h>
+
+#include "EMInline.h"
 
 
 /*********************************************************************************************************************************
@@ -344,10 +345,10 @@ static int emR3HmForcedActions(PVM pVM, PVMCPU pVCpu)
 /**
  * Executes hardware accelerated raw code. (Intel VT-x & AMD-V)
  *
- * This function contains the raw-mode version of the inner
- * execution loop (the outer loop being in EMR3ExecuteVM()).
+ * This function contains the inner EM execution loop for HM (the outer loop
+ * being in EMR3ExecuteVM()).
  *
- * @returns VBox status code. The most important ones are: VINF_EM_RESCHEDULE, VINF_EM_RESCHEDULE_RAW,
+ * @returns VBox status code. The most important ones are: VINF_EM_RESCHEDULE,
  *          VINF_EM_RESCHEDULE_REM, VINF_EM_SUSPEND, VINF_EM_RESET and VINF_EM_TERMINATE.
  *
  * @param   pVM         The cross context VM structure.
@@ -468,7 +469,7 @@ int emR3HmExecute(PVM pVM, PVMCPU pVCpu, bool *pfFFDone)
             rc = emR3ForcedActions(pVM, pVCpu, rc);
             VBOXVMM_EM_FF_ALL_RET(pVCpu, rc);
             if (    rc != VINF_SUCCESS
-                &&  rc != VINF_EM_RESCHEDULE_HM)
+                &&  rc != VINF_EM_RESCHEDULE_EXEC_ENGINE)
             {
                 *pfFFDone = true;
                 break;

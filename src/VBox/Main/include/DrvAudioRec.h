@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2017-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2017-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -57,7 +57,7 @@ public:
 
 public:
 
-    int applyConfiguration(const settings::RecordingSettings &Settings);
+    int applyConfiguration(const settings::Recording &Settings);
 
 public:
 
@@ -70,9 +70,9 @@ private:
     virtual int configureDriver(PCFGMNODE pLunCfg, PCVMMR3VTABLE pVMM) RT_OVERRIDE;
 
     /** Pointer to the associated video recording audio driver. */
-    struct DRVAUDIORECORDING          *mpDrv;
+    struct DRVAUDIORECORDING  *mpDrv;
     /** Recording settings used for configuring the driver. */
-    struct settings::RecordingSettings mSettings;
+    struct settings::Recording mSettings;
 };
 
 #endif /* !MAIN_INCLUDED_DrvAudioRec_h */

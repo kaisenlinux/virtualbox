@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,14 +26,14 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QHeaderView>
 #include <QMenu>
-#include <QRegExp>
+#include <QRegularExpression>
 #include <QTimer>
 #include <QVBoxLayout>
 
 /* GUI includes: */
-#include "QILabelSeparator.h"
 #include "QIToolBar.h"
 #include "QITreeWidget.h"
 #include "UIIconPool.h"
@@ -72,7 +72,7 @@ public:
     SFTreeViewItem(SFTreeViewItem *pParent, FormatType enmFormat);
 
     /** Returns whether this item is less than the @a other one. */
-    bool operator<(const QTreeWidgetItem &other) const;
+    bool operator<(const QTreeWidgetItem &other) const RT_OVERRIDE;
 
     /** Returns child item number @a iIndex. */
     SFTreeViewItem *child(int iIndex) const;
@@ -185,17 +185,9 @@ void SFTreeViewItem::processColumn(int iColumn)
     if (strOneString.isNull())
         return;
     const QFontMetrics fm = treeWidget()->fontMetrics();
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
     const int iOldSize = fm.horizontalAdvance(strOneString);
-#else
-    const int iOldSize = fm.width(strOneString);
-#endif
     const int iItemIndent = parentItem() ? treeWidget()->indentation() * 2 : treeWidget()->indentation();
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
     int iIndentSize = fm.horizontalAdvance(" ... ");
-#else
-    int iIndentSize = fm.width(" ... ");
-#endif
     if (iColumn == 0)
         iIndentSize += iItemIndent;
     const int cWidth = !parentItem() ? treeWidget()->viewport()->width() : treeWidget()->columnWidth(iColumn);
@@ -207,11 +199,7 @@ void SFTreeViewItem::processColumn(int iColumn)
     int iTextWidth = 0;
     do
     {
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
         iTextWidth = fm.horizontalAdvance(strOneString);
-#else
-        iTextWidth = fm.width(strOneString);
-#endif
         if (   iTextWidth
             && iTextWidth + iIndentSize > cWidth)
         {
@@ -232,8 +220,9 @@ void SFTreeViewItem::processColumn(int iColumn)
                     break;
                 case FormatType_EllipsisFile:
                 {
-                    const QRegExp regExp("([\\\\/][^\\\\^/]+[\\\\/]?$)");
-                    const int iNewFinish = regExp.indexIn(strOneString);
+                    const QRegularExpression re("([\\\\/][^\\\\^/]+[\\\\/]?$)");
+                    const QRegularExpressionMatch mt = re.match(strOneString);
+                    const int iNewFinish = mt.capturedStart();
                     if (iNewFinish != -1)
                         iFinish = iNewFinish;
                     iPosition = (iFinish - iStart) / 2;
@@ -254,20 +243,12 @@ void SFTreeViewItem::processColumn(int iColumn)
 
     if (iPosition || m_enmFormat == FormatType_EllipsisFile)
         strOneString.insert(iPosition, "...");
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
     const int iNewSize = fm.horizontalAdvance(strOneString);
-#else
-    const int iNewSize = fm.width(strOneString);
-#endif
     setText(iColumn, iNewSize < iOldSize ? strOneString : m_fields.at(iColumn));
     setToolTip(iColumn, text(iColumn) == getText(iColumn) ? QString() : getText(iColumn));
 
     /* Calculate item's size-hint: */
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
     setSizeHint(iColumn, QSize(fm.horizontalAdvance(QString("  %1  ").arg(getText(iColumn))), fm.height()));
-#else
-    setSizeHint(iColumn, QSize(fm.width(QString("  %1  ").arg(getText(iColumn))), fm.height()));
-#endif
 }
 
 
@@ -276,8 +257,7 @@ void SFTreeViewItem::processColumn(int iColumn)
 *********************************************************************************************************************************/
 
 UISharedFoldersEditor::UISharedFoldersEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
-    , m_pLabelSeparator(0)
+    : UIEditor(pParent, true /* show in basic mode? */)
     , m_pLayoutTree(0)
     , m_pTreeWidget(0)
     , m_pToolbar(0)
@@ -330,8 +310,6 @@ QList<UIDataSharedFolder> UISharedFoldersEditor::value() const
 
 void UISharedFoldersEditor::setFeatureAvailable(bool fAvailable)
 {
-    if (m_pLabelSeparator)
-        m_pLabelSeparator->setEnabled(fAvailable);
     if (m_pTreeWidget)
         m_pTreeWidget->setEnabled(fAvailable);
     if (m_pToolbar)
@@ -344,12 +322,8 @@ void UISharedFoldersEditor::setFoldersAvailable(UISharedFolderType enmType, bool
     updateRootItemsVisibility();
 }
 
-void UISharedFoldersEditor::retranslateUi()
+void UISharedFoldersEditor::sltRetranslateUI()
 {
-    /* Translate separator label: */
-    if (m_pLabelSeparator)
-        m_pLabelSeparator->setText(tr("Shared &Folders"));
-
     /* Translate tree-widget: */
     if (m_pTreeWidget)
     {
@@ -393,7 +367,7 @@ void UISharedFoldersEditor::retranslateUi()
 void UISharedFoldersEditor::showEvent(QShowEvent *pEvent)
 {
     /* Call to base-class: */
-    QIWithRetranslateUI<QWidget>::showEvent(pEvent);
+    UIEditor::showEvent(pEvent);
 
     /* Connect header-resize signal just before widget is shown
      * after all the items properly loaded and initialized: */
@@ -634,7 +608,7 @@ void UISharedFoldersEditor::prepare()
     prepareConnections();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UISharedFoldersEditor::prepareWidgets()
@@ -644,11 +618,6 @@ void UISharedFoldersEditor::prepareWidgets()
     if (pLayout)
     {
         pLayout->setContentsMargins(0, 0, 0, 0);
-
-        /* Prepare separator: */
-        m_pLabelSeparator = new QILabelSeparator(this);
-        if (m_pLabelSeparator)
-            pLayout->addWidget(m_pLabelSeparator);
 
         /* Prepare view layout: */
         m_pLayoutTree = new QHBoxLayout;
@@ -673,10 +642,9 @@ void UISharedFoldersEditor::prepareTreeWidget()
     m_pTreeWidget = new QITreeWidget(this);
     if (m_pTreeWidget)
     {
-        if (m_pLabelSeparator)
-            m_pLabelSeparator->setBuddy(m_pTreeWidget);
         m_pTreeWidget->header()->setSectionsMovable(false);
-        m_pTreeWidget->setMinimumSize(QSize(0, 200));
+        m_pTreeWidget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Ignored);
+        m_pTreeWidget->setMinimumHeight(150);
         m_pTreeWidget->setContextMenuPolicy(Qt::CustomContextMenu);
         m_pTreeWidget->setUniformRowHeights(true);
         m_pTreeWidget->setAllColumnsShowFocus(true);

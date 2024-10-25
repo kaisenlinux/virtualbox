@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -126,11 +126,7 @@ protected:
     virtual void resizeEvent(QResizeEvent *pEvent) RT_OVERRIDE;
 
     /** Mouse enter @a pEvent handler. */
-#ifdef VBOX_IS_QT6_OR_LATER /* QWidget::enterEvent uses QEnterEvent since qt6 */
     virtual void enterEvent(QEnterEvent *pEvent) RT_OVERRIDE;
-#else
-    virtual void enterEvent(QEvent *pEvent) RT_OVERRIDE;
-#endif
     /** Mouse leave @a pEvent handler. */
     virtual void leaveEvent(QEvent *pEvent) RT_OVERRIDE;
 
@@ -211,7 +207,7 @@ private:
     /** Holds the animation framework object. */
     UIAnimation *m_pAnimation;
 
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     /** X11: Holds whether the parent is currently minimized.
       * Used to restore the full-screen/maximized state
       * when the parent restored again. */

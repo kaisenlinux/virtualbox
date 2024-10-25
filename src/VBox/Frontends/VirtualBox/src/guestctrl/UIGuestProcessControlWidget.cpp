@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -33,26 +33,22 @@
 /* GUI includes: */
 #include "QIDialog.h"
 #include "QIDialogButtonBox.h"
-#include "UIExtraDataManager.h"
+#include "QIToolBar.h"
+#include "UIGlobalSession.h"
 #include "UIGuestControlConsole.h"
-#include "UIGuestControlInterface.h"
 #include "UIGuestControlTreeItem.h"
 #include "UIGuestProcessControlWidget.h"
-#include "QIToolBar.h"
 #include "UIIconPool.h"
-#include "UIVMInformationDialog.h"
-#include "UICommon.h"
+#include "UITranslationEventListener.h"
 
 /* COM includes: */
 #include "CGuest.h"
 #include "CEventSource.h"
 
-const bool UIGuestProcessControlWidget::m_fDeleteAfterUnregister = false;
 
 /** A QIDialog child to display properties of a guest session on process. */
 class UISessionProcessPropertiesDialog : public QIDialog
 {
-
     Q_OBJECT;
 
 public:
@@ -67,10 +63,6 @@ private:
     QString      m_strProperty;
 };
 
-
-/*********************************************************************************************************************************
-*   UIGuestControlTreeWidget definition.                                                                                         *
-*********************************************************************************************************************************/
 
 class UIGuestControlTreeWidget : public QITreeWidget
 {
@@ -89,7 +81,7 @@ public:
 
 protected:
 
-    void contextMenuEvent(QContextMenuEvent *pEvent) RT_OVERRIDE;
+    void contextMenuEvent(QContextMenuEvent *pEvent) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -298,10 +290,12 @@ void UIGuestControlTreeWidget::expandCollapseAll(bool bFlag)
 *   UIGuestProcessControlWidget implementation.                                                                                  *
 *********************************************************************************************************************************/
 
+const bool UIGuestProcessControlWidget::s_fDeleteAfterUnregister = false;
+
 UIGuestProcessControlWidget::UIGuestProcessControlWidget(EmbedTo enmEmbedding, const CGuest &comGuest,
                                                          QWidget *pParent, QString strMachineName /* = QString()*/,
                                                          bool fShowToolbar /* = false */)
-    :QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_comGuest(comGuest)
     , m_pMainLayout(0)
     , m_pTreeWidget(0)
@@ -316,7 +310,9 @@ UIGuestProcessControlWidget::UIGuestProcessControlWidget(EmbedTo enmEmbedding, c
     prepareConnections();
     prepareToolBar();
     initGuestSessionTree();
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIGuestProcessControlWidget::sltRetranslateUI);
 }
 
 UIGuestProcessControlWidget::~UIGuestProcessControlWidget()
@@ -324,7 +320,7 @@ UIGuestProcessControlWidget::~UIGuestProcessControlWidget()
     sltCleanupListener();
 }
 
-void UIGuestProcessControlWidget::retranslateUi()
+void UIGuestProcessControlWidget::sltRetranslateUI()
 {
     if (m_pTreeWidget)
     {
@@ -448,16 +444,15 @@ void UIGuestProcessControlWidget::prepareListener()
 
     /* Get CProgress event source: */
     CEventSource comEventSource = m_comGuest.GetEventSource();
-    AssertWrapperOk(comEventSource);
+    Assert(m_comGuest.isOk());
 
     /* Enumerate all the required event-types: */
     QVector<KVBoxEventType> eventTypes;
     eventTypes << KVBoxEventType_OnGuestSessionRegistered;
 
-
     /* Register event listener for CProgress event source: */
     comEventSource.RegisterListener(m_comEventListener, eventTypes, FALSE /* active? */);
-    AssertWrapperOk(comEventSource);
+    Assert(comEventSource.isOk());
 
     /* Register event sources in their listeners as well: */
     m_pQtListener->getWrapped()->registerSource(comEventSource, m_comEventListener);
@@ -544,7 +539,7 @@ void UIGuestProcessControlWidget::sltGuestSessionUnregistered(CGuestSession gues
             break;
         }
     }
-    if (m_fDeleteAfterUnregister)
+    if (s_fDeleteAfterUnregister)
         delete selectedItem;
 }
 
@@ -554,12 +549,12 @@ void UIGuestProcessControlWidget::sltCleanupListener()
     m_pQtListener->getWrapped()->unregisterSources();
 
     /* Make sure VBoxSVC is available: */
-    if (!uiCommon().isVBoxSVCAvailable())
+    if (!gpGlobalSession->isVBoxSVCAvailable())
         return;
 
     /* Get CProgress event source: */
     CEventSource comEventSource = m_comGuest.GetEventSource();
-    AssertWrapperOk(comEventSource);
+    Assert(m_comGuest.isOk());
 
     /* Unregister event listener for CProgress event source: */
     comEventSource.UnregisterListener(m_comEventListener);

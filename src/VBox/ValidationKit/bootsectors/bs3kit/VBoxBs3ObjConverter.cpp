@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -370,17 +370,17 @@ typedef OMFWRITE *POMFWRITER;
  */
 static POMFWRITER omfWriter_Create(const char *pszSrc, uint32_t cSegments, uint32_t cSymbols, FILE *pDst)
 {
-    POMFWRITER pThis = (POMFWRITER)calloc(sizeof(OMFWRITER), 1);
+    POMFWRITER pThis = (POMFWRITER)calloc(1, sizeof(OMFWRITER));
     if (pThis)
     {
         pThis->pszSrc        = pszSrc;
         pThis->idxNextName   = 1;       /* We start counting at 1. */
         pThis->cSegments     = cSegments;
-        pThis->paSegments    = (POMFTOSEGDEF)calloc(sizeof(OMFTOSEGDEF), cSegments);
+        pThis->paSegments    = (POMFTOSEGDEF)calloc(cSegments, sizeof(OMFTOSEGDEF));
         if (pThis->paSegments)
         {
             pThis->cSymbols  = cSymbols;
-            pThis->paSymbols = (POMFSYMBOL)calloc(sizeof(OMFSYMBOL), cSymbols);
+            pThis->paSymbols = (POMFSYMBOL)calloc(cSymbols, sizeof(OMFSYMBOL));
             if (pThis->paSymbols)
             {
                 pThis->pDst  = pDst;
@@ -5503,7 +5503,7 @@ int main(int argc, char **argv)
                         break;
 
                     case 'V':
-                        printf("%s\n", "$Revision: 155244 $");
+                        printf("%s\n", "$Revision: 164827 $");
                         return 0;
 
                     case '?':

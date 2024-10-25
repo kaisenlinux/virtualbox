@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -110,7 +110,7 @@ public:
     bool isUsedInSnapshots() const { return m_guiMedium.isUsedInSnapshots(); }
 
     /** Returns whether <i>this</i> item is less than @a other one. */
-    bool operator<(const QTreeWidgetItem &other) const;
+    bool operator<(const QTreeWidgetItem &other) const RT_OVERRIDE;
     /** Returns whether the medium can be modified. For
       * simplicity's sake this returns false if one of the attached vms is not
       * in PoweredOff or Aborted state. */

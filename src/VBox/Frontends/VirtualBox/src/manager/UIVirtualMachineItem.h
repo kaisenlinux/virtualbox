@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -38,7 +38,6 @@
 #include <QUuid>
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
 #include "UIManagerDefs.h"
 #include "UISettingsDefs.h"
 
@@ -50,7 +49,7 @@ class UIVirtualMachineItemLocal;
 using namespace UISettingsDefs;
 
 /** Virtual Machine item interface. A wrapper caching VM data. */
-class UIVirtualMachineItem : public QIWithRetranslateUI3<QObject>
+class UIVirtualMachineItem : public QObject
 {
     Q_OBJECT;
 

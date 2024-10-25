@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,23 +31,19 @@
 # pragma once
 #endif
 
-/* Qt includes: */
-#include <QWidget>
-
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
-#include "UILibraryDefs.h"
+#include "UIEditor.h"
 #include "UIUSBFiltersEditor.h"
 
 /* COM includes: */
-#include "COMEnums.h"
+#include "KUSBControllerType.h"
 
 /* Forward declarations: */
 class QCheckBox;
 class UIUSBControllerEditor;
 
-/** QWidget subclass used as a USB settings editor. */
-class SHARED_LIBRARY_STUFF UIUSBSettingsEditor : public QIWithRetranslateUI<QWidget>
+/** UIEditor sub-class used as a USB settings editor. */
+class SHARED_LIBRARY_STUFF UIUSBSettingsEditor : public UIEditor
 {
     Q_OBJECT;
 
@@ -94,12 +90,10 @@ public:
         void setUsbFiltersOptionAvailable(bool fAvailable);
     /** @} */
 
-protected:
+private slots:
 
     /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
-private slots:
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
     /** Handles feature toggling. */
     void sltHandleFeatureToggled();

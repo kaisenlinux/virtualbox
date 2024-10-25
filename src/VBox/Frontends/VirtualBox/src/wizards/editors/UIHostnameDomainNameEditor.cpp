@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,6 +26,7 @@
  */
 
 /* Qt includes: */
+#include <QCheckBox>
 #include <QGridLayout>
 #include <QLabel>
 #include <QLineEdit>
@@ -37,20 +38,25 @@
 #include "QILineEdit.h"
 #include "QIRichTextLabel.h"
 #include "QIToolButton.h"
-#include "UICommon.h"
 #include "UIIconPool.h"
 #include "UIHostnameDomainNameEditor.h"
+#include "UITranslationEventListener.h"
 #include "UIWizardNewVM.h"
 
+/* Other VBox includes: */
+#include "iprt/assert.h"
 
 
 UIHostnameDomainNameEditor::UIHostnameDomainNameEditor(QWidget *pParent /*  = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_pHostnameLineEdit(0)
     , m_pDomainNameLineEdit(0)
+    , m_pProductKeyLineEdit(0)
     , m_pHostnameLabel(0)
     , m_pDomainNameLabel(0)
+    , m_pProductKeyLabel(0)
     , m_pMainLayout(0)
+    , m_pStartHeadlessCheckBox(0)
 {
     prepare();
 }
@@ -73,11 +79,13 @@ void UIHostnameDomainNameEditor::mark()
     if (m_pHostnameLineEdit)
         m_pHostnameLineEdit->mark(!m_pHostnameLineEdit->hasAcceptableInput(),
                                   tr("Hostname should be at least 2 character long. "
-                                     "Allowed characters are alphanumerics, \"-\" and \".\""));
+                                     "Allowed characters are alphanumerics, \"-\" and \".\""),
+                                  tr("Hostname is valid"));
     if (m_pDomainNameLineEdit)
         m_pDomainNameLineEdit->mark(!m_pDomainNameLineEdit->hasAcceptableInput(),
                                     tr("Domain name should be at least 2 character long. "
-                                       "Allowed characters are alphanumerics, \"-\" and \".\""));
+                                       "Allowed characters are alphanumerics, \"-\" and \".\""),
+                                    tr("Domain name is valid"));
 }
 
 void UIHostnameDomainNameEditor::setHostname(const QString &strHostname)
@@ -106,23 +114,7 @@ QString UIHostnameDomainNameEditor::hostnameDomainName() const
     return QString();
 }
 
-int UIHostnameDomainNameEditor::firstColumnWidth() const
-{
-    int iWidth = 0;
-    if (m_pHostnameLabel)
-        iWidth = qMax(iWidth, m_pHostnameLabel->minimumSizeHint().width());
-    if (m_pDomainNameLabel)
-        iWidth = qMax(iWidth, m_pDomainNameLabel->minimumSizeHint().width());
-    return iWidth;
-}
-
-void UIHostnameDomainNameEditor::setFirstColumnWidth(int iWidth)
-{
-    if (m_pMainLayout)
-        m_pMainLayout->setColumnMinimumWidth(0, iWidth);
-}
-
-void UIHostnameDomainNameEditor::retranslateUi()
+void UIHostnameDomainNameEditor::sltRetranslateUI()
 {
     if (m_pHostnameLabel)
         m_pHostnameLabel->setText(tr("Hostna&me:"));
@@ -132,10 +124,20 @@ void UIHostnameDomainNameEditor::retranslateUi()
         m_pDomainNameLabel->setText(tr("&Domain Name:"));
     if (m_pDomainNameLineEdit)
         m_pDomainNameLineEdit->setToolTip(tr("Holds the domain name."));
+    if (m_pProductKeyLabel)
+        m_pProductKeyLabel->setText(UIWizardNewVM::tr("&Product Key:"));
+    if (m_pProductKeyLineEdit)
+        m_pProductKeyLineEdit->setToolTip(UIWizardNewVM::tr("Holds the product key."));
+
+    if (m_pStartHeadlessCheckBox)
+    {
+        m_pStartHeadlessCheckBox->setText(UIWizardNewVM::tr("&Install in Background"));
+        m_pStartHeadlessCheckBox->setToolTip(UIWizardNewVM::tr("When checked, headless boot (with no GUI) will be enabled for "
+                                                               "unattended guest OS installation of newly created virtual machine."));
+    }
 }
 
-template<class T>
-void UIHostnameDomainNameEditor::addLineEdit(int &iRow, QLabel *&pLabel, T *&pLineEdit, QGridLayout *pLayout)
+void UIHostnameDomainNameEditor::addLineEdit(int &iRow, QLabel *&pLabel, QILineEdit *&pLineEdit, QGridLayout *pLayout)
 {
     AssertReturnVoid(pLayout);
     if (pLabel || pLineEdit)
@@ -144,49 +146,69 @@ void UIHostnameDomainNameEditor::addLineEdit(int &iRow, QLabel *&pLabel, T *&pLi
     pLabel = new QLabel;
     AssertReturnVoid(pLabel);
     pLabel->setAlignment(Qt::AlignRight);
-    //pLabel->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
-
     pLayout->addWidget(pLabel, iRow, 0, 1, 1);
 
-    pLineEdit = new T;
+    pLineEdit = new QILineEdit;
     AssertReturnVoid(pLineEdit);
+    pLineEdit->setMarkable(true);
 
     pLayout->addWidget(pLineEdit, iRow, 1, 1, 3);
     pLabel->setBuddy(pLineEdit);
     ++iRow;
-    return;
 }
 
 void UIHostnameDomainNameEditor::prepare()
 {
     m_pMainLayout = new QGridLayout;
-    m_pMainLayout->setColumnStretch(0, 0);
-    m_pMainLayout->setColumnStretch(1, 1);
     if (!m_pMainLayout)
         return;
     setLayout(m_pMainLayout);
+    m_pMainLayout->setContentsMargins(0, 0, 0, 0);
     int iRow = 0;
-    addLineEdit<UIMarkableLineEdit>(iRow, m_pHostnameLabel, m_pHostnameLineEdit, m_pMainLayout);
-    addLineEdit<QILineEdit>(iRow, m_pDomainNameLabel, m_pDomainNameLineEdit, m_pMainLayout);
+
+    addLineEdit(iRow, m_pProductKeyLabel, m_pProductKeyLineEdit, m_pMainLayout);
+    addLineEdit(iRow, m_pHostnameLabel, m_pHostnameLineEdit, m_pMainLayout);
+    addLineEdit(iRow, m_pDomainNameLabel, m_pDomainNameLineEdit, m_pMainLayout);
+
+    if (m_pProductKeyLineEdit)
+    {
+        m_pProductKeyLineEdit->setInputMask(">NNNNN-NNNNN-NNNNN-NNNNN-NNNNN;#");
+        m_pProductKeyLineEdit->setMinimumWidthByText("NNNNN-NNNNN-NNNNN-NNNNN-NNNNN");
+    }
 
     /* Host name and domain should be strings of minimum length of 2 and composed of alpha numerics, '-', and '.'
      * Exclude strings with . at the end: */
     m_pHostnameLineEdit->setValidator(new QRegularExpressionValidator(QRegularExpression("^[a-zA-Z0-9-.]{2,}[$a-zA-Z0-9-]"), this));
     m_pDomainNameLineEdit->setValidator(new QRegularExpressionValidator(QRegularExpression("^[a-zA-Z0-9-.]{2,}[$a-zA-Z0-9-]"), this));
 
-    connect(m_pHostnameLineEdit, &UIMarkableLineEdit::textChanged,
+    connect(m_pHostnameLineEdit, &QILineEdit::textChanged,
             this, &UIHostnameDomainNameEditor::sltHostnameChanged);
     connect(m_pDomainNameLineEdit, &QILineEdit::textChanged,
             this, &UIHostnameDomainNameEditor::sltDomainChanged);
+    connect(m_pProductKeyLineEdit, &QILineEdit::textChanged,
+            this, &UIHostnameDomainNameEditor::sigProductKeyChanged);
 
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIHostnameDomainNameEditor::sltRetranslateUI);
+
+    m_pStartHeadlessCheckBox = new QCheckBox;
+    if (m_pStartHeadlessCheckBox)
+        m_pMainLayout->addWidget(m_pStartHeadlessCheckBox, iRow, 1, 1, 3);
+
+    if (m_pStartHeadlessCheckBox)
+        connect(m_pStartHeadlessCheckBox, &QCheckBox::toggled,
+                this, &UIHostnameDomainNameEditor::sigStartHeadlessChanged);
+
+    sltRetranslateUI();
 }
 
 void UIHostnameDomainNameEditor::sltHostnameChanged()
 {
     m_pHostnameLineEdit->mark(!m_pHostnameLineEdit->hasAcceptableInput(),
                               tr("Hostname should be at least 2 character long. "
-                                 "Allowed characters are alphanumerics, \"-\" and \".\""));
+                                 "Allowed characters are alphanumerics, \"-\" and \".\""),
+                              tr("Hostname is valid"));
     emit sigHostnameDomainNameChanged(hostnameDomainName(), isComplete());
 }
 
@@ -194,6 +216,15 @@ void UIHostnameDomainNameEditor::sltDomainChanged()
 {
     m_pDomainNameLineEdit->mark(!m_pDomainNameLineEdit->hasAcceptableInput(),
                                 tr("Domain name should be at least 2 character long. "
-                                   "Allowed characters are alphanumerics, \"-\" and \".\""));
+                                   "Allowed characters are alphanumerics, \"-\" and \".\""),
+                                tr("Domain name is valid"));
     emit sigHostnameDomainNameChanged(hostnameDomainName(), isComplete());
+}
+
+void UIHostnameDomainNameEditor::disableEnableProductKeyWidgets(bool fEnabled)
+{
+    if (m_pProductKeyLabel)
+        m_pProductKeyLabel->setEnabled(fEnabled);
+    if (m_pProductKeyLineEdit)
+        m_pProductKeyLineEdit->setEnabled(fEnabled);
 }

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -108,7 +108,7 @@ void UIWizardNewVMUnattendedPage::createConnections()
 }
 
 
-void UIWizardNewVMUnattendedPage::retranslateUi()
+void UIWizardNewVMUnattendedPage::sltRetranslateUI()
 {
     setTitle(UIWizardNewVM::tr("Unattended Guest OS Install Setup"));
     if (m_pLabel)
@@ -124,7 +124,7 @@ void UIWizardNewVMUnattendedPage::initializePage()
 {
     if (m_pAdditionalOptionsContainer)
         m_pAdditionalOptionsContainer->disableEnableProductKeyWidgets(isProductKeyWidgetEnabled());
-    retranslateUi();
+    sltRetranslateUI();
 
     UIWizardNewVM *pWizard = wizardWindow<UIWizardNewVM>();
     AssertReturnVoid(pWizard);

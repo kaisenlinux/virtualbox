@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,7 +32,7 @@
 #endif
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
+#include "UIEditor.h"
 
 /* COM includes: */
 #include "UIExtraDataDefs.h"
@@ -42,10 +42,9 @@ class QCheckBox;
 class QComboBox;
 class QLabel;
 class QLineEdit;
-class QWidget;
 
-/** QWidget subclass used as a disk encryption settings editor. */
-class SHARED_LIBRARY_STUFF UIDiskEncryptionSettingsEditor : public QIWithRetranslateUI<QWidget>
+/** UIEditor sub-class used as a disk encryption settings editor. */
+class SHARED_LIBRARY_STUFF UIDiskEncryptionSettingsEditor : public UIEditor
 {
     Q_OBJECT;
 
@@ -78,12 +77,10 @@ public:
     /** Returns password 2. */
     QString password2() const;
 
-protected:
+private slots:
 
     /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
-private slots:
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
     /** Handles whether VRDE is @a fEnabled. */
     void sltHandleFeatureToggled(bool fEnabled);

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -71,7 +71,7 @@ typedef IMAGE_FILE_HEADER *PIMAGE_FILE_HEADER;
 typedef IMAGE_FILE_HEADER const *PCIMAGE_FILE_HEADER;
 
 
-/** @name PE & COFF machine types.
+/** @name IMAGE_FILE_MACHINE_XXX - PE & COFF machine types.
  * Used by IMAGE_FILE_HEADER::Machine and IMAGE_SEPARATE_DEBUG_HEADER::Machine.
  * @{ */
 /** X86 compatible CPU, 32-bit instructions. */
@@ -297,13 +297,21 @@ typedef IMAGE_OPTIONAL_HEADER64 const *PCIMAGE_OPTIONAL_HEADER64;
 /** @name IMAGE_SUBSYSTEM_XXX - Optional header subsystems.
  * IMAGE_OPTIONAL_HEADER32::Subsystem, IMAGE_OPTIONAL_HEADER64::Subsystem
  * @{ */
-#define IMAGE_SUBSYSTEM_UNKNOWN             UINT16_C(0x0000)
-#define IMAGE_SUBSYSTEM_NATIVE              UINT16_C(0x0001)
-#define IMAGE_SUBSYSTEM_WINDOWS_GUI         UINT16_C(0x0002)
-#define IMAGE_SUBSYSTEM_WINDOWS_CUI         UINT16_C(0x0003)
-#define IMAGE_SUBSYSTEM_OS2_GUI             UINT16_C(0x0004)
-#define IMAGE_SUBSYSTEM_OS2_CUI             UINT16_C(0x0005)
-#define IMAGE_SUBSYSTEM_POSIX_CUI           UINT16_C(0x0007)
+#define IMAGE_SUBSYSTEM_UNKNOWN                     UINT16_C(0x0000)
+#define IMAGE_SUBSYSTEM_NATIVE                      UINT16_C(0x0001)
+#define IMAGE_SUBSYSTEM_WINDOWS_GUI                 UINT16_C(0x0002)
+#define IMAGE_SUBSYSTEM_WINDOWS_CUI                 UINT16_C(0x0003)
+#define IMAGE_SUBSYSTEM_OS2_GUI                     UINT16_C(0x0004)
+#define IMAGE_SUBSYSTEM_OS2_CUI                     UINT16_C(0x0005)
+#define IMAGE_SUBSYSTEM_POSIX_CUI                   UINT16_C(0x0007)
+#define IMAGE_SUBSYSTEM_NATIVE_WINDOWS              UINT16_C(0x0008) /**< Windows 9x native driver */
+#define IMAGE_SUBSYSTEM_WINDOWS_CE_GUI              UINT16_C(0x0009)
+#define IMAGE_SUBSYSTEM_EFI_APPLICATION             UINT16_C(0x000a)
+#define IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER     UINT16_C(0x000b)
+#define IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER          UINT16_C(0x000c)
+#define IMAGE_SUBSYSTEM_EFI_ROM                     UINT16_C(0x000d)
+#define IMAGE_SUBSYSTEM_XBOX                        UINT16_C(0x000e)
+#define IMAGE_SUBSYSTEM_WINDOWS_BOOT_APPLICATION    UINT16_C(0x0010) /**< E.g. winload.exe */
 /** @} */
 
 /** @name Optional header characteristics.

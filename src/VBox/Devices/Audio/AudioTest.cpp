@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2021-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2021-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -2382,7 +2382,7 @@ static uint32_t audioTestFilesFindDiffsBinary(PAUDIOTESTVERIFYJOB pVerJob,
             fInDiff = false;
         }
 
-        AssertBreakStmt(cbToCompare >= cbReadA, VERR_INTERNAL_ERROR);
+        AssertBreakStmt(cbToCompare >= cbReadA, rc = VERR_INTERNAL_ERROR);
         cbToCompare -= cbReadA;
         offCur      += cbReadA;
     }
@@ -2576,19 +2576,24 @@ int AudioTestBeaconAddConsecutive(PAUDIOTESTTONEBEACON pBeacon, const uint8_t *p
             && pauBuf[i + 2] == byBeacon
             && pauBuf[i + 3] == byBeacon)
         {
+            offBeacon = i + cbStep; /* Point to data right *after* the beacon. */
+
             /* Make sure to handle overflows and let beacon start from scratch. */
             pBeacon->cbUsed = (pBeacon->cbUsed + cbStep) % pBeacon->cbSize;
             if (pBeacon->cbUsed == 0) /* Beacon complete (see module line above)? */
             {
                 pBeacon->cbUsed = pBeacon->cbSize;
-                offBeacon       = i + cbStep; /* Point to data right *after* the beacon. */
+                break;
             }
         }
         else
         {
-            /* If beacon is not complete yet, we detected a gap here. Start all over then. */
-            if (RT_LIKELY(pBeacon->cbUsed != pBeacon->cbSize))
-                pBeacon->cbUsed = 0;
+            /* If beacon is complete, just skip, otherwise we detected a gap here. Start all over then. */
+            if (RT_UNLIKELY(pBeacon->cbUsed == pBeacon->cbSize))
+                break;
+
+            pBeacon->cbUsed = 0;
+            offBeacon       = UINT64_MAX;
         }
     }
 
@@ -3274,6 +3279,9 @@ int AudioTestWaveFileOpen(const char *pszFile, PAUDIOTESTWAVEFILE pWaveFile, PRT
                     RTErrInfoSetF(pErrInfo, rc, "fChannelMask does not match cChannels: %#x (%u bits set) vs %u channels",
                                   uBuf.Wave.u.FmtExt.Data.fChannelMask,
                                   audioTestWaveCountBits(uBuf.Wave.u.FmtExt.Data.fChannelMask), uBuf.Wave.u.Fmt.Data.cChannels);
+                else if (uBuf.Wave.u.Fmt.Data.cChannels > PDMAUDIO_MAX_CHANNELS)
+                    RTErrInfoSetF(pErrInfo, rc, "More than %u channels are not supported (%u given)",
+                                  PDMAUDIO_MAX_CHANNELS, uBuf.Wave.u.Fmt.Data.cChannels);
                 else if (   uBuf.Wave.u.Fmt.Data.uFormatTag == RTRIFFWAVEFMT_TAG_EXTENSIBLE
                          && RTUuidCompareStr(&uBuf.Wave.u.FmtExt.Data.SubFormat, RTRIFFWAVEFMTEXT_SUBTYPE_PCM) != 0)
                     RTErrInfoSetF(pErrInfo, rc, "SubFormat is not PCM: %RTuuid (expected %s)",
@@ -3295,7 +3303,7 @@ int AudioTestWaveFileOpen(const char *pszFile, PAUDIOTESTWAVEFILE pWaveFile, PRT
                         static unsigned const   s_cStdIds = (unsigned)PDMAUDIOCHANNELID_END_STANDARD
                                                           - (unsigned)PDMAUDIOCHANNELID_FIRST_STANDARD;
                         unsigned                iCh       = 0;
-                        for (unsigned idCh = 0; idCh < 32 && iCh < uBuf.Wave.u.Fmt.Data.cChannels; idCh++)
+                        for (unsigned idCh = 0; idCh < PDMAUDIO_MAX_CHANNELS && iCh < uBuf.Wave.u.Fmt.Data.cChannels; idCh++)
                             if (uBuf.Wave.u.FmtExt.Data.fChannelMask & RT_BIT_32(idCh))
                             {
                                 pWaveFile->Props.aidChannels[iCh] = idCh < s_cStdIds

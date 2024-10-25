@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -274,10 +274,12 @@ typedef struct IOMMMIOENTRYR3
      * @todo remove as GCPhysMapping != NIL_RTGCPHYS serves the same purpose. */
     bool volatile                       fMapped;
     /** Set if there is an ring-0 entry too. */
-    bool                                fRing0;
+    bool                                fRing0 : 1;
     /** Set if there is an raw-mode entry too. */
-    bool                                fRawMode;
-    uint8_t                             bPadding;
+    bool                                fRawMode : 1;
+    bool                                fPadding : 6;
+    /** Pre-registered ad-hoc RAM range ID. */
+    uint16_t                            idRamRange;
     /** Same as the handle index. */
     uint16_t                            idxSelf;
 } IOMMMIOENTRYR3;

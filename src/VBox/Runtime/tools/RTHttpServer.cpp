@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright (C) 2020-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2020-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -520,8 +520,11 @@ static DECLCALLBACK(int) onOpen(PRTHTTPCALLBACKDATA pData, PRTHTTPSERVERREQ pReq
     return rc;
 }
 
-static DECLCALLBACK(int) onRead(PRTHTTPCALLBACKDATA pData, void *pvHandle, void *pvBuf, size_t cbBuf, size_t *pcbRead)
+static DECLCALLBACK(int) onRead(PRTHTTPCALLBACKDATA pData,
+                                PRTHTTPSERVERREQ pReq, void *pvHandle, void *pvBuf, size_t cbBuf, size_t *pcbRead)
 {
+    RT_NOREF(pReq);
+
     PHTTPSERVERDATA pThis = (PHTTPSERVERDATA)pData->pvUser;
     Assert(pData->cbUser == sizeof(HTTPSERVERDATA));
 
@@ -553,8 +556,10 @@ static DECLCALLBACK(int) onRead(PRTHTTPCALLBACKDATA pData, void *pvHandle, void 
     return rc;
 }
 
-static DECLCALLBACK(int) onClose(PRTHTTPCALLBACKDATA pData, void *pvHandle)
+static DECLCALLBACK(int) onClose(PRTHTTPCALLBACKDATA pData, PRTHTTPSERVERREQ pReq, void *pvHandle)
 {
+    RT_NOREF(pReq);
+
     PHTTPSERVERDATA pThis = (PHTTPSERVERDATA)pData->pvUser;
     Assert(pData->cbUser == sizeof(HTTPSERVERDATA));
 
@@ -808,7 +813,7 @@ int main(int argc, char **argv)
                 return RTEXITCODE_SUCCESS;
 
             case 'V':
-                RTPrintf("$Revision: 155244 $\n");
+                RTPrintf("$Revision: 164827 $\n");
                 return RTEXITCODE_SUCCESS;
 
             default:

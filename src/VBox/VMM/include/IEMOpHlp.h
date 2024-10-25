@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -79,7 +79,7 @@ void iemOpStubMsg2(PVMCPUCC pVCpu) RT_NOEXCEPT;
     FNIEMOP_DEF(a_Name) \
     { \
         Log(("Unsupported instruction %Rfn\n", __FUNCTION__)); \
-        return IEMOP_RAISE_INVALID_OPCODE(); \
+        IEMOP_RAISE_INVALID_OPCODE_RET(); \
     } \
     typedef int ignore_semicolon
 
@@ -90,7 +90,7 @@ void iemOpStubMsg2(PVMCPUCC pVCpu) RT_NOEXCEPT;
         RT_NOREF_PV(pVCpu); \
         RT_NOREF_PV(a_Name0); \
         Log(("Unsupported instruction %Rfn\n", __FUNCTION__)); \
-        return IEMOP_RAISE_INVALID_OPCODE(); \
+        IEMOP_RAISE_INVALID_OPCODE_RET(); \
     } \
     typedef int ignore_semicolon
 
@@ -224,14 +224,14 @@ void iemOpStubMsg2(PVMCPUCC pVCpu) RT_NOEXCEPT;
         else \
         { \
             (void)DBGFSTOP(pVCpu->CTX_SUFF(pVM)); \
-            return IEMOP_RAISE_INVALID_OPCODE(); \
+            IEMOP_RAISE_INVALID_OPCODE_RET(); \
         } \
     } while (0)
 #else
 # define IEMOP_HLP_MIN_CPU(a_uMinCpu, a_fOnlyIf) \
     do { \
         if (IEM_GET_TARGET_CPU(pVCpu) >= (a_uMinCpu) || !(a_fOnlyIf)) { } \
-        else return IEMOP_RAISE_INVALID_OPCODE(); \
+        else IEMOP_RAISE_INVALID_OPCODE_RET(); \
     } while (0)
 #endif
 
@@ -290,15 +290,18 @@ void iemOpStubMsg2(PVMCPUCC pVCpu) RT_NOEXCEPT;
     do \
     { \
         if (!IEM_IS_REAL_OR_V86_MODE(pVCpu)) { /* likely */ } \
-        else return IEMOP_RAISE_INVALID_OPCODE(); \
+        else IEMOP_RAISE_INVALID_OPCODE_RET(); \
     } while (0)
 
 #ifdef VBOX_WITH_NESTED_HWVIRT_VMX
 /** This instruction raises an \#UD in real and V8086 mode or when not using a
- *  64-bit code segment when in long mode (applicable to all VMX instructions
- *  except VMCALL).
+ * 64-bit code segment when in long mode (applicable to all VMX instructions
+ * except VMCALL).
+ *
+ * @todo r=bird: This is not recompiler friendly. The scenario with
+ *       16-bit/32-bit code running in long mode doesn't fit at all.
  */
-#define IEMOP_HLP_VMX_INSTR(a_szInstr, a_InsDiagPrefix) \
+# define IEMOP_HLP_VMX_INSTR(a_szInstr, a_InsDiagPrefix) \
     do \
     { \
         if (   !IEM_IS_REAL_OR_V86_MODE(pVCpu) \
@@ -311,13 +314,13 @@ void iemOpStubMsg2(PVMCPUCC pVCpu) RT_NOEXCEPT;
             { \
                 pVCpu->cpum.GstCtx.hwvirt.vmx.enmDiag = a_InsDiagPrefix##_RealOrV86Mode; \
                 Log5((a_szInstr ": Real or v8086 mode -> #UD\n")); \
-                return IEMOP_RAISE_INVALID_OPCODE(); \
+                IEMOP_RAISE_INVALID_OPCODE_RET(); \
             } \
             if (IEM_IS_LONG_MODE(pVCpu) && !IEM_IS_64BIT_CODE(pVCpu)) \
             { \
                 pVCpu->cpum.GstCtx.hwvirt.vmx.enmDiag = a_InsDiagPrefix##_LongModeCS; \
                 Log5((a_szInstr ": Long mode without 64-bit code segment -> #UD\n")); \
-                return IEMOP_RAISE_INVALID_OPCODE(); \
+                IEMOP_RAISE_INVALID_OPCODE_RUNTIME_RET(); /** @todo This doesn't work. */ \
             } \
         } \
     } while (0)
@@ -326,6 +329,10 @@ void iemOpStubMsg2(PVMCPUCC pVCpu) RT_NOEXCEPT;
  * non-root mode).
  *
  *  @note Update IEM_VMX_IN_VMX_OPERATION if changes are made here.
+ *
+ * @todo r=bird: This is absolutely *INCORRECT* since IEM_VMX_IS_ROOT_MODE
+ *       is a complicated runtime state (calls CPUMIsGuestInVmxRootMode), and
+ *       not something we can decide while decoding.  Convert to an IEM_MC!
  */
 # define IEMOP_HLP_IN_VMX_OPERATION(a_szInstr, a_InsDiagPrefix) \
     do \
@@ -335,7 +342,7 @@ void iemOpStubMsg2(PVMCPUCC pVCpu) RT_NOEXCEPT;
         { \
             pVCpu->cpum.GstCtx.hwvirt.vmx.enmDiag = a_InsDiagPrefix##_VmxRoot; \
             Log5((a_szInstr ": Not in VMX operation (root mode) -> #UD\n")); \
-            return IEMOP_RAISE_INVALID_OPCODE(); \
+            IEMOP_RAISE_INVALID_OPCODE_RUNTIME_RET(); /** @todo This doesn't work. */ \
         } \
     } while (0)
 #endif /* VBOX_WITH_NESTED_HWVIRT_VMX */
@@ -345,8 +352,10 @@ void iemOpStubMsg2(PVMCPUCC pVCpu) RT_NOEXCEPT;
 #define IEMOP_HLP_NO_64BIT() \
     do \
     { \
-        if (pVCpu->iem.s.enmCpuMode == IEMMODE_64BIT) \
-            return IEMOP_RAISE_INVALID_OPCODE(); \
+        if (!IEM_IS_64BIT_CODE(pVCpu)) \
+        { /* likely */ } \
+        else \
+            IEMOP_RAISE_INVALID_OPCODE_RET(); \
     } while (0)
 
 /** The instruction is only available in 64-bit mode, throw \#UD if we're not in
@@ -354,15 +363,17 @@ void iemOpStubMsg2(PVMCPUCC pVCpu) RT_NOEXCEPT;
 #define IEMOP_HLP_ONLY_64BIT() \
     do \
     { \
-        if (pVCpu->iem.s.enmCpuMode != IEMMODE_64BIT) \
-            return IEMOP_RAISE_INVALID_OPCODE(); \
+        if (IEM_IS_64BIT_CODE(pVCpu)) \
+        { /* likely */ } \
+        else \
+            IEMOP_RAISE_INVALID_OPCODE_RET(); \
     } while (0)
 
 /** The instruction defaults to 64-bit operand size if 64-bit mode. */
 #define IEMOP_HLP_DEFAULT_64BIT_OP_SIZE() \
     do \
     { \
-        if (pVCpu->iem.s.enmCpuMode == IEMMODE_64BIT) \
+        if (IEM_IS_64BIT_CODE(pVCpu)) \
             iemRecalEffOpSize64Default(pVCpu); \
     } while (0)
 
@@ -371,7 +382,7 @@ void iemOpStubMsg2(PVMCPUCC pVCpu) RT_NOEXCEPT;
 #define IEMOP_HLP_DEFAULT_64BIT_OP_SIZE_AND_INTEL_IGNORES_OP_SIZE_PREFIX() \
     do \
     { \
-        if (pVCpu->iem.s.enmCpuMode == IEMMODE_64BIT) \
+        if (IEM_IS_64BIT_CODE(pVCpu)) \
             iemRecalEffOpSize64DefaultAndIntelIgnoresOpSizePrefix(pVCpu); \
     } while (0)
 
@@ -379,7 +390,7 @@ void iemOpStubMsg2(PVMCPUCC pVCpu) RT_NOEXCEPT;
 #define IEMOP_HLP_64BIT_OP_SIZE() \
     do \
     { \
-        if (pVCpu->iem.s.enmCpuMode == IEMMODE_64BIT) \
+        if (IEM_IS_64BIT_CODE(pVCpu)) \
             pVCpu->iem.s.enmEffOpSize = pVCpu->iem.s.enmDefOpSize = IEMMODE_64BIT; \
     } while (0)
 
@@ -399,6 +410,14 @@ void iemOpStubMsg2(PVMCPUCC pVCpu) RT_NOEXCEPT;
         } \
     } while (0)
 
+/** The instruction ignores any REX.W/VEX.W prefix if not in 64-bit mode. */
+#define IEMOP_HLP_IGNORE_VEX_W_PREFIX_IF_NOT_IN_64BIT() \
+    do \
+    { \
+        if (!IEM_IS_64BIT_CODE(pVCpu)) \
+            pVCpu->iem.s.fPrefixes &= ~IEM_OP_PRF_SIZE_REX_W; \
+    } while (0)
+
 /**
  * Done decoding.
  */
@@ -406,6 +425,15 @@ void iemOpStubMsg2(PVMCPUCC pVCpu) RT_NOEXCEPT;
     do \
     { \
         /*nothing for now, maybe later... */ \
+    } while (0)
+
+#define IEMOP_HLP_DONE_DECODING_EX(a_fFeature) \
+    do \
+    { \
+        if (RT_LIKELY(IEM_GET_GUEST_CPU_FEATURES(pVCpu)->a_fFeature)) \
+        { /* likely */ } \
+        else \
+            IEMOP_RAISE_INVALID_LOCK_PREFIX_RET(); \
     } while (0)
 
 /**
@@ -417,29 +445,43 @@ void iemOpStubMsg2(PVMCPUCC pVCpu) RT_NOEXCEPT;
         if (RT_LIKELY(!(pVCpu->iem.s.fPrefixes & IEM_OP_PRF_LOCK))) \
         { /* likely */ } \
         else \
-            return IEMOP_RAISE_INVALID_LOCK_PREFIX(); \
+            IEMOP_RAISE_INVALID_LOCK_PREFIX_RET(); \
     } while (0)
-
 
 /**
- * Done decoding VEX instruction, raise \#UD exception if any lock, rex, repz,
- * repnz or size prefixes are present, or if in real or v8086 mode.
+ * Done decoding, raise \#UD exception if lock prefix present, or if the
+ * a_fFeature is present in the guest CPU.
  */
-#define IEMOP_HLP_DONE_VEX_DECODING() \
+#define IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX_EX(a_fFeature) \
     do \
     { \
-        if (RT_LIKELY(   !(  pVCpu->iem.s.fPrefixes \
-                           & (IEM_OP_PRF_LOCK | IEM_OP_PRF_REPZ | IEM_OP_PRF_REPNZ | IEM_OP_PRF_SIZE_OP | IEM_OP_PRF_REX)) \
-                      && !IEM_IS_REAL_OR_V86_MODE(pVCpu) )) \
+        if (RT_LIKELY(   !(pVCpu->iem.s.fPrefixes & IEM_OP_PRF_LOCK) \
+                      && IEM_GET_GUEST_CPU_FEATURES(pVCpu)->a_fFeature)) \
         { /* likely */ } \
         else \
-            return IEMOP_RAISE_INVALID_OPCODE(); \
+            IEMOP_RAISE_INVALID_LOCK_PREFIX_RET(); \
     } while (0)
+
+/**
+ * Done decoding, raise \#UD exception if lock prefix present, or if the
+ * a_fFeature is present in the guest CPU.
+ */
+#define IEMOP_HLP_DONE_DECODING_NO_LOCK_PREFIX_EX_2_OR(a_fFeature1, a_fFeature2) \
+    do \
+    { \
+        if (RT_LIKELY(   !(pVCpu->iem.s.fPrefixes & IEM_OP_PRF_LOCK) \
+                      && (   IEM_GET_GUEST_CPU_FEATURES(pVCpu)->a_fFeature1 \
+                          || IEM_GET_GUEST_CPU_FEATURES(pVCpu)->a_fFeature2) )) \
+        { /* likely */ } \
+        else \
+            IEMOP_RAISE_INVALID_LOCK_PREFIX_RET(); \
+    } while (0)
+
 
 /**
  * Done decoding VEX instruction, raise \#UD exception if any lock, rex, repz,
  * repnz or size prefixes are present, if in real or v8086 mode, or if the
- * a_fFeature is present in the guest CPU.
+ * a_fFeature is not present in the guest CPU.
  */
 #define IEMOP_HLP_DONE_VEX_DECODING_EX(a_fFeature) \
     do \
@@ -450,28 +492,13 @@ void iemOpStubMsg2(PVMCPUCC pVCpu) RT_NOEXCEPT;
                       && IEM_GET_GUEST_CPU_FEATURES(pVCpu)->a_fFeature)) \
         { /* likely */ } \
         else \
-            return IEMOP_RAISE_INVALID_OPCODE(); \
+            IEMOP_RAISE_INVALID_OPCODE_RET(); \
     } while (0)
 
 /**
  * Done decoding VEX instruction, raise \#UD exception if any lock, rex, repz,
- * repnz or size prefixes are present, or if in real or v8086 mode.
- */
-#define IEMOP_HLP_DONE_VEX_DECODING_L0() \
-    do \
-    { \
-        if (RT_LIKELY(   !(  pVCpu->iem.s.fPrefixes \
-                           & (IEM_OP_PRF_LOCK | IEM_OP_PRF_REPZ | IEM_OP_PRF_REPNZ | IEM_OP_PRF_SIZE_OP | IEM_OP_PRF_REX)) \
-                      && !IEM_IS_REAL_OR_V86_MODE(pVCpu) \
-                      && pVCpu->iem.s.uVexLength == 0)) \
-        { /* likely */ } \
-        else \
-            return IEMOP_RAISE_INVALID_OPCODE(); \
-    } while (0)
-
-/**
- * Done decoding VEX instruction, raise \#UD exception if any lock, rex, repz,
- * repnz or size prefixes are present, or if in real or v8086 mode.
+ * repnz or size prefixes are present, or if in real or v8086 mode, or if the
+ * a_fFeature is not present in the guest CPU.
  */
 #define IEMOP_HLP_DONE_VEX_DECODING_L0_EX(a_fFeature) \
     do \
@@ -483,32 +510,69 @@ void iemOpStubMsg2(PVMCPUCC pVCpu) RT_NOEXCEPT;
                       && IEM_GET_GUEST_CPU_FEATURES(pVCpu)->a_fFeature)) \
         { /* likely */ } \
         else \
-            return IEMOP_RAISE_INVALID_OPCODE(); \
+            IEMOP_RAISE_INVALID_OPCODE_RET(); \
     } while (0)
-
 
 /**
  * Done decoding VEX instruction, raise \#UD exception if any lock, rex, repz,
- * repnz or size prefixes are present, or if the VEX.VVVV field doesn't indicate
- * register 0, or if in real or v8086 mode.
+ * repnz or size prefixes are present, or if in real or v8086 mode, or if the
+ * a_fFeature is not present in the guest CPU.
  */
-#define IEMOP_HLP_DONE_VEX_DECODING_NO_VVVV() \
+#define IEMOP_HLP_DONE_VEX_DECODING_L0_EX_2(a_fFeature, a_fFeature2) \
     do \
     { \
         if (RT_LIKELY(   !(  pVCpu->iem.s.fPrefixes \
                            & (IEM_OP_PRF_LOCK | IEM_OP_PRF_REPZ | IEM_OP_PRF_REPNZ | IEM_OP_PRF_SIZE_OP | IEM_OP_PRF_REX)) \
-                      && !pVCpu->iem.s.uVex3rdReg \
-                      && !IEM_IS_REAL_OR_V86_MODE(pVCpu) )) \
+                      && !IEM_IS_REAL_OR_V86_MODE(pVCpu) \
+                      && pVCpu->iem.s.uVexLength == 0 \
+                      && IEM_GET_GUEST_CPU_FEATURES(pVCpu)->a_fFeature \
+                      && IEM_GET_GUEST_CPU_FEATURES(pVCpu)->a_fFeature2)) \
         { /* likely */ } \
         else \
-            return IEMOP_RAISE_INVALID_OPCODE(); \
+            IEMOP_RAISE_INVALID_OPCODE_RET(); \
+    } while (0)
+
+/**
+ * Done decoding VEX instruction, raise \#UD exception if any lock, rex, repz,
+ * repnz or size prefixes are present, or if in real or v8086 mode, or if the
+ * a_fFeature is not present in the guest CPU.
+ */
+#define IEMOP_HLP_DONE_VEX_DECODING_L1_EX(a_fFeature) \
+    do \
+    { \
+        if (RT_LIKELY(   !(  pVCpu->iem.s.fPrefixes \
+                           & (IEM_OP_PRF_LOCK | IEM_OP_PRF_REPZ | IEM_OP_PRF_REPNZ | IEM_OP_PRF_SIZE_OP | IEM_OP_PRF_REX)) \
+                      && !IEM_IS_REAL_OR_V86_MODE(pVCpu) \
+                      && pVCpu->iem.s.uVexLength == 1 \
+                      && IEM_GET_GUEST_CPU_FEATURES(pVCpu)->a_fFeature)) \
+        { /* likely */ } \
+        else \
+            IEMOP_RAISE_INVALID_OPCODE_RET(); \
+    } while (0)
+
+/**
+ * Done decoding VEX instruction, raise \#UD exception if any lock, rex, repz,
+ * repnz or size prefixes are present, or if VEX.W is one, or if in real or
+ * v8086 mode, or if the a_fFeature is not present in the guest CPU.
+ */
+#define IEMOP_HLP_DONE_VEX_DECODING_W0_EX(a_fFeature) \
+    do \
+    { \
+        if (RT_LIKELY(   !(  pVCpu->iem.s.fPrefixes \
+                           & (IEM_OP_PRF_LOCK | IEM_OP_PRF_REPZ | IEM_OP_PRF_REPNZ | IEM_OP_PRF_SIZE_OP | IEM_OP_PRF_REX \
+                              | IEM_OP_PRF_SIZE_REX_W /*VEX.W*/)) \
+                      && !IEM_IS_REAL_OR_V86_MODE(pVCpu) \
+                      && IEM_GET_GUEST_CPU_FEATURES(pVCpu)->a_fFeature)) \
+        { /* likely */ } \
+        else \
+            IEMOP_RAISE_INVALID_OPCODE_RET(); \
     } while (0)
 
 /**
  * Done decoding VEX instruction, raise \#UD exception if any lock, rex, repz,
  * repnz or size prefixes are present, or if the VEX.VVVV field doesn't indicate
- * register 0, if in real or v8086 mode, or if the a_fFeature is present in the
- * guest CPU.
+ * register 0, if in real or v8086 mode, or if the a_fFeature is not present in
+ * the guest CPU.
  */
 #define IEMOP_HLP_DONE_VEX_DECODING_NO_VVVV_EX(a_fFeature) \
     do \
@@ -520,26 +584,110 @@ void iemOpStubMsg2(PVMCPUCC pVCpu) RT_NOEXCEPT;
                       && IEM_GET_GUEST_CPU_FEATURES(pVCpu)->a_fFeature )) \
         { /* likely */ } \
         else \
-            return IEMOP_RAISE_INVALID_OPCODE(); \
+            IEMOP_RAISE_INVALID_OPCODE_RET(); \
+    } while (0)
+
+/**
+ * Done decoding VEX instruction, raise \#UD exception if any lock, rex, repz,
+ * repnz or size prefixes are present, or if VEX.W is one, or if the VEX.VVVV field doesn't indicate
+ * register 0, if in real or v8086 mode, or if the a_fFeature is not present in
+ * the guest CPU.
+ */
+#define IEMOP_HLP_DONE_VEX_DECODING_W0_AND_NO_VVVV_EX(a_fFeature) \
+    do \
+    { \
+        if (RT_LIKELY(   !(  pVCpu->iem.s.fPrefixes \
+                           & (IEM_OP_PRF_LOCK | IEM_OP_PRF_REPZ | IEM_OP_PRF_REPNZ | IEM_OP_PRF_SIZE_OP | IEM_OP_PRF_REX \
+                              | IEM_OP_PRF_SIZE_REX_W /*VEX.W*/)) \
+                      && !pVCpu->iem.s.uVex3rdReg \
+                      && !IEM_IS_REAL_OR_V86_MODE(pVCpu) \
+                      && IEM_GET_GUEST_CPU_FEATURES(pVCpu)->a_fFeature )) \
+        { /* likely */ } \
+        else \
+            IEMOP_RAISE_INVALID_OPCODE_RET(); \
     } while (0)
 
 /**
  * Done decoding VEX, no V, L=0.
  * Raises \#UD exception if rex, rep, opsize or lock prefixes are present, if
- * we're in real or v8086 mode, if VEX.V!=0xf, or if VEX.L!=0.
+ * we're in real or v8086 mode, if VEX.V!=0xf, if VEX.L!=0, or if the a_fFeature
+ * is not present in the guest CPU.
  */
-#define IEMOP_HLP_DONE_VEX_DECODING_L0_AND_NO_VVVV() \
+#define IEMOP_HLP_DONE_VEX_DECODING_L0_AND_NO_VVVV_EX(a_fFeature) \
     do \
     { \
         if (RT_LIKELY(   !(  pVCpu->iem.s.fPrefixes \
                            & (IEM_OP_PRF_LOCK | IEM_OP_PRF_SIZE_OP | IEM_OP_PRF_REPZ | IEM_OP_PRF_REPNZ | IEM_OP_PRF_REX)) \
                       && pVCpu->iem.s.uVexLength == 0 \
                       && pVCpu->iem.s.uVex3rdReg == 0 \
-                      && !IEM_IS_REAL_OR_V86_MODE(pVCpu))) \
+                      && !IEM_IS_REAL_OR_V86_MODE(pVCpu) \
+                      && IEM_GET_GUEST_CPU_FEATURES(pVCpu)->a_fFeature )) \
         { /* likely */ } \
         else \
-            return IEMOP_RAISE_INVALID_OPCODE(); \
+            IEMOP_RAISE_INVALID_OPCODE_RET(); \
     } while (0)
+
+/**
+ * Done decoding VEX, no V, L=0.
+ * Raises \#UD exception if rex, rep, opsize or lock prefixes are present, if
+ * we're in real or v8086 mode, if VEX.V!=0xf, if VEX.L!=0, or if the a_fFeature or a_fFeature2
+ * is not present in the guest CPU.
+ */
+#define IEMOP_HLP_DONE_VEX_DECODING_L0_AND_NO_VVVV_EX_2(a_fFeature, a_fFeature2) \
+    do \
+    { \
+        if (RT_LIKELY(   !(  pVCpu->iem.s.fPrefixes \
+                           & (IEM_OP_PRF_LOCK | IEM_OP_PRF_SIZE_OP | IEM_OP_PRF_REPZ | IEM_OP_PRF_REPNZ | IEM_OP_PRF_REX)) \
+                      && pVCpu->iem.s.uVexLength == 0 \
+                      && pVCpu->iem.s.uVex3rdReg == 0 \
+                      && !IEM_IS_REAL_OR_V86_MODE(pVCpu) \
+                      && IEM_GET_GUEST_CPU_FEATURES(pVCpu)->a_fFeature \
+                      && IEM_GET_GUEST_CPU_FEATURES(pVCpu)->a_fFeature2)) \
+        { /* likely */ } \
+        else \
+            IEMOP_RAISE_INVALID_OPCODE_RET(); \
+    } while (0)
+
+/**
+ * Done decoding VEX, no V, L=1.
+ * Raises \#UD exception if rex, rep, opsize or lock prefixes are present, if
+ * we're in real or v8086 mode, if VEX.V!=0xf, if VEX.L!=1, or if the a_fFeature
+ * is not present in the guest CPU.
+ */
+#define IEMOP_HLP_DONE_VEX_DECODING_L1_AND_NO_VVVV_EX(a_fFeature) \
+    do \
+    { \
+        if (RT_LIKELY(   !(  pVCpu->iem.s.fPrefixes \
+                           & (IEM_OP_PRF_LOCK | IEM_OP_PRF_SIZE_OP | IEM_OP_PRF_REPZ | IEM_OP_PRF_REPNZ | IEM_OP_PRF_REX)) \
+                      && pVCpu->iem.s.uVexLength == 1 \
+                      && pVCpu->iem.s.uVex3rdReg == 0 \
+                      && !IEM_IS_REAL_OR_V86_MODE(pVCpu) \
+                      && IEM_GET_GUEST_CPU_FEATURES(pVCpu)->a_fFeature )) \
+        { /* likely */ } \
+        else \
+            IEMOP_RAISE_INVALID_OPCODE_RET(); \
+    } while (0)
+
+/**
+ * Done decoding VEX, L=0 and W=0.
+ * Raises \#UD exception if rex, rep, opsize or lock prefixes are present,
+ * if we're in real or v8086 mode, if VEX.L!=0, if VEX.W!=0, or if the
+ * a_fFeature is not present in the guest CPU.
+ */
+#define IEMOP_HLP_DONE_VEX_DECODING_L0_AND_W0_EX(a_fFeature) \
+    do \
+    { \
+        if (RT_LIKELY(   !(  pVCpu->iem.s.fPrefixes \
+                           & (IEM_OP_PRF_LOCK | IEM_OP_PRF_SIZE_OP | IEM_OP_PRF_REPZ | IEM_OP_PRF_REPNZ | IEM_OP_PRF_REX \
+                              | IEM_OP_PRF_SIZE_REX_W /*VEX.W*/)) \
+                      && pVCpu->iem.s.uVexLength == 0 \
+                      && !IEM_IS_REAL_OR_V86_MODE(pVCpu) \
+                      && IEM_GET_GUEST_CPU_FEATURES(pVCpu)->a_fFeature )) \
+        { /* likely */ } \
+        else \
+            IEMOP_RAISE_INVALID_OPCODE_RET(); \
+    } while (0)
+
 
 #define IEMOP_HLP_DECODED_NL_1(a_uDisOpNo, a_fIemOpFlags, a_uDisParam0, a_fDisOpType) \
     do \
@@ -549,7 +697,7 @@ void iemOpStubMsg2(PVMCPUCC pVCpu) RT_NOEXCEPT;
         else \
         { \
             NOREF(a_uDisOpNo); NOREF(a_fIemOpFlags); NOREF(a_uDisParam0); NOREF(a_fDisOpType); \
-            return IEMOP_RAISE_INVALID_LOCK_PREFIX(); \
+            IEMOP_RAISE_INVALID_LOCK_PREFIX_RET(); \
         } \
     } while (0)
 #define IEMOP_HLP_DECODED_NL_2(a_uDisOpNo, a_fIemOpFlags, a_uDisParam0, a_uDisParam1, a_fDisOpType) \
@@ -560,7 +708,7 @@ void iemOpStubMsg2(PVMCPUCC pVCpu) RT_NOEXCEPT;
         else \
         { \
             NOREF(a_uDisOpNo); NOREF(a_fIemOpFlags); NOREF(a_uDisParam0); NOREF(a_uDisParam1); NOREF(a_fDisOpType); \
-            return IEMOP_RAISE_INVALID_LOCK_PREFIX(); \
+            IEMOP_RAISE_INVALID_LOCK_PREFIX_RET(); \
         } \
     } while (0)
 
@@ -574,7 +722,7 @@ void iemOpStubMsg2(PVMCPUCC pVCpu) RT_NOEXCEPT;
         if (RT_LIKELY(!(pVCpu->iem.s.fPrefixes & (IEM_OP_PRF_LOCK | IEM_OP_PRF_REPNZ | IEM_OP_PRF_REPZ)))) \
         { /* likely */ } \
         else \
-            return IEMOP_RAISE_INVALID_OPCODE(); \
+            IEMOP_RAISE_INVALID_OPCODE_RET(); \
     } while (0)
 
 /**
@@ -587,13 +735,34 @@ void iemOpStubMsg2(PVMCPUCC pVCpu) RT_NOEXCEPT;
         if (RT_LIKELY(!(pVCpu->iem.s.fPrefixes & (IEM_OP_PRF_SIZE_OP | IEM_OP_PRF_REPNZ | IEM_OP_PRF_REPZ)))) \
         { /* likely */ } \
         else \
-            return IEMOP_RAISE_INVALID_OPCODE(); \
+            IEMOP_RAISE_INVALID_OPCODE_RET(); \
     } while (0)
 
-VBOXSTRICTRC    iemOpHlpCalcRmEffAddr(PVMCPUCC pVCpu, uint8_t bRm, uint8_t cbImm, PRTGCPTR pGCPtrEff) RT_NOEXCEPT;
-VBOXSTRICTRC    iemOpHlpCalcRmEffAddrEx(PVMCPUCC pVCpu, uint8_t bRm, uint8_t cbImm, PRTGCPTR pGCPtrEff, int8_t offRsp) RT_NOEXCEPT;
+/**
+ * Check for a CPUMFEATURES member to be true, raise \#UD if clear.
+ */
+#define IEMOP_HLP_RAISE_UD_IF_MISSING_GUEST_FEATURE(pVCpu, a_fFeature) \
+    do \
+    { \
+        if (IEM_GET_GUEST_CPU_FEATURES(pVCpu)->a_fFeature) \
+        { /* likely */ } \
+        else \
+            IEMOP_RAISE_INVALID_OPCODE_RET(); \
+    } while (0)
+
+/**
+ * Used the threaded code generator to check if a jump stays within the same
+ * page in 64-bit code.
+ */
+#define IEMOP_HLP_PC64_IS_JMP_REL_WITHIN_PAGE(a_offDisp) \
+     (   ((pVCpu->cpum.GstCtx.rip + IEM_GET_INSTR_LEN(pVCpu) + (a_offDisp)) >> GUEST_PAGE_SHIFT) \
+      == (pVCpu->cpum.GstCtx.rip >> GUEST_PAGE_SHIFT))
+
+VBOXSTRICTRC    iemOpHlpCalcRmEffAddr(PVMCPUCC pVCpu, uint8_t bRm, uint32_t cbImmAndRspOffset, PRTGCPTR pGCPtrEff) RT_NOEXCEPT;
+VBOXSTRICTRC    iemOpHlpCalcRmEffAddrEx(PVMCPUCC pVCpu, uint8_t bRm, uint32_t cbImmAndRspOffset, PRTGCPTR pGCPtrEff, uint64_t *puInfo) RT_NOEXCEPT;
 #ifdef IEM_WITH_SETJMP
-RTGCPTR         iemOpHlpCalcRmEffAddrJmp(PVMCPUCC pVCpu, uint8_t bRm, uint8_t cbImm) IEM_NOEXCEPT_MAY_LONGJMP;
+RTGCPTR         iemOpHlpCalcRmEffAddrJmp(PVMCPUCC pVCpu, uint8_t bRm, uint32_t cbImmAndRspOffset) IEM_NOEXCEPT_MAY_LONGJMP;
+RTGCPTR         iemOpHlpCalcRmEffAddrJmpEx(PVMCPUCC pVCpu, uint8_t bRm, uint32_t cbImmAndRspOffset, uint64_t *puInfo) IEM_NOEXCEPT_MAY_LONGJMP;
 #endif
 
 /** @}  */

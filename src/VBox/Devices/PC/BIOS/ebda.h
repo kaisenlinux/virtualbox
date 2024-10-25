@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -77,6 +77,8 @@
 #define BX_USE_ATADRV           1
 #define BX_ELTORITO_BOOT        1
 
+#define VBOX_IS_ATA_DEVICE(device_id) (device_id < BX_MAX_ATA_DEVICES)
+
 #ifdef VBOX_WITH_SCSI
     /* Enough for now */
     #define BX_MAX_SCSI_DEVICES 4
@@ -85,6 +87,7 @@
     #define VBOX_GET_SCSI_DEVICE(device_id) (device_id - BX_MAX_ATA_DEVICES)
 #else
     #define BX_MAX_SCSI_DEVICES 0
+    #define VBOX_IS_SCSI_DEVICE(device_id) (1 == 0)
 #endif
 
 #ifdef VBOX_WITH_AHCI
@@ -98,18 +101,7 @@
     #define BX_MAX_AHCI_DEVICES 0
 #endif
 
-#ifdef VBOX_WITH_VIRTIO_SCSI
-    /* Four should be enough for now */
-    #define BX_MAX_VIRTIO_SCSI_DEVICES 4
-
-    /* An AHCI device starts always at BX_MAX_ATA_DEVICES + BX_MAX_SCSI_DEVICES. */
-    #define VBOX_IS_VIRTIO_SCSI_DEVICE(device_id) (device_id >= (BX_MAX_ATA_DEVICES + BX_MAX_SCSI_DEVICES + BX_MAX_AHCI_DEVICES))
-    #define VBOX_GET_VIRTIO_SCSI_DEVICE(device_id) (device_id - (BX_MAX_ATA_DEVICES + BX_MAX_SCSI_DEVICES + BX_MAX_AHCI_DEVICES))
-#else
-    #define BX_MAX_VIRTIO_SCSI_DEVICES 0
-#endif
-
-#define BX_MAX_STORAGE_DEVICES (BX_MAX_ATA_DEVICES + BX_MAX_SCSI_DEVICES + BX_MAX_AHCI_DEVICES + BX_MAX_VIRTIO_SCSI_DEVICES)
+#define BX_MAX_STORAGE_DEVICES (BX_MAX_ATA_DEVICES + BX_MAX_SCSI_DEVICES + BX_MAX_AHCI_DEVICES)
 
 /* Generic storage device types. These depend on the controller type and
  * determine which device access routines should be called.
@@ -205,7 +197,7 @@ typedef struct {
 
 /* SCSI specific device information. */
 typedef struct {
-    uint16_t    hba_seg;        /* Segment of HBA driver data block. */
+    uint16_t    hba_ofs;        /* Offset (in paragraphs) of HBA driver data block within EBDA. */
     uint8_t     idx_hba;        /* The HBA driver to use. */
     uint8_t     target_id;      /* Target ID. */
 } scsi_dev_t;
@@ -327,10 +319,6 @@ typedef struct {
 
     fdpt_t      fdpt0;      /* FDPTs for the first two ATA disks. */
     fdpt_t      fdpt1;
-
-#ifndef VBOX_WITH_VIRTIO_SCSI /** @todo For development only, need to find a real solution to voercome the 1KB limit. */
-    uint8_t     filler2[0xC4];
-#endif
 
     bio_dsk_t   bdisk;      /* Disk driver data (ATA/SCSI/AHCI). */
 

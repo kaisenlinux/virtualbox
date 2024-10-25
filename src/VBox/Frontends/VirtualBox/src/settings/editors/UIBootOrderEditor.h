@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,11 +32,10 @@
 #endif
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
-#include "UILibraryDefs.h"
+#include "UIEditor.h"
 
 /* COM includes: */
-#include "COMEnums.h"
+#include "KDeviceType.h"
 
 /* Forward declarations: */
 class QGridLayout;
@@ -92,8 +91,8 @@ namespace UIBootDataTools
 using namespace UIBootDataTools;
 
 
-/** QWidget subclass used as boot order editor. */
-class SHARED_LIBRARY_STUFF UIBootOrderEditor : public QIWithRetranslateUI<QWidget>
+/** UIEditor sub-class used as boot order editor. */
+class SHARED_LIBRARY_STUFF UIBootOrderEditor : public UIEditor
 {
     Q_OBJECT;
 
@@ -117,10 +116,10 @@ protected:
     /** Preprocesses Qt @a pEvent for passed @a pObject. */
     virtual bool eventFilter(QObject *pObject, QEvent *pEvent) RT_OVERRIDE;
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
 private slots:
+
+    /** Handles translation event. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
     /** Handles current item change. */
     void sltHandleCurrentBootItemChange();

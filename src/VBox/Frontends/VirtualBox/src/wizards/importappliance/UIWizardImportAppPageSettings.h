@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -37,7 +37,7 @@
 
 /* Forward declarations: */
 class QCheckBox;
-class QIComboBox;
+class QComboBox;
 class QLabel;
 class QStackedWidget;
 class QIRichTextLabel;
@@ -70,7 +70,7 @@ namespace UIWizardImportAppSettings
                                 const CAppliance &comAppliance,
                                 bool fIsSourceCloudOne);
     /** Refresh MAC address import policies. */
-    void refreshMACAddressImportPolicies(QIComboBox *pCombo,
+    void refreshMACAddressImportPolicies(QComboBox *pCombo,
                                          bool fIsSourceCloudOne);
 
     /** Refreshes form properties table. */
@@ -79,17 +79,17 @@ namespace UIWizardImportAppSettings
                                     bool fIsSourceCloudOne);
 
     /** Returns MAC address import policy. */
-    MACAddressImportPolicy macAddressImportPolicy(QIComboBox *pCombo);
+    MACAddressImportPolicy macAddressImportPolicy(QComboBox *pCombo);
     /** Returns whether hard disks should be imported as VDIs. */
     bool isImportHDsAsVDI(QCheckBox *pCheckBox);
 
     /** Translates MAC import policy combo. */
-    void retranslateMACImportPolicyCombo(QIComboBox *pCombo);
+    void retranslateMACImportPolicyCombo(QComboBox *pCombo);
     /** Translates certificate label. */
     void retranslateCertificateLabel(QLabel *pLabel, const kCertText &enmType, const QString &strSignedBy);
 
     /** Updates MAC import policy combo tool-tips. */
-    void updateMACImportPolicyComboToolTip(QIComboBox *pCombo);
+    void updateMACImportPolicyComboToolTip(QComboBox *pCombo);
 }
 
 /** UINativeWizardPage extension for Settings page of the Import Appliance wizard,
@@ -109,14 +109,11 @@ protected:
     /** Returns wizard this page belongs to. */
     UIWizardImportApp *wizard() const;
 
-    /** Handles translation event. */
-    virtual void retranslateUi() /* override final */;
-
     /** Performs page initialization. */
-    virtual void initializePage() /* override final */;
+    virtual void initializePage() RT_OVERRIDE RT_FINAL;
 
     /** Performs page validation. */
-    virtual bool validatePage() /* override final */;
+    virtual bool validatePage() RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -129,6 +126,8 @@ private slots:
     void sltHandleMACImportPolicyComboChange();
     /** Handles import HDs as VDI check-box change. */
     void sltHandleImportHDsAsVDICheckBoxChange();
+    /** Handles translation event. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -153,7 +152,7 @@ private:
     /** Holds the MAC address label instance. */
     QLabel                        *m_pLabelMACImportPolicy;
     /** Holds the MAC address combo instance. */
-    QIComboBox                    *m_pComboMACImportPolicy;
+    QComboBox                     *m_pComboMACImportPolicy;
     /** Holds the additional options label instance. */
     QLabel                        *m_pLabelAdditionalOptions;
     /** Holds the 'import HDs as VDI' checkbox instance. */

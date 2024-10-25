@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,21 +32,19 @@
 #endif
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
-#include "UILibraryDefs.h"
+#include "UIEditor.h"
 
 /* Forward declarations: */
 class QComboBox;
 class QGridLayout;
 class QLabel;
 class QSpinBox;
-class QWidget;
 class QIAdvancedSlider;
 
-/** QWidget reimplementation providing GUI with monitor scale factor editing functionality.
+/** UIEditor sub-class providing GUI with monitor scale factor editing functionality.
   * It includes a combo box to select a monitor, a slider, and a spinbox to display/modify values.
   * The first item in the combo box is used to change the scale factor of all monitors. */
-class SHARED_LIBRARY_STUFF UIScaleFactorEditor : public QIWithRetranslateUI<QWidget>
+class SHARED_LIBRARY_STUFF UIScaleFactorEditor : public UIEditor
 {
     Q_OBJECT;
 
@@ -66,20 +64,15 @@ public:
     /** Defines @a dDefaultScaleFactor. */
     void setDefaultScaleFactor(double dDefaultScaleFactor);
 
-    /** Defines minimum width @a iHint for internal spin-box. */
-    void setSpinBoxWidthHint(int iHint);
-
     /** Returns minimum layout hint. */
     int minimumLabelHorizontalHint() const;
     /** Defines minimum layout @a iIndent. */
     void setMinimumLayoutIndent(int iIndent);
 
-protected:
+private slots:
 
     /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
-private slots:
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
     /** @name Internal slots handling respective widget's value update.
       * @{ */

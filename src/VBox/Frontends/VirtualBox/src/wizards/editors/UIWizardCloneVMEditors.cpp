@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -36,14 +36,14 @@
 
 /* GUI includes: */
 #include "QILineEdit.h"
-#include "UICommon.h"
 #include "UIFilePathSelector.h"
+#include "UIGlobalSession.h"
+#include "UITranslationEventListener.h"
 #include "UIWizardCloneVM.h"
 #include "UIWizardCloneVMEditors.h"
 
 /* Other VBox includes: */
 #include "iprt/assert.h"
-#include "COMEnums.h"
 #include "CSystemProperties.h"
 
 
@@ -52,7 +52,7 @@
 *********************************************************************************************************************************/
 
 UICloneVMNamePathEditor::UICloneVMNamePathEditor(const QString &strOriginalName, const QString &strDefaultPath, QWidget *pParent /* = 0 */)
-    :QIWithRetranslateUI<QGroupBox>(pParent)
+    : QGroupBox(pParent)
     , m_pContainerLayout(0)
     , m_pNameLineEdit(0)
     , m_pPathSelector(0)
@@ -69,22 +69,22 @@ bool UICloneVMNamePathEditor::isComplete(const QString &strMachineGroup)
     AssertReturn(m_pNameLineEdit && m_pPathSelector, false);
 
     bool fInvalidName = m_pNameLineEdit->text().isEmpty();
-    m_pNameLineEdit->mark(fInvalidName, UIWizardCloneVM::tr("Clone name cannot be empty"));
+    m_pNameLineEdit->mark(fInvalidName, UIWizardCloneVM::tr("Clone name cannot be empty"), UIWizardCloneVM::tr("Clone name is valid"));
 
     const QString &strPath = m_pPathSelector->path();
     QDir dir(strPath);
     bool fInvalidPath = strPath.isEmpty() || !dir.exists() || !dir.isReadable();
-    m_pPathSelector->mark(fInvalidPath, UIWizardCloneVM::tr("Path is invalid"));
+    m_pPathSelector->mark(fInvalidPath, UIWizardCloneVM::tr("Path is invalid"), UIWizardCloneVM::tr("Path is valid"));
 
     /* Check if there is already a machine folder for this name and path: */
     bool fExists = false;
     if (!fInvalidName)
     {
-        CVirtualBox vbox = uiCommon().virtualBox();
+        CVirtualBox vbox = gpGlobalSession->virtualBox();
         QString strCloneFilePath =
             vbox.ComposeMachineFilename(m_pNameLineEdit->text(), strMachineGroup, QString(), m_pPathSelector->path());
         fExists = QDir(QDir::toNativeSeparators(QFileInfo(strCloneFilePath).absolutePath())).exists();
-        m_pNameLineEdit->mark(fExists, UIWizardCloneVM::tr("The clone name is not unique"));
+        m_pNameLineEdit->mark(fExists, UIWizardCloneVM::tr("Clone name is not unique"), UIWizardCloneVM::tr("Clone name is valid"));
     }
 
     return !fInvalidName && !fInvalidPath && !fExists;
@@ -151,12 +151,13 @@ void UICloneVMNamePathEditor::prepare()
         m_pContainerLayout->addWidget(m_pNameLabel, 0, 0, 1, 1);
     }
 
-    m_pNameLineEdit = new UIMarkableLineEdit();
+    m_pNameLineEdit = new QILineEdit();
     if (m_pNameLineEdit)
     {
+        m_pNameLineEdit->setMarkable(true);
         m_pContainerLayout->addWidget(m_pNameLineEdit, 0, 1, 1, 1);
         m_pNameLineEdit->setText(UIWizardCloneVM::tr("%1 Clone").arg(m_strOriginalName));
-        connect(m_pNameLineEdit, &UIMarkableLineEdit::textChanged,
+        connect(m_pNameLineEdit, &QILineEdit::textChanged,
                 this, &UICloneVMNamePathEditor::sigCloneNameChanged);
         if (m_pNameLabel)
             m_pNameLabel->setBuddy(m_pNameLineEdit);
@@ -182,10 +183,12 @@ void UICloneVMNamePathEditor::prepare()
 
     }
 
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UICloneVMNamePathEditor::sltRetranslateUI);
 }
 
-void UICloneVMNamePathEditor::retranslateUi()
+void UICloneVMNamePathEditor::sltRetranslateUI()
 {
     if (m_pNameLabel)
         m_pNameLabel->setText(UIWizardCloneVM::tr("&Name:"));
@@ -204,7 +207,7 @@ void UICloneVMNamePathEditor::retranslateUi()
 
 
 UICloneVMAdditionalOptionsEditor::UICloneVMAdditionalOptionsEditor(QWidget *pParent /* = 0 */)
-    :QIWithRetranslateUI<QGroupBox>(pParent)
+    : QGroupBox(pParent)
     , m_pContainerLayout(0)
     , m_pMACComboBoxLabel(0)
     , m_pMACComboBox(0)
@@ -244,7 +247,7 @@ MACAddressClonePolicy UICloneVMAdditionalOptionsEditor::macAddressClonePolicy() 
 
 void UICloneVMAdditionalOptionsEditor::setMACAddressClonePolicy(MACAddressClonePolicy enmMACAddressClonePolicy)
 {
-    const int iIndex = m_pMACComboBox->findData(enmMACAddressClonePolicy);
+    const int iIndex = m_pMACComboBox->findData(QVariant::fromValue(enmMACAddressClonePolicy));
     AssertMsg(iIndex != -1, ("Data not found!"));
     m_pMACComboBox->setCurrentIndex(iIndex);
 }
@@ -278,7 +281,7 @@ void UICloneVMAdditionalOptionsEditor::prepare()
     if (m_pMACComboBox)
     {
         m_pContainerLayout->addWidget(m_pMACComboBox, 2, 1, 1, 1);
-        connect(m_pMACComboBox, static_cast<void(QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+        connect(m_pMACComboBox, &QComboBox::currentIndexChanged,
                 this, &UICloneVMAdditionalOptionsEditor::sltMACAddressClonePolicyChanged);
         if (m_pMACComboBoxLabel)
             m_pMACComboBoxLabel->setBuddy(m_pMACComboBox);
@@ -288,7 +291,7 @@ void UICloneVMAdditionalOptionsEditor::prepare()
     m_pMACComboBox->blockSignals(false);
 
     /* Load currently supported clone options: */
-    CSystemProperties comProperties = uiCommon().virtualBox().GetSystemProperties();
+    CSystemProperties comProperties = gpGlobalSession->virtualBox().GetSystemProperties();
     const QVector<KCloneOptions> supportedOptions = comProperties.GetSupportedCloneOptions();
     /* Check whether we support additional clone options at all: */
     int iVerticalPosition = 3;
@@ -324,11 +327,12 @@ void UICloneVMAdditionalOptionsEditor::prepare()
         }
     }
 
-
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UICloneVMAdditionalOptionsEditor::sltRetranslateUI);
 }
 
-void UICloneVMAdditionalOptionsEditor::retranslateUi()
+void UICloneVMAdditionalOptionsEditor::sltRetranslateUI()
 {
     m_pMACComboBoxLabel->setText(UIWizardCloneVM::tr("MAC Address P&olicy:"));
     m_pMACComboBox->setToolTip(UIWizardCloneVM::tr("Determines MAC address policy for clonning:"));
@@ -402,7 +406,7 @@ void UICloneVMAdditionalOptionsEditor::populateMACAddressClonePolicies()
     knownOptions[KCloneOptions_KeepNATMACs] = MACAddressClonePolicy_KeepNATMACs;
 
     /* Load currently supported clone options: */
-    CSystemProperties comProperties = uiCommon().virtualBox().GetSystemProperties();
+    CSystemProperties comProperties = gpGlobalSession->virtualBox().GetSystemProperties();
     const QVector<KCloneOptions> supportedOptions = comProperties.GetSupportedCloneOptions();
 
     /* Check which of supported options/policies are known: */
@@ -431,7 +435,7 @@ void UICloneVMAdditionalOptionsEditor::populateMACAddressClonePolicies()
 *********************************************************************************************************************************/
 
 UICloneVMCloneTypeGroupBox::UICloneVMCloneTypeGroupBox(QWidget *pParent /* = 0 */)
-    :QIWithRetranslateUI<QGroupBox>(pParent)
+    : QGroupBox(pParent)
     , m_pButtonGroup(0)
     , m_pFullCloneRadio(0)
     , m_pLinkedCloneRadio(0)
@@ -464,7 +468,7 @@ void UICloneVMCloneTypeGroupBox::prepare()
         }
 
         /* Load currently supported clone options: */
-        CSystemProperties comProperties = uiCommon().virtualBox().GetSystemProperties();
+        CSystemProperties comProperties = gpGlobalSession->virtualBox().GetSystemProperties();
         const QVector<KCloneOptions> supportedOptions = comProperties.GetSupportedCloneOptions();
         /* Check whether we support linked clone option at all: */
         const bool fSupportedLinkedClone = supportedOptions.contains(KCloneOptions_Link);
@@ -481,22 +485,24 @@ void UICloneVMCloneTypeGroupBox::prepare()
         }
     }
 
-    connect(m_pButtonGroup, static_cast<void(QButtonGroup::*)(QAbstractButton *)>(&QButtonGroup::buttonClicked),
+    connect(m_pButtonGroup, &QButtonGroup::buttonClicked,
             this, &UICloneVMCloneTypeGroupBox::sltButtonClicked);
 
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UICloneVMCloneTypeGroupBox::sltRetranslateUI);
 }
 
-void UICloneVMCloneTypeGroupBox::retranslateUi()
+void UICloneVMCloneTypeGroupBox::sltRetranslateUI()
 {
     if (m_pFullCloneRadio)
     {
-        m_pFullCloneRadio->setText(UIWizardCloneVM::tr("&Full clone"));
+        m_pFullCloneRadio->setText(UIWizardCloneVM::tr("&Full Clone"));
         m_pFullCloneRadio->setToolTip(UIWizardCloneVM::tr("When chosen, all the virtual disks of the source vm are also cloned."));
     }
     if (m_pLinkedCloneRadio)
     {
-        m_pLinkedCloneRadio->setText(UIWizardCloneVM::tr("&Linked clone"));
+        m_pLinkedCloneRadio->setText(UIWizardCloneVM::tr("&Linked Clone"));
         m_pLinkedCloneRadio->setToolTip(UIWizardCloneVM::tr("When chosen, the cloned vm will save space by sharing the source VM's disk images."));
     }
 }
@@ -512,7 +518,7 @@ void UICloneVMCloneTypeGroupBox::sltButtonClicked(QAbstractButton *)
 *********************************************************************************************************************************/
 
 UICloneVMCloneModeGroupBox::UICloneVMCloneModeGroupBox(bool fShowChildsOption, QWidget *pParent /* = 0 */)
-    :QIWithRetranslateUI<QGroupBox>(pParent)
+    : QGroupBox(pParent)
     , m_fShowChildsOption(fShowChildsOption)
     , m_pMachineRadio(0)
     , m_pMachineAndChildsRadio(0)
@@ -550,22 +556,23 @@ void UICloneVMCloneModeGroupBox::prepare()
     pMainLayout->addWidget(m_pAllRadio);
     pMainLayout->addStretch();
 
-
-    connect(pButtonGroup, static_cast<void(QButtonGroup::*)(QAbstractButton *)>(&QButtonGroup::buttonClicked),
+    connect(pButtonGroup, &QButtonGroup::buttonClicked,
             this, &UICloneVMCloneModeGroupBox::sltButtonClicked);
 
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UICloneVMCloneModeGroupBox::sltRetranslateUI);
 }
 
-void UICloneVMCloneModeGroupBox::retranslateUi()
+void UICloneVMCloneModeGroupBox::sltRetranslateUI()
 {
     if (m_pMachineRadio)
     {
-        m_pMachineRadio->setText(UIWizardCloneVM::tr("Current &machine state"));
+        m_pMachineRadio->setText(UIWizardCloneVM::tr("Current &Machine State"));
         m_pMachineRadio->setToolTip(UIWizardCloneVM::tr("When chosen, only the current state of the source vm is cloned."));
     }
     if (m_pMachineAndChildsRadio)
-        m_pMachineAndChildsRadio->setText(UIWizardCloneVM::tr("Current &snapshot tree branch"));
+        m_pMachineAndChildsRadio->setText(UIWizardCloneVM::tr("Current &Snapshot Tree Branch"));
     if (m_pAllRadio)
     {
         m_pAllRadio->setText(UIWizardCloneVM::tr("&Everything"));

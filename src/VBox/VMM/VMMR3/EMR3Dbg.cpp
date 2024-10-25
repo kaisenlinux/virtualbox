@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,6 +32,7 @@
 #define LOG_GROUP LOG_GROUP_EM
 #include <VBox/vmm/em.h>
 #include <VBox/vmm/hm.h>
+#include <VBox/vmm/iem.h>
 #include <VBox/vmm/nem.h>
 #include <VBox/dbg.h>
 #include "EMInternal.h"
@@ -40,31 +41,50 @@
 #include <iprt/ctype.h>
 
 
-/** @callback_method_impl{FNDBGCCMD,
- * Implements the '.alliem' command. }
+/**
+ * Common worker for the  '.alliem' and '.iemrecompiled' commands.
  */
-static DECLCALLBACK(int) enmR3DbgCmdAllIem(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHlp, PUVM pUVM, PCDBGCVAR paArgs, unsigned cArgs)
+static int emR3DbgCmdSetPolicyCommon(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHlp, PUVM pUVM, PCDBGCVAR paArgs, unsigned cArgs,
+                                     EMEXECPOLICY enmPolicy, const char *pszPolicy)
 {
     int  rc;
     bool f;
 
     if (cArgs == 0)
     {
-        rc = EMR3QueryExecutionPolicy(pUVM, EMEXECPOLICY_IEM_ALL, &f);
+        rc = EMR3QueryExecutionPolicy(pUVM, enmPolicy, &f);
         if (RT_FAILURE(rc))
-            return DBGCCmdHlpFailRc(pCmdHlp, pCmd, rc, "EMR3QueryExecutionPolicy(,EMEXECPOLICY_IEM_ALL,");
-        DBGCCmdHlpPrintf(pCmdHlp, f ? "alliem: enabled\n" : "alliem: disabled\n");
+            return DBGCCmdHlpFailRc(pCmdHlp, pCmd, rc, "EMR3QueryExecutionPolicy(,%s,", pszPolicy);
+        DBGCCmdHlpPrintf(pCmdHlp, f ? "%s: enabled\n" : "%s: disabled\n", pszPolicy);
     }
     else
     {
         rc = DBGCCmdHlpVarToBool(pCmdHlp, &paArgs[0], &f);
         if (RT_FAILURE(rc))
             return DBGCCmdHlpFailRc(pCmdHlp, pCmd, rc, "DBGCCmdHlpVarToBool");
-        rc = EMR3SetExecutionPolicy(pUVM, EMEXECPOLICY_IEM_ALL, f);
+        rc = EMR3SetExecutionPolicy(pUVM, enmPolicy, f);
         if (RT_FAILURE(rc))
-            return DBGCCmdHlpFailRc(pCmdHlp, pCmd, rc, "EMR3SetExecutionPolicy(,EMEXECPOLICY_IEM_ALL,%RTbool)", f);
+            return DBGCCmdHlpFailRc(pCmdHlp, pCmd, rc, "EMR3SetExecutionPolicy(,%s,%RTbool)", pszPolicy, f);
     }
     return VINF_SUCCESS;
+}
+
+
+/** @callback_method_impl{FNDBGCCMD,
+ * Implements the '.alliem' command. }
+ */
+static DECLCALLBACK(int) emR3DbgCmdAllIem(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHlp, PUVM pUVM, PCDBGCVAR paArgs, unsigned cArgs)
+{
+    return emR3DbgCmdSetPolicyCommon(pCmd, pCmdHlp, pUVM, paArgs, cArgs, EMEXECPOLICY_IEM_ALL, "EMEXECPOLICY_IEM_ALL");
+}
+
+
+/** @callback_method_impl{FNDBGCCMD,
+ * Implements the '.iemrecompiled' command. }
+ */
+static DECLCALLBACK(int) emR3DbgCmdIemRecompiled(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHlp, PUVM pUVM, PCDBGCVAR paArgs, unsigned cArgs)
+{
+    return emR3DbgCmdSetPolicyCommon(pCmd, pCmdHlp, pUVM, paArgs, cArgs, EMEXECPOLICY_IEM_RECOMPILED, "EMEXECPOLICY_IEM_RECOMPILED");
 }
 
 
@@ -75,8 +95,12 @@ static DBGCVARDESC const g_BoolArg = { 0, 1, DBGCVAR_CAT_ANY, 0, "boolean", "Boo
 static DBGCCMD const g_aCmds[] =
 {
     {
-        "alliem", 0, 1, &g_BoolArg, 1, 0, enmR3DbgCmdAllIem, "[boolean]",
-        "Enables or disabled executing ALL code in IEM, if no arguments are given it displays the current status."
+        "alliem", 0, 1, &g_BoolArg, 1, 0, emR3DbgCmdAllIem, "[boolean]",
+        "Enables or disables executing ALL code in IEM, if no arguments are given it displays the current status."
+    },
+    {
+        "iemrecompiled", 0, 1, &g_BoolArg, 1, 0, emR3DbgCmdIemRecompiled, "[boolean]",
+        "Enables or disables recompiled ALL-in-IEM execution, if no arguments are given it displays the current status."
     },
 };
 
@@ -140,19 +164,29 @@ static const char *emR3HistoryGetExitName(uint32_t uFlagsAndType, char *pszFallb
             pszExitName = EMR3GetExitTypeName((EMEXITTYPE)(uFlagsAndType & EMEXIT_F_TYPE_MASK));
             break;
 
+#if !defined(VBOX_VMM_TARGET_ARMV8)
         case EMEXIT_F_KIND_VMX:
-            pszExitName = HMGetVmxExitName( uFlagsAndType & EMEXIT_F_TYPE_MASK);
+            pszExitName = HMGetVmxExitName(uFlagsAndType & EMEXIT_F_TYPE_MASK);
             break;
 
         case EMEXIT_F_KIND_SVM:
-            pszExitName = HMGetSvmExitName( uFlagsAndType & EMEXIT_F_TYPE_MASK);
+            pszExitName = HMGetSvmExitName(uFlagsAndType & EMEXIT_F_TYPE_MASK);
             break;
+#endif
 
         case EMEXIT_F_KIND_NEM:
-            pszExitName = NEMR3GetExitName(   uFlagsAndType & EMEXIT_F_TYPE_MASK);
+            pszExitName = NEMR3GetExitName(uFlagsAndType & EMEXIT_F_TYPE_MASK);
+            break;
+
+        case EMEXIT_F_KIND_IEM:
+            pszExitName = IEMR3GetExitName(uFlagsAndType & EMEXIT_F_TYPE_MASK);
             break;
 
         case EMEXIT_F_KIND_XCPT:
+#if defined(VBOX_VMM_TARGET_ARMV8)
+            pszExitName = NULL;
+            AssertReleaseFailed();
+#else
             switch (uFlagsAndType & EMEXIT_F_TYPE_MASK)
             {
                 case X86_XCPT_DE:               return "Xcpt #DE";
@@ -175,11 +209,25 @@ static const char *emR3HistoryGetExitName(uint32_t uFlagsAndType, char *pszFallb
                 case X86_XCPT_MC:               return "Xcpt #MC";
                 case X86_XCPT_XF:               return "Xcpt #XF";
                 case X86_XCPT_VE:               return "Xcpt #VE";
+                case X86_XCPT_CP:               return "Xcpt #CP";
+                case X86_XCPT_VC:               return "Xcpt #VC";
                 case X86_XCPT_SX:               return "Xcpt #SX";
+
+                case X86_XCPT_DF | EMEXIT_F_XCPT_ERRCD:  return "Xcpt #DF ErrCd as PC";
+                case X86_XCPT_TS | EMEXIT_F_XCPT_ERRCD:  return "Xcpt #TS ErrCd as PC";
+                case X86_XCPT_NP | EMEXIT_F_XCPT_ERRCD:  return "Xcpt #NP ErrCd as PC";
+                case X86_XCPT_SS | EMEXIT_F_XCPT_ERRCD:  return "Xcpt #SS ErrCd as PC";
+                case X86_XCPT_GP | EMEXIT_F_XCPT_ERRCD:  return "Xcpt #GF ErrCd as PC";
+                case X86_XCPT_PF | EMEXIT_F_XCPT_ERRCD:  return "Xcpt #PF ErrCd as PC";
+                case X86_XCPT_AC | EMEXIT_F_XCPT_ERRCD:  return "Xcpt #AC ErrCd as PC";
+
+                case X86_XCPT_PF | EMEXIT_F_XCPT_CR2:    return "Xcpt #PF CR2 as PC";
+
                 default:
                     pszExitName = NULL;
                     break;
             }
+#endif
             break;
 
         default:

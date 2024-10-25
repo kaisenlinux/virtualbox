@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -116,7 +116,7 @@
 
 #include <VBox/log.h>
 #include <VBox/err.h>
-#include <iprt/asm.h>
+#include <iprt/asm-mem.h>
 #include <iprt/string.h>
 #include <VBox/dbg.h>
 
@@ -680,7 +680,7 @@ DECLCALLBACK(VBOXSTRICTRC) pgmR3PoolClearAllRendezvous(PVM pVM, PVMCPU pVCpu, vo
                                 break;
                         }
 #endif
-                        ASMMemZeroPage(pvShw);
+                        RT_BZERO(pvShw, PAGE_SIZE);
                         STAM_PROFILE_STOP(&pPool->StatZeroPage, z);
                         pPage->cPresent = 0;
                         pPage->iFirstPresent = NIL_PGMPOOL_PRESENT_INDEX;
@@ -714,10 +714,11 @@ DECLCALLBACK(VBOXSTRICTRC) pgmR3PoolClearAllRendezvous(PVM pVM, PVMCPU pVCpu, vo
     /*
      * Clear all the GCPhys links and rebuild the phys ext free list.
      */
-    for (PPGMRAMRANGE pRam = pPool->CTX_SUFF(pVM)->pgm.s.CTX_SUFF(pRamRangesX);
-         pRam;
-         pRam = pRam->CTX_SUFF(pNext))
+    uint32_t const idRamRangeMax = RT_MIN(pVM->pgm.s.idRamRangeMax, RT_ELEMENTS(pVM->pgm.s.apRamRanges) - 1U);
+    Assert(pVM->pgm.s.apRamRanges[0] == NULL);
+    for (uint32_t idx = 1; idx <= idRamRangeMax; idx++)
     {
+        PPGMRAMRANGE const pRam = pVM->pgm.s.apRamRanges[idx];
         iPage = pRam->cb >> GUEST_PAGE_SHIFT;
         while (iPage-- > 0)
             PGM_PAGE_SET_TRACKING(pVM, &pRam->aPages[iPage], 0);
@@ -1058,6 +1059,8 @@ static void pgmR3PoolCheckError(PPGMPOOLCHECKERSTATE pState, const char *pszForm
         pState->fFirstMsg = false;
     }
 
+    ++pState->cErrors;
+
     va_list va;
     va_start(va, pszFormat);
     pState->pCmdHlp->pfnPrintfV(pState->pCmdHlp, NULL, pszFormat, va);
@@ -1337,8 +1340,8 @@ static DECLCALLBACK(int) pgmR3PoolCmdCheck(PCDBGCCMD pCmd, PDBGCCMDHLP pCmdHlp, 
     PGM_UNLOCK(pVM);
 
     if (State.cErrors > 0)
-        return DBGCCmdHlpFail(pCmdHlp, pCmd, "Found %#x errors", State.cErrors);
-    DBGCCmdHlpPrintf(pCmdHlp, "no errors found\n");
+        return DBGCCmdHlpFail(pCmdHlp, pCmd, "Found %u error(s)", State.cErrors);
+    DBGCCmdHlpPrintf(pCmdHlp, "No errors found\n");
     return VINF_SUCCESS;
 }
 

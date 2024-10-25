@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,13 +32,13 @@
 #endif
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
+#include "UIEditor.h"
 
 /* Forward declarations: */
 class QTextEdit;
 
-/** QWidget subclass used as machine description editor. */
-class SHARED_LIBRARY_STUFF UIDescriptionEditor : public QIWithRetranslateUI<QWidget>
+/** UIEditor sub-class used as machine description editor. */
+class SHARED_LIBRARY_STUFF UIDescriptionEditor : public UIEditor
 {
     Q_OBJECT;
 
@@ -54,8 +54,15 @@ public:
 
 protected:
 
+    /** Returns the minimum widget size hint. */
+    virtual QSize minimumSizeHint() const RT_OVERRIDE;
+    /** Returns the widget size hint. */
+    virtual QSize sizeHint() const RT_OVERRIDE;
+
+private slots:
+
     /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 

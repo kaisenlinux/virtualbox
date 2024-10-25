@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -159,6 +159,7 @@ typedef struct VMSVGAR3STATE
     VMSVGA3DBACKENDFUNCSMAP *pFuncsMap;
     VMSVGA3DBACKENDFUNCSGBO *pFuncsGBO;
     VMSVGA3DBACKENDFUNCSDX  *pFuncsDX;
+    VMSVGA3DBACKENDFUNCSDXVIDEO *pFuncsDXVideo;
 # endif
 
     /** Tracks how much time we waste reading SVGA_REG_BUSY with a busy FIFO. */

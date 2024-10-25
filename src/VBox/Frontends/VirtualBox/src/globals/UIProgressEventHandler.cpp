@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -27,9 +27,9 @@
 
 /* GUI includes: */
 #include "UIExtraDataManager.h"
+#include "UIGlobalSession.h"
 #include "UIMainEventListener.h"
 #include "UIProgressEventHandler.h"
-#include "UICommon.h"
 #ifdef VBOX_WS_MAC
 # include "VBoxUtils-darwin.h"
 #endif /* VBOX_WS_MAC */
@@ -64,7 +64,7 @@ void UIProgressEventHandler::prepareListener()
 
     /* Get CProgress event source: */
     CEventSource comEventSourceProgress = m_comProgress.GetEventSource();
-    AssertWrapperOk(comEventSourceProgress);
+    Assert(m_comProgress.isOk());
 
     /* Enumerate all the required event-types: */
     QVector<KVBoxEventType> eventTypes;
@@ -74,7 +74,7 @@ void UIProgressEventHandler::prepareListener()
 
     /* Register event listener for CProgress event source: */
     comEventSourceProgress.RegisterListener(m_comEventListener, eventTypes, FALSE /* active? */);
-    AssertWrapperOk(comEventSourceProgress);
+    Assert(comEventSourceProgress.isOk());
 
     /* Register event sources in their listeners as well: */
     m_pQtListener->getWrapped()->registerSource(comEventSourceProgress,
@@ -107,12 +107,12 @@ void UIProgressEventHandler::cleanupListener()
     m_pQtListener->getWrapped()->unregisterSources();
 
     /* Make sure VBoxSVC is available: */
-    if (!uiCommon().isVBoxSVCAvailable())
+    if (!gpGlobalSession->isVBoxSVCAvailable())
         return;
 
     /* Get CProgress event source: */
     CEventSource comEventSourceProgress = m_comProgress.GetEventSource();
-    AssertWrapperOk(comEventSourceProgress);
+    Assert(m_comProgress.isOk());
 
     /* Unregister event listener for CProgress event source: */
     comEventSourceProgress.UnregisterListener(m_comEventListener);

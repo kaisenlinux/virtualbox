@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,9 +26,11 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QHeaderView>
+#include <QHelpEvent>
 #include <QMenu>
-#include <QRegExp>
+#include <QRegularExpression>
 #include <QToolTip>
 #include <QVBoxLayout>
 
@@ -36,10 +38,11 @@
 #include "QILabelSeparator.h"
 #include "QIToolBar.h"
 #include "QITreeWidget.h"
-#include "UICommon.h"
+#include "UIGlobalSession.h"
 #include "UIIconPool.h"
 #include "UIUSBFilterDetailsEditor.h"
 #include "UIUSBFiltersEditor.h"
+#include "UIUSBTools.h"
 
 /* COM includes: */
 #include "CConsole.h"
@@ -159,7 +162,7 @@ bool UIUSBMenu::event(QEvent *pEvent)
             CUSBDevice usb = m_usbDeviceMap[pAction];
             if (!usb.isNull())
             {
-                QToolTip::showText(pHelpEvent->globalPos(), uiCommon().usbToolTip(usb));
+                QToolTip::showText(pHelpEvent->globalPos(), usbToolTip(usb));
                 return true;
             }
         }
@@ -175,7 +178,7 @@ void UIUSBMenu::processAboutToShow()
     m_usbDeviceMap.clear();
 
     /* Get host for further activities: */
-    CHost comHost = uiCommon().host();
+    CHost comHost = gpGlobalSession->host();
 
     /* Check whether we have host USB devices at all: */
     bool fIsUSBEmpty = comHost.GetUSBDevices().size() == 0;
@@ -192,7 +195,7 @@ void UIUSBMenu::processAboutToShow()
         foreach (const CHostUSBDevice &comHostUsb, comHost.GetUSBDevices())
         {
             CUSBDevice comUsb(comHostUsb);
-            QAction *pAction = addAction(uiCommon().usbDetails(comUsb));
+            QAction *pAction = addAction(usbDetails(comUsb));
             pAction->setCheckable(true);
             m_usbDeviceMap[pAction] = comUsb;
             /* Check if created item was already attached to this session: */
@@ -212,7 +215,7 @@ void UIUSBMenu::processAboutToShow()
 *********************************************************************************************************************************/
 
 UIUSBFiltersEditor::UIUSBFiltersEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent)
     , m_pLabelSeparator(0)
     , m_pLayoutTree(0)
     , m_pTreeWidget(0)
@@ -261,7 +264,7 @@ QList<UIDataUSBFilter> UIUSBFiltersEditor::value() const
     return result;
 }
 
-void UIUSBFiltersEditor::retranslateUi()
+void UIUSBFiltersEditor::sltRetranslateUI()
 {
     /* Tags: */
     m_strTrUSBFilterName = tr("New Filter %1", "usb");
@@ -352,15 +355,18 @@ void UIUSBFiltersEditor::sltCreateFilter()
 {
     /* Search for the max available filter index: */
     int iMaxFilterIndex = 0;
-    const QRegExp regExp(QString("^") + m_strTrUSBFilterName.arg("([0-9]+)") + QString("$"));
+    const QRegularExpression re(QString("^") + m_strTrUSBFilterName.arg("([0-9]+)") + QString("$"));
     QTreeWidgetItemIterator iterator(m_pTreeWidget);
     while (*iterator)
     {
         const QString filterName = (*iterator)->text(0);
-        const int pos = regExp.indexIn(filterName);
-        if (pos != -1)
-            iMaxFilterIndex = regExp.cap(1).toInt() > iMaxFilterIndex ?
-                              regExp.cap(1).toInt() : iMaxFilterIndex;
+        const QRegularExpressionMatch mt = re.match(filterName);
+        if (mt.hasMatch())
+        {
+            const int iFoundIndex = mt.captured(1).toInt();
+            iMaxFilterIndex = iFoundIndex > iMaxFilterIndex
+                            ? iFoundIndex : iMaxFilterIndex;
+        }
         ++iterator;
     }
 
@@ -394,7 +400,7 @@ void UIUSBFiltersEditor::sltAddFilterConfirmed(QAction *pAction)
     /* Prepare new USB filter data: */
     UIDataUSBFilter newFilterData;
     newFilterData.m_fActive = true;
-    newFilterData.m_strName = uiCommon().usbDetails(comUsb);
+    newFilterData.m_strName = usbDetails(comUsb);
     newFilterData.m_strVendorId  = QString::number(comUsb.GetVendorId(),  16).toUpper().rightJustified(4, '0');
     newFilterData.m_strProductId = QString::number(comUsb.GetProductId(), 16).toUpper().rightJustified(4, '0');
     newFilterData.m_strRevision  = QString::number(comUsb.GetRevision(),  16).toUpper().rightJustified(4, '0');
@@ -515,7 +521,7 @@ void UIUSBFiltersEditor::prepare()
     prepareConnections();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIUSBFiltersEditor::prepareWidgets()
@@ -560,6 +566,8 @@ void UIUSBFiltersEditor::prepareTreeWidget()
         if (m_pLabelSeparator)
             m_pLabelSeparator->setBuddy(m_pTreeWidget);
         m_pTreeWidget->header()->hide();
+        m_pTreeWidget->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Ignored);
+        m_pTreeWidget->setMinimumHeight(150);
         m_pTreeWidget->setRootIsDecorated(false);
         m_pTreeWidget->setUniformRowHeights(true);
         m_pTreeWidget->setContextMenuPolicy(Qt::CustomContextMenu);

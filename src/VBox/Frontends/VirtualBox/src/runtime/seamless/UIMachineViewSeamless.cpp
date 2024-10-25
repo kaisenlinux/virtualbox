@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -28,32 +28,29 @@
 /* Qt includes: */
 #include <QApplication>
 #include <QMainWindow>
+#include <QResizeEvent>
 #include <QTimer>
 #ifdef VBOX_WS_MAC
 # include <QMenuBar>
 #endif /* VBOX_WS_MAC */
 
 /* GUI includes: */
-#include "UISession.h"
-#include "UIMachineLogicSeamless.h"
-#include "UIMachineWindow.h"
-#include "UIMachineViewSeamless.h"
-#include "UIFrameBuffer.h"
-#include "UIExtraDataManager.h"
 #include "UIDesktopWidgetWatchdog.h"
+#include "UIExtraDataManager.h"
+#include "UIFrameBuffer.h"
+#include "UILoggingDefs.h"
+#include "UIMachine.h"
+#include "UIMachineLogicSeamless.h"
+#include "UIMachineViewSeamless.h"
+#include "UIMachineWindow.h"
 
 /* COM includes: */
 #include "CConsole.h"
-#include "CDisplay.h"
-
-/* Other VBox includes: */
-#include "VBox/log.h"
 
 /* External includes: */
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
 # include <limits.h>
-#endif /* VBOX_WS_X11 */
-
+#endif
 
 
 UIMachineViewSeamless::UIMachineViewSeamless(UIMachineWindow *pMachineWindow, ulong uScreenId)
@@ -71,7 +68,7 @@ void UIMachineViewSeamless::sltAdditionsStateChanged()
 void UIMachineViewSeamless::sltHandleSetVisibleRegion(QRegion region)
 {
     /* Apply new seamless-region: */
-    m_pFrameBuffer->handleSetVisibleRegion(region);
+    frameBuffer()->handleSetVisibleRegion(region);
 }
 
 bool UIMachineViewSeamless::eventFilter(QObject *pWatched, QEvent *pEvent)
@@ -128,26 +125,26 @@ void UIMachineViewSeamless::prepareConsoleConnections()
     UIMachineView::prepareConsoleConnections();
 
     /* Guest additions state-change updater: */
-    connect(uisession(), &UISession::sigAdditionsStateActualChange, this, &UIMachineViewSeamless::sltAdditionsStateChanged);
+    connect(uimachine(), &UIMachine::sigAdditionsStateActualChange, this, &UIMachineViewSeamless::sltAdditionsStateChanged);
 }
 
 void UIMachineViewSeamless::prepareSeamless()
 {
     /* Set seamless feature flag to the guest: */
-    display().SetSeamlessMode(true);
+    uimachine()->setSeamlessMode(true);
 }
 
 void UIMachineViewSeamless::cleanupSeamless()
 {
     /* Reset seamless feature flag if possible: */
-    if (uisession()->isRunning())
-        display().SetSeamlessMode(false);
+    if (uimachine()->isRunning())
+        uimachine()->setSeamlessMode(false);
 }
 
 void UIMachineViewSeamless::adjustGuestScreenSize()
 {
     /* Step 1: Is guest-screen visible? */
-    if (!uisession()->isScreenVisible(screenId()))
+    if (!uimachine()->isScreenVisible(screenId()))
     {
         LogRel(("GUI: UIMachineViewSeamless::adjustGuestScreenSize: "
                 "Guest-screen #%d is not visible, adjustment is not required.\n",
@@ -175,7 +172,7 @@ void UIMachineViewSeamless::adjustGuestScreenSize()
             desiredSizeHint.width(), desiredSizeHint.height(), screenId()));
     sltPerformGuestResize(sizeToApply);
     /* And remember the size to know what we are resizing out of when we exit: */
-    uisession()->setLastFullScreenSize(screenId(), scaledForward(desiredSizeHint));
+    uimachine()->setLastFullScreenSize(screenId(), scaledForward(desiredSizeHint));
 }
 
 QRect UIMachineViewSeamless::workingArea() const

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -36,17 +36,16 @@
 #include "QIRichTextLabel.h"
 #include "QIToolButton.h"
 #include "UIIconPool.h"
+#include "UIGuestOSType.h"
 #include "UIMediaComboBox.h"
 #include "UIMediumSelector.h"
 #include "UIMediumSizeEditor.h"
-#include "UICommon.h"
+#include "UIGlobalSession.h"
 #include "UIWizardNewVMDiskPage.h"
 #include "UIWizardDiskEditors.h"
 #include "UIWizardNewVM.h"
 
 /* COM includes: */
-#include "COMEnums.h"
-#include "CGuestOSType.h"
 #include "CSystemProperties.h"
 
 QUuid UIWizardNewVMDiskCommon::getWithFileOpenDialog(const QString &strOSTypeID,
@@ -83,7 +82,7 @@ UIWizardNewVMDiskPage::UIWizardNewVMDiskPage(UIActionPool *pActionPool)
     , m_pFixedCheckBox(0)
     , m_fVDIFormatFound(false)
     , m_uMediumSizeMin(_4M)
-    , m_uMediumSizeMax(uiCommon().virtualBox().GetSystemProperties().GetInfoVDSize())
+    , m_uMediumSizeMax(gpGlobalSession->virtualBox().GetSystemProperties().GetInfoVDSize())
     , m_pActionPool(pActionPool)
 {
     prepare();
@@ -145,10 +144,10 @@ QWidget *UIWizardNewVMDiskPage::createNewDiskWidgets()
 void UIWizardNewVMDiskPage::createConnections()
 {
     if (m_pDiskSourceButtonGroup)
-        connect(m_pDiskSourceButtonGroup, static_cast<void(QButtonGroup::*)(QAbstractButton *)>(&QButtonGroup::buttonClicked),
+        connect(m_pDiskSourceButtonGroup, &QButtonGroup::buttonClicked,
                 this, &UIWizardNewVMDiskPage::sltSelectedDiskSourceChanged);
     if (m_pDiskSelector)
-        connect(m_pDiskSelector, static_cast<void(UIMediaComboBox::*)(int)>(&UIMediaComboBox::currentIndexChanged),
+        connect(m_pDiskSelector, &UIMediaComboBox::currentIndexChanged,
                 this, &UIWizardNewVMDiskPage::sltMediaComboBoxIndexChanged);
     if (m_pDiskSelectionButton)
         connect(m_pDiskSelectionButton, &QIToolButton::clicked,
@@ -205,9 +204,8 @@ void UIWizardNewVMDiskPage::sltGetWithFileOpenDialog()
 {
     UIWizardNewVM *pWizard = wizardWindow<UIWizardNewVM>();
     AssertReturnVoid(pWizard);
-    const CGuestOSType &comOSType = pWizard->guestOSType();
-    AssertReturnVoid(!comOSType.isNull());
-    QUuid uMediumId = UIWizardNewVMDiskCommon::getWithFileOpenDialog(comOSType.GetId(),
+
+    QUuid uMediumId = UIWizardNewVMDiskCommon::getWithFileOpenDialog(pWizard->guestOSTypeId(),
                                                                      pWizard->machineFolder(),
                                                                      this, m_pActionPool);
     if (!uMediumId.isNull())
@@ -217,7 +215,7 @@ void UIWizardNewVMDiskPage::sltGetWithFileOpenDialog()
     }
 }
 
-void UIWizardNewVMDiskPage::retranslateUi()
+void UIWizardNewVMDiskPage::sltRetranslateUI()
 {
     setTitle(UIWizardNewVM::tr("Virtual Hard disk"));
 
@@ -259,16 +257,16 @@ void UIWizardNewVMDiskPage::retranslateUi()
 
 void UIWizardNewVMDiskPage::initializePage()
 {
-    retranslateUi();
+    sltRetranslateUI();
 
     UIWizardNewVM *pWizard = wizardWindow<UIWizardNewVM>();
     AssertReturnVoid(pWizard);
 
     LONG64 iRecommendedSize = 0;
-    CGuestOSType type = pWizard->guestOSType();
-    if (!type.isNull() && !m_userModifiedParameters.contains("SelectedDiskSource"))
+
+    if (!m_userModifiedParameters.contains("SelectedDiskSource"))
     {
-        iRecommendedSize = type.GetRecommendedHDD();
+        iRecommendedSize = gpGlobalSession->guestOSTypeManager().getRecommendedHDD(pWizard->guestOSTypeId());
         if (iRecommendedSize != 0)
         {
             if (m_pDiskNew)
@@ -299,7 +297,7 @@ void UIWizardNewVMDiskPage::initializePage()
     if (!m_fVDIFormatFound)
     {
         /* We do not have any UI elements for HDD format selection since we default to VDI in case of guided wizard mode: */
-        CSystemProperties properties = uiCommon().virtualBox().GetSystemProperties();
+        CSystemProperties properties = gpGlobalSession->virtualBox().GetSystemProperties();
         const QVector<CMediumFormat> &formats = properties.GetMediumFormats();
         foreach (const CMediumFormat &format, formats)
         {
@@ -418,12 +416,12 @@ QWidget *UIWizardNewVMDiskPage::createDiskWidgets()
         m_pDiskSelectionButton->setAutoRaise(true);
         m_pDiskSelectionButton->setIcon(UIIconPool::iconSet(":/select_file_16px.png", ":/select_file_disabled_16px.png"));
     }
-    pDiskLayout->addWidget(m_pDiskNew, 0, 0, 1, 6);
-    pDiskLayout->addWidget(createNewDiskWidgets(), 1, 2, 3, 4);
-    pDiskLayout->addWidget(m_pDiskExisting, 4, 0, 1, 6);
-    pDiskLayout->addWidget(m_pDiskSelector, 5, 2, 1, 3);
-    pDiskLayout->addWidget(m_pDiskSelectionButton, 5, 5, 1, 1);
-    pDiskLayout->addWidget(m_pDiskEmpty, 6, 0, 1, 6);
+    pDiskLayout->addWidget(m_pDiskNew, 0, 0, 1, 3);
+    pDiskLayout->addWidget(createNewDiskWidgets(), 1, 1, 3, 2);
+    pDiskLayout->addWidget(m_pDiskExisting, 4, 0, 1, 3);
+    pDiskLayout->addWidget(m_pDiskSelector, 5, 1);
+    pDiskLayout->addWidget(m_pDiskSelectionButton, 5, 2);
+    pDiskLayout->addWidget(m_pDiskEmpty, 6, 0, 1, 3);
     return pDiskContainer;
 }
 
@@ -441,9 +439,9 @@ QWidget *UIWizardNewVMDiskPage::createMediumVariantWidgets(bool fWithLabels)
         }
         if (fWithLabels)
         {
-            m_pDescriptionLabel = new QIRichTextLabel;
-            m_pDynamicLabel = new QIRichTextLabel;
-            m_pFixedLabel = new QIRichTextLabel;
+            m_pDescriptionLabel = new QIRichTextLabel(pContainerWidget);
+            m_pDynamicLabel = new QIRichTextLabel(pContainerWidget);
+            m_pFixedLabel = new QIRichTextLabel(pContainerWidget);
 
             pMainLayout->addWidget(m_pDescriptionLabel);
             pMainLayout->addWidget(m_pDynamicLabel);

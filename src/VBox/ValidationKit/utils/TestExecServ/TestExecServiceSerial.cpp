@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2018-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2018-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -374,7 +374,7 @@ static DECLCALLBACK(int) txsSerialOption(int ch, PCRTGETOPTUNION pVal)
 /**
  * @interface_method_impl{TXSTRANSPORT,pfnUsage}
  */
-DECLCALLBACK(void) txsSerialUsage(PRTSTREAM pStream)
+static DECLCALLBACK(void) txsSerialUsage(PRTSTREAM pStream)
 {
     RTStrmPrintf(pStream,
                  "  --serial-device <device>\n"

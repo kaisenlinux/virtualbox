@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -38,11 +38,9 @@
 #include <QTransform>
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
 #include "UIToolsItem.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 
 /* Forward declaration: */
 class QGraphicsItem;
@@ -57,16 +55,23 @@ class UIToolsHandlerMouse;
 class UIToolsHandlerKeyboard;
 
 /** QObject extension used as VM Tools-pane model: */
-class UIToolsModel : public QIWithRetranslateUI3<QObject>
+class UIToolsModel : public QObject
 {
     Q_OBJECT;
 
 signals:
 
+    /** @name General stuff.
+      * @{ */
+        /** Notifies about closing request. */
+        void sigClose();
+    /** @} */
+
     /** @name Selection stuff.
       * @{ */
-        /** Notifies about selection changed. */
-        void sigSelectionChanged();
+        /** Notifies about selection changed.
+          * @param  enmType  Brings current tool type. */
+        void sigSelectionChanged(UIToolType enmType);
         /** Notifies about focus changed. */
         void sigFocusChanged();
 
@@ -86,8 +91,9 @@ signals:
 
 public:
 
-    /** Constructs Tools-model passing @a pParent to the base-class. */
-    UIToolsModel(UITools *pParent);
+    /** Constructs Tools-model passing @a pParent to the base-class.
+      * @param  Brings the tools class, it will be fixed one. */
+    UIToolsModel(UIToolClass enmClass, UITools *pParent);
     /** Destructs Tools-model. */
     virtual ~UIToolsModel() RT_OVERRIDE;
 
@@ -108,33 +114,23 @@ public:
         /** Returns item at @a position, taking into account possible @a deviceTransform. */
         QGraphicsItem *itemAt(const QPointF &position, const QTransform &deviceTransform = QTransform()) const;
 
-        /** Defines current tools @a enmClass. */
-        void setToolsClass(UIToolClass enmClass);
-        /** Returns current tools class. */
-        UIToolClass toolsClass() const;
-
         /** Defines current tools @a enmType. */
         void setToolsType(UIToolType enmType);
         /** Returns current tools type. */
         UIToolType toolsType() const;
 
-        /** Returns last selected global tool. */
-        UIToolType lastSelectedToolGlobal() const;
-        /** Returns last selected machine tool. */
-        UIToolType lastSelectedToolMachine() const;
-
-        /** Defines whether certain @a enmClass of tools is @a fEnabled.*/
-        void setToolClassEnabled(UIToolClass enmClass, bool fEnabled);
-        /** Returns whether certain class of tools is enabled.*/
-        bool toolClassEnabled(UIToolClass enmClass) const;
+        /** Defines whether tool items @a fEnabled.*/
+        void setItemsEnabled(bool fEnabled);
+        /** Returns whether tool items enabled.*/
+        bool isItemsEnabled() const;
 
         /** Defines restructed tool @a types. */
         void setRestrictedToolTypes(const QList<UIToolType> &types);
         /** Returns restricted tool types. */
         QList<UIToolType> restrictedToolTypes() const;
 
-        /** Closes parent. */
-        void closeParent();
+        /** Asks parent to close. */
+        void close();
     /** @} */
 
     /** @name Children stuff.
@@ -180,7 +176,7 @@ public slots:
     /** @name General stuff.
       * @{ */
         /** Handles Tools-view resize. */
-        void sltHandleViewResized();
+        void sltHandleViewResized() { updateLayout(); }
     /** @} */
 
     /** @name Children stuff.
@@ -197,9 +193,6 @@ protected:
       * @{ */
         /** Preprocesses Qt @a pEvent for passed @a pObject. */
         virtual bool eventFilter(QObject *pObject, QEvent *pEvent) RT_OVERRIDE;
-
-        /** Handles translation event. */
-        virtual void retranslateUi() RT_OVERRIDE;
     /** @} */
 
 private slots:
@@ -208,6 +201,12 @@ private slots:
       * @{ */
         /** Handles focus item destruction. */
         void sltFocusItemDestroyed();
+    /** @} */
+
+    /** @name Event handling stuff.
+     * @{ */
+       /** Handles translation event. */
+       void sltRetranslateUI();
     /** @} */
 
 private:
@@ -230,14 +229,13 @@ private:
         void prepareItems();
         /** Prepares handlers. */
         void prepareHandlers();
-        /** Prepares connections. */
-        void prepareConnections();
         /** Loads settings. */
         void loadSettings();
 
-        /** Cleanups connections. */
-        void cleanupConnections();
-        /** Cleanups connections. */
+        /** Loads last tool types. */
+        static void loadLastToolTypes(UIToolType &enmTypeGlobal, UIToolType &enmTypeMachine);
+
+        /** Cleanups handlers. */
         void cleanupHandlers();
         /** Cleanups items. */
         void cleanupItems();
@@ -255,6 +253,9 @@ private:
 
     /** @name General stuff.
       * @{ */
+        /** Holds the tools class. */
+        const UIToolClass  m_enmClass;
+
         /** Holds the Tools reference. */
         UITools *m_pTools;
 
@@ -266,11 +267,8 @@ private:
         /** Holds the keyboard handler instance. */
         UIToolsHandlerKeyboard *m_pKeyboardHandler;
 
-        /** Holds current tools class. */
-        UIToolClass  m_enmCurrentClass;
-
-        /** Holds whether tools of particular class are enabled. */
-        QMap<UIToolClass, bool>  m_enabledToolClasses;
+        /** Holds whether items enabled. */
+        bool  m_fItemsEnabled;
 
         /** Holds a list of restricted tool types. */
         QList<UIToolType>  m_restrictedToolTypes;
@@ -285,20 +283,15 @@ private:
     /** @name Selection stuff.
       * @{ */
         /** Holds the selected item reference. */
-        QPointer<UIToolsItem> m_pCurrentItem;
+        QPointer<UIToolsItem>  m_pCurrentItem;
         /** Holds the focus item reference. */
-        QPointer<UIToolsItem> m_pFocusItem;
+        QPointer<UIToolsItem>  m_pFocusItem;
     /** @} */
 
     /** @name Navigation stuff.
       * @{ */
         /** Holds the navigation list. */
         QList<UIToolsItem*>  m_navigationList;
-
-        /** Holds the last chosen navigation item of global class. */
-        QPointer<UIToolsItem> m_pLastItemGlobal;
-        /** Holds the last chosen navigation item of machine class. */
-        QPointer<UIToolsItem> m_pLastItemMachine;
     /** @} */
 };
 

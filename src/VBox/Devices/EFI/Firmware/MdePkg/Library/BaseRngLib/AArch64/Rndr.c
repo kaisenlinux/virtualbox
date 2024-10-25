@@ -2,6 +2,7 @@
   Random number generator service that uses the RNDR instruction
   to provide pseudorandom numbers.
 
+  Copyright (c) 2023, Arm Limited. All rights reserved.<BR>
   Copyright (c) 2021, NUVIA Inc. All rights reserved.<BR>
   Copyright (c) 2015, Intel Corporation. All rights reserved.<BR>
 
@@ -11,18 +12,19 @@
 
 #include <Uefi.h>
 #include <Library/BaseLib.h>
+#include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
 #include <Library/RngLib.h>
 
 #include "ArmRng.h"
 #include "BaseRngLibInternals.h"
 
-STATIC BOOLEAN mRndrSupported;
+STATIC BOOLEAN  mRndrSupported;
 
 //
 // Bit mask used to determine if RNDR instruction is supported.
 //
-#define RNDR_MASK                  ((UINT64)MAX_UINT16 << 60U)
+#define RNDR_MASK  ((UINT64)MAX_UINT16 << 60U)
 
 /**
   The constructor function checks whether or not RNDR instruction is supported
@@ -41,13 +43,13 @@ BaseRngLibConstructor (
   VOID
   )
 {
-  UINT64 Isar0;
+  UINT64  Isar0;
+
   //
   // Determine RNDR support by examining bits 63:60 of the ISAR0 register returned by
   // MSR. A non-zero value indicates that the processor supports the RNDR instruction.
   //
   Isar0 = ArmReadIdIsar0 ();
-  ASSERT ((Isar0 & RNDR_MASK) != 0);
 
   mRndrSupported = ((Isar0 & RNDR_MASK) != 0);
 
@@ -66,10 +68,10 @@ BaseRngLibConstructor (
 BOOLEAN
 EFIAPI
 ArchGetRandomNumber16 (
-  OUT     UINT16                    *Rand
+  OUT     UINT16  *Rand
   )
 {
-  UINT64 Rand64;
+  UINT64  Rand64;
 
   if (ArchGetRandomNumber64 (&Rand64)) {
     *Rand = Rand64 & MAX_UINT16;
@@ -91,10 +93,10 @@ ArchGetRandomNumber16 (
 BOOLEAN
 EFIAPI
 ArchGetRandomNumber32 (
-  OUT     UINT32                    *Rand
+  OUT     UINT32  *Rand
   )
 {
-  UINT64 Rand64;
+  UINT64  Rand64;
 
   if (ArchGetRandomNumber64 (&Rand64)) {
     *Rand = Rand64 & MAX_UINT32;
@@ -116,7 +118,7 @@ ArchGetRandomNumber32 (
 BOOLEAN
 EFIAPI
 ArchGetRandomNumber64 (
-  OUT     UINT64                    *Rand
+  OUT     UINT64  *Rand
   )
 {
   return ArmRndr (Rand);
@@ -136,4 +138,44 @@ ArchIsRngSupported (
   )
 {
   return mRndrSupported;
+}
+
+/**
+  Get a GUID identifying the RNG algorithm implementation.
+
+  @param [out] RngGuid  If success, contains the GUID identifying
+                        the RNG algorithm implementation.
+
+  @retval EFI_SUCCESS             Success.
+  @retval EFI_UNSUPPORTED         Not supported.
+  @retval EFI_INVALID_PARAMETER   Invalid parameter.
+**/
+EFI_STATUS
+EFIAPI
+GetRngGuid (
+  GUID  *RngGuid
+  )
+{
+  GUID  *RngLibGuid;
+
+  if (RngGuid == NULL) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  if (!mRndrSupported) {
+    return EFI_UNSUPPORTED;
+  }
+
+  //
+  // If the platform advertises the algorithm behind RNDR instruction,
+  // use it. Otherwise use gEfiRngAlgorithmArmRndr.
+  //
+  RngLibGuid = PcdGetPtr (PcdCpuRngSupportedAlgorithm);
+  if (!IsZeroGuid (RngLibGuid)) {
+    CopyMem (RngGuid, RngLibGuid, sizeof (*RngGuid));
+  } else {
+    CopyMem (RngGuid, &gEfiRngAlgorithmArmRndr, sizeof (*RngGuid));
+  }
+
+  return EFI_SUCCESS;
 }

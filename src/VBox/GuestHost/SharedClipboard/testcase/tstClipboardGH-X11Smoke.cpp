@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,9 +32,9 @@
 
 #include <iprt/assert.h>
 #include <iprt/env.h>
-#include <iprt/err.h>
 #include <iprt/test.h>
 
+#include <VBox/err.h>
 #include <VBox/GuestHost/SharedClipboard.h>
 #include <VBox/GuestHost/SharedClipboard-x11.h>
 #include <VBox/GuestHost/clipboard-helper.h>
@@ -49,7 +49,7 @@ static DECLCALLBACK(int) tstShClReportFormatsCallback(PSHCLCONTEXT pCtx, uint32_
 static DECLCALLBACK(int) tstShClOnRequestDataFromSourceCallback(PSHCLCONTEXT pCtx, SHCLFORMAT uFmt, void **ppv, uint32_t *pcb, void *pvUser)
 {
     RT_NOREF(pCtx, uFmt, ppv, pcb, pvUser);
-    return VERR_NO_DATA;
+    return VERR_SHCLPB_NO_DATA;
 }
 
 static DECLCALLBACK(int) tstShClOnSendDataToDest(PSHCLCONTEXT pCtx, void *pv, uint32_t cb, void *pvUser)
@@ -89,15 +89,15 @@ int main()
     Callbacks.pfnOnSendDataToDest        = tstShClOnSendDataToDest;
 
     SHCLX11CTX X11Ctx;
-    rc = ShClX11Init(&X11Ctx, &Callbacks, NULL /* pParent */, false);
-    AssertRCReturn(rc, 1);
-    rc = ShClX11ThreadStart(&X11Ctx, false /* fGrab */);
-    AssertRCReturn(rc, 1);
+    RTTEST_CHECK_RC_OK(hTest, ShClX11Init(&X11Ctx, &Callbacks, NULL /* pParent */, false /* fHeadless */));
+    RTTEST_CHECK_RC_OK(hTest, ShClX11ThreadStart(&X11Ctx, false /* fGrab */));
+
     /* Give the clipboard time to synchronise. */
     RTThreadSleep(500);
-    rc = ShClX11ThreadStop(&X11Ctx);
-    AssertRCReturn(rc, 1);
-    ShClX11Destroy(&X11Ctx);
+
+    RTTEST_CHECK_RC_OK(hTest, ShClX11ThreadStop(&X11Ctx));
+    RTTEST_CHECK_RC_OK(hTest, ShClX11Destroy(&X11Ctx));
+
     return RTTestSummaryAndDestroy(hTest);
 }
 

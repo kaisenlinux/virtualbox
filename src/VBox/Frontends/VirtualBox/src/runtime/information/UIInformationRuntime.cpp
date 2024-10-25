@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,19 +32,22 @@
 #include <QHeaderView>
 #include <QMenu>
 #include <QVBoxLayout>
-#include <QTableWidget>
 #include <QTimer>
 
 /* GUI includes: */
-#include "UICommon.h"
 #include "UIConverter.h"
+#include "UIGlobalSession.h"
 #include "UIIconPool.h"
 #include "UIInformationRuntime.h"
-#include "UISession.h"
+#include "UIGuestOSType.h"
+#include "UIMachine.h"
+#include "UITranslationEventListener.h"
+#include "QITableWidget.h"
 
 /* COM includes: */
+#include "CDisplay.h"
 #include "CGraphicsAdapter.h"
-#include "CGuest.h"
+#include "CMachineDebugger.h"
 #include "CVRDEServerInfo.h"
 
 enum InfoRow
@@ -67,16 +70,15 @@ enum InfoRow
 /*********************************************************************************************************************************
 *   UIRuntimeInfoWidget definition.                                                                                     *
 *********************************************************************************************************************************/
-/** A QTablWidget extention to show some runtime attributes. Some of these are updated in response to IConsole events. Uptime field
-  * is updated thru a QTimer. */
-class UIRuntimeInfoWidget : public QIWithRetranslateUI<QTableWidget>
+/** A QTablWidget extention to show some runtime attributes */
+class UIRuntimeInfoWidget : public QITableWidget
 {
 
     Q_OBJECT;
 
 public:
 
-    UIRuntimeInfoWidget(QWidget *pParent, const CMachine &machine, const CConsole &console);
+    UIRuntimeInfoWidget(QWidget *pParent);
     void updateScreenInfo(int iScreenId = -1);
     void updateGAsVersion();
     void updateVRDE();
@@ -84,12 +86,9 @@ public:
     void updateDnDMode(KDnDMode enmMode = KDnDMode_Max);
     QString tableData() const;
 
-protected:
-
-    virtual void retranslateUi() RT_OVERRIDE;
-
 private slots:
 
+    void sltRetranslateUI();
     void sltTimeout();
 
 private:
@@ -104,13 +103,10 @@ private:
       * row to the end of the table. Assumes only one line of the @p enmLine exists. */
     void updateInfoRow(InfoRow enmLine, const QString &strColumn0, const QString &strColumn1);
     QString screenResolution(int iScreenId);
-    /** Creates to QTableWidgetItems of the @enmInfoRow using the @p strLabel and @p strInfo and inserts it
+    /** Creates to QITableWidgetItems of the @enmInfoRow using the @p strLabel and @p strInfo and inserts it
      * to the row @p iRow. If @p iRow is -1 then the items inserted to the end of the table. */
     void insertInfoRow(InfoRow enmInfoRow, const QString& strLabel, const QString &strInfo, int iRow = -1);
     void computeMinimumWidth();
-
-    CMachine m_machine;
-    CConsole m_console;
 
     /** @name Cached translated strings.
       * @{ */
@@ -149,10 +145,8 @@ private:
 *   UIRuntimeInfoWidget implementation.                                                                                     *
 *********************************************************************************************************************************/
 
-UIRuntimeInfoWidget::UIRuntimeInfoWidget(QWidget *pParent, const CMachine &machine, const CConsole &console)
-    : QIWithRetranslateUI<QTableWidget>(pParent)
-    , m_machine(machine)
-    , m_console(console)
+UIRuntimeInfoWidget::UIRuntimeInfoWidget(QWidget *pParent)
+    : QITableWidget(pParent)
     , m_iMinimumWidth(0)
     , m_pTimer(0)
 {
@@ -188,11 +182,13 @@ UIRuntimeInfoWidget::UIRuntimeInfoWidget(QWidget *pParent, const CMachine &machi
              << &m_strRemoteDesktopLabel;
 
 
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIRuntimeInfoWidget::sltRetranslateUI);
     computeMinimumWidth();
 }
 
-void UIRuntimeInfoWidget::retranslateUi()
+void UIRuntimeInfoWidget::sltRetranslateUI()
 {
     m_strTableTitle                    = QApplication::translate("UIVMInformationDialog", "Runtime Attributes");
     m_strScreenResolutionLabel         = QApplication::translate("UIVMInformationDialog", "Screen Resolution");
@@ -224,12 +220,8 @@ void UIRuntimeInfoWidget::retranslateUi()
         if (strLabel && strLongest->length() < strLabel->length())
             strLongest = strLabel;
     }
-    QFontMetrics fontMetrics(font());
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
+    const QFontMetrics fontMetrics(font());
     setColumnWidth(0, 1.5 * fontMetrics.horizontalAdvance(*strLongest));
-#else
-    setColumnWidth(0, 1.5 * fontMetrics.width(*strLongest));
-#endif
 
     /* Make the API calls and populate the table: */
     createInfoRows();
@@ -241,22 +233,32 @@ void UIRuntimeInfoWidget::insertInfoRow(InfoRow enmInfoRow, const QString& strLa
     if (iRow != -1 && iRow <= iNewRow)
         iNewRow = iRow;
     insertRow(iNewRow);
-    setItem(iNewRow, 1, new QTableWidgetItem(strLabel, enmInfoRow));
-    setItem(iNewRow, 2, new QTableWidgetItem(strInfo, enmInfoRow));
+
+    QITableWidgetItem *pItem1 = new QITableWidgetItem(strLabel);
+    AssertPtrReturnVoid(pItem1);
+    pItem1->setData(Qt::UserRole + 1, enmInfoRow);
+    setItem(iNewRow, 1, pItem1);
+
+    QITableWidgetItem *pItem2 = new QITableWidgetItem(strInfo);
+    AssertPtrReturnVoid(pItem2);
+    pItem2->setData(Qt::UserRole + 1, enmInfoRow);
+    setItem(iNewRow, 2, pItem2);
+
     int iMargin = 0.2 * qApp->style()->pixelMetric(QStyle::PM_LayoutTopMargin);
     setRowHeight(iNewRow, 2 * iMargin + m_iFontHeight);
 }
 
 QString UIRuntimeInfoWidget::screenResolution(int iScreenID)
 {
+    AssertPtrReturn(gpMachine, QString());
     /* Determine resolution: */
-    ULONG uWidth = 0;
-    ULONG uHeight = 0;
-    ULONG uBpp = 0;
-    LONG xOrigin = 0;
-    LONG yOrigin = 0;
+    ulong uWidth = 0;
+    ulong uHeight = 0;
+    ulong uBpp = 0;
+    long xOrigin = 0;
+    long yOrigin = 0;
     KGuestMonitorStatus monitorStatus = KGuestMonitorStatus_Enabled;
-    m_console.GetDisplay().GetScreenResolution(iScreenID, uWidth, uHeight, uBpp, xOrigin, yOrigin, monitorStatus);
+    gpMachine->acquireGuestScreenParameters(iScreenID, uWidth, uHeight, uBpp, xOrigin, yOrigin, monitorStatus);
     QString strResolution = QString("%1x%2").arg(uWidth).arg(uHeight);
     if (uBpp)
         strResolution += QString("x%1").arg(uBpp);
@@ -276,7 +278,11 @@ void UIRuntimeInfoWidget::sltTimeout()
 
 void UIRuntimeInfoWidget::updateScreenInfo(int iScreenID /* = -1 */)
 {
-    ULONG uGuestScreens = m_machine.GetGraphicsAdapter().GetMonitorCount();
+    AssertPtrReturnVoid(gpMachine);
+    ulong uGuestScreens = 0;
+    gpMachine->acquireMonitorCount(uGuestScreens);
+    AssertReturnVoid(uGuestScreens > 0);
+
     m_screenResolutions.resize(uGuestScreens);
     if (iScreenID != -1 && iScreenID >= (int)uGuestScreens)
         return;
@@ -291,8 +297,8 @@ void UIRuntimeInfoWidget::updateScreenInfo(int iScreenID /* = -1 */)
     int iRowCount = rowCount();
     for (int i = iRowCount - 1; i >= 0; --i)
     {
-        QTableWidgetItem *pItem = item(i, 1);
-        if (pItem && pItem->type() == InfoRow_Resolution)
+        QITableWidgetItem *pItem = static_cast<QITableWidgetItem*>(item(i, 1));
+        if (pItem && pItem->data(Qt::UserRole + 1) == InfoRow_Resolution)
             removeRow(i);
     }
     for (ULONG iScreen = 0; iScreen < uGuestScreens; ++iScreen)
@@ -309,14 +315,17 @@ void UIRuntimeInfoWidget::updateScreenInfo(int iScreenID /* = -1 */)
 
 void UIRuntimeInfoWidget::updateUpTime()
 {
-    CMachineDebugger debugger = m_console.GetDebugger();
-    uint32_t uUpSecs = (debugger.GetUptime() / 5000) * 5;
+    AssertPtrReturnVoid(gpMachine);
+    LONG64 uUptime;
+    if (!gpMachine->acquireUptime(uUptime))
+        return;
+    uint64_t uUpSecs = (uUptime / 5000) * 5;
     char szUptime[32];
-    uint32_t uUpDays = uUpSecs / (60 * 60 * 24);
+    uint64_t uUpDays = uUpSecs / (60 * 60 * 24);
     uUpSecs -= uUpDays * 60 * 60 * 24;
-    uint32_t uUpHours = uUpSecs / (60 * 60);
+    uint64_t uUpHours = uUpSecs / (60 * 60);
     uUpSecs -= uUpHours * 60 * 60;
-    uint32_t uUpMins  = uUpSecs / 60;
+    uint64_t uUpMins  = uUpSecs / 60;
     uUpSecs -= uUpMins * 60;
     RTStrPrintf(szUptime, sizeof(szUptime), "%dd %02d:%02d:%02d",
                 uUpDays, uUpHours, uUpMins, uUpSecs);
@@ -327,8 +336,15 @@ void UIRuntimeInfoWidget::updateUpTime()
 void UIRuntimeInfoWidget::updateTitleRow()
 {
     /* Add the title row always as 0th row: */
-    QTableWidgetItem *pTitleIcon = new QTableWidgetItem(UIIconPool::iconSet(":/state_running_16px.png"), "", InfoRow_Title);
-    QTableWidgetItem *pTitleItem = new QTableWidgetItem(m_strTableTitle, InfoRow_Title);
+    QITableWidgetItem *pTitleIcon = new QITableWidgetItem("");
+    AssertReturnVoid(pTitleIcon);
+    pTitleIcon->setIcon(UIIconPool::iconSet(":/state_running_16px.png"));
+    pTitleIcon->setData(Qt::UserRole + 1, InfoRow_Title);
+
+    QITableWidgetItem *pTitleItem = new QITableWidgetItem(m_strTableTitle);
+    AssertReturnVoid(pTitleItem);
+    pTitleItem->setData(Qt::UserRole + 1, InfoRow_Title);
+
     QFont titleFont(font());
     titleFont.setBold(true);
     pTitleItem->setFont(titleFont);
@@ -341,31 +357,36 @@ void UIRuntimeInfoWidget::updateTitleRow()
 
 void UIRuntimeInfoWidget::updateOSTypeRow()
 {
-   QString strOSType = m_console.GetGuest().GetOSTypeId();
+    AssertPtrReturnVoid(gpMachine);
+    QString strOSType = gpMachine->osTypeId();
     if (strOSType.isEmpty())
         strOSType = m_strOSNotDetected;
     else
-        strOSType = uiCommon().vmGuestOSTypeDescription(strOSType);
+    {
+        strOSType = gpGlobalSession->guestOSTypeManager().getDescription(strOSType);
+    }
    updateInfoRow(InfoRow_GuestOSType, QString("%1").arg(m_strGuestOSTypeLabel), strOSType);
 }
 
 void UIRuntimeInfoWidget::updateVirtualizationInfo()
 {
-
-    /* Determine virtualization attributes: */
-    CMachineDebugger debugger = m_console.GetDebugger();
+    AssertPtrReturnVoid(gpMachine);
+    KVMExecutionEngine enmExecutionEngineType = gpMachine->vmExecutionEngine();
 
     QString strExecutionEngine;
-    switch (debugger.GetExecutionEngine())
+    switch (enmExecutionEngineType)
     {
         case KVMExecutionEngine_HwVirt:
-            strExecutionEngine = "VT-x/AMD-V";  /* no translation */
+            strExecutionEngine = "VT-x/AMD-V";        /* no translation */
             break;
-        case KVMExecutionEngine_Emulated:
-            strExecutionEngine = "IEM";         /* no translation */
+        case KVMExecutionEngine_Interpreter:
+            strExecutionEngine = "IEM (Interpreter)"; /* no translation */
+            break;
+        case KVMExecutionEngine_Recompiler:
+            strExecutionEngine = "IEM (Recompiler)";  /* no translation */
             break;
         case KVMExecutionEngine_NativeApi:
-            strExecutionEngine = "native API";  /* no translation */
+            strExecutionEngine = "native API";        /* no translation */
             break;
         default:
             AssertFailed();
@@ -374,11 +395,11 @@ void UIRuntimeInfoWidget::updateVirtualizationInfo()
             strExecutionEngine = m_strExecutionEngineNotSet;
             break;
     }
-    QString strNestedPaging = debugger.GetHWVirtExNestedPagingEnabled() ?
+    QString strNestedPaging = gpMachine->isHWVirtExNestedPagingEnabled() ?
         m_strNestedPagingActive : m_strNestedPagingInactive;
-    QString strUnrestrictedExecution = debugger.GetHWVirtExUXEnabled() ?
+    QString strUnrestrictedExecution = gpMachine->isHWVirtExUXEnabled() ?
         m_strUnrestrictedExecutionActive : m_strUnrestrictedExecutionInactive;
-    QString strParavirtProvider = gpConverter->toString(m_machine.GetEffectiveParavirtProvider());
+    QString strParavirtProvider = gpConverter->toString(gpMachine->paravirtProvider());
 
     updateInfoRow(InfoRow_ExecutionEngine, QString("%1").arg(m_strExcutionEngineLabel), strExecutionEngine);
     updateInfoRow(InfoRow_NestedPaging, QString("%1").arg(m_strNestedPagingLabel), strNestedPaging);
@@ -388,13 +409,15 @@ void UIRuntimeInfoWidget::updateVirtualizationInfo()
 
 void UIRuntimeInfoWidget::updateGAsVersion()
 {
-    CGuest guest = m_console.GetGuest();
-    QString strGAVersion = guest.GetAdditionsVersion();
+    AssertPtrReturnVoid(gpMachine);
+    QString strGAVersion;
+    gpMachine->acquireGuestAdditionsVersion(strGAVersion);
     if (strGAVersion.isEmpty())
         strGAVersion = m_strGANotDetected;
     else
     {
-        ULONG uRevision = guest.GetAdditionsRevision();
+        ulong uRevision = 0;
+        gpMachine->acquireGuestAdditionsRevision(uRevision);
         if (uRevision != 0)
             strGAVersion += QString(" r%1").arg(uRevision);
     }
@@ -403,17 +426,25 @@ void UIRuntimeInfoWidget::updateGAsVersion()
 
 void UIRuntimeInfoWidget::updateVRDE()
 {
-    int iVRDEPort = m_console.GetVRDEServerInfo().GetPort();
-    QString strVRDEInfo = (iVRDEPort == 0 || iVRDEPort == -1) ?
-        m_strVRDEPortNotAvailable : QString("%1").arg(iVRDEPort);
-   updateInfoRow(InfoRow_RemoteDesktop, QString("%1").arg(m_strRemoteDesktopLabel), strVRDEInfo);
+    AssertPtrReturnVoid(gpMachine);
+    long iVRDEPort = 0;
+    gpMachine->acquireVRDEServerPort(iVRDEPort);
+    const QString strVRDEInfo = (iVRDEPort == 0 || iVRDEPort == -1)
+                              ? m_strVRDEPortNotAvailable
+                              : QString("%1").arg(iVRDEPort);
+    updateInfoRow(InfoRow_RemoteDesktop, QString("%1").arg(m_strRemoteDesktopLabel), strVRDEInfo);
 }
 
 void UIRuntimeInfoWidget::updateClipboardMode(KClipboardMode enmMode /* = KClipboardMode_Max */)
 {
+    AssertPtrReturnVoid(gpMachine);
     if (enmMode == KClipboardMode_Max)
+    {
+        KClipboardMode enmClipboardMode = KClipboardMode_Max;
+        gpMachine->acquireClipboardMode(enmClipboardMode);
         updateInfoRow(InfoRow_ClipboardMode, QString("%1").arg(m_strClipboardModeLabel),
-                      gpConverter->toString(m_machine.GetClipboardMode()));
+                      gpConverter->toString(enmClipboardMode));
+    }
     else
         updateInfoRow(InfoRow_ClipboardMode, QString("%1").arg(m_strClipboardModeLabel),
                       gpConverter->toString(enmMode));
@@ -421,9 +452,14 @@ void UIRuntimeInfoWidget::updateClipboardMode(KClipboardMode enmMode /* = KClipb
 
 void UIRuntimeInfoWidget::updateDnDMode(KDnDMode enmMode /* = KDnDMode_Max */)
 {
+    AssertPtrReturnVoid(gpMachine);
     if (enmMode == KDnDMode_Max)
+    {
+        KDnDMode enmDnDMode = KDnDMode_Max;
+        gpMachine->acquireDnDMode(enmDnDMode);
         updateInfoRow(InfoRow_DnDMode, QString("%1").arg(m_strDragAndDropLabel),
-                  gpConverter->toString(m_machine.GetDnDMode()));
+                  gpConverter->toString(enmDnDMode));
+    }
     else
         updateInfoRow(InfoRow_DnDMode, QString("%1").arg(m_strDragAndDropLabel),
                       gpConverter->toString(enmMode));
@@ -436,9 +472,13 @@ QString UIRuntimeInfoWidget::tableData() const
     for (int i = 0; i < rowCount(); ++i)
     {
         /* Skip the first column as it contains only icon and no text: */
-        QTableWidgetItem *pItem = item(i, 1);
+        QITableWidgetItem *pItem = static_cast<QITableWidgetItem*>(item(i, 1));
+        if (!pItem)
+            continue;
         QString strColumn1 = pItem ? pItem->text() : QString();
-        pItem = item(i, 2);
+        pItem = static_cast<QITableWidgetItem*>(item(i, 2));
+        if (!pItem)
+            continue;
         QString strColumn2 = pItem ? pItem->text() : QString();
         if (strColumn2.isEmpty())
             data << strColumn1;
@@ -451,13 +491,13 @@ QString UIRuntimeInfoWidget::tableData() const
 
 void UIRuntimeInfoWidget::updateInfoRow(InfoRow enmLine, const QString &strColumn0, const QString &strColumn1)
 {
-    QTableWidgetItem *pItem = 0;
+    QITableWidgetItem *pItem = 0;
     for (int i = 0; i < rowCount() && !pItem; ++i)
     {
-        pItem = item(i, 2);
+        pItem = static_cast<QITableWidgetItem*>(item(i, 2));
         if (!pItem)
             continue;
-        if (pItem->type() != enmLine)
+        if (pItem->data(Qt::UserRole + 1) != enmLine)
             pItem = 0;
     }
     if (!pItem)
@@ -496,30 +536,30 @@ void UIRuntimeInfoWidget::computeMinimumWidth()
 *   UIInformationRuntime implementation.                                                                                     *
 *********************************************************************************************************************************/
 
-UIInformationRuntime::UIInformationRuntime(QWidget *pParent, const CMachine &machine, const CConsole &console, const UISession *pSession)
-    : QIWithRetranslateUI<QWidget>(pParent)
-    , m_machine(machine)
-    , m_console(console)
+UIInformationRuntime::UIInformationRuntime(QWidget *pParent)
+    : QWidget(pParent)
     , m_pMainLayout(0)
     , m_pRuntimeInfoWidget(0)
     , m_pCopyWholeTableAction(0)
 {
-    if (!m_console.isNull())
-        m_comGuest = m_console.GetGuest();
-    connect(pSession, &UISession::sigAdditionsStateChange, this, &UIInformationRuntime::sltGuestAdditionsStateChange);
-    connect(pSession, &UISession::sigGuestMonitorChange, this, &UIInformationRuntime::sltGuestMonitorChange);
-    connect(pSession, &UISession::sigVRDEChange, this, &UIInformationRuntime::sltVRDEChange);
-    connect(pSession, &UISession::sigClipboardModeChange, this, &UIInformationRuntime::sltClipboardChange);
-    connect(pSession, &UISession::sigDnDModeChange, this, &UIInformationRuntime::sltDnDModeChange);
+    connect(gpMachine, &UIMachine::sigAdditionsStateChange, this, &UIInformationRuntime::sltGuestAdditionsStateChange);
+    connect(gpMachine, &UIMachine::sigGuestMonitorChange, this, &UIInformationRuntime::sltGuestMonitorChange);
+    connect(gpMachine, &UIMachine::sigVRDEChange, this, &UIInformationRuntime::sltVRDEChange);
+    connect(gpMachine, &UIMachine::sigClipboardModeChange, this, &UIInformationRuntime::sltClipboardChange);
+    connect(gpMachine, &UIMachine::sigDnDModeChange, this, &UIInformationRuntime::sltDnDModeChange);
 
     prepareObjects();
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+        this, &UIInformationRuntime::sltRetranslateUI);
 }
 
-void UIInformationRuntime::retranslateUi()
+void UIInformationRuntime::sltRetranslateUI()
 {
     if (m_pCopyWholeTableAction)
         m_pCopyWholeTableAction->setText(QApplication::translate("UIVMInformationDialog", "Copy All"));
+    if (m_pRuntimeInfoWidget)
+        m_pRuntimeInfoWidget->setWhatsThis(QApplication::translate("UIVMInformationDialog", "Displays the runtime information of the guest system"));
 }
 
 void UIInformationRuntime::prepareObjects()
@@ -529,7 +569,7 @@ void UIInformationRuntime::prepareObjects()
         return;
     m_pMainLayout->setSpacing(0);
 
-    m_pRuntimeInfoWidget = new UIRuntimeInfoWidget(0, m_machine, m_console);
+    m_pRuntimeInfoWidget = new UIRuntimeInfoWidget(0);
     AssertReturnVoid(m_pRuntimeInfoWidget);
     connect(m_pRuntimeInfoWidget, &UIRuntimeInfoWidget::customContextMenuRequested,
             this, &UIInformationRuntime::sltHandleTableContextMenuRequest);

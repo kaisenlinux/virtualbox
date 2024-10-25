@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1411,31 +1411,6 @@ typedef struct PDMIACPIPORT *PPDMIACPIPORT;
 typedef struct PDMIACPIPORT
 {
     /**
-     * Send an ACPI power off event.
-     *
-     * @returns VBox status code
-     * @param   pInterface      Pointer to the interface structure containing the called function pointer.
-     */
-    DECLR3CALLBACKMEMBER(int, pfnPowerButtonPress,(PPDMIACPIPORT pInterface));
-
-    /**
-     * Send an ACPI sleep button event.
-     *
-     * @returns VBox status code
-     * @param   pInterface      Pointer to the interface structure containing the called function pointer.
-     */
-    DECLR3CALLBACKMEMBER(int, pfnSleepButtonPress,(PPDMIACPIPORT pInterface));
-
-    /**
-     * Check if the last power button event was handled by the guest.
-     *
-     * @returns VBox status code
-     * @param   pInterface      Pointer to the interface structure containing the called function pointer.
-     * @param   pfHandled       Is set to true if the last power button event was handled, false otherwise.
-     */
-    DECLR3CALLBACKMEMBER(int, pfnGetPowerButtonHandled,(PPDMIACPIPORT pInterface, bool *pfHandled));
-
-    /**
      * Check if the guest entered the ACPI mode.
      *
      * @returns VBox status code
@@ -1508,6 +1483,70 @@ typedef struct PDMIACPICONNECTOR
 } PDMIACPICONNECTOR;
 /** PDMIACPICONNECTOR interface ID. */
 #define PDMIACPICONNECTOR_IID                   "5f14bf8d-1edf-4e3a-a1e1-cca9fd08e359"
+
+
+/** Pointer to an event button port interface. */
+typedef struct PDMIEVENTBUTTONPORT *PPDMIEVENTBUTTONPORT;
+/**
+ * Event button port interface (down). Used by both the ACPI/GPIO driver and (grumble) main.
+ * Pair with PDMIEVENTBUTTONCONNECTOR.
+ */
+typedef struct PDMIEVENTBUTTONPORT
+{
+    /**
+     * Check if the guest is able to handle button events.
+     *
+     * @returns VBox status code
+     * @param   pInterface                      Pointer to the interface structure containing the called function pointer.
+     * @param   pfCanHandleButtonEvents         Is set to true if the guest is able to handle button events, false otherwise.
+     */
+    DECLR3CALLBACKMEMBER(int, pfnQueryGuestCanHandleButtonEvents,(PPDMIEVENTBUTTONPORT pInterface, bool *pfCanHandleButtonEvents));
+
+    /**
+     * Send an power off button event.
+     *
+     * @returns VBox status code
+     * @param   pInterface      Pointer to the interface structure containing the called function pointer.
+     */
+    DECLR3CALLBACKMEMBER(int, pfnPowerButtonPress,(PPDMIEVENTBUTTONPORT pInterface));
+
+    /**
+     * Send an sleep button event.
+     *
+     * @returns VBox status code
+     * @param   pInterface      Pointer to the interface structure containing the called function pointer.
+     */
+    DECLR3CALLBACKMEMBER(int, pfnSleepButtonPress,(PPDMIEVENTBUTTONPORT pInterface));
+
+    /**
+     * Check if the last power button event was handled by the guest.
+     *
+     * @returns VBox status code
+     * @param   pInterface      Pointer to the interface structure containing the called function pointer.
+     * @param   pfHandled       Is set to true if the last power button event was handled, false otherwise.
+     */
+    DECLR3CALLBACKMEMBER(int, pfnQueryPowerButtonHandled,(PPDMIEVENTBUTTONPORT pInterface, bool *pfHandled));
+
+} PDMIEVENTBUTTONPORT;
+/** PDMIEVENTBUTTONPORT interface ID. */
+#define PDMIEVENTBUTTONPORT_IID                 "7aa5ada2-35c7-45be-a757-0398427af7aa"
+
+
+/** Pointer to an event button connector interface. */
+typedef struct PDMIEVENTBUTTONCONNECTOR *PPDMIEVENTBUTTONCONNECTOR;
+/**
+ * Event button connector interface (up).
+ * Pair with PDMIEVENTBUTTONPORT.
+ */
+typedef struct PDMIEVENTBUTTONCONNECTOR
+{
+    /** Currently empty, so just a dummy value. */
+    uint32_t                uDummy;
+
+} PDMIEVENTBUTTONCONNECTOR;
+/** PDMIACPICONNECTOR interface ID. */
+#define PDMIEVENTBUTTONCONNECTOR_IID                   "46774d25-a55e-4e63-b70b-8946bcedd4a7"
+
 
 struct VMMDevDisplayDef;
 
@@ -2357,6 +2396,53 @@ typedef struct PDMIVFSCONNECTOR
 } PDMIVFSCONNECTOR;
 /** PDMIVFSCONNECTOR interface ID. */
 #define PDMIVFSCONNECTOR_IID               "a1fc51e0-414a-4e78-8388-8053b9dc6521"
+
+
+/** Pointer to an GPIO port interface. */
+typedef struct PDMIGPIOPORT       *PPDMIGPIOPORT;
+/**
+ * Interface for GPIO ports (down).
+ * Pair with PDMIGPIOCONNECTORS.
+ */
+typedef struct PDMIGPIOPORT
+{
+
+    /**
+     * Changes the state of the indicated GPIO line to the given value.
+     *
+     * @returns VBox status code.
+     * @param   pInterface          Pointer to this interface.
+     * @param   idGpio              The GPIO line ID to change.
+     * @param   fVal                The value to change the GPIO line to.
+     */
+    DECLR3CALLBACKMEMBER(int, pfnGpioLineChange, (PPDMIGPIOPORT pInterface, uint32_t idGpio, bool fVal));
+
+    /**
+     * Returns whether the given GPIO line is configured as an input.
+     *
+     * @returns true if the line is configured as an input, false if output.
+     * @param   pInterface          Pointer to this interface.
+     * @param   idGpio              The GPIO line ID to check.
+     */
+    DECLR3CALLBACKMEMBER(bool, pfnGpioLineIsInput, (PPDMIGPIOPORT pInterface, uint32_t idGpio));
+
+} PDMIGPIOPORT;
+/** PDMIGPIOPORT interface ID. */
+#define PDMIGPIOPORT_IID                        "75e0017c-4cda-47a4-8160-f4cc436025c4"
+
+
+/** Pointer to an GPIO connectors interface. */
+typedef struct PDMIGPIOCONNECTOR *PPDMIGPIOCONNECTOR;
+/**
+ * GPIO connector interface (up).
+ * Pair with PDMIGPIOPORT.
+ */
+typedef struct PDMIGPIOCONNECTOR
+{
+    uint32_t uDummy;
+} PDMIGPIOCONNECTOR;
+/** PDMIGPIOCONNECTOR interface ID. */
+#define PDMIGPIOCONNECTOR_IID                   "504bff7e-489f-4829-8cc3-f9b080d39133"
 
 /** @} */
 

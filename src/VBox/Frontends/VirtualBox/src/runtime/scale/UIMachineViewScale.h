@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -54,19 +54,19 @@ private slots:
 private:
 
     /* Event handlers: */
-    bool eventFilter(QObject *pWatched, QEvent *pEvent);
+    bool eventFilter(QObject *pWatched, QEvent *pEvent) RT_OVERRIDE RT_FINAL;
 
     /** Applies machine-view scale-factor. */
-    void applyMachineViewScaleFactor();
+    void applyMachineViewScaleFactor() RT_OVERRIDE RT_FINAL;
 
     /** Resends guest size-hint. */
-    void resendSizeHint();
+    void resendSizeHint() RT_OVERRIDE RT_FINAL;
 
     /* Private helpers: */
-    QSize sizeHint() const;
-    QRect workingArea() const;
-    QSize calculateMaxGuestSize() const;
-    void updateSliders();
+    QSize sizeHint() const RT_OVERRIDE RT_FINAL;
+    QRect workingArea() const RT_OVERRIDE RT_FINAL;
+    QSize calculateMaxGuestSize() const RT_OVERRIDE RT_FINAL;
+    void updateSliders() RT_OVERRIDE RT_FINAL;
 };
 
 #endif /* !FEQT_INCLUDED_SRC_runtime_scale_UIMachineViewScale_h */

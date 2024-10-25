@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2018-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2018-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,7 +32,7 @@
 #endif
 
 /* Other VBox includes: */
-#include <iprt/cdefs.h>
+#include <iprt/cdefs.h> // for DECLEXPORT_CLASS / DECLIMPORT_CLASS stuff
 
 /* Define shared library stuff: */
 #ifdef VBOX_GUI_LIBRARY

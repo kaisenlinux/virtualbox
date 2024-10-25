@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -34,7 +34,6 @@
 /* Qt includes: */
 #include <QAbstractScrollArea>
 #include <QEventLoop>
-#include <QPointer>
 
 /* GUI includes: */
 #include "UIExtraDataDefs.h"
@@ -45,7 +44,7 @@
 #endif /* VBOX_WITH_DRAG_AND_DROP */
 
 /* COM includes: */
-#include "COMEnums.h"
+#include "KMachineState.h"
 
 /* Other VBox includes: */
 #include "VBox/com/ptr.h"
@@ -60,14 +59,11 @@
 
 /* Forward declarations: */
 class UIActionPool;
-class UISession;
+class UIMachine;
 class UIMachineLogic;
 class UIMachineWindow;
 class UINativeEventFilter;
-class CConsole;
-class CDisplay;
 class CGuest;
-class CMachine;
 class CSession;
 #ifdef VBOX_WITH_DRAG_AND_DROP
 class CDnDTarget;
@@ -111,14 +107,14 @@ public:
     /** Returns screen ID for this view. */
     ulong screenId() const { return m_uScreenId; }
 
-    /** Returns the session UI reference. */
-    UISession *uisession() const;
+    /** Returns the machine UI reference. */
+    UIMachine *uimachine() const;
     /** Returns the machine-logic reference. */
     UIMachineLogic *machineLogic() const;
     /** Returns the machine-window reference. */
     UIMachineWindow *machineWindow() const { return m_pMachineWindow; }
     /** Returns view's frame-buffer reference. */
-    UIFrameBuffer *frameBuffer() const { return m_pFrameBuffer; }
+    UIFrameBuffer *frameBuffer() const;
 
     /** Returns actual contents width. */
     int contentsWidth() const;
@@ -237,6 +233,9 @@ protected slots:
     /** Detaches COM. */
     void sltDetachCOM();
 
+    /** Handles translation event. */
+    void sltRetranslateUI();
+
 protected:
 
     /* Machine-view constructor: */
@@ -270,20 +269,9 @@ protected:
     virtual void cleanupNativeFilters();
     //virtual void saveMachineViewSettings() {}
 
-    /** Returns the session reference. */
-    CSession& session() const;
-    /** Returns the session's machine reference. */
-    CMachine& machine() const;
-    /** Returns the session's console reference. */
-    CConsole& console() const;
-    /** Returns the console's display reference. */
-    CDisplay& display() const;
-    /** Returns the console's guest reference. */
-    CGuest& guest() const;
-
     /* Protected getters: */
     UIActionPool* actionPool() const;
-    QSize sizeHint() const;
+    QSize sizeHint() const RT_OVERRIDE;
 
     /** Retrieves the last guest-screen size-hint from extra-data. */
     QSize storedGuestScreenSizeHint() const;
@@ -319,7 +307,7 @@ protected:
     virtual QSize calculateMaxGuestSize() const = 0;
     virtual void updateSliders();
     static void dimImage(QImage &img);
-    void scrollContentsBy(int dx, int dy);
+    void scrollContentsBy(int dx, int dy) RT_OVERRIDE RT_FINAL;
 #ifdef VBOX_WS_MAC
     void updateDockIcon();
     CGImageRef frameBuffertoCGImageRef(UIFrameBuffer *pFrameBuffer);
@@ -328,29 +316,32 @@ protected:
     bool isFullscreenOrSeamless() const;
 
     /* Cross-platforms event processors: */
-    bool event(QEvent *pEvent);
-    bool eventFilter(QObject *pWatched, QEvent *pEvent);
-    void resizeEvent(QResizeEvent *pEvent);
-    void moveEvent(QMoveEvent *pEvent);
-    void paintEvent(QPaintEvent *pEvent);
+    bool eventFilter(QObject *pWatched, QEvent *pEvent) RT_OVERRIDE;
+    void resizeEvent(QResizeEvent *pEvent) RT_OVERRIDE RT_FINAL;
+    void moveEvent(QMoveEvent *pEvent) RT_OVERRIDE RT_FINAL;
+    void paintEvent(QPaintEvent *pEvent) RT_OVERRIDE RT_FINAL;
 
     /** Handles focus-in @a pEvent. */
-    void focusInEvent(QFocusEvent *pEvent);
+    void focusInEvent(QFocusEvent *pEvent) RT_OVERRIDE RT_FINAL;
     /** Handles focus-out @a pEvent. */
-    void focusOutEvent(QFocusEvent *pEvent);
+    void focusOutEvent(QFocusEvent *pEvent) RT_OVERRIDE RT_FINAL;
+#ifdef VBOX_WS_NIX
+    virtual void keyPressEvent(QKeyEvent *pEvent) RT_OVERRIDE RT_FINAL;
+    virtual void keyReleaseEvent(QKeyEvent *pEvent) RT_OVERRIDE RT_FINAL;
+#endif
 
 #ifdef VBOX_WITH_DRAG_AND_DROP
     /**
      * Returns @true if the VM window can accept (start is, start) a drag and drop
      * operation, @false if not.
      */
-    bool dragAndDropCanAccept(void) const;
+    bool dragAndDropCanAccept() const;
 
     /**
      * Returns @true if drag and drop for this machine is active
      * (that is, host->guest, guest->host or bidirectional), @false if not.
      */
-    bool dragAndDropIsActive(void) const;
+    bool dragAndDropIsActive() const;
 
     /**
      * Host -> Guest: Issued when the host cursor enters the guest (VM) window.
@@ -359,7 +350,7 @@ protected:
      *
      * @param pEvent                Related enter event.
      */
-    void dragEnterEvent(QDragEnterEvent *pEvent);
+    void dragEnterEvent(QDragEnterEvent *pEvent) RT_OVERRIDE RT_FINAL;
 
     /**
      * Host -> Guest: Issued when the host cursor moves inside (over) the guest (VM) window.
@@ -368,7 +359,7 @@ protected:
      *
      * @param pEvent                Related move event.
      */
-    void dragLeaveEvent(QDragLeaveEvent *pEvent);
+    void dragLeaveEvent(QDragLeaveEvent *pEvent) RT_OVERRIDE RT_FINAL;
 
     /**
      * Host -> Guest: Issued when the host cursor leaves the guest (VM) window again.
@@ -376,14 +367,14 @@ protected:
      *
      * @param pEvent                Related leave event.
      */
-    void dragMoveEvent(QDragMoveEvent *pEvent);
+    void dragMoveEvent(QDragMoveEvent *pEvent) RT_OVERRIDE RT_FINAL;
 
     /**
      * Host -> Guest: Issued when the host drops data into the guest (VM) window.
      *
      * @param pEvent                Related drop event.
      */
-    void dropEvent(QDropEvent *pEvent);
+    void dropEvent(QDropEvent *pEvent) RT_OVERRIDE RT_FINAL;
 #endif /* VBOX_WITH_DRAG_AND_DROP */
 
     /** Scales passed size forward. */
@@ -397,7 +388,6 @@ protected:
     /* Protected members: */
     UIMachineWindow *m_pMachineWindow;
     ulong m_uScreenId;
-    QPointer<UIFrameBuffer> m_pFrameBuffer;
     KMachineState m_previousState;
     /** HACK: when switching out of fullscreen or seamless we wish to override
      * the default size hint to avoid short resizes back to fullscreen size.
@@ -477,7 +467,7 @@ public:
 
 protected:
 
-    void timerEvent(QTimerEvent *pEvent)
+    void timerEvent(QTimerEvent *pEvent) RT_OVERRIDE RT_FINAL
     {
         /* If that timer event occurs => it seems
          * guest resize event doesn't comes in time,

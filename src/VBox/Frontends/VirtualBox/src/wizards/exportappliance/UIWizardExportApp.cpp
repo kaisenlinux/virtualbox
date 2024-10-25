@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,6 +32,7 @@
 
 /* GUI includes: */
 #include "UIAddDiskEncryptionPasswordDialog.h"
+#include "UICloudMachineManager.h"
 #include "UIMessageCenter.h"
 #include "UIModalWindowManager.h"
 #include "UINotificationCenter.h"
@@ -49,7 +50,7 @@
 UIWizardExportApp::UIWizardExportApp(QWidget *pParent,
                                      const QStringList &predefinedMachineNames /* = QStringList() */,
                                      bool fFastTraverToExportOCI /* = false */)
-    : UINativeWizard(pParent, WizardType_ExportAppliance, WizardMode_Auto,
+    : UINativeWizard(pParent, WizardType_ExportAppliance,
                      fFastTraverToExportOCI ? "cloud-export-oci" : "ovf")
     , m_predefinedMachineNames(predefinedMachineNames)
     , m_fFastTraverToExportOCI(fFastTraverToExportOCI)
@@ -75,7 +76,6 @@ void UIWizardExportApp::goForward()
 
 void UIWizardExportApp::disableButtons()
 {
-    wizardButton(WizardButtonType_Expert)->setEnabled(false);
     wizardButton(WizardButtonType_Back)->setEnabled(false);
     wizardButton(WizardButtonType_Next)->setEnabled(false);
 }
@@ -218,7 +218,7 @@ bool UIWizardExportApp::createCloudVM()
                                                                                                            format(),
                                                                                                            profileName());
     connect(pNotification, &UINotificationProgressCloudMachineCreate::sigCloudMachineCreated,
-            &uiCommon(), &UICommon::sltHandleCloudMachineAdded);
+            gpCloudMachineManager, &UICloudMachineManager::sltHandleCloudMachineAdded);
     gpNotificationCenter->append(pNotification);
 
     /* Return result: */
@@ -250,10 +250,10 @@ void UIWizardExportApp::populatePages()
     }
 }
 
-void UIWizardExportApp::retranslateUi()
+void UIWizardExportApp::sltRetranslateUI()
 {
     /* Call to base-class: */
-    UINativeWizard::retranslateUi();
+    UINativeWizard::sltRetranslateUI();
 
     /* Translate wizard: */
     setWindowTitle(tr("Export Virtual Appliance"));

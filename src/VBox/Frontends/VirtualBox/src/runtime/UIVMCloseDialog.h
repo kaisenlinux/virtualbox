@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -36,7 +36,6 @@
 
 /* GUI includes: */
 #include "QIDialog.h"
-#include "QIWithRetranslateUI.h"
 #include "UIExtraDataDefs.h"
 
 /* Forward declarations: */
@@ -46,20 +45,20 @@ class QHBoxLayout;
 class QLabel;
 class QRadioButton;
 class QVBoxLayout;
-class CMachine;
+class UIMachine;
 
 /** QIDialog extension to handle Runtime UI close-event. */
-class UIVMCloseDialog : public QIWithRetranslateUI<QIDialog>
+class UIVMCloseDialog : public QIDialog
 {
     Q_OBJECT;
 
 public:
 
     /** Constructs close dialog passing @a pParent to the base-class.
-      * @param  comMachine             Brings the machine dialog created for.
+      * @param  pMachine               Brings the machine UI dialog created for.
       * @param  fIsACPIEnabled         Brings whether ACPI is enabled.
       * @param  restictedCloseActions  Brings a set of restricted actions. */
-    UIVMCloseDialog(QWidget *pParent, CMachine &comMachine,
+    UIVMCloseDialog(QWidget *pParent, UIMachine *pMachine,
                     bool fIsACPIEnabled, MachineCloseAction restictedCloseActions);
 
     /** Returns whether dialog is valid. */
@@ -79,16 +78,16 @@ protected:
     /** Handles show @a pEvent. */
     virtual void showEvent(QShowEvent *pEvent) RT_OVERRIDE;
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
 private slots:
+
+    /** Handles translation event. */
+    void sltRetranslateUI();
 
     /** Updates widgets availability. */
     void sltUpdateWidgetAvailability();
 
     /** Accepts the dialog. */
-    void accept();
+    void accept() RT_OVERRIDE;
 
 private:
 
@@ -136,8 +135,8 @@ private:
     /** Updates pixmaps. */
     void updatePixmaps();
 
-    /** Holds the live machine reference. */
-    CMachine                 &m_comMachine;
+    /** Holds the machine UI reference. */
+    UIMachine                *m_pMachine;
     /** Holds whether ACPI is enabled. */
     bool                      m_fIsACPIEnabled;
     /** Holds a set of restricted actions. */

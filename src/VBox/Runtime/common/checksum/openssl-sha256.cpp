@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -92,7 +92,7 @@ RTDECL(void) RTSha256Update(PRTSHA256CONTEXT pCtx, const void *pvBuf, size_t cbB
 RT_EXPORT_SYMBOL(RTSha256Update);
 
 
-RTDECL(void) RTSha256Final(PRTSHA256CONTEXT pCtx, uint8_t pabDigest[32])
+RTDECL(void) RTSha256Final(PRTSHA256CONTEXT pCtx, uint8_t pabDigest[RTSHA256_HASH_SIZE])
 {
     SHA256_Final((unsigned char *)&pabDigest[0], &pCtx->Private);
 }
@@ -142,7 +142,7 @@ RTDECL(void) RTSha224Update(PRTSHA224CONTEXT pCtx, const void *pvBuf, size_t cbB
 RT_EXPORT_SYMBOL(RTSha224Update);
 
 
-RTDECL(void) RTSha224Final(PRTSHA224CONTEXT pCtx, uint8_t pabDigest[32])
+RTDECL(void) RTSha224Final(PRTSHA224CONTEXT pCtx, uint8_t pabDigest[RTSHA224_HASH_SIZE])
 {
     SHA224_Final((unsigned char *)&pabDigest[0], &pCtx->Private);
 }

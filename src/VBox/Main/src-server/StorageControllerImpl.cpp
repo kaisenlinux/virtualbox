@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -109,15 +109,14 @@ HRESULT StorageController::init(Machine *aParent,
         return setError(E_INVALIDARG,
                         tr("Invalid storage connection type"));
 
-    ULONG maxInstances;
     ChipsetType_T chipsetType;
-    HRESULT hrc = aParent->COMGETTER(ChipsetType)(&chipsetType);
-    if (FAILED(hrc))
-        return hrc;
-    hrc = aParent->i_getVirtualBox()->i_getSystemProperties()->
-        GetMaxInstancesOfStorageBus(chipsetType, aStorageBus, &maxInstances);
-    if (FAILED(hrc))
-        return hrc;
+    HRESULT hrc = aParent->i_getPlatform()->COMGETTER(ChipsetType)(&chipsetType);
+    AssertComRCReturnRC(hrc);
+
+    ULONG maxInstances;
+    hrc = aParent->i_getPlatformProperties()->GetMaxInstancesOfStorageBus(chipsetType, aStorageBus, &maxInstances);
+    AssertComRCReturnRC(hrc);
+
     if (aInstance >= maxInstances)
         return setError(E_INVALIDARG,
                         tr("Too many storage controllers of this type"));
@@ -445,19 +444,19 @@ HRESULT StorageController::setControllerType(StorageControllerType_T aController
 HRESULT StorageController::getMaxDevicesPerPortCount(ULONG *aMaxDevicesPerPortCount)
 {
     AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
-    return m->pSystemProperties->GetMaxDevicesPerPortForStorageBus(m->bd->storageBus, aMaxDevicesPerPortCount);
+    return m->pParent->i_getPlatformProperties()->GetMaxDevicesPerPortForStorageBus(m->bd->storageBus, aMaxDevicesPerPortCount);
 }
 
 HRESULT StorageController::getMinPortCount(ULONG *aMinPortCount)
 {
     AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
-    return m->pSystemProperties->GetMinPortCountForStorageBus(m->bd->storageBus, aMinPortCount);
+    return m->pParent->i_getPlatformProperties()->GetMinPortCountForStorageBus(m->bd->storageBus, aMinPortCount);
 }
 
 HRESULT StorageController::getMaxPortCount(ULONG *aMaxPortCount)
 {
     AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
-    return m->pSystemProperties->GetMaxPortCountForStorageBus(m->bd->storageBus, aMaxPortCount);
+    return m->pParent->i_getPlatformProperties()->GetMaxPortCountForStorageBus(m->bd->storageBus, aMaxPortCount);
 }
 
 HRESULT StorageController::getPortCount(ULONG *aPortCount)
@@ -706,7 +705,7 @@ HRESULT StorageController::i_checkPortAndDeviceValid(LONG aControllerPort,
 
     ULONG portCount = m->bd->ulPortCount;
     ULONG devicesPerPort;
-    HRESULT hrc = m->pSystemProperties->GetMaxDevicesPerPortForStorageBus(m->bd->storageBus, &devicesPerPort);
+    HRESULT hrc = m->pParent->i_getPlatformProperties()->GetMaxDevicesPerPortForStorageBus(m->bd->storageBus, &devicesPerPort);
     if (FAILED(hrc)) return hrc;
 
     if (   aControllerPort < 0
@@ -804,6 +803,65 @@ void StorageController::i_unshare()
     }
 
     unconst(m->pPeer) = NULL;
+}
+
+/**
+ * Returns a controller name from a given storage bus type.
+ *
+ * @return Controller name.
+ * @param  aBusType             Bus type to get controller name for.
+ */
+/* static */
+com::Utf8Str StorageController::i_controllerNameFromBusType(StorageBus_T aBusType)
+{
+    com::Utf8Str strControllerName = "Unknown";
+    switch (aBusType)
+    {
+        case StorageBus_IDE:
+        {
+            strControllerName = "IDE";
+            break;
+        }
+        case StorageBus_SATA:
+        {
+            strControllerName = "SATA";
+            break;
+        }
+        case StorageBus_SCSI:
+        {
+            strControllerName = "SCSI";
+            break;
+        }
+        case StorageBus_Floppy:
+        {
+            strControllerName = "Floppy";
+            break;
+        }
+        case StorageBus_SAS:
+        {
+            strControllerName = "SAS";
+            break;
+        }
+        case StorageBus_USB:
+        {
+            strControllerName = "USB";
+            break;
+        }
+        case StorageBus_PCIe:
+        {
+            strControllerName = "PCIe";
+            break;
+        }
+        case StorageBus_VirtioSCSI:
+        {
+            strControllerName = "VirtioSCSI";
+            break;
+        }
+        default:
+            AssertFailed(); /* Catch missing case above. */
+            break;
+    }
+    return strControllerName;
 }
 
 Machine* StorageController::i_getMachine()

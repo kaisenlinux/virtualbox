@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2007-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2007-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -194,6 +194,7 @@ RT_C_DECLS_BEGIN
  * see the @ref pg_bs3kit "doc page" for more.
  *
  * @{ */
+
 
 /** @name Execution modes.
  * @{ */
@@ -500,7 +501,41 @@ RT_C_DECLS_BEGIN
 
 #define BS3_SEL_DATA16              0x2900 /**< The BS3DATA16/BS3KIT_GRPNM_DATA16 selector. */
 
-#define BS3_SEL_FREE_PART4          0x2908 /**< Free selector space - part \#4. */
+#define BS3_SEL_HIGH16_CS_00        0x2908 /**< 16-bit CS for high DLLs. */
+#define BS3_SEL_HIGH16_CS_01        0x2910 /**< 16-bit CS for high DLLs. */
+#define BS3_SEL_HIGH16_CS_02        0x2918 /**< 16-bit CS for high DLLs. */
+#define BS3_SEL_HIGH16_CS_03        0x2920 /**< 16-bit CS for high DLLs. */
+#define BS3_SEL_HIGH16_CS_04        0x2928 /**< 16-bit CS for high DLLs. */
+#define BS3_SEL_HIGH16_CS_05        0x2930 /**< 16-bit CS for high DLLs. */
+#define BS3_SEL_HIGH16_CS_06        0x2938 /**< 16-bit CS for high DLLs. */
+#define BS3_SEL_HIGH16_CS_07        0x2940 /**< 16-bit CS for high DLLs. */
+#define BS3_SEL_HIGH16_CS_08        0x2948 /**< 16-bit CS for high DLLs. */
+#define BS3_SEL_HIGH16_CS_09        0x2950 /**< 16-bit CS for high DLLs. */
+#define BS3_SEL_HIGH16_CS_0a        0x2958 /**< 16-bit CS for high DLLs. */
+#define BS3_SEL_HIGH16_CS_0b        0x2960 /**< 16-bit CS for high DLLs. */
+#define BS3_SEL_HIGH16_CS_0c        0x2968 /**< 16-bit CS for high DLLs. */
+#define BS3_SEL_HIGH16_CS_0d        0x2970 /**< 16-bit CS for high DLLs. */
+#define BS3_SEL_HIGH16_CS_0e        0x2978 /**< 16-bit CS for high DLLs. */
+#define BS3_SEL_HIGH16_CS_0f        0x2980 /**< 16-bit CS for high DLLs. */
+#define BS3_SEL_HIGH16_CS_10        0x2988 /**< 16-bit CS for high DLLs. */
+#define BS3_SEL_HIGH16_CS_11        0x2990 /**< 16-bit CS for high DLLs. */
+#define BS3_SEL_HIGH16_CS_12        0x2998 /**< 16-bit CS for high DLLs. */
+#define BS3_SEL_HIGH16_CS_13        0x29a0 /**< 16-bit CS for high DLLs. */
+#define BS3_SEL_HIGH16_CS_14        0x29a8 /**< 16-bit CS for high DLLs. */
+#define BS3_SEL_HIGH16_CS_15        0x29b0 /**< 16-bit CS for high DLLs. */
+#define BS3_SEL_HIGH16_CS_16        0x29b8 /**< 16-bit CS for high DLLs. */
+#define BS3_SEL_HIGH16_CS_17        0x29c0 /**< 16-bit CS for high DLLs. */
+
+#define BS3_SEL_HIGH16_DS_00        0x29c8 /**< 16-bit DS for high DLLs. */
+#define BS3_SEL_HIGH16_DS_01        0x29d0 /**< 16-bit DS for high DLLs. */
+#define BS3_SEL_HIGH16_DS_02        0x29d8 /**< 16-bit DS for high DLLs. */
+#define BS3_SEL_HIGH16_DS_03        0x29e0 /**< 16-bit DS for high DLLs. */
+#define BS3_SEL_HIGH16_DS_04        0x29e8 /**< 16-bit DS for high DLLs. */
+#define BS3_SEL_HIGH16_DS_05        0x29f0 /**< 16-bit DS for high DLLs. */
+#define BS3_SEL_HIGH16_DS_06        0x29f8 /**< 16-bit DS for high DLLs. */
+#define BS3_SEL_HIGH16_DS_07        0x2a00 /**< 16-bit DS for high DLLs. */
+
+#define BS3_SEL_FREE_PART4          0x2a08 /**< Free selector space - part \#4. */
 #define BS3_SEL_FREE_PART4_LAST     0x2f98 /**< Free selector space - part \#4, last entry. */
 
 #define BS3_SEL_PRE_TEST_PAGE_08    0x2fa0 /**< Selector located 8 selectors before the test page. */
@@ -614,6 +649,14 @@ RT_C_DECLS_BEGIN
 #else
 # define BS3_FP_OFF(a_pv)            ((uintptr_t)(a_pv))
 #endif
+
+/**
+ * Converts a far real mode address to a 32-bit flat address.
+ *
+ * @returns Flat address.
+ * @param   a_pv        The _real_ _mode_ far pointer to convert.
+ */
+#define BS3_FP_REAL_TO_FLAT(a_pv)   (((uint32_t)BS3_FP_SEG(a_pv) << 4) + BS3_FP_OFF(a_pv))
 
 /** @def BS3_MAKE_PROT_R0PTR_FROM_FLAT
  * Creates a protected mode pointer from a flat address.
@@ -1046,8 +1089,13 @@ extern X86DESC BS3_FAR_DATA Bs3GdteFreePart3[223];
 /** The BS3DATA16/BS3KIT_GRPNM_DATA16 GDT entry. */
 extern X86DESC BS3_FAR_DATA Bs3Gdte_DATA16;
 
+/** 16-bit CSes for high DLLs. */
+extern X86DESC BS3_FAR_DATA Bs3GdteHighDllCSes[24];
+/** 16-bit DSes for high DLLs. */
+extern X86DESC BS3_FAR_DATA Bs3GdteHighDllDSes[8];
+
 /** Free GDTes, part \#4. */
-extern X86DESC BS3_FAR_DATA Bs3GdteFreePart4[211];
+extern X86DESC BS3_FAR_DATA Bs3GdteFreePart4[179];
 
 extern X86DESC BS3_FAR_DATA Bs3GdtePreTestPage08; /**< GDT entry 8 selectors prior to the test page, testcase resource. @see BS3_SEL_PRE_TEST_PAGE_08 */
 extern X86DESC BS3_FAR_DATA Bs3GdtePreTestPage07; /**< GDT entry 7 selectors prior to the test page, testcase resource. @see BS3_SEL_PRE_TEST_PAGE_07 */
@@ -1756,6 +1804,7 @@ BS3_CMN_PROTO_STUB(char BS3_FAR *, Bs3StrCpy,(char BS3_FAR *pszDst, const char B
  * @param   pvDst           The destination buffer.
  * @param   pvSrc           The source buffer.
  * @param   cbToCopy        The number of bytes to copy.
+ * @sa      Bs3MemCopyFlat
  */
 BS3_CMN_PROTO_STUB(void BS3_FAR *, Bs3MemCpy,(void BS3_FAR *pvDst, const void BS3_FAR *pvSrc, size_t cbToCopy));
 
@@ -1900,6 +1949,20 @@ BS3_CMN_PROTO_NOSB(uint32_t, Bs3SelFlatCodeToProtFar16,(uint32_t uFlatAddr));
 BS3_CMN_PROTO_FARSTUB(4, uint32_t, Bs3SelRealModeCodeToFlat,(PFNBS3FARADDRCONV uFar1616));
 
 /**
+ * Converts a far 16:16 real mode (code) address to a 16-bit protected mode
+ * address.
+ *
+ * This is mainly for converting X0TEXT16 and X1TEXT16 linker pointers to
+ * protected mode ones.
+ *
+ * @returns Protected mode function pointer.
+ * @param   uFar1616        Far real mode address (high 16-bit is segment, low
+ *                          is offset).  In 16-bit code, this is also the same
+ *                          as a linker address.
+ */
+BS3_CMN_PROTO_FARSTUB(4, PFNBS3FARADDRCONV, Bs3SelRealModeCodeToProtFar16,(PFNBS3FARADDRCONV uFar1616));
+
+/**
  * Converts a flat data address to a real mode segment and offset.
  *
  * @returns Far real mode address (high 16-bit is segment, low is offset)
@@ -1965,7 +2028,7 @@ BS3_CMN_PROTO_FARSTUB(4, uint32_t, Bs3SelProtFar16DataToFlat,(uint32_t uFar1616)
 BS3_CMN_PROTO_FARSTUB(4, uint32_t, Bs3SelRealModeDataToFlat,(uint32_t uFar1616));
 
 /**
- * Converts a link-time pointer to a current context pointer.
+ * Converts a link-time data pointer to a current context pointer.
  *
  * @returns Converted pointer.
  * @param   pvLnkPtr    The pointer the linker produced.
@@ -1973,12 +2036,20 @@ BS3_CMN_PROTO_FARSTUB(4, uint32_t, Bs3SelRealModeDataToFlat,(uint32_t uFar1616))
 BS3_CMN_PROTO_FARSTUB(4, void BS3_FAR *, Bs3SelLnkPtrToCurPtr,(void BS3_FAR *pvLnkPtr));
 
 /**
- * Converts a link-time pointer to a flat address.
+ * Converts a link-time data pointer to a flat address.
  *
  * @returns 32-bit flag address.
  * @param   pvLnkPtr    The pointer the linker produced.
  */
 BS3_CMN_PROTO_FARSTUB(4, uint32_t, Bs3SelLnkPtrToFlat,(void BS3_FAR *pvLnkPtr));
+
+/**
+ * Converts a link-time code pointer to a current context pointer.
+ *
+ * @returns Converted function pointer.
+ * @param   pfnLnkPtr   The function pointer the linker produced.
+ */
+BS3_CMN_PROTO_FARSTUB(4, FPFNBS3FAR, Bs3SelLnkCodePtrToCurPtr,(FPFNBS3FAR pfnLnkPtr));
 
 /**
  * Gets a flat address from a working poitner.
@@ -2129,7 +2200,7 @@ BS3_CMN_PROTO_STUB(void, Bs3SlabInit,(PBS3SLABCTL pSlabCtl, size_t cbSlabCtl, ui
 BS3_CMN_PROTO_STUB(void BS3_FAR *, Bs3SlabAlloc,(PBS3SLABCTL pSlabCtl));
 
 /**
- * Allocates one or more chunks rom a slab.
+ * Allocates one or more chunks from a slab.
  *
  * @returns Pointer to the request number of chunks on success, NULL if we're
  *          out of chunks.
@@ -2138,6 +2209,19 @@ BS3_CMN_PROTO_STUB(void BS3_FAR *, Bs3SlabAlloc,(PBS3SLABCTL pSlabCtl));
  * @param   fFlags          Flags, see BS3_SLAB_ALLOC_F_XXX
  */
 BS3_CMN_PROTO_STUB(void BS3_FAR *, Bs3SlabAllocEx,(PBS3SLABCTL pSlabCtl, uint16_t cChunks, uint16_t fFlags));
+
+/**
+ * Allocates a specific range of chunks from a slab.
+ *
+ * @returns Number of chunks it was possible to allocate in the slab.
+ * @retval  0 if the given address isn't in the slab.
+ * @retval  UINT16_MAX if one or more of the requested chunks are already in
+ *          use, so the request cannot be fulfilled.
+ * @param   pSlabCtl        The slab control structure to allocate from.
+ * @param   uFlatAddr       The flat address of the range to allocate.
+ * @param   cChunks         The number of contiguous chunks we want.
+ */
+BS3_CMN_PROTO_STUB(uint16_t, Bs3SlabAllocFixed,(PBS3SLABCTL pSlabCtl, uint32_t uFlatAddr, uint16_t cChunks));
 
 /**
  * Frees one or more chunks from a slab.
@@ -2515,99 +2599,11 @@ extern uint16_t g_cbBs3PagingOneCanonicalTrap;
  */
 BS3_CMN_PROTO_STUB(void BS3_FAR *, Bs3PagingSetupCanonicalTraps,(void));
 
-/**
- * Waits for the keyboard controller to become ready.
- */
-BS3_CMN_PROTO_NOSB(void, Bs3KbdWait,(void));
-
-/**
- * Sends a read command to the keyboard controller and gets the result.
- *
- * The caller is responsible for making sure the keyboard controller is ready
- * for a command (call #Bs3KbdWait if unsure).
- *
- * @returns The value read is returned (in al).
- * @param   bCmd            The read command.
- */
-BS3_CMN_PROTO_NOSB(uint8_t, Bs3KbdRead,(uint8_t bCmd));
-
-/**
- * Sends a write command to the keyboard controller and then sends the data.
- *
- * The caller is responsible for making sure the keyboard controller is ready
- * for a command (call #Bs3KbdWait if unsure).
- *
- * @param   bCmd           The write command.
- * @param   bData          The data to write.
- */
-BS3_CMN_PROTO_NOSB(void, Bs3KbdWrite,(uint8_t bCmd, uint8_t bData));
-
-
-/**
- * Configures the PIC, once only.
- *
- * Subsequent calls to this function will not do anything.
- *
- * The PIC will be programmed to use IDT/IVT vectors 0x70 thru 0x7f, auto
- * end-of-interrupt, and all IRQs masked.  The individual PIC users will have to
- * use #Bs3PicUpdateMask unmask their IRQ once they've got all the handlers
- * installed.
- *
- * @param   fForcedReInit   Force a reinitialization.
- */
-BS3_CMN_PROTO_STUB(void, Bs3PicSetup,(bool fForcedReInit));
-
-/**
- * Updates the PIC masks.
- *
- * @returns The new mask - master in low, slave in high byte.
- * @param   fAndMask    Things to keep as-is. Master in low, slave in high byte.
- * @param   fOrMask     Things to start masking. Ditto wrt bytes.
- */
-BS3_CMN_PROTO_STUB(uint16_t, Bs3PicUpdateMask,(uint16_t fAndMask, uint16_t fOrMask));
-
-/**
- * Disables all IRQs on the PIC.
- */
-BS3_CMN_PROTO_STUB(void, Bs3PicMaskAll,(void));
-
-
-/**
- * Sets up the PIT for periodic callback.
- *
- * @param   cHzDesired      The desired Hz.  Zero means max interval length
- *                          (18.2Hz).  Plase check the various PIT globals for
- *                          the actual interval length.
- */
-BS3_CMN_PROTO_STUB(void, Bs3PitSetupAndEnablePeriodTimer,(uint16_t cHzDesired));
-
-/**
- * Disables the PIT if active.
- */
-BS3_CMN_PROTO_STUB(void, Bs3PitDisable,(void));
-
-/** Nanoseconds (approx) since last the PIT timer was started. */
-extern uint64_t volatile    g_cBs3PitNs;
-/** Milliseconds seconds (very approx) since last the PIT timer was started. */
-extern uint64_t volatile    g_cBs3PitMs;
-/** Number of ticks since last the PIT timer was started.  */
-extern uint32_t volatile    g_cBs3PitTicks;
-/** The current interval in nanoseconds.
- * This is 0 if not yet started (cleared by Bs3PitDisable). */
-extern uint32_t             g_cBs3PitIntervalNs;
-/** The current interval in milliseconds (approximately).
- * This is 0 if not yet started (cleared by Bs3PitDisable). */
-extern uint16_t             g_cBs3PitIntervalMs;
-/** The current PIT frequency (approximately).
- * 0 if not yet started (cleared by Bs3PitDisable; used for checking the
- * state internally). */
-extern uint16_t volatile    g_cBs3PitIntervalHz;
-
 
 /**
  * Call 16-bit prot mode function from v8086 mode.
  *
- * This switches from v8086 mode to 16-bit protected mode (code) and executed
+ * This switches from v8086 mode to 16-bit protected mode (code) and executes
  * @a fpfnCall with @a cbParams bytes of parameters pushed on the stack.
  * Afterwards it switches back to v8086 mode and returns a 16-bit status code.
  *
@@ -2647,6 +2643,8 @@ typedef union BS3REG
     uint16_t    au16[4];
     /** 32-bit view. */
     uint32_t    au32[2];
+    /** 64-bit view. */
+    uint64_t    au64[1];
     /** Unsigned integer, depending on compiler context.
      * This generally follows ARCH_BITS. */
     RTCCUINTREG  uCcReg;
@@ -2694,7 +2692,8 @@ typedef struct BS3REGCTX
     uint8_t     bMode;                  /**< 0xa0:  BS3_MODE_XXX. */
     uint8_t     bCpl;                   /**< 0xa1: 0-3, 0 is used for real mode. */
     uint8_t     fbFlags;                /**< 0xa2: BS3REG_CTX_F_XXX  */
-    uint8_t     abPadding[5];           /**< 0xa3  */
+    uint8_t     abPadding[3];           /**< 0xa3  */
+    uint16_t    cr2Range;               /**< 0xa6  */
     BS3REG      cr0;                    /**< 0xa8  */
     BS3REG      cr2;                    /**< 0xb0  */
     BS3REG      cr3;                    /**< 0xb8  */
@@ -3608,11 +3607,33 @@ BS3_CMN_PROTO_STUB(void, Bs3TrapSetJmpAndRestoreInRm,(PCBS3REGCTX pCtxRestore, P
  */
 BS3_CMN_PROTO_STUB(void, Bs3TrapUnsetJmp,(void));
 
+/** Entry point for MSR_K8_LSTAR (64-bit).
+ * This hooks into the default Bs3TrapSetJmp logic. */
+BS3_CMN_PROTO_NOSB(void, Bs3Syscall64Generic,(void));
+/** The 32-bit FLAT address of Bs3Syscall64Generic (for 16-bit code). */
+extern uint32_t g_pfnBs3Syscall64GenericFlat;
+
+/** Entry point for MSR_K8_CSTAR (64-bit).
+ * This hooks into the default Bs3TrapSetJmp logic. */
+BS3_CMN_PROTO_NOSB(void, Bs3Syscall64GenericCompatibility,(void));
+/** The 32-bit FLAT address of Bs3Syscall64Generic (for 16-bit code). */
+extern uint32_t g_pfnBs3Syscall64GenericCompatibilityFlat;
+
+
 
 /**
  * The current test step.
  */
 extern uint16_t g_usBs3TestStep;
+
+/** Test repetitions necessary to make sure of engaging native recompilation.
+ * @note See iemTbCacheLookup() for the actual constant. */
+#define BS3_THRESHOLD_NATIVE_RECOMPILER     18
+
+/** The host configurable BS3_THRESHOLD_NATIVE_RECOMPILER value.
+ * The host configuration is read by Bs3TestInit, before that it has the same
+ * value as the compiletime constant. */
+extern uint16_t g_cBs3ThresholdNativeRecompiler;
 
 /**
  * Equivalent to RTTestCreate + RTTestBanner.
@@ -3633,7 +3654,7 @@ BS3_CMN_PROTO_STUB(void, Bs3TestTerm,(void));
 BS3_CMN_PROTO_STUB(void, Bs3TestSub,(const char BS3_FAR *pszSubTest));
 
 /**
- * Equivalent to RTTestIFailedF.
+ * Equivalent to RTTestISubF.
  */
 BS3_CMN_PROTO_STUB(void, Bs3TestSubF,(const char BS3_FAR *pszFormat, ...));
 
@@ -3646,6 +3667,26 @@ BS3_CMN_PROTO_STUB(void, Bs3TestSubV,(const char BS3_FAR *pszFormat, va_list BS3
  * Equivalent to RTTestISubDone.
  */
 BS3_CMN_PROTO_STUB(void, Bs3TestSubDone,(void));
+
+/**
+ * Equivalent to RTTestISubSub.
+ */
+BS3_CMN_PROTO_STUB(void, Bs3TestSubSub,(const char BS3_FAR *pszSubTest));
+
+/**
+ * Equivalent to RTTestISubSubF.
+ */
+BS3_CMN_PROTO_STUB(void, Bs3TestSubSubF,(const char BS3_FAR *pszFormat, ...));
+
+/**
+ * Equivalent to RTTestISubSubV.
+ */
+BS3_CMN_PROTO_STUB(void, Bs3TestSubSubV,(const char BS3_FAR *pszFormat, va_list BS3_FAR va));
+
+/**
+ * Equivalent to RTTestISubSubDone.
+ */
+BS3_CMN_PROTO_STUB(void, Bs3TestSubSubDone,(void));
 
 /**
  * Equivalent to RTTestIValue.
@@ -3671,24 +3712,40 @@ BS3_CMN_PROTO_STUB(uint64_t, Bs3TestNow,(void));
  *
  * @returns Value.
  * @param   uCfg        A VMMDEV_TESTING_CFG_XXX value.
+ * @param   bDefault    The default value to return if the VMMDev isn't
+ *                      available or the query failed.
  */
-BS3_CMN_PROTO_STUB(uint8_t, Bs3TestQueryCfgU8,(uint16_t uCfg));
+BS3_CMN_PROTO_STUB(uint8_t, Bs3TestQueryCfgU8,(uint16_t uCfg, uint8_t bDefault));
 
 /**
- * Queries an unsigned 8-bit configuration value.
+ * Queries a boolean configuration value.
  *
  * @returns Value.
  * @param   uCfg        A VMMDEV_TESTING_CFG_XXX value.
+ * @param   fDefault    The default value to return if the VMMDev isn't
+ *                      available or the query failed.
  */
-BS3_CMN_PROTO_STUB(bool, Bs3TestQueryCfgBool,(uint16_t uCfg));
+BS3_CMN_PROTO_STUB(bool, Bs3TestQueryCfgBool,(uint16_t uCfg, bool fDefault));
+
+/**
+ * Queries an unsigned 16-bit configuration value.
+ *
+ * @returns Value.
+ * @param   uCfg        A VMMDEV_TESTING_CFG_XXX value.
+ * @param   uDefault    The default value to return if the VMMDev isn't
+ *                      available or the query failed.
+ */
+BS3_CMN_PROTO_STUB(uint16_t, Bs3TestQueryCfgU16,(uint16_t uCfg, uint16_t uDefault));
 
 /**
  * Queries an unsigned 32-bit configuration value.
  *
  * @returns Value.
  * @param   uCfg        A VMMDEV_TESTING_CFG_XXX value.
+ * @param   uDefault    The default value to return if the VMMDev isn't
+ *                      available or the query failed.
  */
-BS3_CMN_PROTO_STUB(uint32_t, Bs3TestQueryCfgU32,(uint16_t uCfg));
+BS3_CMN_PROTO_STUB(uint32_t, Bs3TestQueryCfgU32,(uint16_t uCfg, uint32_t uDefault));
 
 /**
  * Equivalent to RTTestIPrintf with RTTESTLVL_ALWAYS.
@@ -4165,6 +4222,8 @@ typedef BS3TESTMODEBYONEENTRY const *PCBS3TESTMODEBYONEENTRY;
 #define BS3TESTMODEBYONEENTRY_F_MINIMAL         RT_BIT_32(1)
 /** The 32-bit worker is ready to handle real-mode by mode switching. */
 #define BS3TESTMODEBYONEENTRY_F_REAL_MODE_READY RT_BIT_32(2)
+/** Skip all v8086 mode tests. */
+#define BS3TESTMODEBYONEENTRY_F_SKIP_V8086      RT_BIT_32(3)
 /** @} */
 
 
@@ -4196,6 +4255,11 @@ BS3_CMN_PROTO_NOSB(void, Bs3UtilSetFullIdtr,(uint16_t cbLimit, uint64_t uBase));
 BS3_DECL(void) Bs3InitAll_rm(void);
 
 /**
+ * Initializes all of boot sector kit \#3 as well as the high DLLs.
+ */
+BS3_DECL(void) Bs3InitAllWithHighDlls_rm(void);
+
+/**
  * Initializes the REAL and TILED memory pools.
  *
  * For proper operation on OLDer CPUs, call #Bs3CpuDetect_mmm first.
@@ -4206,6 +4270,13 @@ BS3_DECL_FAR(void) Bs3InitMemory_rm_far(void);
  * Initializes the X0TEXT16 and X1TEXT16 GDT entries.
  */
 BS3_DECL_FAR(void) Bs3InitGdt_rm_far(void);
+
+/**
+ * Initializes (loads) any high DLLs.
+ *
+ * @note This cannot be called after the PIC or traps have been initialized!
+ */
+BS3_DECL_FAR(void) Bs3InitHighDlls_rm_far(void);
 
 
 
@@ -4402,6 +4473,19 @@ BS3_MODE_PROTO_STUB(int32_t, Bs3SwitchTo32BitAndCallC,(FPFNBS3FAR fpfnCall, unsi
 BS3_MODE_PROTO_STUB(void, Bs3TrapInit,(void));
 
 /**
+ * Special version of memcpy for copying from/to real mode.
+ *
+ * @returns pvDst
+ * @param   uFlatDst        The flat address of the destination buffer.
+ * @param   uFlatSrc        The flat address of the source buffer.
+ * @param   cbToCopy        The number of bytes to copy.  Max 64KB.
+ *
+ * @todo    Only work on 386+ at present.   Could be made to work for 286 and
+ *          addresses < 16MB if we care...
+ */
+BS3_MODE_PROTO_STUB(void BS3_FAR *, Bs3MemCopyFlat,(uint32_t uFlatDst, uint32_t uFlatSrc, uint32_t cbToCopy));
+
+/**
  * Executes the array of tests in every possibly mode.
  *
  * @param   paEntries       The mode sub-test entries.
@@ -4499,6 +4583,151 @@ BS3_DECL(uint32_t) Bs3BiosInt15h88(void);
     value [ax dx] \
     modify exact [ax bx cx dx es];
 #endif
+
+/** @} */
+
+
+/** @defgroup grp_bs3kit_kbd    Keyboard
+ * @{
+ */
+
+/**
+ * Waits for the keyboard controller to become ready.
+ */
+BS3_CMN_PROTO_NOSB(void, Bs3KbdWait,(void));
+
+/**
+ * Sends a read command to the keyboard controller and gets the result.
+ *
+ * The caller is responsible for making sure the keyboard controller is ready
+ * for a command (call #Bs3KbdWait if unsure).
+ *
+ * @returns The value read is returned (in al).
+ * @param   bCmd            The read command.
+ */
+BS3_CMN_PROTO_NOSB(uint8_t, Bs3KbdRead,(uint8_t bCmd));
+
+/**
+ * Sends a write command to the keyboard controller and then sends the data.
+ *
+ * The caller is responsible for making sure the keyboard controller is ready
+ * for a command (call #Bs3KbdWait if unsure).
+ *
+ * @param   bCmd           The write command.
+ * @param   bData          The data to write.
+ */
+BS3_CMN_PROTO_NOSB(void, Bs3KbdWrite,(uint8_t bCmd, uint8_t bData));
+
+/** @} */
+
+
+/** @defgroup grp_bs3kit_pic    PIC
+ * @{
+ */
+
+/**
+ * Configures the PIC, once only.
+ *
+ * Subsequent calls to this function will not do anything.
+ *
+ * The PIC will be programmed to use IDT/IVT vectors 0x70 thru 0x7f, auto
+ * end-of-interrupt, and all IRQs masked.  The individual PIC users will have to
+ * use #Bs3PicUpdateMask unmask their IRQ once they've got all the handlers
+ * installed.
+ *
+ * @param   fForcedReInit   Force a reinitialization.
+ */
+BS3_CMN_PROTO_STUB(void, Bs3PicSetup,(bool fForcedReInit));
+
+/**
+ * Updates the PIC masks.
+ *
+ * @returns The new mask - master in low, slave in high byte.
+ * @param   fAndMask    Things to keep as-is. Master in low, slave in high byte.
+ * @param   fOrMask     Things to start masking. Ditto wrt bytes.
+ */
+BS3_CMN_PROTO_STUB(uint16_t, Bs3PicUpdateMask,(uint16_t fAndMask, uint16_t fOrMask));
+
+/**
+ * Disables all IRQs on the PIC.
+ */
+BS3_CMN_PROTO_STUB(void, Bs3PicMaskAll,(void));
+
+/** @} */
+
+
+/** @defgroup grp_bs3kit_pit    PIT
+ * @{
+ */
+
+/**
+ * Sets up the PIT for periodic callback.
+ *
+ * @param   cHzDesired      The desired Hz.  Zero means max interval length
+ *                          (18.2Hz).  Plase check the various PIT globals for
+ *                          the actual interval length.
+ */
+BS3_CMN_PROTO_STUB(void, Bs3PitSetupAndEnablePeriodTimer,(uint16_t cHzDesired));
+
+/**
+ * Disables the PIT if active.
+ */
+BS3_CMN_PROTO_STUB(void, Bs3PitDisable,(void));
+
+/** The RIP/EIP value of where the PIT IRQ handle will return to. */
+extern BS3REG volatile      g_Bs3PitIrqRip;
+/** Nanoseconds (approx) since last the PIT timer was started. */
+extern uint64_t volatile    g_cBs3PitNs;
+/** Milliseconds seconds (very approx) since last the PIT timer was started. */
+extern uint64_t volatile    g_cBs3PitMs;
+/** Number of ticks since last the PIT timer was started.  */
+extern uint32_t volatile    g_cBs3PitTicks;
+/** The current interval in nanoseconds.
+ * This is 0 if not yet started (cleared by Bs3PitDisable). */
+extern uint32_t             g_cBs3PitIntervalNs;
+/** The current interval in milliseconds (approximately).
+ * This is 0 if not yet started (cleared by Bs3PitDisable). */
+extern uint16_t             g_cBs3PitIntervalMs;
+/** The current PIT frequency (approximately).
+ * 0 if not yet started (cleared by Bs3PitDisable; used for checking the
+ * state internally). */
+extern uint16_t volatile    g_cBs3PitIntervalHz;
+
+/** @} */
+
+/** @defgroup grp_bs3kit_disk   Disk via INT 13h
+ * @{
+ */
+
+/**
+ * Performs a int 13h function AL=08h call to get the driver parameters.
+ *
+ * @returns 0 on success, non-zero error BIOS code on failure.
+ * @param   bDrive          The drive to get parameters for.
+ * @param   puMaxCylinder   Where to store the max cylinder value.
+ *                          Range: 0 thru *pcMaxCylinder.
+ * @param   puMaxHead       Where to store the max head value.
+ *                          Range: 0 thru *pcMaxHead.
+ * @param   puMaxSector     Where to store the max sector value.
+ *                          Range: 1 thru *pcMaxSector.
+ */
+BS3_MODE_PROTO_STUB(uint8_t, Bs3DiskQueryGeometry,(uint8_t bDrive, uint16_t *puMaxCylinder,
+                                                   uint8_t *puMaxHead, uint8_t *puMaxSector));
+
+/**
+ * Performs a int 13h function AL=08h call to get the driver parameters.
+ *
+ * @returns 0 on success, non-zero error BIOS code on failure.
+ * @param   bDrive          The drive to read from.
+ * @param   uCylinder       The cylinder to start read at (0-max).
+ * @param   uHead           The head to start reading at (0-max).
+ * @param   uSector         The sector to start reading at (1-max).
+ * @param   cSectors        The number of sectors to read (1+).
+ * @param   pvBuf           The buffer to read into.  This MUST be addressable
+ *                          from real mode!
+ */
+BS3_MODE_PROTO_STUB(uint8_t, Bs3DiskRead,(uint8_t bDrive, uint16_t uCylinder, uint8_t uHead, uint8_t uSector,
+                                          uint8_t cSectors, void RT_FAR *pvBuf));
 
 /** @} */
 

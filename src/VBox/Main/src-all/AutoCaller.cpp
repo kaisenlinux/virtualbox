@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -399,6 +399,13 @@ void ObjectState::autoUninitSpanDestructor()
     AutoWriteLock stateLock(mStateLock COMMA_LOCKVAL_SRC_POS);
 
     Assert(mState == InUninit);
+
+    if (mInitUninitWaiters > 0)
+    {
+        /* We have some concurrent uninit() calls on other threads (created
+         * during InUninit), signal that InUninit is finished and they may go on. */
+        RTSemEventMultiSignal(mInitUninitSem);
+    }
 
     setState(NotReady);
 }

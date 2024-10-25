@@ -6,7 +6,7 @@
  *  from the generic interface definition expressed in XML.
 -->
 <!--
-    Copyright (C) 2006-2023 Oracle and/or its affiliates.
+    Copyright (C) 2006-2024 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.
@@ -109,7 +109,11 @@ import "unknwn.idl";
 -->
 <xsl:template match="cpp">
   <xsl:text>cpp_quote("</xsl:text>
-  <xsl:value-of select="@line"/>
+  <xsl:call-template name="string-replace">
+    <xsl:with-param name="haystack" select="@line"/>
+    <xsl:with-param name="needle">&quot;</xsl:with-param>
+    <xsl:with-param name="replacement">\&quot;</xsl:with-param>
+  </xsl:call-template>
   <xsl:text>")&#x0A;&#x0A;</xsl:text>
 </xsl:template>
 

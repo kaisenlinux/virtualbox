@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -287,8 +287,7 @@ HRESULT EUSBWEBCAM::settingsParse(void)
 
 HRESULT EUSBWEBCAM::Attach(Console *pConsole, PUVM pUVM, PCVMMR3VTABLE pVMM, const char *pszDriver)
 {
-    int vrc = pVMM->pfnVMR3ReqCallWaitU(pUVM, 0 /* idDstCpu (saved state, see #6232) */,
-                                        (PFNRT)emulatedWebcamAttach, 4,
+    int vrc = pVMM->pfnVMR3ReqCallWaitU(pUVM, 0 /* idDstCpu (saved state, see #6232) */, (PFNRT)emulatedWebcamAttach, 4,
                                         pUVM, pVMM, this, pszDriver);
     if (RT_SUCCESS(vrc))
         return S_OK;
@@ -298,8 +297,7 @@ HRESULT EUSBWEBCAM::Attach(Console *pConsole, PUVM pUVM, PCVMMR3VTABLE pVMM, con
 
 HRESULT EUSBWEBCAM::Detach(Console *pConsole, PUVM pUVM, PCVMMR3VTABLE pVMM)
 {
-    int vrc = pVMM->pfnVMR3ReqCallWaitU(pUVM, 0 /* idDstCpu (saved state, see #6232) */,
-                                        (PFNRT)emulatedWebcamDetach, 3,
+    int vrc = pVMM->pfnVMR3ReqCallWaitU(pUVM, 0 /* idDstCpu (saved state, see #6232) */, (PFNRT)emulatedWebcamDetach, 3,
                                         pUVM, pVMM, this);
     if (RT_SUCCESS(vrc))
         return S_OK;

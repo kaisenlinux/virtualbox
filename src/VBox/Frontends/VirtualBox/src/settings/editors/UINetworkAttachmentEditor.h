@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,24 +31,20 @@
 # pragma once
 #endif
 
-/* Qt includes: */
-#include <QWidget>
-
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
+#include "UIEditor.h"
 #include "UIExtraDataDefs.h"
-#include "UILibraryDefs.h"
 
 /* COM includes: */
-#include "COMEnums.h"
+#include "KNetworkAttachmentType.h"
 
 /* Forward declarations: */
 class QComboBox;
 class QGridLayout;
 class QLabel;
 
-/** QWidget subclass used as a network attachment editor. */
-class SHARED_LIBRARY_STUFF UINetworkAttachmentEditor : public QIWithRetranslateUI<QWidget>
+/** UIEditor sub-class used as a network attachment editor. */
+class SHARED_LIBRARY_STUFF UINetworkAttachmentEditor : public UIEditor
 {
     Q_OBJECT;
 
@@ -105,11 +101,13 @@ public:
 
 protected:
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
+    /** Handles filter change. */
+    virtual void handleFilterChange() RT_OVERRIDE;
 
 private slots:
 
+    /** Handles translation event. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
     /** Handles current type change. */
     void sltHandleCurrentTypeChanged();
     /** Handles current name change. */

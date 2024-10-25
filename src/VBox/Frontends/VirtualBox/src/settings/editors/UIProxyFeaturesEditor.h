@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,11 +31,12 @@
 # pragma once
 #endif
 
-/* GUI includes: */
-#include "QIWithRetranslateUI.h"
-
 /* COM includes: */
-#include "COMEnums.h"
+#include "KProxyMode.h"
+
+/* GUI includes: */
+#include "UIEditor.h"
+
 
 /* Forward declarations: */
 class QButtonGroup;
@@ -43,8 +44,8 @@ class QLabel;
 class QRadioButton;
 class QILineEdit;
 
-/** QWidget subclass used as global proxy features editor. */
-class SHARED_LIBRARY_STUFF UIProxyFeaturesEditor : public QIWithRetranslateUI<QWidget>
+/** UIEditor sub-class used as global proxy features editor. */
+class SHARED_LIBRARY_STUFF UIProxyFeaturesEditor : public UIEditor
 {
     Q_OBJECT;
 
@@ -70,12 +71,10 @@ public:
     /** Returns proxy host. */
     QString proxyHost() const;
 
-protected:
+private slots:
 
     /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
-private slots:
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
     /** Handles proxy mode change. */
     void sltHandleProxyModeChanged();

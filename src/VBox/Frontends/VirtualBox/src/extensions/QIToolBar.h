@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -77,8 +77,6 @@ public:
 
     /** Mac OS X: Defines whether native tool-bar button should be shown. */
     void setShowToolBarButton(bool fShow);
-    /** Mac OS X: Updates native tool-bar layout. */
-    void updateLayout();
 
     /** Mac OS X: Defines branding stuff to be shown.
       * @param  icnBranding     Brings branding icon to be shown.

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -148,22 +148,22 @@ static bool MyDisasIsValidInstruction(DISSTATE const *pDis)
         case OP_MOV_CR:
         case OP_MOV_DR:
         case OP_MOV_TR:
-            if (pDis->ModRM.Bits.Mod != 3)
+            if (pDis->x86.ModRM.Bits.Mod != 3)
                 return false;
             break;
 
          /* The 0x8f /0 variant of this instruction doesn't get its /r value verified. */
         case OP_POP:
-            if (    pDis->bOpCode == 0x8f
-                &&  pDis->ModRM.Bits.Reg != 0)
+            if (    pDis->x86.bOpCode == 0x8f
+                &&  pDis->x86.ModRM.Bits.Reg != 0)
                 return false;
             break;
 
         /* The 0xc6 /0 and 0xc7 /0 variants of this instruction don't get their /r values verified. */
         case OP_MOV:
-            if (    (   pDis->bOpCode == 0xc6
-                     || pDis->bOpCode == 0xc7)
-                &&  pDis->ModRM.Bits.Reg != 0)
+            if (    (   pDis->x86.bOpCode == 0xc6
+                     || pDis->x86.bOpCode == 0xc7)
+                &&  pDis->x86.ModRM.Bits.Reg != 0)
                 return false;
             break;
 
@@ -191,7 +191,7 @@ static DECLCALLBACK(int) MyDisasInstrRead(PDISSTATE pDis, uint8_t offInstr, uint
          */
         //size_t cbToRead    = cbMaxRead;
         size_t cbToRead    = cbMinRead;
-        memcpy(&pState->Dis.abInstr[offInstr], pState->pbNext, cbToRead);
+        memcpy(&pState->Dis.Instr.ab[offInstr], pState->pbNext, cbToRead);
         pState->Dis.cbCachedInstr = offInstr + (uint8_t)cbToRead;
         pState->pbNext    += cbToRead;
         pState->cbLeft    -= cbToRead;
@@ -206,14 +206,14 @@ static DECLCALLBACK(int) MyDisasInstrRead(PDISSTATE pDis, uint8_t offInstr, uint
          */
         if (pState->cbLeft > 0)
         {
-            memcpy(&pState->Dis.abInstr[offInstr], pState->pbNext, pState->cbLeft);
+            memcpy(&pState->Dis.Instr.ab[offInstr], pState->pbNext, pState->cbLeft);
             offInstr          += (uint8_t)pState->cbLeft;
             cbMinRead         -= (uint8_t)pState->cbLeft;
             pState->pbNext    += pState->cbLeft;
             pState->uNextAddr += pState->cbLeft;
             pState->cbLeft     = 0;
         }
-        memset(&pState->Dis.abInstr[offInstr], 0xcc, cbMinRead);
+        memset(&pState->Dis.Instr.ab[offInstr], 0xcc, cbMinRead);
         pState->rc = VERR_EOF;
     }
     else
@@ -222,7 +222,7 @@ static DECLCALLBACK(int) MyDisasInstrRead(PDISSTATE pDis, uint8_t offInstr, uint
          * Non-sequential read, that's an error.
          */
         RTStrmPrintf(g_pStdErr, "Reading before current instruction!\n");
-        memset(&pState->Dis.abInstr[offInstr], 0x90, cbMinRead);
+        memset(&pState->Dis.Instr.ab[offInstr], 0x90, cbMinRead);
         pState->rc = VERR_INTERNAL_ERROR;
     }
     pState->Dis.cbCachedInstr = offInstr + cbMinRead;
@@ -315,13 +315,13 @@ static int MyDisasmBlock(const char *argv0, DISCPUMODE enmCpuMode, uint64_t uAdd
             {
                 if (!State.cbInstr)
                 {
-                    State.Dis.abInstr[0] = 0;
+                    State.Dis.Instr.ab[0] = 0;
                     State.Dis.pfnReadBytes(&State.Dis, 0, 1, 1);
                     State.cbInstr = 1;
                 }
                 RTPrintf("    db");
                 for (unsigned off = 0; off < State.cbInstr; off++)
-                    RTPrintf(off ? ", %03xh" : " %03xh", State.Dis.abInstr[off]);
+                    RTPrintf(off ? ", %03xh" : " %03xh", State.Dis.Instr.ab[off]);
                 RTPrintf("    ; %s\n", State.szLine);
             }
             else if (!State.fUndefOp && State.enmUndefOp == kUndefOp_All)
@@ -344,7 +344,7 @@ static int MyDisasmBlock(const char *argv0, DISCPUMODE enmCpuMode, uint64_t uAdd
                 {
                     RTPrintf("    db");
                     for (unsigned off = 0; off < State.cbInstr; off++)
-                        RTPrintf(off ? ", %03xh" : " %03xh", State.Dis.abInstr[off]);
+                        RTPrintf(off ? ", %03xh" : " %03xh", State.Dis.Instr.ab[off]);
                     RTPrintf(" ; ");
                 }
 
@@ -375,8 +375,8 @@ static int MyDisasmBlock(const char *argv0, DISCPUMODE enmCpuMode, uint64_t uAdd
         if (RT_SUCCESS(rc))
         {
             uint32_t cbInstrOnly = 32;
-            uint8_t  abInstr[sizeof(State.Dis.abInstr)];
-            memcpy(abInstr, State.Dis.abInstr, sizeof(State.Dis.abInstr));
+            uint8_t  abInstr[sizeof(State.Dis.Instr.ab)];
+            memcpy(abInstr, State.Dis.Instr.ab, sizeof(State.Dis.Instr.ab));
             int rcOnly = DISInstrWithPrefetchedBytes(State.uAddress, enmCpuMode, 0 /*fFilter - none */,
                                                      abInstr, State.Dis.cbCachedInstr, MyDisasInstrRead, &State,
                                                      &State.Dis, &cbInstrOnly);
@@ -554,7 +554,7 @@ int main(int argc, char **argv)
                     enmStyle = kAsmStyle_yasm;
                 else if (!strcmp(ValueUnion.psz, "masm"))
                 {
-                    enmStyle = kAsmStyle_masm;
+                    //enmStyle = kAsmStyle_masm; Unused right now
                     RTStrmPrintf(g_pStdErr, "%s: masm style isn't implemented yet\n", argv0);
                     return 1;
                 }
@@ -584,7 +584,7 @@ int main(int argc, char **argv)
                 break;
 
             case 'V':
-                RTPrintf("$Revision: 155244 $\n");
+                RTPrintf("$Revision: 164827 $\n");
                 return 0;
 
             default:

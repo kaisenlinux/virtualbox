@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -85,8 +85,8 @@ private:
     HRESULT getSlot(ULONG *aSlot);
     HRESULT getIRQ(ULONG *aIRQ);
     HRESULT setIRQ(ULONG aIRQ);
-    HRESULT getIOBase(ULONG *aIOBase);
-    HRESULT setIOBase(ULONG aIOBase);
+    HRESULT getIOAddress(ULONG *aIOAddress);
+    HRESULT setIOAddress(ULONG aIOAddress);
     HRESULT getServer(BOOL *aServer);
     HRESULT setServer(BOOL aServer);
     HRESULT getPath(com::Utf8Str &aPath);

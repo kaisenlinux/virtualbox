@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -535,6 +535,8 @@ typedef PDMDEVREGR3 const *PCPDMDEVREGR3;
 #define PDM_DEVREG_CLASS_PARALLEL               RT_BIT(17)
 /** Host PCI pass-through device */
 #define PDM_DEVREG_CLASS_HOST_DEV               RT_BIT(18)
+/** GPIO device */
+#define PDM_DEVREG_CLASS_GPIO                   RT_BIT(19)
 /** Misc devices (always last). */
 #define PDM_DEVREG_CLASS_MISC                   RT_BIT(31)
 /** @} */
@@ -2429,7 +2431,7 @@ typedef const PDMRTCHLP *PCPDMRTCHLP;
 /** @} */
 
 /** Current PDMDEVHLPR3 version number. */
-#define PDM_DEVHLPR3_VERSION                    PDM_VERSION_MAKE_PP(0xffe7, 65, 0)
+#define PDM_DEVHLPR3_VERSION                    PDM_VERSION_MAKE_PP(0xffe7, 66, 0)
 
 /**
  * PDM Device API.
@@ -2515,6 +2517,26 @@ typedef struct PDMDEVHLPR3
     DECLR3CALLBACKMEMBER(uint32_t, pfnIoPortGetMappingAddress,(PPDMDEVINS pDevIns, IOMIOPORTHANDLE hIoPorts));
 
     /**
+     * Reads from an I/O port register.
+     *
+     * @returns Strict VBox status code. Informational status codes other than the one documented
+     *          here are to be treated as internal failure. Use IOM_SUCCESS() to check for success.
+     * @retval  VINF_SUCCESS                Success.
+     * @retval  VINF_EM_FIRST-VINF_EM_LAST  Success with some exceptions (see IOM_SUCCESS()), the
+     *                                      status code must be passed on to EM.
+     *
+     * @param   pDevIns     The device instance to register the ports with.
+     * @param   Port        The port to read from.
+     * @param   pu32Value   Where to store the read value.
+     * @param   cbValue     The size of the register to read in bytes. 1, 2 or 4 bytes.
+     *
+     * @thread EMT
+     *
+     * @note This is required for the ARM platform in order to emulate PIO accesses through a dedicated MMIO region.
+     */
+    DECLR3CALLBACKMEMBER(VBOXSTRICTRC, pfnIoPortRead,(PPDMDEVINS pDevIns, RTIOPORT Port, uint32_t *pu32Value, size_t cbValue));
+
+    /**
      * Writes to an I/O port register.
      *
      * @returns Strict VBox status code. Informational status codes other than the one documented
@@ -2526,11 +2548,11 @@ typedef struct PDMDEVHLPR3
      * @param   pDevIns     The device instance to register the ports with.
      * @param   Port        The port to write to.
      * @param   u32Value    The value to write.
-     * @param   cbValue     The size of the register to read in bytes. 1, 2 or 4 bytes.
+     * @param   cbValue     The size of the register to write in bytes. 1, 2 or 4 bytes.
      *
      * @thread EMT
-     * @todo r=aeichner This is only used by DevPCI.cpp to write the ELCR of the PIC. This shouldn't be done that way
-     *       and removed again as soon as possible (no time right now)...
+     *
+     * @note This is required for the ARM platform in order to emulate PIO accesses through a dedicated MMIO region.
      */
     DECLR3CALLBACKMEMBER(VBOXSTRICTRC, pfnIoPortWrite,(PPDMDEVINS pDevIns, RTIOPORT Port, uint32_t u32Value, size_t cbValue));
     /** @}  */
@@ -3414,7 +3436,8 @@ typedef struct PDMDEVHLPR3
      *
      * @remarks See remarks on VMR3ReqCallVU.
      */
-    DECLR3CALLBACKMEMBER(int, pfnVMReqCallNoWaitV,(PPDMDEVINS pDevIns, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs, va_list Args));
+    DECLR3CALLBACKMEMBER(int, pfnVMReqCallNoWaitV,(PPDMDEVINS pDevIns, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs,
+                                                   va_list Args)) RT_IPRT_CALLREQ_ATTR(3, 4, 0);
 
     /**
      * Convenience wrapper for VMR3ReqCallU.
@@ -3435,7 +3458,8 @@ typedef struct PDMDEVHLPR3
      *
      * @remarks See remarks on VMR3ReqCallVU.
      */
-    DECLR3CALLBACKMEMBER(int, pfnVMReqPriorityCallWaitV,(PPDMDEVINS pDevIns, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs, va_list Args));
+    DECLR3CALLBACKMEMBER(int, pfnVMReqPriorityCallWaitV,(PPDMDEVINS pDevIns, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs,
+                                                         va_list Args)) RT_IPRT_CALLREQ_ATTR(3, 4, 0);
 
     /**
      * Stops the VM and enters the debugger to look at the guest state.
@@ -4588,6 +4612,14 @@ typedef struct PDMDEVHLPR3
      * @since   6.0.6
      */
     DECLR3CALLBACKMEMBER(void, pfnPhysBulkReleasePageMappingLocks,(PPDMDEVINS pDevIns, uint32_t cPages, PPGMPAGEMAPLOCK paLocks));
+
+    /**
+     * Returns the architecture used for the guest.
+     *
+     * @returns CPU architecture enum.
+     * @param   pDevIns             The device instance.
+     */
+    DECLR3CALLBACKMEMBER(CPUMARCH, pfnCpuGetGuestArch,(PPDMDEVINS pDevIns));
 
     /**
      * Returns the micro architecture used for the guest.
@@ -6637,6 +6669,22 @@ DECLINLINE(uint32_t) PDMDevHlpIoPortGetMappingAddress(PPDMDEVINS pDevIns, IOMIOP
     return pDevIns->pHlpR3->pfnIoPortGetMappingAddress(pDevIns, hIoPorts);
 }
 
+/**
+ * @copydoc PDMDEVHLPR3::pfnIoPortRead
+ */
+DECLINLINE(VBOXSTRICTRC) PDMDevHlpIoPortRead(PPDMDEVINS pDevIns, RTIOPORT Port, uint32_t *pu32Value, size_t cbValue)
+{
+    return pDevIns->pHlpR3->pfnIoPortRead(pDevIns, Port, pu32Value, cbValue);
+}
+
+/**
+ * @copydoc PDMDEVHLPR3::pfnIoPortWrite
+ */
+DECLINLINE(VBOXSTRICTRC) PDMDevHlpIoPortWrite(PPDMDEVINS pDevIns, RTIOPORT Port, uint32_t u32Value, size_t cbValue)
+{
+    return pDevIns->pHlpR3->pfnIoPortWrite(pDevIns, Port, u32Value, cbValue);
+}
+
 
 #endif /* IN_RING3 */
 #if !defined(IN_RING3) || defined(DOXYGEN_RUNNING)
@@ -7325,6 +7373,36 @@ DECLINLINE(int) PDMDevHlpPhysChangeMemBalloon(PPDMDEVINS pDevIns, bool fInflate,
 }
 
 /**
+ * @copydoc PDMDEVHLPR3::pfnCpuGetGuestArch
+ */
+DECLINLINE(CPUMARCH) PDMDevHlpCpuGetGuestArch(PPDMDEVINS pDevIns)
+{
+    return pDevIns->CTX_SUFF(pHlp)->pfnCpuGetGuestArch(pDevIns);
+}
+
+/**
+ * Returns a flag whether the current guest CPU architecture is x86.
+ *
+ * @returns Flag whether the current guest architecture is x86.
+ * @param   pDevIns     The device instance.
+ */
+DECLINLINE(bool) PDMDevHlpCpuIsGuestArchX86(PPDMDEVINS pDevIns)
+{
+    return pDevIns->CTX_SUFF(pHlp)->pfnCpuGetGuestArch(pDevIns) == kCpumArch_X86;
+}
+
+/**
+ * Returns a flag whether the current guest CPU architecture is ARM.
+ *
+ * @returns Flag whether the current guest architecture is ARM.
+ * @param   pDevIns     The device instance.
+ */
+DECLINLINE(bool) PDMDevHlpCpuIsGuestArchArm(PPDMDEVINS pDevIns)
+{
+    return pDevIns->CTX_SUFF(pHlp)->pfnCpuGetGuestArch(pDevIns) == kCpumArch_Arm;
+}
+
+/**
  * @copydoc PDMDEVHLPR3::pfnCpuGetGuestMicroarch
  */
 DECLINLINE(CPUMMICROARCH) PDMDevHlpCpuGetGuestMicroarch(PPDMDEVINS pDevIns)
@@ -7535,7 +7613,8 @@ DECLINLINE(int) PDMDevHlpVMNotifyCpuDeviceReady(PPDMDEVINS pDevIns, VMCPUID idCp
  *
  * @remarks See remarks on VMR3ReqCallVU.
  */
-DECLINLINE(int) PDMDevHlpVMReqCallNoWait(PPDMDEVINS pDevIns, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs, ...)
+DECLINLINE(int) RT_IPRT_CALLREQ_ATTR(3, 4, 5)
+PDMDevHlpVMReqCallNoWait(PPDMDEVINS pDevIns, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs, ...)
 {
     va_list Args;
     va_start(Args, cArgs);
@@ -7563,7 +7642,8 @@ DECLINLINE(int) PDMDevHlpVMReqCallNoWait(PPDMDEVINS pDevIns, VMCPUID idDstCpu, P
  *
  * @remarks See remarks on VMR3ReqCallVU.
  */
-DECLINLINE(int) PDMDevHlpVMReqPriorityCallWait(PPDMDEVINS pDevIns, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs, ...)
+DECLINLINE(int) RT_IPRT_CALLREQ_ATTR(3, 4, 5)
+PDMDevHlpVMReqPriorityCallWait(PPDMDEVINS pDevIns, VMCPUID idDstCpu, PFNRT pfnFunction, unsigned cArgs, ...)
 {
     va_list Args;
     va_start(Args, cArgs);

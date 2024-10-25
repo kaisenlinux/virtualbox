@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,20 +26,22 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDir>
 #include <QHeaderView>
 #include <QLabel>
 #include <QLineEdit>
-#include <QRegExp>
+#include <QRegularExpression>
 #include <QSpinBox>
 #include <QTextEdit>
 #include <QVBoxLayout>
 
 /* GUI includes: */
 #include "QITreeView.h"
-#include "UICommon.h"
+#include "UIGlobalSession.h"
+#include "UIGuestOSType.h"
 #include "UIGuestOSTypeSelectionButton.h"
 #include "UIApplianceEditorWidget.h"
 #include "UIConverter.h"
@@ -50,6 +52,7 @@
 #include "UITranslator.h"
 
 /* COM includes: */
+#include "CPlatformProperties.h"
 #include "CSystemProperties.h"
 
 
@@ -284,12 +287,11 @@ QString UIApplianceModelItem::text() const
     switch (type())
     {
         case ApplianceModelItemType_VirtualSystem:
-            return tr("%1", "col.1 text")
-                     .arg(data(ApplianceViewSection_Description, Qt::DisplayRole).toString());
+            return data(ApplianceViewSection_Description, Qt::DisplayRole).toString();
         case ApplianceModelItemType_VirtualHardware:
-            return tr("%1: %2", "col.1 text: col.2 text")
-                     .arg(data(ApplianceViewSection_Description, Qt::DisplayRole).toString())
-                     .arg(data(ApplianceViewSection_ConfigValue, Qt::DisplayRole).toString());
+            return QString("%1: %2")
+                           .arg(data(ApplianceViewSection_Description, Qt::DisplayRole).toString())
+                           .arg(data(ApplianceViewSection_ConfigValue, Qt::DisplayRole).toString());
         default:
             break;
     }
@@ -536,8 +538,8 @@ QVariant UIVirtualHardwareItem::data(int iColumn, int iRole) const
                             strTmp.replace(i, strTmp.length(), "...");
                         value = strTmp; break;
                     }
-                    case KVirtualSystemDescriptionType_OS:               value = uiCommon().vmGuestOSTypeDescription(m_strConfigValue); break;
-                    case KVirtualSystemDescriptionType_Memory:           value = m_strConfigValue + " " + UICommon::tr("MB", "size suffix MBytes=1024 KBytes"); break;
+                    case KVirtualSystemDescriptionType_OS:               value = gpGlobalSession->guestOSTypeManager().getDescription(m_strConfigValue); break;
+                    case KVirtualSystemDescriptionType_Memory:           value = m_strConfigValue + " " + QApplication::translate("UITranslator", "MB", "size suffix MBytes=1024 KBytes"); break;
                     case KVirtualSystemDescriptionType_SoundCard:        value = gpConverter->toString(static_cast<KAudioControllerType>(m_strConfigValue.toInt())); break;
                     case KVirtualSystemDescriptionType_NetworkAdapter:   value = gpConverter->toString(static_cast<KNetworkAdapterType>(m_strConfigValue.toInt())); break;
                     case KVirtualSystemDescriptionType_CloudInstanceShape:
@@ -823,7 +825,7 @@ QWidget *UIVirtualHardwareItem::createEditor(QWidget *pParent, const QStyleOptio
             {
                 QSpinBox *pSpinBox = new QSpinBox(pParent);
                 pSpinBox->setRange(UIApplianceEditorWidget::minGuestRAM(), UIApplianceEditorWidget::maxGuestRAM());
-                pSpinBox->setSuffix(" " + UICommon::tr("MB", "size suffix MBytes=1024 KBytes"));
+                pSpinBox->setSuffix(" " + QApplication::translate("UITranslator", "MB", "size suffix MBytes=1024 KBytes"));
                 pEditor = pSpinBox;
                 break;
             }
@@ -841,7 +843,7 @@ QWidget *UIVirtualHardwareItem::createEditor(QWidget *pParent, const QStyleOptio
                 /* Create combo editor: */
                 QComboBox *pComboBox = new QComboBox(pParent);
                 /* Load currently supported network adapter types: */
-                CSystemProperties comProperties = uiCommon().virtualBox().GetSystemProperties();
+                CPlatformProperties comProperties = gpGlobalSession->virtualBox().GetPlatformProperties(KPlatformArchitecture_x86);
                 QVector<KNetworkAdapterType> supportedTypes = comProperties.GetSupportedNetworkAdapterTypes();
                 /* Take currently requested type into account if it's sane: */
                 const KNetworkAdapterType enmAdapterType = static_cast<KNetworkAdapterType>(m_strConfigValue.toInt());
@@ -897,7 +899,7 @@ QWidget *UIVirtualHardwareItem::createEditor(QWidget *pParent, const QStyleOptio
             {
                 QComboBox *pComboBox = new QComboBox(pParent);
                 pComboBox->setEditable(true);
-                QVector<QString> groupsVector = uiCommon().virtualBox().GetMachineGroups();
+                QVector<QString> groupsVector = gpGlobalSession->virtualBox().GetMachineGroups();
 
                 for (int i = 0; i < groupsVector.size(); ++i)
                     pComboBox->addItem(groupsVector.at(i));
@@ -919,7 +921,7 @@ QWidget *UIVirtualHardwareItem::createEditor(QWidget *pParent, const QStyleOptio
                         AbstractVSDParameterDouble value = get.value<AbstractVSDParameterDouble>();
                         QSpinBox *pSpinBox = new QSpinBox(pParent);
                         pSpinBox->setRange(value.minimum, value.maximum);
-                        pSpinBox->setSuffix(QString(" %1").arg(UICommon::tr(value.unit.toUtf8().constData())));
+                        pSpinBox->setSuffix(QString(" %1").arg(QApplication::translate("UICommon", value.unit.toUtf8().constData())));
                         pEditor = pSpinBox;
                         break;
                     }
@@ -1239,10 +1241,15 @@ bool UIVirtualHardwareItem::setModelData(QWidget *pEditor, QAbstractItemModel *p
             break;
         }
         case KVirtualSystemDescriptionType_CloudInstanceShape:
+            RT_FALL_THROUGH();
         case KVirtualSystemDescriptionType_CloudDomain:
+            RT_FALL_THROUGH();
         case KVirtualSystemDescriptionType_CloudBootDiskSize:
+            RT_FALL_THROUGH();
         case KVirtualSystemDescriptionType_CloudBucket:
+            RT_FALL_THROUGH();
         case KVirtualSystemDescriptionType_CloudOCIVCN:
+            RT_FALL_THROUGH();
         case KVirtualSystemDescriptionType_CloudOCISubnet:
         {
             switch (m_pParent->kindHint(m_enmVSDType))
@@ -1286,8 +1293,10 @@ bool UIVirtualHardwareItem::setModelData(QWidget *pEditor, QAbstractItemModel *p
                 default:
                     break;
             }
+            break;
         }
-        default: break;
+        default:
+            break;
     }
     if (fDone)
         m_fModified = true;
@@ -1304,7 +1313,7 @@ void UIVirtualHardwareItem::restoreDefaults()
 void UIVirtualHardwareItem::putBack(QVector<BOOL> &finalStates, QVector<QString> &finalValues, QVector<QString> &finalExtraValues)
 {
     finalStates[m_iNumber] = m_checkState == Qt::Checked;
-    /* It's always stored in bytes in VSD according to the old internal agreement within the team */
+    /* It's alway stored in bytes in VSD according to the old internal agreement within the team */
     finalValues[m_iNumber] = m_enmVSDType == KVirtualSystemDescriptionType_Memory ? UITranslator::megabyteStringToByteString(m_strConfigValue) : m_strConfigValue;
     finalExtraValues[m_iNumber] = m_enmVSDType == KVirtualSystemDescriptionType_Memory ? UITranslator::megabyteStringToByteString(m_strExtraConfigValue) : m_strExtraConfigValue;
 
@@ -1365,16 +1374,17 @@ UIApplianceModel::UIApplianceModel(QVector<CVirtualSystemDescription>& aVSDs, QI
                     controllerMap[i] = pHardwareItem;
             }
         }
-        QRegExp rx("controller=(\\d+);?");
+        const QRegularExpression re("controller=(\\d+);?");
         /* Now process the hard disk images */
         for (int iHDIndex = 0; iHDIndex < hdIndexes.size(); ++iHDIndex)
         {
             int i = hdIndexes[iHDIndex];
             QString ecnf = extraConfigValues[i];
-            if (rx.indexIn(ecnf) != -1)
+            const QRegularExpressionMatch mt = re.match(ecnf);
+            if (mt.hasMatch())
             {
                 /* Get the controller */
-                UIVirtualHardwareItem *pControllerItem = controllerMap[rx.cap(1).toInt()];
+                UIVirtualHardwareItem *pControllerItem = controllerMap[mt.captured(1).toInt()];
                 if (pControllerItem)
                 {
                     /* New hardware item as child of the controller */
@@ -1727,7 +1737,7 @@ bool UIApplianceSortProxyModel::filterAcceptsRow(int iSourceRow, const QModelInd
     /* By default enable all, we will explicitly filter out below */
     if (srcParenIdx.isValid())
     {
-        QModelIndex i = index(iSourceRow, 0, srcParenIdx);
+        QModelIndex i = sourceModel()->index(iSourceRow, 0, srcParenIdx);
         if (i.isValid())
         {
             UIApplianceModelItem *pItem = static_cast<UIApplianceModelItem*>(i.internalPointer());
@@ -1785,7 +1795,7 @@ int UIApplianceEditorWidget::m_minGuestCPUCount = -1;
 int UIApplianceEditorWidget::m_maxGuestCPUCount = -1;
 
 UIApplianceEditorWidget::UIApplianceEditorWidget(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_pModel(0)
 {
     /* Make sure all static content is properly initialized */
@@ -1809,6 +1819,11 @@ UIApplianceEditorWidget::UIApplianceEditorWidget(QWidget *pParent /* = 0 */)
                 /* Create tree-view: */
                 m_pTreeViewSettings = new QITreeView;
                 {
+                    /* Extend trigger set: */
+                    m_pTreeViewSettings->setEditTriggers(  QAbstractItemView::DoubleClicked
+                                                         | QAbstractItemView::SelectedClicked
+                                                         | QAbstractItemView::AnyKeyPressed);
+
                     /* Configure tree-view: */
                     m_pTreeViewSettings->setAlternatingRowColors(true);
                     m_pTreeViewSettings->setAllColumnsShowFocus(true);
@@ -1867,7 +1882,7 @@ UIApplianceEditorWidget::UIApplianceEditorWidget(QWidget *pParent /* = 0 */)
     }
 
     /* Translate finally: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIApplianceEditorWidget::clear()
@@ -1909,7 +1924,7 @@ void UIApplianceEditorWidget::restoreDefaults()
         m_pModel->restoreDefaults();
 }
 
-void UIApplianceEditorWidget::retranslateUi()
+void UIApplianceEditorWidget::sltRetranslateUI()
 {
     /* Translate information pane tree-view: */
     m_pTreeViewSettings->setWhatsThis(tr("Detailed list of all components of all virtual machines of the current appliance"));
@@ -1925,7 +1940,7 @@ void UIApplianceEditorWidget::initSystemSettings()
     {
         /* We need some global defaults from the current VirtualBox
            installation */
-        CSystemProperties sp = uiCommon().virtualBox().GetSystemProperties();
+        CSystemProperties sp = gpGlobalSession->virtualBox().GetSystemProperties();
         m_minGuestRAM        = sp.GetMinGuestRAM();
         m_maxGuestRAM        = sp.GetMaxGuestRAM();
         m_minGuestCPUCount   = sp.GetMinGuestCPUCount();

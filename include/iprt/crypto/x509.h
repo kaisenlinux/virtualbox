@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2014-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2014-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1211,6 +1211,28 @@ RTDECL(uint32_t) RTCrX509CertPathsGetPathLength(RTCRX509CERTPATHS hCertPaths, ui
 RTDECL(int) RTCrX509CertPathsGetPathVerifyResult(RTCRX509CERTPATHS hCertPaths, uint32_t iPath);
 RTDECL(PCRTCRX509CERTIFICATE) RTCrX509CertPathsGetPathNodeCert(RTCRX509CERTPATHS hCertPaths, uint32_t iPath, uint32_t iNode);
 
+/**
+ * Generates a self-signed RSA certificate, storing the result as two file.
+ *
+ * @note    The private key will be stored unencrypted!
+ *
+ * @returns IPRT status code.
+ * @param   enmDigestType       The digest type to use when signing.
+ * @param   cBits               The private key size (in bits).
+ * @param   cSecsValidFor       Number of seconds the certificate should be
+ *                              valid for (starting now).
+ * @param   fKeyUsage           Key usage mask: RTCRX509CERT_KEY_USAGE_F_XXX.
+ * @param   fExtKeyUsage        Extended key usage mask: RTCRX509CERT_EKU_F_XXX.
+ * @param   pvSubject           Subject name.
+ * @param   pszCertFile         Where to store the certificate (PEM formatting).
+ * @param   pszPrivateKeyFile   Where to store the unencrypted private key (PEM
+ *                              formatting).
+ * @param   pErrInfo            Where to return extended error information.
+ *                              Optional.
+ */
+RTDECL(int) RTCrX509Certificate_GenerateSelfSignedRsa(RTDIGESTTYPE enmDigestType, uint32_t cBits, uint32_t cSecsValidFor,
+                                                      uint32_t fKeyUsage, uint64_t fExtKeyUsage, const char *pvSubject,
+                                                      const char *pszCertFile, const char *pszPrivateKeyFile, PRTERRINFO pErrInfo);
 
 RT_C_DECLS_END
 
@@ -1219,4 +1241,3 @@ RT_C_DECLS_END
 /** @} */
 
 #endif /* !IPRT_INCLUDED_crypto_x509_h */
-

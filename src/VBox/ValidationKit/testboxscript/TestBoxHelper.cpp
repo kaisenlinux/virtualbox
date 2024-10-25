@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -55,11 +55,23 @@
 #if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
 # include <iprt/x86.h>
 # include <iprt/asm-amd64-x86.h>
+#elif defined(RT_ARCH_ARM) || defined(RT_ARCH_ARM64)
+# include <iprt/asm-arm.h>
 #endif
 
 #ifdef RT_OS_DARWIN
 # include <sys/types.h>
 # include <sys/sysctl.h>
+#elif defined(RT_OS_WINDOWS)
+# include <iprt/nt/nt-and-windows.h>
+# include <iprt/ldr.h>
+
+extern "C" HRESULT WINAPI
+WHvGetCapability(UINT32 CapabilityCode, VOID *CapabilityBuffer, UINT32 CapabilityBufferSizeInBytes, UINT32 *WrittenSizeInBytes);
+#elif defined(RT_OS_LINUX)
+# include <sys/stat.h>
+# include <fcntl.h>
+# include <unistd.h>
 #endif
 
 
@@ -378,6 +390,8 @@ static RTEXITCODE handlerReport(int argc, char **argv)
         }
     }
     RTPrintf("\n");
+#else
+#endif
 
     /*
      * DMI info.
@@ -403,9 +417,6 @@ static RTEXITCODE handlerReport(int argc, char **argv)
             RTPrintf("%25s: %s [rc=%Rrc]\n", s_aDmiStrings[iDmiString].pszName, RTStrStrip(szTmp), rc);
     }
     RTPrintf("\n");
-
-#else
-#endif
 
     /*
      * Dump the environment.
@@ -468,10 +479,82 @@ static RTEXITCODE handlerMemSize(int argc, char **argv)
     return RTEXITCODE_FAILURE;
 }
 
-typedef enum { HWVIRTTYPE_NONE, HWVIRTTYPE_VTX, HWVIRTTYPE_AMDV } HWVIRTTYPE;
-static HWVIRTTYPE isHwVirtSupported(void)
+
+static bool isNativeApiSupported(void)
 {
-#if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
+    bool fSupported = false;
+
+#if defined(RT_OS_DARWIN)
+    /*
+     * The kern.hv_support parameter indicates support for the hypervisor API
+     * in the kernel.
+     */
+    int32_t fHvSupport = 0;
+    size_t  cbOld = sizeof(fHvSupport);
+    if (sysctlbyname("kern.hv_support", &fHvSupport, &cbOld, NULL, 0) == 0)
+    {
+        if (fHvSupport != 0)
+            fSupported = true;
+    }
+
+#elif defined(RT_OS_WINDOWS)
+    /*
+     * Check whether we can load WinHvPlatform.dll and whether the Hypervisor
+     * capability is present.
+     */
+    RTLDRMOD hLdrMod;
+    int rc = RTLdrLoadSystem("WinHvPlatform.dll", false /*fNoUnload*/, &hLdrMod);
+    if (RT_SUCCESS(rc))
+    {
+        decltype(WHvGetCapability) *pfnWHvGetCapability;
+
+        rc = RTLdrGetSymbol(hLdrMod, "WHvGetCapability", (void **)&pfnWHvGetCapability);
+        if (RT_SUCCESS(rc))
+        {
+            BOOL fHypervisorPresent = FALSE;
+            SetLastError(0);
+            HRESULT hrc = pfnWHvGetCapability(0 /*WHvCapabilityCodeHypervisorPresent*/,
+                                              &fHypervisorPresent,
+                                              sizeof(fHypervisorPresent),
+                                              NULL);
+            if (   SUCCEEDED(hrc)
+                && fHypervisorPresent)
+                fSupported = true;
+        }
+
+        RTLdrClose(hLdrMod);
+    }
+
+#elif defined(RT_OS_LINUX)
+    /* Check by opening /dev/kvm. */
+    int fdKvm = open("/dev/kvm", O_RDWR);
+    if (fdKvm >= 0)
+    {
+        close(fdKvm);
+        fSupported = true;
+    }
+#endif
+
+    return fSupported;
+}
+
+/** Print the 'true' if native API virtualization is supported, 'false' if not and
+ * 'dunno' if we cannot tell. */
+static RTEXITCODE handlerNativeApi(int argc, char **argv)
+{
+    NOREF(argc); NOREF(argv);
+
+    int cch = RTPrintf(isNativeApiSupported() ? "true\n" : "false\n");
+    return cch > 0 ? RTEXITCODE_SUCCESS : RTEXITCODE_FAILURE;
+}
+
+
+typedef enum { HWVIRTTYPE_NONE, HWVIRTTYPE_VTX, HWVIRTTYPE_AMDV, HVIRTTYPE_ARMV8 } HWVIRTTYPE;
+static HWVIRTTYPE getHwVirtSupport(void)
+{
+    /* No native virtualization supported on macOS anymore (for the VBox versions we care about). */
+#if !defined RT_OS_DARWIN
+# if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
     uint32_t uEax, uEbx, uEcx, uEdx;
 
     /* VT-x */
@@ -491,6 +574,7 @@ static HWVIRTTYPE isHwVirtSupported(void)
         if (uEcx & X86_CPUID_AMD_FEATURE_ECX_SVM)
             return HWVIRTTYPE_AMDV;
     }
+# endif
 #endif
 
     return HWVIRTTYPE_NONE;
@@ -500,7 +584,7 @@ static HWVIRTTYPE isHwVirtSupported(void)
 static RTEXITCODE handlerCpuHwVirt(int argc, char **argv)
 {
     NOREF(argc); NOREF(argv);
-    int cch = RTPrintf(isHwVirtSupported() != HWVIRTTYPE_NONE ? "true\n" : "false\n");
+    int cch = RTPrintf(getHwVirtSupport() != HWVIRTTYPE_NONE ? "true\n" : "false\n");
     return cch > 0 ? RTEXITCODE_SUCCESS : RTEXITCODE_FAILURE;
 }
 
@@ -510,11 +594,13 @@ static RTEXITCODE handlerCpuHwVirt(int argc, char **argv)
 static RTEXITCODE handlerCpuNestedPaging(int argc, char **argv)
 {
     NOREF(argc); NOREF(argv);
-    HWVIRTTYPE  enmHwVirt  = isHwVirtSupported();
-    int         fSupported = -1;
+    int               fSupported = -1;
 
+    HWVIRTTYPE  const enmHwVirt  = getHwVirtSupport();
+    if (enmHwVirt == HWVIRTTYPE_NONE)
+        fSupported = 0;
 #if defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86)
-    if (enmHwVirt == HWVIRTTYPE_AMDV)
+    else if (enmHwVirt == HWVIRTTYPE_AMDV)
     {
         uint32_t uEax, uEbx, uEcx, uEdx;
         ASMCpuId(0x80000000, &uEax, &uEbx, &uEcx, &uEdx);
@@ -573,24 +659,6 @@ static RTEXITCODE handlerCpuNestedPaging(int argc, char **argv)
             RTFileClose(hFileCpu);
         }
     }
-# elif defined(RT_OS_DARWIN)
-    else if (enmHwVirt == HWVIRTTYPE_VTX)
-    {
-        /*
-         * The kern.hv_support parameter indicates support for the hypervisor API in the
-         * kernel, which in turn is documented require nested paging and unrestricted
-         * guest mode.  So, if it's there and set we've got nested paging.  Howeber, if
-         * it's there and clear we have not definite answer as it might be due to lack
-         * of unrestricted guest mode support.
-         */
-        int32_t fHvSupport = 0;
-        size_t  cbOld = sizeof(fHvSupport);
-        if (sysctlbyname("kern.hv_support", &fHvSupport, &cbOld, NULL, 0) == 0)
-        {
-            if (fHvSupport != 0)
-                fSupported = true;
-        }
-    }
 # endif
 #endif
 
@@ -599,18 +667,19 @@ static RTEXITCODE handlerCpuNestedPaging(int argc, char **argv)
 }
 
 
-/** Print the 'true' if long mode guests are supported, 'false' if not and
+/** Print the 'true' if 64-bits guests are supported, 'false' if not and
  * 'dunno' if we cannot tell. */
-static RTEXITCODE handlerCpuLongMode(int argc, char **argv)
+static RTEXITCODE handlerCpu64BitGuest(int argc, char **argv)
 {
     NOREF(argc); NOREF(argv);
-    HWVIRTTYPE  enmHwVirt  = isHwVirtSupported();
-    int         fSupported = 0;
+    int              fSupported    = 0;
 
-    if (enmHwVirt != HWVIRTTYPE_NONE)
+    HWVIRTTYPE const enmHwVirt = getHwVirtSupport();
+    if (   enmHwVirt != HWVIRTTYPE_NONE
+        || isNativeApiSupported())
     {
-#if defined(RT_ARCH_AMD64)
-        fSupported = 1; /* We're running long mode, so it must be supported. */
+#if ARCH_BITS == 64
+        fSupported = 1; /* We're running in 64-bit mode, so it must be supported. */
 
 #elif defined(RT_ARCH_X86)
 # ifdef RT_OS_DARWIN
@@ -670,6 +739,11 @@ static RTEXITCODE handlerCpuRevision(int argc, char **argv)
         int cch = RTPrintf("%#x\n", uVersion);
         return cch > 0 ? RTEXITCODE_SUCCESS : RTEXITCODE_FAILURE;
     }
+#elif defined(RT_ARCH_ARM) || defined(RT_ARCH_ARM64)
+    /** @todo There is no way to access MIDR_EL1 from userspace except for parsing the various
+     * OS dependent ways (/proc/cpuinfo, sysctl, ...). Just fake it for now to get it running. */
+    int cch = RTPrintf("%#x\n", 1);
+    return cch > 0 ? RTEXITCODE_SUCCESS : RTEXITCODE_FAILURE;
 #endif
     return RTEXITCODE_FAILURE;
 }
@@ -700,6 +774,16 @@ static RTEXITCODE handlerCpuVendor(int argc, char **argv)
     uint32_t uEax, uEbx, uEcx, uEdx;
     ASMCpuId(0, &uEax, &uEbx, &uEcx, &uEdx);
     int cch = RTPrintf("%.04s%.04s%.04s\n", &uEbx, &uEdx, &uEcx);
+#elif defined(RT_ARCH_ARM64) && defined(RT_OS_DARWIN)
+    /*
+     * There is machdep.cpu.brand_string we could query but that identifies
+     * the whole CPU and not just the vendor.
+     *
+     * Running on macOS using the arm64 architecture is a pretty safe bet that
+     * we are also running on Apple Silicon (there is the possibility that
+     * this runs in a macOS VM on some other hardware but this is highly unlikely).
+     */
+    int cch = RTPrintf("Apple\n");
 #else
     int cch = RTPrintf("%s\n", RTBldCfgTargetArch());
 #endif
@@ -729,7 +813,9 @@ int main(int argc, char **argv)
         { "cpurevision",    handlerCpuRevision,     true },
         { "cpuhwvirt",      handlerCpuHwVirt,       true },
         { "nestedpaging",   handlerCpuNestedPaging, true },
-        { "longmode",       handlerCpuLongMode,     true },
+        { "64bitguest",     handlerCpu64BitGuest,   true },
+        { "longmode",       handlerCpu64BitGuest,   true }, /* legacy name */
+        { "nativeapi",      handlerNativeApi,       true },
         { "memsize",        handlerMemSize,         true },
         { "report",         handlerReport,          true },
         { "wipefreespace",  handlerWipeFreeSpace,   false }

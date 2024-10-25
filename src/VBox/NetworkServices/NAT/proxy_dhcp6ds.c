@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -176,7 +176,7 @@ dhcp6ds_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p,
              ip6_addr_t *addr, u16_t port)
 {
     u8_t msg_header[4];
-    unsigned int msg_type, msg_tid;
+    unsigned int msg_type;
     int copied;
     size_t roff;
     struct pbuf *q;
@@ -194,8 +194,8 @@ dhcp6ds_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p,
     pbuf_header(p, -(s16_t)sizeof(msg_header));
 
     msg_type = msg_header[0];
-    msg_tid = (msg_header[1] << 16) | (msg_header[2] << 8) | msg_header[3];
-    DPRINTF(("%s: type %u, tid 0x%6x\n", __func__, msg_type, msg_tid));
+    DPRINTF(("%s: type %u, tid 0x%6x\n", __func__, msg_type,
+             (uint32_t)((msg_header[1] << 16) | (msg_header[2] << 8) | msg_header[3])));
     if (msg_type != DHCP6_INFORMATION_REQUEST) { /** @todo ? RELAY_FORW */
         pbuf_free(p);
         return;

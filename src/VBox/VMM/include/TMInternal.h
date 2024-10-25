@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -54,6 +54,12 @@ RT_C_DECLS_BEGIN
 /** Frequency of the virtual clock. */
 #define TMCLOCK_FREQ_VIRTUAL    UINT32_C(1000000000)
 
+/** @def TM_SECONDS_TO_AUTOMATIC_POWER_OFF
+ * Powers off the VM automatically after the defined number of seconds.
+ * This is for debugging only. */
+#if defined(DOXYGEN_RUNNING) || 0
+# define TM_SECONDS_TO_AUTOMATIC_POWER_OFF 45
+#endif
 
 /**
  * Timer type.
@@ -477,8 +483,8 @@ typedef struct TM
     bool volatile               fVirtualSyncTicking;
     /** Virtual timer synchronous time catch-up active. */
     bool volatile               fVirtualSyncCatchUp;
-    /** Alignment padding. */
-    bool                        afAlignment1[1];
+    /** The multiplier for TSC. */
+    uint8_t                     u8TSCMultiplier;
     /** WarpDrive percentage.
      * 100% is normal (fVirtualSyncNormal == true). When other than 100% we apply
      * this percentage to the raw time source for the period it's been valid in,
@@ -739,6 +745,11 @@ typedef struct TM
     STAMCOUNTER                 StatTSCUnderflow;
     STAMCOUNTER                 StatTSCSyncNotTicking;
     /** @} */
+
+#ifdef TM_SECONDS_TO_AUTOMATIC_POWER_OFF
+    /** The automatic power off timer. */
+    TMTIMERHANDLE               hAutoPowerOff;
+#endif
 } TM;
 /** Pointer to TM VM instance data. */
 typedef TM *PTM;

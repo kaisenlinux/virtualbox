@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -33,14 +33,15 @@
 
 #include "VirtualBoxBase.h"
 #include <VBox/ExtPack/ExtPack.h>
+#include <VBox/version.h> /* VBOX_PUEL_PRODUCT */
 #include "ExtPackWrap.h"
 #include "ExtPackFileWrap.h"
 #include "ExtPackManagerWrap.h"
 #include <iprt/fs.h>
 
 
-/** The name of the oracle extension back. */
-#define ORACLE_PUEL_EXTPACK_NAME "Oracle VM VirtualBox Extension Pack"
+/** The name of the Oracle extension pack. */
+#define ORACLE_PUEL_EXTPACK_NAME VBOX_PUEL_PRODUCT
 
 
 #ifndef VBOX_COM_INPROC
@@ -197,10 +198,10 @@ protected:
                                                        /* VBoxEventType_T */ uint32_t aType,
                                                        VBOXEXTPACK_IF_CS(IVetoEvent) **ppEventOut);
     static DECLCALLBACK(const char *) i_hlpTranslate(PCVBOXEXTPACKHLP pHlp,
-                                                     const char  *pszComponent,
-                                                     const char  *pszSourceText,
-                                                     const char  *pszComment = NULL,
-                                                     const size_t aNum = ~(size_t)0);
+                                                     const char      *pszComponent,
+                                                     const char      *pszSourceText,
+                                                     const char      *pszComment = NULL,
+                                                     const size_t     uNum = ~(size_t)0);
     static DECLCALLBACK(int)      i_hlpReservedN(PCVBOXEXTPACKHLP pHlp);
     /** @}  */
 

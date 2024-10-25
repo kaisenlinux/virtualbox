@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,6 +26,7 @@
  */
 
 /* GUI includes: */
+#include "UICloudMachineManager.h"
 #include "UINotificationCenter.h"
 #include "UIWizardNewCloudVM.h"
 #include "UIWizardNewCloudVMPageSource.h"
@@ -95,7 +96,7 @@ bool UIWizardNewCloudVM::createCloudVM()
                                                                                                            providerShortName(),
                                                                                                            profileName());
     connect(pNotification, &UINotificationProgressCloudMachineCreate::sigCloudMachineCreated,
-            &uiCommon(), &UICommon::sltHandleCloudMachineAdded);
+            gpCloudMachineManager, &UICloudMachineManager::sltHandleCloudMachineAdded);
     gpNotificationCenter->append(pNotification);
 
     /* Positive: */
@@ -129,10 +130,10 @@ void UIWizardNewCloudVM::populatePages()
     }
 }
 
-void UIWizardNewCloudVM::retranslateUi()
+void UIWizardNewCloudVM::sltRetranslateUI()
 {
     /* Call to base-class: */
-    UINativeWizard::retranslateUi();
+    UINativeWizard::sltRetranslateUI();
 
     /* Translate wizard: */
     setWindowTitle(tr("Create Cloud Virtual Machine"));

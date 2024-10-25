@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -36,7 +36,7 @@
 
 
 UIChooserNode::UIChooserNode(UIChooserNode *pParent /* = 0 */, bool fFavorite /* = false */)
-    : QIWithRetranslateUI3<QObject>(pParent)
+    : QObject(pParent)
     , m_pParent(pParent)
     , m_fFavorite(fFavorite)
     , m_pModel(0)

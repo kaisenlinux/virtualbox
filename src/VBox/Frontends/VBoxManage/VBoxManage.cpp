@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -318,9 +318,11 @@ HRESULT showProgress(ComPtr<IProgress> progress, uint32_t fFlags)
     if (g_fDetailedProgress)
         fFlags = SHOW_PROGRESS_DETAILS;
 
-    const bool fDetailed = RT_BOOL(fFlags & SHOW_PROGRESS_DETAILS);
-    const bool fQuiet = !RT_BOOL(fFlags & (SHOW_PROGRESS | SHOW_PROGRESS_DETAILS));
+    const bool fDetailed =  RT_BOOL(fFlags & SHOW_PROGRESS_DETAILS);
+    const bool fOps      =  RT_BOOL(fFlags & SHOW_PROGRESS_OPS);
+    const bool fQuiet    = !RT_BOOL(fFlags & (SHOW_PROGRESS | SHOW_PROGRESS_DETAILS | SHOW_PROGRESS_OPS));
 
+    AssertReturn((!fDetailed && !fOps) || (fDetailed != fOps), E_INVALIDARG); /* Mutually exclusive. */
 
     BOOL fCompleted = FALSE;
     ULONG ulCurrentPercent = 0;
@@ -368,7 +370,7 @@ HRESULT showProgress(ComPtr<IProgress> progress, uint32_t fFlags)
         RTStrmFlush(g_pStdErr);
     }
 
-    if (!fQuiet && !fDetailed)
+    if (!fQuiet && !fDetailed && !fOps)
     {
         RTStrmPrintf(g_pStdErr, "0%%...");
         RTStrmFlush(g_pStdErr);
@@ -394,7 +396,8 @@ HRESULT showProgress(ComPtr<IProgress> progress, uint32_t fFlags)
     {
         progress->COMGETTER(Percent(&ulCurrentPercent));
 
-        if (fDetailed)
+        if (   fDetailed
+            || fOps)
         {
             ULONG ulOperation = 1;
             hrc = progress->COMGETTER(Operation)(&ulOperation);
@@ -421,8 +424,12 @@ HRESULT showProgress(ComPtr<IProgress> progress, uint32_t fFlags)
                 LONG lSecsRem = 0;
                 progress->COMGETTER(TimeRemaining)(&lSecsRem);
 
-                RTStrmPrintf(g_pStdErr, VBoxManage::tr("(%u/%u) %ls %02u%% => %02u%% (%d s remaining)\n"), ulOperation + 1, cOperations,
-                             bstrOperationDescription.raw(), ulCurrentOperationPercent, ulCurrentPercent, lSecsRem);
+                if (fDetailed)
+                    RTStrmPrintf(g_pStdErr, VBoxManage::tr("(%u/%u) %ls %02u%% => %02u%% (%d s remaining)\n"), ulOperation + 1, cOperations,
+                                 bstrOperationDescription.raw(), ulCurrentOperationPercent, ulCurrentPercent, lSecsRem);
+                else
+                    RTStrmPrintf(g_pStdErr, VBoxManage::tr("%02u%%: %ls\n"), ulCurrentPercent, bstrOperationDescription.raw());
+
                 ulLastPercent = ulCurrentPercent;
                 ulLastOperationPercent = ulCurrentOperationPercent;
             }

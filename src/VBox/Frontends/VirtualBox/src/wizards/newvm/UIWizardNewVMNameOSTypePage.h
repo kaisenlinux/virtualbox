@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,7 +31,10 @@
 # pragma once
 #endif
 
-/* Local includes: */
+/* Qt includes: */
+#include <QSet>
+
+/* GUI includes: */
 #include "UINativeWizardPage.h"
 
 /* Forward declarations: */
@@ -69,7 +72,7 @@ public:
 
 protected:
 
-    virtual bool isComplete() const; /* override final */
+    virtual bool isComplete() const RT_OVERRIDE RT_FINAL;
     /** Validation stuff. */
     virtual bool validatePage() RT_OVERRIDE;
 
@@ -82,16 +85,15 @@ private slots:
     void sltGuestOSFamilyChanged(const QString &strGuestOSFamilyId);
     void sltSkipUnattendedInstallChanged(bool fSkip);
     void sltSelectedEditionChanged(ulong uEditionIndex);
+    /** Translation stuff. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
-
-    /** Translation stuff. */
-    void retranslateUi();
 
     /** Prepare stuff. */
     void prepare();
     void createConnections();
-    void initializePage();
+    void initializePage() RT_OVERRIDE;
     QWidget *createNameOSTypeWidgets();
     void markWidgets() const;
     void setSkipCheckBoxEnable();

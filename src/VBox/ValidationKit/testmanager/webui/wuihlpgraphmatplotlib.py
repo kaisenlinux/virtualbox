@@ -7,7 +7,7 @@ Test Manager Web-UI - Graph Helpers - Implemented using matplotlib.
 
 __copyright__ = \
 """
-Copyright (C) 2012-2023 Oracle and/or its affiliates.
+Copyright (C) 2012-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -36,7 +36,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 # Standard Python Import and extensions installed on the system.
 import re;
@@ -156,10 +156,10 @@ class WuiHlpBarGraph(WuiHlpGraphMatplotlibBase):
         oSubPlot = oFigure.add_subplot(1, 1, 1);
 
         aoBars = [];
-        for i, _ in enumerate(aoSeries):
+        for i, oValue in enumerate(aoSeries):
             sColor = self.calcSeriesColor(i);
             aoBars.append(oSubPlot.bar(oXRange + self.cxBarWidth * i,
-                                       aoSeries[i],
+                                       oValue,
                                        self.cxBarWidth,
                                        color = sColor,
                                        align = 'edge'));
@@ -175,10 +175,8 @@ class WuiHlpBarGraph(WuiHlpGraphMatplotlibBase):
         oSubPlot.set_yticks(numpy_arange(fpMin, fpMax + (fpMax - fpMin) / 10 * 0, fpMax / 10));
         oSubPlot.grid(True);
         fpPadding = (fpMax - fpMin) * 0.02;
-        for i, _ in enumerate(aoBars):
-            aoRects = aoBars[i]
-            for j, _ in enumerate(aoRects):
-                oRect = aoRects[j];
+        for i, aoRects in enumerate(aoBars):
+            for j, oRect in enumerate(aoRects):
                 fpValue = float(aoTable[j + 1].aoValues[i]);
                 if fpValue <= fpMid:
                     oSubPlot.text(oRect.get_x() + oRect.get_width() / 2.0,

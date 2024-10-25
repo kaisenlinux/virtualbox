@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,11 +32,12 @@
 #include <QVBoxLayout>
 
 /* GUI includes: */
-#include "UICommon.h"
 #include "QIToolButton.h"
 #include "UIIconPool.h"
+#include "UIGlobalSession.h"
 #include "UIMediaComboBox.h"
 #include "UIMedium.h"
+#include "UIMediumEnumerator.h"
 #include "UINameAndSystemEditor.h"
 #include "UINotificationCenter.h"
 #include "UIToolBox.h"
@@ -70,7 +71,7 @@ UIWizardNewVMExpertPage::UIWizardNewVMExpertPage(UIActionPool *pActionPool)
     , m_pDiskSelectionButton(0)
     , m_fRecommendedNoDisk(false)
     , m_uMediumSizeMin(_4M)
-    , m_uMediumSizeMax(uiCommon().virtualBox().GetSystemProperties().GetInfoVDSize())
+    , m_uMediumSizeMax(gpGlobalSession->virtualBox().GetSystemProperties().GetInfoVDSize())
     , m_pActionPool(pActionPool)
 {
     /* Create widgets: */
@@ -109,7 +110,7 @@ void UIWizardNewVMExpertPage::sltNameChanged(const QString &strNewName)
         m_pNameAndSystemEditor->blockSignals(true);
         if (UIWizardNewVMNameOSTypeCommon::guessOSTypeFromName(m_pNameAndSystemEditor, strNewName))
         {
-            wizardWindow<UIWizardNewVM>()->setGuestOSType(m_pNameAndSystemEditor->type());
+            wizardWindow<UIWizardNewVM>()->setGuestOSTypeId(m_pNameAndSystemEditor->typeId());
             /* Since the type `possibly` changed: */
             setOSTypeDependedValues();
             m_userModifiedParameters << "GuestOSTypeFromName";
@@ -139,7 +140,7 @@ void UIWizardNewVMExpertPage::sltOsTypeChanged()
      * has already set the os type explicitly or not: */
     //m_userModifiedParameters << "GuestOSType";
     if (m_pNameAndSystemEditor)
-        wizardWindow<UIWizardNewVM>()->setGuestOSType(m_pNameAndSystemEditor->type());
+        wizardWindow<UIWizardNewVM>()->setGuestOSTypeId(m_pNameAndSystemEditor->typeId());
     setOSTypeDependedValues();
 }
 
@@ -147,9 +148,7 @@ void UIWizardNewVMExpertPage::sltGetWithFileOpenDialog()
 {
     UIWizardNewVM *pWizard = wizardWindow<UIWizardNewVM>();
     AssertReturnVoid(pWizard);
-    const CGuestOSType &comOSType = pWizard->guestOSType();
-    AssertReturnVoid(!comOSType.isNull());
-    QUuid uMediumId = UIWizardNewVMDiskCommon::getWithFileOpenDialog(comOSType.GetId(),
+    QUuid uMediumId = UIWizardNewVMDiskCommon::getWithFileOpenDialog(pWizard->guestOSTypeId(),
                                                                      pWizard->machineFolder(),
                                                                      this, m_pActionPool);
     if (!uMediumId.isNull())
@@ -176,7 +175,7 @@ void UIWizardNewVMExpertPage::sltISOPathChanged(const QString &strISOPath)
     /* Update the global recent ISO path: */
     QFileInfo fileInfo(strISOPath);
     if (fileInfo.exists() && fileInfo.isReadable())
-        uiCommon().updateRecentlyUsedMediumListAndFolder(UIMediumDeviceType_DVD, strISOPath);
+        gpMediumEnumerator->updateRecentlyUsedMediumListAndFolder(UIMediumDeviceType_DVD, strISOPath);
 
     /* Populate the editions selector: */
     if (m_pNameAndSystemEditor)
@@ -217,7 +216,7 @@ void UIWizardNewVMExpertPage::sltOSFamilyTypeChanged(const QString &strGuestOSFa
     wizardWindow<UIWizardNewVM>()->setGuestOSFamilyId(strGuestOSFamilyType);
 }
 
-void UIWizardNewVMExpertPage::retranslateUi()
+void UIWizardNewVMExpertPage::sltRetranslateUI()
 {
     if (m_pSkipUnattendedCheckBox)
     {
@@ -242,6 +241,8 @@ void UIWizardNewVMExpertPage::retranslateUi()
         m_pDiskExisting->setText(UIWizardNewVM::tr("U&se an Existing Virtual Hard Disk File"));
     if (m_pDiskSelectionButton)
         m_pDiskSelectionButton->setToolTip(UIWizardNewVM::tr("Chooses a Virtual Hard Fisk File..."));
+    if (m_pDiskSelectionButton)
+        m_pDiskSelectionButton->setText(UIWizardNewVM::tr("Choose a Virtual Hard Fisk File"));
 
     if (m_pNameAndSystemLayout && m_pNameAndSystemEditor)
         m_pNameAndSystemLayout->setColumnMinimumWidth(0, m_pNameAndSystemEditor->firstColumnWidth());
@@ -307,7 +308,7 @@ void UIWizardNewVMExpertPage::createConnections()
 
     /* Virtual disk related connections: */
     if (m_pDiskSourceButtonGroup)
-        connect(m_pDiskSourceButtonGroup, static_cast<void(QButtonGroup::*)(QAbstractButton *)>(&QButtonGroup::buttonClicked),
+        connect(m_pDiskSourceButtonGroup, &QButtonGroup::buttonClicked,
                 this, &UIWizardNewVMExpertPage::sltSelectedDiskSourceChanged);
 
     if (m_pSkipUnattendedCheckBox)
@@ -329,7 +330,7 @@ void UIWizardNewVMExpertPage::createConnections()
                 this, &UIWizardNewVMExpertPage::sltGetWithFileOpenDialog);
 
     if (m_pDiskSelector)
-        connect(m_pDiskSelector, static_cast<void(UIMediaComboBox::*)(int)>(&UIMediaComboBox::currentIndexChanged),
+        connect(m_pDiskSelector, &UIMediaComboBox::currentIndexChanged,
                 this, &UIWizardNewVMExpertPage::sltMediaComboBoxIndexChanged);
 
     if (m_pFormatComboBox)
@@ -346,9 +347,9 @@ void UIWizardNewVMExpertPage::setOSTypeDependedValues()
     UIWizardNewVM *pWizard = wizardWindow<UIWizardNewVM>();
     AssertReturnVoid(pWizard);
 
+    QString strTypeId = pWizard->guestOSTypeId();
     /* Get recommended 'ram' field value: */
-    const CGuestOSType &type = pWizard->guestOSType();
-    ULONG recommendedRam = type.GetRecommendedRAM();
+    ULONG recommendedRam = gpGlobalSession->guestOSTypeManager().getRecommendedRAM(strTypeId);
 
     if (m_pHardwareWidgetContainer)
     {
@@ -362,7 +363,7 @@ void UIWizardNewVMExpertPage::setOSTypeDependedValues()
         }
 
         /* Set Firmware Type of the widget and the wizard: */
-        KFirmwareType fwType = type.GetRecommendedFirmware();
+        KFirmwareType fwType = gpGlobalSession->guestOSTypeManager().getRecommendedFirmware(strTypeId);
         if (!m_userModifiedParameters.contains("EFIEnabled"))
         {
             m_pHardwareWidgetContainer->setEFIEnabled(fwType != KFirmwareType_BIOS);
@@ -370,7 +371,7 @@ void UIWizardNewVMExpertPage::setOSTypeDependedValues()
         }
 
         /* Initialize CPU count:*/
-        int iCPUCount = type.GetRecommendedCPUCount();
+        int iCPUCount = gpGlobalSession->guestOSTypeManager().getRecommendedCPUCount(strTypeId);
         if (!m_userModifiedParameters.contains("CPUCount"))
         {
             m_pHardwareWidgetContainer->setCPUCount(iCPUCount);
@@ -379,7 +380,7 @@ void UIWizardNewVMExpertPage::setOSTypeDependedValues()
         m_pHardwareWidgetContainer->blockSignals(false);
     }
 
-    LONG64 iRecommendedDiskSize = type.GetRecommendedHDD();
+    LONG64 iRecommendedDiskSize = gpGlobalSession->guestOSTypeManager().getRecommendedHDD(strTypeId);
     /* Prepare initial disk choice: */
     if (!m_userModifiedParameters.contains("SelectedDiskSource"))
     {
@@ -424,7 +425,7 @@ void UIWizardNewVMExpertPage::initializePage()
         {
             /* Guest OS type: */
             pWizard->setGuestOSFamilyId(m_pNameAndSystemEditor->familyId());
-            pWizard->setGuestOSType(m_pNameAndSystemEditor->type());
+            pWizard->setGuestOSTypeId(m_pNameAndSystemEditor->typeId());
             /* Vm name, folder, file path etc. will be initilized by composeMachineFilePath: */
         }
 
@@ -455,7 +456,7 @@ void UIWizardNewVMExpertPage::initializePage()
     setSkipCheckBoxEnable();
     disableEnableUnattendedRelatedWidgets(isUnattendedEnabled());
     updateDiskWidgetsAfterMediumFormatChange();
-    retranslateUi();
+    sltRetranslateUI();
 
     /* Focus on the name field (rather than the help button): */
     if (m_pNameAndSystemEditor)
@@ -468,7 +469,8 @@ void UIWizardNewVMExpertPage::markWidgets() const
     {
         m_pNameAndSystemEditor->markNameEditor(m_pNameAndSystemEditor->name().isEmpty());
         m_pNameAndSystemEditor->markImageEditor(!UIWizardNewVMNameOSTypeCommon::checkISOFile(m_pNameAndSystemEditor),
-                                                UIWizardNewVM::tr("Invalid file path or unreadable file"));
+                                                UIWizardNewVM::tr("Invalid file path or unreadable file"),
+                                                UIWizardNewVM::tr("File path is valid"));
     }
     UIWizardNewVM *pWizard = wizardWindow<UIWizardNewVM>();
     if (pWizard && pWizard->installGuestAdditions() && m_pGAInstallationISOContainer)
@@ -505,6 +507,7 @@ QWidget *UIWizardNewVMExpertPage::createNewDiskWidgets()
 {
     QWidget *pNewDiskContainerWidget = new QWidget;
     QGridLayout *pDiskContainerLayout = new QGridLayout(pNewDiskContainerWidget);
+    pDiskContainerLayout->setContentsMargins(0, 0, 0, 0);
 
     m_pSizeAndLocationGroup = new UIMediumSizeAndPathGroupBox(true, 0 /* parent */, _4M /* minimum size */);
     pDiskContainerLayout->addWidget(m_pSizeAndLocationGroup, 0, 0, 2, 2);
@@ -548,12 +551,12 @@ QWidget *UIWizardNewVMExpertPage::createDiskWidgets()
         m_pDiskSelectionButton->setAutoRaise(true);
         m_pDiskSelectionButton->setIcon(UIIconPool::iconSet(":/select_file_16px.png", ":/select_file_disabled_16px.png"));
     }
-    pDiskLayout->addWidget(m_pDiskNew, 0, 0, 1, 6);
-    pDiskLayout->addWidget(createNewDiskWidgets(), 1, 2, 3, 4);
-    pDiskLayout->addWidget(m_pDiskExisting, 4, 0, 1, 6);
-    pDiskLayout->addWidget(m_pDiskSelector, 5, 2, 1, 3);
+    pDiskLayout->addWidget(m_pDiskNew,             0, 0, 1, 6);
+    pDiskLayout->addWidget(createNewDiskWidgets(), 1, 1, 3, 5);
+    pDiskLayout->addWidget(m_pDiskExisting,        4, 0, 1, 6);
+    pDiskLayout->addWidget(m_pDiskSelector,        5, 1, 1, 4);
     pDiskLayout->addWidget(m_pDiskSelectionButton, 5, 5, 1, 1);
-    pDiskLayout->addWidget(m_pDiskEmpty, 6, 0, 1, 6);
+    pDiskLayout->addWidget(m_pDiskEmpty,           6, 0, 1, 6);
     return pDiskContainer;
 }
 
@@ -629,7 +632,7 @@ bool UIWizardNewVMExpertPage::isComplete() const
         }
     }
 
-    if (pWizard->diskSource() == SelectedDiskSource_Existing && uiCommon().medium(m_pDiskSelector->id()).isNull())
+    if (pWizard->diskSource() == SelectedDiskSource_Existing && gpMediumEnumerator->medium(m_pDiskSelector->id()).isNull())
     {
         m_pToolBox->setPageTitleIcon(ExpertToolboxItems_Disk,
                                      UIIconPool::iconSet(":/status_error_16px.png"), UIWizardNewVM::tr("No valid disk is selected"));
@@ -645,6 +648,10 @@ bool UIWizardNewVMExpertPage::isComplete() const
                                          UIIconPool::iconSet(":/status_error_16px.png"), UIWizardNewVM::tr("Invalid disk size"));
             fIsComplete = false;
         }
+        /* Check only the uniqueness of the file and not path existence since the vm folder (default medium path)
+         * has not been created yet: */
+        if (!m_pSizeAndLocationGroup->filePathUnique())
+            fIsComplete = false;
     }
     return fIsComplete;
 }
@@ -903,7 +910,7 @@ void UIWizardNewVMExpertPage::updateVirtualMediumPathFromMachinePathName()
         if (m_pNameAndSystemEditor)
             strMediumPath = m_pNameAndSystemEditor->path();
         else
-            strMediumPath = uiCommon().virtualBox().GetSystemProperties().GetDefaultMachineFolder();
+            strMediumPath = gpGlobalSession->virtualBox().GetSystemProperties().GetDefaultMachineFolder();
     }
     QString strExtension = UIWizardDiskEditors::defaultExtension(pWizard->mediumFormat(), KDeviceType_HardDisk);
     if (m_pSizeAndLocationGroup)

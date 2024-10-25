@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -34,9 +34,9 @@
 #include "UIBaseMemoryEditor.h"
 #include "UIBootOrderEditor.h"
 #include "UIChipsetEditor.h"
-#include "UICommon.h"
 #include "UIErrorString.h"
 #include "UIExecutionCapEditor.h"
+#include "UIGlobalSession.h"
 #include "UIMachineSettingsSystem.h"
 #include "UIMotherboardFeaturesEditor.h"
 #include "UIParavirtProviderEditor.h"
@@ -47,7 +47,9 @@
 #include "UIVirtualCPUEditor.h"
 
 /* COM includes: */
-#include "CBIOSSettings.h"
+#include "CFirmwareSettings.h"
+#include "CPlatform.h"
+#include "CPlatformX86.h"
 #include "CNvramStore.h"
 #include "CTrustedPlatformModule.h"
 #include "CUefiVariableStore.h"
@@ -211,7 +213,9 @@ bool UIMachineSettingsSystem::isNestedPagingSupported() const
 
 bool UIMachineSettingsSystem::isNestedPagingEnabled() const
 {
-    return m_pEditorAccelerationFeatures->isEnabledNestedPaging();
+    return   m_pEditorAccelerationFeatures
+           ? m_pEditorAccelerationFeatures->isEnabledNestedPaging()
+           : m_pCache->base().m_fEnabledNestedPaging;
 }
 
 bool UIMachineSettingsSystem::isNestedHWVirtExSupported() const
@@ -232,7 +236,9 @@ bool UIMachineSettingsSystem::isHIDEnabled() const
 
 KChipsetType UIMachineSettingsSystem::chipsetType() const
 {
-    return m_pEditorChipset->value();
+    return   m_pEditorChipset
+           ? m_pEditorChipset->value()
+           : m_pCache->base().m_chipsetType;
 }
 
 void UIMachineSettingsSystem::setUSBEnabled(bool fEnabled)
@@ -268,23 +274,26 @@ void UIMachineSettingsSystem::loadToCacheFrom(QVariant &data)
     /* Prepare old data: */
     UIDataSettingsMachineSystem oldSystemData;
 
+    CPlatform comPlatform = m_machine.GetPlatform();
+    CFirmwareSettings comFirmwareSettings = m_machine.GetFirmwareSettings();
+    CNvramStore comStoreLvl1 = m_machine.GetNonVolatileStore();
+    CUefiVariableStore comStoreLvl2 = comStoreLvl1.GetUefiVariableStore();
+
     /* Gather support flags: */
-    oldSystemData.m_fSupportedPAE = uiCommon().host().GetProcessorFeature(KProcessorFeature_PAE);
-    oldSystemData.m_fSupportedNestedHwVirtEx = uiCommon().host().GetProcessorFeature(KProcessorFeature_NestedHWVirt);
-    oldSystemData.m_fSupportedHwVirtEx = uiCommon().host().GetProcessorFeature(KProcessorFeature_HWVirtEx);
-    oldSystemData.m_fSupportedNestedPaging = uiCommon().host().GetProcessorFeature(KProcessorFeature_NestedPaging);
+    oldSystemData.m_fSupportedPAE = gpGlobalSession->host().GetProcessorFeature(KProcessorFeature_PAE);
+    oldSystemData.m_fSupportedNestedHwVirtEx = gpGlobalSession->host().GetProcessorFeature(KProcessorFeature_NestedHWVirt);
+    oldSystemData.m_fSupportedHwVirtEx = gpGlobalSession->host().GetProcessorFeature(KProcessorFeature_HWVirtEx);
+    oldSystemData.m_fSupportedNestedPaging = gpGlobalSession->host().GetProcessorFeature(KProcessorFeature_NestedPaging);
 
     /* Gather old 'Motherboard' data: */
     oldSystemData.m_iMemorySize = m_machine.GetMemorySize();
     oldSystemData.m_bootItems = loadBootItems(m_machine);
-    oldSystemData.m_chipsetType = m_machine.GetChipsetType();
+    oldSystemData.m_chipsetType = comPlatform.GetChipsetType();
     oldSystemData.m_tpmType = m_machine.GetTrustedPlatformModule().GetType();
     oldSystemData.m_pointingHIDType = m_machine.GetPointingHIDType();
-    oldSystemData.m_fEnabledIoApic = m_machine.GetBIOSSettings().GetIOAPICEnabled();
-    oldSystemData.m_fEnabledEFI = m_machine.GetFirmwareType() >= KFirmwareType_EFI && m_machine.GetFirmwareType() <= KFirmwareType_EFIDUAL;
-    oldSystemData.m_fEnabledUTC = m_machine.GetRTCUseUTC();
-    CNvramStore comStoreLvl1 = m_machine.GetNonVolatileStore();
-    CUefiVariableStore comStoreLvl2 = comStoreLvl1.GetUefiVariableStore();
+    oldSystemData.m_fEnabledIoApic = comFirmwareSettings.GetIOAPICEnabled();
+    oldSystemData.m_fEnabledEFI = comFirmwareSettings.GetFirmwareType() >= KFirmwareType_EFI && comFirmwareSettings.GetFirmwareType() <= KFirmwareType_EFIDUAL;
+    oldSystemData.m_fEnabledUTC = comPlatform.GetRTCUseUTC();
     oldSystemData.m_fAvailableSecureBoot = comStoreLvl2.isNotNull();
     oldSystemData.m_fEnabledSecureBoot = oldSystemData.m_fAvailableSecureBoot
                                        ? comStoreLvl2.GetSecureBootEnabled()
@@ -294,12 +303,29 @@ void UIMachineSettingsSystem::loadToCacheFrom(QVariant &data)
     /* Gather old 'Processor' data: */
     oldSystemData.m_cCPUCount = oldSystemData.m_fSupportedHwVirtEx ? m_machine.GetCPUCount() : 1;
     oldSystemData.m_iCPUExecCap = m_machine.GetCPUExecutionCap();
-    oldSystemData.m_fEnabledPAE = m_machine.GetCPUProperty(KCPUPropertyType_PAE);
-    oldSystemData.m_fEnabledNestedHwVirtEx = m_machine.GetCPUProperty(KCPUPropertyType_HWVirt);
+    switch (comPlatform.GetArchitecture())
+    {
+        case KPlatformArchitecture_x86:
+        {
+            CPlatformX86 comPlatformX86 = comPlatform.GetX86();
+            oldSystemData.m_fEnabledPAE = comPlatformX86.GetCPUProperty(KCPUPropertyTypeX86_PAE);
+            oldSystemData.m_fEnabledNestedHwVirtEx = comPlatformX86.GetCPUProperty(KCPUPropertyTypeX86_HWVirt);
+            oldSystemData.m_fEnabledNestedPaging = comPlatformX86.GetHWVirtExProperty(KHWVirtExPropertyType_NestedPaging);
+            break;
+        }
+#ifdef VBOX_WITH_VIRT_ARMV8
+        case KPlatformArchitecture_ARM:
+        {
+            /** @todo BUGBUG ARM stuff goes here. */
+            break;
+        }
+#endif
+        default:
+            break;
+    }
 
     /* Gather old 'Acceleration' data: */
     oldSystemData.m_paravirtProvider = m_machine.GetParavirtProvider();
-    oldSystemData.m_fEnabledNestedPaging = m_machine.GetHWVirtExProperty(KHWVirtExPropertyType_NestedPaging);
 
     /* Cache old data: */
     m_pCache->cacheInitialData(oldSystemData);
@@ -380,18 +406,16 @@ void UIMachineSettingsSystem::putToCache()
         newSystemData.m_iMemorySize = m_pEditorBaseMemory->value();
     if (m_pEditorBootOrder)
         newSystemData.m_bootItems = m_pEditorBootOrder->value();
-    if (m_pEditorChipset)
-        newSystemData.m_chipsetType = m_pEditorChipset->value();
+    newSystemData.m_chipsetType = chipsetType();
     if (m_pEditorTpm)
         newSystemData.m_tpmType = m_pEditorTpm->value();
     if (m_pEditorPointingHID)
         newSystemData.m_pointingHIDType = m_pEditorPointingHID->value();
     if (   m_pEditorMotherboardFeatures
-        && m_pEditorVCPU
-        && m_pEditorChipset)
+        && m_pEditorVCPU)
         newSystemData.m_fEnabledIoApic =    m_pEditorMotherboardFeatures->isEnabledIoApic()
                                          || m_pEditorVCPU->value() > 1
-                                         || m_pEditorChipset->value() == KChipsetType_ICH9;
+                                         || chipsetType() == KChipsetType_ICH9;
     if (m_pEditorMotherboardFeatures)
         newSystemData.m_fEnabledEFI = m_pEditorMotherboardFeatures->isEnabledEfi();
     if (m_pEditorMotherboardFeatures)
@@ -449,7 +473,7 @@ bool UIMachineSettingsSystem::validate(QList<UIValidationMessage> &messages)
         message.first = UITranslator::removeAccelMark(m_pTabWidget->tabText(0));
 
         /* RAM amount test: */
-        const ulong uFullSize = uiCommon().host().GetMemorySize();
+        const ulong uFullSize = gpGlobalSession->host().GetMemorySize();
         if (m_pEditorBaseMemory->value() > (int)m_pEditorBaseMemory->maxRAMAlw())
         {
             message.second << tr(
@@ -469,7 +493,8 @@ bool UIMachineSettingsSystem::validate(QList<UIValidationMessage> &messages)
         }
 
         /* Chipset type vs IO-APIC test: */
-        if (m_pEditorChipset->value() == KChipsetType_ICH9 && !m_pEditorMotherboardFeatures->isEnabledIoApic())
+        if (   chipsetType() == KChipsetType_ICH9
+            && !m_pEditorMotherboardFeatures->isEnabledIoApic())
         {
             message.second << tr(
                 "The I/O APIC feature is not currently enabled in the Motherboard section of the System page. "
@@ -498,7 +523,7 @@ bool UIMachineSettingsSystem::validate(QList<UIValidationMessage> &messages)
         message.first = UITranslator::removeAccelMark(m_pTabWidget->tabText(1));
 
         /* VCPU amount test: */
-        const int cTotalCPUs = uiCommon().host().GetProcessorOnlineCoreCount();
+        const int cTotalCPUs = gpGlobalSession->host().GetProcessorOnlineCoreCount();
         if (m_pEditorVCPU->value() > 2 * cTotalCPUs)
         {
             message.second << tr(
@@ -587,38 +612,41 @@ void UIMachineSettingsSystem::setOrderAfter(QWidget *pWidget)
     setTabOrder(m_pEditorParavirtProvider, m_pEditorAccelerationFeatures);
 }
 
-void UIMachineSettingsSystem::retranslateUi()
+void UIMachineSettingsSystem::sltRetranslateUI()
 {
     m_pTabWidget->setTabText(m_pTabWidget->indexOf(m_pTabMotherboard), tr("&Motherboard"));
     m_pTabWidget->setTabText(m_pTabWidget->indexOf(m_pTabProcessor), tr("&Processor"));
     m_pTabWidget->setTabText(m_pTabWidget->indexOf(m_pTabAcceleration), tr("Acce&leration"));
 
-    /* These editors have own labels, but we want them to be properly layouted according to each other: */
-    int iMinimumLayoutHint = 0;
-    iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorBaseMemory->minimumLabelHorizontalHint());
-    iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorBootOrder->minimumLabelHorizontalHint());
-    iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorChipset->minimumLabelHorizontalHint());
-    iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorTpm->minimumLabelHorizontalHint());
-    iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorPointingHID->minimumLabelHorizontalHint());
-    iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorMotherboardFeatures->minimumLabelHorizontalHint());
-    m_pEditorBaseMemory->setMinimumLayoutIndent(iMinimumLayoutHint);
-    m_pEditorBootOrder->setMinimumLayoutIndent(iMinimumLayoutHint);
-    m_pEditorChipset->setMinimumLayoutIndent(iMinimumLayoutHint);
-    m_pEditorTpm->setMinimumLayoutIndent(iMinimumLayoutHint);
-    m_pEditorPointingHID->setMinimumLayoutIndent(iMinimumLayoutHint);
-    m_pEditorMotherboardFeatures->setMinimumLayoutIndent(iMinimumLayoutHint);
-    iMinimumLayoutHint = 0;
-    iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorVCPU->minimumLabelHorizontalHint());
-    iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorExecCap->minimumLabelHorizontalHint());
-    iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorProcessorFeatures->minimumLabelHorizontalHint());
-    m_pEditorVCPU->setMinimumLayoutIndent(iMinimumLayoutHint);
-    m_pEditorExecCap->setMinimumLayoutIndent(iMinimumLayoutHint);
-    m_pEditorProcessorFeatures->setMinimumLayoutIndent(iMinimumLayoutHint);
-    iMinimumLayoutHint = 0;
-    iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorParavirtProvider->minimumLabelHorizontalHint());
-    iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorAccelerationFeatures->minimumLabelHorizontalHint());
-    m_pEditorParavirtProvider->setMinimumLayoutIndent(iMinimumLayoutHint);
-    m_pEditorAccelerationFeatures->setMinimumLayoutIndent(iMinimumLayoutHint);
+    updateMinimumLayoutHint();
+}
+
+void UIMachineSettingsSystem::sltHandleFirmwareTypeChanged()
+{
+    /// @todo move all the System page editors to new encapsulated UISystemSettingsEditor class,
+    ///       cause we are hiding logic in separate editors, not pages, this is the 1st bit of logic.
+    m_pEditorBootOrder->setEnabled(!m_pEditorMotherboardFeatures->isEnabledEfi());
+}
+
+void UIMachineSettingsSystem::handleFilterChange()
+{
+    /* Update some stuff: */
+    updateMinimumLayoutHint();
+
+    /* Some options hidden for ARM machines: */
+    const KPlatformArchitecture enmArch = optionalFlags().contains("arch")
+                                        ? optionalFlags().value("arch").value<KPlatformArchitecture>()
+                                        : KPlatformArchitecture_x86;
+    const bool fARMMachine = enmArch == KPlatformArchitecture_ARM;
+    if (fARMMachine)
+    {
+        if (m_pEditorChipset)
+            m_pEditorChipset->hide();
+        if (m_pEditorTpm)
+            m_pEditorTpm->hide();
+        if (m_pEditorProcessorFeatures)
+            m_pEditorProcessorFeatures->hide();
+    }
 }
 
 void UIMachineSettingsSystem::polishPage()
@@ -629,10 +657,13 @@ void UIMachineSettingsSystem::polishPage()
     /* Polish 'Motherboard' availability: */
     m_pEditorBaseMemory->setEnabled(isMachineOffline());
     m_pEditorBootOrder->setEnabled(isMachineOffline());
-    m_pEditorChipset->setEnabled(isMachineOffline());
-    m_pEditorTpm->setEnabled(isMachineOffline());
+    if (m_pEditorChipset)
+        m_pEditorChipset->setEnabled(isMachineOffline());
+    if (m_pEditorTpm)
+        m_pEditorTpm->setEnabled(isMachineOffline());
     m_pEditorPointingHID->setEnabled(isMachineOffline());
     m_pEditorMotherboardFeatures->setEnabled(isMachineOffline());
+    sltHandleFirmwareTypeChanged();
 
     /* Polish 'Processor' availability: */
     m_pEditorVCPU->setEnabled(isMachineOffline() && systemData.m_fSupportedHwVirtEx);
@@ -644,9 +675,12 @@ void UIMachineSettingsSystem::polishPage()
 
     /* Polish 'Acceleration' availability: */
     m_pEditorParavirtProvider->setEnabled(isMachineOffline());
-    m_pEditorAccelerationFeatures->setEnabled(isMachineOffline());
-    m_pEditorAccelerationFeatures->setEnableNestedPagingAvailable(   (systemData.m_fSupportedNestedPaging && isMachineOffline())
-                                                                  || (systemData.m_fEnabledNestedPaging && isMachineOffline()));
+    if (m_pEditorAccelerationFeatures)
+    {
+        m_pEditorAccelerationFeatures->setEnabled(isMachineOffline());
+        m_pEditorAccelerationFeatures->setEnableNestedPagingAvailable(   (systemData.m_fSupportedNestedPaging && isMachineOffline())
+                                                                      || (systemData.m_fEnabledNestedPaging && isMachineOffline()));
+    }
 }
 
 void UIMachineSettingsSystem::prepare()
@@ -660,7 +694,7 @@ void UIMachineSettingsSystem::prepare()
     prepareConnections();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIMachineSettingsSystem::prepareWidgets()
@@ -686,7 +720,7 @@ void UIMachineSettingsSystem::prepareWidgets()
 void UIMachineSettingsSystem::prepareTabMotherboard()
 {
     /* Prepare 'Motherboard' tab: */
-    m_pTabMotherboard = new QWidget;
+    m_pTabMotherboard = new UIEditor(m_pTabWidget);
     if (m_pTabMotherboard)
     {
         /* Prepare 'Motherboard' tab layout: */
@@ -695,38 +729,63 @@ void UIMachineSettingsSystem::prepareTabMotherboard()
         {
             pLayoutMotherboard->setColumnStretch(1, 1);
             pLayoutMotherboard->setRowStretch(6, 1);
+#ifdef VBOX_WS_MAC
+            /* On Mac OS X we can do a bit of smoothness: */
+            int iLeft, iTop, iRight, iBottom;
+            pLayoutMotherboard->getContentsMargins(&iLeft, &iTop, &iRight, &iBottom);
+            pLayoutMotherboard->setContentsMargins(iLeft / 2, iTop / 2, iRight / 2, iBottom / 2);
+#endif
 
             /* Prepare base memory editor: */
             m_pEditorBaseMemory = new UIBaseMemoryEditor(m_pTabMotherboard);
             if (m_pEditorBaseMemory)
+            {
+                m_pTabMotherboard->addEditor(m_pEditorBaseMemory);
                 pLayoutMotherboard->addWidget(m_pEditorBaseMemory, 0, 0, 1, 2);
+            }
 
             /* Prepare boot order editor: */
             m_pEditorBootOrder = new UIBootOrderEditor(m_pTabMotherboard);
             if (m_pEditorBootOrder)
+            {
+                m_pTabMotherboard->addEditor(m_pEditorBootOrder);
                 pLayoutMotherboard->addWidget(m_pEditorBootOrder, 1, 0);
+            }
 
             /* Prepare chipset editor: */
             m_pEditorChipset = new UIChipsetEditor(m_pTabMotherboard);
             if (m_pEditorChipset)
+            {
+                m_pTabMotherboard->addEditor(m_pEditorChipset);
                 pLayoutMotherboard->addWidget(m_pEditorChipset, 2, 0);
+            }
 
             /* Prepare TPM editor: */
             m_pEditorTpm = new UITpmEditor(m_pTabMotherboard);
             if (m_pEditorTpm)
+            {
+                m_pTabMotherboard->addEditor(m_pEditorTpm);
                 pLayoutMotherboard->addWidget(m_pEditorTpm, 3, 0);
+            }
 
             /* Prepare pointing HID editor: */
             m_pEditorPointingHID = new UIPointingHIDEditor(m_pTabMotherboard);
             if (m_pEditorPointingHID)
+            {
+                m_pTabMotherboard->addEditor(m_pEditorPointingHID);
                 pLayoutMotherboard->addWidget(m_pEditorPointingHID, 4, 0);
+            }
 
             /* Prepare motherboard features editor: */
             m_pEditorMotherboardFeatures = new UIMotherboardFeaturesEditor(m_pTabMotherboard);
             if (m_pEditorMotherboardFeatures)
+            {
+                m_pTabMotherboard->addEditor(m_pEditorMotherboardFeatures);
                 pLayoutMotherboard->addWidget(m_pEditorMotherboardFeatures, 5, 0);
+            }
         }
 
+        addEditor(m_pTabMotherboard);
         m_pTabWidget->addTab(m_pTabMotherboard, QString());
     }
 }
@@ -734,7 +793,7 @@ void UIMachineSettingsSystem::prepareTabMotherboard()
 void UIMachineSettingsSystem::prepareTabProcessor()
 {
     /* Prepare 'Processor' tab: */
-    m_pTabProcessor = new QWidget;
+    m_pTabProcessor = new UIEditor(m_pTabWidget);
     if (m_pTabProcessor)
     {
         /* Prepare 'Processor' tab layout: */
@@ -743,23 +802,39 @@ void UIMachineSettingsSystem::prepareTabProcessor()
         {
             pLayoutProcessor->setColumnStretch(1, 1);
             pLayoutProcessor->setRowStretch(3, 1);
+#ifdef VBOX_WS_MAC
+            /* On Mac OS X we can do a bit of smoothness: */
+            int iLeft, iTop, iRight, iBottom;
+            pLayoutProcessor->getContentsMargins(&iLeft, &iTop, &iRight, &iBottom);
+            pLayoutProcessor->setContentsMargins(iLeft / 2, iTop / 2, iRight / 2, iBottom / 2);
+#endif
 
             /* Prepare VCPU editor : */
             m_pEditorVCPU = new UIVirtualCPUEditor(m_pTabProcessor);
             if (m_pEditorVCPU)
+            {
+                m_pTabProcessor->addEditor(m_pEditorVCPU);
                 pLayoutProcessor->addWidget(m_pEditorVCPU, 0, 0, 1, 2);
+            }
 
             /* Prepare exec cap editor : */
             m_pEditorExecCap = new UIExecutionCapEditor(m_pTabProcessor);
             if (m_pEditorExecCap)
+            {
+                m_pTabProcessor->addEditor(m_pEditorExecCap);
                 pLayoutProcessor->addWidget(m_pEditorExecCap, 1, 0, 1, 2);
+            }
 
             /* Prepare processor features editor: */
             m_pEditorProcessorFeatures = new UIProcessorFeaturesEditor(m_pTabProcessor);
             if (m_pEditorProcessorFeatures)
+            {
+                m_pTabProcessor->addEditor(m_pEditorProcessorFeatures);
                 pLayoutProcessor->addWidget(m_pEditorProcessorFeatures, 2, 0);
+            }
         }
 
+        addEditor(m_pTabProcessor);
         m_pTabWidget->addTab(m_pTabProcessor, QString());
     }
 }
@@ -767,7 +842,7 @@ void UIMachineSettingsSystem::prepareTabProcessor()
 void UIMachineSettingsSystem::prepareTabAcceleration()
 {
     /* Prepare 'Acceleration' tab: */
-    m_pTabAcceleration = new QWidget;
+    m_pTabAcceleration = new UIEditor(m_pTabWidget);
     if (m_pTabAcceleration)
     {
         /* Prepare 'Acceleration' tab layout: */
@@ -776,17 +851,32 @@ void UIMachineSettingsSystem::prepareTabAcceleration()
         {
             pLayoutAcceleration->setColumnStretch(2, 1);
             pLayoutAcceleration->setRowStretch(3, 1);
+#ifdef VBOX_WS_MAC
+            /* On Mac OS X we can do a bit of smoothness: */
+            int iLeft, iTop, iRight, iBottom;
+            pLayoutAcceleration->getContentsMargins(&iLeft, &iTop, &iRight, &iBottom);
+            pLayoutAcceleration->setContentsMargins(iLeft / 2, iTop / 2, iRight / 2, iBottom / 2);
+#endif
 
             /* Prepare paravirtualization provider editor: */
             m_pEditorParavirtProvider = new UIParavirtProviderEditor(m_pTabAcceleration);
             if (m_pEditorParavirtProvider)
+            {
+                m_pTabAcceleration->addEditor(m_pEditorParavirtProvider);
                 pLayoutAcceleration->addWidget(m_pEditorParavirtProvider, 0, 0, 1, 2);
+            }
 
             /* Prepare acceleration features editor: */
+#ifndef VBOX_WITH_VIRT_ARMV8
             m_pEditorAccelerationFeatures = new UIAccelerationFeaturesEditor(m_pTabAcceleration);
+#endif
             if (m_pEditorAccelerationFeatures)
+            {
+                m_pTabAcceleration->addEditor(m_pEditorAccelerationFeatures);
                 pLayoutAcceleration->addWidget(m_pEditorAccelerationFeatures, 1, 0);
+            }
 
+            addEditor(m_pTabAcceleration);
             m_pTabWidget->addTab(m_pTabAcceleration, QString());
         }
     }
@@ -795,16 +885,20 @@ void UIMachineSettingsSystem::prepareTabAcceleration()
 void UIMachineSettingsSystem::prepareConnections()
 {
     /* Configure 'Motherboard' connections: */
-    connect(m_pEditorChipset, &UIChipsetEditor::sigValueChanged,
-            this, &UIMachineSettingsSystem::revalidate);
-    connect(m_pEditorTpm, &UITpmEditor::sigValueChanged,
-            this, &UIMachineSettingsSystem::revalidate);
+    if (m_pEditorChipset)
+        connect(m_pEditorChipset, &UIChipsetEditor::sigValueChanged,
+                this, &UIMachineSettingsSystem::revalidate);
+    if (m_pEditorTpm)
+        connect(m_pEditorTpm, &UITpmEditor::sigValueChanged,
+                this, &UIMachineSettingsSystem::revalidate);
     connect(m_pEditorPointingHID, &UIPointingHIDEditor::sigValueChanged,
             this, &UIMachineSettingsSystem::revalidate);
     connect(m_pEditorBaseMemory, &UIBaseMemoryEditor::sigValidChanged,
             this, &UIMachineSettingsSystem::revalidate);
     connect(m_pEditorMotherboardFeatures, &UIMotherboardFeaturesEditor::sigChangedIoApic,
             this, &UIMachineSettingsSystem::revalidate);
+    connect(m_pEditorMotherboardFeatures, &UIMotherboardFeaturesEditor::sigChangedEfi,
+            this, &UIMachineSettingsSystem::sltHandleFirmwareTypeChanged);
 
     /* Configure 'Processor' connections: */
     connect(m_pEditorVCPU, &UIVirtualCPUEditor::sigValueChanged,
@@ -815,8 +909,9 @@ void UIMachineSettingsSystem::prepareConnections()
             this, &UIMachineSettingsSystem::revalidate);
 
     /* Configure 'Acceleration' connections: */
-    connect(m_pEditorAccelerationFeatures, &UIAccelerationFeaturesEditor::sigChangedNestedPaging,
-            this, &UIMachineSettingsSystem::revalidate);
+    if (m_pEditorAccelerationFeatures)
+        connect(m_pEditorAccelerationFeatures, &UIAccelerationFeaturesEditor::sigChangedNestedPaging,
+                this, &UIMachineSettingsSystem::revalidate);
 }
 
 void UIMachineSettingsSystem::cleanup()
@@ -882,8 +977,10 @@ bool UIMachineSettingsSystem::saveMotherboardData()
         /* Save chipset type: */
         if (fSuccess && isMachineOffline() && newSystemData.m_chipsetType != oldSystemData.m_chipsetType)
         {
-            m_machine.SetChipsetType(newSystemData.m_chipsetType);
-            fSuccess = m_machine.isOk();
+            CPlatform comPlatform = m_machine.GetPlatform();
+            comPlatform.SetChipsetType(newSystemData.m_chipsetType);
+            fSuccess = comPlatform.isOk();
+            /// @todo convey error info ..
         }
         /* Save TPM type: */
         if (fSuccess && isMachineOffline() && newSystemData.m_tpmType != oldSystemData.m_tpmType)
@@ -902,20 +999,26 @@ bool UIMachineSettingsSystem::saveMotherboardData()
         /* Save whether IO APIC is enabled: */
         if (fSuccess && isMachineOffline() && newSystemData.m_fEnabledIoApic != oldSystemData.m_fEnabledIoApic)
         {
-            m_machine.GetBIOSSettings().SetIOAPICEnabled(newSystemData.m_fEnabledIoApic);
-            fSuccess = m_machine.isOk();
+            CFirmwareSettings comFirmwareSettings = m_machine.GetFirmwareSettings();
+            comFirmwareSettings.SetIOAPICEnabled(newSystemData.m_fEnabledIoApic);
+            fSuccess = comFirmwareSettings.isOk();
+            /// @todo convey error info ..
         }
         /* Save firware type (whether EFI is enabled): */
         if (fSuccess && isMachineOffline() && newSystemData.m_fEnabledEFI != oldSystemData.m_fEnabledEFI)
         {
-            m_machine.SetFirmwareType(newSystemData.m_fEnabledEFI ? KFirmwareType_EFI : KFirmwareType_BIOS);
-            fSuccess = m_machine.isOk();
+            CFirmwareSettings comFirmwareSettings = m_machine.GetFirmwareSettings();
+            comFirmwareSettings.SetFirmwareType(newSystemData.m_fEnabledEFI ? KFirmwareType_EFI : KFirmwareType_BIOS);
+            fSuccess = comFirmwareSettings.isOk();
+            /// @todo convey error info ..
         }
         /* Save whether UTC is enabled: */
         if (fSuccess && isMachineOffline() && newSystemData.m_fEnabledUTC != oldSystemData.m_fEnabledUTC)
         {
-            m_machine.SetRTCUseUTC(newSystemData.m_fEnabledUTC);
-            fSuccess = m_machine.isOk();
+            CPlatform comPlatform = m_machine.GetPlatform();
+            comPlatform.SetRTCUseUTC(newSystemData.m_fEnabledUTC);
+            fSuccess = comPlatform.isOk();
+            /// @todo convey error info ..
         }
         /* Save whether secure boot is enabled: */
         if (   fSuccess && isMachineOffline()
@@ -985,17 +1088,44 @@ bool UIMachineSettingsSystem::saveProcessorData()
             m_machine.SetCPUCount(newSystemData.m_cCPUCount);
             fSuccess = m_machine.isOk();
         }
-        /* Save whether PAE is enabled: */
-        if (fSuccess && isMachineOffline() && newSystemData.m_fEnabledPAE != oldSystemData.m_fEnabledPAE)
+        if (fSuccess)
         {
-            m_machine.SetCPUProperty(KCPUPropertyType_PAE, newSystemData.m_fEnabledPAE);
-            fSuccess = m_machine.isOk();
-        }
-        /* Save whether Nested HW Virt Ex is enabled: */
-        if (fSuccess && isMachineOffline() && newSystemData.m_fEnabledNestedHwVirtEx != oldSystemData.m_fEnabledNestedHwVirtEx)
-        {
-            m_machine.SetCPUProperty(KCPUPropertyType_HWVirt, newSystemData.m_fEnabledNestedHwVirtEx);
-            fSuccess = m_machine.isOk();
+            const CPlatform comPlatform = m_machine.GetPlatform();
+            switch (comPlatform.GetArchitecture())
+            {
+                case KPlatformArchitecture_x86:
+                {
+                    CPlatformX86 comPlatformX86 = comPlatform.GetX86();
+
+                    /* Save whether PAE is enabled: */
+                    if (fSuccess && isMachineOffline() && newSystemData.m_fEnabledPAE != oldSystemData.m_fEnabledPAE)
+                    {
+                        comPlatformX86.SetCPUProperty(KCPUPropertyTypeX86_PAE, newSystemData.m_fEnabledPAE);
+                        fSuccess = comPlatformX86.isOk();
+                        /// @todo convey error info ..
+                    }
+                    /* Save whether Nested HW Virt Ex is enabled: */
+                    if (fSuccess && isMachineOffline() && newSystemData.m_fEnabledNestedHwVirtEx != oldSystemData.m_fEnabledNestedHwVirtEx)
+                    {
+                        comPlatformX86.SetCPUProperty(KCPUPropertyTypeX86_HWVirt, newSystemData.m_fEnabledNestedHwVirtEx);
+                        fSuccess = comPlatformX86.isOk();
+                        /// @todo convey error info ..
+                    }
+
+                    break;
+                }
+
+#ifdef VBOX_WITH_VIRT_ARMV8
+                case KPlatformArchitecture_ARM:
+                {
+                    /** @todo BUGBUG ARM stuff goes here. */
+                    break;
+                }
+#endif
+
+                default:
+                    break;
+            }
         }
         /* Save CPU execution cap: */
         if (fSuccess && newSystemData.m_iCPUExecCap != oldSystemData.m_iCPUExecCap)
@@ -1034,17 +1164,97 @@ bool UIMachineSettingsSystem::saveAccelerationData()
             m_machine.SetParavirtProvider(newSystemData.m_paravirtProvider);
             fSuccess = m_machine.isOk();
         }
-        /* Save whether the nested paging is enabled: */
-        if (fSuccess && isMachineOffline() && newSystemData.m_fEnabledNestedPaging != oldSystemData.m_fEnabledNestedPaging)
+        if (fSuccess)
         {
-            m_machine.SetHWVirtExProperty(KHWVirtExPropertyType_NestedPaging, newSystemData.m_fEnabledNestedPaging);
-            fSuccess = m_machine.isOk();
+            const CPlatform comPlatform = m_machine.GetPlatform();
+            switch (comPlatform.GetArchitecture())
+            {
+                case KPlatformArchitecture_x86:
+                {
+                    CPlatformX86 comPlatformX86 = comPlatform.GetX86();
+
+                    /* Save whether the nested paging is enabled: */
+                    if (fSuccess && isMachineOffline() && newSystemData.m_fEnabledNestedPaging != oldSystemData.m_fEnabledNestedPaging)
+                    {
+                        comPlatformX86.SetHWVirtExProperty(KHWVirtExPropertyType_NestedPaging, newSystemData.m_fEnabledNestedPaging);
+                        fSuccess = comPlatformX86.isOk();
+                        /// @todo convey error info ..
+                    }
+
+                    break;
+                }
+
+#ifdef VBOX_WITH_VIRT_ARMV8
+                case KPlatformArchitecture_ARM:
+                {
+                    /** @todo BUGBUG ARM stuff goes here. */
+                    break;
+                }
+#endif
+
+                default:
+                    break;
+             }
         }
 
-        /* Show error message if necessary: */
-        if (!fSuccess)
-            notifyOperationProgressError(UIErrorString::formatErrorInfo(m_machine));
+         /* Show error message if necessary: */
+         if (!fSuccess)
+             notifyOperationProgressError(UIErrorString::formatErrorInfo(m_machine));
     }
     /* Return result: */
     return fSuccess;
+}
+
+void UIMachineSettingsSystem::updateMinimumLayoutHint()
+{
+    /* These editors have own labels, but we want them to be properly layouted according to each other: */
+    int iMinimumLayoutHint = 0;
+    if (m_pEditorBaseMemory && !m_pEditorBaseMemory->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorBaseMemory->minimumLabelHorizontalHint());
+    if (m_pEditorBootOrder && !m_pEditorBootOrder->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorBootOrder->minimumLabelHorizontalHint());
+    if (m_pEditorChipset && !m_pEditorChipset->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorChipset->minimumLabelHorizontalHint());
+    if (m_pEditorTpm && !m_pEditorTpm->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorTpm->minimumLabelHorizontalHint());
+    if (m_pEditorPointingHID && !m_pEditorPointingHID->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorPointingHID->minimumLabelHorizontalHint());
+    if (m_pEditorMotherboardFeatures && !m_pEditorMotherboardFeatures->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorMotherboardFeatures->minimumLabelHorizontalHint());
+    if (m_pEditorBaseMemory)
+        m_pEditorBaseMemory->setMinimumLayoutIndent(iMinimumLayoutHint);
+    if (m_pEditorBootOrder)
+        m_pEditorBootOrder->setMinimumLayoutIndent(iMinimumLayoutHint);
+    if (m_pEditorChipset)
+        m_pEditorChipset->setMinimumLayoutIndent(iMinimumLayoutHint);
+    if (m_pEditorTpm)
+        m_pEditorTpm->setMinimumLayoutIndent(iMinimumLayoutHint);
+    if (m_pEditorPointingHID)
+        m_pEditorPointingHID->setMinimumLayoutIndent(iMinimumLayoutHint);
+    if (m_pEditorMotherboardFeatures)
+        m_pEditorMotherboardFeatures->setMinimumLayoutIndent(iMinimumLayoutHint);
+
+    iMinimumLayoutHint = 0;
+    if (m_pEditorVCPU && !m_pEditorVCPU->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorVCPU->minimumLabelHorizontalHint());
+    if (m_pEditorExecCap && !m_pEditorExecCap->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorExecCap->minimumLabelHorizontalHint());
+    if (m_pEditorProcessorFeatures && !m_pEditorProcessorFeatures->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorProcessorFeatures->minimumLabelHorizontalHint());
+    if (m_pEditorVCPU)
+        m_pEditorVCPU->setMinimumLayoutIndent(iMinimumLayoutHint);
+    if (m_pEditorExecCap)
+        m_pEditorExecCap->setMinimumLayoutIndent(iMinimumLayoutHint);
+    if (m_pEditorProcessorFeatures)
+        m_pEditorProcessorFeatures->setMinimumLayoutIndent(iMinimumLayoutHint);
+
+    iMinimumLayoutHint = 0;
+    if (m_pEditorParavirtProvider && !m_pEditorParavirtProvider->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorParavirtProvider->minimumLabelHorizontalHint());
+    if (m_pEditorAccelerationFeatures && !m_pEditorAccelerationFeatures->isHidden())
+        iMinimumLayoutHint = qMax(iMinimumLayoutHint, m_pEditorAccelerationFeatures->minimumLabelHorizontalHint());
+    if (m_pEditorParavirtProvider)
+        m_pEditorParavirtProvider->setMinimumLayoutIndent(iMinimumLayoutHint);
+    if (m_pEditorAccelerationFeatures)
+        m_pEditorAccelerationFeatures->setMinimumLayoutIndent(iMinimumLayoutHint);
 }

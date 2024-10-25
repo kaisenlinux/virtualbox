@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,13 +26,13 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QCheckBox>
 #include <QClipboard>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMimeData>
 #include <QPushButton>
-#include <QRegExp>
 #include <QRegularExpression>
 #include <QStyle>
 #include <QVBoxLayout>
@@ -44,6 +44,7 @@
 #include "QIRichTextLabel.h"
 #include "UICommon.h"
 #include "UIIconPool.h"
+#include "UIHelpBrowserDialog.h"
 #include "UIMessageCenter.h"
 
 /* Other VBox includes: */
@@ -83,11 +84,7 @@ void QIMessageBox::setDetailsText(const QString &strText)
     AssertReturnVoid(!strText.isEmpty());
 
     /* Split details into paragraphs: */
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
     QStringList paragraphs(strText.split("<!--EOP-->", Qt::SkipEmptyParts));
-#else
-    QStringList paragraphs(strText.split("<!--EOP-->", QString::SkipEmptyParts));
-#endif
     /* Make sure details-text has at least one paragraph: */
     AssertReturnVoid(!paragraphs.isEmpty());
 
@@ -96,11 +93,7 @@ void QIMessageBox::setDetailsText(const QString &strText)
     foreach (const QString &strParagraph, paragraphs)
     {
         /* Split each paragraph into pairs: */
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
         QStringList parts(strParagraph.split("<!--EOM-->", Qt::KeepEmptyParts));
-#else
-        QStringList parts(strParagraph.split("<!--EOM-->", QString::KeepEmptyParts));
-#endif
         /* Make sure each paragraph consist of 2 parts: */
         AssertReturnVoid(parts.size() == 2);
         /* Append each pair into details-list: */
@@ -289,7 +282,7 @@ void QIMessageBox::prepare()
                 if (m_pButtonHelp)
                 {
                     uiCommon().setHelpKeyword(m_pButtonHelp, m_strHelpKeyword);
-                    connect(m_pButtonHelp, &QPushButton::clicked, &msgCenter(), &UIMessageCenter::sltHandleHelpRequest);
+                    connect(m_pButtonHelp, &QPushButton::clicked, m_pButtonBox, &QIDialogButtonBox::sltHandleHelpRequest);
                 }
             }
 
@@ -411,17 +404,19 @@ QString QIMessageBox::compressLongWords(QString strText)
     // The idea is to compress long words of more than 100 symbols in size consisting of alphanumeric
     // characters with ellipsiss using the following template:
     // "[50 first symbols]...[50 last symbols]"
-    QRegExp re("[a-zA-Z0-9]{101,}");
-    int iPosition = re.indexIn(strText);
+    const QRegularExpression re("[a-zA-Z0-9]{101,}");
+    QRegularExpressionMatch mt = re.match(strText);
+    int iPosition = mt.capturedStart();
     bool fChangeAllowed = iPosition != -1;
     while (fChangeAllowed)
     {
         QString strNewText = strText;
-        const QString strFound = re.cap(0);
+        const QString strFound = mt.captured();
         strNewText.replace(iPosition, strFound.size(), strFound.left(50) + "..." + strFound.right(50));
         fChangeAllowed = fChangeAllowed && strText != strNewText;
         strText = strNewText;
-        iPosition = re.indexIn(strText);
+        mt = re.match(strText);
+        iPosition = mt.capturedStart();
         fChangeAllowed = fChangeAllowed && iPosition != -1;
     }
     return strText;

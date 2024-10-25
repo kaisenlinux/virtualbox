@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -38,7 +38,7 @@
 #include "UINativeWizardPage.h"
 
 /* COM includes: */
-#include "COMEnums.h"
+#include "KCloneMode.h"
 
 /* Forward declaration: */
 class QIRichTextLabel;
@@ -57,18 +57,17 @@ public:
 private slots:
 
     void sltCloneModeChanged(KCloneMode enmCloneMode);
+    /** Translation stuff. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 
-    /** Translation stuff. */
-    void retranslateUi();
-
     /** Prepare stuff. */
-    void initializePage();
+    void initializePage() RT_OVERRIDE;
     void prepare();
 
     /** Validation stuff. */
-    bool validatePage();
+    bool validatePage() RT_OVERRIDE;
 
     /** Widgets. */
     QIRichTextLabel *m_pLabel;

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -301,6 +301,18 @@ static void testBasics(RTTEST hTest, char *pszBuf)
         RTTestIFailed("error:    '%s'\n"
                       "expected: '%s'\n",
                       pszBuf, szCorrect);
+
+    /* overflow */
+    size_t const cbOverflowBuf = 40;
+    static char const s_szOverflowExpect[] = "i=8                                    ";
+    char *pszBuf3 = (char *)RTTestGuardedAllocTail(hTest, cbOverflowBuf);
+    cch = RTStrPrintf(pszBuf3, cbOverflowBuf, "i=%d%*s\n", (int)8, cbOverflowBuf, "");
+    if (strcmp(pszBuf3, s_szOverflowExpect))
+        RTTestIFailed("error: '%s' (#2)\n"
+                      "wanted '%s' (#2)\n", pszBuf, s_szOverflowExpect);
+    else if (cch != sizeof(s_szOverflowExpect) - 1)
+        RTTestIFailed("error: got %zd, expected %zd (#2)\n", cch2, sizeof(s_szOverflowExpect) - 1);
+    RTTestGuardedFree(hTest, pszBuf3);
 }
 
 

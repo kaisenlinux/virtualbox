@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,32 +26,36 @@
  */
 
 /* Qt includes: */
-#if defined(RT_OS_SOLARIS)
-# include <QFontDatabase>
-#endif
+#include <QFileInfo>
 #include <QLabel>
 #include <QMenuBar>
 #include <QStatusBar>
 
 /* GUI includes: */
+#include "UICommon.h"
 #include "UIDesktopWidgetWatchdog.h"
 #include "UIExtraDataManager.h"
-#include "UIIconPool.h"
 #include "UIHelpBrowserDialog.h"
 #include "UIHelpBrowserWidget.h"
-#ifdef VBOX_WS_MAC
-# include "VBoxUtils-darwin.h"
+#include "UINotificationObjects.h"
+#include "UITranslationEventListener.h"
+#ifndef VBOX_WS_MAC
+# include "UIIconPool.h"
 #endif
 
+/* Other VBox includes: */
 #include <iprt/assert.h>
+#include <VBox/version.h> /* VBOX_PRODUCT */
 
 
 /*********************************************************************************************************************************
 *   Class UIHelpBrowserDialog implementation.                                                                                    *
 *********************************************************************************************************************************/
 
+QPointer<UIHelpBrowserDialog> UIHelpBrowserDialog::m_pInstance;
+
 UIHelpBrowserDialog::UIHelpBrowserDialog(QWidget *pParent, QWidget *pCenterWidget, const QString &strHelpFilePath)
-    : QIWithRetranslateUI<QIWithRestorableGeometry<QMainWindow> >(pParent)
+    : QIWithRestorableGeometry<QMainWindow>(pParent)
     , m_strHelpFilePath(strHelpFilePath)
     , m_pWidget(0)
     , m_pCenterWidget(pCenterWidget)
@@ -70,24 +74,20 @@ UIHelpBrowserDialog::UIHelpBrowserDialog(QWidget *pParent, QWidget *pCenterWidge
 
     prepareCentralWidget();
     loadSettings();
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+        this, &UIHelpBrowserDialog::sltRetranslateUI);
 }
 
 void UIHelpBrowserDialog::showHelpForKeyword(const QString &strKeyword)
 {
-#ifdef VBOX_WITH_QHELP_VIEWER
     if (m_pWidget)
         m_pWidget->showHelpForKeyword(strKeyword);
-#else
-    Q_UNUSED(strKeyword);
-#endif
 }
 
-void UIHelpBrowserDialog::retranslateUi()
+void UIHelpBrowserDialog::sltRetranslateUI()
 {
-#ifdef VBOX_WITH_QHELP_VIEWER
-    setWindowTitle(UIHelpBrowserWidget::tr("Oracle VM VirtualBox User Manual"));
-#endif
+    setWindowTitle(UIHelpBrowserWidget::tr("%1 User Guide", "[Product Name] User Guide").arg(VBOX_PRODUCT));
 }
 
 bool UIHelpBrowserDialog::event(QEvent *pEvent)
@@ -116,13 +116,11 @@ bool UIHelpBrowserDialog::event(QEvent *pEvent)
         default:
             break;
     }
-    return QIWithRetranslateUI<QIWithRestorableGeometry<QMainWindow> >::event(pEvent);
+    return QIWithRestorableGeometry<QMainWindow>::event(pEvent);
 }
-
 
 void UIHelpBrowserDialog::prepareCentralWidget()
 {
-#ifdef VBOX_WITH_QHELP_VIEWER
     m_pWidget = new UIHelpBrowserWidget(EmbedTo_Dialog, m_strHelpFilePath);
     AssertPtrReturnVoid(m_pWidget);
     setCentralWidget((m_pWidget));
@@ -139,7 +137,6 @@ void UIHelpBrowserDialog::prepareCentralWidget()
     const QList<QMenu*> menuList = m_pWidget->menus();
     foreach (QMenu *pMenu, menuList)
         menuBar()->addMenu(pMenu);
-#endif
 }
 
 void UIHelpBrowserDialog::loadSettings()
@@ -178,4 +175,65 @@ void UIHelpBrowserDialog::sltZoomPercentageChanged(int iPercentage)
 {
     if (m_pZoomLabel)
         m_pZoomLabel->setText(QString("%1%").arg(QString::number(iPercentage)));
+}
+
+/* static */
+void UIHelpBrowserDialog::findManualFileAndShow(const QString &strKeyword /*= QString() */)
+{
+#ifndef VBOX_OSE
+    /* For non-OSE version we just open it: */
+    showUserManual(uiCommon().helpFile(), strKeyword);
+#else /* #ifndef VBOX_OSE */
+    Q_UNUSED(strKeyword);
+#if 0
+    /* For OSE version we have to check if it present first: */
+    QString strUserManualFileName1 = uiCommon().helpFile();
+    QString strShortFileName = QFileInfo(strUserManualFileName1).fileName();
+    QString strUserManualFileName2 = QDir(gpGlobalSession->homeFolder()).absoluteFilePath(strShortFileName);
+    /* Show if user guide already present: */
+    if (QFile::exists(strUserManualFileName1))
+        showUserManual(strUserManualFileName1, strKeyword);
+    else if (QFile::exists(strUserManualFileName2))
+        showUserManual(strUserManualFileName2, strKeyword);
+# ifdef VBOX_GUI_WITH_NETWORK_MANAGER
+    /* If downloader is running already: */
+    if (UINotificationDownloaderUserManual::exists())
+        gpNotificationCenter->invoke();
+    /* Else propose to download user guide: */
+    else if (confirmLookingForUserManual(strUserManualFileName1))
+    {
+        /* Download user guide: */
+        UINotificationDownloaderUserManual *pNotification = UINotificationDownloaderUserManual::instance(UICommon::helpFile());
+        /* After downloading finished => show User Guide: */
+        /// @todo
+        // connect(pNotification, &UINotificationDownloaderUserManual::sigUserManualDownloaded,
+        //         this, &UIMessageCenter::showUserManual);
+        /* Append and start notification: */
+        gpNotificationCenter->append(pNotification);
+    }
+# endif /* VBOX_GUI_WITH_NETWORK_MANAGER */
+#endif // 0
+#endif /* #ifdef VBOX_OSE */
+}
+
+/* static */
+void UIHelpBrowserDialog::showUserManual(const QString &strHelpFilePath, const QString &strKeyword)
+{
+    if (!QFileInfo(strHelpFilePath).exists())
+    {
+        UINotificationMessage::cannotFindHelpFile(strHelpFilePath);
+        return;
+    }
+    if (!m_pInstance)
+    {
+        m_pInstance = new UIHelpBrowserDialog(0 /* parent */, 0 /* Center Widget */, strHelpFilePath);
+        AssertReturnVoid(m_pInstance);
+    }
+
+    m_pInstance->show();
+    m_pInstance->setWindowState(m_pInstance->windowState() & ~Qt::WindowMinimized);
+    m_pInstance->activateWindow();
+    if (!strKeyword.isEmpty())
+        m_pInstance->showHelpForKeyword(strKeyword);
+
 }

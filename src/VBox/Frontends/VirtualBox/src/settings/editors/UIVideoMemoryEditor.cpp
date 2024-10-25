@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -34,7 +34,8 @@
 
 /* GUI includes: */
 #include "QIAdvancedSlider.h"
-#include "UICommon.h"
+#include "UIGlobalSession.h"
+#include "UIGuestOSType.h"
 #include "UIVideoMemoryEditor.h"
 
 /* COM includes: */
@@ -42,9 +43,8 @@
 
 
 UIVideoMemoryEditor::UIVideoMemoryEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent, true /* show in basic mode? */)
     , m_iValue(0)
-    , m_comGuestOSType(CGuestOSType())
     , m_cGuestScreenCount(1)
     , m_enmGraphicsControllerType(KGraphicsControllerType_Null)
 #ifdef VBOX_WITH_3D_ACCELERATION
@@ -84,14 +84,14 @@ int UIVideoMemoryEditor::value() const
     return m_pSlider ? m_pSlider->value() : m_iValue;
 }
 
-void UIVideoMemoryEditor::setGuestOSType(const CGuestOSType &comGuestOSType)
+void UIVideoMemoryEditor::setGuestOSTypeId(const QString &strGuestOSTypeId)
 {
     /* Update cached value and
      * requirements if value has changed: */
-    if (m_comGuestOSType != comGuestOSType)
+    if (m_strGuestOSTypeId != strGuestOSTypeId)
     {
         /* Remember new guest OS type: */
-        m_comGuestOSType = comGuestOSType;
+        m_strGuestOSTypeId = strGuestOSTypeId;
 
         /* Update requirements: */
         updateRequirements();
@@ -167,7 +167,7 @@ void UIVideoMemoryEditor::setMinimumLayoutIndent(int iIndent)
         m_pLayout->setColumnMinimumWidth(0, iIndent);
 }
 
-void UIVideoMemoryEditor::retranslateUi()
+void UIVideoMemoryEditor::sltRetranslateUI()
 {
     if (m_pLabelMemory)
         m_pLabelMemory->setText(tr("Video &Memory:"));
@@ -224,7 +224,7 @@ void UIVideoMemoryEditor::sltHandleSpinBoxChange()
 void UIVideoMemoryEditor::prepare()
 {
     /* Prepare common variables: */
-    const CSystemProperties comProperties = uiCommon().virtualBox().GetSystemProperties();
+    const CSystemProperties comProperties = gpGlobalSession->virtualBox().GetSystemProperties();
     m_iMinVRAM = comProperties.GetMinGuestVRAM();
     m_iMaxVRAM = comProperties.GetMaxGuestVRAM();
     m_iMaxVRAMVisible = m_iMaxVRAM;
@@ -302,27 +302,28 @@ void UIVideoMemoryEditor::prepare()
                 m_pLabelMemory->setBuddy(m_pSpinBox);
             m_pSpinBox->setMinimum(m_iMinVRAM);
             m_pSpinBox->setMaximum(m_iMaxVRAMVisible);
-            connect(m_pSpinBox, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged),
+            connect(m_pSpinBox, &QSpinBox::valueChanged,
                     this, &UIVideoMemoryEditor::sltHandleSpinBoxChange);
             m_pLayout->addWidget(m_pSpinBox, 0, 2);
         }
     }
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIVideoMemoryEditor::updateRequirements()
 {
     /* Make sure guest OS type is set: */
-    if (m_comGuestOSType.isNull())
+    if (m_strGuestOSTypeId.isEmpty())
         return;
 
     /* Init visible maximum VRAM: */
     m_iMaxVRAMVisible = m_cGuestScreenCount * 32;
 
     /* Get monitors count and recommended VRAM: */
-    int iNeedMBytes = UICommon::requiredVideoMemory(m_comGuestOSType.GetId(), m_cGuestScreenCount) / _1M;
+    int iNeedMBytes = UIGuestOSTypeHelpers::requiredVideoMemory(m_strGuestOSTypeId, m_cGuestScreenCount) / _1M;
+
     /* Adjust visible maximum VRAM to be no less than 128MB (if possible): */
     if (m_iMaxVRAMVisible < 128 && m_iMaxVRAM >= 128)
         m_iMaxVRAMVisible = 128;

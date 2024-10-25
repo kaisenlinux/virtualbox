@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,10 +26,12 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QButtonGroup>
 #include <QCheckBox>
 #include <QDir>
 #include <QFileInfo>
+#include <QGridLayout>
 #include <QLabel>
 #include <QRadioButton>
 #include <QVBoxLayout>
@@ -38,15 +40,15 @@
 #include "QILineEdit.h"
 #include "QIToolButton.h"
 #include "QIRichTextLabel.h"
-#include "UICommon.h"
 #include "UIConverter.h"
 #include "UIFilePathSelector.h"
+#include "UIGlobalSession.h"
 #include "UIHostnameDomainNameEditor.h"
 #include "UIIconPool.h"
 #include "UIMediumSizeEditor.h"
+#include "UITranslationEventListener.h"
 #include "UIUserNamePasswordEditor.h"
 #include "UIWizardDiskEditors.h"
-#include "UIWizardNewVM.h"
 #include "UIWizardNewVMDiskPage.h"
 
 /* Other VBox includes: */
@@ -140,8 +142,9 @@ QString UIWizardDiskEditors::openFileDialogForDiskFile(const QString &strInitial
     QString strBackendsList = QString("%1 (%2)").arg(comMediumFormat.GetName()).arg(validExtensionList.join(" "));
 
     strChosenFilePath = QIFileDialog::getSaveFileName(folder.absoluteFilePath(strFileName),
-                                                              strBackendsList, pParent,
-                                                              UICommon::tr("Please choose a location for new virtual hard disk file"));
+                                                      strBackendsList, pParent,
+                                                      UIMediumSizeAndPathGroupBox::tr("Specify a location for new "
+                                                                                      "virtual hard disk file..."));
     return strChosenFilePath;
 }
 
@@ -186,7 +189,7 @@ QString UIWizardDiskEditors::stripFormatExtension(const QString &strFileName, co
 
 
 UIDiskVariantWidget::UIDiskVariantWidget(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_pFixedCheckBox(0)
     , m_pSplitBox(0)
 {
@@ -195,19 +198,22 @@ UIDiskVariantWidget::UIDiskVariantWidget(QWidget *pParent /* = 0 */)
 
 void UIDiskVariantWidget::prepare()
 {
-    QVBoxLayout *pVariantLayout = new QVBoxLayout(this);
+    QGridLayout *pVariantLayout = new QGridLayout(this);
     AssertReturnVoid(pVariantLayout);
+    pVariantLayout->setContentsMargins(0, 0, 0, 0);
+    pVariantLayout->setRowStretch(2, 1);
     m_pFixedCheckBox = new QCheckBox;
     m_pSplitBox = new QCheckBox;
     connect(m_pFixedCheckBox, &QCheckBox::toggled, this, &UIDiskVariantWidget::sltVariantChanged);
     connect(m_pSplitBox, &QCheckBox::toggled, this, &UIDiskVariantWidget::sltVariantChanged);
-    pVariantLayout->addWidget(m_pFixedCheckBox);
-    pVariantLayout->addWidget(m_pSplitBox);
-    pVariantLayout->addStretch();
-    retranslateUi();
+    pVariantLayout->addWidget(m_pFixedCheckBox, 0, 0);
+    pVariantLayout->addWidget(m_pSplitBox, 1, 0);
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIDiskVariantWidget::sltRetranslateUI);
 }
 
-void UIDiskVariantWidget::retranslateUi()
+void UIDiskVariantWidget::sltRetranslateUI()
 {
     if (m_pFixedCheckBox)
     {
@@ -216,7 +222,7 @@ void UIDiskVariantWidget::retranslateUi()
     }
     if (m_pSplitBox)
     {
-        m_pSplitBox->setText(tr("&Split into 2GB parts"));
+        m_pSplitBox->setText(tr("&Split Into 2GB Parts"));
         m_pSplitBox->setToolTip(tr("When checked, the virtual hard disk file is split into 2GB parts."));
     }
 }
@@ -315,7 +321,7 @@ void UIDiskVariantWidget::sltVariantChanged()
 *********************************************************************************************************************************/
 
 UIMediumSizeAndPathGroupBox::UIMediumSizeAndPathGroupBox(bool fExpertMode, QWidget *pParent, qulonglong uMinimumMediumSize)
-    : QIWithRetranslateUI<QGroupBox>(pParent)
+    : QGroupBox(pParent)
     , m_pLocationEditor(0)
     , m_pLocationOpenButton(0)
     , m_pMediumSizeEditor(0)
@@ -326,14 +332,27 @@ UIMediumSizeAndPathGroupBox::UIMediumSizeAndPathGroupBox(bool fExpertMode, QWidg
     prepare(uMinimumMediumSize);
 }
 
-bool UIMediumSizeAndPathGroupBox::isComplete() const
+bool UIMediumSizeAndPathGroupBox::pathExists() const
 {
-    if (QFileInfo(mediumFilePath()).exists())
+    /* Check if the path upto file name exists: */
+    if (!QFileInfo(mediumPath()).exists())
     {
-        m_pLocationEditor->mark(true, tr("Disk file name is not unique"));
+        m_pLocationEditor->mark(true, tr("Disk file path does not exists"), tr("Disk file path is valid"));
         return false;
     }
-    m_pLocationEditor->mark(false);
+    m_pLocationEditor->mark(false, tr("Disk file path does not exists"), tr("Disk file path is valid"));
+    return true;
+}
+
+bool UIMediumSizeAndPathGroupBox::filePathUnique() const
+{
+    /* Check if there is not such file already: */
+    if (QFileInfo(mediumFilePath()).exists())
+    {
+        m_pLocationEditor->mark(true, tr("Disk file name is not unique"), tr("Disk file name is valid"));
+        return false;
+    }
+    m_pLocationEditor->mark(false, tr("Disk file name is not unique"), tr("Disk file name is valid"));
     return true;
 }
 
@@ -342,7 +361,7 @@ void UIMediumSizeAndPathGroupBox::prepare(qulonglong uMinimumMediumSize)
     QVBoxLayout *pMainLayout = new QVBoxLayout(this);
     /* Location widgets: */
     if (!m_fExpertMode)
-        m_pLocationLabel = new QIRichTextLabel;
+        m_pLocationLabel = new QIRichTextLabel(this);
     QHBoxLayout *pLocationLayout = new QHBoxLayout;
     m_pLocationEditor = new QILineEdit;
     m_pLocationOpenButton = new QIToolButton;
@@ -352,7 +371,10 @@ void UIMediumSizeAndPathGroupBox::prepare(qulonglong uMinimumMediumSize)
         m_pLocationOpenButton->setIcon(UIIconPool::iconSet(":/select_file_16px.png", "select_file_disabled_16px.png"));
     }
     if (m_pLocationEditor)
+    {
+        m_pLocationEditor->setMarkable(true);
         m_pLocationEditor->setToolTip(tr("Holds the location of the virtual disk file."));
+    }
     if (m_pLocationOpenButton)
         m_pLocationEditor->setToolTip(tr("Opens file selection dialog so that a location for the disk file can be selected."));
     pLocationLayout->addWidget(m_pLocationEditor);
@@ -360,7 +382,7 @@ void UIMediumSizeAndPathGroupBox::prepare(qulonglong uMinimumMediumSize)
 
     /* Size widgets: */
     if (!m_fExpertMode)
-        m_pSizeLabel = new QIRichTextLabel;
+        m_pSizeLabel = new QIRichTextLabel(this);
     m_pMediumSizeEditor = new UIMediumSizeEditor(0 /* parent */, uMinimumMediumSize);
 
     /* Add widgets to main layout: */
@@ -381,14 +403,20 @@ void UIMediumSizeAndPathGroupBox::prepare(qulonglong uMinimumMediumSize)
     connect(m_pLocationOpenButton, &QIToolButton::clicked,
             this, &UIMediumSizeAndPathGroupBox::sigMediumLocationButtonClicked);
 
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIMediumSizeAndPathGroupBox::sltRetranslateUI);
 }
-void UIMediumSizeAndPathGroupBox::retranslateUi()
+void UIMediumSizeAndPathGroupBox::sltRetranslateUI()
 {
     if (m_fExpertMode)
         setTitle(tr("Hard Disk File Location and Size"));
     if (m_pLocationOpenButton)
+    {
         m_pLocationOpenButton->setToolTip(tr("Specify a location for new virtual hard disk file..."));
+        /* Some screen readers do no read tooltips: */
+        m_pLocationOpenButton->setText(tr("Specify a location for new virtual hard disk file..."));
+    }
 
     if (!m_fExpertMode && m_pLocationLabel)
         m_pLocationLabel->setText(tr("Please type the name of the new virtual hard disk file into the box below or "
@@ -481,7 +509,7 @@ const CMediumFormat &UIDiskFormatBase::VDIMediumFormat() const
 
 void UIDiskFormatBase::populateFormats(){
     /* Enumerate medium formats in special order: */
-    CSystemProperties properties = uiCommon().virtualBox().GetSystemProperties();
+    CSystemProperties properties = gpGlobalSession->virtualBox().GetSystemProperties();
     const QVector<CMediumFormat> &formats = properties.GetMediumFormats();
     QMap<QString, CMediumFormat> vdi, preferred, others;
     foreach (const CMediumFormat &format, formats)
@@ -555,7 +583,7 @@ bool UIDiskFormatBase::isExpertMode() const
 *********************************************************************************************************************************/
 
 UIDiskFormatsGroupBox::UIDiskFormatsGroupBox(bool fExpertMode, KDeviceType enmDeviceType, QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , UIDiskFormatBase(enmDeviceType, fExpertMode)
     , m_pFormatButtonGroup(0)
     , m_pMainLayout(0)
@@ -591,12 +619,15 @@ void UIDiskFormatsGroupBox::setMediumFormat(const CMediumFormat &mediumFormat)
 void UIDiskFormatsGroupBox::prepare()
 {
     m_pMainLayout = new QVBoxLayout(this);
+    m_pMainLayout->setContentsMargins(0, 0, 0, 0);
     populateFormats();
     createFormatWidgets();
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIDiskFormatsGroupBox::sltRetranslateUI);
 }
 
-void UIDiskFormatsGroupBox::retranslateUi()
+void UIDiskFormatsGroupBox::sltRetranslateUI()
 {
     QList<QAbstractButton*> buttons = m_pFormatButtonGroup ? m_pFormatButtonGroup->buttons() : QList<QAbstractButton*>();
     for (int i = 0; i < buttons.size(); ++i)
@@ -635,7 +666,7 @@ void UIDiskFormatsGroupBox::createFormatWidgets()
     }
 
     setMediumFormat(m_formatList[0].m_comFormat);
-    connect(m_pFormatButtonGroup, static_cast<void(QButtonGroup::*)(QAbstractButton *)>(&QButtonGroup::buttonClicked),
+    connect(m_pFormatButtonGroup, &QButtonGroup::buttonClicked,
             this, &UIDiskFormatsGroupBox::sigMediumFormatChanged);
 }
 
@@ -645,7 +676,7 @@ void UIDiskFormatsGroupBox::createFormatWidgets()
 *********************************************************************************************************************************/
 
 UIDiskFormatsComboBox::UIDiskFormatsComboBox(bool fExpertMode, KDeviceType enmDeviceType, QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QIComboBox>(pParent)
+    : QComboBox(pParent)
     , UIDiskFormatBase(enmDeviceType, fExpertMode)
 {
     prepare();
@@ -659,10 +690,12 @@ void UIDiskFormatsComboBox::prepare()
         addItem(format.m_comFormat.GetName());
     }
 
-    connect(this, static_cast<void(QIComboBox::*)(int)>(&QIComboBox::currentIndexChanged),
+    connect(this, &QComboBox::currentIndexChanged,
             this, &UIDiskFormatsComboBox::sigMediumFormatChanged);
 
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIDiskFormatsComboBox::sltRetranslateUI);
 }
 
 CMediumFormat UIDiskFormatsComboBox::mediumFormat() const
@@ -685,7 +718,7 @@ void UIDiskFormatsComboBox::setMediumFormat(const CMediumFormat &mediumFormat)
         setCurrentIndex(iPosition);
 }
 
-void UIDiskFormatsComboBox::retranslateUi()
+void UIDiskFormatsComboBox::sltRetranslateUI()
 {
     for (int i = 0; i < count(); ++i)
     {

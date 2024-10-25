@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -29,28 +29,23 @@
 #include <QImage>
 #include <QRegion>
 #include <QPainter>
+#include <QPaintEvent>
 #include <QTransform>
 
 /* GUI includes: */
-#include "UIActionPool.h"
 #include "UIActionPoolRuntime.h"
-#include "UIFrameBuffer.h"
-#include "UISession.h"
-#include "UIMachineLogic.h"
-#include "UIMachineWindow.h"
-#include "UIMachineView.h"
-#include "UINotificationCenter.h"
-#include "UIExtraDataManager.h"
 #include "UICommon.h"
-#ifdef VBOX_WITH_MASKED_SEAMLESS
-# include "UIMachineWindow.h"
-#endif /* VBOX_WITH_MASKED_SEAMLESS */
-#ifdef VBOX_WS_X11
-# include "VBoxUtils-x11.h"
-#endif
+#include "UIExtraDataManager.h"
+#include "UIFrameBuffer.h"
+#include "UILoggingDefs.h"
+#include "UIMachine.h"
+#include "UIMachineLogic.h"
+#include "UIMachineView.h"
+#include "UIMachineWindow.h"
+#include "UINotificationCenter.h"
+#include "UISession.h"
 
 /* COM includes: */
-#include "CConsole.h"
 #include "CDisplay.h"
 #include "CFramebuffer.h"
 #include "CDisplaySourceBitmap.h"
@@ -64,173 +59,11 @@
 
 /* Other includes: */
 #include <math.h>
-
-#ifdef VBOX_WS_X11
-/* X11 includes: */
+#ifdef VBOX_WS_NIX
 # include <X11/Xlib.h>
 # undef Bool // Qt5 vs Xlib gift..
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
 
-
-#ifdef VBOX_GUI_WITH_QTGLFRAMEBUFFER
-/* Experimental code. */
-
-/* Qt OpenGL includes: */
-/* On Windows host they require the following two include files, otherwise compilation will fail with warnings.
- * The two files are already included, but they are needed if the Qt files are moved to the 'Qt includes:' section. */
-// #include <iprt/stdint.h>
-// #include <iprt/win/windows.h>
-#include <QOffscreenSurface>
-#include <QOpenGLFunctions>
-#include <QOpenGLTexture>
-#include <QOpenGLWidget>
-
-# ifdef RT_OS_LINUX
-/* GL/glx.h must be included after Qt GL headers (which define GL_GLEXT_LEGACY) to avoid GL_GLEXT_VERSION conflict. */
-#include <GL/glx.h>
-# endif
-
-class UIFrameBufferPrivate;
-class GLWidget;
-
-/* Handles the guest screen texture for the target GLWidget. */
-class GLWidgetSource
-{
-public:
-
-    GLWidgetSource(GLWidget *pTarget);
-    virtual ~GLWidgetSource();
-
-    GLWidget *Target() { return m_pTarget; }
-
-    virtual void initGuestScreenTexture(int w, int h) { RT_NOREF(w, h); };
-    virtual void uninitGuestScreenTexture() {};
-    virtual void updateGuestImage() {};
-    virtual void cleanup() {};
-    virtual bool IsHW() { return false; };
-
-private:
-
-    GLWidget *m_pTarget;
-};
-
-/* Update the guest texture from a QImage. */
-class GLWidgetSourceImage : public GLWidgetSource
-{
-public:
-
-    GLWidgetSourceImage(GLWidget *pTarget, QImage *pImage);
-    virtual ~GLWidgetSourceImage();
-
-    virtual void initGuestScreenTexture(int w, int h);
-    virtual void updateGuestImage();
-
-private:
-
-    QImage *m_pImage;
-};
-
-# ifdef RT_OS_LINUX
-/* The guest texture is a X pixmap. */
-class GLWidgetSourcePixmap : public GLWidgetSource
-{
-public:
-
-    GLWidgetSourcePixmap(GLWidget *pTarget, Pixmap pixmap, VisualID visualid);
-    virtual ~GLWidgetSourcePixmap();
-
-    virtual void initGuestScreenTexture(int w, int h);
-    virtual void uninitGuestScreenTexture();
-    virtual void cleanup();
-    virtual bool IsHW() { return true; };
-
-private:
-
-    /* HW accelerated graphics output from a pixmap. */
-    Pixmap m_Pixmap;
-    VisualID m_visualid;
-
-    GLXPixmap m_glxPixmap;
-
-    Display *m_display;
-    PFNGLXBINDTEXIMAGEEXTPROC m_pfnglXBindTexImageEXT;
-    PFNGLXRELEASETEXIMAGEEXTPROC m_pfnglXReleaseTexImageEXT;
-};
-# endif /* RT_OS_LINUX */
-
-/* This widget allows to use OpenGL. */
-class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions
-{
-    Q_OBJECT
-
-public:
-
-    GLWidget(QWidget *parent, UIFrameBufferPrivate *pFramebuffer);
-    virtual ~GLWidget();
-
-    /* Whether OpenGL is supported at all. */
-    static bool isSupported();
-
-    void lock() { RTCritSectEnter(&m_critSect); }
-    void unlock() { RTCritSectLeave(&m_critSect); }
-
-    /* Notification about the guest screen size. */
-    void resizeGuestScreen(int w, int h);
-    /* Which guest area is visible in the VM window. */
-    void setGuestVisibleRect(int x, int y, int w, int h);
-    /* Update the guest texture before painting. */
-    void updateGuestImage();
-
-    /* The guest texture OpenGL target. */
-    static GLenum const kTextureTarget = GL_TEXTURE_2D;
-
-    /* The the guest screen source. */
-    void setSource(GLWidgetSource *pSource, bool fForce);
-
-public slots:
-
-    void cleanup();
-
-protected:
-
-    /* QOpenGLWidget methods, which must be reimplemented. */
-    void initializeGL() RT_OVERRIDE;
-    void paintGL() RT_OVERRIDE;
-    void resizeGL(int w, int h) RT_OVERRIDE;
-
-private:
-
-    /* Get and possibly initialize the guest source. */
-    GLWidgetSource *getSource();
-
-    /* Create the texture which contains the guest screen bitmap. */
-    void createGuestTexture();
-    /* Delete the texture which contains the guest screen bitmap. */
-    void deleteGuestTexture();
-
-    /* Backlink. */
-    UIFrameBufferPrivate *m_pFramebuffer;
-
-    /* Fallback when no guest screen is available. */
-    GLWidgetSource m_nullSource;
-    /* The current guest screen bitmap source. */
-    GLWidgetSource *m_pSource;
-
-    /* The guest screen resolution. */
-    QSize m_guestSize;
-    /* The visible area of the guest screen in guest pixels. */
-    QRect m_guestVisibleRect;
-
-    /** RTCRITSECT object to protect frame-buffer access. */
-    RTCRITSECT m_critSect;
-
-    /* A new guest screen source has been set and needs reinitialization. */
-    bool m_fReinitSource;
-
-    /* Texture which contains entire guest screen. Size is m_guestSize. */
-    GLuint m_guestTexture;
-};
-#endif /* VBOX_GUI_WITH_QTGLFRAMEBUFFER */
 
 /** IFramebuffer implementation used to maintain VM display video memory. */
 class ATL_NO_VTABLE UIFrameBufferPrivate : public QObject,
@@ -250,10 +83,10 @@ signals:
 
 public:
 
-    /** Frame-buffer constructor. */
+    /** Constructs frame-buffer. */
     UIFrameBufferPrivate();
-    /** Frame-buffer destructor. */
-    ~UIFrameBufferPrivate();
+    /** Destructs frame-buffer. */
+    virtual ~UIFrameBufferPrivate() RT_OVERRIDE;
 
     /** Frame-buffer initialization.
       * @param pMachineView defines machine-view this frame-buffer is bounded to. */
@@ -264,7 +97,7 @@ public:
     virtual void setView(UIMachineView *pMachineView);
 
     /** Returns the copy of the IDisplay wrapper. */
-    CDisplay display() const { return m_display; }
+    CDisplay display() const { return m_comDisplay; }
     /** Attach frame-buffer to IDisplay. */
     void attach();
     /** Detach frame-buffer from IDisplay. */
@@ -282,8 +115,6 @@ public:
     ulong bytesPerLine() const { return m_image.bytesPerLine(); }
     /** Returns default frame-buffer pixel-format. */
     ulong pixelFormat() const { return KBitmapFormat_BGR; }
-    /** Returns the visual-state this frame-buffer is used for. */
-    UIVisualStateType visualState() const { return m_pMachineView ? m_pMachineView->visualStateType() : UIVisualStateType_Invalid; }
 
     /** Defines whether frame-buffer is <b>unused</b>.
       * @note Refer to m_fUnused for more information.
@@ -340,15 +171,15 @@ public:
     HRESULT FinalConstruct();
     void FinalRelease();
 
-    STDMETHOD(COMGETTER(Width))(ULONG *puWidth);
-    STDMETHOD(COMGETTER(Height))(ULONG *puHeight);
-    STDMETHOD(COMGETTER(BitsPerPixel))(ULONG *puBitsPerPixel);
-    STDMETHOD(COMGETTER(BytesPerLine))(ULONG *puBytesPerLine);
-    STDMETHOD(COMGETTER(PixelFormat))(BitmapFormat_T *puPixelFormat);
-    STDMETHOD(COMGETTER(HeightReduction))(ULONG *puHeightReduction);
-    STDMETHOD(COMGETTER(Overlay))(IFramebufferOverlay **ppOverlay);
-    STDMETHOD(COMGETTER(WinId))(LONG64 *pWinId);
-    STDMETHOD(COMGETTER(Capabilities))(ComSafeArrayOut(FramebufferCapabilities_T, aCapabilities));
+    STDMETHOD(COMGETTER(Width))(ULONG *puWidth) RT_OVERRIDE;
+    STDMETHOD(COMGETTER(Height))(ULONG *puHeight) RT_OVERRIDE;
+    STDMETHOD(COMGETTER(BitsPerPixel))(ULONG *puBitsPerPixel) RT_OVERRIDE;
+    STDMETHOD(COMGETTER(BytesPerLine))(ULONG *puBytesPerLine) RT_OVERRIDE;
+    STDMETHOD(COMGETTER(PixelFormat))(BitmapFormat_T *puPixelFormat) RT_OVERRIDE;
+    STDMETHOD(COMGETTER(HeightReduction))(ULONG *puHeightReduction) RT_OVERRIDE;
+    STDMETHOD(COMGETTER(Overlay))(IFramebufferOverlay **ppOverlay) RT_OVERRIDE;
+    STDMETHOD(COMGETTER(WinId))(LONG64 *pWinId) RT_OVERRIDE;
+    STDMETHOD(COMGETTER(Capabilities))(ComSafeArrayOut(FramebufferCapabilities_T, aCapabilities)) RT_OVERRIDE;
 
     /** EMT callback: Notifies frame-buffer about guest-screen size change.
       * @param        uScreenId Guest screen number.
@@ -358,7 +189,7 @@ public:
       * @param        uHeight   Height of the guest display, in pixels.
       * @note         Any EMT callback is subsequent. No any other EMT callback can be called until this one processed.
       * @note         Calls to this and #setMarkAsUnused method are synchronized (from GUI side). */
-    STDMETHOD(NotifyChange)(ULONG uScreenId, ULONG uX, ULONG uY, ULONG uWidth, ULONG uHeight);
+    STDMETHOD(NotifyChange)(ULONG uScreenId, ULONG uX, ULONG uY, ULONG uWidth, ULONG uHeight) RT_OVERRIDE;
 
     /** EMT callback: Notifies frame-buffer about guest-screen update.
       * @param        uX      Horizontal origin of the update rectangle, in pixels.
@@ -367,7 +198,7 @@ public:
       * @param        uHeight Height of the update rectangle, in pixels.
       * @note         Any EMT callback is subsequent. No any other EMT callback can be called until this one processed.
       * @note         Calls to this and #setMarkAsUnused method are synchronized (from GUI side). */
-    STDMETHOD(NotifyUpdate)(ULONG uX, ULONG uY, ULONG uWidth, ULONG uHeight);
+    STDMETHOD(NotifyUpdate)(ULONG uX, ULONG uY, ULONG uWidth, ULONG uHeight) RT_OVERRIDE;
 
     /** EMT callback: Notifies frame-buffer about guest-screen update.
       * @param        uX      Horizontal origin of the update rectangle, in pixels.
@@ -377,7 +208,7 @@ public:
       * @param        image   Brings image container which can be used to copy data from.
       * @note         Any EMT callback is subsequent. No any other EMT callback can be called until this one processed.
       * @note         Calls to this and #setMarkAsUnused method are synchronized (from GUI side). */
-    STDMETHOD(NotifyUpdateImage)(ULONG uX, ULONG uY, ULONG uWidth, ULONG uHeight, ComSafeArrayIn(BYTE, image));
+    STDMETHOD(NotifyUpdateImage)(ULONG uX, ULONG uY, ULONG uWidth, ULONG uHeight, ComSafeArrayIn(BYTE, image)) RT_OVERRIDE;
 
     /** EMT callback: Returns whether the frame-buffer implementation is willing to support a given video-mode.
       * @param        uWidth      Width of the guest display, in pixels.
@@ -386,26 +217,26 @@ public:
       * @param        pfSupported Is frame-buffer able/willing to render the video mode or not.
       * @note         Any EMT callback is subsequent. No any other EMT callback can be called until this one processed.
       * @note         Calls to this and #setMarkAsUnused method are synchronized (from GUI side). */
-    STDMETHOD(VideoModeSupported)(ULONG uWidth, ULONG uHeight, ULONG uBPP, BOOL *pbSupported);
+    STDMETHOD(VideoModeSupported)(ULONG uWidth, ULONG uHeight, ULONG uBPP, BOOL *pbSupported) RT_OVERRIDE;
 
     /** EMT callback which is not used in current implementation. */
-    STDMETHOD(GetVisibleRegion)(BYTE *pRectangles, ULONG uCount, ULONG *puCountCopied);
+    STDMETHOD(GetVisibleRegion)(BYTE *pRectangles, ULONG uCount, ULONG *puCountCopied) RT_OVERRIDE;
     /** EMT callback: Suggests new visible-region to this frame-buffer.
       * @param        pRectangles Pointer to the RTRECT array.
       * @param        uCount      Number of RTRECT elements in the rectangles array.
       * @note         Any EMT callback is subsequent. No any other EMT callback can be called until this one processed.
       * @note         Calls to this and #setMarkAsUnused method are synchronized (from GUI side). */
-    STDMETHOD(SetVisibleRegion)(BYTE *pRectangles, ULONG uCount);
+    STDMETHOD(SetVisibleRegion)(BYTE *pRectangles, ULONG uCount) RT_OVERRIDE;
 
     /** EMT callback which is not used in current implementation. */
-    STDMETHOD(ProcessVHWACommand)(BYTE *pCommand, LONG enmCmd, BOOL fGuestCmd);
+    STDMETHOD(ProcessVHWACommand)(BYTE *pCommand, LONG enmCmd, BOOL fGuestCmd) RT_OVERRIDE;
 
     /** EMT callback: Notifies frame-buffer about 3D backend event.
       * @param        uType Event type. VBOX3D_NOTIFY_TYPE_*.
       * @param        aData Event-specific data, depends on the supplied event type.
       * @note         Any EMT callback is subsequent. No any other EMT callback can be called until this one processed.
       * @note         Calls to this and #setMarkAsUnused method are synchronized (from GUI side). */
-    STDMETHOD(Notify3DEvent)(ULONG uType, ComSafeArrayIn(BYTE, data));
+    STDMETHOD(Notify3DEvent)(ULONG uType, ComSafeArrayIn(BYTE, data)) RT_OVERRIDE;
 
     /** Locks frame-buffer access. */
     void lock() const { RTCritSectEnter(&m_critSect); }
@@ -427,21 +258,7 @@ public:
     /** Handles viewport resize-event. */
     virtual void viewportResized(QResizeEvent*)
     {
-#ifdef VBOX_GUI_WITH_QTGLFRAMEBUFFER
-        /* Sync GL widget size with the MachineView widget: */
-        /** @todo This can be probably done in a more automated way. */
-        if (m_pGLWidget && m_pMachineView)
-            m_pGLWidget->resize(m_pMachineView->viewport()->size());
-#endif
     }
-
-#ifdef VBOX_GUI_WITH_QTGLFRAMEBUFFER
-    bool isGLWidgetSupported()
-    {
-        QString s = uiCommon().virtualBox().GetExtraData("GUI/GLWidget");
-        return s == "1" && GLWidget::isSupported();
-    }
-#endif
 
 protected slots:
 
@@ -485,7 +302,7 @@ protected:
     int m_iHeight;
 
     /** Holds the copy of the IDisplay wrapper. */
-    CDisplay m_display;
+    CDisplay m_comDisplay;
     /** Source bitmap from IDisplay. */
     CDisplaySourceBitmap m_sourceBitmap;
     /** Source bitmap from IDisplay (acquired but not yet applied). */
@@ -548,529 +365,17 @@ protected:
     bool m_fUseUnscaledHiDPIOutput;
     /** @} */
 
-#ifdef VBOX_GUI_WITH_QTGLFRAMEBUFFER
-    GLWidget *m_pGLWidget;
-#endif
-
 private:
 
-#ifdef Q_OS_WIN
+#ifdef VBOX_WS_WIN
      ComPtr<IUnknown> m_pUnkMarshaler;
-#endif /* Q_OS_WIN */
+#endif
      /** Identifier returned by AttachFramebuffer. Used in DetachFramebuffer. */
      QUuid m_uFramebufferId;
 
      /** Holds the last cursor rectangle. */
      QRect  m_cursorRectangle;
 };
-
-
-#ifdef VBOX_GUI_WITH_QTGLFRAMEBUFFER
-#define GLCHECK() \
-do { \
-    int glErr = glGetError(); \
-    if (glErr != GL_NO_ERROR) LogRel4(("GUI GL 0x%x @%d\n", glErr, __LINE__)); \
-} while(0)
-
-GLWidgetSource::GLWidgetSource(GLWidget *pTarget)
-    : m_pTarget(pTarget)
-{
-}
-
-GLWidgetSource::~GLWidgetSource()
-{
-    cleanup();
-}
-
-GLWidgetSourceImage::GLWidgetSourceImage(GLWidget *pTarget, QImage *pImage)
-    : GLWidgetSource(pTarget)
-    , m_pImage(pImage)
-{
-}
-
-GLWidgetSourceImage::~GLWidgetSourceImage()
-{
-}
-
-void GLWidgetSourceImage::initGuestScreenTexture(int w, int h)
-{
-    glTexImage2D(GLWidget::kTextureTarget, 0, GL_RGBA, w, h, 0, GL_BGRA, GL_UNSIGNED_BYTE, NULL);
-    GLCHECK();
-}
-
-void GLWidgetSourceImage::updateGuestImage()
-{
-    /* Copy the image content to the texture. */
-    glTexSubImage2D(GLWidget::kTextureTarget, 0, 0, 0, m_pImage->width(), m_pImage->height(),
-                    GL_BGRA, GL_UNSIGNED_BYTE, m_pImage->bits());
-    GLCHECK();
-}
-
-# ifdef RT_OS_LINUX
-GLWidgetSourcePixmap::GLWidgetSourcePixmap(GLWidget *pTarget, Pixmap pixmap, VisualID visualid)
-    : GLWidgetSource(pTarget)
-    , m_Pixmap(pixmap)
-    , m_visualid(visualid)
-    , m_glxPixmap(0)
-    , m_display(0)
-    , m_pfnglXBindTexImageEXT(0)
-    , m_pfnglXReleaseTexImageEXT(0)
-{
-}
-
-GLWidgetSourcePixmap::~GLWidgetSourcePixmap()
-{
-}
-
-void GLWidgetSourcePixmap::cleanup()
-{
-    m_pfnglXBindTexImageEXT = 0;
-    m_pfnglXReleaseTexImageEXT = 0;
-    m_Pixmap = 0;
-    m_visualid = 0;
-
-    if (m_glxPixmap)
-    {
-        glXDestroyPixmap(m_display, m_glxPixmap);
-        m_glxPixmap = 0;
-    }
-
-    if (m_display)
-    {
-        XCloseDisplay(m_display);
-        m_display = 0;
-    }
-}
-
-void GLWidgetSourcePixmap::initGuestScreenTexture(int w, int h)
-{
-    RT_NOREF(w, h);
-
-    LogRel4(("GUI: GLWidgetSourcePixmap::initGuestScreenTexture: Search for vid = %lu\n", m_visualid));
-
-    if (m_display)
-        return; /* Already initialized. */
-
-    m_display = XOpenDisplay(0);
-    if (m_display)
-    {
-        const char *glXExt = glXQueryExtensionsString(m_display, 0);
-        if (glXExt && RTStrStr(glXExt, "GLX_EXT_texture_from_pixmap"))
-        {
-            m_pfnglXBindTexImageEXT = (PFNGLXBINDTEXIMAGEEXTPROC)glXGetProcAddress((const GLubyte *)"glXBindTexImageEXT");
-            m_pfnglXReleaseTexImageEXT = (PFNGLXRELEASETEXIMAGEEXTPROC)glXGetProcAddress((const GLubyte *)"glXReleaseTexImageEXT");
-            if (m_pfnglXBindTexImageEXT && m_pfnglXReleaseTexImageEXT)
-            {
-                LogRelMax(1, ("GUI: GLX_EXT_texture_from_pixmap supported\n"));
-
-                /* FBConfig attributes. */
-                static int const aConfigAttribList[] =
-                {
-                    // GLX_RENDER_TYPE,                 GLX_RGBA_BIT,
-                    // GLX_X_VISUAL_TYPE,               GLX_TRUE_COLOR,
-                    // GLX_X_RENDERABLE,                True,                   // Render to GLX pixmaps
-                    GLX_DRAWABLE_TYPE,               GLX_PIXMAP_BIT,         // Must support GLX pixmaps
-                    GLX_BIND_TO_TEXTURE_RGBA_EXT,    True,                   // Must support GLX_EXT_texture_from_pixmap
-                    GLX_BIND_TO_TEXTURE_TARGETS_EXT, GLX_TEXTURE_2D_BIT_EXT, // Must support GL_TEXTURE_2D because the device creates the pixmap as TEXTURE_2D
-                    GLX_DOUBLEBUFFER,                False,                  // No need for double buffering for a pixmap.
-                    GLX_RED_SIZE,                    8,                      // True color RGB with 8 bits per channel.
-                    GLX_GREEN_SIZE,                  8,
-                    GLX_BLUE_SIZE,                   8,
-                    GLX_ALPHA_SIZE,                  8,
-                    GLX_STENCIL_SIZE,                0,                      // No stencil buffer
-                    GLX_DEPTH_SIZE,                  0,                      // No depth buffer
-                    None
-                };
-
-                /* Find a suitable FB config. */
-                int cConfigs = 0;
-                GLXFBConfig *paConfigs = glXChooseFBConfig(m_display, 0, aConfigAttribList, &cConfigs);
-                LogRel4(("GUI: GLWidgetSourcePixmap::initGuestScreenTexture: paConfigs %p cConfigs %d\n", (void *)paConfigs, cConfigs));
-                if (paConfigs)
-                {
-                    XVisualInfo *vi = NULL;
-                    int i = 0;
-                    for (; i < cConfigs; ++i)
-                    {
-                        /* Use XFree to free the data returned in the previous iteration of this loop. */
-                        if (vi)
-                            XFree(vi);
-
-                        vi = glXGetVisualFromFBConfig(m_display, paConfigs[i]);
-                        if (!vi)
-                            continue;
-
-                        LogRel4(("GUI: GLWidgetSourcePixmap::initGuestScreenTexture: %p vid %lu screen %d depth %d r %lu g %lu b %lu clrmap %d bitsperrgb %d\n",
-                                 (void *)vi->visual, vi->visualid, vi->screen, vi->depth,
-                                 vi->red_mask, vi->green_mask, vi->blue_mask, vi->colormap_size, vi->bits_per_rgb));
-
-                        if (vi->visualid != m_visualid)
-                            continue;
-
-                        /* This FB config can be used. */
-                        break;
-                    }
-
-                    if (vi)
-                    {
-                        XFree(vi);
-                        vi = 0;
-                    }
-
-                    if (i < cConfigs)
-                    {
-                        /* Found the requested config. */
-                        static int const aPixmapAttribList[] =
-                        {
-                            GLX_TEXTURE_TARGET_EXT, GLX_TEXTURE_2D_EXT,
-                            GLX_TEXTURE_FORMAT_EXT, GLX_TEXTURE_FORMAT_RGBA_EXT,
-                            None
-                        };
-                        m_glxPixmap = glXCreatePixmap(m_display, paConfigs[i], m_Pixmap, aPixmapAttribList);
-                        LogRel4(("GUI: GLWidgetSourcePixmap::initGuestScreenTexture: m_glxPixmap %ld\n", m_glxPixmap));
-
-                        m_pfnglXBindTexImageEXT(m_display, m_glxPixmap, GLX_FRONT_LEFT_EXT, NULL);
-
-                        /* "Use XFree to free the memory returned by glXChooseFBConfig." */
-                        XFree(paConfigs);
-
-                        /* Success. */
-                        return;
-                    }
-
-                    LogRel4(("GUI: GLWidgetSourcePixmap::initGuestScreenTexture: fbconfig not found\n"));
-                    /* "Use XFree to free the memory returned by glXChooseFBConfig." */
-                    XFree(paConfigs);
-                }
-            }
-
-            m_pfnglXBindTexImageEXT = 0;
-            m_pfnglXReleaseTexImageEXT = 0;
-        }
-
-        XCloseDisplay(m_display);
-        m_display = 0;
-    }
-    else
-    {
-        LogRel4(("GUI: GLWidgetSourcePixmap::initGuestScreenTexture: failed to open Display\n"));
-    }
-}
-
-void GLWidgetSourcePixmap::uninitGuestScreenTexture()
-{
-    if (!m_glxPixmap)
-        return;
-
-    AssertReturnVoid(m_display && m_pfnglXReleaseTexImageEXT);
-    m_pfnglXReleaseTexImageEXT(m_display, m_glxPixmap, GLX_FRONT_LEFT_EXT);
-}
-# endif /* RT_OS_LINUX */
-
-GLWidget::GLWidget(QWidget *parent, UIFrameBufferPrivate *pFramebuffer)
-    : QOpenGLWidget(parent)
-    , m_pFramebuffer(pFramebuffer)
-    , m_nullSource(this)
-    , m_pSource(0)
-    , m_fReinitSource(false)
-    , m_guestTexture(0)
-{
-    int rc = RTCritSectInit(&m_critSect);
-    AssertRC(rc);
-
-    setMouseTracking(true);
-
-#if 0
-    QSurfaceFormat format;
-    format.setVersion(3, 3);
-    //format.setProfile(QSurfaceFormat::CoreProfile);
-    format.setRenderableType(QSurfaceFormat::OpenGL);
-    format.setRedBufferSize(8);
-    format.setGreenBufferSize(8);
-    format.setBlueBufferSize(8);
-    format.setAlphaBufferSize(8);
-    format.setDepthBufferSize(0);
-    format.setStencilBufferSize(0);
-    format.setSwapInterval(0);
-    format.setSwapBehavior(QSurfaceFormat::DoubleBuffer);
-    setFormat(format);
-#endif
-}
-
-GLWidget::~GLWidget()
-{
-    cleanup();
-
-    RTCritSectDelete(&m_critSect);
-    RT_ZERO(m_critSect);
-}
-
-/* Whether OpenGL is usable.
- * OpenGL 2.0 required.
- */
-/* static */ bool GLWidget::isSupported()
-{
-    /* Create an OpenGL conntext: */
-    QOpenGLContext contextGL;
-    contextGL.create();
-    if (!contextGL.isValid())
-        return false;
-
-    /* Create an offscreen surface: */
-    QOffscreenSurface surface;
-    surface.create();
-    if (!surface.isValid())
-        return false;
-
-    /* Make the OpenGL context current: */
-    contextGL.makeCurrent(&surface);
-
-    /* Get the OpenGL version: */
-    char const *pszVersion = (char const *)contextGL.functions()->glGetString(GL_VERSION);
-    size_t cchVersion = pszVersion ? strlen(pszVersion) : 0;
-
-    int const verMajor = cchVersion >= 1 && '0' <= pszVersion[0] && pszVersion[0] <= '9'? pszVersion[0] - '0' : 0;
-    int const verMinor = cchVersion >= 3 && '0' <= pszVersion[2] && pszVersion[2] <= '9'? pszVersion[2] - '0' : 0;
-    int const ver = verMajor * 10 + verMinor;
-
-    /* Check if GL_TEXTURE_RECTANGLE is supported: */
-    //bool const fTextureRectangle = contextGL.hasExtension("GL_ARB_texture_rectangle")
-    //                            || contextGL.hasExtension("GL_NV_texture_rectangle")
-    //                            || ver >= 31;
-
-    /* Reset the current OpenGL context: */
-    contextGL.doneCurrent();
-
-    /* Decide if OpenGL support is good enough: */
-    return ver >= 20 /* && fTextureRectangle */;
-}
-
-/** @todo fForce is a bit of a hack. It does not allow to change the HW source to the QImage source,
- * when QImage source is automatically set during the guest screen resize. Think again!
- */
-void GLWidget::setSource(GLWidgetSource *pSource, bool fForce)
-{
-    lock();
-    if (   !fForce
-        && m_pSource
-        && m_pSource->IsHW())
-    {
-        LogRel4(("GUI: GLWidgetSourcePixmap::setSource: keeping HW source\n"));
-        unlock();
-        return;
-    }
-
-    if (m_pSource)
-        delete m_pSource;
-
-    m_pSource = pSource;
-    m_fReinitSource = true;
-    unlock();
-}
-
-GLWidgetSource *GLWidget::getSource()
-{
-    Assert(RTCritSectIsOwner(&m_critSect));
-    if (m_pSource)
-    {
-        if (m_fReinitSource)
-        {
-            m_fReinitSource = false;
-            LogRel4(("GUI: GLWidgetSourcePixmap::getSource: recreate guest texture\n"));
-
-            /* If OpenGL context has been created: */
-            if (context())
-            {
-                 /* Delete the current guest texture: */
-                 deleteGuestTexture();
-
-                 /* Create and bind the new guest texture: */
-                 createGuestTexture();
-
-                 glBindTexture(kTextureTarget, m_guestTexture); GLCHECK();
-            }
-        }
-        return m_pSource;
-    }
-    return &m_nullSource;
-}
-
-void GLWidget::resizeGuestScreen(int w, int h)
-{
-    /* The guest screen has been resized. Remember the size: */
-    m_guestSize = QSize(w, h);
-}
-
-void GLWidget::setGuestVisibleRect(int x, int y, int w, int h)
-{
-    /* Remember the area of the guest screen which must be displayed: */
-    m_guestVisibleRect.setRect(x, y, w, h);
-}
-
-void GLWidget::updateGuestImage()
-{
-    /* If OpenGL context has been created: */
-    if (!context())
-        return;
-
-    makeCurrent();
-
-    lock();
-    GLWidgetSource *pSource = getSource();
-    if (m_guestTexture)
-    {
-        /* Copy the image content to the texture. */
-        glBindTexture(kTextureTarget, m_guestTexture);
-        GLCHECK();
-
-        pSource->updateGuestImage();
-    }
-    unlock();
-
-    doneCurrent();
-}
-
-void GLWidget::cleanup()
-{
-    if (!RTCritSectIsInitialized(&m_critSect))
-        return;
-
-    /* If OpenGL context has been created: */
-    if (!context())
-        return;
-
-    makeCurrent();
-
-    lock();
-    getSource()->cleanup();
-    setSource(0, true);
-    unlock();
-
-    /* Delete all OpenGL resources which are used by this widget: */
-    deleteGuestTexture();
-
-    doneCurrent();
-}
-
-void GLWidget::initializeGL()
-{
-    /* QOpenGLWidget documentation recommends to connect to the context's aboutToBeDestroyed() signal.
-     * See https://doc.qt.io/qt-5/qopenglwidget.html#details
-     * Connect the signal: */
-    connect(context(), &QOpenGLContext::aboutToBeDestroyed, this, &GLWidget::cleanup);
-
-    /* Required initialization for QOpenGLFunctions: */
-    initializeOpenGLFunctions();
-
-    /* Create OpenGL resources: */
-    createGuestTexture();
-
-    /* Setup the OpenGL context state: */
-    glClearColor(0, 0, 0, 1); GLCHECK();
-    glDisable(GL_DEPTH_TEST); GLCHECK();
-    glDisable(GL_CULL_FACE);  GLCHECK();
-}
-
-void GLWidget::paintGL()
-{
-    lock();
-    if (m_guestTexture)
-    {
-        /* Dimensions of the target window, i.e. the widget's dimensions. */
-        GLint const w = width();
-        GLint const h = height();
-
-        /* The guest coordinates of the visible guest screen area: */
-        float x1 = m_guestVisibleRect.x();
-        float y1 = m_guestVisibleRect.y();
-        float x2 = x1 + m_guestVisibleRect.width();
-        float y2 = y1 + m_guestVisibleRect.height();
-
-        x1 /= (float)m_guestSize.width();
-        y1 /= (float)m_guestSize.height();
-        x2 /= (float)m_guestSize.width();
-        y2 /= (float)m_guestSize.height();
-
-        glDisable(GL_DEPTH_TEST); GLCHECK();
-        glDisable(GL_CULL_FACE); GLCHECK();
-
-        glEnable(kTextureTarget); GLCHECK();
-
-        /* Bind the guest texture: */
-        glBindTexture(kTextureTarget, m_guestTexture); GLCHECK();
-
-        /* This will reinitialize the source if necessary. */
-        getSource();
-
-        /* Draw the texture (upside down, because QImage and OpenGL store the bitmap differently): */
-        glBegin(GL_QUADS);
-        glTexCoord2f(x1, y1); glVertex2i(0, h);
-        glTexCoord2f(x1, y2); glVertex2i(0, 0);
-        glTexCoord2f(x2, y2); glVertex2i(w, 0);
-        glTexCoord2f(x2, y1); glVertex2i(w, h);
-        glEnd(); GLCHECK();
-
-        glBindTexture(kTextureTarget, 0); GLCHECK();
-
-        glDisable(kTextureTarget); GLCHECK();
-
-        glFlush(); GLCHECK();
-    }
-    unlock();
-}
-
-void GLWidget::resizeGL(int w, int h)
-{
-    /* Setup ModelViewProjection to work in the window cordinates: */
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
-    glOrtho(0, w, 0, h, -1, 1);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    GLCHECK();
-}
-
-void GLWidget::createGuestTexture()
-{
-    if (m_guestSize.isEmpty())
-        return;
-
-    /* Choose GL_NEAREST if no scaling or the scaling factor is an integer: */
-    double const scaleFactor = m_pFramebuffer->scaleFactor();
-    GLenum const filter = floor(scaleFactor) == scaleFactor ? GL_NEAREST : GL_LINEAR;
-
-    /* Create a new guest texture, which must be the same size as the guest screen: */
-    glGenTextures(1, &m_guestTexture);
-    glEnable(kTextureTarget); GLCHECK();
-    glBindTexture(kTextureTarget, m_guestTexture);
-    glTexParameteri(kTextureTarget, GL_TEXTURE_MAG_FILTER, filter);
-    glTexParameteri(kTextureTarget, GL_TEXTURE_MIN_FILTER, filter);
-
-    lock();
-    getSource()->initGuestScreenTexture(m_guestSize.width(), m_guestSize.height());
-    unlock();
-
-    glBindTexture(kTextureTarget, 0);
-    GLCHECK();
-    glDisable(kTextureTarget); GLCHECK();
-}
-
-void GLWidget::deleteGuestTexture()
-{
-    if (m_guestTexture)
-    {
-        glBindTexture(kTextureTarget, m_guestTexture);
-
-        lock();
-        getSource()->uninitGuestScreenTexture();
-        unlock();
-
-        glBindTexture(kTextureTarget, 0); GLCHECK();
-        glDeleteTextures(1, &m_guestTexture); GLCHECK();
-        m_guestTexture = 0;
-    }
-}
-#endif /* VBOX_GUI_WITH_QTGLFRAMEBUFFER */
 
 
 #ifdef VBOX_WITH_XPCOM
@@ -1092,57 +397,11 @@ UIFrameBufferPrivate::UIFrameBufferPrivate()
     , m_dDevicePixelRatio(1.0)
     , m_dDevicePixelRatioActual(1.0)
     , m_fUseUnscaledHiDPIOutput(false)
-#ifdef VBOX_GUI_WITH_QTGLFRAMEBUFFER
-    , m_pGLWidget(0)
-#endif
 {
+    LogRel2(("GUI: UIFrameBufferPrivate::UIFrameBufferPrivate %p\n", this));
+
     /* Update coordinate-system: */
     updateCoordinateSystem();
-}
-
-HRESULT UIFrameBufferPrivate::init(UIMachineView *pMachineView)
-{
-    LogRel2(("GUI: UIFrameBufferPrivate::init %p\n", this));
-
-    /* Assign mahine-view: */
-    m_pMachineView = pMachineView;
-
-    /* Assign index: */
-    m_uScreenId = m_pMachineView->screenId();
-
-    /* Cache window ID: */
-    m_iWinId = (m_pMachineView && m_pMachineView->viewport()) ? (LONG64)m_pMachineView->viewport()->winId() : 0;
-
-#ifdef VBOX_WS_X11
-    /* Sync Qt and X11 Server (see xTracker #7547). */
-    XSync(NativeWindowSubsystem::X11GetDisplay(), false);
-#endif
-
-    /* Assign display: */
-    m_display = m_pMachineView->uisession()->display();
-
-    /* Initialize critical-section: */
-    int rc = RTCritSectInit(&m_critSect);
-    AssertRC(rc);
-
-    /* Connect handlers: */
-    if (m_pMachineView)
-        prepareConnections();
-
-#ifdef VBOX_GUI_WITH_QTGLFRAMEBUFFER
-    /* Decide if we are going to use GL to draw the guest screen: */
-    if (isGLWidgetSupported())
-        m_pGLWidget = new GLWidget(m_pMachineView->viewport(), this);
-#endif
-
-    /* Resize/rescale frame-buffer to the default size: */
-    performResize(640, 480);
-    performRescale();
-
-#ifdef Q_OS_WIN
-    CoCreateFreeThreadedMarshaler(this, m_pUnkMarshaler.asOutParam());
-#endif /* Q_OS_WIN */
-    return S_OK;
 }
 
 UIFrameBufferPrivate::~UIFrameBufferPrivate()
@@ -1157,6 +416,31 @@ UIFrameBufferPrivate::~UIFrameBufferPrivate()
     RTCritSectDelete(&m_critSect);
 }
 
+HRESULT UIFrameBufferPrivate::init(UIMachineView *pMachineView)
+{
+    LogRel2(("GUI: UIFrameBufferPrivate::init %p\n", this));
+
+    /* Fetch passed view: */
+    setView(pMachineView);
+
+    /* Assign display: */
+    m_comDisplay = gpMachine->uisession()->display();
+
+    /* Initialize critical-section: */
+    int rc = RTCritSectInit(&m_critSect);
+    AssertRC(rc);
+
+    /* Resize/rescale frame-buffer to the default size: */
+    performResize(640, 480);
+    performRescale();
+
+#ifdef VBOX_WS_WIN
+    CoCreateFreeThreadedMarshaler(this, m_pUnkMarshaler.asOutParam());
+#endif
+
+    return S_OK;
+}
+
 void UIFrameBufferPrivate::setView(UIMachineView *pMachineView)
 {
     /* Disconnect old handlers: */
@@ -1165,24 +449,20 @@ void UIFrameBufferPrivate::setView(UIMachineView *pMachineView)
 
     /* Reassign machine-view: */
     m_pMachineView = pMachineView;
+    /* Reassign index: */
+    m_uScreenId = m_pMachineView ? m_pMachineView->screenId() : 0;
     /* Recache window ID: */
     m_iWinId = (m_pMachineView && m_pMachineView->viewport()) ? (LONG64)m_pMachineView->viewport()->winId() : 0;
 
-#ifdef VBOX_WS_X11
-    /* Sync Qt and X11 Server (see xTracker #7547). */
-    XSync(NativeWindowSubsystem::X11GetDisplay(), false);
+#ifdef VBOX_WS_NIX
+    if (uiCommon().X11ServerAvailable())
+        /* Resync Qt and X11 Server (see xTracker #7547). */
+        XSync(NativeWindowSubsystem::X11GetDisplay(), false);
 #endif
 
-    /* Connect new handlers: */
+    /* Reconnect new handlers: */
     if (m_pMachineView)
         prepareConnections();
-
-#ifdef VBOX_GUI_WITH_QTGLFRAMEBUFFER
-    /* Decide if we are going to use GL to draw the guest screen: */
-    m_pGLWidget = 0;
-    if (m_pMachineView && isGLWidgetSupported())
-        m_pGLWidget = new GLWidget(m_pMachineView->viewport(), this);
-#endif
 }
 
 void UIFrameBufferPrivate::attach()
@@ -1192,8 +472,8 @@ void UIFrameBufferPrivate::attach()
 
 void UIFrameBufferPrivate::detach()
 {
-    CFramebuffer frameBuffer = display().QueryFramebuffer(m_uScreenId);
-    if (!frameBuffer.isNull())
+    CFramebuffer comFramebuffer = display().QueryFramebuffer(m_uScreenId);
+    if (!comFramebuffer.isNull())
     {
         display().DetachFramebuffer(m_uScreenId, m_uFramebufferId);
         m_uFramebufferId = QUuid();
@@ -1629,72 +909,6 @@ STDMETHODIMP UIFrameBufferPrivate::Notify3DEvent(ULONG uType, ComSafeArrayIn(BYT
             return hr;
         }
 
-#if defined(VBOX_GUI_WITH_QTGLFRAMEBUFFER) && defined(RT_OS_LINUX)
-        case VBOX3D_NOTIFY_TYPE_HW_SCREEN_CREATED:
-        case VBOX3D_NOTIFY_TYPE_HW_SCREEN_DESTROYED:
-        case VBOX3D_NOTIFY_TYPE_HW_SCREEN_UPDATE_BEGIN:
-        case VBOX3D_NOTIFY_TYPE_HW_SCREEN_UPDATE_END:
-        {
-            HRESULT hr = S_OK;
-            com::SafeArray<BYTE> notifyData(ComSafeArrayInArg(data));
-            if (m_pGLWidget)
-            {
-                if (uType == VBOX3D_NOTIFY_TYPE_HW_SCREEN_CREATED)
-                {
-                    LogRel4(("GUI: Notify3DEvent VBOX3D_NOTIFY_TYPE_3D_SCREEN_CREATED\n"));
-
-                    struct NotifyData
-                    {
-                        uint64_t u64NativeHandle;
-                        VisualID visualid;
-                    };
-                    struct NotifyData *pData = (struct NotifyData *)notifyData.raw();
-
-                    GLWidgetSource *p = new GLWidgetSourcePixmap(m_pGLWidget, (Pixmap)pData->u64NativeHandle, pData->visualid);
-                    m_pGLWidget->setSource(p, true);
-
-                    LogRelMax(1, ("GUI: Created a HW accelerated screen\n"));
-                }
-                else if (uType == VBOX3D_NOTIFY_TYPE_HW_SCREEN_DESTROYED)
-                {
-                    LogRel4(("GUI: Notify3DEvent VBOX3D_NOTIFY_TYPE_3D_SCREEN_DESTROYED\n"));
-
-                    GLWidgetSource *p = new GLWidgetSourceImage(m_pGLWidget, &m_image);
-                    m_pGLWidget->setSource(p, true);
-                }
-                else if (uType == VBOX3D_NOTIFY_TYPE_HW_SCREEN_UPDATE_BEGIN)
-                {
-                    /* Do nothing. */
-                }
-                else if (uType == VBOX3D_NOTIFY_TYPE_HW_SCREEN_UPDATE_END)
-                {
-                    struct NotifyData
-                    {
-                        uint64_t u64NativeHandle;
-                        int32_t left;
-                        int32_t top;
-                        int32_t right;
-                        int32_t bottom;
-                    };
-                    struct NotifyData *pData = (struct NotifyData *)notifyData.raw();
-
-                    /* Send the screen update message. */
-                    int iX = pData->left;
-                    int iY = pData->top;
-                    int iWidth = pData->right - pData->left;
-                    int iHeight = pData->bottom - pData->top;
-                    emit sigNotifyUpdate(iX, iY, iWidth, iHeight);
-                }
-            }
-            else
-            {
-                hr = E_FAIL; // Not supported
-            }
-            unlock();
-            return hr;
-        }
-#endif /* defined(VBOX_GUI_WITH_QTGLFRAMEBUFFER) && defined(RT_OS_LINUX) */
-
         default:
             break;
     }
@@ -1869,21 +1083,11 @@ void UIFrameBufferPrivate::performResize(int iWidth, int iHeight)
          * in the Guest Additions protocol, but in practice it should be fine. */
         if (   ulGuestBitsPerPixel != ulBitsPerPixel
             && ulGuestBitsPerPixel != 0
-            && m_pMachineView->uisession()->isGuestSupportsGraphics())
+            && m_pMachineView->uimachine()->isGuestSupportsGraphics())
             UINotificationMessage::remindAboutWrongColorDepth(ulGuestBitsPerPixel, ulBitsPerPixel);
         else
             UINotificationMessage::forgetAboutWrongColorDepth();
     }
-
-#ifdef VBOX_GUI_WITH_QTGLFRAMEBUFFER
-   if (m_pGLWidget)
-   {
-       m_pGLWidget->resizeGuestScreen(m_iWidth, m_iHeight);
-
-       GLWidgetSource *p = new GLWidgetSourceImage(m_pGLWidget, &m_image);
-       m_pGLWidget->setSource(p, false);
-   }
-#endif
 
     lock();
 
@@ -1908,7 +1112,7 @@ void UIFrameBufferPrivate::performResize(int iWidth, int iHeight)
     unlock();
 
     /* Make sure action-pool knows frame-buffer size: */
-    m_pMachineView->uisession()->actionPool()->toRuntime()->setGuestScreenSize(m_pMachineView->screenId(),
+    m_pMachineView->uimachine()->actionPool()->toRuntime()->setGuestScreenSize(m_pMachineView->screenId(),
                                                                                QSize(m_iWidth, m_iHeight));
 }
 
@@ -1943,14 +1147,14 @@ void UIFrameBufferPrivate::sltMousePointerShapeOrPositionChange()
      * Also, please take into account, we are not currently painting
      * framebuffer cursor if mouse integration is supported and enabled. */
     if (   m_pMachineView
-        && !m_pMachineView->uisession()->isHidingHostPointer()
-        && m_pMachineView->uisession()->isValidPointerShapePresent()
-        && m_pMachineView->uisession()->isValidCursorPositionPresent()
-        && (   !m_pMachineView->uisession()->isMouseIntegrated()
-            || !m_pMachineView->uisession()->isMouseSupportsAbsolute()))
+        && !m_pMachineView->uimachine()->isHidingHostPointer()
+        && m_pMachineView->uimachine()->isValidPointerShapePresent()
+        && m_pMachineView->uimachine()->isValidCursorPositionPresent()
+        && (   !m_pMachineView->uimachine()->isMouseIntegrated()
+            || !m_pMachineView->uimachine()->isMouseSupportsAbsolute()))
     {
         /* Acquire cursor hotspot: */
-        QPoint cursorHotspot = m_pMachineView->uisession()->cursorHotspot();
+        QPoint cursorHotspot = m_pMachineView->uimachine()->cursorHotspot();
         /* Apply the scale-factor if necessary: */
         cursorHotspot /= scaleFactor();
         /* Take the device-pixel-ratio into account: */
@@ -1958,8 +1162,8 @@ void UIFrameBufferPrivate::sltMousePointerShapeOrPositionChange()
             cursorHotspot /= devicePixelRatioActual();
 
         /* Acquire cursor position and size: */
-        QPoint cursorPosition = m_pMachineView->uisession()->cursorPosition() - cursorHotspot;
-        QSize cursorSize = m_pMachineView->uisession()->cursorSize();
+        QPoint cursorPosition = m_pMachineView->uimachine()->cursorPosition() - cursorHotspot;
+        QSize cursorSize = m_pMachineView->uimachine()->cursorSize();
         /* Apply the scale-factor if necessary: */
         cursorPosition *= scaleFactor();
         cursorSize *= scaleFactor();
@@ -2003,9 +1207,9 @@ void UIFrameBufferPrivate::prepareConnections()
             Qt::QueuedConnection);
 
     /* Attach GUI connections: */
-    connect(m_pMachineView->uisession(), &UISession::sigMousePointerShapeChange,
+    connect(m_pMachineView->uimachine(), &UIMachine::sigMousePointerShapeChange,
             this, &UIFrameBufferPrivate::sltMousePointerShapeOrPositionChange);
-    connect(m_pMachineView->uisession(), &UISession::sigCursorPositionChange,
+    connect(m_pMachineView->uimachine(), &UIMachine::sigCursorPositionChange,
             this, &UIFrameBufferPrivate::sltMousePointerShapeOrPositionChange);
 }
 
@@ -2020,9 +1224,9 @@ void UIFrameBufferPrivate::cleanupConnections()
                m_pMachineView, &UIMachineView::sltHandleSetVisibleRegion);
 
     /* Detach GUI connections: */
-    disconnect(m_pMachineView->uisession(), &UISession::sigMousePointerShapeChange,
+    disconnect(m_pMachineView->uimachine(), &UIMachine::sigMousePointerShapeChange,
                this, &UIFrameBufferPrivate::sltMousePointerShapeOrPositionChange);
-    disconnect(m_pMachineView->uisession(), &UISession::sigCursorPositionChange,
+    disconnect(m_pMachineView->uimachine(), &UIMachine::sigCursorPositionChange,
                this, &UIFrameBufferPrivate::sltMousePointerShapeOrPositionChange);
 }
 
@@ -2046,30 +1250,6 @@ void UIFrameBufferPrivate::paintDefault(QPaintEvent *pEvent)
     /* Make sure cached image is valid: */
     if (m_image.isNull())
         return;
-
-#ifdef VBOX_GUI_WITH_QTGLFRAMEBUFFER
-    if (m_pGLWidget)
-    {
-        /* Draw the actually visible guest rectangle on the entire GLWidget.
-         * This code covers non-HiDPI normal and scaled modes. Scrollbars work too. */
-
-        /** @todo HiDPI support. Possibly need to split the geometry calculations from the QImage handling below
-         *        and share the geometry code with the OpenGL code path. */
-
-        /* Set the visible guest rectangle: */
-        m_pGLWidget->setGuestVisibleRect(m_pMachineView->contentsX(), m_pMachineView->contentsY(),
-                                         convertHostXTo(m_pGLWidget->width()), convertHostYTo(m_pGLWidget->height()));
-
-        /* Tell the GL Widget to update the guest screen content from the source: */
-        m_pGLWidget->updateGuestImage();
-
-        /* Redraw: */
-        m_pGLWidget->update();
-
-        /* Done: */
-        return;
-    }
-#endif /* VBOX_GUI_WITH_QTGLFRAMEBUFFER */
 
     /* First we take the cached image as the source: */
     QImage *pSourceImage = &m_image;
@@ -2142,14 +1322,14 @@ void UIFrameBufferPrivate::paintDefault(QPaintEvent *pEvent)
      * Also, please take into account, we are not currently painting
      * framebuffer cursor if mouse integration is supported and enabled. */
     if (   !m_cursorRectangle.isNull()
-        && !m_pMachineView->uisession()->isHidingHostPointer()
-        && m_pMachineView->uisession()->isValidPointerShapePresent()
-        && m_pMachineView->uisession()->isValidCursorPositionPresent()
-        && (   !m_pMachineView->uisession()->isMouseIntegrated()
-            || !m_pMachineView->uisession()->isMouseSupportsAbsolute()))
+        && !m_pMachineView->uimachine()->isHidingHostPointer()
+        && m_pMachineView->uimachine()->isValidPointerShapePresent()
+        && m_pMachineView->uimachine()->isValidCursorPositionPresent()
+        && (   !m_pMachineView->uimachine()->isMouseIntegrated()
+            || !m_pMachineView->uimachine()->isMouseSupportsAbsolute()))
     {
         /* Acquire session cursor shape pixmap: */
-        QPixmap cursorPixmap = m_pMachineView->uisession()->cursorShapePixmap();
+        QPixmap cursorPixmap = m_pMachineView->uimachine()->cursorShapePixmap();
 
         /* Take the device-pixel-ratio into account: */
         cursorPixmap.setDevicePixelRatio(devicePixelRatio());
@@ -2252,14 +1432,14 @@ void UIFrameBufferPrivate::paintSeamless(QPaintEvent *pEvent)
      * Also, please take into account, we are not currently painting
      * framebuffer cursor if mouse integration is supported and enabled. */
     if (   !m_cursorRectangle.isNull()
-        && !m_pMachineView->uisession()->isHidingHostPointer()
-        && m_pMachineView->uisession()->isValidPointerShapePresent()
-        && m_pMachineView->uisession()->isValidCursorPositionPresent()
-        && (   !m_pMachineView->uisession()->isMouseIntegrated()
-            || !m_pMachineView->uisession()->isMouseSupportsAbsolute()))
+        && !m_pMachineView->uimachine()->isHidingHostPointer()
+        && m_pMachineView->uimachine()->isValidPointerShapePresent()
+        && m_pMachineView->uimachine()->isValidCursorPositionPresent()
+        && (   !m_pMachineView->uimachine()->isMouseIntegrated()
+            || !m_pMachineView->uimachine()->isMouseSupportsAbsolute()))
     {
         /* Acquire session cursor shape pixmap: */
-        QPixmap cursorPixmap = m_pMachineView->uisession()->cursorShapePixmap();
+        QPixmap cursorPixmap = m_pMachineView->uimachine()->cursorShapePixmap();
 
         /* Take the device-pixel-ratio into account: */
         cursorPixmap.setDevicePixelRatio(devicePixelRatio());
@@ -2334,18 +1514,21 @@ void UIFrameBufferPrivate::drawImageRect(QPainter &painter, const QImage &image,
 
 
 UIFrameBuffer::UIFrameBuffer()
+    : m_fInitialized(false)
 {
-    m_pFrameBuffer.createObject();
+    prepare();
 }
 
 UIFrameBuffer::~UIFrameBuffer()
 {
-    m_pFrameBuffer.setNull();
+    cleanup();
 }
 
 HRESULT UIFrameBuffer::init(UIMachineView *pMachineView)
 {
-    return m_pFrameBuffer->init(pMachineView);
+    const HRESULT rc = m_pFrameBuffer->init(pMachineView);
+    m_fInitialized = true;
+    return rc;
 }
 
 void UIFrameBuffer::attach()
@@ -2358,7 +1541,7 @@ void UIFrameBuffer::detach()
     m_pFrameBuffer->detach();
 }
 
-uchar* UIFrameBuffer::address()
+uchar *UIFrameBuffer::address()
 {
     return m_pFrameBuffer->address();
 }
@@ -2381,11 +1564,6 @@ ulong UIFrameBuffer::bitsPerPixel() const
 ulong UIFrameBuffer::bytesPerLine() const
 {
     return m_pFrameBuffer->bytesPerLine();
-}
-
-UIVisualStateType UIFrameBuffer::visualState() const
-{
-    return m_pFrameBuffer->visualState();
 }
 
 void UIFrameBuffer::setView(UIMachineView *pMachineView)
@@ -2496,6 +1674,21 @@ void UIFrameBuffer::performRescale()
 void UIFrameBuffer::viewportResized(QResizeEvent *pEvent)
 {
     m_pFrameBuffer->viewportResized(pEvent);
+}
+
+void UIFrameBuffer::prepare()
+{
+    /* Creates COM object we are linked to: */
+    m_pFrameBuffer.createObject();
+
+    /* Take scaling optimization type into account: */
+    setScalingOptimizationType(gEDataManager->scalingOptimizationType(uiCommon().managedVMUuid()));
+}
+
+void UIFrameBuffer::cleanup()
+{
+    /* Detach COM object we are linked to: */
+    m_pFrameBuffer.setNull();
 }
 
 #include "UIFrameBuffer.moc"

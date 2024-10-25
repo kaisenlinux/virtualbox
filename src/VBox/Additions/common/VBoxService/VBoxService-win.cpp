@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -33,7 +33,6 @@
 #include <iprt/err.h>
 #include <iprt/ldr.h>
 #include <iprt/system.h> /* For querying OS version. */
-#include <VBox/VBoxGuestLib.h>
 
 #define WIN32_NO_STATUS
 #include <iprt/win/ws2tcpip.h>
@@ -63,10 +62,10 @@ SERVICE_STATUS_HANDLE g_hWinServiceStatus = NULL;
 /** The semaphore for the dummy Windows service. */
 static RTSEMEVENT     g_WindowsEvent = NIL_RTSEMEVENT;
 
-static SERVICE_TABLE_ENTRY const g_aServiceTable[] =
+static SERVICE_TABLE_ENTRYA const g_aServiceTable[] =
 {
-    { VBOXSERVICE_NAME, vgsvcWinMain },
-    { NULL,             NULL}
+    { (PSTR)VBOXSERVICE_NAME, vgsvcWinMain },
+    { NULL,                   NULL}
 };
 
 /** @name APIs from ADVAPI32.DLL.
@@ -188,7 +187,7 @@ void VGSvcWinResolveApis(void)
  * @todo Add full unicode support.
  * @todo Add event log capabilities / check return values.
  */
-static int vgsvcWinAddAceToObjectsSecurityDescriptor(LPTSTR pszObjName, SE_OBJECT_TYPE enmObjectType, const char *pszTrustee,
+static int vgsvcWinAddAceToObjectsSecurityDescriptor(LPCSTR pszObjName, SE_OBJECT_TYPE enmObjectType, const char *pszTrustee,
                                                      TRUSTEE_FORM enmTrusteeForm, DWORD dwAccessRights, ACCESS_MODE fAccessMode,
                                                      DWORD dwInheritance)
 {
@@ -219,7 +218,7 @@ static int vgsvcWinAddAceToObjectsSecurityDescriptor(LPTSTR pszObjName, SE_OBJEC
             if (rcWin == ERROR_SUCCESS)
             {
                 /* Attach the new ACL as the object's DACL. */
-                rcWin = g_pfnSetNamedSecurityInfoA(pszObjName, enmObjectType, DACL_SECURITY_INFORMATION,
+                rcWin = g_pfnSetNamedSecurityInfoA((PSTR)pszObjName, enmObjectType, DACL_SECURITY_INFORMATION,
                                                    NULL, NULL, pNewDACL, NULL);
                 if (rcWin == ERROR_SUCCESS)
                     rc = VINF_SUCCESS;
@@ -317,7 +316,7 @@ static RTEXITCODE vgsvcWinSetDesc(SC_HANDLE hService)
     {
         /** @todo On Vista+ SERVICE_DESCRIPTION also supports localized strings! */
         SERVICE_DESCRIPTION desc;
-        desc.lpDescription = VBOXSERVICE_DESCRIPTION;
+        desc.lpDescription = (LPSTR)VBOXSERVICE_DESCRIPTION;
         if (!g_pfnChangeServiceConfig2A(hService, SERVICE_CONFIG_DESCRIPTION, &desc))
         {
             VGSvcError("Cannot set the service description! Error: %ld\n", GetLastError());
@@ -459,7 +458,7 @@ static int vgsvcWinStart(void)
     SID_IDENTIFIER_AUTHORITY SIDAuthWorld     = SECURITY_LOCAL_SID_AUTHORITY;
     if (AllocateAndInitializeSid(&SIDAuthWorld, 1, SECURITY_LOCAL_RID, 0, 0, 0, 0, 0, 0, 0, &pBuiltinUsersSID))
     {
-        rc = vgsvcWinAddAceToObjectsSecurityDescriptor(TEXT("\\\\.\\VBoxMiniRdrDN"), SE_FILE_OBJECT,
+        rc = vgsvcWinAddAceToObjectsSecurityDescriptor("\\\\.\\VBoxMiniRdrDN", SE_FILE_OBJECT,
                                                        (LPTSTR)pBuiltinUsersSID, TRUSTEE_IS_SID,
                                                        FILE_GENERIC_READ | FILE_GENERIC_WRITE, SET_ACCESS, NO_INHERITANCE);
         /* If we don't find our "VBoxMiniRdrDN" (for Shared Folders) object above,

@@ -78,11 +78,13 @@ ipcService::ResolveClientName(const char *aName, PRUint32 *aID)
     return IPC_ResolveClientName(aName, aID);
 }
 
+#if 0 /*unused*/
 NS_IMETHODIMP
 ipcService::ClientExists(PRUint32 aClientID, PRBool *aResult)
 {
     return IPC_ClientExists(aClientID, aResult);
 }
+#endif
 
 NS_IMETHODIMP
 ipcService::DefineTarget(const nsID &aTarget, ipcIMessageObserver *aObserver,
@@ -104,7 +106,7 @@ ipcService::WaitMessage(PRUint32 aSenderID, const nsID &aTarget,
                         PRUint32 aTimeout)
 {
     return IPC_WaitMessage(aSenderID, aTarget, aObserver, nsnull,
-                           PR_MillisecondsToInterval(aTimeout));
+                           aTimeout);
 }
 
 NS_IMETHODIMP

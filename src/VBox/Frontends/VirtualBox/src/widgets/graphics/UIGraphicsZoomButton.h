@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,7 +35,7 @@
 #include "UIGraphicsButton.h"
 
 /* Other VBox includes: */
-#include "iprt/assert.h"
+#include "iprt/cdefs.h" // for RT_BIT stuff
 
 /* Forward declarations: */
 class QStateMachine;
@@ -77,14 +77,14 @@ public:
 protected:
 
     /* Data provider: */
-    QVariant data(int iKey) const;
+    QVariant data(int iKey) const RT_OVERRIDE RT_FINAL;
 
     /* Handler: Mouse hover: */
-    void hoverEnterEvent(QGraphicsSceneHoverEvent *pEvent);
-    void hoverLeaveEvent(QGraphicsSceneHoverEvent *pEvent);
+    void hoverEnterEvent(QGraphicsSceneHoverEvent *pEvent) RT_OVERRIDE RT_FINAL;
+    void hoverLeaveEvent(QGraphicsSceneHoverEvent *pEvent) RT_OVERRIDE RT_FINAL;
 
     /* Paint stuff: */
-    void paint(QPainter *pPainter, const QStyleOptionGraphicsItem *pOption, QWidget *pWidget = 0);
+    void paint(QPainter *pPainter, const QStyleOptionGraphicsItem *pOption, QWidget *pWidget = 0) RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -106,4 +106,3 @@ private:
 };
 
 #endif /* !FEQT_INCLUDED_SRC_widgets_graphics_UIGraphicsZoomButton_h */
-

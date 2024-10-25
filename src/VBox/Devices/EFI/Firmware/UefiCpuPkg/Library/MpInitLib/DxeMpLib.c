@@ -1,7 +1,7 @@
 /** @file
   MP initialize support functions for DXE phase.
 
-  Copyright (c) 2016 - 2020, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2016 - 2023, Intel Corporation. All rights reserved.<BR>
   SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
@@ -12,22 +12,28 @@
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/DebugAgentLib.h>
 #include <Library/DxeServicesTableLib.h>
-#include <Library/VmgExitLib.h>
+#include <Library/CcExitLib.h>
 #include <Register/Amd/Fam17Msr.h>
 #include <Register/Amd/Ghcb.h>
 
 #include <Protocol/Timer.h>
 
-#define  AP_SAFE_STACK_SIZE    128
+#define  AP_SAFE_STACK_SIZE  128
 
-CPU_MP_DATA      *mCpuMpData = NULL;
-EFI_EVENT        mCheckAllApsEvent = NULL;
-EFI_EVENT        mMpInitExitBootServicesEvent = NULL;
-EFI_EVENT        mLegacyBootEvent = NULL;
-volatile BOOLEAN mStopCheckAllApsStatus = TRUE;
-VOID             *mReservedApLoopFunc = NULL;
-UINTN            mReservedTopOfApStack;
-volatile UINT32  mNumberToFinish = 0;
+CPU_MP_DATA             *mCpuMpData                  = NULL;
+EFI_EVENT               mCheckAllApsEvent            = NULL;
+EFI_EVENT               mMpInitExitBootServicesEvent = NULL;
+EFI_EVENT               mLegacyBootEvent             = NULL;
+volatile BOOLEAN        mStopCheckAllApsStatus       = TRUE;
+RELOCATE_AP_LOOP_ENTRY  mReservedApLoop;
+UINTN                   mReservedTopOfApStack;
+volatile UINT32         mNumberToFinish = 0;
+UINTN                   mApPageTable;
+
+//
+// Begin wakeup buffer allocation below 0x88000
+//
+STATIC EFI_PHYSICAL_ADDRESS  mSevEsDxeWakeupBuffer = 0x88000;
 
 /**
   Enable Debug Agent to support source debugging on AP function.
@@ -65,7 +71,7 @@ GetCpuMpData (
 **/
 VOID
 SaveCpuMpData (
-  IN CPU_MP_DATA   *CpuMpData
+  IN CPU_MP_DATA  *CpuMpData
   )
 {
   mCpuMpData = CpuMpData;
@@ -81,14 +87,21 @@ SaveCpuMpData (
 **/
 UINTN
 GetWakeupBuffer (
-  IN UINTN                WakeupBufferSize
+  IN UINTN  WakeupBufferSize
   )
 {
-  EFI_STATUS              Status;
-  EFI_PHYSICAL_ADDRESS    StartAddress;
-  EFI_MEMORY_TYPE         MemoryType;
+  EFI_STATUS            Status;
+  EFI_PHYSICAL_ADDRESS  StartAddress;
+  EFI_MEMORY_TYPE       MemoryType;
 
-  if (PcdGetBool (PcdSevEsIsEnabled)) {
+  if (ConfidentialComputingGuestHas (CCAttrAmdSevEs) &&
+      !ConfidentialComputingGuestHas (CCAttrAmdSevSnp))
+  {
+    //
+    // An SEV-ES-only guest requires the memory to be reserved. SEV-SNP, which
+    // is also considered SEV-ES, uses a different AP startup method, though,
+    // which does not have the same requirement.
+    //
     MemoryType = EfiReservedMemoryType;
   } else {
     MemoryType = EfiBootServicesData;
@@ -102,7 +115,15 @@ GetWakeupBuffer (
   // LagacyBios driver depends on CPU Arch protocol which guarantees below
   // allocation runs earlier than LegacyBios driver.
   //
-  StartAddress = 0x88000;
+  if (ConfidentialComputingGuestHas (CCAttrAmdSevEs)) {
+    //
+    // SEV-ES Wakeup buffer should be under 0x88000 and under any previous one
+    //
+    StartAddress = mSevEsDxeWakeupBuffer;
+  } else {
+    StartAddress = 0x88000;
+  }
+
   Status = gBS->AllocatePages (
                   AllocateMaxAddress,
                   MemoryType,
@@ -111,13 +132,22 @@ GetWakeupBuffer (
                   );
   ASSERT_EFI_ERROR (Status);
   if (EFI_ERROR (Status)) {
-    StartAddress = (EFI_PHYSICAL_ADDRESS) -1;
+    StartAddress = (EFI_PHYSICAL_ADDRESS)-1;
+  } else if (ConfidentialComputingGuestHas (CCAttrAmdSevEs)) {
+    //
+    // Next SEV-ES wakeup buffer allocation must be below this allocation
+    //
+    mSevEsDxeWakeupBuffer = StartAddress;
   }
 
-  DEBUG ((DEBUG_INFO, "WakeupBufferStart = %x, WakeupBufferSize = %x\n",
-                      (UINTN) StartAddress, WakeupBufferSize));
+  DEBUG ((
+    DEBUG_INFO,
+    "WakeupBufferStart = %x, WakeupBufferSize = %x\n",
+    (UINTN)StartAddress,
+    WakeupBufferSize
+    ));
 
-  return (UINTN) StartAddress;
+  return (UINTN)StartAddress;
 }
 
 /**
@@ -133,20 +163,20 @@ GetWakeupBuffer (
   @retval 0       Cannot find free memory below 4GB.
 **/
 UINTN
-GetModeTransitionBuffer (
-  IN UINTN                BufferSize
+AllocateCodeBuffer (
+  IN UINTN  BufferSize
   )
 {
-  EFI_STATUS              Status;
-  EFI_PHYSICAL_ADDRESS    StartAddress;
+  EFI_STATUS            Status;
+  EFI_PHYSICAL_ADDRESS  StartAddress;
 
   StartAddress = BASE_4GB - 1;
-  Status = gBS->AllocatePages (
-                  AllocateMaxAddress,
-                  EfiBootServicesCode,
-                  EFI_SIZE_TO_PAGES (BufferSize),
-                  &StartAddress
-                  );
+  Status       = gBS->AllocatePages (
+                        AllocateMaxAddress,
+                        EfiBootServicesCode,
+                        EFI_SIZE_TO_PAGES (BufferSize),
+                        &StartAddress
+                        );
   if (EFI_ERROR (Status)) {
     StartAddress = 0;
   }
@@ -177,27 +207,27 @@ GetSevEsAPMemory (
   // Allocate 1 page for AP jump table page
   //
   StartAddress = BASE_4GB - 1;
-  Status = gBS->AllocatePages (
-                  AllocateMaxAddress,
-                  EfiReservedMemoryType,
-                  1,
-                  &StartAddress
-                  );
+  Status       = gBS->AllocatePages (
+                        AllocateMaxAddress,
+                        EfiReservedMemoryType,
+                        1,
+                        &StartAddress
+                        );
   ASSERT_EFI_ERROR (Status);
 
-  DEBUG ((DEBUG_INFO, "Dxe: SevEsAPMemory = %lx\n", (UINTN) StartAddress));
+  DEBUG ((DEBUG_INFO, "Dxe: SevEsAPMemory = %lx\n", (UINTN)StartAddress));
 
   //
   // Save the SevEsAPMemory as the AP jump table.
   //
   Msr.GhcbPhysicalAddress = AsmReadMsr64 (MSR_SEV_ES_GHCB);
-  Ghcb = Msr.Ghcb;
+  Ghcb                    = Msr.Ghcb;
 
-  VmgInit (Ghcb, &InterruptState);
-  VmgExit (Ghcb, SVM_EXIT_AP_JUMP_TABLE, 0, (UINT64) (UINTN) StartAddress);
-  VmgDone (Ghcb, InterruptState);
+  CcExitVmgInit (Ghcb, &InterruptState);
+  CcExitVmgExit (Ghcb, SVM_EXIT_AP_JUMP_TABLE, 0, (UINT64)(UINTN)StartAddress);
+  CcExitVmgDone (Ghcb, InterruptState);
 
-  return (UINTN) StartAddress;
+  return (UINTN)StartAddress;
 }
 
 /**
@@ -209,9 +239,9 @@ CheckAndUpdateApsStatus (
   VOID
   )
 {
-  UINTN                   ProcessorNumber;
-  EFI_STATUS              Status;
-  CPU_MP_DATA             *CpuMpData;
+  UINTN        ProcessorNumber;
+  EFI_STATUS   Status;
+  CPU_MP_DATA  *CpuMpData;
 
   CpuMpData = GetCpuMpData ();
 
@@ -219,13 +249,12 @@ CheckAndUpdateApsStatus (
   // First, check whether pending StartupAllAPs() exists.
   //
   if (CpuMpData->WaitEvent != NULL) {
-
     Status = CheckAllAPs ();
     //
     // If all APs finish for StartupAllAPs(), signal the WaitEvent for it.
     //
     if (Status != EFI_NOT_READY) {
-      Status = gBS->SignalEvent (CpuMpData->WaitEvent);
+      Status               = gBS->SignalEvent (CpuMpData->WaitEvent);
       CpuMpData->WaitEvent = NULL;
     }
   }
@@ -234,7 +263,6 @@ CheckAndUpdateApsStatus (
   // Second, check whether pending StartupThisAPs() callings exist.
   //
   for (ProcessorNumber = 0; ProcessorNumber < CpuMpData->CpuCount; ProcessorNumber++) {
-
     if (CpuMpData->CpuData[ProcessorNumber].WaitEvent == NULL) {
       continue;
     }
@@ -243,7 +271,7 @@ CheckAndUpdateApsStatus (
 
     if (Status != EFI_NOT_READY) {
       gBS->SignalEvent (CpuMpData->CpuData[ProcessorNumber].WaitEvent);
-     CpuMpData->CpuData[ProcessorNumber].WaitEvent = NULL;
+      CpuMpData->CpuData[ProcessorNumber].WaitEvent = NULL;
     }
   }
 }
@@ -262,8 +290,8 @@ CheckAndUpdateApsStatus (
 VOID
 EFIAPI
 CheckApsStatus (
-  IN  EFI_EVENT                           Event,
-  IN  VOID                                *Context
+  IN  EFI_EVENT  Event,
+  IN  VOID       *Context
   )
 {
   //
@@ -290,18 +318,20 @@ GetProtectedMode16CS (
   UINTN                    GdtEntryCount;
   UINT16                   Index;
 
-  Index = (UINT16) -1;
+  Index = (UINT16)-1;
   AsmReadGdtr (&GdtrDesc);
   GdtEntryCount = (GdtrDesc.Limit + 1) / sizeof (IA32_SEGMENT_DESCRIPTOR);
-  GdtEntry = (IA32_SEGMENT_DESCRIPTOR *) GdtrDesc.Base;
+  GdtEntry      = (IA32_SEGMENT_DESCRIPTOR *)GdtrDesc.Base;
   for (Index = 0; Index < GdtEntryCount; Index++) {
     if (GdtEntry->Bits.L == 0) {
-      if (GdtEntry->Bits.Type > 8 && GdtEntry->Bits.DB == 0) {
+      if ((GdtEntry->Bits.Type > 8) && (GdtEntry->Bits.DB == 0)) {
         break;
       }
     }
+
     GdtEntry++;
   }
+
   ASSERT (Index != GdtEntryCount);
   return Index * 8;
 }
@@ -323,15 +353,17 @@ GetProtectedModeCS (
 
   AsmReadGdtr (&GdtrDesc);
   GdtEntryCount = (GdtrDesc.Limit + 1) / sizeof (IA32_SEGMENT_DESCRIPTOR);
-  GdtEntry = (IA32_SEGMENT_DESCRIPTOR *) GdtrDesc.Base;
+  GdtEntry      = (IA32_SEGMENT_DESCRIPTOR *)GdtrDesc.Base;
   for (Index = 0; Index < GdtEntryCount; Index++) {
     if (GdtEntry->Bits.L == 0) {
-      if (GdtEntry->Bits.Type > 8 && GdtEntry->Bits.DB == 1) {
+      if ((GdtEntry->Bits.Type > 8) && (GdtEntry->Bits.DB == 1)) {
         break;
       }
     }
+
     GdtEntry++;
   }
+
   ASSERT (Index != GdtEntryCount);
   return Index * 8;
 }
@@ -347,31 +379,43 @@ RelocateApLoop (
   IN OUT VOID  *Buffer
   )
 {
-  CPU_MP_DATA            *CpuMpData;
-  BOOLEAN                MwaitSupport;
-  ASM_RELOCATE_AP_LOOP   AsmRelocateApLoopFunc;
-  UINTN                  ProcessorNumber;
-  UINTN                  StackStart;
+  CPU_MP_DATA  *CpuMpData;
+  BOOLEAN      MwaitSupport;
+  UINTN        ProcessorNumber;
+  UINTN        StackStart;
 
   MpInitLibWhoAmI (&ProcessorNumber);
   CpuMpData    = GetCpuMpData ();
   MwaitSupport = IsMwaitSupport ();
-  if (CpuMpData->SevEsIsEnabled) {
+  if (CpuMpData->UseSevEsAPMethod) {
+    //
+    // 64-bit AMD processors with SEV-ES
+    //
     StackStart = CpuMpData->SevEsAPResetStackStart;
+    mReservedApLoop.AmdSevEntry (
+                      MwaitSupport,
+                      CpuMpData->ApTargetCState,
+                      CpuMpData->PmCodeSegment,
+                      StackStart - ProcessorNumber * AP_SAFE_STACK_SIZE,
+                      (UINTN)&mNumberToFinish,
+                      CpuMpData->Pm16CodeSegment,
+                      CpuMpData->SevEsAPBuffer,
+                      CpuMpData->WakeupBuffer
+                      );
   } else {
+    //
+    // Intel processors (32-bit or 64-bit), 32-bit AMD processors, or 64-bit AMD processors without SEV-ES
+    //
     StackStart = mReservedTopOfApStack;
+    mReservedApLoop.GenericEntry (
+                      MwaitSupport,
+                      CpuMpData->ApTargetCState,
+                      StackStart - ProcessorNumber * AP_SAFE_STACK_SIZE,
+                      (UINTN)&mNumberToFinish,
+                      mApPageTable
+                      );
   }
-  AsmRelocateApLoopFunc = (ASM_RELOCATE_AP_LOOP) (UINTN) mReservedApLoopFunc;
-  AsmRelocateApLoopFunc (
-    MwaitSupport,
-    CpuMpData->ApTargetCState,
-    CpuMpData->PmCodeSegment,
-    StackStart - ProcessorNumber * AP_SAFE_STACK_SIZE,
-    (UINTN) &mNumberToFinish,
-    CpuMpData->Pm16CodeSegment,
-    CpuMpData->SevEsAPBuffer,
-    CpuMpData->WakeupBuffer
-    );
+
   //
   // It should never reach here
   //
@@ -389,37 +433,37 @@ RelocateApLoop (
 VOID
 EFIAPI
 MpInitChangeApLoopCallback (
-  IN EFI_EVENT                Event,
-  IN VOID                     *Context
+  IN EFI_EVENT  Event,
+  IN VOID       *Context
   )
 {
-  CPU_MP_DATA               *CpuMpData;
+  CPU_MP_DATA  *CpuMpData;
 
-  CpuMpData = GetCpuMpData ();
-  CpuMpData->PmCodeSegment = GetProtectedModeCS ();
+  CpuMpData                  = GetCpuMpData ();
+  CpuMpData->PmCodeSegment   = GetProtectedModeCS ();
   CpuMpData->Pm16CodeSegment = GetProtectedMode16CS ();
-  CpuMpData->ApLoopMode = PcdGet8 (PcdCpuApLoopMode);
-  mNumberToFinish = CpuMpData->CpuCount - 1;
+  CpuMpData->ApLoopMode      = PcdGet8 (PcdCpuApLoopMode);
+  mNumberToFinish            = CpuMpData->CpuCount - 1;
   WakeUpAP (CpuMpData, TRUE, 0, RelocateApLoop, NULL, TRUE);
   while (mNumberToFinish > 0) {
     CpuPause ();
   }
 
-  if (CpuMpData->SevEsIsEnabled && (CpuMpData->WakeupBuffer != (UINTN) -1)) {
+  if (CpuMpData->UseSevEsAPMethod && (CpuMpData->WakeupBuffer != (UINTN)-1)) {
     //
     // There are APs present. Re-use reserved memory area below 1MB from
     // WakeupBuffer as the area to be used for transitioning to 16-bit mode
     // in support of booting of the AP by an OS.
     //
     CopyMem (
-      (VOID *) CpuMpData->WakeupBuffer,
-      (VOID *) (CpuMpData->AddressMap.RendezvousFunnelAddress +
-                  CpuMpData->AddressMap.SwitchToRealPM16ModeOffset),
+      (VOID *)CpuMpData->WakeupBuffer,
+      (VOID *)(CpuMpData->AddressMap.RendezvousFunnelAddress +
+               CpuMpData->AddressMap.SwitchToRealPM16ModeOffset),
       CpuMpData->AddressMap.SwitchToRealPM16ModeSize
       );
   }
 
-  DEBUG ((DEBUG_INFO, "%a() done!\n", __FUNCTION__));
+  DEBUG ((DEBUG_INFO, "%a() done!\n", __func__));
 }
 
 /**
@@ -429,16 +473,20 @@ MpInitChangeApLoopCallback (
 **/
 VOID
 InitMpGlobalData (
-  IN CPU_MP_DATA               *CpuMpData
+  IN CPU_MP_DATA  *CpuMpData
   )
 {
-  EFI_STATUS                          Status;
-  EFI_PHYSICAL_ADDRESS                Address;
-  UINTN                               ApSafeBufferSize;
-  UINTN                               Index;
-  EFI_GCD_MEMORY_SPACE_DESCRIPTOR     MemDesc;
-  UINTN                               StackBase;
-  CPU_INFO_IN_HOB                     *CpuInfoInHob;
+  EFI_STATUS                       Status;
+  EFI_PHYSICAL_ADDRESS             Address;
+  UINTN                            Index;
+  EFI_GCD_MEMORY_SPACE_DESCRIPTOR  MemDesc;
+  UINTN                            StackBase;
+  CPU_INFO_IN_HOB                  *CpuInfoInHob;
+  MP_ASSEMBLY_ADDRESS_MAP          *AddressMap;
+  UINT8                            *ApLoopFunc;
+  UINTN                            ApLoopFuncSize;
+  UINTN                            StackPages;
+  UINTN                            FuncPages;
 
   SaveCpuMpData (CpuMpData);
 
@@ -468,7 +516,7 @@ InitMpGlobalData (
     //
     CpuInfoInHob = (CPU_INFO_IN_HOB *)(UINTN)CpuMpData->CpuInfoInHob;
     for (Index = 0; Index < CpuMpData->CpuCount; ++Index) {
-      if (CpuInfoInHob != NULL && CpuInfoInHob[Index].ApTopOfStack != 0) {
+      if ((CpuInfoInHob != NULL) && (CpuInfoInHob[Index].ApTopOfStack != 0)) {
         StackBase = (UINTN)CpuInfoInHob[Index].ApTopOfStack - CpuMpData->CpuApStackSize;
       } else {
         StackBase = CpuMpData->Buffer + Index * CpuMpData->CpuApStackSize;
@@ -484,9 +532,30 @@ InitMpGlobalData (
                       );
       ASSERT_EFI_ERROR (Status);
 
-      DEBUG ((DEBUG_INFO, "Stack Guard set at %lx [cpu%lu]!\n",
-              (UINT64)StackBase, (UINT64)Index));
+      DEBUG ((
+        DEBUG_INFO,
+        "Stack Guard set at %lx [cpu%lu]!\n",
+        (UINT64)StackBase,
+        (UINT64)Index
+        ));
     }
+  }
+
+  AddressMap = &CpuMpData->AddressMap;
+  if (CpuMpData->UseSevEsAPMethod) {
+    //
+    // 64-bit AMD processors with SEV-ES
+    //
+    Address        = BASE_4GB - 1;
+    ApLoopFunc     = AddressMap->RelocateApLoopFuncAddressAmdSev;
+    ApLoopFuncSize = AddressMap->RelocateApLoopFuncSizeAmdSev;
+  } else {
+    //
+    // Intel processors (32-bit or 64-bit), 32-bit AMD processors, or 64-bit AMD processors without SEV-ES
+    //
+    Address        = MAX_ADDRESS;
+    ApLoopFunc     = AddressMap->RelocateApLoopFuncAddressGeneric;
+    ApLoopFuncSize = AddressMap->RelocateApLoopFuncSizeGeneric;
   }
 
   //
@@ -497,20 +566,25 @@ InitMpGlobalData (
   // Allocating it in advance since memory services are not available in
   // Exit Boot Services callback function.
   //
-  ApSafeBufferSize  = EFI_PAGES_TO_SIZE (EFI_SIZE_TO_PAGES (
-                        CpuMpData->AddressMap.RelocateApLoopFuncSize
-                        ));
-  Address = BASE_4GB - 1;
-  Status  = gBS->AllocatePages (
-                   AllocateMaxAddress,
-                   EfiReservedMemoryType,
-                   EFI_SIZE_TO_PAGES (ApSafeBufferSize),
-                   &Address
-                   );
-  ASSERT_EFI_ERROR (Status);
+  // +------------+ (TopOfApStack)
+  // |  Stack * N |
+  // +------------+ (stack base, 4k aligned)
+  // |  Padding   |
+  // +------------+
+  // |  Ap Loop   |
+  // +------------+ ((low address, 4k-aligned)
+  //
 
-  mReservedApLoopFunc = (VOID *) (UINTN) Address;
-  ASSERT (mReservedApLoopFunc != NULL);
+  StackPages = EFI_SIZE_TO_PAGES (CpuMpData->CpuCount * AP_SAFE_STACK_SIZE);
+  FuncPages  = EFI_SIZE_TO_PAGES (ApLoopFuncSize);
+
+  Status = gBS->AllocatePages (
+                  AllocateMaxAddress,
+                  EfiReservedMemoryType,
+                  StackPages + FuncPages,
+                  &Address
+                  );
+  ASSERT_EFI_ERROR (Status);
 
   //
   // Make sure that the buffer memory is executable if NX protection is enabled
@@ -523,30 +597,25 @@ InitMpGlobalData (
   if (!EFI_ERROR (Status)) {
     gDS->SetMemorySpaceAttributes (
            Address,
-           ApSafeBufferSize,
+           EFI_PAGES_TO_SIZE (FuncPages),
            MemDesc.Attributes & (~EFI_MEMORY_XP)
            );
   }
 
-  ApSafeBufferSize = EFI_PAGES_TO_SIZE (EFI_SIZE_TO_PAGES (
-                       CpuMpData->CpuCount * AP_SAFE_STACK_SIZE
-                       ));
-  Address = BASE_4GB - 1;
-  Status  = gBS->AllocatePages (
-                   AllocateMaxAddress,
-                   EfiReservedMemoryType,
-                   EFI_SIZE_TO_PAGES (ApSafeBufferSize),
-                   &Address
-                   );
-  ASSERT_EFI_ERROR (Status);
-
-  mReservedTopOfApStack = (UINTN) Address + ApSafeBufferSize;
+  mReservedTopOfApStack = (UINTN)Address + EFI_PAGES_TO_SIZE (StackPages+FuncPages);
   ASSERT ((mReservedTopOfApStack & (UINTN)(CPU_STACK_ALIGNMENT - 1)) == 0);
-  CopyMem (
-    mReservedApLoopFunc,
-    CpuMpData->AddressMap.RelocateApLoopFuncAddress,
-    CpuMpData->AddressMap.RelocateApLoopFuncSize
-    );
+  mReservedApLoop.Data = (VOID *)(UINTN)Address;
+  ASSERT (mReservedApLoop.Data != NULL);
+  CopyMem (mReservedApLoop.Data, ApLoopFunc, ApLoopFuncSize);
+  if (!CpuMpData->UseSevEsAPMethod) {
+    //
+    // processors without SEV-ES
+    //
+    mApPageTable = CreatePageTable (
+                     (UINTN)Address,
+                     EFI_PAGES_TO_SIZE (StackPages+FuncPages)
+                     );
+  }
 
   Status = gBS->CreateEvent (
                   EVT_TIMER | EVT_NOTIFY_SIGNAL,
@@ -667,15 +736,15 @@ InitMpGlobalData (
 EFI_STATUS
 EFIAPI
 MpInitLibStartupAllAPs (
-  IN  EFI_AP_PROCEDURE          Procedure,
-  IN  BOOLEAN                   SingleThread,
-  IN  EFI_EVENT                 WaitEvent               OPTIONAL,
-  IN  UINTN                     TimeoutInMicroseconds,
-  IN  VOID                      *ProcedureArgument      OPTIONAL,
-  OUT UINTN                     **FailedCpuList         OPTIONAL
+  IN  EFI_AP_PROCEDURE  Procedure,
+  IN  BOOLEAN           SingleThread,
+  IN  EFI_EVENT         WaitEvent               OPTIONAL,
+  IN  UINTN             TimeoutInMicroseconds,
+  IN  VOID              *ProcedureArgument      OPTIONAL,
+  OUT UINTN             **FailedCpuList         OPTIONAL
   )
 {
-  EFI_STATUS              Status;
+  EFI_STATUS  Status;
 
   //
   // Temporarily stop checkAllApsStatus for avoid resource dead-lock.
@@ -774,15 +843,15 @@ MpInitLibStartupAllAPs (
 EFI_STATUS
 EFIAPI
 MpInitLibStartupThisAP (
-  IN  EFI_AP_PROCEDURE          Procedure,
-  IN  UINTN                     ProcessorNumber,
-  IN  EFI_EVENT                 WaitEvent               OPTIONAL,
-  IN  UINTN                     TimeoutInMicroseconds,
-  IN  VOID                      *ProcedureArgument      OPTIONAL,
-  OUT BOOLEAN                   *Finished               OPTIONAL
+  IN  EFI_AP_PROCEDURE  Procedure,
+  IN  UINTN             ProcessorNumber,
+  IN  EFI_EVENT         WaitEvent               OPTIONAL,
+  IN  UINTN             TimeoutInMicroseconds,
+  IN  VOID              *ProcedureArgument      OPTIONAL,
+  OUT BOOLEAN           *Finished               OPTIONAL
   )
 {
-  EFI_STATUS              Status;
+  EFI_STATUS  Status;
 
   //
   // temporarily stop checkAllApsStatus for avoid resource dead-lock.
@@ -832,19 +901,19 @@ MpInitLibStartupThisAP (
 EFI_STATUS
 EFIAPI
 MpInitLibSwitchBSP (
-  IN UINTN                     ProcessorNumber,
-  IN BOOLEAN                   EnableOldBSP
+  IN UINTN    ProcessorNumber,
+  IN BOOLEAN  EnableOldBSP
   )
 {
-  EFI_STATUS                   Status;
-  EFI_TIMER_ARCH_PROTOCOL      *Timer;
-  UINT64                       TimerPeriod;
+  EFI_STATUS               Status;
+  EFI_TIMER_ARCH_PROTOCOL  *Timer;
+  UINT64                   TimerPeriod;
 
   TimerPeriod = 0;
   //
   // Locate Timer Arch Protocol
   //
-  Status = gBS->LocateProtocol (&gEfiTimerArchProtocolGuid, NULL, (VOID **) &Timer);
+  Status = gBS->LocateProtocol (&gEfiTimerArchProtocolGuid, NULL, (VOID **)&Timer);
   if (EFI_ERROR (Status)) {
     Timer = NULL;
   }
@@ -905,13 +974,13 @@ MpInitLibSwitchBSP (
 EFI_STATUS
 EFIAPI
 MpInitLibEnableDisableAP (
-  IN  UINTN                     ProcessorNumber,
-  IN  BOOLEAN                   EnableAP,
-  IN  UINT32                    *HealthFlag OPTIONAL
+  IN  UINTN    ProcessorNumber,
+  IN  BOOLEAN  EnableAP,
+  IN  UINT32   *HealthFlag OPTIONAL
   )
 {
-  EFI_STATUS     Status;
-  BOOLEAN        TempStopCheckState;
+  EFI_STATUS  Status;
+  BOOLEAN     TempStopCheckState;
 
   TempStopCheckState = FALSE;
   //
@@ -944,7 +1013,7 @@ MpInitLibEnableDisableAP (
 **/
 EFI_STATUS
 PlatformShadowMicrocode (
-  IN OUT CPU_MP_DATA             *CpuMpData
+  IN OUT CPU_MP_DATA  *CpuMpData
   )
 {
   //

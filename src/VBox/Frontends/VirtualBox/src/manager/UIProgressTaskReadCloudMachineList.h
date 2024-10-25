@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2020-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2020-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -36,7 +36,6 @@
 #include "UIProgressTask.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CCloudClient.h"
 #include "CCloudMachine.h"
 

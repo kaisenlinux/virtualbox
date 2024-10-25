@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -129,23 +129,42 @@ typedef struct VMCPU
     /** The CPU state. */
     VMCPUSTATE volatile     enmState;
 
+#if defined(VBOX_VMM_TARGET_ARMV8)
+    uint32_t                u32Alignment0;
+    /** The number of nano seconds when the vTimer of the associated vCPU is supposed to activate
+     *  required to get out of a halt (due to wfi/wfe).
+     *
+     * @note This actually should go into TMCPU but this drags in a whole lot of padding changes
+     *       and I'm not sure yet whether this will remain in this form anyway.
+     */
+    uint64_t                cNsVTimerActivate;
+    /** Padding up to 64 bytes. */
+    uint8_t                 abAlignment0[64 - 12 - 8 - 4];
+#else
     /** Padding up to 64 bytes. */
     uint8_t                 abAlignment0[64 - 12];
+#endif
     /** @} */
 
     /** IEM part.
      * @remarks This comes first as it allows the use of 8-bit immediates for the
      *          first 64 bytes of the structure, reducing code size a wee bit. */
-#ifdef VMM_INCLUDED_SRC_include_IEMInternal_h /* For PDB hacking. */
+#if defined(VMM_INCLUDED_SRC_include_IEMInternal_h) || defined(VMM_INCLUDED_SRC_include_IEMInternal_armv8_h) /* For PDB hacking. */
     union VMCPUUNIONIEMFULL
 #else
     union VMCPUUNIONIEMSTUB
 #endif
     {
-#ifdef VMM_INCLUDED_SRC_include_IEMInternal_h
+#if defined(VMM_INCLUDED_SRC_include_IEMInternal_h) || defined(VMM_INCLUDED_SRC_include_IEMInternal_armv8_h)
         struct IEMCPU       s;
 #endif
-        uint8_t             padding[32832];     /* multiple of 64 */
+        uint8_t             padding[  129984    /* The common base size. */
+#ifdef RT_ARCH_AMD64
+                                    + 32768     /* For 256 entries per TLBs. */
+#else
+                                    + 1048576   /* For 8192 entries per TLBs. */
+#endif
+        ]; /* multiple of 64 */
     } iem;
 
     /** @name Static per-cpu data.
@@ -268,14 +287,25 @@ typedef struct VMCPU
         uint8_t             padding[512];       /* multiple of 64 */
     } gim;
 
+#if defined(VBOX_VMM_TARGET_ARMV8)
+    /** GIC part. */
+    union VMCPUUNIONGIC
+    {
+# ifdef VMM_INCLUDED_SRC_include_GICInternal_h
+        struct GICCPU       s;
+# endif
+        uint8_t             padding[3840];      /* multiple of 64 */
+    } gic;
+#else
     /** APIC part. */
     union VMCPUUNIONAPIC
     {
-#ifdef VMM_INCLUDED_SRC_include_APICInternal_h
+# ifdef VMM_INCLUDED_SRC_include_APICInternal_h
         struct APICCPU      s;
-#endif
+# endif
         uint8_t             padding[3840];      /* multiple of 64 */
     } apic;
+#endif
 
     /*
      * Some less frequently used global members that doesn't need to take up
@@ -291,7 +321,7 @@ typedef struct VMCPU
     STAMPROFILEADV          aStatAdHoc[8];                          /* size: 40*8 = 320 */
 
     /** Align the following members on page boundary. */
-    uint8_t                 abAlignment2[696];
+    uint8_t                 abAlignment2[1848];
 
     /** PGM part. */
     union VMCPUUNIONPGM
@@ -299,13 +329,13 @@ typedef struct VMCPU
 #ifdef VMM_INCLUDED_SRC_include_PGMInternal_h
         struct PGMCPU       s;
 #endif
-        uint8_t             padding[4096 + 28672]; /* multiple of 4096 */
+        uint8_t             padding[36864];     /* multiple of 4096 */
     } pgm;
 
     /** CPUM part. */
     union VMCPUUNIONCPUM
     {
-#ifdef VMM_INCLUDED_SRC_include_CPUMInternal_h
+#if defined(VMM_INCLUDED_SRC_include_CPUMInternal_h) || defined(VMM_INCLUDED_SRC_include_CPUMInternal_armv8_h)
         struct CPUMCPU      s;
 #endif
 #ifdef VMCPU_INCL_CPUM_GST_CTX
@@ -314,7 +344,7 @@ typedef struct VMCPU
          * others.  The rest will use the function based CPUM API. */
         CPUMCTX             GstCtx;
 #endif
-        uint8_t             padding[102400];     /* multiple of 4096 */
+        uint8_t             padding[102400];    /* multiple of 4096 */
     } cpum;
 
     /** EM part. */
@@ -323,15 +353,17 @@ typedef struct VMCPU
 #ifdef VMM_INCLUDED_SRC_include_EMInternal_h
         struct EMCPU        s;
 #endif
-        uint8_t             padding[40960];      /* multiple of 4096 */
+        uint8_t             padding[40960];     /* multiple of 4096 */
     } em;
-
+    uint8_t abPadding[12288];
 } VMCPU;
 
 
 #ifndef VBOX_FOR_DTRACE_LIB
+# ifndef IN_TSTVMSTRUCT
 /* Make sure the structure size is aligned on a 16384 boundary for arm64 purposes. */
 AssertCompileSizeAlignment(VMCPU, 16384);
+# endif
 
 /** @name Operations on VMCPU::enmState
  * @{ */
@@ -384,7 +416,7 @@ AssertCompileSizeAlignment(VMCPU, 16384);
  * action mask of a VM.
  *
  * Available VM bits:
- *      0, 1, 5, 6, 7, 13, 14, 15, 16, 17, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30
+ *      5, 6, 7, 13, 14, 15, 16, 17, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30
  *
  *
  * Available VMCPU bits:
@@ -394,6 +426,9 @@ AssertCompileSizeAlignment(VMCPU, 16384);
  *
  * @{
  */
+/* Bit 0, bit 1: Reserved and must not be reused.  The recompiler ASSUMES it
+   can OR the local and global FFs together and keept the two
+   VMCPU_FF_INTERRUPT_XXX flags uncorrupted.  */
 /** The virtual sync clock has been stopped, go to TM until it has been
  *  restarted... */
 #define VM_FF_TM_VIRTUAL_SYNC               RT_BIT_32(VM_FF_TM_VIRTUAL_SYNC_BIT)
@@ -447,12 +482,21 @@ AssertCompileSizeAlignment(VMCPU, 16384);
 #define VM_FF_DEBUG_SUSPEND_BIT             31
 
 
+#if defined(VBOX_VMM_TARGET_ARMV8)
+/** This action forces the VM to inject an IRQ into the guest. */
+# define VMCPU_FF_INTERRUPT_IRQ             RT_BIT_64(VMCPU_FF_INTERRUPT_IRQ_BIT)
+# define VMCPU_FF_INTERRUPT_IRQ_BIT         0
+/** This action forces the VM to inject an FIQ into the guest. */
+# define VMCPU_FF_INTERRUPT_FIQ             RT_BIT_64(VMCPU_FF_INTERRUPT_FIQ_BIT)
+# define VMCPU_FF_INTERRUPT_FIQ_BIT         1
+#else
 /** This action forces the VM to check any pending interrupts on the APIC. */
-#define VMCPU_FF_INTERRUPT_APIC             RT_BIT_64(VMCPU_FF_INTERRUPT_APIC_BIT)
-#define VMCPU_FF_INTERRUPT_APIC_BIT         0
+# define VMCPU_FF_INTERRUPT_APIC            RT_BIT_64(VMCPU_FF_INTERRUPT_APIC_BIT)
+# define VMCPU_FF_INTERRUPT_APIC_BIT        0
 /** This action forces the VM to check any pending interrups on the PIC. */
-#define VMCPU_FF_INTERRUPT_PIC              RT_BIT_64(VMCPU_FF_INTERRUPT_PIC_BIT)
-#define VMCPU_FF_INTERRUPT_PIC_BIT          1
+# define VMCPU_FF_INTERRUPT_PIC             RT_BIT_64(VMCPU_FF_INTERRUPT_PIC_BIT)
+# define VMCPU_FF_INTERRUPT_PIC_BIT         1
+#endif
 /** This action forces the VM to schedule and run pending timer (TM).
  * @remarks Don't move - PATM compatibility.  */
 #define VMCPU_FF_TIMER                      RT_BIT_64(VMCPU_FF_TIMER_BIT)
@@ -496,7 +540,12 @@ AssertCompileSizeAlignment(VMCPU, 16384);
  *  (when using nested paging). */
 #define VMCPU_FF_HM_UPDATE_CR3              RT_BIT_64(VMCPU_FF_HM_UPDATE_CR3_BIT)
 #define VMCPU_FF_HM_UPDATE_CR3_BIT          12
+#if defined(VBOX_VMM_TARGET_ARMV8)
+# define VMCPU_FF_VTIMER_ACTIVATED          RT_BIT_64(VMCPU_FF_VTIMER_ACTIVATED_BIT)
+# define VMCPU_FF_VTIMER_ACTIVATED_BIT      13
+#else
 /* Bit 13 used to be VMCPU_FF_HM_UPDATE_PAE_PDPES. */
+#endif
 /** This action forces the VM to resync the page tables before going
  * back to execute guest code. (GLOBAL FLUSH) */
 #define VMCPU_FF_PGM_SYNC_CR3               RT_BIT_64(VMCPU_FF_PGM_SYNC_CR3_BIT)
@@ -535,7 +584,7 @@ AssertCompileSizeAlignment(VMCPU, 16384);
 /** VMX-preemption timer expired. */
 #define VMCPU_FF_VMX_PREEMPT_TIMER          RT_BIT_64(VMCPU_FF_VMX_PREEMPT_TIMER_BIT)
 #define VMCPU_FF_VMX_PREEMPT_TIMER_BIT      31
-/** Pending MTF (Monitor Trap Flag) event.  */
+/** Pending MTF (Monitor Trap Flag) event. */
 #define VMCPU_FF_VMX_MTF                    RT_BIT_64(VMCPU_FF_VMX_MTF_BIT)
 #define VMCPU_FF_VMX_MTF_BIT                32
 /** VMX APIC-write emulation pending.
@@ -569,21 +618,33 @@ AssertCompileSizeAlignment(VMCPU, 16384);
 #define VM_FF_EXTERNAL_HALTED_MASK              (  VM_FF_CHECK_VM_STATE | VM_FF_DBGF    | VM_FF_REQUEST \
                                                  | VM_FF_PDM_QUEUES     | VM_FF_PDM_DMA | VM_FF_EMT_RENDEZVOUS )
 /** Externally forced VMCPU actions. Used to quit the idle/wait loop. */
-#define VMCPU_FF_EXTERNAL_HALTED_MASK           (  VMCPU_FF_UPDATE_APIC | VMCPU_FF_INTERRUPT_APIC | VMCPU_FF_INTERRUPT_PIC \
+#if defined(VBOX_VMM_TARGET_ARMV8)
+# define VMCPU_FF_EXTERNAL_HALTED_MASK          (  VMCPU_FF_INTERRUPT_IRQ | VMCPU_FF_INTERRUPT_FIQ \
+                                                 | VMCPU_FF_REQUEST       | VMCPU_FF_INTERRUPT_NMI  | VMCPU_FF_INTERRUPT_SMI \
+                                                 | VMCPU_FF_UNHALT        | VMCPU_FF_TIMER          | VMCPU_FF_DBGF \
+                                                 | VMCPU_FF_VTIMER_ACTIVATED)
+#else
+# define VMCPU_FF_EXTERNAL_HALTED_MASK          (  VMCPU_FF_UPDATE_APIC | VMCPU_FF_INTERRUPT_APIC | VMCPU_FF_INTERRUPT_PIC \
                                                  | VMCPU_FF_REQUEST     | VMCPU_FF_INTERRUPT_NMI  | VMCPU_FF_INTERRUPT_SMI \
                                                  | VMCPU_FF_UNHALT      | VMCPU_FF_TIMER          | VMCPU_FF_DBGF \
                                                  | VMCPU_FF_INTERRUPT_NESTED_GUEST)
+#endif
 
 /** High priority VM pre-execution actions. */
 #define VM_FF_HIGH_PRIORITY_PRE_MASK            (  VM_FF_CHECK_VM_STATE | VM_FF_DBGF                 | VM_FF_TM_VIRTUAL_SYNC \
                                                  | VM_FF_DEBUG_SUSPEND  | VM_FF_PGM_NEED_HANDY_PAGES | VM_FF_PGM_NO_MEMORY \
                                                  | VM_FF_EMT_RENDEZVOUS )
 /** High priority VMCPU pre-execution actions. */
-#define VMCPU_FF_HIGH_PRIORITY_PRE_MASK         (  VMCPU_FF_TIMER        | VMCPU_FF_INTERRUPT_APIC     | VMCPU_FF_INTERRUPT_PIC \
+#if defined(VBOX_VMM_TARGET_ARMV8)
+# define VMCPU_FF_HIGH_PRIORITY_PRE_MASK        (  VMCPU_FF_TIMER        | VMCPU_FF_INTERRUPT_IRQ     | VMCPU_FF_INTERRUPT_FIQ \
+                                                 | VMCPU_FF_DBGF )
+#else
+# define VMCPU_FF_HIGH_PRIORITY_PRE_MASK        (  VMCPU_FF_TIMER        | VMCPU_FF_INTERRUPT_APIC     | VMCPU_FF_INTERRUPT_PIC \
                                                  | VMCPU_FF_UPDATE_APIC  | VMCPU_FF_DBGF \
                                                  | VMCPU_FF_PGM_SYNC_CR3 | VMCPU_FF_PGM_SYNC_CR3_NON_GLOBAL \
                                                  | VMCPU_FF_INTERRUPT_NESTED_GUEST | VMCPU_FF_VMX_MTF  | VMCPU_FF_VMX_APIC_WRITE \
                                                  | VMCPU_FF_VMX_PREEMPT_TIMER | VMCPU_FF_VMX_NMI_WINDOW | VMCPU_FF_VMX_INT_WINDOW )
+#endif
 
 /** High priority VM pre raw-mode execution mask. */
 #define VM_FF_HIGH_PRIORITY_PRE_RAW_MASK        (  VM_FF_PGM_NEED_HANDY_PAGES | VM_FF_PGM_NO_MEMORY )
@@ -618,24 +679,25 @@ AssertCompileSizeAlignment(VMCPU, 16384);
                                                  | VM_FF_PDM_QUEUES | VM_FF_PDM_DMA | VM_FF_DBGF | VM_FF_DEBUG_SUSPEND )
 /** VMCPU flags that cause the REP[|NE|E] STRINS loops to yield immediately. */
 #ifdef IN_RING3
-# define VMCPU_FF_HIGH_PRIORITY_POST_REPSTR_MASK (  VMCPU_FF_PGM_SYNC_CR3 | VMCPU_FF_PGM_SYNC_CR3_NON_GLOBAL | VMCPU_FF_DBGF \
-                                                  | VMCPU_FF_VMX_MTF )
+# define VMCPU_FF_HIGH_PRIORITY_POST_REPSTR_MASK (VMCPU_FF_DBGF | VMCPU_FF_VMX_MTF)
 #else
-# define VMCPU_FF_HIGH_PRIORITY_POST_REPSTR_MASK (  VMCPU_FF_TO_R3 | VMCPU_FF_IEM | VMCPU_FF_IOM | VMCPU_FF_PGM_SYNC_CR3 \
-                                                  | VMCPU_FF_PGM_SYNC_CR3_NON_GLOBAL | VMCPU_FF_DBGF | VMCPU_FF_VMX_MTF )
+# define VMCPU_FF_HIGH_PRIORITY_POST_REPSTR_MASK (VMCPU_FF_TO_R3 | VMCPU_FF_IEM | VMCPU_FF_IOM | VMCPU_FF_DBGF | VMCPU_FF_VMX_MTF)
 #endif
+
+#if !defined(VBOX_VMM_TARGET_ARMV8)
 /** VMCPU flags that cause the REP[|NE|E] STRINS loops to yield, interrupts
  *  enabled. */
-#define VMCPU_FF_YIELD_REPSTR_MASK              (  VMCPU_FF_HIGH_PRIORITY_POST_REPSTR_MASK \
-                                                 | VMCPU_FF_INTERRUPT_APIC | VMCPU_FF_UPDATE_APIC   | VMCPU_FF_INTERRUPT_PIC \
-                                                 | VMCPU_FF_INTERRUPT_NMI  | VMCPU_FF_INTERRUPT_SMI | VMCPU_FF_PDM_CRITSECT \
-                                                 | VMCPU_FF_TIMER          | VMCPU_FF_REQUEST       \
-                                                 | VMCPU_FF_INTERRUPT_NESTED_GUEST )
+# define VMCPU_FF_YIELD_REPSTR_MASK              (  VMCPU_FF_HIGH_PRIORITY_POST_REPSTR_MASK \
+                                                  | VMCPU_FF_INTERRUPT_APIC | VMCPU_FF_UPDATE_APIC   | VMCPU_FF_INTERRUPT_PIC \
+                                                  | VMCPU_FF_INTERRUPT_NMI  | VMCPU_FF_INTERRUPT_SMI | VMCPU_FF_PDM_CRITSECT \
+                                                  | VMCPU_FF_TIMER          | VMCPU_FF_REQUEST       \
+                                                  | VMCPU_FF_INTERRUPT_NESTED_GUEST )
 /** VMCPU flags that cause the REP[|NE|E] STRINS loops to yield, interrupts
  *  disabled. */
-#define VMCPU_FF_YIELD_REPSTR_NOINT_MASK        (  VMCPU_FF_YIELD_REPSTR_MASK \
-                                                 & ~(  VMCPU_FF_INTERRUPT_APIC | VMCPU_FF_UPDATE_APIC | VMCPU_FF_INTERRUPT_PIC \
-                                                     | VMCPU_FF_INTERRUPT_NESTED_GUEST) )
+# define VMCPU_FF_YIELD_REPSTR_NOINT_MASK        (  VMCPU_FF_YIELD_REPSTR_MASK \
+                                                  & ~(  VMCPU_FF_INTERRUPT_APIC | VMCPU_FF_UPDATE_APIC | VMCPU_FF_INTERRUPT_PIC \
+                                                      | VMCPU_FF_INTERRUPT_NESTED_GUEST) )
+#endif
 
 /** VM Flags that cause the HM loops to go back to ring-3. */
 #define VM_FF_HM_TO_R3_MASK                     (  VM_FF_TM_VIRTUAL_SYNC | VM_FF_PGM_NEED_HANDY_PAGES | VM_FF_PGM_NO_MEMORY \
@@ -665,7 +727,9 @@ AssertCompileSizeAlignment(VMCPU, 16384);
 /** All the forced VM flags. */
 #define VM_FF_ALL_MASK                          (UINT32_MAX)
 /** All the forced VMCPU flags. */
-#define VMCPU_FF_ALL_MASK                       (UINT32_MAX)
+#define VMCPU_FF_ALL_MASK                       (  UINT32_MAX \
+                                                 | VMCPU_FF_VMX_MTF | VMCPU_FF_VMX_APIC_WRITE | VMCPU_FF_VMX_INT_WINDOW \
+                                                 | VMCPU_FF_VMX_NMI_WINDOW )
 
 /** All the forced VM flags except those related to raw-mode and hardware
  * assisted execution. */
@@ -673,6 +737,13 @@ AssertCompileSizeAlignment(VMCPU, 16384);
 /** All the forced VMCPU flags except those related to raw-mode and hardware
  * assisted execution. */
 #define VMCPU_FF_ALL_REM_MASK                   (~(VMCPU_FF_HIGH_PRIORITY_PRE_RAW_MASK | VMCPU_FF_PDM_CRITSECT | VMCPU_FF_TLB_FLUSH))
+
+#ifndef VBOX_FOR_DTRACE_LIB
+AssertCompile(  ((VM_FF_HIGH_PRIORITY_POST_REPSTR_MASK | VM_FF_YIELD_REPSTR_MASK)
+               & (VM_FF_HIGH_PRIORITY_PRE_RAW_MASK & ~VM_FF_ALL_REM_MASK)) == 0);
+AssertCompile((VMCPU_FF_HIGH_PRIORITY_POST_REPSTR_MASK & (VMCPU_FF_HIGH_PRIORITY_PRE_RAW_MASK & ~VMCPU_FF_ALL_REM_MASK)) == 0);
+#endif
+
 /** @} */
 
 /** @def VM_FF_SET
@@ -1261,7 +1332,7 @@ typedef struct VM
     /** CPUM part. */
     union
     {
-#ifdef VMM_INCLUDED_SRC_include_CPUMInternal_h
+#if defined(VMM_INCLUDED_SRC_include_CPUMInternal_h) || defined(VMM_INCLUDED_SRC_include_CPUMInternal_armv8_h)
         struct CPUM s;
 #endif
 #ifdef VBOX_INCLUDED_vmm_cpum_h
@@ -1280,13 +1351,13 @@ typedef struct VM
     } cpum;
 
     /** PGM part.
-     * @note 16384 aligned for zero and mmio page storage. */
+     * @note Aligned on 16384 boundrary for zero and mmio page storage. */
     union
     {
 #ifdef VMM_INCLUDED_SRC_include_PGMInternal_h
         struct PGM  s;
 #endif
-        uint8_t     padding[53888];     /* multiple of 64 */
+        uint8_t     padding[129728];     /* multiple of 64 */
     } pgm;
 
     /** VMM part. */
@@ -1340,7 +1411,7 @@ typedef struct VM
 #ifdef VMM_INCLUDED_SRC_include_PDMInternal_h
         struct PDM s;
 #endif
-        uint8_t     padding[22400];     /* multiple of 64 */
+        uint8_t     padding[22528];     /* multiple of 64 */
     } pdm;
 
     /** IOM part. */
@@ -1432,13 +1503,23 @@ typedef struct VM
         uint8_t     padding[448];       /* multiple of 64 */
     } gim;
 
+#if defined(VBOX_VMM_TARGET_ARMV8)
     union
     {
-#ifdef VMM_INCLUDED_SRC_include_APICInternal_h
+# ifdef VMM_INCLUDED_SRC_include_GICInternal_h
+        struct GIC  s;
+# endif
+        uint8_t     padding[128];       /* multiple of 8 */
+    } gic;
+#else
+    union
+    {
+# ifdef VMM_INCLUDED_SRC_include_APICInternal_h
         struct APIC s;
-#endif
+# endif
         uint8_t     padding[128];       /* multiple of 8 */
     } apic;
+#endif
 
     /* ---- begin small stuff ---- */
 
@@ -1488,11 +1569,11 @@ typedef struct VM
 #ifdef VMM_INCLUDED_SRC_include_GCMInternal_h
         struct GCM  s;
 #endif
-        uint8_t     padding[32];       /* multiple of 8 */
+        uint8_t     padding[8];         /* multiple of 8 */
     } gcm;
 
     /** Padding for aligning the structure size on a page boundrary. */
-    uint8_t         abAlignment2[8872 - sizeof(PVMCPUR3) * VMM_MAX_CPU_COUNT];
+    uint8_t         abAlignment2[0x3A00 - sizeof(PVMCPUR3) * VMM_MAX_CPU_COUNT];
 
     /* ---- end small stuff ---- */
 

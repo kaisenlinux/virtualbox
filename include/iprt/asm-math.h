@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -44,12 +44,24 @@
 #if defined(_MSC_VER) && RT_INLINE_ASM_USES_INTRIN
 /* Emit the intrinsics at all optimization levels. */
 # include <iprt/sanitized/intrin.h>
-# pragma intrinsic(__emul)
-# pragma intrinsic(__emulu)
-# ifdef RT_ARCH_AMD64
-#  pragma intrinsic(_mul128)
-#  pragma intrinsic(_umul128)
+# if defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64)
+#  pragma intrinsic(__emul)
+#  pragma intrinsic(__emulu)
+#  ifdef RT_ARCH_AMD64
+#   pragma intrinsic(_mul128)
+#   pragma intrinsic(_umul128)
+#  endif
 # endif
+#endif
+
+
+/*
+ * Undefine all symbols we have Watcom C/C++ #pragma aux'es for.
+ */
+#if defined(__WATCOMC__) && ARCH_BITS == 16 && defined(RT_ARCH_X86)
+/*# include "asm-math-watcom-x86-16.h"*/
+#elif defined(__WATCOMC__) && ARCH_BITS == 32 && defined(RT_ARCH_X86)
+# include "asm-math-watcom-x86-32.h"
 #endif
 
 
@@ -64,7 +76,7 @@
  */
 
 #if RT_INLINE_ASM_EXTERNAL && !RT_INLINE_ASM_USES_INTRIN && defined(RT_ARCH_X86)
-DECLASM(uint64_t) ASMMult2xU32RetU64(uint32_t u32F1, uint32_t u32F2);
+RT_ASM_DECL_PRAGMA_WATCOM(uint64_t) ASMMult2xU32RetU64(uint32_t u32F1, uint32_t u32F2);
 #else
 DECLINLINE(uint64_t) ASMMult2xU32RetU64(uint32_t u32F1, uint32_t u32F2)
 {
@@ -100,7 +112,7 @@ DECLINLINE(uint64_t) ASMMult2xU32RetU64(uint32_t u32F1, uint32_t u32F2)
  * @returns u32F1 * u32F2.
  */
 #if RT_INLINE_ASM_EXTERNAL && !RT_INLINE_ASM_USES_INTRIN && defined(RT_ARCH_X86)
-DECLASM(int64_t) ASMMult2xS32RetS64(int32_t i32F1, int32_t i32F2);
+RT_ASM_DECL_PRAGMA_WATCOM(int64_t) ASMMult2xS32RetS64(int32_t i32F1, int32_t i32F2);
 #else
 DECLINLINE(int64_t) ASMMult2xS32RetS64(int32_t i32F1, int32_t i32F2)
 {
@@ -195,7 +207,7 @@ DECLINLINE(uint64_t) ASMMult2xU64Ret2xU64(uint64_t u64F1, uint64_t u64F2, uint64
  * @returns u64 / u32.
  */
 #if RT_INLINE_ASM_EXTERNAL && defined(RT_ARCH_X86)
-DECLASM(uint32_t) ASMDivU64ByU32RetU32(uint64_t u64, uint32_t u32);
+RT_ASM_DECL_PRAGMA_WATCOM(uint32_t) ASMDivU64ByU32RetU32(uint64_t u64, uint32_t u32);
 #else
 DECLINLINE(uint32_t) ASMDivU64ByU32RetU32(uint64_t u64, uint32_t u32)
 {
@@ -229,7 +241,7 @@ DECLINLINE(uint32_t) ASMDivU64ByU32RetU32(uint64_t u64, uint32_t u32)
  * @returns u64 / u32.
  */
 #if RT_INLINE_ASM_EXTERNAL && defined(RT_ARCH_X86)
-DECLASM(int32_t) ASMDivS64ByS32RetS32(int64_t i64, int32_t i32);
+RT_ASM_DECL_PRAGMA_WATCOM(int32_t) ASMDivS64ByS32RetS32(int64_t i64, int32_t i32);
 #else
 DECLINLINE(int32_t) ASMDivS64ByS32RetS32(int64_t i64, int32_t i32)
 {
@@ -266,7 +278,7 @@ DECLINLINE(int32_t) ASMDivS64ByS32RetS32(int64_t i64, int32_t i32)
  * @remarks It is important that the result is <= UINT32_MAX or we'll overflow and crash.
  */
 #if RT_INLINE_ASM_EXTERNAL && defined(RT_ARCH_X86)
-DECLASM(uint32_t) ASMModU64ByU32RetU32(uint64_t u64, uint32_t u32);
+RT_ASM_DECL_PRAGMA_WATCOM(uint32_t) ASMModU64ByU32RetU32(uint64_t u64, uint32_t u32);
 #else
 DECLINLINE(uint32_t) ASMModU64ByU32RetU32(uint64_t u64, uint32_t u32)
 {
@@ -303,7 +315,7 @@ DECLINLINE(uint32_t) ASMModU64ByU32RetU32(uint64_t u64, uint32_t u32)
  * @remarks It is important that the result is <= UINT32_MAX or we'll overflow and crash.
  */
 #if RT_INLINE_ASM_EXTERNAL && defined(RT_ARCH_X86)
-DECLASM(int32_t) ASMModS64ByS32RetS32(int64_t i64, int32_t i32);
+RT_ASM_DECL_PRAGMA_WATCOM(int32_t) ASMModS64ByS32RetS32(int64_t i64, int32_t i32);
 #else
 DECLINLINE(int32_t) ASMModS64ByS32RetS32(int64_t i64, int32_t i32)
 {
@@ -347,7 +359,7 @@ DECLINLINE(int32_t) ASMModS64ByS32RetS32(int64_t i64, int32_t i32)
  *          arithmetics functions.
  */
 #if RT_INLINE_ASM_EXTERNAL && (defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86))
-DECLASM(uint32_t) ASMMultU32ByU32DivByU32(uint32_t u32A, uint32_t u32B, uint32_t u32C);
+RT_ASM_DECL_PRAGMA_WATCOM(uint32_t) ASMMultU32ByU32DivByU32(uint32_t u32A, uint32_t u32B, uint32_t u32C);
 #else
 DECLINLINE(uint32_t) ASMMultU32ByU32DivByU32(uint32_t u32A, uint32_t u32B, uint32_t u32C)
 {
@@ -441,5 +453,19 @@ DECLINLINE(uint64_t) ASMMultU64ByU32DivByU32(uint64_t u64A, uint32_t u32B, uint3
 #endif
 
 /** @} */
+
+/*
+ * Include #pragma aux definitions for Watcom C/C++.
+ */
+#if defined(__WATCOMC__) && ARCH_BITS == 16 && defined(RT_ARCH_X86)
+# define IPRT_ASM_WATCOM_X86_16_WITH_PRAGMAS
+# undef IPRT_INCLUDED_asm_math_watcom_x86_16_h
+/*# include "asm-math-watcom-x86-16.h"*/
+#elif defined(__WATCOMC__) && ARCH_BITS == 32 && defined(RT_ARCH_X86)
+# define IPRT_ASM_WATCOM_X86_32_WITH_PRAGMAS
+# undef IPRT_INCLUDED_asm_math_watcom_x86_32_h
+# include "asm-math-watcom-x86-32.h"
+#endif
+
 #endif /* !IPRT_INCLUDED_asm_math_h */
 

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -48,11 +48,12 @@
 #include "VBoxManage.h"
 
 #include <list>
+#include <vector>
 
 using namespace com;//at least for Bstr
 
 DECLARE_TRANSLATION_CONTEXT(Cloud);
-
+DECLARE_TRANSLATION_CONTEXT(CloudMachine);
 
 /**
  * Common Cloud options.
@@ -373,7 +374,7 @@ static RTEXITCODE listCloudImages(HandlerArg *a, int iFirst, PCLOUDCOMMONOPT pCo
     if (strCompartmentId.isNotEmpty())
     {
         CHECK_ERROR2_RET(hrc, pCloudProfile,
-                         SetProperty(Bstr("compartment").raw(), Bstr(strCompartmentId).raw()),\
+                         SetProperty(Bstr("compartment").raw(), Bstr(strCompartmentId).raw()),
                          RTEXITCODE_FAILURE);
     }
     else
@@ -519,7 +520,7 @@ static RTEXITCODE listCloudVnicAttachments(HandlerArg *a, int iFirst, PCLOUDCOMM
     if (strCompartmentId.isNotEmpty())
     {
         CHECK_ERROR2_RET(hrc, pCloudProfile,
-                         SetProperty(Bstr("compartment").raw(), Bstr(strCompartmentId).raw()),\
+                         SetProperty(Bstr("compartment").raw(), Bstr(strCompartmentId).raw()),
                          RTEXITCODE_FAILURE);
     }
     else
@@ -649,11 +650,11 @@ static RTEXITCODE handleCloudLists(HandlerArg *a, int iFirst, PCLOUDCOMMONOPT pC
         switch (c)
         {
             case kCloudList_Images:
-                setCurrentSubcommand(HELP_SCOPE_CLOUDLIST_IMAGES);
+                setCurrentSubcommand(HELP_SCOPE_CLOUD_LIST_IMAGES);
                 return listCloudImages(a, GetState.iNext, pCommonOpts);
 
             case kCloudList_Instances:
-                setCurrentSubcommand(HELP_SCOPE_CLOUDLIST_INSTANCES);
+                setCurrentSubcommand(HELP_SCOPE_CLOUD_LIST_INSTANCES);
                 return listCloudInstances(a, GetState.iNext, pCommonOpts);
             case kCloudList_Machines:
                 return listCloudMachines(a, GetState.iNext,
@@ -661,7 +662,7 @@ static RTEXITCODE handleCloudLists(HandlerArg *a, int iFirst, PCLOUDCOMMONOPT pC
                                          pCommonOpts->profile.pszProfileName);
 
             case kCloudList_VnicAttachments:
-                setCurrentSubcommand(HELP_SCOPE_CLOUDLIST_VNICATTACHMENTS);
+                setCurrentSubcommand(HELP_SCOPE_CLOUD_LIST_VNICATTACHMENTS);
                 return listCloudVnicAttachments(a, GetState.iNext, pCommonOpts);
 
             case 'h':
@@ -887,6 +888,104 @@ static RTEXITCODE createCloudInstance(HandlerArg *a, int iFirst, PCLOUDCOMMONOPT
     return SUCCEEDED(hrc) ? RTEXITCODE_SUCCESS : RTEXITCODE_FAILURE;
 }
 
+
+static RTEXITCODE cloneCloudInstance(HandlerArg *a, int iFirst, PCLOUDCOMMONOPT pCommonOpts)
+{
+    HRESULT hrc = S_OK;
+
+    enum
+    {
+        kInstanceIota = 1000,
+        kInstance_ShapeCpu,
+        kInstance_ShapeMemory,
+    };
+
+    static const RTGETOPTDEF s_aOptions[] =
+    {
+        { "--id",           'i', RTGETOPT_REQ_STRING },
+        { "--clone-name",   'n', RTGETOPT_REQ_STRING },
+
+        { "help",           'h', RTGETOPT_REQ_NOTHING },
+        { "--help",         'h', RTGETOPT_REQ_NOTHING }
+    };
+    RTGETOPTSTATE GetState;
+    RTGETOPTUNION ValueUnion;
+    int vrc = RTGetOptInit(&GetState, a->argc, a->argv, s_aOptions, RT_ELEMENTS(s_aOptions), iFirst, 0);
+    AssertRCReturn(vrc, RTEXITCODE_FAILURE);
+    if (a->argc == iFirst)
+    {
+        RTPrintf(Cloud::tr("Empty command parameter list, show help.\n"));
+        printHelp(g_pStdOut);
+        return RTEXITCODE_SUCCESS;
+    }
+
+    Utf8Str strCloneName, strInstanceId;
+    int c;
+    while ((c = RTGetOpt(&GetState, &ValueUnion)) != 0)
+    {
+        switch (c)
+        {
+            case 'i':
+                strInstanceId = ValueUnion.psz;
+
+                break;
+            case 'n':
+                strCloneName = ValueUnion.psz;
+                break;
+            case 'h':
+                printHelp(g_pStdOut);
+                return RTEXITCODE_SUCCESS;
+            case VINF_GETOPT_NOT_OPTION:
+                return errorUnknownSubcommand(ValueUnion.psz);
+            default:
+                return errorGetOpt(c, &ValueUnion);
+        }
+    }
+
+    /* Delayed check. It allows us to print help information.*/
+    hrc = checkAndSetCommonOptions(a, pCommonOpts);
+    if (FAILED(hrc))
+        return RTEXITCODE_FAILURE;
+
+    if (strInstanceId.isEmpty())
+        return errorArgument(Cloud::tr("Missing parameter --id."));
+
+//  if (strCloneName.isEmpty())
+//      return errorArgument(Cloud::tr("Missing parameter --clone-name."));
+
+    ComPtr<ICloudProfile> pCloudProfile = pCommonOpts->profile.pCloudProfile;
+
+    ComObjPtr<ICloudClient> oCloudClient;
+    CHECK_ERROR2_RET(hrc, pCloudProfile,
+                     CreateCloudClient(oCloudClient.asOutParam()),
+                     RTEXITCODE_FAILURE);
+
+    ComPtr<IProgress> pProgress;
+    ComPtr<ICloudMachine> pClonedMachine;
+
+    RTPrintf(Cloud::tr("Cloning cloud instance with Id \'%s\'...\n"), strInstanceId.c_str());
+
+    CHECK_ERROR2_RET(hrc, oCloudClient, CloneInstance(Bstr(strInstanceId).raw(),
+                                                      Bstr(strCloneName).raw(),
+                                                      pClonedMachine.asOutParam(),
+                                                      pProgress.asOutParam()), RTEXITCODE_FAILURE);
+
+    hrc = showProgress(pProgress);
+    CHECK_PROGRESS_ERROR_RET(pProgress, (Cloud::tr("Cloning cloud instance failed")), RTEXITCODE_FAILURE);
+
+    Bstr strAttr;
+    pClonedMachine->COMGETTER(Id)(strAttr.asOutParam());
+    RTPrintf(Cloud::tr("Cloned instance UUID in VirtualBox: %ls\n"), strAttr.raw());
+    strAttr.setNull();
+    pClonedMachine->COMGETTER(Name)(strAttr.asOutParam());
+    RTPrintf(Cloud::tr("Cloned instance name: %ls\n"), strAttr.raw());
+
+    if (SUCCEEDED(hrc))
+        RTPrintf(Cloud::tr("Cloud instance was cloned successfully\n"));
+
+    return SUCCEEDED(hrc) ? RTEXITCODE_SUCCESS : RTEXITCODE_FAILURE;
+}
+
 static RTEXITCODE updateCloudInstance(HandlerArg *a, int iFirst, PCLOUDCOMMONOPT pCommonOpts)
 {
     RT_NOREF(a);
@@ -1047,6 +1146,394 @@ static RTEXITCODE showCloudInstanceInfo(HandlerArg *a, int iFirst, PCLOUDCOMMONO
 
     return SUCCEEDED(hrc) ? RTEXITCODE_SUCCESS : RTEXITCODE_FAILURE;
 }
+
+
+static RTEXITCODE cloudInstanceMetricList(HandlerArg *a, int iFirst, PCLOUDCOMMONOPT pCommonOpts)
+{
+    HRESULT hrc = S_OK;
+
+    static const RTGETOPTDEF s_aOptions[] =
+    {
+        { "--id",           'i', RTGETOPT_REQ_STRING },
+        { "help",           'h', RTGETOPT_REQ_NOTHING },
+        { "--help",         'h', RTGETOPT_REQ_NOTHING }
+    };
+    RTGETOPTSTATE GetState;
+    RTGETOPTUNION ValueUnion;
+    int vrc = RTGetOptInit(&GetState, a->argc, a->argv, s_aOptions, RT_ELEMENTS(s_aOptions), iFirst, 0);
+    AssertRCReturn(vrc, RTEXITCODE_FAILURE);
+    if (a->argc == iFirst)
+    {
+        RTPrintf(Cloud::tr("Empty command parameter list, show help.\n"));
+        printHelp(g_pStdOut);
+        return RTEXITCODE_SUCCESS;
+    }
+
+    Utf8Str strInstanceId;
+
+    int c;
+    while ((c = RTGetOpt(&GetState, &ValueUnion)) != 0)
+    {
+        switch (c)
+        {
+            case 'i':
+            {
+                if (strInstanceId.isNotEmpty())
+                    return errorArgument(Cloud::tr("Duplicate parameter: --id"));
+
+                strInstanceId = ValueUnion.psz;
+                if (strInstanceId.isEmpty())
+                    return errorArgument(Cloud::tr("Empty parameter: --id"));
+
+                break;
+            }
+            case 'h':
+                printHelp(g_pStdOut);
+                return RTEXITCODE_SUCCESS;
+            case VINF_GETOPT_NOT_OPTION:
+                return errorUnknownSubcommand(ValueUnion.psz);
+
+            default:
+                return errorGetOpt(c, &ValueUnion);
+        }
+    }
+
+    /* Delayed check. It allows us to print help information.*/
+    hrc = checkAndSetCommonOptions(a, pCommonOpts);
+    if (FAILED(hrc))
+        return RTEXITCODE_FAILURE;
+
+    if (strInstanceId.isEmpty())
+        return errorArgument(Cloud::tr("Missing parameter: --id"));
+
+    ComPtr<ICloudProfile> pCloudProfile = pCommonOpts->profile.pCloudProfile;
+
+    ComObjPtr<ICloudClient> oCloudClient;
+    CHECK_ERROR2_RET(hrc, pCloudProfile,
+                     CreateCloudClient(oCloudClient.asOutParam()),
+                     RTEXITCODE_FAILURE);
+    RTPrintf(Cloud::tr("Getting list of metric names for the cloud instance with id %s\n"), strInstanceId.c_str());
+    RTPrintf(Cloud::tr("Reply is the list, each metric name is placed on a separate line as \' - <metric name>\'\n"));
+
+    ComPtr<IProgress> progress;
+
+    CHECK_ERROR2_RET(hrc, oCloudClient, ReadCloudMachineList(progress.asOutParam()), RTEXITCODE_FAILURE);
+
+    /* First step*/
+    RTPrintf(Cloud::tr("First, reading the cloud machines list...\n"));
+    hrc = showProgress(progress);
+    CHECK_PROGRESS_ERROR_RET(progress, (Cloud::tr("Reading the cloud machines list failed")), RTEXITCODE_FAILURE);
+
+    com::SafeIfaceArray<ICloudMachine> aMachines;
+    CHECK_ERROR2_RET(hrc, oCloudClient,
+                     COMGETTER(CloudMachineList)(ComSafeArrayAsOutParam(aMachines)),
+                     RTEXITCODE_FAILURE);
+
+    const size_t cMachines = aMachines.size();
+    if (cMachines == 0)
+        return RTEXITCODE_SUCCESS;
+
+    std::vector<ComPtr<ICloudMachine> > vMachines(cMachines);
+    std::vector<com::Bstr> vBstrCloudIds(cMachines);
+    std::vector<com::Bstr> vBstrIds(cMachines);
+
+    com::Bstr bstrFoundMachineVBoxId;
+
+    for (size_t i = 0; i < cMachines; ++i)
+    {
+        vMachines[i] = aMachines[i];
+
+        CHECK_ERROR2_RET(hrc, vMachines[i],
+                         COMGETTER(CloudId)(vBstrCloudIds[i].asOutParam()),
+                         RTEXITCODE_FAILURE);
+
+        Utf8Str strCurrMachineCloudId(vBstrCloudIds[i]);
+        if (strCurrMachineCloudId.equals(strInstanceId))
+        {
+            CHECK_ERROR2_RET(hrc, vMachines[i],
+                             COMGETTER(Id)(vBstrIds[i].asOutParam()),
+                             RTEXITCODE_FAILURE);
+            bstrFoundMachineVBoxId = vBstrIds[i];
+            break;
+        }
+    }
+
+    if (bstrFoundMachineVBoxId.isEmpty())
+    {
+        RTPrintf("The passed cloud instance Id \'%s\' WASN'T found among the cloud machines "
+                 "of user \'%s\' registered with VirtualBox\n",
+                 strInstanceId.c_str(), pCommonOpts->profile.pszProfileName);
+        return RTEXITCODE_FAILURE;
+    }
+
+    /* Second step*/
+    RTPrintf(Cloud::tr("Second, refresh information about cloud instance ...\n"));
+    ComPtr<ICloudMachine> pMachine;
+    CHECK_ERROR2_RET(hrc, oCloudClient,
+        GetCloudMachine(bstrFoundMachineVBoxId.raw(), pMachine.asOutParam()), RTEXITCODE_FAILURE);
+
+    ComPtr<IProgress> pRefreshProgress;
+    CHECK_ERROR2_RET(hrc, pMachine, Refresh(pRefreshProgress.asOutParam()), RTEXITCODE_FAILURE);
+
+    hrc = showProgress(pRefreshProgress);
+    CHECK_PROGRESS_ERROR_RET(pRefreshProgress, (Cloud::tr("Refreshing information about cloud instance failed")), RTEXITCODE_FAILURE);
+
+    /* Third step*/
+    RTPrintf(Cloud::tr("Third, getting information about cloud instance metric names...\n"));
+    ComPtr<IProgress> progress2;
+    ComPtr<IStringArray> returnMetricNames;
+    CHECK_ERROR2_RET(hrc, pMachine, ListMetricNames(returnMetricNames.asOutParam(), progress2.asOutParam()),  RTEXITCODE_FAILURE);
+
+    hrc = showProgress(progress2);
+    CHECK_PROGRESS_ERROR_RET(progress, (Cloud::tr("Getting information about cloud instance metrics failed")), RTEXITCODE_FAILURE);
+
+    com::SafeArray<BSTR> metricNamesArray;
+    CHECK_ERROR2_RET(hrc,
+                     returnMetricNames, COMGETTER(Values)(ComSafeArrayAsOutParam(metricNamesArray)),
+                     RTEXITCODE_FAILURE);
+
+    RTPrintf(Cloud::tr("Available metric names:\n"));
+    size_t cMetricNamesArraySize = metricNamesArray.size();
+
+    if (cMetricNamesArraySize == 0)
+    {
+        RTPrintf(Cloud::tr("\tThe list of metric names is empty. It may mean that an appropriate service wasn't run on the instance.\n"));
+        return RTEXITCODE_FAILURE;
+    }
+    else
+    {
+        Bstr value;
+        for (size_t k = 0; k < cMetricNamesArraySize; ++k)
+        {
+            value = metricNamesArray[k];
+            MetricType_T aMetricType;
+            CHECK_ERROR2_RET(hrc, oCloudClient, GetMetricTypeByName(value.raw(), &aMetricType), RTEXITCODE_FAILURE);
+
+            if (SUCCEEDED(hrc))
+                RTPrintf(Cloud::tr(" - %ls\n"), value.raw());
+        }
+    }
+
+    return SUCCEEDED(hrc) ? RTEXITCODE_SUCCESS : RTEXITCODE_FAILURE;
+}
+
+
+static RTEXITCODE cloudInstanceMetricData(HandlerArg *a, int iFirst, PCLOUDCOMMONOPT pCommonOpts)
+{
+    HRESULT hrc = S_OK;
+
+    static const RTGETOPTDEF s_aOptions[] =
+    {
+        { "--id",           'i', RTGETOPT_REQ_STRING },
+        { "--metric-name",  'n', RTGETOPT_REQ_STRING },
+        { "--metric-points",'p', RTGETOPT_REQ_STRING },
+        { "help",           'h', RTGETOPT_REQ_NOTHING },
+        { "--help",         'h', RTGETOPT_REQ_NOTHING }
+    };
+    RTGETOPTSTATE GetState;
+    RTGETOPTUNION ValueUnion;
+    int vrc = RTGetOptInit(&GetState, a->argc, a->argv, s_aOptions, RT_ELEMENTS(s_aOptions), iFirst, 0);
+    AssertRCReturn(vrc, RTEXITCODE_FAILURE);
+    if (a->argc == iFirst)
+    {
+        RTPrintf(Cloud::tr("Empty command parameter list, show help.\n"));
+        printHelp(g_pStdOut);
+        return RTEXITCODE_SUCCESS;
+    }
+
+    Utf8Str strInstanceId;
+    Utf8Str strMetricName;
+    Utf8Str strMetricPoints;
+
+    int c;
+    while ((c = RTGetOpt(&GetState, &ValueUnion)) != 0)
+    {
+        switch (c)
+        {
+            case 'i':
+            {
+                if (strInstanceId.isNotEmpty())
+                    return errorArgument(Cloud::tr("Duplicate parameter: --id"));
+
+                strInstanceId = ValueUnion.psz;
+                if (strInstanceId.isEmpty())
+                    return errorArgument(Cloud::tr("Empty parameter: --id"));
+
+                break;
+            }
+            case 'n':
+            {
+                if (strMetricName.isNotEmpty())
+                    return errorArgument(Cloud::tr("Duplicate parameter: --metric-name"));
+
+                strMetricName = ValueUnion.psz;
+                if (strMetricName.isEmpty())
+                    return errorArgument(Cloud::tr("Empty parameter: --metric-name"));
+
+                break;
+            }
+            case 'p':
+            {
+                if (strMetricPoints.isNotEmpty())
+                    return errorArgument(Cloud::tr("Duplicate parameter: --metric-points"));
+
+                strMetricPoints = ValueUnion.psz;
+                if (strMetricPoints.isEmpty())
+                    return errorArgument(Cloud::tr("Empty parameter: --metric-points"));
+
+                break;
+            }
+            case 'h':
+                printHelp(g_pStdOut);
+                return RTEXITCODE_SUCCESS;
+            case VINF_GETOPT_NOT_OPTION:
+                return errorUnknownSubcommand(ValueUnion.psz);
+
+            default:
+                return errorGetOpt(c, &ValueUnion);
+        }
+    }
+
+    /* Delayed check. It allows us to print help information.*/
+    hrc = checkAndSetCommonOptions(a, pCommonOpts);
+    if (FAILED(hrc))
+        return RTEXITCODE_FAILURE;
+
+    if (strInstanceId.isEmpty())
+        return errorArgument(Cloud::tr("Missing parameter: --id"));
+    if (strMetricName.isEmpty())
+        return errorArgument(Cloud::tr("Missing parameter: --metric-name"));
+
+    unsigned long metricPoins;
+    strMetricPoints.isEmpty() ? metricPoins = 1 : metricPoins = RTStrToUInt32(strMetricPoints.c_str());
+
+    ComPtr<ICloudProfile> pCloudProfile = pCommonOpts->profile.pCloudProfile;
+
+    ComObjPtr<ICloudClient> oCloudClient;
+    CHECK_ERROR2_RET(hrc, pCloudProfile,
+                     CreateCloudClient(oCloudClient.asOutParam()),
+                     RTEXITCODE_FAILURE);
+    RTPrintf(Cloud::tr("Getting %s metric for the cloud instance with id %s...\n"), strMetricName.c_str(), strInstanceId.c_str());
+    RTPrintf(Cloud::tr("Reply is in the form \'%s[Rfc2822 time format]\' = \'value\'\n"), strMetricName.c_str());
+
+    /* Check the requested metric type */
+    MetricType_T aMetricType;
+    CHECK_ERROR2_RET(hrc, oCloudClient, GetMetricTypeByName(com::Bstr(strMetricName.c_str()).raw(), &aMetricType), RTEXITCODE_FAILURE);
+
+    /* First step*/
+    RTPrintf(Cloud::tr("First, reading the cloud machines list...\n"));
+    ComPtr<IProgress> progress;
+    CHECK_ERROR2_RET(hrc, oCloudClient, ReadCloudMachineList(progress.asOutParam()), RTEXITCODE_FAILURE);
+
+    hrc = showProgress(progress);
+    CHECK_PROGRESS_ERROR_RET(progress, (Cloud::tr("Reading the cloud machines list failed")), RTEXITCODE_FAILURE);
+
+    com::SafeIfaceArray<ICloudMachine> aMachines;
+    CHECK_ERROR2_RET(hrc, oCloudClient,
+                     COMGETTER(CloudMachineList)(ComSafeArrayAsOutParam(aMachines)),
+                     RTEXITCODE_FAILURE);
+
+    const size_t cMachines = aMachines.size();
+    if (cMachines == 0)
+        return RTEXITCODE_SUCCESS;
+
+    std::vector<ComPtr<ICloudMachine> > vMachines(cMachines);
+    std::vector<com::Bstr> vBstrCloudIds(cMachines);
+    std::vector<com::Bstr> vBstrIds(cMachines);
+
+    com::Bstr bstrFoundMachineVBoxId;
+
+    for (size_t i = 0; i < cMachines; ++i)
+    {
+        vMachines[i] = aMachines[i];
+
+        CHECK_ERROR2_RET(hrc, vMachines[i],
+                         COMGETTER(CloudId)(vBstrCloudIds[i].asOutParam()),
+                         RTEXITCODE_FAILURE);
+
+        Utf8Str strCurrMachineCloudId(vBstrCloudIds[i]);
+        if (strCurrMachineCloudId.equals(strInstanceId))
+        {
+            CHECK_ERROR2_RET(hrc, vMachines[i],
+                             COMGETTER(Id)(vBstrIds[i].asOutParam()),
+                             RTEXITCODE_FAILURE);
+            bstrFoundMachineVBoxId = vBstrIds[i];
+            break;
+        }
+    }
+
+    if (bstrFoundMachineVBoxId.isEmpty())
+    {
+        RTPrintf("The passed cloud instance Id \'%s\' WASN'T found among the cloud machines "
+                 "of user \'%s\' registered with VirtualBox\n",
+                 strInstanceId.c_str(), pCommonOpts->profile.pszProfileName);
+        return RTEXITCODE_FAILURE;
+    }
+
+    /* Second step*/
+    RTPrintf(Cloud::tr("Second, refresh information about cloud instance ...\n"));
+    ComPtr<ICloudMachine> pMachine;
+    CHECK_ERROR2_RET(hrc, oCloudClient,
+        GetCloudMachine(bstrFoundMachineVBoxId.raw(), pMachine.asOutParam()), RTEXITCODE_FAILURE);
+
+    ComPtr<IProgress> pRefreshProgress;
+    CHECK_ERROR2_RET(hrc, pMachine, Refresh(pRefreshProgress.asOutParam()), RTEXITCODE_FAILURE);
+
+    hrc = showProgress(pRefreshProgress);
+    CHECK_PROGRESS_ERROR_RET(pRefreshProgress, (Cloud::tr("Refreshing information about cloud instance failed")), RTEXITCODE_FAILURE);
+
+    /* Third step*/
+    RTPrintf(Cloud::tr("Third, request metric data from cloud instance ...\n"));
+    ComPtr<IProgress> progress2;
+    ComPtr<IStringArray> returnDataValues;
+    ComPtr<IStringArray> returnDataTimestamps;
+    ComPtr<IStringArray> returnMeasureUnits;
+
+    CHECK_ERROR2_RET(hrc, pMachine, EnumerateMetricData(aMetricType,
+                                                        metricPoins,
+                                                        returnDataValues.asOutParam(),
+                                                        returnDataTimestamps.asOutParam(),
+                                                        returnMeasureUnits.asOutParam(),
+                                                        progress2.asOutParam()),  RTEXITCODE_FAILURE);
+
+    hrc = showProgress(progress2);
+    CHECK_PROGRESS_ERROR_RET(progress2, (Cloud::tr("Getting metric data failed")), RTEXITCODE_FAILURE);
+
+    com::SafeArray<BSTR> dataValueArray;
+    CHECK_ERROR2_RET(hrc,
+                     returnDataValues, COMGETTER(Values)(ComSafeArrayAsOutParam(dataValueArray)),
+                     RTEXITCODE_FAILURE);
+
+    com::SafeArray<BSTR> dataTimestampArray;
+    CHECK_ERROR2_RET(hrc,
+                     returnDataTimestamps, COMGETTER(Values)(ComSafeArrayAsOutParam(dataTimestampArray)),
+                     RTEXITCODE_FAILURE);
+
+    com::SafeArray<BSTR> measureUnitArray;
+    CHECK_ERROR2_RET(hrc,
+                     returnMeasureUnits, COMGETTER(Values)(ComSafeArrayAsOutParam(measureUnitArray)),
+                     RTEXITCODE_FAILURE);
+
+    size_t cDataValueArraySize = dataValueArray.size();
+    Bstr unit = cDataValueArraySize == 0 ? Bstr("unknown units") : measureUnitArray[0];
+    RTPrintf(Cloud::tr("The %s metric values (in %ls):\n"), strMetricName.c_str(), unit.raw());
+
+    if (cDataValueArraySize == 0)
+        RTPrintf(Cloud::tr("\tThe list of metric data is empty. It may mean that an appropriate service wasn't run on the instance.\n"));
+    else
+    {
+        Bstr value;
+        for (size_t k = 0; k < cDataValueArraySize; ++k)
+        {
+            value = dataValueArray[k];
+            Utf8Str strTimestamp(dataTimestampArray[k]);
+            RTPrintf(Cloud::tr("%d: %s[%s] = %ls\n"), k, strMetricName.c_str(), strTimestamp.c_str(), value.raw());
+        }
+    }
+
+    return SUCCEEDED(hrc) ? RTEXITCODE_SUCCESS : RTEXITCODE_FAILURE;
+}
+
 
 static RTEXITCODE startCloudInstance(HandlerArg *a, int iFirst, PCLOUDCOMMONOPT pCommonOpts)
 {
@@ -1389,6 +1876,9 @@ static RTEXITCODE handleCloudInstance(HandlerArg *a, int iFirst, PCLOUDCOMMONOPT
         kCloudInstance_Terminate,
         kCloudInstance_Update,
         kCloudInstance_Reset,
+        kCloudInstance_Clone,
+        kCloudInstance_MetricList,
+        kCloudInstance_MetricData,
     };
 
     static const RTGETOPTDEF s_aOptions[] =
@@ -1400,6 +1890,9 @@ static RTEXITCODE handleCloudInstance(HandlerArg *a, int iFirst, PCLOUDCOMMONOPT
         { "terminate",      kCloudInstance_Terminate, RTGETOPT_REQ_NOTHING },
         { "update",         kCloudInstance_Update,    RTGETOPT_REQ_NOTHING },
         { "reset",          kCloudInstance_Reset,     RTGETOPT_REQ_NOTHING },
+        { "clone",          kCloudInstance_Clone,     RTGETOPT_REQ_NOTHING },
+        { "metriclist",     kCloudInstance_MetricList,RTGETOPT_REQ_NOTHING },
+        { "metricdata",     kCloudInstance_MetricData,RTGETOPT_REQ_NOTHING },
 
         { "help",           'h',                      RTGETOPT_REQ_NOTHING },
         { "-?",             'h',                      RTGETOPT_REQ_NOTHING },
@@ -1426,32 +1919,44 @@ static RTEXITCODE handleCloudInstance(HandlerArg *a, int iFirst, PCLOUDCOMMONOPT
         {
             /* Sub-commands: */
             case kCloudInstance_Create:
-                setCurrentSubcommand(HELP_SCOPE_CLOUDINSTANCE_CREATE);
+                setCurrentSubcommand(HELP_SCOPE_CLOUD_INSTANCE_CREATE);
                 return createCloudInstance(a, GetState.iNext, pCommonOpts);
 
             case kCloudInstance_Start:
-                setCurrentSubcommand(HELP_SCOPE_CLOUDINSTANCE_START);
+                setCurrentSubcommand(HELP_SCOPE_CLOUD_INSTANCE_START);
                 return startCloudInstance(a, GetState.iNext, pCommonOpts);
 
             case kCloudInstance_Pause:
-                setCurrentSubcommand(HELP_SCOPE_CLOUDINSTANCE_PAUSE);
+                setCurrentSubcommand(HELP_SCOPE_CLOUD_INSTANCE_PAUSE);
                 return pauseCloudInstance(a, GetState.iNext, pCommonOpts);
 
             case kCloudInstance_Info:
-                setCurrentSubcommand(HELP_SCOPE_CLOUDINSTANCE_INFO);
+                setCurrentSubcommand(HELP_SCOPE_CLOUD_INSTANCE_INFO);
                 return showCloudInstanceInfo(a, GetState.iNext, pCommonOpts);
 
             case kCloudInstance_Update:
-//              setCurrentSubcommand(HELP_SCOPE_CLOUDINSTANCE_UPDATE);
+//              setCurrentSubcommand(HELP_SCOPE_CLOUD_INSTANCE_UPDATE);
                 return updateCloudInstance(a, GetState.iNext, pCommonOpts);
 
             case kCloudInstance_Terminate:
-                setCurrentSubcommand(HELP_SCOPE_CLOUDINSTANCE_TERMINATE);
+                setCurrentSubcommand(HELP_SCOPE_CLOUD_INSTANCE_TERMINATE);
                 return terminateCloudInstance(a, GetState.iNext, pCommonOpts);
 
             case kCloudInstance_Reset:
-                setCurrentSubcommand(HELP_SCOPE_CLOUDINSTANCE_RESET);
+                setCurrentSubcommand(HELP_SCOPE_CLOUD_INSTANCE_RESET);
                 return resetCloudInstance(a, GetState.iNext, pCommonOpts);
+
+            case kCloudInstance_Clone:
+                setCurrentSubcommand(HELP_SCOPE_CLOUD_INSTANCE_CLONE);
+                return cloneCloudInstance(a, GetState.iNext, pCommonOpts);
+
+            case kCloudInstance_MetricData:
+                setCurrentSubcommand(HELP_SCOPE_CLOUD_INSTANCE_METRICDATA);
+                return cloudInstanceMetricData(a, GetState.iNext, pCommonOpts);
+
+            case kCloudInstance_MetricList:
+                setCurrentSubcommand(HELP_SCOPE_CLOUD_INSTANCE_METRICLIST);
+                return cloudInstanceMetricList(a, GetState.iNext, pCommonOpts);
 
             case 'h':
                 printHelp(g_pStdOut);
@@ -2079,27 +2584,27 @@ static RTEXITCODE handleCloudImage(HandlerArg *a, int iFirst, PCLOUDCOMMONOPT pC
         {
             /* Sub-commands: */
             case kCloudImage_Create:
-                setCurrentSubcommand(HELP_SCOPE_CLOUDIMAGE_CREATE);
+                setCurrentSubcommand(HELP_SCOPE_CLOUD_IMAGE_CREATE);
                 return createCloudImage(a, GetState.iNext, pCommonOpts);
 
             case kCloudImage_Export:
-                setCurrentSubcommand(HELP_SCOPE_CLOUDIMAGE_EXPORT);
+                setCurrentSubcommand(HELP_SCOPE_CLOUD_IMAGE_EXPORT);
                 return exportCloudImage(a, GetState.iNext, pCommonOpts);
 
             case kCloudImage_Import:
-                setCurrentSubcommand(HELP_SCOPE_CLOUDIMAGE_IMPORT);
+                setCurrentSubcommand(HELP_SCOPE_CLOUD_IMAGE_IMPORT);
                 return importCloudImage(a, GetState.iNext, pCommonOpts);
 
             case kCloudImage_Info:
-                setCurrentSubcommand(HELP_SCOPE_CLOUDIMAGE_INFO);
+                setCurrentSubcommand(HELP_SCOPE_CLOUD_IMAGE_INFO);
                 return showCloudImageInfo(a, GetState.iNext, pCommonOpts);
 
             case kCloudImage_Update:
-//              setCurrentSubcommand(HELP_SCOPE_CLOUDIMAGE_UPDATE);
+//              setCurrentSubcommand(HELP_SCOPE_CLOUD_IMAGE_UPDATE);
                 return updateCloudImage(a, GetState.iNext, pCommonOpts);
 
             case kCloudImage_Delete:
-                setCurrentSubcommand(HELP_SCOPE_CLOUDIMAGE_DELETE);
+                setCurrentSubcommand(HELP_SCOPE_CLOUD_IMAGE_DELETE);
                 return deleteCloudImage(a, GetState.iNext, pCommonOpts);
 
             case 'h':

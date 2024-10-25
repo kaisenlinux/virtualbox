@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -155,7 +155,12 @@ HRESULT     errorArgumentHr(const char *pszFormat, ...) RT_IPRT_FORMAT_ATTR(1, 2
 # define SHOW_PROGRESS_NONE     0
 # define SHOW_PROGRESS_DESC     RT_BIT_32(0)
 # define SHOW_PROGRESS          RT_BIT_32(1)
+/** Shows detailed information of the progress.
+ *  Mutually exclusive with SHOW_PROGRESS_OPS. */
 # define SHOW_PROGRESS_DETAILS  RT_BIT_32(2)
+/** Only shows the operation descriptions without other details.
+ *  Mutually exclusive with SHOW_PROGRESS_DETAILS. */
+# define SHOW_PROGRESS_OPS      RT_BIT_32(3)
 HRESULT showProgress(ComPtr<IProgress> progress, uint32_t fFlags = SHOW_PROGRESS);
 
 /* VBoxManage.cpp */
@@ -174,6 +179,7 @@ void parseGroups(const char *pcszGroups, com::SafeArray<BSTR> *pGroups);
 int parseScreens(const char *pcszScreens, com::SafeArray<BOOL> *pScreens);
 #endif
 RTEXITCODE handleModifyVM(HandlerArg *a);
+VMProcPriority_T nameToVMProcPriority(const char *pszName);
 
 /* VBoxManageDebugVM.cpp */
 RTEXITCODE handleDebugVM(HandlerArg *a);

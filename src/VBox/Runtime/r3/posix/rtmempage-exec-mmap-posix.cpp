@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -46,6 +46,7 @@
 #include <iprt/errcore.h>
 #include <iprt/param.h>
 #include <iprt/string.h>
+#include <iprt/system.h>
 
 #include <stdlib.h>
 #include <errno.h>
@@ -105,7 +106,7 @@ static void *rtMemPagePosixAlloc(size_t cb, const char *pszTag, uint32_t fFlags,
      */
     Assert(cb > 0);
     NOREF(pszTag);
-    cb = RT_ALIGN_Z(cb, PAGE_SIZE);
+    cb = RTSystemPageAlignSize(cb);
 
     /*
      * Do the allocation.
@@ -142,8 +143,8 @@ static void rtMemPagePosixFree(void *pv, size_t cb)
         return;
     AssertPtr(pv);
     Assert(cb > 0);
-    Assert(!((uintptr_t)pv & PAGE_OFFSET_MASK));
-    cb = RT_ALIGN_Z(cb, PAGE_SIZE);
+    Assert(!((uintptr_t)pv & RTSystemGetPageOffsetMask()));
+    cb = RTSystemPageAlignSize(cb);
 
     /*
      * Free the memory.
@@ -171,7 +172,7 @@ RTDECL(void *) RTMemPageAllocZTag(size_t cb, const char *pszTag) RT_NO_THROW_DEF
 RTDECL(void *) RTMemPageAllocExTag(size_t cb, uint32_t fFlags, const char *pszTag) RT_NO_THROW_DEF
 {
     AssertReturn(!(fFlags & ~RTMEMPAGEALLOC_F_VALID_MASK), NULL);
-    return rtMemPagePosixAlloc(cb, pszTag, fFlags, 0);
+    return rtMemPagePosixAlloc(cb, pszTag, fFlags, !(fFlags & RTMEMPAGEALLOC_F_EXECUTABLE) ? 0 : PROT_EXEC);
 }
 
 

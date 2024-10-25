@@ -4,7 +4,7 @@
 #
 
 #
-# Copyright (C) 2006-2023 Oracle and/or its affiliates.
+# Copyright (C) 2006-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -68,6 +68,11 @@ ifdef VBOX_WITH_TESTCASES
  tstSharedFolderService_TEMPLATE = VBoxR3TstExe
  tstSharedFolderService_DEFS    = VBOX_WITH_HGCM UNITTEST
  tstSharedFolderService_INCS    = ..
+ ifneq ($(KBUILD_TARGET),win)
+  tstSharedFolderService_DEFS  += VBOX_WITH_XPCOM
+  tstSharedFolderService_INCS  += $(VBOX_XPCOM_INCS)
+ endif
+ tstSharedFolderService_INCS.win += $(VBOX_PATH_SDK)/bindings/mscom/include
  tstSharedFolderService_SOURCES = \
  	tstSharedFolderService.cpp \
  	../mappings.cpp \

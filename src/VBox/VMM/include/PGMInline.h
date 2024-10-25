@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -70,11 +70,17 @@
  */
 DECLINLINE(PPGMRAMRANGE) pgmPhysGetRange(PVMCC pVM, RTGCPHYS GCPhys)
 {
-    PPGMRAMRANGE pRam = pVM->pgm.s.CTX_SUFF(apRamRangesTlb)[PGM_RAMRANGE_TLB_IDX(GCPhys)];
-    if (!pRam || GCPhys - pRam->GCPhys >= pRam->cb)
-        return pgmPhysGetRangeSlow(pVM, GCPhys);
-    STAM_COUNTER_INC(&pVM->pgm.s.Stats.CTX_MID_Z(Stat,RamRangeTlbHits));
-    return pRam;
+    PPGMRAMRANGE const pRam = pVM->CTX_EXPR(pgm, pgmr0, pgm).s.apRamRangesTlb[PGM_RAMRANGE_TLB_IDX(GCPhys)];
+    if (pRam)
+    {
+        RTGCPHYS const GCPhysFirst = pRam->GCPhys;
+        if (GCPhys - GCPhysFirst < pRam->cb && GCPhys >= GCPhysFirst)
+        {
+            STAM_COUNTER_INC(&pVM->pgm.s.Stats.CTX_MID_Z(Stat,RamRangeTlbHits));
+            return pRam;
+        }
+    }
+    return pgmPhysGetRangeSlow(pVM, GCPhys);
 }
 
 
@@ -90,12 +96,17 @@ DECLINLINE(PPGMRAMRANGE) pgmPhysGetRange(PVMCC pVM, RTGCPHYS GCPhys)
  */
 DECLINLINE(PPGMRAMRANGE) pgmPhysGetRangeAtOrAbove(PVMCC pVM, RTGCPHYS GCPhys)
 {
-    PPGMRAMRANGE pRam = pVM->pgm.s.CTX_SUFF(apRamRangesTlb)[PGM_RAMRANGE_TLB_IDX(GCPhys)];
-    if (   !pRam
-        || (GCPhys - pRam->GCPhys) >= pRam->cb)
-        return pgmPhysGetRangeAtOrAboveSlow(pVM, GCPhys);
-    STAM_COUNTER_INC(&pVM->pgm.s.Stats.CTX_MID_Z(Stat,RamRangeTlbHits));
-    return pRam;
+    PPGMRAMRANGE const pRam = pVM->CTX_EXPR(pgm, pgmr0, pgm).s.apRamRangesTlb[PGM_RAMRANGE_TLB_IDX(GCPhys)];
+    if (pRam)
+    {
+        RTGCPHYS const GCPhysFirst = pRam->GCPhys;
+        if (GCPhys - GCPhysFirst < pRam->cb && GCPhys >= GCPhysFirst)
+        {
+            STAM_COUNTER_INC(&pVM->pgm.s.Stats.CTX_MID_Z(Stat,RamRangeTlbHits));
+            return pRam;
+        }
+    }
+    return pgmPhysGetRangeAtOrAboveSlow(pVM, GCPhys);
 }
 
 
@@ -110,13 +121,16 @@ DECLINLINE(PPGMRAMRANGE) pgmPhysGetRangeAtOrAbove(PVMCC pVM, RTGCPHYS GCPhys)
  */
 DECLINLINE(PPGMPAGE) pgmPhysGetPage(PVMCC pVM, RTGCPHYS GCPhys)
 {
-    PPGMRAMRANGE pRam = pVM->pgm.s.CTX_SUFF(apRamRangesTlb)[PGM_RAMRANGE_TLB_IDX(GCPhys)];
-    RTGCPHYS off;
-    if (   pRam
-        && (off = GCPhys - pRam->GCPhys) < pRam->cb)
+    PPGMRAMRANGE const pRam = pVM->CTX_EXPR(pgm, pgmr0, pgm).s.apRamRangesTlb[PGM_RAMRANGE_TLB_IDX(GCPhys)];
+    if (pRam)
     {
-        STAM_COUNTER_INC(&pVM->pgm.s.Stats.CTX_MID_Z(Stat,RamRangeTlbHits));
-        return &pRam->aPages[off >> GUEST_PAGE_SHIFT];
+        RTGCPHYS const GCPhysFirst = pRam->GCPhys;
+        RTGCPHYS const off         = GCPhys - GCPhysFirst;
+        if (off < pRam->cb && GCPhys >= GCPhysFirst)
+        {
+            STAM_COUNTER_INC(&pVM->pgm.s.Stats.CTX_MID_Z(Stat,RamRangeTlbHits));
+            return &pRam->aPages[off >> GUEST_PAGE_SHIFT];
+        }
     }
     return pgmPhysGetPageSlow(pVM, GCPhys);
 }
@@ -137,14 +151,19 @@ DECLINLINE(PPGMPAGE) pgmPhysGetPage(PVMCC pVM, RTGCPHYS GCPhys)
  */
 DECLINLINE(int) pgmPhysGetPageEx(PVMCC pVM, RTGCPHYS GCPhys, PPPGMPAGE ppPage)
 {
-    PPGMRAMRANGE pRam = pVM->pgm.s.CTX_SUFF(apRamRangesTlb)[PGM_RAMRANGE_TLB_IDX(GCPhys)];
-    RTGCPHYS off;
-    if (   !pRam
-        || (off = GCPhys - pRam->GCPhys) >= pRam->cb)
-        return pgmPhysGetPageExSlow(pVM, GCPhys, ppPage);
-    *ppPage = &pRam->aPages[off >> GUEST_PAGE_SHIFT];
-    STAM_COUNTER_INC(&pVM->pgm.s.Stats.CTX_MID_Z(Stat,RamRangeTlbHits));
-    return VINF_SUCCESS;
+    PPGMRAMRANGE const pRam = pVM->CTX_EXPR(pgm, pgmr0, pgm).s.apRamRangesTlb[PGM_RAMRANGE_TLB_IDX(GCPhys)];
+    if (pRam)
+    {
+        RTGCPHYS const GCPhysFirst = pRam->GCPhys;
+        RTGCPHYS const off         = GCPhys - GCPhysFirst;
+        if (off < pRam->cb && GCPhys >= GCPhysFirst)
+        {
+            STAM_COUNTER_INC(&pVM->pgm.s.Stats.CTX_MID_Z(Stat,RamRangeTlbHits));
+            *ppPage = &pRam->aPages[off >> GUEST_PAGE_SHIFT];
+            return VINF_SUCCESS;
+        }
+    }
+    return pgmPhysGetPageExSlow(pVM, GCPhys, ppPage);
 }
 
 
@@ -165,14 +184,17 @@ DECLINLINE(int) pgmPhysGetPageEx(PVMCC pVM, RTGCPHYS GCPhys, PPPGMPAGE ppPage)
  */
 DECLINLINE(int) pgmPhysGetPageWithHintEx(PVMCC pVM, RTGCPHYS GCPhys, PPPGMPAGE ppPage, PPGMRAMRANGE *ppRamHint)
 {
-    RTGCPHYS off;
     PPGMRAMRANGE pRam = *ppRamHint;
-    if (    !pRam
-        ||  RT_UNLIKELY((off = GCPhys - pRam->GCPhys) >= pRam->cb))
+    RTGCPHYS     GCPhysFirst;
+    RTGCPHYS     off;
+    if (   !pRam
+        || RT_UNLIKELY(   (off = GCPhys - (GCPhysFirst = pRam->GCPhys)) >= pRam->cb
+                       || GCPhys < GCPhysFirst) )
     {
-        pRam = pVM->pgm.s.CTX_SUFF(apRamRangesTlb)[PGM_RAMRANGE_TLB_IDX(GCPhys)];
+        pRam = pVM->CTX_EXPR(pgm, pgmr0, pgm).s.apRamRangesTlb[PGM_RAMRANGE_TLB_IDX(GCPhys)];
         if (   !pRam
-            || (off = GCPhys - pRam->GCPhys) >= pRam->cb)
+            || (off = GCPhys - (GCPhysFirst = pRam->GCPhys)) >= pRam->cb
+            || GCPhys < GCPhysFirst)
             return pgmPhysGetPageAndRangeExSlow(pVM, GCPhys, ppPage, ppRamHint);
 
         STAM_COUNTER_INC(&pVM->pgm.s.Stats.CTX_MID_Z(Stat,RamRangeTlbHits));
@@ -196,16 +218,53 @@ DECLINLINE(int) pgmPhysGetPageWithHintEx(PVMCC pVM, RTGCPHYS GCPhys, PPPGMPAGE p
  */
 DECLINLINE(int) pgmPhysGetPageAndRangeEx(PVMCC pVM, RTGCPHYS GCPhys, PPPGMPAGE ppPage, PPGMRAMRANGE *ppRam)
 {
-    PPGMRAMRANGE pRam = pVM->pgm.s.CTX_SUFF(apRamRangesTlb)[PGM_RAMRANGE_TLB_IDX(GCPhys)];
-    RTGCPHYS off;
-    if (   !pRam
-        || (off = GCPhys - pRam->GCPhys) >= pRam->cb)
-        return pgmPhysGetPageAndRangeExSlow(pVM, GCPhys, ppPage, ppRam);
+    PPGMRAMRANGE pRam = pVM->CTX_EXPR(pgm, pgmr0, pgm).s.apRamRangesTlb[PGM_RAMRANGE_TLB_IDX(GCPhys)];
+    if (pRam)
+    {
+        RTGCPHYS const GCPhysFirst = pRam->GCPhys;
+        RTGCPHYS const off         = GCPhys - GCPhysFirst;
+        if (off < pRam->cb && GCPhys >= GCPhysFirst)
+        {
+            STAM_COUNTER_INC(&pVM->pgm.s.Stats.CTX_MID_Z(Stat,RamRangeTlbHits));
+            *ppRam = pRam;
+            *ppPage = &pRam->aPages[off >> GUEST_PAGE_SHIFT];
+            return VINF_SUCCESS;
+        }
+    }
+    return pgmPhysGetPageAndRangeExSlow(pVM, GCPhys, ppPage, ppRam);
+}
 
-    STAM_COUNTER_INC(&pVM->pgm.s.Stats.CTX_MID_Z(Stat,RamRangeTlbHits));
-    *ppRam = pRam;
-    *ppPage = &pRam->aPages[off >> GUEST_PAGE_SHIFT];
-    return VINF_SUCCESS;
+
+/**
+ * Gets the PGMPAGE structure for a guest page together with the PGMRAMRANGE.
+ *
+ * @returns Pointer to the page on success.
+ * @returns NULL on a VERR_PGM_INVALID_GC_PHYSICAL_ADDRESS condition.
+ *
+ * @param   pVM         The cross context VM structure.
+ * @param   pVCpu       The cross context virtual CPU structure.
+ * @param   GCPhys      The GC physical address.
+ * @param   ppPage      Where to store the pointer to the PGMPAGE structure.
+ * @param   ppRam       Where to store the pointer to the PGMRAMRANGE structure.
+ */
+DECLINLINE(int) pgmPhysGetPageAndRangeExLockless(PVMCC pVM, PVMCPUCC pVCpu, RTGCPHYS GCPhys,
+                                                 PGMPAGE volatile **ppPage, PGMRAMRANGE volatile **ppRam)
+{
+    PGMRAMRANGE volatile * const pRam = pVCpu->CTX_EXPR(pgm, pgmr0, pgm).s.apRamRangesTlb[PGM_RAMRANGE_TLB_IDX(GCPhys)];
+    if (RT_LIKELY(pRam))
+    {
+        RTGCPHYS const GCPhysFirst = pRam->GCPhys;
+        RTGCPHYS const off         = GCPhys - GCPhysFirst;
+        if (RT_LIKELY(   off    <  pRam->cb
+                      && GCPhys >= GCPhysFirst))
+        {
+            STAM_COUNTER_INC(&pVCpu->pgm.s.Stats.CTX_MID_Z(Stat,RamRangeTlbHits));
+            *ppRam  = pRam;
+            *ppPage = &pRam->aPages[off >> GUEST_PAGE_SHIFT];
+            return VINF_SUCCESS;
+        }
+    }
+    return pgmPhysGetPageAndRangeExSlowLockless(pVM, pVCpu, GCPhys, ppPage, ppRam);
 }
 
 
@@ -277,7 +336,7 @@ DECLINLINE(int) pgmPhysPageQueryTlbeWithPage(PVMCC pVM, PPGMPAGE pPage, RTGCPHYS
 {
     int rc;
     PPGMPAGEMAPTLBE pTlbe = &pVM->pgm.s.CTX_SUFF(PhysTlb).aEntries[PGM_PAGEMAPTLB_IDX(GCPhys)];
-    if (pTlbe->GCPhys == (GCPhys & X86_PTE_PAE_PG_MASK))
+    if (pTlbe->GCPhys == (GCPhys & ~(RTGCPHYS)GUEST_PAGE_OFFSET_MASK))
     {
         STAM_COUNTER_INC(&pVM->pgm.s.Stats.CTX_MID_Z(Stat,PageMapTlbHits));
         rc = VINF_SUCCESS;
@@ -291,6 +350,45 @@ DECLINLINE(int) pgmPhysPageQueryTlbeWithPage(PVMCC pVM, PPGMPAGE pPage, RTGCPHYS
     *ppTlbe = pTlbe;
     return rc;
 }
+
+
+#ifdef IN_RING3 /** @todo Need ensure a ring-0 version gets invalidated safely */
+/**
+ * Queries the VCPU local physical TLB entry for a physical guest page,
+ * attempting to load the TLB entry if necessary.
+ *
+ * Will acquire the PGM lock on TLB miss, does not require caller to own it.
+ *
+ * @returns VBox status code.
+ * @retval  VINF_SUCCESS on success
+ * @retval  VERR_PGM_INVALID_GC_PHYSICAL_ADDRESS if it's not a valid physical address.
+ *
+ * @param   pVCpu   The cross context virtual CPU structure of the calling EMT.
+ * @param   pPage   Pointer to the PGMPAGE structure corresponding to GCPhys.
+ * @param   GCPhys  The address of the guest page.
+ * @param   ppTlbe  Where to store the pointer to the TLB entry.
+ * @thread  EMT(pVCpu)
+ */
+DECLINLINE(int) pgmPhysPageQueryLocklessTlbeWithPage(PVMCPUCC pVCpu, PPGMPAGE pPage, RTGCPHYS GCPhys, PPPGMPAGEMAPTLBE ppTlbe)
+{
+    int rc;
+    PPGMPAGEMAPTLBE const pTlbe = &pVCpu->pgm.s.PhysTlb.aEntries[PGM_PAGEMAPTLB_IDX(GCPhys)];
+    if (   pTlbe->GCPhys == (GCPhys & ~(RTGCPHYS)GUEST_PAGE_OFFSET_MASK)
+        && pTlbe->pPage  == pPage)
+    {
+        STAM_COUNTER_INC(&pVCpu->pgm.s.Stats.CTX_MID_Z(Stat,PageMapTlbHits));
+        rc = VINF_SUCCESS;
+        AssertPtr(pTlbe->pv);
+# ifdef IN_RING3
+        Assert(!pTlbe->pMap || RT_VALID_PTR(pTlbe->pMap->pv));
+# endif
+    }
+    else
+        rc = pgmPhysPageLoadIntoLocklessTlbWithPage(pVCpu, pPage, GCPhys);
+    *ppTlbe = pTlbe;
+    return rc;
+}
+#endif /* IN_RING3 */
 
 
 /**
@@ -372,6 +470,7 @@ DECLINLINE(void) pgmPhysPageWriteMonitor(PVMCC pVM, PPGMPAGE pPage, RTGCPHYS GCP
 #endif
 }
 
+#ifndef VBOX_VMM_TARGET_ARMV8
 
 /**
  * Checks if the no-execute (NX) feature is active (EFER.NXE=1).
@@ -978,6 +1077,7 @@ DECLINLINE(PX86PML4E) pgmShwGetLongModePML4EPtr(PVMCPUCC pVCpu, unsigned int iPm
     return NULL;
 }
 
+#endif /* !VBOX_VMM_TARGET_ARMV8 */
 
 /**
  * Cached physical handler lookup.
@@ -1096,8 +1196,18 @@ DECLINLINE(void) pgmTrackDerefGCPhys(PPGMPOOL pPool, PPGMPOOLPAGE pPoolPage, PPG
     const unsigned cRefs = PGM_PAGE_GET_TD_CREFS(pPhysPage);
     if (cRefs == 1)
     {
+#if 0 /* for more debug info */
+        AssertMsg(   pPoolPage->idx == PGM_PAGE_GET_TD_IDX(pPhysPage)
+                  && iPte == PGM_PAGE_GET_PTE_INDEX(pPhysPage),
+                  ("idx=%#x iPte=%#x enmKind=%d vs pPhysPage=%R[pgmpage] idx=%#x iPte=%#x enmKind=%d [iPte]=%#RX64\n",
+                   pPoolPage->idx, iPte, pPoolPage->enmKind,
+                   pPhysPage, PGM_PAGE_GET_TD_IDX(pPhysPage), PGM_PAGE_GET_PTE_INDEX(pPhysPage),
+                   pPool->aPages[PGM_PAGE_GET_TD_IDX(pPhysPage)].enmKind,
+                   ((uint64_t *)pPoolPage->CTX_SUFF(pvPage))[iPte]));
+#else
         Assert(pPoolPage->idx == PGM_PAGE_GET_TD_IDX(pPhysPage));
         Assert(iPte == PGM_PAGE_GET_PTE_INDEX(pPhysPage));
+#endif
         /* Invalidate the tracking data. */
         PGM_PAGE_SET_TRACKING(pVM, pPhysPage, 0);
     }

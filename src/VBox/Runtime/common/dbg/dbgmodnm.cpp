@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -495,9 +495,9 @@ static int rtDbgModNmScanFile(PRTDBGMODNM pThis, PRTSTREAM pStrm, bool fAddSymbo
 
 
 /** @interface_method_impl{RTDBGMODVTDBG,pfnTryOpen} */
-static DECLCALLBACK(int) rtDbgModNm_TryOpen(PRTDBGMODINT pMod, RTLDRARCH enmArch)
+static DECLCALLBACK(int) rtDbgModNm_TryOpen(PRTDBGMODINT pMod, RTLDRARCH enmArch, RTDBGCFG hDbgCfg)
 {
-    NOREF(enmArch);
+    NOREF(enmArch); RT_NOREF_PV(hDbgCfg);
 
     /*
      * Fend off images.

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -185,6 +185,10 @@ typedef struct _SHCLIENTTRANSFERS
 {
     /** Transfer context. */
     SHCLTRANSFERCTX             Ctx;
+    /** Backends-specific transfers callbacks to use. */
+    SHCLTRANSFERCALLBACKS       Callbacks;
+    /** Backends-specific transfers provider to use. */
+    SHCLTXPROVIDER              Provider;
 } SHCLIENTTRANSFERS, *PSHCLIENTTRANSFERS;
 #endif /* VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS */
 
@@ -260,7 +264,11 @@ typedef std::list<uint32_t> ClipboardClientQueue;
  */
 typedef struct _SHCLEXTSTATE
 {
-    /** Pointer to the actual service extension handle. */
+    /** Pointer to the actual service extension handle.
+     *
+     * Must return VERR_NOT_SUPPORTED if the extension didn't handle the requested function.
+     * This will invoke the regular backend then.
+     */
     PFNHGCMSVCEXT  pfnExtension;
     /** Opaque pointer to extension-provided data. Don't touch. */
     void          *pvExtension;
@@ -279,55 +287,34 @@ typedef struct _SHCLEXTSTATE
 
 extern SHCLEXTSTATE g_ExtState;
 
-int shClSvcSetSource(PSHCLCLIENT pClient, SHCLSOURCE enmSource);
+/** @name Service client functions.
+ * @{
+ */
+PSHCLCLIENTMSG ShClSvcClientMsgAlloc(PSHCLCLIENT pClient, uint32_t uMsg, uint32_t cParms);
+void ShClSvcClientMsgFree(PSHCLCLIENT pClient, PSHCLCLIENTMSG pMsg);
+void ShClSvcClientMsgAdd(PSHCLCLIENT pClient, PSHCLCLIENTMSG pMsg, bool fAppend);
 
-void shClSvcMsgQueueReset(PSHCLCLIENT pClient);
-PSHCLCLIENTMSG shClSvcMsgAlloc(PSHCLCLIENT pClient, uint32_t uMsg, uint32_t cParms);
-void shClSvcMsgFree(PSHCLCLIENT pClient, PSHCLCLIENTMSG pMsg);
-void shClSvcMsgAdd(PSHCLCLIENT pClient, PSHCLCLIENTMSG pMsg, bool fAppend);
-int shClSvcMsgAddAndWakeupClient(PSHCLCLIENT pClient, PSHCLCLIENTMSG pMsg);
+int ShClSvcClientInit(PSHCLCLIENT pClient, uint32_t uClientID); /* For testcases. */
 
-int shClSvcClientInit(PSHCLCLIENT pClient, uint32_t uClientID);
-void shClSvcClientDestroy(PSHCLCLIENT pClient);
-void shClSvcClientLock(PSHCLCLIENT pClient);
-void shClSvcClientUnlock(PSHCLCLIENT pClient);
-void shClSvcClientReset(PSHCLCLIENT pClient);
+void ShClSvcClientLock(PSHCLCLIENT pClient);
+void ShClSvcClientUnlock(PSHCLCLIENT pClient);
 
-int shClSvcClientStateInit(PSHCLCLIENTSTATE pClientState, uint32_t uClientID);
-int shClSvcClientStateDestroy(PSHCLCLIENTSTATE pClientState);
-void shclSvcClientStateReset(PSHCLCLIENTSTATE pClientState);
-
-int shClSvcClientWakeup(PSHCLCLIENT pClient);
-
-# ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS
-int shClSvcTransferModeSet(uint32_t fMode);
-int shClSvcTransferStart(PSHCLCLIENT pClient, SHCLTRANSFERDIR enmDir, SHCLSOURCE enmSource, PSHCLTRANSFER *ppTransfer);
-int shClSvcTransferStop(PSHCLCLIENT pClient, PSHCLTRANSFER pTransfer);
-bool shClSvcTransferMsgIsAllowed(uint32_t uMode, uint32_t uMsg);
-void shClSvcClientTransfersReset(PSHCLCLIENT pClient);
-#endif /* VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS */
+int ShClSvcClientWakeup(PSHCLCLIENT pClient);
+/** @} */
 
 /** @name Service functions, accessible by the backends.
  * Locking is between the (host) service thread and the platform-dependent (window) thread.
  * @{
  */
-int ShClSvcGuestDataRequest(PSHCLCLIENT pClient, SHCLFORMATS fFormats, PSHCLEVENT *ppEvent);
+int ShClSvcReadDataFromGuestAsync(PSHCLCLIENT pClient, SHCLFORMATS fFormats, PSHCLEVENT *ppEvent);
+int ShClSvcReadDataFromGuest(PSHCLCLIENT pClient, SHCLFORMAT uFmt, void **ppv, uint32_t *pcb);
 int ShClSvcGuestDataSignal(PSHCLCLIENT pClient, PSHCLCLIENTCMDCTX pCmdCtx, SHCLFORMAT uFormat, void *pvData, uint32_t cbData);
-int ShClSvcHostReportFormats(PSHCLCLIENT pClient, SHCLFORMATS fFormats);
+int ShClSvcReportFormats(PSHCLCLIENT pClient, SHCLFORMATS fFormats);
 PSHCLBACKEND ShClSvcGetBackend(void);
 uint32_t ShClSvcGetMode(void);
 bool ShClSvcGetHeadless(void);
 bool ShClSvcLock(void);
 void ShClSvcUnlock(void);
-
-/**
- * Checks if the backend is active (@c true), or if VRDE is in control of
- * the host side.
- */
-DECLINLINE(bool) ShClSvcIsBackendActive(void)
-{
-    return g_ExtState.pfnExtension == NULL;
-}
 /** @} */
 
 /** @name Platform-dependent implementations for the Shared Clipboard host service ("backends"),
@@ -447,15 +434,6 @@ int ShClBackendSync(PSHCLBACKEND pBackend, PSHCLCLIENT pClient);
  * @{
  */
 /**
- * Called after a transfer got created.
- *
- * @returns VBox status code.
- * @param   pBackend            Shared Clipboard backend to use.
- * @param   pClient             Shared Clipboard client context.
- * @param   pTransfer           Shared Clipboard transfer created.
- */
-int ShClBackendTransferCreate(PSHCLBACKEND pBackend, PSHCLCLIENT pClient, PSHCLTRANSFER pTransfer);
-/**
  * Called before a transfer gets destroyed.
  *
  * @returns VBox status code.
@@ -465,14 +443,17 @@ int ShClBackendTransferCreate(PSHCLBACKEND pBackend, PSHCLCLIENT pClient, PSHCLT
  */
 int ShClBackendTransferDestroy(PSHCLBACKEND pBackend, PSHCLCLIENT pClient, PSHCLTRANSFER pTransfer);
 /**
- * Called when getting (determining) the transfer roots on the host side.
+ * Called after a transfer status got processed.
  *
  * @returns VBox status code.
  * @param   pBackend            Shared Clipboard backend to use.
  * @param   pClient             Shared Clipboard client context.
- * @param   pTransfer           Shared Clipboard transfer to get roots for.
+ * @param   pTransfer           Shared Clipboard transfer to process status for.
+ * @param   enmSource           Transfer source which issues the reply.
+ * @param   enmStatus           Transfer status.
+ * @param   rcStatus            Status code (IPRT-style). Depends on \a enmStatus set.
  */
-int ShClBackendTransferGetRoots(PSHCLBACKEND pBackend, PSHCLCLIENT pClient, PSHCLTRANSFER pTransfer);
+int ShClBackendTransferHandleStatusReply(PSHCLBACKEND pBackend, PSHCLCLIENT pClient, PSHCLTRANSFER pTransfer, SHCLSOURCE enmSource, SHCLTRANSFERSTATUS enmStatus, int rcStatus);
 /** @} */
 #endif
 
@@ -480,45 +461,21 @@ int ShClBackendTransferGetRoots(PSHCLBACKEND pBackend, PSHCLCLIENT pClient, PSHC
 /** @name Internal Shared Clipboard transfer host service functions.
  * @{
  */
-int shClSvcTransferHandler(PSHCLCLIENT pClient, VBOXHGCMCALLHANDLE callHandle, uint32_t u32Function,
-                           uint32_t cParms, VBOXHGCMSVCPARM paParms[], uint64_t tsArrival);
-int shClSvcTransferHostHandler(uint32_t u32Function, uint32_t cParms, VBOXHGCMSVCPARM paParms[]);
+int ShClSvcTransferMsgClientHandler(PSHCLCLIENT pClient, VBOXHGCMCALLHANDLE callHandle, uint32_t u32Function, uint32_t cParms, VBOXHGCMSVCPARM paParms[], uint64_t tsArrival);
+int ShClSvcTransferMsgHostHandler(uint32_t u32Function, uint32_t cParms, VBOXHGCMSVCPARM paParms[]);
 /** @} */
 
-/** @name Shared Clipboard transfer interface implementations for the host service.
+/** @name Shared Clipboard transfer interface implementations for guest -> host transfers.
  * @{
  */
-#ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS_HTTP
-
-#endif /* VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS_HTTP */
-
-int shClSvcTransferIfaceGetRoots(PSHCLTXPROVIDERCTX pCtx, PSHCLROOTLIST *ppRootList);
-
-int shClSvcTransferIfaceListOpen(PSHCLTXPROVIDERCTX pCtx, PSHCLLISTOPENPARMS pOpenParms, PSHCLLISTHANDLE phList);
-int shClSvcTransferIfaceListClose(PSHCLTXPROVIDERCTX pCtx, SHCLLISTHANDLE hList);
-int shClSvcTransferIfaceListHdrRead(PSHCLTXPROVIDERCTX pCtx, SHCLLISTHANDLE hList, PSHCLLISTHDR pListHdr);
-int shClSvcTransferIfaceListHdrWrite(PSHCLTXPROVIDERCTX pCtx, SHCLLISTHANDLE hList, PSHCLLISTHDR pListHdr);
-int shClSvcTransferIfaceListEntryRead(PSHCLTXPROVIDERCTX pCtx, SHCLLISTHANDLE hList, PSHCLLISTENTRY pListEntry);
-int shClSvcTransferIfaceListEntryWrite(PSHCLTXPROVIDERCTX pCtx, SHCLLISTHANDLE hList, PSHCLLISTENTRY pListEntry);
-
-int shClSvcTransferIfaceObjOpen(PSHCLTXPROVIDERCTX pCtx, PSHCLOBJOPENCREATEPARMS pCreateParms,
-                                PSHCLOBJHANDLE phObj);
-int shClSvcTransferIfaceObjClose(PSHCLTXPROVIDERCTX pCtx, SHCLOBJHANDLE hObj);
-int shClSvcTransferIfaceObjRead(PSHCLTXPROVIDERCTX pCtx, SHCLOBJHANDLE hObj,
-                                void *pvData, uint32_t cbData, uint32_t fFlags, uint32_t *pcbRead);
-int shClSvcTransferIfaceObjWrite(PSHCLTXPROVIDERCTX pCtx, SHCLOBJHANDLE hObj,
-                                 void *pvData, uint32_t cbData, uint32_t fFlags, uint32_t *pcbWritten);
-/** @} */
-
-/** @name Shared Clipboard transfer callbacks for the host service.
- * @{
- */
-DECLCALLBACK(void) VBoxSvcClipboardTransferPrepareCallback(PSHCLTXPROVIDERCTX pCtx);
-DECLCALLBACK(void) VBoxSvcClipboardDataHeaderCompleteCallback(PSHCLTXPROVIDERCTX pCtx);
-DECLCALLBACK(void) VBoxSvcClipboardDataCompleteCallback(PSHCLTXPROVIDERCTX pCtx);
-DECLCALLBACK(void) VBoxSvcClipboardTransferCompleteCallback(PSHCLTXPROVIDERCTX pCtx, int rc);
-DECLCALLBACK(void) VBoxSvcClipboardTransferCanceledCallback(PSHCLTXPROVIDERCTX pCtx);
-DECLCALLBACK(void) VBoxSvcClipboardTransferErrorCallback(PSHCLTXPROVIDERCTX pCtx, int rc);
+DECLCALLBACK(int) ShClSvcTransferIfaceGHRootListRead(PSHCLTXPROVIDERCTX pCtx);
+DECLCALLBACK(int) ShClSvcTransferIfaceGHListOpen(PSHCLTXPROVIDERCTX pCtx, PSHCLLISTOPENPARMS pOpenParms, PSHCLLISTHANDLE phList);
+DECLCALLBACK(int) ShClSvcTransferIfaceGHListClose(PSHCLTXPROVIDERCTX pCtx, SHCLLISTHANDLE hList);
+DECLCALLBACK(int) ShClSvcTransferIfaceGHListHdrRead(PSHCLTXPROVIDERCTX pCtx, SHCLLISTHANDLE hList, PSHCLLISTHDR pListHdr);
+DECLCALLBACK(int) ShClSvcTransferIfaceGHListEntryRead(PSHCLTXPROVIDERCTX pCtx, SHCLLISTHANDLE hList, PSHCLLISTENTRY pListEntry);
+DECLCALLBACK(int) ShClSvcTransferIfaceGHObjOpen(PSHCLTXPROVIDERCTX pCtx, PSHCLOBJOPENCREATEPARMS pCreateParms, PSHCLOBJHANDLE phObj);
+DECLCALLBACK(int) ShClSvcTransferIfaceGHObjClose(PSHCLTXPROVIDERCTX pCtx, SHCLOBJHANDLE hObj);
+DECLCALLBACK(int) ShClSvcTransferIfaceGHObjRead(PSHCLTXPROVIDERCTX pCtx, SHCLOBJHANDLE hObj, void *pvData, uint32_t cbData, uint32_t fFlags, uint32_t *pcbRead);
 /** @} */
 #endif /* VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS */
 

@@ -3,7 +3,7 @@
     manpage, user manual, usage: VBoxManage list
 -->
 <!--
-    Copyright (C) 2006-2023 Oracle and/or its affiliates.
+    Copyright (C) 2006-2024 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.
@@ -30,7 +30,7 @@
 ]>
 <refentry id="vboxmanage-list" lang="en">
   <refentryinfo>
-    <pubdate>$Date: 2023-01-17 15:15:46 +0100 (Tue, 17 Jan 2023) $</pubdate>
+    <pubdate>$Date: 2024-09-16 16:03:52 +0200 (Mon, 16 Sep 2024) $</pubdate>
     <title>VBoxManage list</title>
   </refentryinfo>
 
@@ -50,6 +50,10 @@
 <!-- The 'id' is mandatory and must start with 'synopsis-'. -->
       <command>VBoxManage list</command>
       <arg>--long</arg>
+      <arg>--platform-arch=<group choice="plain">
+        <arg choice="plain">x86</arg>
+        <arg choice="plain">arm</arg>
+      </group></arg>
       <arg>--sorted</arg>
       <group>
         <arg choice="plain">bridgedifs</arg>
@@ -74,6 +78,7 @@
         <arg choice="plain">intnets</arg>
         <arg choice="plain">natnets</arg>
         <arg choice="plain">ostypes</arg>
+        <arg choice="plain">ossubtypes</arg>
         <arg choice="plain">runningvms</arg>
         <arg choice="plain">screenshotformats</arg>
         <arg choice="plain">systemproperties</arg>
@@ -85,7 +90,7 @@
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-list-description">
     <title>Description</title>
     <para>
       The <command>VBoxManage list</command> subcommands enable you to
@@ -98,16 +103,24 @@
         <varlistentry>
           <term><option>--long</option></term>
           <listitem><para>
-              Shows detailed information about each information entry
-              if available. The short form of this option is
-              <option>-l</option>.
-            </para></listitem>
+            Shows detailed information about each information entry
+            if available. The short form of this option is
+            <option>-l</option>.
+          </para></listitem>
+        </varlistentry>
+        <varlistentry>
+          <term><option>--platform-arch</option></term>
+          <listitem><para>
+            Filters the output by the given platform architecture
+            (if available, otherwise ignored). The short form of this option
+            is <option>-p</option>.
+          </para></listitem>
         </varlistentry>
         <varlistentry>
           <term><option>--sorted</option></term>
           <listitem><para>
               Sorts the list of information entries alphabetically. The
-               short form of this option is <option>-s</option>.
+              short form of this option is <option>-s</option>.
             </para></listitem>
         </varlistentry>
       </variablelist>
@@ -410,6 +423,21 @@
         modifyvm</command> command.
       </para>
     </refsect2>
+    <refsect2 id="vboxmanage-list-ossubtypes">
+      <title>List the Guest Operating System Subtypes</title>
+      <cmdsynopsis id="synopsis-vboxmanage-list-ossubtypes">
+        <command>VBoxManage list</command>
+        <arg choice="plain">ossubtypes</arg>
+      </cmdsynopsis>
+      <para>
+        The <command>VBoxManage list ossubtypes</command> command lists
+        all guest operating system (OS) subtypes along with the
+        associated guest OS descriptions that are known to &product-name;.
+        Each list entry includes a guest OS family identifier, the guest
+        OS subtypes associated with that OS family (if any), and a
+        description the guest OSes associated with that OS subtype.
+      </para>
+    </refsect2>
     <refsect2 id="vboxmanage-list-runningvms">
       <title>List the Running Virtual Machines</title>
       <cmdsynopsis id="synopsis-vboxmanage-list-runningvms">
@@ -506,7 +534,7 @@
     </refsect2>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-list-examples">
     <title>Examples</title>
     <remark role="help-scope" condition="GLOBAL" />
     <para>

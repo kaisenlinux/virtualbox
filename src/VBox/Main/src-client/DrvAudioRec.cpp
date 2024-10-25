@@ -16,7 +16,7 @@
  */
 
 /*
- * Copyright (C) 2016-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -205,7 +205,7 @@ AudioVideoRec::~AudioVideoRec(void)
  * @returns VBox status code.
  * @param   Settings        Recording settings to apply.
  */
-int AudioVideoRec::applyConfiguration(const settings::RecordingSettings &Settings)
+int AudioVideoRec::applyConfiguration(const settings::Recording &Settings)
 {
     /** @todo Do some validation here. */
     mSettings = Settings; /* Note: Does have an own copy operator. */
@@ -219,7 +219,7 @@ int AudioVideoRec::configureDriver(PCFGMNODE pLunCfg, PCVMMR3VTABLE pVMM)
     unsigned const idxScreen = 0;
 
     AssertReturn(mSettings.mapScreens.size() >= 1, VERR_INVALID_PARAMETER);
-    const settings::RecordingScreenSettings &screenSettings = mSettings.mapScreens[idxScreen];
+    const settings::RecordingScreen &screenSettings = mSettings.mapScreens[idxScreen];
 
     int vrc = pVMM->pfnCFGMR3InsertInteger(pLunCfg, "ContainerType", (uint64_t)screenSettings.enmDest);
     AssertRCReturn(vrc, vrc);
@@ -317,7 +317,7 @@ static int avRecCreateStreamOut(PDRVAUDIORECORDING pThis, PAVRECSTREAM pStreamAV
 
             /* Make sure to let the driver backend know that we need the audio data in
              * a specific sampling rate the codec is optimized for. */
-            pCfgAcq->Props = pCodec->Parms.Audio.PCMProps;
+            pCfgAcq->Props = pCodec->Parms.u.Audio.PCMProps;
 
             /* Every codec frame marks a period for now. Optimize this later. */
             pCfgAcq->Backend.cFramesPeriod       = PDMAudioPropsMilliToFrames(&pCfgAcq->Props, pCodec->Parms.msFrame);
@@ -490,8 +490,8 @@ static DECLCALLBACK(uint32_t) drvAudioVideoRecHA_StreamGetWritable(PPDMIHOSTAUDI
 static DECLCALLBACK(int) drvAudioVideoRecHA_StreamPlay(PPDMIHOSTAUDIO pInterface, PPDMAUDIOBACKENDSTREAM pStream,
                                                        const void *pvBuf, uint32_t cbBuf, uint32_t *pcbWritten)
 {
-    RT_NOREF(pInterface);
-    PAVRECSTREAM pStreamAV = (PAVRECSTREAM)pStream;
+    PDRVAUDIORECORDING pThis = RT_FROM_CPP_MEMBER(pInterface, DRVAUDIORECORDING, IHostAudio);
+    PAVRECSTREAM pStreamAV   = (PAVRECSTREAM)pStream;
     AssertPtrReturn(pStreamAV, VERR_INVALID_POINTER);
     if (cbBuf)
         AssertPtrReturn(pvBuf, VERR_INVALID_POINTER);
@@ -503,8 +503,8 @@ static DECLCALLBACK(int) drvAudioVideoRecHA_StreamPlay(PPDMIHOSTAUDIO pInterface
 
     PRTCIRCBUF pCircBuf    = pStreamAV->pCircBuf;
     AssertPtr(pCircBuf);
-
-    uint32_t cbToWrite = RT_MIN(cbBuf, (uint32_t)RTCircBufFree(pCircBuf));
+    uint32_t const cbFree    = (uint32_t)RTCircBufFree(pCircBuf);
+    uint32_t       cbToWrite = RT_MIN(cbBuf, cbFree);
     AssertReturn(cbToWrite, VERR_BUFFER_OVERFLOW);
 
     /*
@@ -560,7 +560,8 @@ static DECLCALLBACK(int) drvAudioVideoRecHA_StreamPlay(PPDMIHOSTAUDIO pInterface
 
             if (cbSrc == cbFrame) /* Only send full codec frames. */
             {
-                vrc = pRecStream->SendAudioFrame(pStreamAV->pvSrcBuf, cbSrc, RTTimeProgramMilliTS());
+                AssertPtr(pThis->pRecCtx);
+                vrc = pRecStream->SendAudioFrame(pStreamAV->pvSrcBuf, cbSrc, pThis->pRecCtx->GetCurrentPTS());
                 if (RT_FAILURE(vrc))
                     break;
             }
@@ -776,6 +777,9 @@ static int avRecSinkInit(PDRVAUDIORECORDING pThis, PAVRECSINK pSink, PAVRECCONTA
                     else
                         LogRel(("Recording: Error creating audio file '%s' (%Rrc)\n", pszFile, vrc));
                 }
+                break;
+        #else
+                vrc = VERR_NOT_SUPPORTED;
                 break;
         #endif
             }

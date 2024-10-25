@@ -7,7 +7,7 @@ Test Manager WUI - TestBox.
 
 __copyright__ = \
 """
-Copyright (C) 2012-2023 Oracle and/or its affiliates.
+Copyright (C) 2012-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -36,7 +36,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 
 # Standard python imports.
@@ -111,6 +111,7 @@ class WuiTestBoxDetailsLink(WuiTestBoxDetailsLinkById):
             else:
                 asFeatures.append(u'HW\u2011Virt(VT\u2011x)');
         if oTestBox.fCpuNestedPaging is True: asFeatures.append(u'Nested\u2011Paging');
+        if oTestBox.fNativeApi       is True: asFeatures.append(u'Native\u2011API');
         if oTestBox.fCpu64BitGuest   is True: asFeatures.append(u'64\u2011bit\u2011Guest');
         if oTestBox.fChipsetIoMmu    is True: asFeatures.append(u'I/O\u2011MMU');
         aasTestBoxTitle.append((u'CPU\u00a0features:',      u',\u00a0'.join(asFeatures),));
@@ -233,6 +234,7 @@ class WuiTestBox(WuiFormContentBase):
         oForm.addIntRO(      TestBoxData.ksParam_cCpus,             oData.cCpus, 'Number of CPUs, cores and threads');
         oForm.addCheckBoxRO( TestBoxData.ksParam_fCpuHwVirt,        oData.fCpuHwVirt, 'VT-x or AMD-V supported');
         oForm.addCheckBoxRO( TestBoxData.ksParam_fCpuNestedPaging,  oData.fCpuNestedPaging, 'Nested paging supported');
+        oForm.addCheckBoxRO( TestBoxData.ksParam_fNativeApi,        oData.fNativeApi, 'Native API supported');
         oForm.addCheckBoxRO( TestBoxData.ksParam_fCpu64BitGuest,    oData.fCpu64BitGuest, '64-bit guest supported');
         oForm.addCheckBoxRO( TestBoxData.ksParam_fChipsetIoMmu,     oData.fChipsetIoMmu, 'I/O MMU supported');
         oForm.addMultilineTextRO(TestBoxData.ksParam_sReport,       oData.sReport, 'Hardware/software report');
@@ -277,9 +279,9 @@ class WuiTestBoxList(WuiListContentWithActionBase):
                                        'Note', 'Script', 'Python', 'Group',
                                        'OS', 'CPU', 'Features', 'CPUs', 'RAM', 'Scratch',
                                        'Actions' ]);
-        self._asColumnAttribs.extend([ 'align="center"', 'align="center"', 'align="center"', 'align="center"'
-                                       'align="center"', 'align="center"', 'align="center"', 'align="center"',
-                                       '', '', '', 'align="left"', 'align="right"', 'align="right"', 'align="right"',
+        self._asColumnAttribs.extend([ 'align="center"', 'align="center"', 'align="center"', 'align="center"',
+                                       'align="center"', 'align="center"', 'align="center"', '',
+                                       '', '', '', 'align="left"', 'align="right"', 'align="right"',
                                        'align="center"' ]);
         self._aaiColumnSorting.extend([
             (TestBoxLogic.kiSortColumn_sName,),
@@ -438,6 +440,7 @@ class WuiTestBoxList(WuiListContentWithActionBase):
         asFeatures = []
         if oEntry.fCpuHwVirt       is True: asFeatures.append(u'HW\u2011Virt');
         if oEntry.fCpuNestedPaging is True: asFeatures.append(u'Nested\u2011Paging');
+        if oEntry.fNativeApi       is True: asFeatures.append(u'Native\u2011API');
         if oEntry.fCpu64BitGuest   is True: asFeatures.append(u'64\u2011bit\u2011Guest');
         if oEntry.fChipsetIoMmu    is True: asFeatures.append(u'I/O\u2011MMU');
         sFeatures = u' '.join(asFeatures) if asFeatures else u'';

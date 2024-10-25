@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -33,7 +33,6 @@
 
 /* GUI includes: */
 #include "QIManagerDialog.h"
-#include "QIWithRetranslateUI.h"
 
 /* Forward declarations: */
 class QIToolBar;
@@ -44,7 +43,7 @@ class CExtPack;
 
 
 /** QWidget extension providing GUI with the pane to control extension pack related functionality. */
-class UIExtensionPackManagerWidget : public QIWithRetranslateUI<QWidget>
+class UIExtensionPackManagerWidget : public QWidget
 {
     Q_OBJECT;
 
@@ -64,14 +63,6 @@ public:
     /** Returns the toolbar. */
     QIToolBar *toolbar() const { return m_pToolBar; }
 #endif
-
-protected:
-
-    /** @name Event-handling stuff.
-      * @{ */
-        /** Handles translation event. */
-        virtual void retranslateUi() RT_OVERRIDE;
-    /** @} */
 
 private slots:
 
@@ -99,6 +90,12 @@ private slots:
         void sltHandleExtensionPackUninstalled(const QString &strName);
     /** @} */
 
+    /** @name Event-handling stuff.
+      * @{ */
+        /** Handles translation event. */
+        void sltRetranslateUI();
+    /** @} */
+
 private:
 
     /** @name Prepare/cleanup cascade.
@@ -113,6 +110,8 @@ private:
         void prepareToolBar();
         /** Prepares tree-widget. */
         void prepareTreeWidget();
+        /** Prepare connections: */
+        void prepareConnections();
     /** @} */
 
     /** @name Loading stuff.
@@ -175,9 +174,17 @@ protected:
 
 
 /** QIManagerDialog extension providing GUI with the dialog to control extension pack related functionality. */
-class UIExtensionPackManager : public QIWithRetranslateUI<QIManagerDialog>
+class UIExtensionPackManager : public QIManagerDialog
 {
     Q_OBJECT;
+
+private slots:
+
+    /** @name Event-handling stuff.
+      * @{ */
+        /** Handles translation event. */
+        void sltRetranslateUI();
+    /** @} */
 
 private:
 
@@ -185,12 +192,6 @@ private:
       * @param  pCenterWidget  Brings the widget reference to center according to.
       * @param  pActionPool    Brings the action-pool reference. */
     UIExtensionPackManager(QWidget *pCenterWidget, UIActionPool *pActionPool);
-
-    /** @name Event-handling stuff.
-      * @{ */
-        /** Handles translation event. */
-        virtual void retranslateUi() RT_OVERRIDE;
-    /** @} */
 
     /** @name Prepare/cleanup cascade.
       * @{ */

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -171,7 +171,12 @@ VMMDECL(int) PDMQueueAllocEx(PVMCC pVM, PDMQUEUEHANDLE hQueue, void *pvOwner, PP
     uint32_t cEmptyScans = 0;
     for (;;)
     {
-        int32_t iBit = ASMBitFirstSet(pQueue->bmAlloc, cItems);
+        /*
+         * ASMBitFirstSet() mandates a cBits to be a multiple of 32 while cItems can be less (but the bitmap)
+         * is aligned to 64 bytes and correctly initialized so only the number of items allocated are valid
+         * and can be marked as free.
+         */
+        int32_t iBit = ASMBitFirstSet(pQueue->bmAlloc, RT_ALIGN(cItems, 32));
         if (iBit >= 0)
         {
             if (ASMAtomicBitTestAndClear(pQueue->bmAlloc, iBit))

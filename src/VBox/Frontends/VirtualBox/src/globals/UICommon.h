@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,42 +32,24 @@
 #endif
 
 /* Qt includes: */
-#include <QMap>
-#include <QReadWriteLock>
 #include <QObject>
+#include <QUuid>
 
 /* GUI includes: */
 #include "UIDefs.h"
 #include "UILibraryDefs.h"
-#include "UIMediumDefs.h"
-#ifdef VBOX_WS_X11
-# include "VBoxUtils-x11.h"
+#ifdef VBOX_WS_NIX
+# include "VBoxUtils-nix.h"
 #endif
 
-/* COM includes: */
-#include "CGuestOSType.h"
-#include "CHost.h"
-#include "CMedium.h"
-#include "CSession.h"
-#include "CVirtualBox.h"
-#include "CVirtualBoxClient.h"
-
 /* Other VBox includes: */
-#include "VBox/com/Guid.h"
+#ifdef VBOX_WITH_DEBUGGER_GUI
+# include <iprt/types.h> /* for RTLDRMOD */
+#endif
 
 /* Forward declarations: */
-class QGraphicsWidget;
-class QMenu;
 class QSessionManager;
 class QSpinBox;
-class QToolButton;
-class CCloudMachine;
-class CHostVideoInputDevice;
-class CMachine;
-class CUSBDevice;
-class UIActionPool;
-class UIMedium;
-class UIMediumEnumerator;
 class UIThreadPool;
 
 /** QObject subclass containing common GUI functionality. */
@@ -77,15 +59,12 @@ class SHARED_LIBRARY_STUFF UICommon : public QObject
 
 signals:
 
-    /** @name Common stuff.
+    /** @name General stuff.
      * @{ */
         /** Asks #UIStarter listener to restart UI. */
         void sigAskToRestartUI();
         /** Asks #UIStarter listener to close UI. */
         void sigAskToCloseUI();
-
-        /** Notifies listeners about the VBoxSVC availability change. */
-        void sigVBoxSVCAvailabilityChange();
 
         /** Asks listeners to commit data. */
         void sigAskToCommitData();
@@ -93,55 +72,13 @@ signals:
         void sigAskToDetachCOM();
     /** @} */
 
-    /** @name COM: Extension Pack stuff.
+    /** @name Host OS stuff.
      * @{ */
-        /** Notifies listeners about extension pack @a strName was installed. */
-        void sigExtensionPackInstalled(const QString &strName);
-    /** @} */
-
-    /** @name Cloud Virtual Machine stuff.
-     * @{ */
-        /** Notifies listeners about cloud VM was unregistered.
-          * @param  strProviderShortName  Brings provider short name.
-          * @param  strProfileName        Brings profile name.
-          * @param  uId                   Brings cloud VM id. */
-        void sigCloudMachineUnregistered(const QString &strProviderShortName,
-                                         const QString &strProfileName,
-                                         const QUuid &uId);
-        /** Notifies listeners about cloud VM was registered.
-          * @param  strProviderShortName  Brings provider short name.
-          * @param  strProfileName        Brings profile name.
-          * @param  comMachine            Brings cloud VM. */
-        void sigCloudMachineRegistered(const QString &strProviderShortName,
-                                       const QString &strProfileName,
-                                       const CCloudMachine &comMachine);
-    /** @} */
-
-    /** @name COM: Virtual Media stuff.
-     * @{ */
-        /** Notifies listeners about medium with certain @a uMediumID created. */
-        void sigMediumCreated(const QUuid &uMediumID);
-        /** Notifies listeners about medium with certain @a uMediumID deleted. */
-        void sigMediumDeleted(const QUuid &uMediumID);
-
-        /** Notifies listeners about medium-enumeration started. */
-        void sigMediumEnumerationStarted();
-        /** Notifies listeners about medium with certain @a uMediumID enumerated. */
-        void sigMediumEnumerated(const QUuid &uMediumID);
-        /** Notifies listeners about medium-enumeration finished. */
-        void sigMediumEnumerationFinished();
-        /** Notifies listeners about update of recently media list. */
-        void sigRecentMediaListUpdated(UIMediumDeviceType enmMediumType);
+        /** Notifies listeners about theme change. */
+        void sigThemeChange();
     /** @} */
 
 public:
-
-    /** UI types. */
-    enum UIType
-    {
-        UIType_SelectorUI,
-        UIType_RuntimeUI
-    };
 
     /** VM launch running options. */
     enum LaunchRunning
@@ -169,52 +106,43 @@ public:
         bool isCleaningUp() const { return m_fCleaningUp; }
     /** @} */
 
-    /** @name Versioning stuff.
-     * @{ */
-        /** Returns Qt runtime version string. */
-        static QString qtRTVersionString();
-        /** Returns Qt runtime version. */
-        static uint qtRTVersion();
-        /** Returns Qt runtime major version. */
-        static uint qtRTMajorVersion();
-        /** Returns Qt runtime minor version. */
-        static uint qtRTMinorVersion();
-        /** Returns Qt runtime revision number. */
-        static uint qtRTRevisionNumber();
-
-        /** Returns Qt compiled version string. */
-        static QString qtCTVersionString();
-        /** Returns Qt compiled version. */
-        static uint qtCTVersion();
-
-        /** Returns VBox version string. */
-        QString vboxVersionString() const;
-        /** Returns normalized VBox version string. */
-        QString vboxVersionStringNormalized() const;
-        /** Returns whether VBox version string contains BETA word. */
-        bool isBeta() const;
-        /** Returns whether BETA label should be shown. */
-        bool showBetaLabel() const;
-
-        /** Returns whether branding is active. */
-        bool brandingIsActive(bool fForce = false);
-        /** Returns value for certain branding @a strKey from custom.ini file. */
-        QString brandingGetKey(QString strKey) const;
-    /** @} */
-
     /** @name Host OS stuff.
      * @{ */
-#ifdef VBOX_WS_WIN
-        /** Loads the color theme. */
-        static void loadColorTheme();
+#ifdef VBOX_WS_MAC
+        /** macOS: Returns #MacOSXRelease determined by <i>uname</i> call. */
+        static MacOSXRelease determineOsRelease();
+        /** macOS: Returns #MacOSXRelease determined during UICommon prepare routine. */
+        MacOSXRelease osRelease() const { return m_enmMacOSVersion; }
 #endif
 
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
         /** X11: Returns the type of the Window Manager we are running under. */
         X11WMType typeOfWindowManager() const { return m_enmWindowManagerType; }
         /** X11: Returns whether the Window Manager we are running under is composition one. */
         bool isCompositingManagerRunning() const { return m_fCompositingManagerRunning; }
+        /** Returns true if the detected display server type is either xorg or xwayland. */
+        bool X11ServerAvailable() const;
+        /** Returns display server type. */
+        VBGHDISPLAYSERVERTYPE displayServerType() const;
 #endif
+        /** Returns the name of the host OS by using IHost::getOperatingSystem. */
+        QString hostOperatingSystem() const;
+
+#if defined(VBOX_WS_MAC)
+        // Provided by UICocoaApplication ..
+#elif defined(VBOX_WS_WIN)
+        /** Returns whether Windows host is in Dark mode. */
+        bool isWindowsInDarkMode() const;
+#else /* Linux, BSD, Solaris */
+        /** Returns whether palette is in Dark mode. */
+        bool isPaletteInDarkMode() const;
+#endif /* Linux, BSD, Solaris */
+
+        /** Returns whether host OS is in Dark mode. */
+        bool isInDarkMode() const { return m_fDarkMode; }
+
+        /** Loads the color theme. */
+        void loadColorTheme();
     /** @} */
 
     /** @name Process arguments stuff.
@@ -228,7 +156,7 @@ public:
         QList<QUrl> takeArgumentUrls();
 
         /** Returns the --startvm option value (managed VM id). */
-        QUuid managedVMUuid() const { return m_strManagedVMId; }
+        QUuid managedVMUuid() const { return m_uManagedVMId; }
         /** Returns the --separate option value (whether GUI process is separate from VM process). */
         bool isSeparateProcess() const { return m_fSeparateProcess; }
         /** Returns the --no-startvm-errormsgbox option value (whether startup VM errors are disabled). */
@@ -239,17 +167,23 @@ public:
 
         /** Returns the --restore-current option value (whether we should restore current snapshot before VM started). */
         bool shouldRestoreCurrentSnapshot() const { return m_fRestoreCurrentSnapshot; }
-        /** Defines whether we should fRestore current snapshot before VM started. */
-        void setShouldRestoreCurrentSnapshot(bool fRestore) { m_fRestoreCurrentSnapshot = fRestore; }
+        /** Returns the --restore-snapshot option value (whether to restore named snapshot before starting VM). */
+        QString const &getSnapshotToRestore() const { return m_strSnapshotToRestore; }
+        /** Clears the --restore-current and --restore-snapshot option values. */
+        void clearSnapshotRestoreOptions() { m_fRestoreCurrentSnapshot = false; m_strSnapshotToRestore.clear(); }
+
+        /** Returns the --no-keyboard-grabbing option value (whether we should restore
+         *  grab the keyboard or not - for debugging). */
+        bool shouldNotGrabKeyboard() const { return m_fNoKeyboardGrabbing; }
 
         /** Returns the --fda option value (whether we have floppy image). */
-        bool hasFloppyImageToMount() const { return !m_uFloppyImage.isNull(); }
+        bool hasFloppyImageToMount() const { return !m_strFloppyImage.isEmpty(); }
         /** Returns the --dvd | --cdrom option value (whether we have DVD image). */
-        bool hasDvdImageToMount() const { return !m_uDvdImage.isNull(); }
+        bool hasDvdImageToMount() const { return !m_strDvdImage.isEmpty(); }
         /** Returns floppy image name. */
-        QUuid getFloppyImage() const { return m_uFloppyImage; }
+        QString getFloppyImage() const { return m_strFloppyImage; }
         /** Returns DVD image name. */
-        QUuid getDvdImage() const { return m_uDvdImage; }
+        QString getDvdImage() const { return m_strDvdImage; }
 
         /** Returns the --execute-all-in-iem option value. */
         bool areWeToExecuteAllInIem() const { return m_fExecuteAllInIem; }
@@ -271,6 +205,8 @@ public:
         QString const getDebuggerStatisticsExpand() const { return m_strDbgStatisticsExpand; }
         /** Returns the --statistics-filter value. */
         QString const getDebuggerStatisticsFilter() const { return m_strDbgStatisticsFilter; }
+        /** Returns the --statistics-config value. */
+        QString const getDebuggerStatisticsConfig() const { return m_strDbgStatisticsConfig; }
 
         /** VBoxDbg module handle. */
         RTLDRMOD getDebuggerModule() const { return m_hVBoxDbg; }
@@ -278,184 +214,16 @@ public:
 
         /** Returns whether VM should start paused. */
         bool shouldStartPaused() const;
+    /** @} */
 
+    /** @name Application stuff.
+     * @{ */
 #ifdef VBOX_GUI_WITH_PIDFILE
         /** Creates PID file. */
         void createPidfile();
         /** Deletes PID file. */
         void deletePidfile();
 #endif
-    /** @} */
-
-    /** @name COM stuff.
-     * @{ */
-        /** Try to acquire COM cleanup protection token for reading. */
-        bool comTokenTryLockForRead() { return m_comCleanupProtectionToken.tryLockForRead(); }
-        /** Unlock previously acquired COM cleanup protection token. */
-        void comTokenUnlock() { return m_comCleanupProtectionToken.unlock(); }
-
-        /** Returns the copy of VirtualBox client wrapper. */
-        CVirtualBoxClient virtualBoxClient() const { return m_comVBoxClient; }
-        /** Returns the copy of VirtualBox object wrapper. */
-        CVirtualBox virtualBox() const { return m_comVBox; }
-        /** Returns the copy of VirtualBox host-object wrapper. */
-        CHost host() const { return m_comHost; }
-        /** Returns the symbolic VirtualBox home-folder representation. */
-        QString homeFolder() const { return m_strHomeFolder; }
-
-        /** Returns the VBoxSVC availability value. */
-        bool isVBoxSVCAvailable() const { return m_fVBoxSVCAvailable; }
-    /** @} */
-
-    /** @name COM: Guest OS Type stuff.
-     * @{ */
-        /** Returns the list of family IDs. */
-        QList<QString> vmGuestOSFamilyIDs() const { return m_guestOSFamilyIDs; }
-
-        /** Returns a family description with passed @a strFamilyId. */
-        QString vmGuestOSFamilyDescription(const QString &strFamilyId) const;
-        /** Returns a list of all guest OS types with passed @a strFamilyId. */
-        QList<CGuestOSType> vmGuestOSTypeList(const QString &strFamilyId) const;
-
-        /** Returns the guest OS type for passed @a strTypeId.
-          * It is being serached through the list of family with passed @a strFamilyId if specified. */
-        CGuestOSType vmGuestOSType(const QString &strTypeId, const QString &strFamilyId = QString()) const;
-        /** Returns a type description with passed @a strTypeId. */
-        QString vmGuestOSTypeDescription(const QString &strTypeId) const;
-
-        /** Returns whether guest type with passed @a strOSTypeId is one of DOS types. */
-        static bool isDOSType(const QString &strOSTypeId);
-    /** @} */
-
-    /** @name COM: Virtual Machine stuff.
-     * @{ */
-        /** Switches to certain @a comMachine. */
-        static bool switchToMachine(CMachine &comMachine);
-        /** Launches certain @a comMachine in specified @a enmLaunchMode. */
-        static bool launchMachine(CMachine &comMachine, UILaunchMode enmLaunchMode = UILaunchMode_Default);
-
-        /** Opens session of certain @a enmLockType for VM with certain @a uId. */
-        CSession openSession(const QUuid &uId, KLockType enmLockType = KLockType_Write);
-        /** Opens session of KLockType_Shared type for VM with certain @a uId. */
-        CSession openExistingSession(const QUuid &uId) { return openSession(uId, KLockType_Shared); }
-        /** Tries to guess if new @a comSession needs to be opened for certain @a comMachine,
-          * if yes, new session of required type will be opened and machine will be updated,
-          * otherwise, no session will be created and machine will be left unchanged. */
-        CSession tryToOpenSessionFor(CMachine &comMachine);
-    /** @} */
-
-    /** @name COM: Cloud Virtual Machine stuff.
-     * @{ */
-        /** Notifies listeners about cloud VM was unregistered.
-          * @param  strProviderShortName  Brings provider short name.
-          * @param  strProfileName        Brings profile name.
-          * @param  uId                   Brings cloud VM id. */
-        void notifyCloudMachineUnregistered(const QString &strProviderShortName,
-                                            const QString &strProfileName,
-                                            const QUuid &uId);
-        /** Notifies listeners about cloud VM was registered.
-          * @param  strProviderShortName  Brings provider short name.
-          * @param  strProfileName        Brings profile name.
-          * @param  comMachine            Brings cloud VM. */
-        void notifyCloudMachineRegistered(const QString &strProviderShortName,
-                                          const QString &strProfileName,
-                                          const CCloudMachine &comMachine);
-    /** @} */
-
-    /** @name COM: Virtual Media stuff.
-     * @{ */
-        /** Enumerates passed @a comMedia. */
-        void enumerateMedia(const CMediumVector &comMedia = CMediumVector());
-        /** Calls refresh for each medium which has been already enumerated. */
-        void refreshMedia();
-        /** Returns whether full medium-enumeration is requested. */
-        bool isFullMediumEnumerationRequested() const;
-        /** Returns whether any medium-enumeration is in progress. */
-        bool isMediumEnumerationInProgress() const;
-        /** Returns enumerated medium with certain @a uMediumID. */
-        UIMedium medium(const QUuid &uMediumID) const;
-        /** Returns enumerated medium IDs. */
-        QList<QUuid> mediumIDs() const;
-        /** Creates medium on the basis of passed @a guiMedium description. */
-        void createMedium(const UIMedium &guiMedium);
-
-        /** Opens external medium by passed @a strMediumLocation.
-          * @param  enmMediumType      Brings the medium type.
-          * @param  pParent            Brings the dialog parent.
-          * @param  strMediumLocation  Brings the file path to load medium from.
-          * @param  pParent            Brings the dialog parent. */
-        QUuid openMedium(UIMediumDeviceType enmMediumType, QString strMediumLocation, QWidget *pParent = 0);
-
-        /** Opens external medium using file-open dialog.
-          * @param  enmMediumType     Brings the medium type.
-          * @param  pParent           Brings the dialog parent.
-          * @param  strDefaultFolder  Brings the folder to browse for medium.
-          * @param  fUseLastFolder    Brings whether we should propose to use last used folder. */
-        QUuid openMediumWithFileOpenDialog(UIMediumDeviceType enmMediumType, QWidget *pParent = 0,
-                                           const QString &strDefaultFolder = QString(), bool fUseLastFolder = false);
-
-        /** Creates and shows a dialog (wizard) to create a medium of type @a enmMediumType.
-          * @param  pParent                  Passes the parent of the dialog,
-          * @param  enmMediumType            Passes the medium type,
-          * @param  strMachineName           Passes the name of the machine,
-          * @param  strMachineFolder         Passes the machine folder,
-          * @param  strMachineGuestOSTypeId  Passes the type ID of machine's guest os,
-          * @param  fEnableCreate            Passes whether to show/enable create action in the medium selector dialog,
-          * returns QUuid of the new medium */
-        QUuid openMediumCreatorDialog(UIActionPool *pActionPool, QWidget *pParent, UIMediumDeviceType  enmMediumType,
-                                      const QString &strMachineFolder = QString(), const QString &strMachineName = QString(),
-                                      const QString &strMachineGuestOSTypeId = QString());
-
-        /** Prepares storage menu according passed parameters.
-          * @param  menu               Brings the #QMenu to be prepared.
-          * @param  pListener          Brings the listener #QObject, this @a menu being prepared for.
-          * @param  pszSlotName        Brings the name of the SLOT in the @a pListener above, this menu will be handled with.
-          * @param  comMachine         Brings the #CMachine object, this @a menu being prepared for.
-          * @param  strControllerName  Brings the name of the #CStorageController in the @a machine above.
-          * @param  storageSlot        Brings the #StorageSlot of the storage controller with @a strControllerName above. */
-        void prepareStorageMenu(QMenu &menu,
-                                QObject *pListener, const char *pszSlotName,
-                                const CMachine &comMachine, const QString &strControllerName, const StorageSlot &storageSlot);
-        /** Updates @a comConstMachine storage with data described by @a target. */
-        void updateMachineStorage(const CMachine &comConstMachine, const UIMediumTarget &target, UIActionPool *pActionPool);
-
-        /** Generates details for passed @a comMedium.
-          * @param  fPredictDiff  Brings whether medium will be marked differencing on attaching.
-          * @param  fUseHtml      Brings whether HTML subsets should be used in the generated output. */
-        QString storageDetails(const CMedium &comMedium, bool fPredictDiff, bool fUseHtml = true);
-
-        /** Update extra data related to recently used/referred media.
-          * @param  enmMediumType       Passes the medium type.
-          * @param  strMediumLocation   Passes the medium location. */
-        void updateRecentlyUsedMediumListAndFolder(UIMediumDeviceType enmMediumType, QString strMediumLocation);
-
-        /** Searches extra data for the recently used folder path which corresponds to @a enmMediumType. When that search fails
-            it looks for recent folder extra data for other medium types. As the last resort returns default vm folder path.
-          * @param  enmMediumType       Passes the medium type. */
-        QString defaultFolderPathForType(UIMediumDeviceType enmMediumType);
-    /** @} */
-
-    /** @name COM: USB stuff.
-     * @{ */
-#ifdef RT_OS_LINUX
-        /** Verifies that USB drivers are properly configured on Linux. */
-        static void checkForWrongUSBMounted();
-#endif
-
-        /** Generates details for passed USB @a comDevice. */
-        static QString usbDetails(const CUSBDevice &comDevice);
-        /** Generates tool-tip for passed USB @a comDevice. */
-        static QString usbToolTip(const CUSBDevice &comDevice);
-        /** Generates tool-tip for passed USB @a comFilter. */
-        static QString usbToolTip(const CUSBDeviceFilter &comFilter);
-        /** Generates tool-tip for passed USB @a comWebcam. */
-        static QString usbToolTip(const CHostVideoInputDevice &comWebcam);
-    /** @} */
-
-    /** @name COM: Recording stuff.
-     * @{ */
-        /** Returns supported recording features flag. */
-        int supportedRecordingFeatures() const;
     /** @} */
 
     /** @name File-system stuff.
@@ -478,17 +246,6 @@ public:
      * @{ */
         /** Assigns minimum @a pSpinBox to correspond to @a cCount digits. */
         static void setMinimumWidthAccordingSymbolCount(QSpinBox *pSpinBox, int cCount);
-    /** @} */
-
-    /** @name Display stuff.
-     * @{ */
-#ifdef VBOX_WITH_3D_ACCELERATION
-        /** Returns whether guest OS type with passed @a strGuestOSTypeId is WDDM compatible. */
-        static bool isWddmCompatibleOsType(const QString &strGuestOSTypeId);
-#endif
-        /** Returns the required video memory in bytes for the current desktop
-          * resolution at maximum possible screen depth in bpp. */
-        static quint64 requiredVideoMemory(const QString &strGuestOSTypeId, int cMonitors = 1);
     /** @} */
 
     /** @name Thread stuff.
@@ -518,32 +275,6 @@ public slots:
         bool openURL(const QString &strURL) const;
     /** @} */
 
-    /** @name Localization stuff.
-     * @{ */
-        /** Handles language change to new @a strLanguage. */
-        void sltGUILanguageChange(QString strLanguage);
-    /** @} */
-
-    /** @name Media related stuff.
-     * @{ */
-        /** Handles signal about medium was created. */
-        void sltHandleMediumCreated(const CMedium &comMedium);
-    /** @} */
-
-    /** @name Machine related stuff.
-     * @{ */
-        /** Handles signal about machine was created. */
-        void sltHandleMachineCreated(const CMachine &comMachine);
-    /** @} */
-
-    /** @name Cloud Machine related stuff.
-     * @{ */
-        /** Handles signal about cloud machine was added. */
-        void sltHandleCloudMachineAdded(const QString &strProviderShortName,
-                                        const QString &strProfileName,
-                                        const CCloudMachine &comMachine);
-    /** @} */
-
 protected:
 
     /** Preprocesses any Qt @a pEvent for passed @a pObject. */
@@ -571,15 +302,21 @@ protected slots:
         void sltHandleVBoxSVCAvailabilityChange(bool fAvailable);
     /** @} */
 
-    /* Handle font scale factor change. */
-    void sltHandleFontScaleFactorChanged(int iFontScaleFactor);
+    /** @name Localization stuff.
+     * @{ */
+        /** Handles language change to new @a strLanguage. */
+        void sltGUILanguageChange(QString strLanguage);
+
+        /** Handles font @a iFontScaleFactor change. */
+        void sltHandleFontScaleFactorChanged(int iFontScaleFactor);
+    /** @} */
 
 private:
 
     /** Construcs global VirtualBox object of passed @a enmType. */
     UICommon(UIType enmType);
     /** Destrucs global VirtualBox object. */
-    virtual ~UICommon() /* override final */;
+    virtual ~UICommon() RT_OVERRIDE RT_FINAL;
 
     /** Prepares all. */
     void prepare();
@@ -606,10 +343,12 @@ private:
 #endif
     /** @} */
 
-    /** @name COM stuff.
+    /** @name USB stuff.
      * @{ */
-        /** Re-initializes COM wrappers and containers. */
-        void comWrappersReinit();
+#ifdef RT_OS_LINUX
+        /** Verifies that USB drivers are properly configured on Linux. */
+        static void checkForWrongUSBMounted();
+#endif
     /** @} */
 
     /** Holds the singleton UICommon instance. */
@@ -630,20 +369,24 @@ private:
 #endif
     /** @} */
 
-    /** @name Versioning stuff.
-     * @{ */
-        /** Holds the VBox branding config file path. */
-        QString  m_strBrandingConfigFilePath;
-    /** @} */
-
     /** @name Host OS stuff.
      * @{ */
-#ifdef VBOX_WS_X11
-        /** X11: Holds the #X11WMType of the Window Manager we are running under. */
-        X11WMType  m_enmWindowManagerType;
-        /** X11: Holds whether the Window Manager we are running at is composition one. */
-        bool       m_fCompositingManagerRunning;
+#ifdef VBOX_WS_MAC
+        /** macOS: Holds the #MacOSXRelease determined using <i>uname</i> call. */
+        MacOSXRelease  m_enmMacOSVersion;
 #endif
+
+#ifdef VBOX_WS_NIX
+        /** X11: Holds the #X11WMType of the Window Manager we are running under. */
+        X11WMType             m_enmWindowManagerType;
+        /** X11: Holds whether the Window Manager we are running at is composition one. */
+        bool                  m_fCompositingManagerRunning;
+        /** Unixes: Holds the display server type. */
+        VBGHDISPLAYSERVERTYPE m_enmDisplayServerType;
+#endif
+
+        /** Holds whether host OS is in Dark mode. */
+        bool  m_fDarkMode;
     /** @} */
 
     /** @name Process arguments stuff.
@@ -652,7 +395,7 @@ private:
         QList<QUrl>  m_listArgUrls;
 
         /** Holds the --startvm option value (managed VM id). */
-        QUuid  m_strManagedVMId;
+        QUuid  m_uManagedVMId;
         /** Holds the --separate option value (whether GUI process is separate from VM process). */
         bool   m_fSeparateProcess;
         /** Holds the --no-startvm-errormsgbox option value (whether startup VM errors are disabled). */
@@ -661,13 +404,18 @@ private:
         /** Holds the --aggressive-caching / --no-aggressive-caching option value (whether medium-enumeration is required). */
         bool  m_fAgressiveCaching;
 
+        /** Holds the --no-keyboard-grabbing option value. */
+        bool  m_fNoKeyboardGrabbing;
+
         /** Holds the --restore-current option value. */
-        bool  m_fRestoreCurrentSnapshot;
+        bool    m_fRestoreCurrentSnapshot;
+        /** Holds the --restore-snapshot option value. */
+        QString m_strSnapshotToRestore;
 
         /** Holds the --fda option value (floppy image). */
-        QUuid  m_uFloppyImage;
+        QString  m_strFloppyImage;
         /** Holds the --dvd | --cdrom option value (DVD image). */
-        QUuid  m_uDvdImage;
+        QString  m_strDvdImage;
 
         /** Holds the --execute-all-in-iem option value. */
         bool      m_fExecuteAllInIem;
@@ -685,8 +433,10 @@ private:
         mutable int  m_fDbgAutoShowStatistics;
         /** Pattern of statistics to expand when opening the viewer. */
         QString      m_strDbgStatisticsExpand;
-        /** The statistics viewer filter. */
+        /** The statistics viewer main filter pattern. */
         QString      m_strDbgStatisticsFilter;
+        /** The statistics viewer advanced filter configuration and possibly more. */
+        QString      m_strDbgStatisticsConfig;
 
         /** VBoxDbg module handle. */
         RTLDRMOD  m_hVBoxDbg;
@@ -699,38 +449,14 @@ private:
         char  m_astrSettingsPw[256];
         /** Holds the --settingspwfile option value. */
         bool  m_fSettingsPwSet;
-
-#ifdef VBOX_GUI_WITH_PIDFILE
-        /** Holds the --pidfile option value (application PID file path). */
-        QString m_strPidFile;
-#endif
     /** @} */
 
-    /** @name COM stuff.
+    /** @name Application stuff.
      * @{ */
-        /** Holds the COM cleanup protection token. */
-        QReadWriteLock  m_comCleanupProtectionToken;
-
-        /** Holds the instance of VirtualBox client wrapper. */
-        CVirtualBoxClient  m_comVBoxClient;
-        /** Holds the copy of VirtualBox object wrapper. */
-        CVirtualBox        m_comVBox;
-        /** Holds the copy of VirtualBox host-object wrapper. */
-        CHost              m_comHost;
-        /** Holds the symbolic VirtualBox home-folder representation. */
-        QString            m_strHomeFolder;
-
-        /** Holds whether acquired COM wrappers are currently valid. */
-        bool  m_fWrappersValid;
-        /** Holds whether VBoxSVC is currently available. */
-        bool  m_fVBoxSVCAvailable;
-
-        /** Holds the guest OS family IDs. */
-        QList<QString>               m_guestOSFamilyIDs;
-        /** Holds the guest OS family descriptions. */
-        QMap<QString, QString>       m_guestOSFamilyDescriptions;
-        /** Holds the guest OS types for each family ID. */
-        QList<QList<CGuestOSType> >  m_guestOSTypes;
+#ifdef VBOX_GUI_WITH_PIDFILE
+        /** Holds the --pidfile option value (application PID file path). */
+        QString  m_strPidFile;
+#endif
     /** @} */
 
     /** @name Thread stuff.
@@ -741,25 +467,6 @@ private:
         UIThreadPool *m_pThreadPoolCloud;
     /** @} */
 
-    /** @name Media related stuff.
-     * @{ */
-        /** Holds the medium enumerator cleanup protection token. */
-        mutable QReadWriteLock  m_meCleanupProtectionToken;
-
-        /** Holds the medium enumerator. */
-        UIMediumEnumerator *m_pMediumEnumerator;
-        /** List of medium names that should not appears in the recently used media extra data. */
-        QStringList         m_recentMediaExcludeList;
-    /** @} */
-
-#ifdef VBOX_WS_WIN
-    /** @name ATL stuff.
-     * @{ */
-        /** Holds the ATL module instance (for use with UICommon shared library only).
-          * @note  Required internally by ATL (constructor records instance in global variable). */
-        ATL::CComModule  _Module;
-    /** @} */
-#endif
     /** @name Font scaling related variables.
      * @{ */
        int iOriginalFontPixelSize;

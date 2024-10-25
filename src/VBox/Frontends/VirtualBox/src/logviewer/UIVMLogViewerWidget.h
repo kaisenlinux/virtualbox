@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,46 +35,41 @@
 #include <QKeySequence>
 #include <QPair>
 #include <QPointer>
+#include <QSet>
 #include <QWidget>
+#include <QUuid>
 
 /* GUI includes: */
 #include "QIManagerDialog.h"
-#include "QIWithRetranslateUI.h"
-#include "UILibraryDefs.h"
-
-/* COM includes: */
-#include "COMEnums.h"
-#include "CMachine.h"
 
 /* Forward declarations: */
-class QITabWidget;
-class UITabWidget;
-class QPlainTextEdit;
 class QVBoxLayout;
-class UIActionPool;
-class UIDialogPanel;
 class QIToolBar;
 class QIToolButton;
+class UIActionPool;
+class UIDialogPanel;
 class UIMachineListMenu;
+class UITabWidget;
 class UIVirtualMachineItem;
 class UIVMLogPage;
 class UIVMLogTab;
 class UIVMLogViewerBookmarksPanel;
+class UIVMLogViewerPaneContainer;
 class UIVMLogViewerFilterPanel;
 class UIVMLogViewerPanel;
-class UIVMLogViewerSearchPanel;
-class UIVMLogViewerOptionsPanel;
+class CMachine;
 
 /** QWidget extension providing GUI for VirtualBox LogViewer. It
  *  encapsulates log pages, toolbar, a tab widget and manages
  *  interaction between these classes. */
-class SHARED_LIBRARY_STUFF UIVMLogViewerWidget  : public QIWithRetranslateUI<QWidget>
+class SHARED_LIBRARY_STUFF UIVMLogViewerWidget  : public QWidget
 {
     Q_OBJECT;
 
 signals:
 
     void sigSetCloseButtonShortCut(QKeySequence);
+    void sigDetach();
 
 public:
 
@@ -82,10 +77,14 @@ public:
       * @param  enmEmbedding  Brings the type of widget embedding.
       * @param  pActionPool   Brings the action-pool reference.
       * @param  fShowToolbar  Brings whether we should create/show toolbar.
-      * @param  uMachineId    Brings the machine id for which VM Log-Viewer is requested. */
+      * @param  machineIDs    Brings the list of machine IDs. */
     UIVMLogViewerWidget(EmbedTo enmEmbedding, UIActionPool *pActionPool,
-                        bool fShowToolbar = true, const QUuid &uMachineId = QUuid(), QWidget *pParent = 0);
+                        bool fShowToolbar = true, const QList<QUuid> &machineIDs = QList<QUuid>(), QWidget *pParent = 0);
     ~UIVMLogViewerWidget();
+
+    /** Returns the widget's embedding type. */
+    EmbedTo embeddingType() const { return m_enmEmbedding; }
+
     /** Returns the width of the current log page. return 0 if there is no current log page: */
     int defaultLogPageWidth() const;
 
@@ -98,7 +97,6 @@ public:
 #endif
 
     void setSelectedVMListItems(const QList<UIVirtualMachineItem*> &items);
-    void addSelectedVMListItems(const QList<UIVirtualMachineItem*> &items);
     QFont currentFont() const;
 
 protected:
@@ -137,8 +135,6 @@ private slots:
     /* Handles the UIVMLogPage signal which is emitted when isFiltered property
        of UIVMLogPage is changed. */
     void sltLogPageFilteredChanged(bool isFiltered);
-    void sltHandleHidePanel(UIDialogPanel *pPanel);
-    void sltHandleShowPanel(UIDialogPanel *pPanel);
 
     /** @name Slots to handle signals from settings panel
      * @{ */
@@ -149,8 +145,11 @@ private slots:
         void sltResetOptionsToDefault();
     /** @} */
     void sltCloseMachineLogs();
-    void sltTabCloseButtonClick();
     void sltCommitDataSignalReceived();
+    void sltPanelContainerHidden();
+    void sltPanelCurrentTabChanged(int iIndex);
+    void sltShowSearchPane();
+    void sltRetranslateUI();
 
 private:
 
@@ -167,16 +166,10 @@ private:
         void saveOptions();
         /** Loads options.  */
         void loadOptions();
-        void savePanelVisibility();
-        /** Shows the panels that have been visible the last time logviewer is closed. */
-        void restorePanelVisibility();
     /** @} */
 
     /** @name Event handling stuff.
       * @{ */
-        /** Handles translation event. */
-        virtual void retranslateUi() RT_OVERRIDE;
-
         /** Handles Qt show @a pEvent. */
         virtual void showEvent(QShowEvent *pEvent) RT_OVERRIDE;
         /** Handles Qt key-press @a pEvent. */
@@ -205,19 +198,12 @@ private:
 
     /** Resets document (of the current tab) and scrollbar highligthing */
     void resetHighlighthing();
-    void hidePanel(UIDialogPanel* panel);
-    void showPanel(UIDialogPanel* panel);
-    /** Make sure escape key is assigned to only a single widget. This is done by checking
-        several things in the following order:
-        - when there are no more panels visible assign it to the parent dialog
-        - grab it from the dialog as soon as a panel becomes visible again
-        - assigned it to the most recently "unhidden" panel */
-    void manageEscapeShortCut();
     void setMachines(const QVector<QUuid> &machineIDs);
     /** Returns the content of the ith log file of @comMachine or possibly an empty string */
-    QString readLogFile(CMachine &comMachine, int iLogFileId);
+    QString readLogFile(const CMachine &comConstMachine, int iLogFileId);
     /** If the current tab is a label tab then switch to the next tab and return true. Returns false otherwise. */
     bool labelTabHandler();
+    void uncheckPaneActions();
 
     /** Holds the widget's embedding type. */
     const EmbedTo m_enmEmbedding;
@@ -235,11 +221,6 @@ private:
 
     /** @name Panel instances and a QMap for mapping panel instances to related actions.
       * @{ */
-        UIVMLogViewerSearchPanel    *m_pSearchPanel;
-        UIVMLogViewerFilterPanel    *m_pFilterPanel;
-        UIVMLogViewerBookmarksPanel *m_pBookmarksPanel;
-        UIVMLogViewerOptionsPanel   *m_pOptionsPanel;
-        QMap<UIDialogPanel*, QAction*> m_panelActionMap;
         QList<UIDialogPanel*>          m_visiblePanelsList;
     /** @} */
     QVBoxLayout         *m_pMainLayout;
@@ -263,9 +244,10 @@ private:
       * we should not try to save anything to extra data anymore. */
     bool m_fCommitDataSignalReceived;
     QPointer<UIVMLogPage> m_pPreviousLogPage;
-
-    friend class UIVMLogViewerFilterPanel;
-    friend class UIVMLogViewerPanel;
+    UIVMLogViewerPaneContainer *m_pPanel;
+    QSet<QAction*> m_paneActions;
+    friend class UIVMLogViewerFilterWidget;
+    friend class UIVMLogViewerPane;
     friend class UIVMLogViewerDialog;
 };
 

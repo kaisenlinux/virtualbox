@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -51,6 +51,7 @@
 #include <iprt/mp.h>
 #include <iprt/param.h>
 #include <iprt/process.h>
+#include <iprt/string.h>
 #include <iprt/thread.h>
 
 #include "internal/memobj.h"
@@ -295,6 +296,41 @@ RTR0DECL(bool) RTR0MemObjWasZeroInitialized(RTR0MEMOBJ hMemObj)
 RT_EXPORT_SYMBOL(RTR0MemObjWasZeroInitialized);
 
 
+RTR0DECL(int) RTR0MemObjZeroInitialize(RTR0MEMOBJ hMemObj, bool fForce)
+{
+    PRTR0MEMOBJINTERNAL pMem;
+
+    /* Validate the object handle. */
+    AssertReturn(hMemObj != NIL_RTR0MEMOBJ, VERR_INVALID_HANDLE);
+    AssertPtrReturn(hMemObj, VERR_INVALID_HANDLE);
+    pMem = (PRTR0MEMOBJINTERNAL)hMemObj;
+    AssertMsgReturn(pMem->u32Magic == RTR0MEMOBJ_MAGIC, ("%p: %#x\n", pMem, pMem->u32Magic), VERR_INVALID_HANDLE);
+    AssertMsgReturn(pMem->enmType > RTR0MEMOBJTYPE_INVALID && pMem->enmType < RTR0MEMOBJTYPE_END, ("%p: %d\n", pMem, pMem->enmType), VERR_INVALID_HANDLE);
+    AssertReturn(   (pMem->enmType != RTR0MEMOBJTYPE_MAPPING || pMem->u.Mapping.R0Process == NIL_RTR0PROCESS)
+                 && (pMem->enmType != RTR0MEMOBJTYPE_LOCK    || pMem->u.Lock.R0Process    == NIL_RTR0PROCESS)
+                 && pMem->enmType != RTR0MEMOBJTYPE_RES_VIRT
+                 , VERR_WRONG_TYPE);
+    Assert(   (pMem->fFlags & (RTR0MEMOBJ_FLAGS_ZERO_AT_ALLOC | RTR0MEMOBJ_FLAGS_UNINITIALIZED_AT_ALLOC))
+           !=                 (RTR0MEMOBJ_FLAGS_ZERO_AT_ALLOC | RTR0MEMOBJ_FLAGS_UNINITIALIZED_AT_ALLOC));
+
+    /*
+     * Do we need to do anything?
+     */
+    if (   fForce
+        ||    (pMem->fFlags & (RTR0MEMOBJ_FLAGS_ZERO_AT_ALLOC | RTR0MEMOBJ_FLAGS_UNINITIALIZED_AT_ALLOC))
+           !=                  RTR0MEMOBJ_FLAGS_ZERO_AT_ALLOC)
+    {
+        /* This is easy if there is a ring-0 mapping: */
+        if (pMem->pv)
+            RT_BZERO(pMem->pv, pMem->cb);
+        else
+            return rtR0MemObjNativeZeroInitWithoutMapping(pMem);
+    }
+    return VINF_SUCCESS;
+}
+RT_EXPORT_SYMBOL(RTR0MemObjZeroInitialize);
+
+
 RTR0DECL(int) RTR0MemObjFree(RTR0MEMOBJ MemObj, bool fFreeMappings)
 {
     /*
@@ -473,7 +509,7 @@ RTR0DECL(int) RTR0MemObjAllocLowTag(PRTR0MEMOBJ pMemObj, size_t cb, bool fExecut
 RT_EXPORT_SYMBOL(RTR0MemObjAllocLowTag);
 
 
-RTR0DECL(int) RTR0MemObjAllocContTag(PRTR0MEMOBJ pMemObj, size_t cb, bool fExecutable, const char *pszTag)
+RTR0DECL(int) RTR0MemObjAllocContTag(PRTR0MEMOBJ pMemObj, size_t cb, RTHCPHYS PhysHighest, bool fExecutable, const char *pszTag)
 {
     /* sanity checks. */
     const size_t cbAligned = RT_ALIGN_Z(cb, PAGE_SIZE);
@@ -481,10 +517,11 @@ RTR0DECL(int) RTR0MemObjAllocContTag(PRTR0MEMOBJ pMemObj, size_t cb, bool fExecu
     *pMemObj = NIL_RTR0MEMOBJ;
     AssertReturn(cb > 0, VERR_INVALID_PARAMETER);
     AssertReturn(cb <= cbAligned, VERR_INVALID_PARAMETER);
+    AssertReturn(PhysHighest >= cb, VERR_INVALID_PARAMETER);
     RT_ASSERT_PREEMPTIBLE();
 
     /* do the allocation. */
-    return rtR0MemObjNativeAllocCont(pMemObj, cbAligned, fExecutable, pszTag);
+    return rtR0MemObjNativeAllocCont(pMemObj, cbAligned, PhysHighest, fExecutable, pszTag);
 }
 RT_EXPORT_SYMBOL(RTR0MemObjAllocContTag);
 

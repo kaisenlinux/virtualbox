@@ -41,10 +41,11 @@
 
 #include "nsVariant.h"
 #include "nsString.h"
-#include "prprf.h"
-#include "prdtoa.h"
 #include <math.h>
 #include "nsCRT.h"
+
+#include <iprt/errcore.h>
+#include <iprt/string.h>
 
 /***************************************************************************/
 // Helpers for static convert functions...
@@ -52,8 +53,9 @@
 static nsresult String2Double(const char* aString, double* retval)
 {
     char* next;
-    double value = PR_strtod(aString, &next);
-    if(next == aString)
+    double value;
+    int vrc = RTStrToDoubleEx(aString, &next, 0 /*cchMax*/, &value);
+    if (RT_FAILURE(vrc))
         return NS_ERROR_CANNOT_CONVERT_DATA;
     *retval = value;
     return NS_OK;
@@ -812,11 +814,11 @@ static nsresult ToString(const nsDiscriminatedUnion& data,
         nsMemory::Free(ptr);
         return NS_OK;
 
-    // the rest can be PR_smprintf'd and use common code.
+    // the rest can use RTStrAPrintf() and use common code.
 
 #define CASE__SMPRINTF_NUMBER(type_, format_, cast_, member_)                 \
     case nsIDataType :: type_ :                                               \
-        ptr = PR_smprintf( format_ , (cast_) data.u. member_ );               \
+        RTStrAPrintf(&ptr, format_ , (cast_) data.u. member_ );               \
         break;
 
     CASE__SMPRINTF_NUMBER(VTYPE_INT8,   "%d",   int,      mInt8Value)
@@ -843,7 +845,7 @@ static nsresult ToString(const nsDiscriminatedUnion& data,
     if(!ptr)
         return NS_ERROR_OUT_OF_MEMORY;
     outString.Assign(ptr);
-    PR_smprintf_free(ptr);
+    RTStrFree(ptr);
     return NS_OK;
 }
 

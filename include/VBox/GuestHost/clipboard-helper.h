@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -44,6 +44,9 @@
 
 #include <VBox/GuestHost/SharedClipboard.h>
 
+/** Guest property which is set by GUI in order to notify guest about VM window focus change.  */
+#define VBOX_GUI_FOCUS_CHANGE_GUEST_PROP_NAME   "/VirtualBox/GuestAdd/GuiOnFocus"
+
 /** Constants needed for string conversions done by the Linux/Mac clipboard code. */
 enum
 {
@@ -58,7 +61,11 @@ enum
 };
 
 /**
- * Returns the length (in UTF-8 characters) of an UTF-16 string with LF EOL.
+ * Returns calculated length (in UTF-8 characters) of normalized UTF-16 string with CRLF EOL.
+ *
+ * This function should be used in order to calculate number of UTF-8 characters
+ * in normalized UTF-16. Normalized string is expected to have LF characters replaced
+ * with CRLF sequences.
  *
  * @returns VBox status code.
  * @param   pcwszSrc            UTF-16 string to return size for.
@@ -66,7 +73,7 @@ enum
  * @param   pchLen              Where to return the length (in UTF-8 characters).
  *                              Does not include terminator.
  */
-int ShClUtf16LFLenUtf8(PCRTUTF16 pcwszSrc, size_t cwcSrc, size_t *pchLen);
+int ShClUtf16CalcNormalizedEolToCRLFLength(PCRTUTF16 pcwszSrc, size_t cwcSrc, size_t *pchLen);
 
 /**
  * Returns the length (in UTF-8 characters) of an UTF-16 string with CRLF EOL.

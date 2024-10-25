@@ -8,7 +8,7 @@ VirtualBox Validation Kit - Serial port testing #1.
 
 __copyright__ = \
 """
-Copyright (C) 2018-2023 Oracle and/or its affiliates.
+Copyright (C) 2018-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -37,7 +37,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 
 # Standard Python imports.
@@ -48,7 +48,7 @@ import struct;
 import sys;
 
 # Only the main script needs to modify the path.
-try:    __file__
+try:    __file__                            # pylint: disable=used-before-assignment
 except: __file__ = sys.argv[0];
 g_ksValidationKitDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))));
 sys.path.append(g_ksValidationKitDir);
@@ -120,7 +120,7 @@ class tdSerial1(vbox.TestDriver):
             for s in self.asSerialTests:
                 if s not in self.asSerialTestsDef:
                     reporter.log('warning: The "--serial-tests" value "%s" is not a valid serial port test.' % (s));
-        elif asArgs[iArg] == '--aurts':
+        elif asArgs[iArg] == '--uarts':
             iArg += 1;
             if iArg >= len(asArgs):
                 raise base.InvalidOption('The "--uarts" takes a colon separated list of uarts to test');

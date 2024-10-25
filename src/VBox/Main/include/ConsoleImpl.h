@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2005-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2005-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -30,6 +30,8 @@
 #ifndef RT_WITHOUT_PRAGMA_ONCE
 # pragma once
 #endif
+
+#include <iprt/cpp/exception.h>
 
 #include "VirtualBoxBase.h"
 #include "VBox/com/array.h"
@@ -74,6 +76,9 @@ class DisplayMouseInterface;
 class VMPowerUpTask;
 class VMPowerDownTask;
 class NvramStore;
+#ifdef VBOX_WITH_VIRT_ARMV8
+class ResourceStore;
+#endif
 
 #include <iprt/uuid.h>
 #include <iprt/log.h>
@@ -87,6 +92,7 @@ class NvramStore;
 # include <VBox/vrdpusb.h>
 #endif
 #include <VBox/VBoxCryptoIf.h>
+#include <VBox/pci.h>
 
 #if    defined(VBOX_WITH_GUEST_PROPS) || defined(VBOX_WITH_SHARED_CLIPBOARD) \
     || defined(VBOX_WITH_DRAG_AND_DROP)
@@ -96,6 +102,8 @@ class NvramStore;
 
 struct VUSBIRHCONFIG;
 typedef struct VUSBIRHCONFIG *PVUSBIRHCONFIG;
+
+struct PDMINETWORKNATDNSCONFIG;
 
 #include <list>
 #include <vector>
@@ -122,6 +130,23 @@ typedef struct VUSBIRHCONFIG *PVUSBIRHCONFIG;
 
 // Console
 ///////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Simple class for storing network boot information.
+ */
+struct BootNic
+{
+    ULONG          mInstance;
+    PCIBusAddress  mPCIAddress;
+
+    ULONG          mBootPrio;
+    bool operator < (const BootNic &rhs) const
+    {
+        ULONG lval = mBootPrio     - 1; /* 0 will wrap around and get the lowest priority. */
+        ULONG rval = rhs.mBootPrio - 1;
+        return lval < rval; /* Zero compares as highest number (lowest prio). */
+    }
+};
 
 class ConsoleMouseInterface
 {
@@ -174,12 +199,13 @@ public:
     AudioVRDE *i_getAudioVRDE() const { return mAudioVRDE; }
 #endif
 #ifdef VBOX_WITH_RECORDING
-    int i_recordingCreate(void);
+    int i_recordingCreate(ComPtr<IProgress> &pProgress);
     void i_recordingDestroy(void);
-    int i_recordingEnable(BOOL fEnable, util::AutoWriteLock *pAutoLock);
-    int i_recordingGetSettings(settings::RecordingSettings &recording);
+    int i_recordingEnable(BOOL fEnable, util::AutoWriteLock *pAutoLock, ComPtr<IProgress> &pProgress);
+    int i_recordingGetSettings(settings::Recording &Settings);
     int i_recordingStart(util::AutoWriteLock *pAutoLock = NULL);
     int i_recordingStop(util::AutoWriteLock *pAutoLock = NULL);
+    int i_recordingCursorShapeChange(bool fVisible, bool fAlpha, uint32_t xHot, uint32_t yHot, uint32_t uWidth, uint32_t uHeight, const uint8_t *pu8Shape, uint32_t cbShape);
 # ifdef VBOX_WITH_AUDIO_RECORDING
     AudioVideoRec *i_recordingGetAudioDrv(void) const { return mRecording.mAudioRec; }
 # endif
@@ -214,11 +240,13 @@ public:
     HRESULT i_onMediumChange(IMediumAttachment *aMediumAttachment, BOOL aForce);
     HRESULT i_onCPUChange(ULONG aCPU, BOOL aRemove);
     HRESULT i_onCPUExecutionCapChange(ULONG aExecutionCap);
+    HRESULT i_onClipboardError(const Utf8Str &aId, const Utf8Str &aErrMsg, LONG aRc);
     HRESULT i_onClipboardModeChange(ClipboardMode_T aClipboardMode);
     HRESULT i_onClipboardFileTransferModeChange(bool aEnabled);
     HRESULT i_onDnDModeChange(DnDMode_T aDnDMode);
     HRESULT i_onVRDEServerChange(BOOL aRestart);
-    HRESULT i_onRecordingChange(BOOL fEnable);
+    HRESULT i_onRecordingStateChange(BOOL aEnable, ComPtr<IProgress> &aProgress);
+    HRESULT i_onRecordingScreenStateChange(BOOL aEnable, ULONG aScreen);
     HRESULT i_onUSBControllerChange();
     HRESULT i_onSharedFolderChange(BOOL aGlobal);
     HRESULT i_onUSBDeviceAttach(IUSBDevice *aDevice, IVirtualBoxErrorInfo *aError, ULONG aMaskedIfs,
@@ -410,7 +438,9 @@ private:
     HRESULT removeEncryptionPassword(const com::Utf8Str &aId);
     HRESULT clearAllEncryptionPasswords();
 
-    void notifyNatDnsChange(PUVM pUVM, PCVMMR3VTABLE pVMM, const char *pszDevice, ULONG ulInstanceMax);
+    static DECLCALLBACK(int) notifyNatDnsChangeCallback(PPDMIBASE pIBase, uint32_t uDrvInstance, bool fUsbDev,
+                                                        const char *pszDevice, uint32_t uDevInstance, unsigned uLun,
+                                                        void *pvUser);
     Utf8Str VRDPServerErrorToMsg(int vrc);
 
     /**
@@ -666,7 +696,7 @@ private:
     typedef std::list <ComObjPtr<OUSBDevice> > USBDeviceList;
     typedef std::list <ComObjPtr<RemoteUSBDevice> > RemoteUSBDeviceList;
 
-    HRESULT i_loadVMM(void) RT_NOEXCEPT;
+    HRESULT i_loadVMM(const char *pszVMMMod) RT_NOEXCEPT;
     HRESULT i_addVMCaller(bool aQuiet = false, bool aAllowNullVM = false);
     void    i_releaseVMCaller();
     HRESULT i_safeVMPtrRetainer(PUVM *a_ppUVM, PCVMMR3VTABLE *a_ppVMM, bool aQuiet) RT_NOEXCEPT;
@@ -720,6 +750,10 @@ private:
     void i_configAudioDriver(IVirtualBox *pVirtualBox, IMachine *pMachine, PCFGMNODE pLUN, const char *pszDriverName,
                              bool fAudioEnabledIn, bool fAudioEnabledOut);
     int i_configConstructorInner(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, AutoWriteLock *pAlock);
+    int i_configConstructorX86(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, AutoWriteLock *pAlock);
+#ifdef VBOX_WITH_VIRT_ARMV8
+    int i_configConstructorArmV8(PUVM pUVM, PVM pVM, PCVMMR3VTABLE pVMM, AutoWriteLock *pAlock);
+#endif
     int i_configCfgmOverlay(PCFGMNODE pRoot, IVirtualBox *pVirtualBox, IMachine *pMachine);
     int i_configDumpAPISettingsTweaks(IVirtualBox *pVirtualBox, IMachine *pMachine);
 
@@ -728,8 +762,8 @@ private:
                                    BusAssignmentManager *pBusMgr,
                                    const ComPtr<IMachine> &ptrMachine,
                                    const ComPtr<IGraphicsAdapter> &ptrGraphicsAdapter,
-                                   const ComPtr<IBIOSSettings> &ptrBiosSettings,
-                                   bool fHMEnabled);
+                                   const ComPtr<IFirmwareSettings> &ptrFirmwareSettings,
+                                   bool fForceVmSvga3 = false, bool fExposeLegacyVga = true);
     int i_checkMediumLocation(IMedium *pMedium, bool *pfUseHostIOCache);
     int i_unmountMediumFromGuest(PUVM pUVM, PCVMMR3VTABLE pVMM, StorageBus_T enmBus, DeviceType_T enmDevType,
                                  const char *pcszDevice, unsigned uInstance, unsigned uLUN,
@@ -781,20 +815,26 @@ private:
                        MachineState_T aMachineState,
                        HRESULT *phrc);
     int i_configMediumProperties(PCFGMNODE pCur, IMedium *pMedium, bool *pfHostIP, bool *pfEncrypted);
+    /** i_reconfigureMediumAttachment has too many problematic arguments for
+     * passing directly to VMR3ReqCallUV, so we pack them up. @bugref{10725} */
+    struct ReconfigureMediumAttachmentArgs
+    {
+        const char *pcszDevice;         /**< The name of the controller type. */
+        unsigned uInstance;             /**< The instance of the controller. */
+        StorageBus_T enmBus;            /**< The storage bus type of the controller. */
+        bool fUseHostIOCache;           /**< Use the host I/O cache (disable async I/O). */
+        bool fBuiltinIOCache;           /**< Use the builtin I/O cache. */
+        bool fInsertDiskIntegrityDrv;   /**< Flag whether to insert the disk integrity driver into the chain for additionalk debugging aids. */
+        bool fSetupMerge;               /**< Whether to set up a medium merge */
+        unsigned uMergeSource;          /**< Merge source image index */
+        unsigned uMergeTarget;          /**< Merge target image index */
+        IMediumAttachment *aMediumAtt;  /**< The medium attachment. */
+        MachineState_T aMachineState;   /**< The current machine state. */
+    };
     static DECLCALLBACK(int) i_reconfigureMediumAttachment(Console *pThis,
                                                            PUVM pUVM,
                                                            PCVMMR3VTABLE pVMM,
-                                                           const char *pcszDevice,
-                                                           unsigned uInstance,
-                                                           StorageBus_T enmBus,
-                                                           bool fUseHostIOCache,
-                                                           bool fBuiltinIoCache,
-                                                           bool fInsertDiskIntegrityDrv,
-                                                           bool fSetupMerge,
-                                                           unsigned uMergeSource,
-                                                           unsigned uMergeTarget,
-                                                           IMediumAttachment *aMediumAtt,
-                                                           MachineState_T aMachineState,
+                                                           ReconfigureMediumAttachmentArgs const *pArgs,
                                                            HRESULT *phrc);
     static DECLCALLBACK(int) i_changeRemovableMedium(Console *pThis,
                                                      PUVM pUVM,
@@ -824,6 +864,20 @@ private:
     int i_configProxy(ComPtr<IVirtualBox> virtualBox, PCFGMNODE pCfg, const char *pcszPrefix, const com::Utf8Str &strIpAddr);
 
     int i_configSerialPort(PCFGMNODE pInst, PortMode_T ePortMode, const char *pszPath, bool fServer);
+
+    int i_configAudioCtrl(ComPtr<IVirtualBox> pVBox, ComPtr<IMachine> pMachine, BusAssignmentManager *pBusMgr, PCFGMNODE pDevices,
+                          bool fOsXGuest, bool *pfAudioEnabled);
+    int i_configVmmDev(ComPtr<IMachine> pMachine, BusAssignmentManager *pBusMgr, PCFGMNODE pDevices, bool fMmioReq = false);
+    int i_configPdm(ComPtr<IMachine> pMachine, PCVMMR3VTABLE pVMM, PUVM pUVM, PCFGMNODE pRoot);
+    int i_configUsb(ComPtr<IMachine> pMachine, BusAssignmentManager *pBusMgr, PCFGMNODE pRoot, PCFGMNODE pDevices,
+                    KeyboardHIDType_T enmKbdHid, PointingHIDType_T enmPointingHid, PCFGMNODE *ppUsbDevices);
+    int i_configGuestDbg(ComPtr<IVirtualBox> pVBox, ComPtr<IMachine> pMachine, PCFGMNODE pRoot);
+    int i_configStorageCtrls(ComPtr<IMachine> pMachine, BusAssignmentManager *pBusMgr, PCVMMR3VTABLE pVMM, PUVM pUVM,
+                             PCFGMNODE pDevices, PCFGMNODE pUsbDevices, PCFGMNODE pBiosCfg, bool *pfFdcEnabled);
+    int i_configNetworkCtrls(ComPtr<IMachine> pMachine, ComPtr<IPlatformProperties> pPlatformProperties,
+                             ChipsetType_T enmChipset, BusAssignmentManager *pBusMgr, PCVMMR3VTABLE pVMM, PUVM pUVM,
+                             PCFGMNODE pDevices, std::list<BootNic> &llBootNics);
+
     static DECLCALLBACK(void) i_vmstateChangeCallback(PUVM pUVM, PCVMMR3VTABLE pVMM, VMSTATE enmState,
                                                       VMSTATE enmOldState, void *pvUser);
     static DECLCALLBACK(int) i_unplugCpu(Console *pThis, PUVM pUVM, PCVMMR3VTABLE pVMM, VMCPUID idCpu);
@@ -847,8 +901,8 @@ private:
     HRESULT i_detachUSBDevice(const ComObjPtr<OUSBDevice> &aHostDevice);
 
     static DECLCALLBACK(int) i_usbAttachCallback(Console *that, PUVM pUVM, PCVMMR3VTABLE pVMM, IUSBDevice *aHostDevice,
-                                                 PCRTUUID aUuid, const char *aBackend, const char *aAddress,
-                                                 PCFGMNODE pRemoteCfg, USBConnectionSpeed_T enmSpeed, ULONG aMaskedIfs,
+                                                 PCRTUUID aUuid, const char *aBackend, const char *aAddress, PCFGMNODE pRemoteCfg,
+                                                 USBConnectionSpeed_T *penmSpeed, ULONG *pfMaskedIfs,
                                                  const char *pszCaptureFilename);
     static DECLCALLBACK(int) i_usbDetachCallback(Console *that, PUVM pUVM, PCVMMR3VTABLE pVMM, PCRTUUID aUuid);
     static DECLCALLBACK(PREMOTEUSBCALLBACK) i_usbQueryRemoteUsbBackend(void *pvUser, PCRTUUID pUuid, uint32_t idClient);
@@ -970,15 +1024,19 @@ private:
 #ifdef VBOX_WITH_FULL_VM_ENCRYPTION
     /** @name Encrypted log interface
      * @{ */
-    static DECLCALLBACK(int)    i_logEncryptedOpen(PCRTLOGOUTPUTIF pIf, void *pvUser, const char *pszFilename, uint32_t fFlags);
+    static DECLCALLBACK(int)    i_logEncryptedDirCtxOpen(PCRTLOGOUTPUTIF pIf, void *pvUser, const char *pszFilename, void **pvDirCtx);
+    static DECLCALLBACK(int)    i_logEncryptedDirCtxClose(PCRTLOGOUTPUTIF pIf, void *pvUser, void *pvDirCtx);
+    static DECLCALLBACK(int)    i_logEncryptedDelete(PCRTLOGOUTPUTIF pIf, void *pvUser, void *pvDirCtx, const char *pszFilename);
+    static DECLCALLBACK(int)    i_logEncryptedRename(PCRTLOGOUTPUTIF pIf, void *pvUser, void *pvDirCtx,
+                                                     const char *pszFilenameOld, const char *pszFilenameNew, uint32_t fFlags);
+    static DECLCALLBACK(int)    i_logEncryptedOpen(PCRTLOGOUTPUTIF pIf, void *pvUser, void *pvDirCtx, const char *pszFilename, uint32_t fFlags);
     static DECLCALLBACK(int)    i_logEncryptedClose(PCRTLOGOUTPUTIF pIf, void *pvUser);
-    static DECLCALLBACK(int)    i_logEncryptedDelete(PCRTLOGOUTPUTIF pIf, void *pvUser, const char *pszFilename);
-    static DECLCALLBACK(int)    i_logEncryptedRename(PCRTLOGOUTPUTIF pIf, void *pvUser, const char *pszFilenameOld,
-                                                     const char *pszFilenameNew, uint32_t fFlags);
     static DECLCALLBACK(int)    i_logEncryptedQuerySize(PCRTLOGOUTPUTIF pIf, void *pvUser, uint64_t *pcbSize);
     static DECLCALLBACK(int)    i_logEncryptedWrite(PCRTLOGOUTPUTIF pIf, void *pvUser, const void *pvBuf,
                                                     size_t cbWrite, size_t *pcbWritten);
     static DECLCALLBACK(int)    i_logEncryptedFlush(PCRTLOGOUTPUTIF pIf, void *pvUser);
+    /** The logging output interface for encrypted logs. */
+    static RTLOGOUTPUTIF const  s_ConsoleEncryptedLogOutputIf;
     /** @} */
 #endif
 
@@ -1007,6 +1065,9 @@ private:
 #endif
     const ComObjPtr<EmulatedUSB> mEmulatedUSB;
     const ComObjPtr<NvramStore> mptrNvramStore;
+#ifdef VBOX_WITH_VIRT_ARMV8
+    const ComObjPtr<ResourceStore> mptrResourceStore;
+#endif
 
     USBDeviceList mUSBDevices;
     RemoteUSBDeviceList mRemoteUSBDevices;
@@ -1169,18 +1230,21 @@ private:
     bool                                m_fEncryptedLog;
     /** The file handle of the encrypted log. */
     RTVFSFILE                           m_hVfsFileLog;
-    /** The logging output interface for encrypted logs. */
-    RTLOGOUTPUTIF                       m_LogOutputIf;
     /** The log file key ID. */
     Utf8Str                             m_strLogKeyId;
     /** The log file key store. */
     Utf8Str                             m_strLogKeyStore;
 #endif
 
-#ifdef VBOX_WITH_DRAG_AND_DROP
-    HGCMSVCEXTHANDLE m_hHgcmSvcExtDragAndDrop;
+#ifdef VBOX_WITH_SHARED_CLIPBOARD
+    /* Service extension for the Shared Clipboard HGCM service. */
+    HGCMSVCEXTHANDLE                    m_hHgcmSvcExtShCl;
 #endif
 
+#ifdef VBOX_WITH_DRAG_AND_DROP
+    /* Service extension for the Drag'n Drop HGCM service. */
+    HGCMSVCEXTHANDLE                    m_hHgcmSvcExtDragAndDrop;
+#endif
     /** Pointer to the progress object of a live cancelable task.
      *
      * This is currently only used by Console::Teleport(), but is intended to later
@@ -1193,6 +1257,7 @@ private:
     ComPtr<IEventListener> mVmListener;
 
 #ifdef VBOX_WITH_RECORDING
+    /** Structure for keeping recording-related stuff. */
     struct Recording
     {
         Recording()
@@ -1201,6 +1266,8 @@ private:
 # endif
         { }
 
+        /** The recording progress object to use. */
+        ComObjPtr<IProgress>  mProgress;
         /** The recording context. */
         RecordingContext      mCtx;
 # ifdef VBOX_WITH_AUDIO_RECORDING
@@ -1217,6 +1284,29 @@ private:
     friend class VMTask;
     friend class ConsoleVRDPServer;
 };
+
+
+class ConfigError : public RTCError
+{
+public:
+
+    ConfigError(const char *pcszFunction,
+                int vrc,
+                const char *pcszName)
+        : RTCError(Utf8StrFmt(Console::tr("%s failed: vrc=%Rrc, pcszName=%s"), pcszFunction, vrc, pcszName)),
+          m_vrc(vrc)
+    {
+        AssertMsgFailed(("%s\n", what())); // in strict mode, hit a breakpoint here
+    }
+
+    int m_vrc;
+};
+
+DECL_HIDDEN_THROW(Utf8Str *) GetExtraDataBoth(IVirtualBox *pVirtualBox, IMachine *pMachine, const char *pszName, Utf8Str *pStrValue);
+
+#ifndef VBOX_WITH_EFI_IN_DD2
+DECLHIDDEN(int) findEfiRom(IVirtualBox* vbox, PlatformArchitecture_T aPlatformArchitecture, FirmwareType_T aFirmwareType, Utf8Str *pEfiRomFile);
+#endif
 
 #endif /* !MAIN_INCLUDED_ConsoleImpl_h */
 /* vi: set tabstop=4 shiftwidth=4 expandtab: */

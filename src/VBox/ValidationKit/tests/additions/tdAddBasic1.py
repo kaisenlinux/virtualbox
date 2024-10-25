@@ -8,7 +8,7 @@ VirtualBox Validation Kit - Additions Basics #1.
 
 __copyright__ = \
 """
-Copyright (C) 2010-2023 Oracle and/or its affiliates.
+Copyright (C) 2010-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -37,7 +37,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 # Standard Python imports.
 import os;
@@ -45,7 +45,7 @@ import sys;
 import uuid;
 
 # Only the main script needs to modify the path.
-try:    __file__
+try:    __file__                            # pylint: disable=used-before-assignment
 except: __file__ = sys.argv[0];
 g_ksValidationKitDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))));
 sys.path.append(g_ksValidationKitDir);
@@ -81,6 +81,9 @@ class tdAddBasic1(vbox.TestDriver):                                         # py
         # Path pointing to the Guest Additions on the (V)ISO file.
         self.sGstPathGaPrefix = '';
 
+        # Wether to reboot guest after Guest Additions installation.
+        self.fRebootAfterInstall = True;
+
         self.addSubTestDriver(SubTstDrvAddGuestCtrl(self));
         self.addSubTestDriver(SubTstDrvAddSharedFolders1(self));
 
@@ -96,6 +99,8 @@ class tdAddBasic1(vbox.TestDriver):                                         # py
         reporter.log('      Default: %s  (all)' % (':'.join(self.asTestsDef)));
         reporter.log('  --quick');
         reporter.log('      Same as --virt-modes hwvirt --cpu-counts 1.');
+        reporter.log('  --no-reboot-after-install');
+        reporter.log('      Do not reboot guest after Guest Additions installation.');
         return rc;
 
     def parseOption(self, asArgs, iArg):                                  # pylint: disable=too-many-branches,too-many-statements
@@ -111,6 +116,11 @@ class tdAddBasic1(vbox.TestDriver):                                         # py
         elif asArgs[iArg] == '--quick':
             self.parseOption(['--virt-modes', 'hwvirt'], 0);
             self.parseOption(['--cpu-counts', '1'], 0);
+
+        elif asArgs[iArg] == '--no-reboot-after-install':
+            self.fRebootAfterInstall = False;
+            reporter.log('Guest will not be rebooted after Guest Additions installation, ' +
+                         'kernel modules and user services should be reloaded automatically without reboot');
 
         else:
             return vbox.TestDriver.parseOption(self, asArgs, iArg);
@@ -279,7 +289,7 @@ class tdAddBasic1(vbox.TestDriver):                                         # py
 
             # Wait for the GAs to come up.
             reporter.testStart('IGuest::additionsRunLevel');
-            fRc = self.testIGuest_additionsRunLevel(oSession, oTestVm, oGuest);
+            fRc = self.testIGuest_additionsRunLevel(oSession, oTxsSession, oTestVm, oGuest);
             reporter.testDone();
 
             # Check the additionsVersion attribute. It must not be empty.
@@ -339,7 +349,7 @@ class tdAddBasic1(vbox.TestDriver):                                         # py
     def setGuestEnvVar(self, oSession, oTxsSession, oTestVm, sName, sValue):
         """ Sets a system-wide environment variable on the guest. Only supports Windows guests so far. """
         _ = oSession;
-        if oTestVm.isWindows():
+        if oTestVm.sKind not in ('WindowsNT4', 'Windows2000',):
             sPathRegExe   = oTestVm.pathJoin(self.getGuestSystemDir(oTestVm), 'reg.exe');
             self.txsRunTest(oTxsSession, ('Set env var \"%s\"' % (sName,)),
                             30 * 1000, sPathRegExe,
@@ -352,6 +362,14 @@ class tdAddBasic1(vbox.TestDriver):                                         # py
         Installs the Windows guest additions using the test execution service.
         Since this involves rebooting the guest, we will have to create a new TXS session.
         """
+        if oTestVm.sKind not in ('WindowsNT4', 'Windows2000',):
+            fGuestRequiresReboot = False;
+            sRegExe = oTestVm.pathJoin(self.getGuestSystemDir(oTestVm), 'reg.exe');
+            fGuestRequiresReboot = self.txsRunTest(oTxsSession, 'Check if reboot is required', 30 * 1000,
+                                                    sRegExe,
+                                                    (sRegExe, 'query',
+                                                    '"HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\WindowsUpdate\\Auto Update\\RebootRequired"'));   # pylint: disable=line-too-long
+            reporter.log('Status of RebootRequired query is %s' % fGuestRequiresReboot);
 
         # Set system-wide env vars to enable release logging on some applications.
         self.setGuestEnvVar(oSession, oTxsSession, oTestVm, 'VBOXTRAY_RELEASE_LOG', 'all.e.l.l2.l3.f');
@@ -363,18 +381,21 @@ class tdAddBasic1(vbox.TestDriver):                                         # py
         # Install the public signing key.
         #
         if oTestVm.sKind not in ('WindowsNT4', 'Windows2000', 'WindowsXP', 'Windows2003'):
-            fRc = self.txsRunTest(oTxsSession, 'VBoxCertUtil.exe', 1 * 60 * 1000,
-                                   '${CDROM}/%s/cert/VBoxCertUtil.exe' % self.sGstPathGaPrefix,
-                                  ('${CDROM}/%s/cert/VBoxCertUtil.exe' % self.sGstPathGaPrefix, 'add-trusted-publisher',
-                                   '${CDROM}/%s/cert/vbox-sha1.cer'    % self.sGstPathGaPrefix),
+            fRc = self.txsRunTest(oTxsSession, 'VBoxCertUtil.exe', 5 * 60 * 1000,
+                                  '${CDROM}/%s/cert/VBoxCertUtil.exe' % (self.sGstPathGaPrefix,),
+                                  ('${CDROM}/%s/cert/VBoxCertUtil.exe' % (self.sGstPathGaPrefix,),
+                                   'add-trusted-publisher',
+                                   '${CDROM}/%s/cert/vbox-sha1.cer'    % (self.sGstPathGaPrefix,)),
                                   fCheckSessionStatus = True);
             if not fRc:
                 reporter.error('Error installing SHA1 certificate');
             else:
-                fRc = self.txsRunTest(oTxsSession, 'VBoxCertUtil.exe', 1 * 60 * 1000,
-                                       '${CDROM}/%s/cert/VBoxCertUtil.exe' % self.sGstPathGaPrefix,
-                                      ('${CDROM}/%s/cert/VBoxCertUtil.exe' % self.sGstPathGaPrefix, 'add-trusted-publisher',
-                                       '${CDROM}/%s/cert/vbox-sha256.cer'  % self.sGstPathGaPrefix), fCheckSessionStatus = True);
+                fRc = self.txsRunTest(oTxsSession, 'VBoxCertUtil.exe', 5 * 60 * 1000,
+                                      '${CDROM}/%s/cert/VBoxCertUtil.exe' % (self.sGstPathGaPrefix,),
+                                      ('${CDROM}/%s/cert/VBoxCertUtil.exe' % (self.sGstPathGaPrefix,),
+                                       'add-trusted-publisher',
+                                       '${CDROM}/%s/cert/vbox-sha256.cer'  % (self.sGstPathGaPrefix,)),
+                                      fCheckSessionStatus = True);
                 if not fRc:
                     reporter.error('Error installing SHA256 certificate');
 
@@ -393,53 +414,50 @@ class tdAddBasic1(vbox.TestDriver):                                         # py
 
         # Apply The SetupAPI logging level so that we also get the (most verbose) setupapi.dev.log file.
         ## @todo !!! HACK ALERT !!! Add the value directly into the testing source image. Later.
-        sRegExe = oTestVm.pathJoin(self.getGuestSystemDir(oTestVm), 'reg.exe');
-        fHaveSetupApiDevLog = self.txsRunTest(oTxsSession, 'Enabling setupapi.dev.log', 30 * 1000,
-                                              sRegExe,
-                                              (sRegExe, 'add',
-                                               '"HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Setup"',
-                                               '/v', 'LogLevel', '/t', 'REG_DWORD', '/d', '0xFF'),
-                                               fCheckSessionStatus = True);
+        fHaveSetupApiDevLog = False;
+        if oTestVm.sKind not in ('WindowsNT4', 'Windows2000',):
+            sRegExe = oTestVm.pathJoin(self.getGuestSystemDir(oTestVm), 'reg.exe');
+            fHaveSetupApiDevLog = self.txsRunTest(oTxsSession, 'Enabling setupapi.dev.log', 30 * 1000,
+                                                  sRegExe,
+                                                  (sRegExe, 'add',
+                                                   '"HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Setup"',
+                                                   '/v', 'LogLevel', '/t', 'REG_DWORD', '/d', '0xFF'),
+                                                   fCheckSessionStatus = True);
 
         for sGstFile, _ in aasLogFiles:
             self.txsRmFile(oSession, oTxsSession, sGstFile, 10 * 1000, fIgnoreErrors = True);
 
         # Enable installing the optional auto-logon modules (VBoxGINA/VBoxCredProv).
         # Also tell the installer to produce the appropriate log files.
-        sExe   = '${CDROM}/%s/VBoxWindowsAdditions.exe' % self.sGstPathGaPrefix;
+        sExe   = '${CDROM}/%s/VBoxWindowsAdditions.exe' % (self.sGstPathGaPrefix,);
         asArgs = [ sExe, '/S', '/l', '/with_autologon' ];
 
         # Determine if we need to force installing the legacy timestamp CA to make testing succeed.
         # Note: Don't force installing when the Guest Additions installer should do this automatically,
         #       i.e, only force it for Windows Server 2016 and up.
-        fForceInstallTimeStampCA = False;
-        if     self.fpApiVer >= 6.1 \
-           and oTestVm.getNonCanonicalGuestOsType() \
-           in [ 'Windows2016', 'Windows2019', 'Windows2022', 'Windows11' ]:
-            fForceInstallTimeStampCA = True;
-
-        # As we don't have a console command line to parse for the Guest Additions installer (only a message box) and
-        # unknown / unsupported parameters get ignored with silent installs anyway, we safely can add the following parameter(s)
-        # even if older Guest Addition installers might not support those.
-        if fForceInstallTimeStampCA:
-            asArgs.extend([ '/install_timestamp_ca' ]);
+        # Note! This may mess up testing if GA ISO is from before r152467 when the option was added.
+        #       Just add a VBox revision check here if we're suddenly keen on testing old stuff.
+        if (    self.fpApiVer >= 6.1
+            and oTestVm.getNonCanonicalGuestOsType() in [ 'Windows2016', 'Windows2019', 'Windows2022', 'Windows11' ]):
+            asArgs.append('/install_timestamp_ca');
 
         #
         # Do the actual install.
         #
-        fRc = self.txsRunTest(oTxsSession, 'VBoxWindowsAdditions.exe', 5 * 60 * 1000,
-                              sExe, asArgs, fCheckSessionStatus = True);
+        fRc = self.txsRunTest(oTxsSession, 'VBoxWindowsAdditions.exe', 5 * 60 * 1000, sExe, asArgs, fCheckSessionStatus = True);
 
         # Add the Windows Guest Additions installer files to the files we want to download
         # from the guest. Note: There won't be a install_ui.log because of the silent installation.
         sGuestAddsDir = 'C:\\Program Files\\Oracle\\VirtualBox Guest Additions\\';
         aasLogFiles.append((sGuestAddsDir + 'install.log',           'ga-install-%s.log' % (oTestVm.sVmName,),));
         aasLogFiles.append((sGuestAddsDir + 'install_drivers.log',   'ga-install_drivers-%s.log' % (oTestVm.sVmName,),));
-        aasLogFiles.append(('C:\\Windows\\setupapi.log',             'ga-setupapi-%s.log' % (oTestVm.sVmName,),));
+        aasLogFiles.append((oTestVm.pathJoin(self.getGuestWinDir(oTestVm), 'setupapi.log'),
+                            'ga-setupapi-%s.log' % (oTestVm.sVmName,),));
 
         # Note: setupapi.dev.log only is available since Windows 2000.
         if fHaveSetupApiDevLog:
-            aasLogFiles.append(('C:\\Windows\\setupapi.dev.log',     'ga-setupapi.dev-%s.log' % (oTestVm.sVmName,),));
+            aasLogFiles.append((oTestVm.pathJoin(self.getGuestWinDir(oTestVm), 'setupapi.dev.log'),
+                                'ga-setupapi.dev-%s.log' % (oTestVm.sVmName,),));
 
         #
         # Download log files.
@@ -452,7 +470,7 @@ class tdAddBasic1(vbox.TestDriver):                                         # py
         # Reboot the VM and reconnect the TXS session.
         #
         if fRc:
-            reporter.testStart('Rebooting guest w/ updated Guest Additions active');
+            reporter.testStart('Rebooting guest after Guest Additions installation');
             (fRc, oTxsSession) = self.txsRebootAndReconnectViaTcp(oSession, oTxsSession, cMsTimeout = 15 * 60 * 1000);
             if fRc:
                 pass;
@@ -480,19 +498,57 @@ class tdAddBasic1(vbox.TestDriver):                                         # py
         #
         # The actual install.
         # Also tell the installer to produce the appropriate log files.
+
+        # Deploy signing keys into guest if VM has Secure Boot enabled.
+        if oTestVm.fSecureBoot:
+            reporter.log('Deploying Secure Boot signing keys to the guest');
+            fRc = self.txsMkDirPath(oSession, oTxsSession, '/var/lib/shim-signed/mok');
+            if fRc:
+                fRc = self.txsUploadFile(oSession, oTxsSession,
+                                         self.getFullResourceName(oTestVm.sUefiMokPathPrefix) + '.der',
+                                         '/var/lib/shim-signed/mok/MOK.der')
+            if fRc:
+                fRc = self.txsUploadFile(oSession, oTxsSession,
+                                         self.getFullResourceName(oTestVm.sUefiMokPathPrefix) + '.priv',
+                                         '/var/lib/shim-signed/mok/MOK.priv')
+            if fRc and oTxsSession.isSuccess():
+                pass
+            else:
+                reporter.testFailure('Unable to deploy Secure Boot signing keys to the guest');
+
+        # Construct arguments for installer.
+        asArgs = [ self.getGuestSystemShell(oTestVm), '${CDROM}/%s/VBoxLinuxAdditions.run' % self.sGstPathGaPrefix ];
+
+        # Make sure to add "--nox11" to the makeself wrapper in order to not getting any blocking xterm window spawned.
+        asArgs.extend( [ '--nox11' ] );
+
+        # Ugly kludge to make tst-rhel5 (or any other borked test VM) work which (accidentally?) have old(er) Guest Additions
+        # version pre-installed.
         #
-        # Make sure to add "--nox11" to the makeself wrapper in order to not getting any blocking
-        # xterm window spawned.
+        # This forces our installer (inside the makeself wrapper, hence the "--") to install, regardless of whether there already
+        # are any (older) Guest Additions installed already.
+        fForceInstallation = False;
+        if oTestVm.sVmName == "tst-rhel5":
+            fForceInstallation = True;
+
+        if fForceInstallation:
+            asArgs.extend( [ "--", "--force" ] );
+
         fRc = self.txsRunTest(oTxsSession, 'VBoxLinuxAdditions.run', 30 * 60 * 1000,
-                              self.getGuestSystemShell(oTestVm),
-                              (self.getGuestSystemShell(oTestVm),
-                              '${CDROM}/%s/VBoxLinuxAdditions.run' % self.sGstPathGaPrefix, '--nox11'));
-        if not fRc:
-            iRc = self.getAdditionsInstallerResult(oTxsSession);
-            # Check for rc == 0 just for completeness.
-            if iRc in (0, 2): # Can happen if the GA installer has detected older VBox kernel modules running and needs a reboot.
-                reporter.log('Guest has old(er) VBox kernel modules still running; requires a reboot');
-                fRc = True;
+                              self.getGuestSystemShell(oTestVm), asArgs);
+        if fRc and oTxsSession.isSuccess():
+            reporter.log('Installation completed');
+        else:
+            # Guest Additions installer which requires guest reboot after installation might return
+            # special exit code which can indicate that all was installed, but kernel modules were
+            # not rebooted. Handle this case here.
+            if self.fRebootAfterInstall:
+                iRc = self.getAdditionsInstallerResult(oTxsSession);
+                # Check for rc == 0 just for completeness.
+                if iRc in (0, 2): # Can happen if the GA installer has detected older VBox kernel modules running
+                                  # and needs a reboot.
+                    reporter.log('Guest has old(er) VBox kernel modules still running; requires a reboot');
+                    fRc = True;
 
             if not fRc:
                 reporter.error('Installing Linux Additions failed (isSuccess=%s, lastReply=%s, see log file for details)'
@@ -503,24 +559,47 @@ class tdAddBasic1(vbox.TestDriver):                                         # py
         # Ignore errors as all files above might not be present for whatever reason.
         #
         self.txsDownloadFiles(oSession, oTxsSession,
-                              [('/var/log/vboxadd-install.log', 'vboxadd-install-%s.log' % oTestVm.sVmName), ],
+                              [ ('/var/log/vboxadd-install.log', 'vboxadd-install-%s.log' % oTestVm.sVmName),
+                                ('/var/log/vboxadd-setup.log', 'vboxadd-setup-%s.log' % oTestVm.sVmName),
+                                ('/var/log/vboxadd-uninstall.log', 'vboxadd-uninstall-%s.log' % oTestVm.sVmName), ],
                               fIgnoreErrors = True);
 
         # Do the final reboot to get the just installed Guest Additions up and running.
         if fRc:
-            reporter.testStart('Rebooting guest w/ updated Guest Additions active');
-            (fRc, oTxsSession) = self.txsRebootAndReconnectViaTcp(oSession, oTxsSession, cMsTimeout = 15 * 60 * 1000);
-            if fRc:
-                pass
+            if self.fRebootAfterInstall:
+                reporter.testStart('Rebooting guest after Guest Additions installation');
+                (fRc, oTxsSession) = self.txsRebootAndReconnectViaTcp(oSession, oTxsSession, cMsTimeout = 15 * 60 * 1000);
+                if not fRc:
+                    reporter.testFailure('Rebooting and reconnecting to TXS service failed');
             else:
-                reporter.testFailure('Rebooting and reconnecting to TXS service failed');
-            reporter.testDone();
+                reporter.log('Skipping guest reboot after Guest Additions installation as requested');
+                fRc = self.txsRunTest(oTxsSession, 'Check Guest Additions kernel modules status', 5 * 60 * 1000,
+                                      self.getGuestSystemShell(oTestVm),
+                                      (self.getGuestSystemShell(oTestVm),
+                                      '/sbin/rcvboxadd', 'status-kernel'));
+                if fRc and oTxsSession.isSuccess():
+                    fRc = self.txsRunTest(oTxsSession, 'Check Guest Additions user services status', 5 * 60 * 1000,
+                                          self.getGuestSystemShell(oTestVm),
+                                          (self.getGuestSystemShell(oTestVm),
+                                          '/sbin/rcvboxadd', 'status-user'));
+                    if fRc and oTxsSession.isSuccess():
+                        pass;
+                    else:
+                        fRc = False;
+                        reporter.testFailure('User services were not reloaded');
+                else:
+                    fRc = False;
+                    reporter.testFailure('Kernel modules were not reloaded');
+            if fRc:
+                reporter.testDone();
 
         return (fRc, oTxsSession);
 
-    def testIGuest_additionsRunLevel(self, oSession, oTestVm, oGuest):
+    def testIGuest_additionsRunLevel(self, oSession, oTxsSession, oTestVm, oGuest):
         """
         Do run level tests.
+
+        Returns success status.
         """
 
         _ = oGuest;
@@ -534,7 +613,22 @@ class tdAddBasic1(vbox.TestDriver):                                         # py
             ## @todo VBoxClient does not have facility statuses implemented yet.
             eExpectedRunLevel = vboxcon.AdditionsRunLevelType_Userland;
 
-        return self.waitForGAs(oSession, aenmWaitForRunLevels = [ eExpectedRunLevel ]);
+        # Give the guest some time to build Guest Additions on system boot if needed.
+        fRc = self.waitForGAs(oSession, cMsTimeout = 15 * 60 * 1000, aenmWaitForRunLevels = [ eExpectedRunLevel ]);
+
+        # Try to detect the display server running on the guest OS.
+        # This might fail on pure server guest OSes (no X, no Wayland).
+        if  fRc \
+        and oTestVm.isLinux():
+            ## @todo Fudge factor -- Wait for the desktop env to come up.
+            #        Remove once facility statuses are implemented within VBoxClient.
+            reporter.log('Waiting 30s for the desktop environment to come up before checking for the display server ...');
+            self.sleep(30);
+            if self.fpApiVer >= 7.1 and self.uRevision >= 157189:
+                sVBoxClient = oTestVm.pathJoin(self.getGuestSystemDir(oTestVm, '/usr'), 'VBoxClient');
+                fRc = fRc and self.txsRunTest(oTxsSession, 'Check display server detection', 5 * 60 * 1000,
+                                              sVBoxClient, (sVBoxClient, '-v', '-v', '--session-detect'));
+        return fRc;
 
     def testIGuest_additionsVersion(self, oGuest):
         """

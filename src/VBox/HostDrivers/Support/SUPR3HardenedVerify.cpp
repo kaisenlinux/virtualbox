@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -183,7 +183,7 @@ static SUPINSTFILE const    g_aSupInstallFiles[] =
  #ifdef RT_OS_WINDOWS
     {   kSupIFT_Dll,  kSupID_AppSharedLib,      false, "VBoxC" SUPLIB_DLL_SUFF },
  #else
-    {   kSupIFT_Exe,  kSupID_AppPrivArch,       false, "VBoxXPCOMIPCD" SUPLIB_EXE_SUFF },
+    {   kSupIFT_Dll,  kSupID_AppPrivArch,       false, "VBoxXPCOMIPCD" SUPLIB_DLL_SUFF },
     {   kSupIFT_Dll,  kSupID_AppSharedLib,      false, "VBoxXPCOM" SUPLIB_DLL_SUFF },
     {   kSupIFT_Dll,  kSupID_AppPrivArchComp,   false, "VBoxXPCOMIPCC" SUPLIB_DLL_SUFF },
     {   kSupIFT_Dll,  kSupID_AppPrivArchComp,   false, "VBoxC" SUPLIB_DLL_SUFF },

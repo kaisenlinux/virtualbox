@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -191,8 +191,7 @@ vbox_set_cursor_position(ScrnInfoPtr pScrn, int x, int y)
 {
     VBOXPtr pVBox = pScrn->driverPrivate;
 
-    /* This currently does nothing. */
-    VBoxHGSMICursorPosition(&pVBox->guestCtx, true, x, y, NULL, NULL);
+    VBoxHGSMIReportCursorPosition(&pVBox->guestCtx, true, x, y, NULL, NULL);
 }
 
 static void

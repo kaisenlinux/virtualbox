@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -416,6 +416,9 @@ HRESULT AudioAdapter::setAudioController(AudioControllerType_T aAudioController)
             case AudioControllerType_HDA:
                 defaultCodec = AudioCodecType_STAC9221;
                 break;
+            case AudioControllerType_VirtioSound:
+                defaultCodec = AudioCodecType_Null;
+                break;
 
             default:
                 AssertMsgFailed(("Wrong audio controller type %d\n", aAudioController));
@@ -487,6 +490,12 @@ HRESULT AudioAdapter::setAudioCodec(AudioCodecType_T aAudioCodec)
         {
             if (aAudioCodec != AudioCodecType_STAC9221)
                 hrc = E_INVALIDARG;
+            break;
+        }
+
+        case AudioControllerType_VirtioSound:
+        {
+            hrc = S_OK; /* Don't return an error here, even if this is not implemented yet. Will confuse callers. */
             break;
         }
 

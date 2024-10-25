@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -27,13 +27,16 @@
 
 /* Qt includes: */
 #include <QAccessibleWidget>
+#include <QApplication>
 #include <QScrollBar>
 
 /* GUI includes: */
+#include "UICommon.h"
 #include "UIDetails.h"
 #include "UIDetailsItem.h"
 #include "UIDetailsModel.h"
 #include "UIDetailsView.h"
+#include "UITranslationEventListener.h"
 
 /* Other VBox includes: */
 #include <iprt/assert.h>
@@ -132,7 +135,7 @@ private:
 
 
 UIDetailsView::UIDetailsView(UIDetails *pParent)
-    : QIWithRetranslateUI<QIGraphicsView>(pParent)
+    : QIGraphicsView(pParent)
     , m_pDetails(pParent)
     , m_iMinimumWidthHint(0)
 {
@@ -157,7 +160,7 @@ void UIDetailsView::sltMinimumWidthHintChanged(int iHint)
     updateSceneRect();
 }
 
-void UIDetailsView::retranslateUi()
+void UIDetailsView::sltRetranslateUI()
 {
     /* Translate this: */
     setWhatsThis(tr("Contains a list of Virtual Machine details."));
@@ -166,11 +169,11 @@ void UIDetailsView::retranslateUi()
 void UIDetailsView::resizeEvent(QResizeEvent *pEvent)
 {
     /* Call to base-class: */
-    QIWithRetranslateUI<QIGraphicsView>::resizeEvent(pEvent);
+    QIGraphicsView::resizeEvent(pEvent);
     /* Notify listeners: */
     emit sigResized();
 
-    /* Update scene-rect: */
+    /* Update everything: */
     updateSceneRect();
 }
 
@@ -179,26 +182,43 @@ void UIDetailsView::prepare()
     /* Install Details-view accessibility interface factory: */
     QAccessible::installFactory(UIAccessibilityInterfaceForUIDetailsView::pFactory);
 
-    /* Prepare palette: */
-    QPalette pal = QApplication::palette();
-    pal.setColor(QPalette::Active, QPalette::Base, pal.color(QPalette::Active, QPalette::Window));
-    pal.setColor(QPalette::Inactive, QPalette::Base, pal.color(QPalette::Inactive, QPalette::Window));
-    setPalette(pal);
+    /* Prepares everything: */
+    prepareThis();
 
-    /* Setup frame: */
+    /* Update everything: */
+    updateSceneRect();
+
+    /* Translate finally: */
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIDetailsView::sltRetranslateUI);
+}
+
+void UIDetailsView::prepareThis()
+{
+    /* Prepare palette: */
+    preparePalette();
+
+    /* Prepare frame: */
     setFrameShape(QFrame::NoFrame);
     setFrameShadow(QFrame::Plain);
     setAlignment(Qt::AlignLeft | Qt::AlignTop);
 
-    /* Setup scroll-bars policy: */
+    /* Prepare scroll-bars policy: */
     setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
-    /* Update scene-rect: */
-    updateSceneRect();
+    /* Prepare connections: */
+    connect(&uiCommon(), &UICommon::sigThemeChange,
+            this, &UIDetailsView::sltUpdatePalette);
+}
 
-    /* Translate finally: */
-    retranslateUi();
+void UIDetailsView::preparePalette()
+{
+    QPalette pal = QApplication::palette();
+    pal.setColor(QPalette::Active, QPalette::Base, pal.color(QPalette::Active, QPalette::Window));
+    pal.setColor(QPalette::Inactive, QPalette::Base, pal.color(QPalette::Inactive, QPalette::Window));
+    setPalette(pal);
 }
 
 void UIDetailsView::updateSceneRect()

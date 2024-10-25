@@ -4,7 +4,7 @@
  * Protocol edge
  */
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -141,7 +141,7 @@ static VOID vboxNetFltWinPtBindAdapter(OUT PNDIS_STATUS pStatus,
     if (Status == NDIS_STATUS_SUCCESS)
     {
         PNDIS_CONFIGURATION_PARAMETER pParam;
-        NDIS_STRING UppedBindStr = NDIS_STRING_CONST("UpperBindings");
+        NDIS_STRING UppedBindStr = VBOX_NDIS_STRING_CONST("UpperBindings");
         NdisReadConfiguration(&Status, &pParam, hConfig, &UppedBindStr, NdisParameterString);
         Assert(Status == NDIS_STATUS_SUCCESS);
         if (Status == NDIS_STATUS_SUCCESS)

@@ -4,7 +4,7 @@
 #
 
 #
-# Copyright (C) 2006-2023 Oracle and/or its affiliates.
+# Copyright (C) 2006-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -41,7 +41,7 @@ include $(KBUILD_PATH)/subheader.kmk
 
 # Boot Sector post-link tool (used via the parent Config.kmk).
 BLDPROGS += VBoxBs3Linker
-VBoxBs3Linker_TEMPLATE = VBoxBldProg
+VBoxBs3Linker_TEMPLATE = VBoxAdvBldProg
 VBoxBs3Linker_SOURCES  = $(VBOX_PATH_BS3KIT_SRC)/VBoxBs3Linker.cpp
 
 
@@ -54,10 +54,16 @@ VBoxBs3ObjConverter_SOURCES  = \
 	$(PATH_ROOT)/src/VBox/Runtime/common/sort/shellsort.cpp
 
 
-# The boot sector.
+# The boot sector for regular floppies.
 MISCBINS += bs3-bootsector
 bs3-bootsector_TEMPLATE = VBoxBS3KitBS
 bs3-bootsector_SOURCES  = bs3-bootsector.asm
+
+# The boot sector for 63.5MB floppies.
+MISCBINS += bs3-bootsector-63MB
+bs3-bootsector-63MB_TEMPLATE = VBoxBS3KitBS
+bs3-bootsector-63MB_DEFS     = BS3KIT_BOOTSECTOR_SUPPORT_63_5MB_FLOPPIES
+bs3-bootsector-63MB_SOURCES  = bs3-bootsector.asm
 
 
 #
@@ -183,6 +189,7 @@ VBOX_BS3KIT_COMMON_SOURCES = \
 	bs3-cmn-SelProtFar32ToFlat32.c \
 	bs3-cmn-SelProtModeCodeToRealMode.asm \
 	bs3-cmn-SelRealModeCodeToProtMode.asm \
+	bs3-cmn-SelRealModeCodeToProtFar16.c \
 	bs3-cmn-SelFlatCodeToRealMode.asm \
 	bs3-cmn-SelFlatCodeToProtFar16.asm \
 	bs3-cmn-SelRealModeDataToProtFar16.asm \
@@ -191,6 +198,7 @@ VBOX_BS3KIT_COMMON_SOURCES = \
 	bs3-cmn-SelProtFar16DataToFlat.asm \
 	bs3-cmn-SelFlatDataToProtFar16.asm \
 	bs3-cmn-SelFlatDataToRealMode.asm \
+	bs3-cmn-SelLnkCodePtrToCurPtr.c \
 	bs3-cmn-SelLnkPtrToCurPtr.c \
 	bs3-cmn-SelLnkPtrToFlat.c \
 	bs3-cmn-SelSetup16BitData.c \
@@ -201,6 +209,7 @@ VBOX_BS3KIT_COMMON_SOURCES = \
 	bs3-cmn-SlabInit.c \
 	bs3-cmn-SlabAlloc.c \
 	bs3-cmn-SlabAllocEx.c \
+	bs3-cmn-SlabAllocFixed.c \
 	bs3-cmn-SlabFree.c \
 	bs3-cmn-SlabListInit.c \
 	bs3-cmn-SlabListAdd.c \
@@ -227,6 +236,9 @@ VBOX_BS3KIT_COMMON_SOURCES = \
 	bs3-cmn-TestSub.c \
 	bs3-cmn-TestSubDone.c \
 	bs3-cmn-TestSubErrorCount.c \
+	bs3-cmn-TestSubSub.c \
+	bs3-cmn-TestSubSubDone.c \
+	bs3-cmn-TestSubSubErrorCount.c \
 	bs3-cmn-TestTerm.c \
 	bs3-cmn-TestSendCmdWithStr.asm \
 	bs3-cmn-TestSendCmdWithU32.asm \
@@ -234,6 +246,7 @@ VBOX_BS3KIT_COMMON_SOURCES = \
 	bs3-cmn-TestCheckRegCtxEx.c \
 	bs3-cmn-TestCheckExtCtx.c \
 	bs3-cmn-TestQueryCfgU8.asm \
+	bs3-cmn-TestQueryCfgU16.asm \
 	bs3-cmn-TestQueryCfgU32.asm \
 	bs3-cmn-TestHostPrintf.c \
 	bs3-cmn-TestPrintf.c \
@@ -296,8 +309,10 @@ bs3kit-common-16_ASDEFS   = RT_ASMDEFS_INC_FIRST_FILE
 bs3kit-common-16_SOURCES  = $(VBOX_BS3KIT_COMMON_SOURCES) \
 	bs3-system-data.asm \
 	bs3-rm-InitAll.c \
+	bs3-rm-InitAllWithHighDlls.c \
 	bs3-rm-InitMemory.c \
 	bs3-rm-InitGdt.c \
+	bs3-rm-InitHighDlls.c \
 	bs3-cmn-hexdigits.c \
 	bs3-cmn-CpuDetectData.c \
 	bs3-cmn-PerCpuData.c \
@@ -356,6 +371,7 @@ bs3kit-common-64_ASDEFS   = RT_ASMDEFS_INC_FIRST_FILE
 bs3kit-common-64_SOURCES  = $(VBOX_BS3KIT_COMMON_SOURCES) \
 	bs3-cmn-PagingMapRamAbove4GForLM.c \
 	bs3-cmn-SwitchHlpConvFlatRetToRetfProtMode.asm \
+	bs3-c64-Syscall64Generic.asm \
 	bs3-c64-Trap64Generic.asm \
 	../../../Runtime/common/asm/ASMGetIDTR.asm \
 	../../../Runtime/common/asm/ASMSetIDTR.asm \
@@ -367,6 +383,7 @@ bs3kit-common-64_SOURCES  = $(VBOX_BS3KIT_COMMON_SOURCES) \
 # Common sources to be compiled for each CPU mode.
 #
 VBOX_BS3KIT_MODE_SOURCES = \
+	bs3-mode-MemCopyFlat.asm \
 	bs3-mode-Name.asm \
 	bs3-mode-NameShortLower.asm \
 	bs3-mode-SwitchToRM.asm \
@@ -405,7 +422,9 @@ VBOX_BS3KIT_MODE_SOURCES = \
 	bs3-mode-TestDoModesByOne.c \
 	bs3-mode-TestDoModesByMax.c \
 	bs3-mode-TestDoModesHlp.asm \
-	bs3-mode-BiosInt15hE820.asm
+	bs3-mode-BiosInt15hE820.asm \
+	bs3-mode-DiskQueryGeometry.asm \
+	bs3-mode-DiskRead.asm
 
 # The 16-bit real mode BS3Kit library.
 LIBRARIES += bs3kit-rm

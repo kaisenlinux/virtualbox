@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -37,8 +37,8 @@
 #include <iprt/thread.h>
 
 #include <VBox/GuestHost/SharedClipboard.h>
+#include <VBox/GuestHost/SharedClipboard-transfers.h>
 #include <VBox/GuestHost/SharedClipboard-win.h>
-#include <strsafe.h>
 
 #include <VBox/log.h>
 
@@ -52,15 +52,19 @@
 /*********************************************************************************************************************************
 *   Static variables                                                                                                             *
 *********************************************************************************************************************************/
+#ifdef VBOX_SHARED_CLIPBOARD_DEBUG_OBJECT_COUNTS
+ extern int g_cDbgDataObj;
+ extern int g_cDbgStreamObj;
+ extern int g_cDbgEnumFmtObj;
+#endif
 
 
-
-SharedClipboardWinStreamImpl::SharedClipboardWinStreamImpl(SharedClipboardWinDataObject *pParent, PSHCLTRANSFER pTransfer,
-                                                           const Utf8Str &strPath, PSHCLFSOBJINFO pObjInfo)
+ShClWinStreamImpl::ShClWinStreamImpl(ShClWinDataObject *pParent, PSHCLTRANSFER pTransfer,
+                                     const Utf8Str &strPath, PSHCLFSOBJINFO pObjInfo)
     : m_pParent(pParent)
     , m_lRefCount(1) /* Our IDataObjct *always* holds the last reference to this object; needed for the callbacks. */
     , m_pTransfer(pTransfer)
-    , m_hObj(SHCLOBJHANDLE_INVALID)
+    , m_hObj(NIL_SHCLOBJHANDLE)
     , m_strPath(strPath)
     , m_objInfo(*pObjInfo)
     , m_cbProcessed(0)
@@ -69,18 +73,28 @@ SharedClipboardWinStreamImpl::SharedClipboardWinStreamImpl(SharedClipboardWinDat
     AssertPtr(m_pTransfer);
 
     LogFunc(("m_strPath=%s\n", m_strPath.c_str()));
+
+#ifdef VBOX_SHARED_CLIPBOARD_DEBUG_OBJECT_COUNTS
+    g_cDbgStreamObj++;
+    LogFlowFunc(("g_cDataObj=%d, g_cStreamObj=%d, g_cEnumFmtObj=%d\n", g_cDbgDataObj, g_cDbgStreamObj, g_cDbgEnumFmtObj));
+#endif
 }
 
-SharedClipboardWinStreamImpl::~SharedClipboardWinStreamImpl(void)
+ShClWinStreamImpl::~ShClWinStreamImpl(void)
 {
     LogFlowThisFuncEnter();
+
+#ifdef VBOX_SHARED_CLIPBOARD_DEBUG_OBJECT_COUNTS
+    g_cDbgStreamObj--;
+    LogFlowFunc(("g_cDataObj=%d, g_cStreamObj=%d, g_cEnumFmtObj=%d\n", g_cDbgDataObj, g_cDbgStreamObj, g_cDbgEnumFmtObj));
+#endif
 }
 
 /*
  * IUnknown methods.
  */
 
-STDMETHODIMP SharedClipboardWinStreamImpl::QueryInterface(REFIID iid, void **ppvObject)
+STDMETHODIMP ShClWinStreamImpl::QueryInterface(REFIID iid, void **ppvObject)
 {
     AssertPtrReturn(ppvObject, E_INVALIDARG);
 
@@ -109,14 +123,14 @@ STDMETHODIMP SharedClipboardWinStreamImpl::QueryInterface(REFIID iid, void **ppv
     return S_OK;
 }
 
-STDMETHODIMP_(ULONG) SharedClipboardWinStreamImpl::AddRef(void)
+STDMETHODIMP_(ULONG) ShClWinStreamImpl::AddRef(void)
 {
     LONG lCount = InterlockedIncrement(&m_lRefCount);
     LogFlowFunc(("lCount=%RI32\n", lCount));
     return lCount;
 }
 
-STDMETHODIMP_(ULONG) SharedClipboardWinStreamImpl::Release(void)
+STDMETHODIMP_(ULONG) ShClWinStreamImpl::Release(void)
 {
     LONG lCount = InterlockedDecrement(&m_lRefCount);
     LogFlowFunc(("lCount=%RI32\n", m_lRefCount));
@@ -133,7 +147,7 @@ STDMETHODIMP_(ULONG) SharedClipboardWinStreamImpl::Release(void)
  * IStream methods.
  */
 
-STDMETHODIMP SharedClipboardWinStreamImpl::Clone(IStream** ppStream)
+STDMETHODIMP ShClWinStreamImpl::Clone(IStream** ppStream)
 {
     RT_NOREF(ppStream);
 
@@ -141,7 +155,7 @@ STDMETHODIMP SharedClipboardWinStreamImpl::Clone(IStream** ppStream)
     return E_NOTIMPL;
 }
 
-STDMETHODIMP SharedClipboardWinStreamImpl::Commit(DWORD dwFrags)
+STDMETHODIMP ShClWinStreamImpl::Commit(DWORD dwFrags)
 {
     RT_NOREF(dwFrags);
 
@@ -149,7 +163,7 @@ STDMETHODIMP SharedClipboardWinStreamImpl::Commit(DWORD dwFrags)
     return E_NOTIMPL;
 }
 
-STDMETHODIMP SharedClipboardWinStreamImpl::CopyTo(IStream *pDestStream, ULARGE_INTEGER nBytesToCopy, ULARGE_INTEGER *nBytesRead,
+STDMETHODIMP ShClWinStreamImpl::CopyTo(IStream *pDestStream, ULARGE_INTEGER nBytesToCopy, ULARGE_INTEGER *nBytesRead,
                                                   ULARGE_INTEGER *nBytesWritten)
 {
     RT_NOREF(pDestStream, nBytesToCopy, nBytesRead, nBytesWritten);
@@ -158,7 +172,7 @@ STDMETHODIMP SharedClipboardWinStreamImpl::CopyTo(IStream *pDestStream, ULARGE_I
     return E_NOTIMPL;
 }
 
-STDMETHODIMP SharedClipboardWinStreamImpl::LockRegion(ULARGE_INTEGER nStart, ULARGE_INTEGER nBytes,DWORD dwFlags)
+STDMETHODIMP ShClWinStreamImpl::LockRegion(ULARGE_INTEGER nStart, ULARGE_INTEGER nBytes,DWORD dwFlags)
 {
     RT_NOREF(nStart, nBytes, dwFlags);
 
@@ -167,7 +181,7 @@ STDMETHODIMP SharedClipboardWinStreamImpl::LockRegion(ULARGE_INTEGER nStart, ULA
 }
 
 /* Note: Windows seems to assume EOF if nBytesRead < nBytesToRead. */
-STDMETHODIMP SharedClipboardWinStreamImpl::Read(void *pvBuffer, ULONG nBytesToRead, ULONG *nBytesRead)
+STDMETHODIMP ShClWinStreamImpl::Read(void *pvBuffer, ULONG nBytesToRead, ULONG *nBytesRead)
 {
     LogFlowThisFunc(("Enter: m_cbProcessed=%RU64\n", m_cbProcessed));
 
@@ -186,90 +200,83 @@ STDMETHODIMP SharedClipboardWinStreamImpl::Read(void *pvBuffer, ULONG nBytesToRe
 
     int rc;
 
-    try
+    if (m_hObj == NIL_SHCLOBJHANDLE)
     {
-        if (   m_hObj == SHCLOBJHANDLE_INVALID
-            && m_pTransfer->ProviderIface.pfnObjOpen)
-        {
-            SHCLOBJOPENCREATEPARMS openParms;
-            rc = ShClTransferObjOpenParmsInit(&openParms);
-            if (RT_SUCCESS(rc))
-            {
-                openParms.fCreate = SHCL_OBJ_CF_ACCESS_READ
-                                  | SHCL_OBJ_CF_ACCESS_DENYWRITE;
-
-                rc = RTStrCopy(openParms.pszPath, openParms.cbPath, m_strPath.c_str());
-                if (RT_SUCCESS(rc))
-                {
-                    rc = m_pTransfer->ProviderIface.pfnObjOpen(&m_pTransfer->ProviderCtx, &openParms, &m_hObj);
-                }
-
-                ShClTransferObjOpenParmsDestroy(&openParms);
-            }
-        }
-        else
-            rc = VINF_SUCCESS;
-
-        uint32_t cbRead = 0;
-
-        const uint64_t cbSize   = (uint64_t)m_objInfo.cbObject;
-        const uint32_t cbToRead = RT_MIN(cbSize - m_cbProcessed, nBytesToRead);
-
+        SHCLOBJOPENCREATEPARMS openParms;
+        rc = ShClTransferObjOpenParmsInit(&openParms);
         if (RT_SUCCESS(rc))
         {
-            if (cbToRead)
+            openParms.fCreate = SHCL_OBJ_CF_ACCESS_READ
+                              | SHCL_OBJ_CF_ACCESS_DENYWRITE;
+
+            rc = RTStrCopy(openParms.pszPath, openParms.cbPath, m_strPath.c_str());
+            if (RT_SUCCESS(rc))
             {
-                rc = m_pTransfer->ProviderIface.pfnObjRead(&m_pTransfer->ProviderCtx, m_hObj,
-                                                           pvBuffer, cbToRead, 0 /* fFlags */, &cbRead);
+                rc = ShClTransferTransformPath(openParms.pszPath, openParms.cbPath);
                 if (RT_SUCCESS(rc))
-                {
-                    m_cbProcessed += cbRead;
-                    Assert(m_cbProcessed <= cbSize);
-                }
+                    rc = ShClTransferObjOpen(m_pTransfer, &openParms, &m_hObj);
             }
 
-            /* Transfer complete? Make sure to close the object again. */
-            m_fIsComplete = m_cbProcessed == cbSize;
+            ShClTransferObjOpenParmsDestroy(&openParms);
+        }
+    }
+    else
+        rc = VINF_SUCCESS;
 
-            if (m_fIsComplete)
+    uint32_t cbRead = 0;
+
+    const uint64_t cbSize   = (uint64_t)m_objInfo.cbObject;
+    const uint32_t cbToRead = RT_MIN(cbSize - m_cbProcessed, nBytesToRead);
+
+    if (RT_SUCCESS(rc))
+    {
+        if (cbToRead)
+        {
+            rc = ShClTransferObjRead(m_pTransfer, m_hObj, pvBuffer, cbToRead, 0 /* fFlags */, &cbRead);
+            if (RT_SUCCESS(rc))
             {
-                if (m_pTransfer->ProviderIface.pfnObjClose)
-                {
-                    int rc2 = m_pTransfer->ProviderIface.pfnObjClose(&m_pTransfer->ProviderCtx, m_hObj);
-                    AssertRC(rc2);
-                }
-
-                if (m_pParent)
-                    m_pParent->OnTransferComplete();
+                m_cbProcessed += cbRead;
+                Assert(m_cbProcessed <= cbSize);
             }
         }
 
-        LogFlowThisFunc(("Leave: rc=%Rrc, cbSize=%RU64, cbProcessed=%RU64 -> nBytesToRead=%RU32, cbToRead=%RU32, cbRead=%RU32\n",
-                         rc, cbSize, m_cbProcessed, nBytesToRead, cbToRead, cbRead));
+        /* Transfer complete? Make sure to close the object again. */
+        m_fIsComplete = m_cbProcessed == cbSize;
 
-        if (nBytesRead)
-            *nBytesRead = (ULONG)cbRead;
+        if (m_fIsComplete)
+        {
+            rc = ShClTransferObjClose(m_pTransfer, m_hObj);
 
-        if (nBytesToRead != cbRead)
-            return S_FALSE;
-
-        return S_OK;
+            if (m_pParent)
+                m_pParent->SetStatus(ShClWinDataObject::Completed);
+        }
     }
-    catch (...)
+
+    if (RT_FAILURE(rc))
     {
-        LogFunc(("Caught exception\n"));
+        if (m_pParent)
+            m_pParent->SetStatus(ShClWinDataObject::Error, rc /* Propagate rc */);
     }
 
-    return E_FAIL;
+    LogFlowThisFunc(("LEAVE: rc=%Rrc, cbSize=%RU64, cbProcessed=%RU64 -> nBytesToRead=%RU32, cbToRead=%RU32, cbRead=%RU32\n",
+                     rc, cbSize, m_cbProcessed, nBytesToRead, cbToRead, cbRead));
+
+    if (nBytesRead)
+        *nBytesRead = (ULONG)cbRead;
+
+    if (nBytesToRead != cbRead)
+        return S_FALSE;
+
+    return S_OK;
 }
 
-STDMETHODIMP SharedClipboardWinStreamImpl::Revert(void)
+STDMETHODIMP ShClWinStreamImpl::Revert(void)
 {
     LogFlowThisFuncEnter();
     return E_NOTIMPL;
 }
 
-STDMETHODIMP SharedClipboardWinStreamImpl::Seek(LARGE_INTEGER nMove, DWORD dwOrigin, ULARGE_INTEGER* nNewPos)
+STDMETHODIMP ShClWinStreamImpl::Seek(LARGE_INTEGER nMove, DWORD dwOrigin, ULARGE_INTEGER* nNewPos)
 {
     RT_NOREF(nMove, dwOrigin, nNewPos);
 
@@ -278,7 +285,7 @@ STDMETHODIMP SharedClipboardWinStreamImpl::Seek(LARGE_INTEGER nMove, DWORD dwOri
     return E_NOTIMPL;
 }
 
-STDMETHODIMP SharedClipboardWinStreamImpl::SetSize(ULARGE_INTEGER nNewSize)
+STDMETHODIMP ShClWinStreamImpl::SetSize(ULARGE_INTEGER nNewSize)
 {
     RT_NOREF(nNewSize);
 
@@ -286,7 +293,7 @@ STDMETHODIMP SharedClipboardWinStreamImpl::SetSize(ULARGE_INTEGER nNewSize)
     return E_NOTIMPL;
 }
 
-STDMETHODIMP SharedClipboardWinStreamImpl::Stat(STATSTG *pStatStg, DWORD dwFlags)
+STDMETHODIMP ShClWinStreamImpl::Stat(STATSTG *pStatStg, DWORD dwFlags)
 {
     HRESULT hr = S_OK;
 
@@ -302,12 +309,28 @@ STDMETHODIMP SharedClipboardWinStreamImpl::Stat(STATSTG *pStatStg, DWORD dwFlags
 
             case STATFLAG_DEFAULT:
             {
-                /** @todo r=bird: This is using the wrong allocator.  According to MSDN the
-                 * caller will pass this to CoTaskMemFree, so we should use CoTaskMemAlloc to
-                 * allocate it. */
-                int rc2 = RTStrToUtf16(m_strPath.c_str(), &pStatStg->pwcsName);
-                if (RT_FAILURE(rc2))
-                    hr = E_FAIL;
+                size_t const cchLen = m_strPath.length() + 1 /* Include terminator */;
+                pStatStg->pwcsName = (LPOLESTR)CoTaskMemAlloc(cchLen * sizeof(RTUTF16));
+                if (pStatStg->pwcsName)
+                {
+                    PRTUTF16 pwszStr;
+                    int rc2 = RTStrToUtf16(m_strPath.c_str(), &pwszStr);
+                    if (RT_SUCCESS(rc2))
+                    {
+                        memcpy(pStatStg->pwcsName, pwszStr, cchLen * sizeof(RTUTF16));
+                        RTUtf16Free(pwszStr);
+                        pwszStr = NULL;
+                    }
+
+                    if (RT_FAILURE(rc2))
+                    {
+                        CoTaskMemFree(pStatStg->pwcsName);
+                        pStatStg->pwcsName = NULL;
+                        hr = E_UNEXPECTED;
+                    }
+                }
+                else
+                    hr = E_OUTOFMEMORY;
                 break;
             }
 
@@ -331,7 +354,7 @@ STDMETHODIMP SharedClipboardWinStreamImpl::Stat(STATSTG *pStatStg, DWORD dwFlags
     return hr;
 }
 
-STDMETHODIMP SharedClipboardWinStreamImpl::UnlockRegion(ULARGE_INTEGER nStart, ULARGE_INTEGER nBytes, DWORD dwFlags)
+STDMETHODIMP ShClWinStreamImpl::UnlockRegion(ULARGE_INTEGER nStart, ULARGE_INTEGER nBytes, DWORD dwFlags)
 {
     RT_NOREF(nStart, nBytes, dwFlags);
 
@@ -339,7 +362,7 @@ STDMETHODIMP SharedClipboardWinStreamImpl::UnlockRegion(ULARGE_INTEGER nStart, U
     return E_NOTIMPL;
 }
 
-STDMETHODIMP SharedClipboardWinStreamImpl::Write(const void *pvBuffer, ULONG nBytesToRead, ULONG *nBytesRead)
+STDMETHODIMP ShClWinStreamImpl::Write(const void *pvBuffer, ULONG nBytesToRead, ULONG *nBytesRead)
 {
     RT_NOREF(pvBuffer, nBytesToRead, nBytesRead);
 
@@ -362,17 +385,15 @@ STDMETHODIMP SharedClipboardWinStreamImpl::Write(const void *pvBuffer, ULONG nBy
  * @param   ppStream            Where to return the created stream object on success.
  */
 /* static */
-HRESULT SharedClipboardWinStreamImpl::Create(SharedClipboardWinDataObject *pParent, PSHCLTRANSFER pTransfer,
+HRESULT ShClWinStreamImpl::Create(ShClWinDataObject *pParent, PSHCLTRANSFER pTransfer,
                                              const Utf8Str &strPath, PSHCLFSOBJINFO pObjInfo,
                                              IStream **ppStream)
 {
     AssertPtrReturn(pTransfer, E_POINTER);
 
-    SharedClipboardWinStreamImpl *pStream = new SharedClipboardWinStreamImpl(pParent, pTransfer, strPath, pObjInfo);
+    ShClWinStreamImpl *pStream = new ShClWinStreamImpl(pParent, pTransfer, strPath, pObjInfo);
     if (pStream)
     {
-        pStream->AddRef();
-
         *ppStream = pStream;
         return S_OK;
     }

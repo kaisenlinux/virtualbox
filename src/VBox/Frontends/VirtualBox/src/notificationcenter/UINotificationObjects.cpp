@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2021-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2021-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,14 +26,18 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QDir>
 #include <QFileInfo>
 
 /* GUI includes: */
+#include "UICommon.h"
 #include "UIConverter.h"
 #include "UIErrorString.h"
 #include "UIExtraDataManager.h"
+#include "UIGlobalSession.h"
 #include "UIHostComboEditor.h"
+#include "UILocalMachineStuff.h"
 #include "UINotificationCenter.h"
 #include "UINotificationObjects.h"
 #include "UITranslator.h"
@@ -46,6 +50,7 @@
 
 /* COM includes: */
 #include "CAudioAdapter.h"
+#include "CAudioSettings.h"
 #include "CBooleanFormValue.h"
 #include "CChoiceFormValue.h"
 #include "CCloudNetwork.h"
@@ -58,23 +63,30 @@
 #include "CEmulatedUSB.h"
 #include "CExtPack.h"
 #include "CGraphicsAdapter.h"
+#include "CGuestOSType.h"
 #include "CHostNetworkInterface.h"
 #include "CHostOnlyNetwork.h"
+#include "CKeyboard.h"
+#include "CMachineDebugger.h"
 #include "CMediumAttachment.h"
+#include "CMouse.h"
 #include "CNATNetwork.h"
 #include "CNetworkAdapter.h"
+#include "CPlatform.h"
+#include "CPlatformProperties.h"
 #include "CRangedIntegerFormValue.h"
+#include "CRangedInteger64FormValue.h"
 #include "CRecordingSettings.h"
 #include "CStringFormValue.h"
-#ifdef VBOX_WITH_UPDATE_AGENT
-# include "CSystemProperties.h"
-#endif
+#include "CStorageController.h"
+#include "CSystemProperties.h"
 #include "CUnattended.h"
 #include "CUpdateAgent.h"
 #include "CVRDEServer.h"
+#include "CVRDEServerInfo.h"
 
 /* Other VBox stuff: */
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
 # include <iprt/env.h>
 #endif
 
@@ -135,6 +147,14 @@ void UINotificationMessage::warnAboutInvalidEncryptionPassword(const QString &st
                                                    .arg(strPasswordId));
 }
 
+/* static */
+void UINotificationMessage::warnAboutClipboardError(const QString &strMsg)
+{
+    createMessage(
+        QApplication::translate("UIMessageCenter", "Shared clipboard error ..."),
+        strMsg.toUtf8().constData());
+}
+
 #ifdef VBOX_GUI_WITH_NETWORK_MANAGER
 /* static */
 void UINotificationMessage::showUpdateNotFound()
@@ -184,8 +204,8 @@ void UINotificationMessage::cannotValidateGuestAdditionsSHA256Sum(const QString 
 void UINotificationMessage::warnAboutUserManualDownloaded(const QString &strUrl, const QString &strTarget)
 {
     createMessage(
-        QApplication::translate("UIMessageCenter", "User manual downloaded ..."),
-        QApplication::translate("UIMessageCenter", "<p>The VirtualBox User Manual has been successfully downloaded from "
+        QApplication::translate("UIMessageCenter", "User guide downloaded ..."),
+        QApplication::translate("UIMessageCenter", "<p>The VirtualBox User Guide has been successfully downloaded from "
                                                    "<nobr><a href=\"%1\">%1</a></nobr> and saved locally as "
                                                    "<nobr><b>%2</b>.</nobr></p>").arg(strUrl, strTarget));
 }
@@ -492,13 +512,13 @@ void UINotificationMessage::remindAboutAutoCapture()
                                                    "unavailable to other applications running on your host machine: "
                                                    "when the keyboard is captured, all keystrokes (including system ones "
                                                    "like Alt-Tab) will be directed to the VM.</p>"
-                                                   "<p>You can press the <b>host key</b> at any time to <b>uncapture</b> the "
+                                                   "<p>You can press the <b>host key combo</b> at any time to <b>uncapture</b> the "
                                                    "keyboard and mouse (if it is captured) and return them to normal "
-                                                   "operation. The currently assigned host key is shown on the status bar "
+                                                   "operation. The currently assigned host key combo is shown on the status bar "
                                                    "at the bottom of the Virtual Machine window. This icon, together "
                                                    "with the mouse icon placed nearby, indicate the current keyboard "
                                                    "and mouse capture state.</p>") +
-        QApplication::translate("UIMessageCenter", "<p>The host key is currently defined as <b>%1</b>.</p>",
+        QApplication::translate("UIMessageCenter", "<p>The host key combo is currently defined as <b>%1</b>.</p>",
                                                    "additional message box paragraph")
                                                    .arg(UIHostCombo::toReadableString(gEDataManager->hostKeyCombination())),
         "remindAboutAutoCapture");
@@ -613,6 +633,33 @@ void UINotificationMessage::cannotAcquireApplianceParameter(const CAppliance &co
 }
 
 /* static */
+void UINotificationMessage::cannotAcquirePlatformParameter(const CPlatform &comPlatform)
+{
+    createMessage(
+        QApplication::translate("UIMessageCenter", "Platform failure ..."),
+        QApplication::translate("UIMessageCenter", "Failed to acquire platform parameter.") +
+        UIErrorString::formatErrorInfo(comPlatform));
+}
+
+/* static */
+void UINotificationMessage::cannotAcquirePlatformPropertiesParameter(const CPlatformProperties &comProperties)
+{
+    createMessage(
+        QApplication::translate("UIMessageCenter", "Platform properties failure ..."),
+        QApplication::translate("UIMessageCenter", "Failed to acquire platform properties parameter.") +
+        UIErrorString::formatErrorInfo(comProperties));
+}
+
+/* static */
+void UINotificationMessage::cannotAcquireSystemPropertiesParameter(const CSystemProperties &comProperties)
+{
+    createMessage(
+        QApplication::translate("UIMessageCenter", "System properties failure ..."),
+        QApplication::translate("UIMessageCenter", "Failed to acquire system properties parameter.") +
+        UIErrorString::formatErrorInfo(comProperties));
+}
+
+/* static */
 void UINotificationMessage::cannotAcquireExtensionPackManagerParameter(const CExtPackManager &comEPManager)
 {
     createMessage(
@@ -640,6 +687,24 @@ void UINotificationMessage::cannotAcquireHostParameter(const CHost &comHost)
 }
 
 /* static */
+void UINotificationMessage::cannotAcquireStorageControllerParameter(const CStorageController &comStorageController)
+{
+    createMessage(
+        QApplication::translate("UIMessageCenter", "Storage controller failure ..."),
+        QApplication::translate("UIMessageCenter", "Failed to acquire storage controller parameter.") +
+        UIErrorString::formatErrorInfo(comStorageController));
+}
+
+/* static */
+void UINotificationMessage::cannotAcquireMediumAttachmentParameter(const CMediumAttachment &comMediumAttachment)
+{
+    createMessage(
+        QApplication::translate("UIMessageCenter", "Medium attachment failure ..."),
+        QApplication::translate("UIMessageCenter", "Failed to acquire medium attachment parameter.") +
+        UIErrorString::formatErrorInfo(comMediumAttachment));
+}
+
+/* static */
 void UINotificationMessage::cannotAcquireMediumParameter(const CMedium &comMedium)
 {
     createMessage(
@@ -664,6 +729,78 @@ void UINotificationMessage::cannotAcquireMachineParameter(const CMachine &comMac
         QApplication::translate("UIMessageCenter", "Machine failure ..."),
         QApplication::translate("UIMessageCenter", "Failed to acquire machine parameter.") +
         UIErrorString::formatErrorInfo(comMachine));
+}
+
+/* static */
+void UINotificationMessage::cannotAcquireMachineDebuggerParameter(const CMachineDebugger &comMachineDebugger)
+{
+    createMessage(
+        QApplication::translate("UIMessageCenter", "Debugger failure ..."),
+        QApplication::translate("UIMessageCenter", "Failed to acquire machine debugger parameter.") +
+        UIErrorString::formatErrorInfo(comMachineDebugger));
+}
+
+/* static */
+void UINotificationMessage::cannotAcquireGraphicsAdapterParameter(const CGraphicsAdapter &comAdapter)
+{
+    createMessage(
+        QApplication::translate("UIMessageCenter", "Graphics adapter failure ..."),
+        QApplication::translate("UIMessageCenter", "Failed to acquire graphics adapter parameter.") +
+        UIErrorString::formatErrorInfo(comAdapter));
+}
+
+/* static */
+void UINotificationMessage::cannotAcquireAudioSettingsParameter(const CAudioSettings &comSettings)
+{
+    createMessage(
+        QApplication::translate("UIMessageCenter", "Audio settings failure ..."),
+        QApplication::translate("UIMessageCenter", "Failed to acquire audio settings parameter.") +
+        UIErrorString::formatErrorInfo(comSettings));
+}
+
+/* static */
+void UINotificationMessage::cannotAcquireAudioAdapterParameter(const CAudioAdapter &comAdapter)
+{
+    createMessage(
+        QApplication::translate("UIMessageCenter", "Audio adapter failure ..."),
+        QApplication::translate("UIMessageCenter", "Failed to acquire audio adapter parameter.") +
+        UIErrorString::formatErrorInfo(comAdapter));
+}
+
+/* static */
+void UINotificationMessage::cannotAcquireNetworkAdapterParameter(const CNetworkAdapter &comAdapter)
+{
+    createMessage(
+        QApplication::translate("UIMessageCenter", "Network adapter failure ..."),
+        QApplication::translate("UIMessageCenter", "Failed to acquire network adapter parameter.") +
+        UIErrorString::formatErrorInfo(comAdapter));
+}
+
+/* static */
+void UINotificationMessage::cannotAcquireConsoleParameter(const CConsole &comConsole)
+{
+    createMessage(
+        QApplication::translate("UIMessageCenter", "Console failure ..."),
+        QApplication::translate("UIMessageCenter", "Failed to acquire console parameter.") +
+        UIErrorString::formatErrorInfo(comConsole));
+}
+
+/* static */
+void UINotificationMessage::cannotAcquireGuestParameter(const CGuest &comGuest)
+{
+    createMessage(
+        QApplication::translate("UIMessageCenter", "Guest failure ..."),
+        QApplication::translate("UIMessageCenter", "Failed to acquire guest parameter.") +
+        UIErrorString::formatErrorInfo(comGuest));
+}
+
+/* static */
+void UINotificationMessage::cannotAcquireGuestOSTypeParameter(const CGuestOSType &comGuestOSType)
+{
+    createMessage(
+        QApplication::translate("UIMessageCenter", "Guest OS type failure ..."),
+        QApplication::translate("UIMessageCenter", "Failed to acquire guest OS type parameter.") +
+        UIErrorString::formatErrorInfo(comGuestOSType));
 }
 
 /* static */
@@ -721,7 +858,7 @@ void UINotificationMessage::cannotAcquireNATNetworkParameter(const CNATNetwork &
 }
 
 /* static */
-void UINotificationMessage::cannotAcquireDispayParameter(const CDisplay &comDisplay)
+void UINotificationMessage::cannotAcquireDisplayParameter(const CDisplay &comDisplay)
 {
     createMessage(
         QApplication::translate("UIMessageCenter", "Display failure ..."),
@@ -736,6 +873,51 @@ void UINotificationMessage::cannotAcquireUpdateAgentParameter(const CUpdateAgent
         QApplication::translate("UIMessageCenter", "Update failure ..."),
         QApplication::translate("UIMessageCenter", "Failed to acquire update agent parameter.") +
         UIErrorString::formatErrorInfo(comAgent));
+}
+
+/* static */
+void UINotificationMessage::cannotAcquireMouseParameter(const CMouse &comMouse)
+{
+    createMessage(
+        QApplication::translate("UIMessageCenter", "Mouse failure ..."),
+        QApplication::translate("UIMessageCenter", "Failed to acquire mouse parameter.") +
+        UIErrorString::formatErrorInfo(comMouse));
+}
+
+/* static */
+void UINotificationMessage::cannotAcquireEmulatedUSBParameter(const CEmulatedUSB &comDispatcher)
+{
+    createMessage(
+        QApplication::translate("UIMessageCenter", "Emulated USB failure ..."),
+        QApplication::translate("UIMessageCenter", "Failed to acquire emulated USB parameter.") +
+        UIErrorString::formatErrorInfo(comDispatcher));
+}
+
+/* static */
+void UINotificationMessage::cannotAcquireRecordingSettingsParameter(const CRecordingSettings &comSettings)
+{
+    createMessage(
+        QApplication::translate("UIMessageCenter", "Recording settings failure ..."),
+        QApplication::translate("UIMessageCenter", "Failed to acquire recording settings parameter.") +
+        UIErrorString::formatErrorInfo(comSettings));
+}
+
+/* static */
+void UINotificationMessage::cannotAcquireVRDEServerParameter(const CVRDEServer &comServer)
+{
+    createMessage(
+        QApplication::translate("UIMessageCenter", "VRDE server failure ..."),
+        QApplication::translate("UIMessageCenter", "Failed to acquire VRDE server parameter.") +
+        UIErrorString::formatErrorInfo(comServer));
+}
+
+/* static */
+void UINotificationMessage::cannotAcquireVRDEServerInfoParameter(const CVRDEServerInfo &comServerInfo)
+{
+    createMessage(
+        QApplication::translate("UIMessageCenter", "VRDE server info failure ..."),
+        QApplication::translate("UIMessageCenter", "Failed to acquire VRDE server info parameter.") +
+        UIErrorString::formatErrorInfo(comServerInfo));
 }
 
 /* static */
@@ -825,6 +1007,15 @@ void UINotificationMessage::cannotChangeMachineParameter(const CMachine &comMach
 }
 
 /* static */
+void UINotificationMessage::cannotChangeMachineDebuggerParameter(const CMachineDebugger &comMachineDebugger)
+{
+    createMessage(
+        QApplication::translate("UIMessageCenter", "Debugger failure ..."),
+        QApplication::translate("UIMessageCenter", "Failed to change machine debugger parameter.") +
+        UIErrorString::formatErrorInfo(comMachineDebugger));
+}
+
+/* static */
 void UINotificationMessage::cannotChangeGraphicsAdapterParameter(const CGraphicsAdapter &comAdapter)
 {
     createMessage(
@@ -897,11 +1088,20 @@ void UINotificationMessage::cannotChangeNATNetworkParameter(const CNATNetwork &c
 }
 
 /* static */
+void UINotificationMessage::cannotChangeDisplayParameter(const CDisplay &comDisplay)
+{
+    createMessage(
+        QApplication::translate("UIMessageCenter", "Display failure ..."),
+        QApplication::translate("UIMessageCenter", "Failed to change display parameter.") +
+        UIErrorString::formatErrorInfo(comDisplay));
+}
+
+/* static */
 void UINotificationMessage::cannotChangeCloudProfileParameter(const CCloudProfile &comProfile)
 {
     createMessage(
         QApplication::translate("UIMessageCenter", "Cloud failure ..."),
-        QApplication::translate("UIMessageCenter", "Failed to assign cloud profile parameter.") +
+        QApplication::translate("UIMessageCenter", "Failed to change cloud profile parameter.") +
         UIErrorString::formatErrorInfo(comProfile));
 }
 
@@ -910,8 +1110,26 @@ void UINotificationMessage::cannotChangeUpdateAgentParameter(const CUpdateAgent 
 {
     createMessage(
         QApplication::translate("UIMessageCenter", "Update failure ..."),
-        QApplication::translate("UIMessageCenter", "Failed to assign update agent parameter.") +
+        QApplication::translate("UIMessageCenter", "Failed to change update agent parameter.") +
         UIErrorString::formatErrorInfo(comAgent));
+}
+
+/* static */
+void UINotificationMessage::cannotChangeKeyboardParameter(const CKeyboard &comKeyboard)
+{
+    createMessage(
+        QApplication::translate("UIMessageCenter", "Keyboard failure ..."),
+        QApplication::translate("UIMessageCenter", "Failed to change keyboard parameter.") +
+        UIErrorString::formatErrorInfo(comKeyboard));
+}
+
+/* static */
+void UINotificationMessage::cannotChangeMouseParameter(const CMouse &comMouse)
+{
+    createMessage(
+        QApplication::translate("UIMessageCenter", "Mouse failure ..."),
+        QApplication::translate("UIMessageCenter", "Failed to change mouse parameter.") +
+        UIErrorString::formatErrorInfo(comMouse));
 }
 
 /* static */
@@ -920,7 +1138,7 @@ void UINotificationMessage::cannotChangeVirtualSystemDescriptionParameter(const 
 {
     createMessage(
         QApplication::translate("UIMessageCenter", "VSD failure ..."),
-        QApplication::translate("UIMessageCenter", "Failed to assign VSD parameter.") +
+        QApplication::translate("UIMessageCenter", "Failed to change VSD parameter.") +
         UIErrorString::formatErrorInfo(comVsd),
         QString(), QString(), pParent);
 }
@@ -986,6 +1204,16 @@ void UINotificationMessage::cannotACPIShutdownMachine(const CConsole &comConsole
     createMessage(
         QApplication::translate("UIMessageCenter", "Can't shutdown machine ..."),
         QApplication::translate("UIMessageCenter", "Failed to send the ACPI Power Button press event to the virtual machine "
+                                                   "<b>%1</b>.").arg(CConsole(comConsole).GetMachine().GetName()) +
+        UIErrorString::formatErrorInfo(comConsole));
+}
+
+/* static */
+void UINotificationMessage::cannotResetMachine(const CConsole &comConsole)
+{
+    createMessage(
+        QApplication::translate("UIMessageCenter", "Can't reset machine ..."),
+        QApplication::translate("UIMessageCenter", "Failed to reset the virtual machine "
                                                    "<b>%1</b>.").arg(CConsole(comConsole).GetMachine().GetName()) +
         UIErrorString::formatErrorInfo(comConsole));
 }
@@ -1709,10 +1937,12 @@ void UINotificationProgressMediumCreate::sltHandleProgressFinished()
 
 UINotificationProgressMediumCopy::UINotificationProgressMediumCopy(const CMedium &comSource,
                                                                    const CMedium &comTarget,
-                                                                   const QVector<KMediumVariant> &variants)
+                                                                   const QVector<KMediumVariant> &variants,
+                                                                   qulonglong uMediumSize)
     : m_comSource(comSource)
     , m_comTarget(comTarget)
     , m_variants(variants)
+    , m_uMediumSize(uMediumSize)
 {
     connect(this, &UINotificationProgress::sigProgressFinished,
             this, &UINotificationProgressMediumCopy::sltHandleProgressFinished);
@@ -1749,7 +1979,7 @@ CProgress UINotificationProgressMediumCopy::createProgress(COMResult &comResult)
     }
 
     /* Initialize progress-wrapper: */
-    CProgress comProgress = m_comSource.CloneTo(m_comTarget, m_variants, CMedium());
+    CProgress comProgress = m_comSource.ResizeAndCloneTo(m_comTarget, m_uMediumSize, m_variants, CMedium());
     /* Store COM result: */
     comResult = m_comSource;
     /* Return progress-wrapper: */
@@ -1955,7 +2185,13 @@ CProgress UINotificationProgressMachineCopy::createProgress(COMResult &comResult
 void UINotificationProgressMachineCopy::sltHandleProgressFinished()
 {
     if (m_comTarget.isNotNull() && !m_comTarget.GetId().isNull())
-        emit sigMachineCopied(m_comTarget);
+    {
+        /* Register created machine: */
+        CVirtualBox comVBox = gpGlobalSession->virtualBox();
+        comVBox.RegisterMachine(m_comTarget);
+        if (!comVBox.isOk())
+            UINotificationMessage::cannotRegisterMachine(comVBox, m_comTarget.GetName());
+    }
 }
 
 
@@ -2005,7 +2241,7 @@ CProgress UINotificationProgressMachinePowerUp::createProgress(COMResult &comRes
     /* Allow started VM process to be foreground window: */
     AllowSetForegroundWindow(ASFW_ANY);
 #endif
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     /* Make sure VM process will start on the same
      * display as the VirtualBox Manager: */
     const char *pDisplay = RTEnvGet("DISPLAY");
@@ -2078,7 +2314,7 @@ QString UINotificationProgressMachineMove::details() const
 CProgress UINotificationProgressMachineMove::createProgress(COMResult &comResult)
 {
     /* Open a session thru which we will modify the machine: */
-    m_comSession = uiCommon().openSession(m_uId, KLockType_Write);
+    m_comSession = openSession(m_uId, KLockType_Write);
     if (m_comSession.isNull())
         return CProgress();
 
@@ -2163,10 +2399,10 @@ CProgress UINotificationProgressMachineSaveState::createProgress(COMResult &comR
     /* For Manager UI: */
     switch (uiCommon().uiType())
     {
-        case UICommon::UIType_SelectorUI:
+        case UIType_ManagerUI:
         {
             /* Open a session thru which we will modify the machine: */
-            m_comSession = uiCommon().openExistingSession(uId);
+            m_comSession = openExistingSession(uId);
             if (m_comSession.isNull())
                 return CProgress();
 
@@ -2270,7 +2506,7 @@ CProgress UINotificationProgressMachinePowerOff::createProgress(COMResult &comRe
     /* For Manager UI: */
     switch (uiCommon().uiType())
     {
-        case UICommon::UIType_SelectorUI:
+        case UIType_ManagerUI:
         {
             /* Acquire VM id: */
             const QUuid uId = comMachine.GetId();
@@ -2281,7 +2517,7 @@ CProgress UINotificationProgressMachinePowerOff::createProgress(COMResult &comRe
             }
 
             /* Open a session thru which we will modify the machine: */
-            m_comSession = uiCommon().openExistingSession(uId);
+            m_comSession = openExistingSession(uId);
             if (m_comSession.isNull())
                 return CProgress();
 
@@ -2315,7 +2551,7 @@ CProgress UINotificationProgressMachinePowerOff::createProgress(COMResult &comRe
     /* For Runtime UI: */
     switch (uiCommon().uiType())
     {
-        case UICommon::UIType_RuntimeUI:
+        case UIType_RuntimeUI:
         {
             /* Check the console state, it might be already gone: */
             if (!comConsole.isNull())
@@ -2981,6 +3217,100 @@ void UINotificationProgressCloudMachineRemove::sltHandleProgressFinished()
 
 
 /*********************************************************************************************************************************
+*   Class UINotificationProgressCloudMachineClone implementation.                                                                *
+*********************************************************************************************************************************/
+
+UINotificationProgressCloudMachineClone::UINotificationProgressCloudMachineClone(const CCloudClient &comClient,
+                                                                                 const CCloudMachine &comMachine,
+                                                                                 const QString &strCloneName)
+    : m_comClient(comClient)
+    , m_comMachine(comMachine)
+    , m_strCloneName(strCloneName)
+{
+}
+
+QString UINotificationProgressCloudMachineClone::name() const
+{
+    return UINotificationProgress::tr("Cloning cloud VM ...");
+}
+
+QString UINotificationProgressCloudMachineClone::details() const
+{
+    return UINotificationProgress::tr("<b>VM Name:</b> %1").arg(m_strName);
+}
+
+CProgress UINotificationProgressCloudMachineClone::createProgress(COMResult &comResult)
+{
+    /* Acquire cloud VM internal id: */
+    m_strId = m_comMachine.GetCloudId();
+    if (!m_comMachine.isOk())
+    {
+        /* Store COM result: */
+        comResult = m_comMachine;
+        /* Return progress-wrapper: */
+        return CProgress();
+    }
+    /* Acquire cloud VM name: */
+    m_strName = m_comMachine.GetName();
+    if (!m_comMachine.isOk())
+    {
+        /* Store COM result: */
+        comResult = m_comMachine;
+        /* Return progress-wrapper: */
+        return CProgress();
+    }
+
+    /* Initialize progress-wrapper: */
+    CCloudMachine comCloneMachine;
+    CProgress comProgress = m_comClient.CloneInstance(m_strId, m_strCloneName, comCloneMachine);
+    /* Store COM result: */
+    comResult = m_comMachine;
+    /* Return progress-wrapper: */
+    return comProgress;
+}
+
+
+/*********************************************************************************************************************************
+*   Class UINotificationProgressCloudMachineReset implementation.                                                                *
+*********************************************************************************************************************************/
+
+UINotificationProgressCloudMachineReset::UINotificationProgressCloudMachineReset(const CCloudMachine &comMachine)
+    : m_comMachine(comMachine)
+{
+}
+
+QString UINotificationProgressCloudMachineReset::name() const
+{
+    return UINotificationProgress::tr("Resetting cloud VM ...");
+}
+
+QString UINotificationProgressCloudMachineReset::details() const
+{
+    return UINotificationProgress::tr("<b>VM Name:</b> %1").arg(m_strName);
+}
+
+CProgress UINotificationProgressCloudMachineReset::createProgress(COMResult &comResult)
+{
+    /* Acquire cloud VM name: */
+    m_strName = m_comMachine.GetName();
+    if (!m_comMachine.isOk())
+    {
+        /* Store COM result: */
+        comResult = m_comMachine;
+        /* Return progress-wrapper: */
+        return CProgress();
+    }
+
+    /* Initialize progress-wrapper: */
+    CProgress comProgress = m_comMachine.Reset();
+    /* Store COM result: */
+    comResult = m_comMachine;
+    /* Return progress-wrapper: */
+    return comProgress;
+}
+
+
+/*********************************************************************************************************************************
 *   Class UINotificationProgressCloudMachinePowerUp implementation.                                                              *
 *********************************************************************************************************************************/
 
@@ -3398,7 +3728,7 @@ CProgress UINotificationProgressSnapshotTake::createProgress(COMResult &comResul
     /* For Manager UI: */
     switch (uiCommon().uiType())
     {
-        case UICommon::UIType_SelectorUI:
+        case UIType_ManagerUI:
         {
             /* Acquire session state: */
             const KSessionState enmSessionState = m_comMachine.GetSessionState();
@@ -3410,9 +3740,9 @@ CProgress UINotificationProgressSnapshotTake::createProgress(COMResult &comResul
 
             /* Open a session thru which we will modify the machine: */
             if (enmSessionState != KSessionState_Unlocked)
-                m_comSession = uiCommon().openExistingSession(uId);
+                m_comSession = openExistingSession(uId);
             else
-                m_comSession = uiCommon().openSession(uId);
+                m_comSession = openSession(uId);
             if (m_comSession.isNull())
                 return CProgress();
 
@@ -3427,7 +3757,7 @@ CProgress UINotificationProgressSnapshotTake::createProgress(COMResult &comResul
 
             break;
         }
-        case UICommon::UIType_RuntimeUI:
+        case UIType_RuntimeUI:
         {
             /* Get passed machine: */
             comMachine = m_comMachine;
@@ -3508,7 +3838,7 @@ CProgress UINotificationProgressSnapshotRestore::createProgress(COMResult &comRe
     {
         /* Acquire VM: */
         AssertReturn(!m_uMachineId.isNull(), CProgress());
-        CVirtualBox comVBox = uiCommon().virtualBox();
+        CVirtualBox comVBox = gpGlobalSession->virtualBox();
         m_comMachine = comVBox.FindMachine(m_uMachineId.toString());
         if (!comVBox.isOk())
         {
@@ -3539,9 +3869,9 @@ CProgress UINotificationProgressSnapshotRestore::createProgress(COMResult &comRe
 
     /* Open a session thru which we will modify the machine: */
     if (enmSessionState != KSessionState_Unlocked)
-        m_comSession = uiCommon().openExistingSession(m_uMachineId);
+        m_comSession = openExistingSession(m_uMachineId);
     else
-        m_comSession = uiCommon().openSession(m_uMachineId);
+        m_comSession = openSession(m_uMachineId);
     if (m_comSession.isNull())
         return CProgress();
 
@@ -3648,9 +3978,9 @@ CProgress UINotificationProgressSnapshotDelete::createProgress(COMResult &comRes
 
     /* Open a session thru which we will modify the machine: */
     if (enmSessionState != KSessionState_Unlocked)
-        m_comSession = uiCommon().openExistingSession(uId);
+        m_comSession = openExistingSession(uId);
     else
-        m_comSession = uiCommon().openSession(uId);
+        m_comSession = openSession(uId);
     if (m_comSession.isNull())
         return CProgress();
 
@@ -3790,8 +4120,6 @@ UINotificationProgressExtensionPackInstall::UINotificationProgressExtensionPackI
     , m_strExtensionPackName(strExtensionPackName)
     , m_strDisplayInfo(strDisplayInfo)
 {
-    connect(this, &UINotificationProgress::sigProgressFinished,
-            this, &UINotificationProgressExtensionPackInstall::sltHandleProgressFinished);
 }
 
 QString UINotificationProgressExtensionPackInstall::name() const
@@ -3814,12 +4142,6 @@ CProgress UINotificationProgressExtensionPackInstall::createProgress(COMResult &
     return comProgress;
 }
 
-void UINotificationProgressExtensionPackInstall::sltHandleProgressFinished()
-{
-    if (error().isEmpty())
-        emit sigExtensionPackInstalled(m_strExtensionPackName);
-}
-
 
 /*********************************************************************************************************************************
 *   Class UINotificationProgressExtensionPackUninstall implementation.                                                           *
@@ -3832,8 +4154,6 @@ UINotificationProgressExtensionPackUninstall::UINotificationProgressExtensionPac
     , m_strExtensionPackName(strExtensionPackName)
     , m_strDisplayInfo(strDisplayInfo)
 {
-    connect(this, &UINotificationProgress::sigProgressFinished,
-            this, &UINotificationProgressExtensionPackUninstall::sltHandleProgressFinished);
 }
 
 QString UINotificationProgressExtensionPackUninstall::name() const
@@ -3856,12 +4176,6 @@ CProgress UINotificationProgressExtensionPackUninstall::createProgress(COMResult
     comResult = m_comExtPackManager;
     /* Return progress-wrapper: */
     return comProgress;
-}
-
-void UINotificationProgressExtensionPackUninstall::sltHandleProgressFinished()
-{
-    if (error().isEmpty())
-        emit sigExtensionPackUninstalled(m_strExtensionPackName);
 }
 
 
@@ -3922,7 +4236,7 @@ UINotificationProgressHostOnlyNetworkInterfaceCreate::UINotificationProgressHost
 
 QString UINotificationProgressHostOnlyNetworkInterfaceCreate::name() const
 {
-    return UINotificationProgress::tr("Creating Host-only Network Interface ...");
+    return UINotificationProgress::tr("Creating host-only network interface ...");
 }
 
 QString UINotificationProgressHostOnlyNetworkInterfaceCreate::details() const
@@ -3962,7 +4276,7 @@ UINotificationProgressHostOnlyNetworkInterfaceRemove::UINotificationProgressHost
 
 QString UINotificationProgressHostOnlyNetworkInterfaceRemove::name() const
 {
-    return UINotificationProgress::tr("Removing Host-only Network Interface ...");
+    return UINotificationProgress::tr("Removing host-only network interface ...");
 }
 
 QString UINotificationProgressHostOnlyNetworkInterfaceRemove::details() const
@@ -4039,6 +4353,14 @@ UINotificationProgressVsdFormValueSet::UINotificationProgressVsdFormValueSet(con
 {
 }
 
+UINotificationProgressVsdFormValueSet::UINotificationProgressVsdFormValueSet(const CRangedInteger64FormValue &comValue,
+                                                                             qlonglong iInteger64)
+    : m_enmType(KFormValueType_RangedInteger64)
+    , m_comValue(comValue)
+    , m_iInteger64(iInteger64)
+{
+}
+
 QString UINotificationProgressVsdFormValueSet::name() const
 {
     return UINotificationProgress::tr("Set VSD form value ...");
@@ -4053,6 +4375,7 @@ QString UINotificationProgressVsdFormValueSet::details() const
         case KFormValueType_String: return UINotificationProgress::tr("<b>Value:</b> %1").arg(m_strString);
         case KFormValueType_Choice: return UINotificationProgress::tr("<b>Value:</b> %1").arg(m_iChoice);
         case KFormValueType_RangedInteger: return UINotificationProgress::tr("<b>Value:</b> %1").arg(m_iInteger);
+        case KFormValueType_RangedInteger64: return UINotificationProgress::tr("<b>Value:</b> %1").arg(m_iInteger64);
         default: break;
     }
     /* Null-string by default: */
@@ -4099,6 +4422,15 @@ CProgress UINotificationProgressVsdFormValueSet::createProgress(COMResult &comRe
             /* Set value: */
             CRangedIntegerFormValue comValue(m_comValue);
             comProgress = comValue.SetInteger(m_iInteger);
+            /* Store COM result: */
+            comResult = comValue;
+            break;
+        }
+        case KFormValueType_RangedInteger64:
+        {
+            /* Set value: */
+            CRangedInteger64FormValue comValue(m_comValue);
+            comProgress = comValue.SetInteger(m_iInteger64);
             /* Store COM result: */
             comResult = comValue;
             break;
@@ -4261,7 +4593,7 @@ UINotificationDownloaderUserManual::~UINotificationDownloaderUserManual()
 
 QString UINotificationDownloaderUserManual::name() const
 {
-    return UINotificationDownloader::tr("Downloading User Manual ...");
+    return UINotificationDownloader::tr("Downloading User Guide ...");
 }
 
 QString UINotificationDownloaderUserManual::details() const
@@ -4294,7 +4626,7 @@ UINotificationProgressNewVersionChecker::UINotificationProgressNewVersionChecker
             this, &UINotificationProgressNewVersionChecker::sltHandleProgressFinished);
 
 #ifdef VBOX_WITH_UPDATE_AGENT
-    CHost comHost = uiCommon().host();
+    CHost comHost = gpGlobalSession->host();
     if (!comHost.isNull())
        m_comUpdateHost = comHost.GetUpdateHost();
 #endif /* VBOX_WITH_UPDATE_AGENT */

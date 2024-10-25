@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2020-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2020-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -60,6 +60,11 @@ static DECLCALLBACK(void *) drvIfTraceIBase_QueryInterface(PPDMIBASE pInterface,
     if (pThis->pISerialPortAbove)
         PDMIBASE_RETURN_INTERFACE(pszIID, PDMISERIALPORT, &pThis->ISerialPort);
 
+    if (pThis->pITpmConBelow)
+        PDMIBASE_RETURN_INTERFACE(pszIID, PDMITPMCONNECTOR, &pThis->ITpmConnector);
+    if (pThis->pITpmPortAbove)
+        PDMIBASE_RETURN_INTERFACE(pszIID, PDMITPMPORT, &pThis->ITpmPort);
+
     return NULL;
 }
 
@@ -69,6 +74,81 @@ static DECLCALLBACK(void *) drvIfTraceIBase_QueryInterface(PPDMIBASE pInterface,
  * PDMDRVREG Methods
  *
  */
+static const RTTRACELOGEVTDESC g_IfTraceVmResumeEvtDesc =
+{
+    "IfTrace.VmResume",
+    "VM was resumed",
+    RTTRACELOGEVTSEVERITY_DEBUG,
+    0,
+    NULL
+};
+
+
+/**
+ * @callback_method_impl{FNPDMDRVRESUME}
+ */
+static DECLCALLBACK(void) drvIfTrace_Resume(PPDMDRVINS pDrvIns)
+{
+    PDMDRV_CHECK_VERSIONS_RETURN_VOID(pDrvIns);
+    PDRVIFTRACE pThis = PDMINS_2_DATA(pDrvIns, PDRVIFTRACE);
+    LogFlow(("%s: iInstance=%d\n", __FUNCTION__, pDrvIns->iInstance));
+
+    int rcTraceLog = RTTraceLogWrEvtAddL(pThis->hTraceLog, &g_IfTraceVmResumeEvtDesc, 0, 0, 0);
+    if (RT_FAILURE(rcTraceLog))
+        LogRelMax(10, ("DrvIfTrace#%d: Failed to add event to trace log %Rrc\n", pThis->pDrvIns->iInstance, rcTraceLog));
+}
+
+
+
+static const RTTRACELOGEVTDESC g_IfTraceVmSuspendEvtDesc =
+{
+    "IfTrace.VmSuspend",
+    "VM was suspended",
+    RTTRACELOGEVTSEVERITY_DEBUG,
+    0,
+    NULL
+};
+
+
+/**
+ * @callback_method_impl{FNPDMDRVSUSPEND}
+ */
+static DECLCALLBACK(void) drvIfTrace_Suspend(PPDMDRVINS pDrvIns)
+{
+    PDMDRV_CHECK_VERSIONS_RETURN_VOID(pDrvIns);
+    PDRVIFTRACE pThis = PDMINS_2_DATA(pDrvIns, PDRVIFTRACE);
+    LogFlow(("%s: iInstance=%d\n", __FUNCTION__, pDrvIns->iInstance));
+
+    int rcTraceLog = RTTraceLogWrEvtAddL(pThis->hTraceLog, &g_IfTraceVmSuspendEvtDesc, 0, 0, 0);
+    if (RT_FAILURE(rcTraceLog))
+        LogRelMax(10, ("DrvIfTrace#%d: Failed to add event to trace log %Rrc\n", pThis->pDrvIns->iInstance, rcTraceLog));
+}
+
+
+static const RTTRACELOGEVTDESC g_IfTraceVmResetEvtDesc =
+{
+    "IfTrace.VmReset",
+    "VM was reset",
+    RTTRACELOGEVTSEVERITY_DEBUG,
+    0,
+    NULL
+};
+
+/**
+ * @callback_method_impl{FNPDMDRVRESET}
+ */
+static DECLCALLBACK(void) drvIfTrace_Reset(PPDMDRVINS pDrvIns)
+{
+    PDMDRV_CHECK_VERSIONS_RETURN_VOID(pDrvIns);
+    PDRVIFTRACE pThis = PDMINS_2_DATA(pDrvIns, PDRVIFTRACE);
+    LogFlow(("%s: iInstance=%d\n", __FUNCTION__, pDrvIns->iInstance));
+
+    int rcTraceLog = RTTraceLogWrEvtAddL(pThis->hTraceLog, &g_IfTraceVmResetEvtDesc, 0, 0, 0);
+    if (RT_FAILURE(rcTraceLog))
+        LogRelMax(10, ("DrvIfTrace#%d: Failed to add event to trace log %Rrc\n", pThis->pDrvIns->iInstance, rcTraceLog));
+}
+
+
 
 /**
  * Destroys a interface filter driver instance.
@@ -85,12 +165,6 @@ static DECLCALLBACK(void) drvIfTrace_Destruct(PPDMDRVINS pDrvIns)
     {
         RTTraceLogWrDestroy(pThis->hTraceLog);
         pThis->hTraceLog = NIL_RTTRACELOGWR;
-    }
-
-    if (pThis->pszTraceFilePath)
-    {
-        PDMDrvHlpMMHeapFree(pDrvIns, pThis->pszTraceFilePath);
-        pThis->pszTraceFilePath = NULL;
     }
 }
 
@@ -115,23 +189,61 @@ static DECLCALLBACK(int) drvIfTrace_Construct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg
     pDrvIns->IBase.pfnQueryInterface             = drvIfTraceIBase_QueryInterface;
 
     drvIfsTrace_SerialIfInit(pThis);
+    drvIfsTrace_TpmIfInit(pThis);
 
     /*
      * Validate and read config.
      */
-    PDMDRV_VALIDATE_CONFIG_RETURN(pDrvIns, "TraceFilePath|", "");
+    PDMDRV_VALIDATE_CONFIG_RETURN(pDrvIns, "TraceFilePath|TraceLocation", "");
 
-    int rc = pHlp->pfnCFGMQueryStringAlloc(pCfg, "TraceFilePath", &pThis->pszTraceFilePath);
-    AssertLogRelRCReturn(rc, rc);
+    char *pszLocation = NULL;
+    int rc = pHlp->pfnCFGMQueryStringAlloc(pCfg, "TraceFilePath", &pszLocation);
+    if (RT_SUCCESS(rc))
+    {
+        /* Try to create a file based trace log. */
+        rc = RTTraceLogWrCreateFile(&pThis->hTraceLog, RTBldCfgVersion(), pszLocation);
+        PDMDrvHlpMMHeapFree(pDrvIns, pszLocation);
 
-    /* Try to create a file based trace log. */
-    rc = RTTraceLogWrCreateFile(&pThis->hTraceLog, RTBldCfgVersion(), pThis->pszTraceFilePath);
-    AssertLogRelRCReturn(rc, rc);
+        AssertLogRelRCReturn(rc, rc);
+    }
+    else if (rc == VERR_CFGM_VALUE_NOT_FOUND)
+    {
+        /* Try to connect to an external server. */
+        rc = pHlp->pfnCFGMQueryStringAlloc(pCfg, "TraceLocation", &pszLocation);
+        if (RT_FAILURE(rc))
+            return PDMDrvHlpVMSetError(pDrvIns, rc, RT_SRC_POS,
+                                       N_("Configuration error: querying \"TraceLocation\" resulted in %Rrc"), rc);
+
+        char *pszPort = strchr(pszLocation, ':');
+        if (!pszPort)
+            return PDMDrvHlpVMSetError(pDrvIns, VERR_NOT_FOUND, RT_SRC_POS,
+                                       N_("IfTrace#%d: The location misses the port to connect to"),
+                                       pDrvIns->iInstance);
+
+        *pszPort = '\0'; /* Overwrite temporarily to avoid copying the hostname into a temporary buffer. */
+        uint32_t uPort = 0;
+        rc = RTStrToUInt32Ex(pszPort + 1, NULL, 10, &uPort);
+        if (RT_FAILURE(rc))
+            return PDMDrvHlpVMSetError(pDrvIns, rc, RT_SRC_POS,
+                                       N_("IfTrace#%d: The port part of the location is not a numerical value"),
+                                       pDrvIns->iInstance);
+
+        rc = RTTraceLogWrCreateTcpClient(&pThis->hTraceLog, RTBldCfgVersion(), pszLocation, uPort);
+        *pszPort = ':'; /* Restore delimiter before checking the status. */
+        if (RT_FAILURE(rc))
+            return PDMDrvHlpVMSetError(pDrvIns, rc, RT_SRC_POS,
+                                       N_("IfTrace#%d: Failed to connect to socket %s"),
+                                       pDrvIns->iInstance, pszLocation);
+
+        PDMDrvHlpMMHeapFree(pDrvIns, pszLocation);
+    }
+
 
     /*
      * Query interfaces from the driver/device above us.
      */
     pThis->pISerialPortAbove = PDMIBASE_QUERY_INTERFACE(pDrvIns->pUpBase, PDMISERIALPORT);
+    pThis->pITpmPortAbove    = PDMIBASE_QUERY_INTERFACE(pDrvIns->pUpBase, PDMITPMPORT);
 
     /*
      * Attach driver below us.
@@ -141,6 +253,7 @@ static DECLCALLBACK(int) drvIfTrace_Construct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg
     AssertLogRelRCReturn(rc, rc);
 
     pThis->pISerialConBelow = PDMIBASE_QUERY_INTERFACE(pIBaseBelow, PDMISERIALCONNECTOR);
+    pThis->pITpmConBelow    = PDMIBASE_QUERY_INTERFACE(pIBaseBelow, PDMITPMCONNECTOR);
 
     return VINF_SUCCESS;
 }
@@ -180,11 +293,11 @@ const PDMDRVREG g_DrvIfTrace =
     /* pfnPowerOn */
     NULL,
     /* pfnReset */
-    NULL,
+    drvIfTrace_Reset,
     /* pfnSuspend */
-    NULL,
+    drvIfTrace_Suspend,
     /* pfnResume */
-    NULL,
+    drvIfTrace_Resume,
     /* pfnAttach */
     NULL,
     /* pfnDetach */

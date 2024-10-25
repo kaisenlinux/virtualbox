@@ -1,4 +1,3 @@
-/* vim:set ts=2 sw=2 et cindent: */
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
@@ -34,49 +33,38 @@
  * the terms of any one of the MPL, the GPL or the LGPL.
  *
  * ***** END LICENSE BLOCK ***** */
+#define LOG_GROUP LOG_GROUP_IPC
+#include <iprt/assert.h>
+#include <iprt/critsect.h>
+#include <iprt/err.h>
+#include <iprt/env.h>
+#include <iprt/list.h>
+#include <iprt/mem.h>
+#include <iprt/pipe.h>
+#include <iprt/poll.h>
+#include <iprt/socket.h>
+#include <iprt/string.h>
+#include <iprt/thread.h>
 
-#include "private/pprio.h"
-#include "prerror.h"
-#include "prthread.h"
-#include "prlock.h"
-#include "prlog.h" // for PR_ASSERT (we don't actually use NSPR logging)
-#include "prio.h"
+#include <VBox/log.h>
+
+#include <unistd.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <sys/stat.h>
+#include <stdio.h> /* fprintf below */
 
 #include "ipcConnection.h"
-#include "ipcMessageQ.h"
+#include "ipcMessageNew.h"
+#include "ipcList.h"
 #include "ipcConfig.h"
-#include "ipcLog.h"
 
-#ifdef VBOX
-# include "prenv.h"
-# include <stdio.h>
-# include <VBox/log.h>
-#endif
-
-
-//-----------------------------------------------------------------------------
-// NOTE: this code does not need to link with anything but NSPR.  that is by
-//       design, so it can be easily reused in other projects that want to 
-//       talk with mozilla's IPC daemon, but don't want to depend on xpcom.
-//       we depend at most on some xpcom header files, but no xpcom runtime
-//       symbols are used.
-//-----------------------------------------------------------------------------
-
-
-// single user systems, like OS/2, don't need these security checks.
-#ifndef XP_OS2
-#define IPC_SKIP_SECURITY_CHECKS
-#endif
-
-#ifndef IPC_SKIP_SECURITY_CHECKS
-#include <unistd.h>
-#include <sys/stat.h>
-#endif
 
 static PRStatus
-DoSecurityCheck(PRFileDesc *fd, const char *path)
+DoSecurityCheck(int fd, const char *path)
 {
-#ifndef IPC_SKIP_SECURITY_CHECKS
     //
     // now that we have a connected socket; do some security checks on the
     // file descriptor.
@@ -86,15 +74,15 @@ DoSecurityCheck(PRFileDesc *fd, const char *path)
     //
     // if these conditions aren't met then bail.
     //
-    int unix_fd = PR_FileDesc2NativeHandle(fd);  
-
     struct stat st;
-    if (fstat(unix_fd, &st) == -1) {
-        LOG(("stat failed"));
+    if (fstat(fd, &st) == -1)
+    {
+        LogFlowFunc(("stat failed"));
         return PR_FAILURE;
     }
 
-    if (st.st_uid != getuid() && st.st_uid != geteuid()) {
+    if (st.st_uid != getuid() && st.st_uid != geteuid())
+    {
         //
         // on OSX 10.1.5, |fstat| has a bug when passed a file descriptor to
         // a socket.  it incorrectly returns a UID of 0.  however, |stat|
@@ -103,28 +91,31 @@ DoSecurityCheck(PRFileDesc *fd, const char *path)
         // XXX come up with a better security check.
         //
         if (st.st_uid != 0) {
-            LOG(("userid check failed"));
+            LogFlowFunc(("userid check failed"));
             return PR_FAILURE;
         }
         if (stat(path, &st) == -1) {
-            LOG(("stat failed"));
+            LogFlowFunc(("stat failed"));
             return PR_FAILURE;
         }
         if (st.st_uid != getuid() && st.st_uid != geteuid()) {
-            LOG(("userid check failed"));
+            LogFlowFunc(("userid check failed"));
             return PR_FAILURE;
         }
     }
-#endif
+
     return PR_SUCCESS;
 }
 
 //-----------------------------------------------------------------------------
 
+/* Character written for wakeup. */
+static const char magicChar = '\x38';
+
 struct ipcCallback : public ipcListNode<ipcCallback>
 {
-  ipcCallbackFunc  func;
-  void            *arg;
+    ipcCallbackFunc  func;
+    void            *arg;
 };
 
 typedef ipcList<ipcCallback> ipcCallbackQ;
@@ -133,273 +124,300 @@ typedef ipcList<ipcCallback> ipcCallbackQ;
 
 struct ipcConnectionState
 {
-  PRLock      *lock;
-  PRPollDesc   fds[2];
-  ipcCallbackQ callback_queue;
-  ipcMessageQ  send_queue;
-  PRUint32     send_offset; // amount of send_queue.First() already written.
-  ipcMessage  *in_msg;
-  PRBool       shutdown;
+    RTCRITSECT   CritSect;
+    RTPIPE       hWakeupPipeW;
+    RTPIPE       hWakeupPipeR;
+    RTSOCKET     hSockConn;
+    RTPOLLSET    hPollSet;
+    ipcCallbackQ callback_queue;
+    bool         fShutdown;
+    /** The list of messages waiting for sending out. */
+    RTLISTANCHOR LstMsgsOut;
+    /** Number of bytes in the message of the first message on the list which was already sent. */
+    size_t       offSendFirst;
+    /** The message currently being received. */
+    IPCMSG       MsgIn;
 };
 
 #define SOCK 0
 #define POLL 1
 
-static void
-ConnDestroy(ipcConnectionState *s)
+static void ConnDestroy(ipcConnectionState *s)
 {
-  if (s->lock)
-    PR_DestroyLock(s->lock);  
+    RTCritSectDelete(&s->CritSect);
+    RTPollSetDestroy(s->hPollSet);
+    RTPipeClose(s->hWakeupPipeR);
+    RTPipeClose(s->hWakeupPipeW);
+    RTSocketClose(s->hSockConn);
 
-  if (s->fds[SOCK].fd)
-    PR_Close(s->fds[SOCK].fd);
+    IPCMsgFree(&s->MsgIn, false /*fFreeStruct*/);
 
-  if (s->fds[POLL].fd)
-    PR_DestroyPollableEvent(s->fds[POLL].fd);
+    PIPCMSG pIt, pItNext;
+    RTListForEachSafe(&s->LstMsgsOut, pIt, pItNext, IPCMSG, NdMsg)
+    {
+        RTListNodeRemove(&pIt->NdMsg);
+        IPCMsgFree(pIt, true /*fFreeStruct*/);
+    }
 
-  if (s->in_msg)
-    delete s->in_msg;
-
-  s->send_queue.DeleteAll();
-  delete s;
+    RTMemFree(s);
 }
 
-static ipcConnectionState *
-ConnCreate(PRFileDesc *fd)
+static ipcConnectionState *ConnCreate(RTSOCKET hSockConn)
 {
-  ipcConnectionState *s = new ipcConnectionState;
-  if (!s)
-    return NULL;
+    ipcConnectionState *s = (ipcConnectionState *)RTMemAllocZ(sizeof(*s));
+    if (!s)
+      return NULL;
 
-  s->lock = PR_NewLock();
-  s->fds[SOCK].fd = NULL;
-  s->fds[POLL].fd = PR_NewPollableEvent();
-  s->send_offset = 0;
-  s->in_msg = NULL;
-  s->shutdown = PR_FALSE;
+    RTListInit(&s->LstMsgsOut);
+    s->offSendFirst = 0;
+    s->fShutdown    = false;
 
-  if (!s->lock || !s->fds[1].fd)
-  {
-    ConnDestroy(s);
-    return NULL;
-  }
-
-  // disable inheritance of the IPC socket by children started
-  // using non-NSPR process API
-  PRStatus status = PR_SetFDInheritable(fd, PR_FALSE);
-  if (status != PR_SUCCESS)
-  {
-    LOG(("coudn't make IPC socket non-inheritable [err=%d]\n", PR_GetError()));
-    return NULL;
-  }
-
-  // store this only if we are going to succeed.
-  s->fds[SOCK].fd = fd;
-
-  return s;
-}
-
-static nsresult
-ConnRead(ipcConnectionState *s)
-{
-  char buf[1024];
-  nsresult rv = NS_OK;
-  PRInt32 n;
-
-  do
-  {
-    n = PR_Read(s->fds[SOCK].fd, buf, sizeof(buf));
-    if (n < 0)
+    int vrc = IPCMsgInit(&s->MsgIn, 0 /*cbBuf*/);
+    if (RT_SUCCESS(vrc))
     {
-      PRErrorCode err = PR_GetError();
-      if (err == PR_WOULD_BLOCK_ERROR)
-      {
-        // socket is empty... we need to go back to polling.
-        break;
-      }
-      LOG(("PR_Read returned failure [err=%d]\n", err));
-      rv = NS_ERROR_UNEXPECTED;
-    }
-    else if (n == 0)
-    {
-      LOG(("PR_Read returned EOF\n"));
-      rv = NS_ERROR_UNEXPECTED;
-    }
-    else
-    {
-      const char *pdata = buf;
-      while (n)
-      {
-        PRUint32 bytesRead;
-        PRBool complete;
-
-        if (!s->in_msg)
+        vrc = RTCritSectInit(&s->CritSect);
+        if (RT_SUCCESS(vrc))
         {
-          s->in_msg = new ipcMessage;
-          if (!s->in_msg)
-          {
-            rv = NS_ERROR_OUT_OF_MEMORY;
+            vrc = RTPollSetCreate(&s->hPollSet);
+            if (RT_SUCCESS(vrc))
+            {
+                vrc = RTPipeCreate(&s->hWakeupPipeR, &s->hWakeupPipeW, 0 /*fFlags*/);
+                if (RT_SUCCESS(vrc))
+                {
+                    vrc = RTPollSetAddSocket(s->hPollSet, hSockConn, RTPOLL_EVT_READ | RTPOLL_EVT_ERROR, SOCK);
+                    if (RT_SUCCESS(vrc))
+                    {
+                        vrc = RTPollSetAddPipe(s->hPollSet, s->hWakeupPipeR, RTPOLL_EVT_READ | RTPOLL_EVT_ERROR, POLL);
+                        if (RT_SUCCESS(vrc))
+                        {
+                            vrc = RTSocketSetInheritance(hSockConn, false /*fInheritable*/);
+                            if (RT_SUCCESS(vrc))
+                            {
+                                s->hSockConn = hSockConn;
+                                return s;
+                            }
+
+                            LogFlowFunc(("coudn't make IPC socket non-inheritable [err=%Rrc]\n", vrc));
+                            vrc = RTPollSetRemove(s->hPollSet, POLL); AssertRC(vrc);
+                        }
+
+                        vrc = RTPollSetRemove(s->hPollSet, SOCK); AssertRC(vrc);
+                    }
+
+                    vrc = RTPipeClose(s->hWakeupPipeR); AssertRC(vrc);
+                    vrc = RTPipeClose(s->hWakeupPipeW); AssertRC(vrc);
+                }
+
+                vrc = RTPollSetDestroy(s->hPollSet); AssertRC(vrc);
+            }
+
+            RTCritSectDelete(&s->CritSect);
+        }
+
+        IPCMsgFree(&s->MsgIn, false /*fFreeStruct*/);
+    }
+
+    return NULL;
+}
+
+static nsresult ConnRead(ipcConnectionState *s)
+{
+    nsresult rv = NS_OK;
+
+    /* Read as much as possible. */
+    for (;;)
+    {
+        char buf[_1K];
+        size_t cbRead = 0;
+        int vrc = RTSocketReadNB(s->hSockConn, &buf[0], sizeof(buf), &cbRead);
+        if (RT_SUCCESS(vrc) && cbRead > 0)
+        { /* likely */ }
+        else if (vrc == VINF_TRY_AGAIN)
+            break; /* Socket is empty, go back to polling. */
+        else if (RT_FAILURE(vrc))
+        {
+            rv = NS_ERROR_UNEXPECTED;
             break;
-          }
         }
-
-        if (s->in_msg->ReadFrom(pdata, n, &bytesRead, &complete) != PR_SUCCESS)
+        else if (cbRead == 0)
         {
-          LOG(("error reading IPC message\n"));
-          rv = NS_ERROR_UNEXPECTED;
-          break;
+            LogFlowFunc(("RTSocketReadNB() returned EOF\n"));
+            rv = NS_ERROR_UNEXPECTED;
+            break;
         }
 
-        PR_ASSERT(PRUint32(n) >= bytesRead);
-        n -= bytesRead;
-        pdata += bytesRead;
-
-        if (complete)
+        const char *pdata = buf;
+        while (cbRead)
         {
-          // protect against weird re-entrancy cases...
-          ipcMessage *m = s->in_msg;
-          s->in_msg = NULL;
+            size_t cbProcessed = 0;
+            bool fComplete = false;
 
-          IPC_OnMessageAvailable(m);
+            if (IPCMsgReadFrom(&s->MsgIn, pdata, cbRead, &cbProcessed, &fComplete) != VINF_SUCCESS)
+            {
+                LogFlowFunc(("error reading IPC message\n"));
+                rv = NS_ERROR_UNEXPECTED;
+                break;
+            }
+
+            Assert(cbRead >= cbProcessed);
+            cbRead -= cbProcessed;
+            pdata  += cbProcessed;
+
+            if (fComplete)
+            {
+                IPC_OnMessageAvailable(&s->MsgIn);
+                IPCMsgReset(&s->MsgIn);
+            }
         }
-      }
     }
-  }
-  while (NS_SUCCEEDED(rv));
 
-  return rv;
+    return rv;
 }
 
-static nsresult
-ConnWrite(ipcConnectionState *s)
+static nsresult ConnWrite(ipcConnectionState *s)
 {
-  nsresult rv = NS_OK;
+    nsresult rv = NS_OK;
 
-  PR_Lock(s->lock);
+    RTCritSectEnter(&s->CritSect);
 
-  // write one message and then return.
-  if (s->send_queue.First())
-  {
-    PRInt32 n = PR_Write(s->fds[SOCK].fd,
-                         s->send_queue.First()->MsgBuf() + s->send_offset,
-                         s->send_queue.First()->MsgLen() - s->send_offset);
-    if (n <= 0)
+    /* Write as much as we can. */
+    while (!RTListIsEmpty(&s->LstMsgsOut))
     {
-      PRErrorCode err = PR_GetError();
-      if (err == PR_WOULD_BLOCK_ERROR)
-      {
-        // socket is full... we need to go back to polling.
-      }
-      else
-      {
-        LOG(("error writing to socket [err=%d]\n", err));
-        rv = NS_ERROR_UNEXPECTED;
-      }
+        size_t cbWritten = 0;
+        PIPCMSG pMsg = RTListGetFirst(&s->LstMsgsOut, IPCMSG, NdMsg);
+        int vrc = RTSocketWriteNB(s->hSockConn,
+                                  (const uint8_t *)IPCMsgGetBuf(pMsg) + s->offSendFirst,
+                                  IPCMsgGetSize(pMsg) - s->offSendFirst,
+                                  &cbWritten);
+        if (vrc == VINF_SUCCESS && cbWritten)
+        {
+            s->offSendFirst += cbWritten;
+            if (s->offSendFirst == IPCMsgGetSize(pMsg))
+            {
+                RTListNodeRemove(&pMsg->NdMsg);
+                IPC_MsgFree(pMsg);
+                s->offSendFirst = 0;
+            }
+        }
+        else if (vrc == VINF_TRY_AGAIN)
+            break;
+        else
+        {
+            Assert(RT_FAILURE(vrc));
+            LogFlowFunc(("error writing to socket [err=%Rrc]\n", vrc));
+            rv = NS_ERROR_UNEXPECTED;
+        }
     }
-    else
+
+    /* if the send queue is empty, then we need to stop trying to write. */
+    if (RTListIsEmpty(&s->LstMsgsOut))
     {
-      s->send_offset += n;
-      if (s->send_offset == s->send_queue.First()->MsgLen())
-      {
-        s->send_queue.DeleteFirst();
-        s->send_offset = 0;
-
-        // if the send queue is empty, then we need to stop trying to write.
-        if (s->send_queue.IsEmpty())
-          s->fds[SOCK].in_flags &= ~PR_POLL_WRITE;
-      }
+        int vrc = RTPollSetEventsChange(s->hPollSet, SOCK, RTPOLL_EVT_READ | RTPOLL_EVT_ERROR);
+        AssertRC(vrc);
     }
-  }
 
-  PR_Unlock(s->lock);
-  return rv;
+    RTCritSectLeave(&s->CritSect);
+    return rv;
 }
 
-PR_STATIC_CALLBACK(void)
-ConnThread(void *arg)
+static DECLCALLBACK(int) ipcConnThread(RTTHREAD hSelf, void *pvArg)
 {
-  PRInt32 num;
-  nsresult rv = NS_OK;
+    RT_NOREF(hSelf);
 
-  ipcConnectionState *s = (ipcConnectionState *) arg;
+    nsresult rv = NS_OK;
+    ipcConnectionState *s = (ipcConnectionState *)pvArg;
 
-  // we monitor two file descriptors in this thread.  the first (at index 0) is
-  // the socket connection with the IPC daemon.  the second (at index 1) is the
-  // pollable event we monitor in order to know when to send messages to the
-  // IPC daemon.
+    // we monitor two file descriptors in this thread.  the first (at index 0) is
+    // the socket connection with the IPC daemon.  the second (at index 1) is the
+    // pollable event we monitor in order to know when to send messages to the
+    // IPC daemon.
 
-  s->fds[SOCK].in_flags = PR_POLL_READ;
-  s->fds[POLL].in_flags = PR_POLL_READ;
-
-  while (NS_SUCCEEDED(rv))
-  {
-    s->fds[SOCK].out_flags = 0;
-    s->fds[POLL].out_flags = 0;
-
-    //
-    // poll on the IPC socket and NSPR pollable event
-    //
-    num = PR_Poll(s->fds, 2, PR_INTERVAL_NO_TIMEOUT);
-    if (num > 0)
+    while (NS_SUCCEEDED(rv))
     {
-      ipcCallbackQ cbs_to_run;
+        //
+        // poll on the IPC socket and NSPR pollable event
+        //
+        uint32_t fEvents;
+        uint32_t idPoll;
+        int vrc = RTPoll(s->hPollSet, RT_INDEFINITE_WAIT, &fEvents, &idPoll);
+        if (RT_SUCCESS(vrc))
+        {
+            if (idPoll == SOCK)
+            {
+                /* check if we can read... */
+                if (fEvents & RTPOLL_EVT_READ)
+                    rv = ConnRead(s);
 
-      // check if something has been added to the send queue.  if so, then
-      // acknowledge pollable event (wait should not block), and configure
-      // poll flags to find out when we can write.
+                /* check if we can write... */
+                if (fEvents & RTPOLL_EVT_WRITE)
+                    rv = ConnWrite(s);
+            }
+            else
+            {
+                Assert(   idPoll == POLL
+                       && (fEvents & RTPOLL_EVT_READ)
+                       && !(fEvents & (RTPOLL_EVT_WRITE | RTPOLL_EVT_ERROR)));
 
-      if (s->fds[POLL].out_flags & PR_POLL_READ)
-      {
-        PR_WaitForPollableEvent(s->fds[POLL].fd);
-        PR_Lock(s->lock);
+                uint8_t buf[32];
+                ipcCallbackQ cbs_to_run;
 
-        if (!s->send_queue.IsEmpty())
-          s->fds[SOCK].in_flags |= PR_POLL_WRITE;
+                // check if something has been added to the send queue.  if so, then
+                // acknowledge pollable event (wait should not block), and configure
+                // poll flags to find out when we can write.
 
-        if (!s->callback_queue.IsEmpty())
-          s->callback_queue.MoveTo(cbs_to_run);
+                /* Drain wakeup pipe. */
+                size_t cbRead = 0;
+                vrc = RTPipeRead(s->hWakeupPipeR, &buf[0], sizeof(buf), &cbRead);
+                Assert(RT_SUCCESS(vrc) && cbRead > 0);
 
-        PR_Unlock(s->lock);
-      }
+#ifdef DEBUG
+                /* Make sure this is not written with something else. */
+                for (uint32_t i = 0; i < cbRead; i++)
+                    Assert(buf[i] == magicChar);
+#endif
 
-      // check if we can read...
-      if (s->fds[SOCK].out_flags & PR_POLL_READ)
-        rv = ConnRead(s);
+                RTCritSectEnter(&s->CritSect);
 
-      // check if we can write...
-      if (s->fds[SOCK].out_flags & PR_POLL_WRITE)
-        rv = ConnWrite(s);
+                if (!RTListIsEmpty(&s->LstMsgsOut))
+                {
+                    vrc = RTPollSetEventsChange(s->hPollSet, SOCK, RTPOLL_EVT_READ | RTPOLL_EVT_WRITE | RTPOLL_EVT_ERROR);
+                    AssertRC(vrc);
+                }
 
-      // check if we have callbacks to run
-      while (!cbs_to_run.IsEmpty())
-      {
-        ipcCallback *cb = cbs_to_run.First();
-        (cb->func)(cb->arg);
-        cbs_to_run.DeleteFirst();
-      }
+                if (!s->callback_queue.IsEmpty())
+                    s->callback_queue.MoveTo(cbs_to_run);
 
-      // check if we should exit this thread.  delay processing a shutdown
-      // request until after all queued up messages have been sent and until
-      // after all queued up callbacks have been run.
-      PR_Lock(s->lock);
-      if (s->shutdown && s->send_queue.IsEmpty() && s->callback_queue.IsEmpty())
-        rv = NS_ERROR_ABORT;
-      PR_Unlock(s->lock);
+                // check if we should exit this thread.  delay processing a shutdown
+                // request until after all queued up messages have been sent and until
+                // after all queued up callbacks have been run.
+                if (s->fShutdown && RTListIsEmpty(&s->LstMsgsOut) && s->callback_queue.IsEmpty())
+                    rv = NS_ERROR_ABORT;
+
+                RTCritSectLeave(&s->CritSect);
+
+                // check if we have callbacks to run
+                while (!cbs_to_run.IsEmpty())
+                {
+                    ipcCallback *cb = cbs_to_run.First();
+                    (cb->func)(cb->arg);
+                    cbs_to_run.DeleteFirst();
+                }
+            }
+        }
+        else
+        {
+            LogFlowFunc(("RTPoll returned error %Rrc\n", vrc));
+            rv = NS_ERROR_UNEXPECTED;
+        }
     }
-    else
-    {
-      LOG(("PR_Poll returned error %d (%s), os error %d\n", PR_GetError(),
-           PR_ErrorToName(PR_GetError()), PR_GetOSError()));
-      rv = NS_ERROR_UNEXPECTED;
-    }
-  }
 
-  // notify termination of the IPC connection
-  if (rv == NS_ERROR_ABORT)
-    rv = NS_OK;
-  IPC_OnConnectionEnd(rv);
+    // notify termination of the IPC connection
+    if (rv == NS_ERROR_ABORT)
+        rv = NS_OK;
+    IPC_OnConnectionEnd(rv);
 
-  LOG(("IPC thread exiting\n"));
+    LogFlowFunc(("IPC thread exiting\n"));
+    return VINF_SUCCESS;
 }
 
 //-----------------------------------------------------------------------------
@@ -407,209 +425,175 @@ ConnThread(void *arg)
 //-----------------------------------------------------------------------------
 
 static ipcConnectionState *gConnState = NULL;
-static PRThread *gConnThread = NULL;
+static RTTHREAD gConnThread = NULL;
 
 #ifdef DEBUG
-static PRThread *gMainThread = NULL;
+static RTTHREAD gMainThread = NULL;
 #endif
 
-nsresult
-TryConnect(PRFileDesc **result)
+static nsresult TryConnect(RTSOCKET *phSocket)
 {
-  PRFileDesc *fd;
-  PRNetAddr addr;
-  PRSocketOptionData opt;
-  // don't use NS_ERROR_FAILURE as we want to detect these kind of errors
-  // in the frontend
-  nsresult rv = NS_ERROR_SOCKET_FAIL;
+    struct sockaddr_un addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sun_family = AF_UNIX;
+    IPC_GetDefaultSocketPath(addr.sun_path, sizeof(addr.sun_path) - 1);
 
-  fd = PR_OpenTCPSocket(PR_AF_LOCAL);
-  if (!fd)
-    goto end;
+    // don't use NS_ERROR_FAILURE as we want to detect these kind of errors
+    // in the frontend
+    nsresult rv = NS_ERROR_SOCKET_FAIL;
 
-  addr.local.family = PR_AF_LOCAL;
-  IPC_GetDefaultSocketPath(addr.local.path, sizeof(addr.local.path));
+    int fdSock = socket(PF_UNIX, SOCK_STREAM, 0);
+    if (fdSock != -1)
+    {
+        /* Connect to the local socket. */
+        if (connect(fdSock, (struct sockaddr *)&addr, sizeof(addr)) == 0)
+        {
+            if (RTEnvExist("TESTBOX_UUID"))
+                fprintf(stderr, "IPC socket path: %s\n", addr.sun_path);
+            LogRel(("IPC socket path: %s\n", addr.sun_path));
 
-  // blocking connect... will fail if no one is listening.
-  if (PR_Connect(fd, &addr, PR_INTERVAL_NO_TIMEOUT) == PR_FAILURE)
-    goto end;
+            // do some security checks on connection socket...
+            if (DoSecurityCheck(fdSock, addr.sun_path) == PR_SUCCESS)
+            {
+                int vrc = RTSocketFromNative(phSocket, fdSock);
+                if (RT_SUCCESS(vrc))
+                    return NS_OK;
+            }
+        }
 
-#ifdef VBOX
-  if (PR_GetEnv("TESTBOX_UUID"))
-    fprintf(stderr, "IPC socket path: %s\n", addr.local.path);
-  LogRel(("IPC socket path: %s\n", addr.local.path));
-#endif
+        close(fdSock);
+    }
 
-  // make socket non-blocking
-  opt.option = PR_SockOpt_Nonblocking;
-  opt.value.non_blocking = PR_TRUE;
-  PR_SetSocketOption(fd, &opt);
-
-  // do some security checks on connection socket...
-  if (DoSecurityCheck(fd, addr.local.path) != PR_SUCCESS)
-    goto end;
-  
-  *result = fd;
-  return NS_OK;
-
-end:
-  if (fd)
-    PR_Close(fd);
-
-  return rv;
+    return rv;
 }
 
-nsresult
-IPC_Connect(const char *daemonPath)
+nsresult IPC_Connect(const char *daemonPath)
 {
   // synchronous connect, spawn daemon if necessary.
+    nsresult rv = NS_ERROR_FAILURE;
 
-  PRFileDesc *fd = NULL;
-  nsresult rv = NS_ERROR_FAILURE;
+    if (gConnState)
+        return NS_ERROR_ALREADY_INITIALIZED;
 
-  if (gConnState)
-    return NS_ERROR_ALREADY_INITIALIZED;
+    //
+    // here's the connection algorithm:  try to connect to an existing daemon.
+    // if the connection fails, then spawn the daemon (wait for it to be ready),
+    // and then retry the connection.  it is critical that the socket used to
+    // connect to the daemon not be inherited (this causes problems on RH9 at
+    // least).
+    //
 
-  //
-  // here's the connection algorithm:  try to connect to an existing daemon.
-  // if the connection fails, then spawn the daemon (wait for it to be ready),
-  // and then retry the connection.  it is critical that the socket used to
-  // connect to the daemon not be inherited (this causes problems on RH9 at
-  // least).
-  //
+    RTSOCKET hSockConn = NIL_RTSOCKET;
+    rv = TryConnect(&hSockConn);
+    if (NS_FAILED(rv))
+    {
+        nsresult rv1 = IPC_SpawnDaemon(daemonPath);
+        if (NS_SUCCEEDED(rv1) || rv != NS_ERROR_SOCKET_FAIL)
+          rv = rv1; 
+        if (NS_SUCCEEDED(rv))
+          rv = TryConnect(&hSockConn);
+    }
 
-  rv = TryConnect(&fd);
-  if (NS_FAILED(rv))
-  {
-    nsresult rv1 = IPC_SpawnDaemon(daemonPath);
-    if (NS_SUCCEEDED(rv1) || rv != NS_ERROR_SOCKET_FAIL)
-      rv = rv1; 
     if (NS_SUCCEEDED(rv))
-      rv = TryConnect(&fd);
-  }
+    {
+        //
+        // ok, we have a connection to the daemon!
+        //
 
-  if (NS_FAILED(rv))
-    goto end;
+      // build connection state object
+        gConnState = ConnCreate(hSockConn);
+        if (RT_LIKELY(gConnState))
+        {
+            hSockConn = NIL_RTSOCKET; // connection state now owns the socket
 
-  //
-  // ok, we have a connection to the daemon!
-  //
-
-  // build connection state object
-  gConnState = ConnCreate(fd);
-  if (!gConnState)
-  {
-    rv = NS_ERROR_OUT_OF_MEMORY;
-    goto end;
-  }
-  fd = NULL; // connection state now owns the socket
-
-  gConnThread = PR_CreateThread(PR_USER_THREAD,
-                                ConnThread,
-                                gConnState,
-                                PR_PRIORITY_NORMAL,
-                                PR_GLOBAL_THREAD,
-                                PR_JOINABLE_THREAD,
-                                0);
-  if (!gConnThread)
-  {
-    rv = NS_ERROR_OUT_OF_MEMORY;
-    goto end;
-  }
-
+            int vrc = RTThreadCreate(&gConnThread, ipcConnThread, gConnState, 0 /*cbStack*/,
+                                     RTTHREADTYPE_IO, RTTHREADFLAGS_WAITABLE, "Ipc-Conn");
+            if (RT_SUCCESS(vrc))
+            {
 #ifdef DEBUG
-  gMainThread = PR_GetCurrentThread();
+                gMainThread = RTThreadSelf();
 #endif
-  return NS_OK;
+                return NS_OK;
+            }
+            else
+                rv = NS_ERROR_OUT_OF_MEMORY;
+        }
+        else
+          rv = NS_ERROR_OUT_OF_MEMORY;
+    }
 
-end:
-  if (gConnState)
-  {
+    if (gConnState)
+    {
+        ConnDestroy(gConnState);
+        gConnState = NULL;
+    }
+
+    if (hSockConn != NIL_RTSOCKET)
+        RTSocketClose(hSockConn);
+
+    return rv;
+}
+
+nsresult IPC_Disconnect()
+{
+    // Must disconnect on same thread used to connect!
+#ifdef DEBUG
+    Assert(gMainThread == RTThreadSelf());
+#endif
+
+    if (!gConnState || !gConnThread)
+      return NS_ERROR_NOT_INITIALIZED;
+
+    RTCritSectEnter(&gConnState->CritSect);
+    gConnState->fShutdown = true;
+    size_t cbWrittenIgn = 0;
+    int vrc = RTPipeWrite(gConnState->hWakeupPipeW, &magicChar, sizeof(magicChar), &cbWrittenIgn);
+    AssertRC(vrc);
+    RTCritSectLeave(&gConnState->CritSect);
+
+    int rcThread;
+    RTThreadWait(gConnThread, RT_INDEFINITE_WAIT, &rcThread);
+    AssertRC(rcThread);
+
     ConnDestroy(gConnState);
+
     gConnState = NULL;
-  }
-  if (fd)
-    PR_Close(fd);
-  return rv;
+    gConnThread = NULL;
+    return NS_OK;
 }
 
-nsresult
-IPC_Disconnect()
+nsresult IPC_SendMsg(PIPCMSG pMsg)
 {
-  // Must disconnect on same thread used to connect!
-  PR_ASSERT(gMainThread == PR_GetCurrentThread());
+    if (!gConnState || !gConnThread)
+      return NS_ERROR_NOT_INITIALIZED;
 
-  if (!gConnState || !gConnThread)
-    return NS_ERROR_NOT_INITIALIZED;
+    RTCritSectEnter(&gConnState->CritSect);
+    RTListAppend(&gConnState->LstMsgsOut, &pMsg->NdMsg);
+    size_t cbWrittenIgn = 0;
+    int vrc = RTPipeWrite(gConnState->hWakeupPipeW, &magicChar, sizeof(magicChar), &cbWrittenIgn);
+    AssertRC(vrc);
+    RTCritSectLeave(&gConnState->CritSect);
 
-  PR_Lock(gConnState->lock);
-  gConnState->shutdown = PR_TRUE;
-  PR_SetPollableEvent(gConnState->fds[POLL].fd);
-  PR_Unlock(gConnState->lock);
-
-  PR_JoinThread(gConnThread);
-
-  ConnDestroy(gConnState);
-
-  gConnState = NULL;
-  gConnThread = NULL;
-  return NS_OK;
+    return NS_OK;
 }
 
-nsresult
-IPC_SendMsg(ipcMessage *msg)
+nsresult IPC_DoCallback(ipcCallbackFunc func, void *arg)
 {
-  if (!gConnState || !gConnThread)
-    return NS_ERROR_NOT_INITIALIZED;
+    if (!gConnState || !gConnThread)
+      return NS_ERROR_NOT_INITIALIZED;
+    
+    ipcCallback *callback = new ipcCallback;
+    if (!callback)
+      return NS_ERROR_OUT_OF_MEMORY;
+    callback->func = func;
+    callback->arg = arg;
 
-  PR_Lock(gConnState->lock);
-  gConnState->send_queue.Append(msg);
-  PR_SetPollableEvent(gConnState->fds[POLL].fd);
-  PR_Unlock(gConnState->lock);
-
-  return NS_OK;
+    RTCritSectEnter(&gConnState->CritSect);
+    gConnState->callback_queue.Append(callback);
+    size_t cbWrittenIgn = 0;
+    int vrc = RTPipeWrite(gConnState->hWakeupPipeW, &magicChar, sizeof(magicChar), &cbWrittenIgn);
+    AssertRC(vrc);
+    RTCritSectLeave(&gConnState->CritSect);
+    return NS_OK;
 }
 
-nsresult
-IPC_DoCallback(ipcCallbackFunc func, void *arg)
-{
-  if (!gConnState || !gConnThread)
-    return NS_ERROR_NOT_INITIALIZED;
-  
-  ipcCallback *callback = new ipcCallback;
-  if (!callback)
-    return NS_ERROR_OUT_OF_MEMORY;
-  callback->func = func;
-  callback->arg = arg;
-
-  PR_Lock(gConnState->lock);
-  gConnState->callback_queue.Append(callback);
-  PR_SetPollableEvent(gConnState->fds[POLL].fd);
-  PR_Unlock(gConnState->lock);
-  return NS_OK;
-}
-
-//-----------------------------------------------------------------------------
-
-#ifdef TEST_STANDALONE
-
-void IPC_OnConnectionFault(nsresult rv)
-{
-  LOG(("IPC_OnConnectionFault [rv=%x]\n", rv));
-}
-
-void IPC_OnMessageAvailable(ipcMessage *msg)
-{
-  LOG(("IPC_OnMessageAvailable\n"));
-  delete msg;
-}
-
-int main()
-{
-  IPC_InitLog(">>>");
-  IPC_Connect("/builds/moz-trunk/seamonkey-debug-build/dist/bin/mozilla-ipcd");
-  IPC_Disconnect();
-  return 0;
-}
-
-#endif

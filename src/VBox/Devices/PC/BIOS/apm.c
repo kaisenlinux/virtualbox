@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2004-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2004-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -161,6 +161,7 @@ void BIOSCALL apm_function(sys_regs_t r)
         /// @todo validate current connection state
         /// @todo change connection state
         break;
+#if VBOX_BIOS_CPU >= 80286
     case APM_PM_CONN:
         /// @todo validate device ID
         /// @todo validate current connection state
@@ -171,6 +172,7 @@ void BIOSCALL apm_function(sys_regs_t r)
         SI = APM_BIOS_SEG_LEN;          /* 16-bit PM code segment length. */
         DI = APM_BIOS_SEG_LEN;          /* Data segment length. */
         break;
+#endif
 #if VBOX_BIOS_CPU >= 80386
     case APM_32_CONN:
         /// @todo validate device ID

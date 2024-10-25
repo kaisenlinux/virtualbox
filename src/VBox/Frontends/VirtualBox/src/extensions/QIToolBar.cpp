@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -94,21 +94,6 @@ void QIToolBar::setShowToolBarButton(bool fShow)
     ::darwinSetShowsToolbarButton(this, fShow);
 }
 
-void QIToolBar::updateLayout()
-{
-    // WORKAROUND:
-    // There is a bug in Qt Cocoa which result in showing a "more arrow" when
-    // the necessary size of the tool-bar is increased. Also for some languages
-    // the with doesn't match if the text increase. So manually adjust the size
-    // after changing the text.
-    QSizePolicy sp = sizePolicy();
-    setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
-    adjustSize();
-    setSizePolicy(sp);
-    layout()->invalidate();
-    layout()->activate();
-}
-
 void QIToolBar::enableBranding(const QIcon &icnBranding,
                                const QString &strBranding,
                                const QColor &clrBranding,
@@ -177,8 +162,13 @@ void QIToolBar::paintEvent(QPaintEvent *pEvent)
         /* Prepare gradient: */
         const QColor backgroundColor = QApplication::palette().color(QPalette::Active, QPalette::Window);
         QLinearGradient gradient(rectangle.topLeft(), rectangle.bottomLeft());
+#if defined (VBOX_WS_MAC)
+        gradient.setColorAt(0, backgroundColor.lighter(105));
+        gradient.setColorAt(1, backgroundColor.darker(105));
+#else
         gradient.setColorAt(0, backgroundColor.darker(105));
         gradient.setColorAt(1, backgroundColor.darker(115));
+#endif
 
         /* Fill background: */
         painter.fillRect(rectangle, gradient);

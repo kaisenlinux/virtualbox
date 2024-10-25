@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 """
-Copyright (C) 2009-2023 Oracle and/or its affiliates.
+Copyright (C) 2009-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -24,7 +24,10 @@ SPDX-License-Identifier: GPL-3.0-only
 
 from __future__ import print_function
 import os,sys
-from distutils.version import StrictVersion
+if sys.version_info >= (3, 10):
+    from packaging.version import Version
+else:
+    from distutils.version import StrictVersion as Version
 
 versions = ["2.6", "2.7", "3.1", "3.2", "3.2m", "3.3", "3.3m", "3.4", "3.4m", "3.5", "3.5m", "3.6", "3.6m", "3.7", "3.7m", "3.8", "3.9", "3.10", "3.11", "3.12" ]
 prefixes = ["/usr", "/usr/local", "/opt", "/opt/local"]
@@ -120,7 +123,7 @@ def main(argv):
             realversion = v[:-1]
         else:
             realversion = v
-        if StrictVersion(realversion) < StrictVersion('2.6'):
+        if Version(realversion) < Version('2.6'):
             continue
         for p in prefixes:
             c = checkPair(p, v, dllpre, dllsuff, bitness_magic)

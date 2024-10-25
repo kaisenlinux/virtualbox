@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2021-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2021-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -543,6 +543,8 @@ typedef struct DEVTPMR3
     PPDMDEVINS                      pDevIns;
     /** The base interface for LUN\#0. */
     PDMIBASE                        IBase;
+    /** The base interface for LUN\#0. */
+    PDMITPMPORT                     ITpmPort;
     /** The base interface below. */
     R3PTRTYPE(PPDMIBASE)            pDrvBase;
     /** The TPM connector interface below. */
@@ -766,8 +768,11 @@ static VBOXSTRICTRC tpmMmioFifoRead(PPDMDEVINS pDevIns, PDEVTPM pThis, PDEVTPMLO
                   | TPM_FIFO_LOCALITY_REG_IF_CAP_INT_LOCALITY_CHANGE
                   | TPM_FIFO_LOCALITY_REG_IF_CAP_INT_LVL_LOW
                   | TPM_FIFO_LOCALITY_REG_IF_CAP_INT_CMD_RDY
-                  | TPM_FIFO_LOCALITY_REG_IF_CAP_DATA_XFER_SZ_SET(TPM_FIFO_LOCALITY_REG_IF_CAP_DATA_XFER_SZ_64B)
-                  | TPM_FIFO_LOCALITY_REG_IF_CAP_IF_VERSION_SET(TPM_FIFO_LOCALITY_REG_IF_CAP_IF_VERSION_IF_1_3); /** @todo Make some of them configurable? */
+                  | TPM_FIFO_LOCALITY_REG_IF_CAP_DATA_XFER_SZ_SET(TPM_FIFO_LOCALITY_REG_IF_CAP_DATA_XFER_SZ_64B); /** @todo Make some of them configurable? */
+            if (pThis->enmTpmVers == TPMVERSION_1_2)
+                u64 |= TPM_FIFO_LOCALITY_REG_IF_CAP_IF_VERSION_SET(TPM_FIFO_LOCALITY_REG_IF_CAP_IF_VERSION_IF_1_3);
+            else
+                u64 |= TPM_FIFO_LOCALITY_REG_IF_CAP_IF_VERSION_SET(TPM_FIFO_LOCALITY_REG_IF_CAP_IF_VERSION_IF_1_3_TPM2);
             break;
         case TPM_FIFO_LOCALITY_REG_STS:
             if (bLoc != pThis->bLoc)
@@ -799,7 +804,8 @@ static VBOXSTRICTRC tpmMmioFifoRead(PPDMDEVINS pDevIns, PDEVTPM pThis, PDEVTPMLO
             u64 =   TPM_FIFO_LOCALITY_REG_INTF_ID_IF_VERS_SET(TPM_FIFO_LOCALITY_REG_INTF_ID_IF_VERS_FIFO)
                   | TPM_FIFO_LOCALITY_REG_INTF_ID_CAP_DATA_XFER_SZ_SET(TPM_FIFO_LOCALITY_REG_INTF_ID_CAP_DATA_XFER_SZ_64B)
                   | TPM_FIFO_LOCALITY_REG_INTF_ID_IF_SEL_GET(TPM_FIFO_LOCALITY_REG_INTF_ID_IF_SEL_FIFO)
-                  | TPM_FIFO_LOCALITY_REG_INTF_ID_IF_SEL_LOCK;
+                  | TPM_FIFO_LOCALITY_REG_INTF_ID_IF_SEL_LOCK
+                  | TPM_FIFO_LOCALITY_REG_INTF_ID_CAP_FIFO;
             if (pThis->enmTpmVers == TPMVERSION_1_2)
                 u64 |= TPM_FIFO_LOCALITY_REG_INTF_ID_IF_TYPE_SET(TPM_FIFO_LOCALITY_REG_INTF_ID_IF_TYPE_TIS1_3);
             else
@@ -1591,6 +1597,7 @@ static DECLCALLBACK(int) tpmR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint
     if (uPass == SSM_PASS_FINAL)
     {
         rc = pHlp->pfnSSMGetStructEx(pSSM, pThis, sizeof(*pThis), 0 /*fFlags*/, &g_aTpmFields[0], NULL);
+        AssertRCReturn(rc, rc);
 
         /* The marker. */
         rc = pHlp->pfnSSMGetU32(pSSM, &u32);
@@ -1621,8 +1628,20 @@ static DECLCALLBACK(void *) tpmR3QueryInterface(PPDMIBASE pInterface, const char
 {
     PDEVTPMCC pThisCC = RT_FROM_MEMBER(pInterface, DEVTPMCC, IBase);
     PDMIBASE_RETURN_INTERFACE(pszIID, PDMIBASE, &pThisCC->IBase);
-    //PDMIBASE_RETURN_INTERFACE(pszIID, PDMITPMPORT, &pThisCC->ITpmPort);
+    PDMIBASE_RETURN_INTERFACE(pszIID, PDMITPMPORT, &pThisCC->ITpmPort);
     return NULL;
+}
+
+
+/* -=-=-=-=-=-=-=-=- PDMITPMPORT -=-=-=-=-=-=-=-=- */
+
+/**
+ * @interface_method_impl{PDMITPMPORT,pfnGetMaxBufferSize}
+ */
+static DECLCALLBACK(uint32_t) tpmR3TpmPortGetMaxBufferSize(PPDMITPMPORT pInterface)
+{
+    RT_NOREF(pInterface);
+    return TPM_DATA_BUFFER_SIZE_MAX;
 }
 
 
@@ -1689,6 +1708,10 @@ static DECLCALLBACK(int) tpmR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGM
     /* IBase */
     pThisCC->IBase.pfnQueryInterface = tpmR3QueryInterface;
 
+    /* ITpmPort */
+    pThisCC->ITpmPort.pfnGetMaxBufferSize = tpmR3TpmPortGetMaxBufferSize;
+
+
     /*
      * Validate and read the configuration.
      */
@@ -1743,7 +1766,8 @@ static DECLCALLBACK(int) tpmR3Construct(PPDMDEVINS pDevIns, int iInstance, PCFGM
         pThisCC->pDrvTpm = PDMIBASE_QUERY_INTERFACE(pThisCC->pDrvBase, PDMITPMCONNECTOR);
         AssertLogRelMsgReturn(pThisCC->pDrvTpm, ("TPM#%d: Driver is missing the TPM interface.\n", iInstance), VERR_PDM_MISSING_INTERFACE);
 
-        pThis->cbCmdResp     = RT_MIN(pThisCC->pDrvTpm->pfnGetBufferSize(pThisCC->pDrvTpm), TPM_DATA_BUFFER_SIZE_MAX);
+        uint32_t cbBufDrv = pThisCC->pDrvTpm->pfnGetBufferSize(pThisCC->pDrvTpm);
+        pThis->cbCmdResp     = RT_MIN(cbBufDrv, TPM_DATA_BUFFER_SIZE_MAX);
         pThis->fLocChangeSup = pThisCC->pDrvTpm->pfnGetLocalityMax(pThisCC->pDrvTpm) > 0;
 
         pThis->enmTpmVers = pThisCC->pDrvTpm->pfnGetVersion(pThisCC->pDrvTpm);

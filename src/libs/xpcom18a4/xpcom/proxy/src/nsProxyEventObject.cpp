@@ -36,7 +36,6 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-#include "prprf.h"
 #include "prmem.h"
 
 #include "nscore.h"
@@ -88,7 +87,10 @@ protected:
 ////////////////////////////////////////////////////////////////////////////////
 
 #ifdef DEBUG_xpcom_proxy
-static PRMonitor* mon = nsnull;
+
+#include <iprt/semaphore.h>
+
+static RTSEMFASTMUTEX g_hMtxDbg = NIL_RTSEMFASTMUTEX;
 static PRUint32 totalProxyObjects = 0;
 static PRUint32 outstandingProxyObjects = 0;
 
@@ -96,12 +98,13 @@ void
 nsProxyEventObject::DebugDump(const char * message, PRUint32 hashKey)
 {
 
-    if (mon == nsnull)
+    if (g_hMtxDbg == NIL_RTSEMFASTMUTEX)
     {
-        mon = PR_NewMonitor();
+        int vrc = RTSemFastMutexCreate(&g_hMtxDbg);
+        AssertRC(vrc); RT_NOREF(vrc);
     }
 
-    PR_EnterMonitor(mon);
+    RTSemFastMutexRequest(g_hMtxDbg);
 
     if (message)
     {
@@ -152,7 +155,7 @@ nsProxyEventObject::DebugDump(const char * message, PRUint32 hashKey)
     if (message)
         printf("-=-=-=-=-=-=-=-=-=-=-=-=-\n");
 
-    PR_ExitMonitor(mon);
+    RTSemFastMutexRelease(g_hMtxDbg);
 }
 #endif
 
@@ -388,7 +391,7 @@ nsProxyEventObject* nsProxyEventObject::LockedFind(REFNSIID aIID)
 }
 
 nsProxyEventObject::nsProxyEventObject()
-: mNext(nsnull)
+: mRoot(nsnull), mNext(nsnull)
 {
      NS_WARNING("This constructor should never be called");
 }
@@ -487,7 +490,7 @@ nsProxyEventObject::Release(void)
     NS_PRECONDITION(0 != mRefCnt, "dup release");
     // Decrement atomically - in case the Proxy Object Manager has already
     // been deleted and the monitor is unavailable...
-    count = PR_AtomicDecrement((PRInt32 *)&mRefCnt);
+    count = ASMAtomicDecU32((volatile uint32_t *)&mRefCnt);
     NS_LOG_RELEASE(this, count, "nsProxyEventObject");
     if (0 == count) {
         mRefCnt = 1; /* stabilize */

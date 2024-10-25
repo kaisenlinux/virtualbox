@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -34,10 +34,10 @@
 #include "UIConverter.h"
 #include "UIDetailsContextMenu.h"
 #include "UIDetailsModel.h"
-
+#include "UITranslationEventListener.h"
 
 UIDetailsContextMenu::UIDetailsContextMenu(UIDetailsModel *pModel)
-    : QIWithRetranslateUI2<QWidget>(0, Qt::Popup)
+    : QWidget(0, Qt::Popup)
     , m_pModel(pModel)
     , m_pListWidgetCategories(0)
     , m_pListWidgetOptions(0)
@@ -258,7 +258,7 @@ void UIDetailsContextMenu::updateOptionStates(DetailsElementType enmRequiredCate
     }
 }
 
-void UIDetailsContextMenu::retranslateUi()
+void UIDetailsContextMenu::sltRetranslateUI()
 {
     retranslateCategories();
     retranslateOptions();
@@ -654,7 +654,9 @@ void UIDetailsContextMenu::prepare()
     populateCategories();
     populateOptions();
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIDetailsContextMenu::sltRetranslateUI);
 }
 
 void UIDetailsContextMenu::populateCategories()
@@ -808,6 +810,11 @@ void UIDetailsContextMenu::populateOptions()
                 if (   enmOptionType == UIExtraDataMetaDefs::DetailsElementOptionTypeAudio_Invalid
                     || enmOptionType == UIExtraDataMetaDefs::DetailsElementOptionTypeAudio_Default)
                     continue;
+#ifndef VBOX_WITH_AUDIO_INOUT_INFO
+                /* Skip audio input/output stuff if not allowed: */
+                if (enmOptionType == UIExtraDataMetaDefs::DetailsElementOptionTypeAudio_IO)
+                    continue;
+#endif /* VBOX_WITH_AUDIO_INOUT_INFO */
                 /* And create list-widget item of it: */
                 QListWidgetItem *pOptionItem = createOptionItem();
                 if (pOptionItem)
@@ -933,6 +940,12 @@ void UIDetailsContextMenu::populateOptions()
                 if (   enmOptionType == UIExtraDataMetaDefs::DetailsElementOptionTypeUserInterface_Invalid
                     || enmOptionType == UIExtraDataMetaDefs::DetailsElementOptionTypeUserInterface_Default)
                     continue;
+#ifdef VBOX_WS_MAC
+                /* Skip menu-bar and mini-toolbar types on macOS: */
+                if (   enmOptionType == UIExtraDataMetaDefs::DetailsElementOptionTypeUserInterface_MenuBar
+                    || enmOptionType == UIExtraDataMetaDefs::DetailsElementOptionTypeUserInterface_MiniToolbar)
+                    continue;
+#endif /* VBOX_WS_MAC */
                 /* And create list-widget item of it: */
                 QListWidgetItem *pOptionItem = createOptionItem();
                 if (pOptionItem)

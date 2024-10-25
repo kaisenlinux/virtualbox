@@ -39,11 +39,12 @@
 #ifndef NSCATEGORYMANAGER_H
 #define NSCATEGORYMANAGER_H
 
-#include "prio.h"
-#include "prlock.h"
 #include "plarena.h"
 #include "nsClassHashtable.h"
 #include "nsICategoryManager.h"
+
+#include <iprt/semaphore.h>
+#include <iprt/stream.h>
 
 #define NS_CATEGORYMANAGER_CLASSNAME     "Category Manager"
 
@@ -94,21 +95,21 @@ public:
                        PRBool aDontPersist);
 
   void Clear() {
-    PR_Lock(mLock);
+    RTSemFastMutexRequest(mLock);
     mTable.Clear();
-    PR_Unlock(mLock);
+    RTSemFastMutexRelease(mLock);
   }
 
   PRUint32 Count() {
-    PR_Lock(mLock);
+    RTSemFastMutexRequest(mLock);
     PRUint32 tCount = mTable.Count();
-    PR_Unlock(mLock);
+    RTSemFastMutexRelease(mLock);
     return tCount;
   }
 
   NS_METHOD Enumerate(nsISimpleEnumerator** _retval);
 
-  PRBool WritePersistentEntries(PRFileDesc* fd, const char* aCategoryName);
+  PRBool WritePersistentEntries(PRTSTREAM fd, const char* aCategoryName);
 
   // CategoryNode is arena-allocated, with the strings
   static CategoryNode* Create(PLArenaPool* aArena);
@@ -120,7 +121,7 @@ private:
   void* operator new(size_t aSize, PLArenaPool* aArena);
 
   nsTHashtable<CategoryLeaf> mTable;
-  PRLock* mLock;
+  RTSEMFASTMUTEX mLock;
 };
 
 
@@ -140,7 +141,7 @@ public:
    * Write the categories to the XPCOM persistent registry.
    * This is to be used by nsComponentManagerImpl (and NO ONE ELSE).
    */
-  NS_METHOD WriteCategoryManagerToRegistry(PRFileDesc* fd);
+  NS_METHOD WriteCategoryManagerToRegistry(PRTSTREAM fd);
 
   nsCategoryManager() : mLock(nsnull) { }
 private:
@@ -153,7 +154,7 @@ private:
 
   PLArenaPool mArena;
   nsClassHashtable<nsDepCharHashKey, CategoryNode> mTable;
-  PRLock* mLock;
+  RTSEMFASTMUTEX mLock;
 };
 
 #endif

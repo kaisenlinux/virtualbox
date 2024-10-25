@@ -7,7 +7,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -56,7 +56,9 @@
         } \
     } while (0)
 
-#define VGA_SAVEDSTATE_VERSION                   27
+#define VGA_SAVEDSTATE_VERSION                   29
+#define VGA_SAVEDSTATE_VERSION_VMSVGA_VIDEO      29 /* Video decoding and processing (new COTables). */
+#define VGA_SAVEDSTATE_VERSION_VMSVGA_SVGA3      28 /* SVGA 3 interface. */
 #define VGA_SAVEDSTATE_VERSION_VMSVGA_REG_CAP2   27 /* SVGA_REG_CAP2. */
 #define VGA_SAVEDSTATE_VERSION_VMSVGA_DX_SFLAGS  26 /* SVGA3dSurfaceAllFlags. */
 #define VGA_SAVEDSTATE_VERSION_VMSVGA_DX_CMDBUF  25 /* Command buffers capability is not tied to VGPU10 setting. */

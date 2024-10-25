@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -49,8 +49,11 @@
 #include <iprt/mem.h>
 #include <iprt/param.h>
 #include <iprt/process.h>
+#include <iprt/string.h>
 #include "internal/memobj.h"
 #include "memobj-r0drv-solaris.h"
+
+extern caddr_t hat_kpm_pfn2va(pfn_t); /* Found in vm/hat.h on solaris 11.3, but not on older like 10u7. */
 
 
 /*********************************************************************************************************************************
@@ -726,10 +729,11 @@ DECLHIDDEN(int) rtR0MemObjNativeAllocLow(PPRTR0MEMOBJINTERNAL ppMem, size_t cb, 
 }
 
 
-DECLHIDDEN(int) rtR0MemObjNativeAllocCont(PPRTR0MEMOBJINTERNAL ppMem, size_t cb, bool fExecutable, const char *pszTag)
+DECLHIDDEN(int) rtR0MemObjNativeAllocCont(PPRTR0MEMOBJINTERNAL ppMem, size_t cb, RTHCPHYS PhysHighest,
+                                          bool fExecutable, const char *pszTag)
 {
     AssertReturn(!fExecutable, VERR_NOT_SUPPORTED);
-    return rtR0MemObjNativeAllocPhys(ppMem, cb, _4G - 1, PAGE_SIZE /* alignment */, pszTag);
+    return rtR0MemObjNativeAllocPhys(ppMem, cb, PhysHighest, PAGE_SIZE /* alignment */, pszTag);
 }
 
 
@@ -1209,5 +1213,37 @@ DECLHIDDEN(RTHCPHYS) rtR0MemObjNativeGetPagePhysAddr(PRTR0MEMOBJINTERNAL pMem, s
         default:
             return NIL_RTHCPHYS;
     }
+}
+
+
+DECLHIDDEN(int) rtR0MemObjNativeZeroInitWithoutMapping(PRTR0MEMOBJINTERNAL pMem)
+{
+#ifdef RT_ARCH_AMD64
+    PRTR0MEMOBJSOL const pMemSolaris = (PRTR0MEMOBJSOL)pMem;
+    size_t const         cPages      = pMemSolaris->Core.cb >> PAGE_SHIFT;
+    size_t               iPage;
+    for (iPage = 0; iPage < cPages; iPage++)
+    {
+        void    *pvPage;
+
+        /* Get the physical address of the page. */
+        RTHCPHYS HCPhys = rtR0MemObjNativeGetPagePhysAddr(&pMemSolaris->Core, iPage);
+        AssertReturn(HCPhys != NIL_RTHCPHYS, VERR_INTERNAL_ERROR_3);
+        Assert(!(HCPhys & PAGE_OFFSET_MASK));
+
+        /* Map it. */
+        HCPhys >>= PAGE_SHIFT;
+        AssertReturn(HCPhys <= physmax, VERR_INTERNAL_ERROR_3);
+        pvPage = hat_kpm_pfn2va(HCPhys);
+        AssertPtrReturn(pvPage, VERR_INTERNAL_ERROR_3);
+
+        /* Zero it. */
+        RT_BZERO(pvPage, PAGE_SIZE);
+    }
+    return VINF_SUCCESS;
+#else
+    RT_NOREF(pMem);
+    return VERR_NOT_IMPLEMENTED;
+#endif
 }
 

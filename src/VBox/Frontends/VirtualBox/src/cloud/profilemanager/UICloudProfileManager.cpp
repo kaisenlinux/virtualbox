@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,6 +26,7 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QHeaderView>
 #include <QPushButton>
 #include <QVBoxLayout>
@@ -45,6 +46,8 @@
 #include "UIIconPool.h"
 #include "UIMessageCenter.h"
 #include "UINotificationCenter.h"
+#include "UIShortcutPool.h"
+#include "UITranslationEventListener.h"
 #include "UIVirtualBoxEventHandler.h"
 
 /* COM includes: */
@@ -181,7 +184,7 @@ QString UIItemCloudProfile::definition(const QString &strProviderShortName, cons
 
 UICloudProfileManagerWidget::UICloudProfileManagerWidget(EmbedTo enmEmbedding, UIActionPool *pActionPool,
                                                          bool fShowToolbar /* = true */, QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_enmEmbedding(enmEmbedding)
     , m_pActionPool(pActionPool)
     , m_fShowToolbar(fShowToolbar)
@@ -197,19 +200,8 @@ QMenu *UICloudProfileManagerWidget::menu() const
     return m_pActionPool->action(UIActionIndexMN_M_CloudWindow)->menu();
 }
 
-void UICloudProfileManagerWidget::retranslateUi()
+void UICloudProfileManagerWidget::sltRetranslateUI()
 {
-    /* Adjust toolbar: */
-#ifdef VBOX_WS_MAC
-    // WORKAROUND:
-    // There is a bug in Qt Cocoa which result in showing a "more arrow" when
-    // the necessary size of the toolbar is increased. Also for some languages
-    // the with doesn't match if the text increase. So manually adjust the size
-    // after changing the text.
-    if (m_pToolBar)
-        m_pToolBar->updateLayout();
-#endif
-
     /* Translate tree-widget: */
     m_pTreeWidget->setHeaderLabels(   QStringList()
                                    << UICloudProfileManager::tr("Source")
@@ -577,7 +569,9 @@ void UICloudProfileManagerWidget::prepare()
     loadSettings();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UICloudProfileManagerWidget::sltRetranslateUI);
 
     /* Load cloud stuff: */
     loadCloudStuff();
@@ -940,7 +934,7 @@ void UICloudProfileManagerFactory::create(QIManagerDialog *&pDialog, QWidget *pC
 *********************************************************************************************************************************/
 
 UICloudProfileManager::UICloudProfileManager(QWidget *pCenterWidget, UIActionPool *pActionPool)
-    : QIWithRetranslateUI<QIManagerDialog>(pCenterWidget)
+    : QIManagerDialog(pCenterWidget)
     , m_pActionPool(pActionPool)
 {
 }
@@ -959,7 +953,7 @@ void UICloudProfileManager::sltHandleButtonBoxClick(QAbstractButton *pButton)
         emit sigDataChangeAccepted();
 }
 
-void UICloudProfileManager::retranslateUi()
+void UICloudProfileManager::sltRetranslateUI()
 {
     /* Translate window title: */
     setWindowTitle(tr("Cloud Profile Manager"));
@@ -976,7 +970,7 @@ void UICloudProfileManager::retranslateUi()
     button(ButtonType_Reset)->setShortcut(QString("Ctrl+Backspace"));
     button(ButtonType_Apply)->setShortcut(QString("Ctrl+Return"));
     button(ButtonType_Close)->setShortcut(Qt::Key_Escape);
-    button(ButtonType_Help)->setShortcut(QKeySequence::HelpContents);
+    button(ButtonType_Help)->setShortcut(UIShortcutPool::standardSequence(QKeySequence::HelpContents));
     button(ButtonType_Reset)->setToolTip(tr("Reset Changes (%1)").arg(button(ButtonType_Reset)->shortcut().toString()));
     button(ButtonType_Apply)->setToolTip(tr("Apply Changes (%1)").arg(button(ButtonType_Apply)->shortcut().toString()));
     button(ButtonType_Close)->setToolTip(tr("Close Window (%1)").arg(button(ButtonType_Close)->shortcut().toString()));
@@ -1036,7 +1030,9 @@ void UICloudProfileManager::configureButtonBox()
 void UICloudProfileManager::finalize()
 {
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UICloudProfileManager::sltRetranslateUI);
 }
 
 UICloudProfileManagerWidget *UICloudProfileManager::widget()
@@ -1050,7 +1046,7 @@ void UICloudProfileManager::closeEvent(QCloseEvent *pEvent)
     if (widget()->makeSureChangesResolved())
     {
         /* Call to base class: */
-        QIWithRetranslateUI<QIManagerDialog>::closeEvent(pEvent);
+        QIManagerDialog::closeEvent(pEvent);
     }
     else
     {

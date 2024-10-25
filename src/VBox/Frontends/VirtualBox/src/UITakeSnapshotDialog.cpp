@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,11 +26,13 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QGridLayout>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QStyle>
+#include <QWindow>
 
 /* GUI includes: */
 #include "QIDialogButtonBox.h"
@@ -38,27 +40,19 @@
 #include "VBoxUtils.h"
 #include "UICommon.h"
 #include "UIDesktopWidgetWatchdog.h"
-#include "UIMessageCenter.h"
+#include "UIShortcutPool.h"
 #include "UITakeSnapshotDialog.h"
+#include "UITranslationEventListener.h"
 
-/* COM includes: */
-#include "COMEnums.h"
-#include "CMachine.h"
-#include "CMedium.h"
-#include "CMediumAttachment.h"
-
-
-UITakeSnapshotDialog::UITakeSnapshotDialog(QWidget *pParent, const CMachine &comMachine)
-    : QIWithRetranslateUI<QIDialog>(pParent)
-    , m_comMachine(comMachine)
-    , m_cImmutableMedia(0)
+UITakeSnapshotDialog::UITakeSnapshotDialog(QWidget *pParent, ulong cImmutableMedia)
+    : QIDialog(pParent)
+    , m_cImmutableMedia(cImmutableMedia)
     , m_pLabelIcon(0)
     , m_pLabelName(0), m_pEditorName(0)
     , m_pLabelDescription(0), m_pEditorDescription(0)
     , m_pLabelInfo(0)
     , m_pButtonBox(0)
 {
-    /* Prepare: */
     prepare();
 }
 
@@ -100,10 +94,10 @@ bool UITakeSnapshotDialog::event(QEvent *pEvent)
     }
 
     /* Call to base-class: */
-    return QIWithRetranslateUI<QIDialog>::event(pEvent);
+    return QIDialog::event(pEvent);
 }
 
-void UITakeSnapshotDialog::retranslateUi()
+void UITakeSnapshotDialog::sltRetranslateUI()
 {
     setWindowTitle(tr("Take Snapshot of Virtual Machine"));
     m_pLabelName->setText(tr("Snapshot &Name"));
@@ -124,7 +118,7 @@ void UITakeSnapshotDialog::retranslateUi()
         m_pButtonBox->button(QDialogButtonBox::Cancel)->setStatusTip(tr("Close dialog without taking a snapshot"));
         m_pButtonBox->button(QDialogButtonBox::Help)->setStatusTip(tr("Show dialog help"));
 
-        m_pButtonBox->button(QDialogButtonBox::Help)->setShortcut(QKeySequence::HelpContents);
+        m_pButtonBox->button(QDialogButtonBox::Help)->setShortcut(UIShortcutPool::standardSequence(QKeySequence::HelpContents));
 
         if (m_pButtonBox->button(QDialogButtonBox::Ok)->shortcut().toString().isEmpty())
             m_pButtonBox->button(QDialogButtonBox::Ok)->setToolTip(tr("Accept"));
@@ -155,7 +149,9 @@ void UITakeSnapshotDialog::prepare()
     prepareContents();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+        this, &UITakeSnapshotDialog::sltRetranslateUI);
 
     /* Invent minimum size: */
     QSize minimumSize;
@@ -288,18 +284,6 @@ void UITakeSnapshotDialog::prepareContents()
             m_pLabelInfo->setWordWrap(true);
             m_pLabelInfo->useSizeHintForWidth(400);
 
-            /* Calculate the amount of immutable attachments: */
-            if (m_comMachine.GetState() == KMachineState_Paused)
-            {
-                foreach (const CMediumAttachment &comAttachment, m_comMachine.GetMediumAttachments())
-                {
-                    CMedium comMedium = comAttachment.GetMedium();
-                    if (   !comMedium.isNull()
-                        && !comMedium.GetParent().isNull()
-                        && comMedium.GetBase().GetType() == KMediumType_Immutable)
-                        ++m_cImmutableMedia;
-                }
-            }
             /* Hide if machine have no immutable attachments: */
             if (!m_cImmutableMedia)
                 m_pLabelInfo->setHidden(true);
@@ -321,9 +305,10 @@ void UITakeSnapshotDialog::prepareContents()
             connect(m_pButtonBox, &QIDialogButtonBox::rejected,
                     this, &UITakeSnapshotDialog::reject);
             connect(m_pButtonBox->button(QIDialogButtonBox::Help), &QPushButton::pressed,
-                    &(msgCenter()), &UIMessageCenter::sltHandleHelpRequest);
-            m_pButtonBox->button(QDialogButtonBox::Help)->setShortcut(QKeySequence::HelpContents);
+                    m_pButtonBox, &QIDialogButtonBox::sltHandleHelpRequest);
+            m_pButtonBox->button(QDialogButtonBox::Help)->setShortcut(UIShortcutPool::standardSequence(QKeySequence::HelpContents));
             uiCommon().setHelpKeyword(m_pButtonBox->button(QIDialogButtonBox::Help), "snapshots");
+
             /* Add into layout: */
             pLayout->addWidget(m_pButtonBox, 3, 0, 1, 2);
         }
@@ -333,5 +318,6 @@ void UITakeSnapshotDialog::prepareContents()
 void UITakeSnapshotDialog::updatePixmap()
 {
     const int iIconMetric = QApplication::style()->pixelMetric(QStyle::PM_LargeIconSize);
-    m_pLabelIcon->setPixmap(m_icon.pixmap(windowHandle(), QSize(iIconMetric, iIconMetric)));
+    const qreal fDevicePixelRatio = windowHandle() ? windowHandle()->devicePixelRatio() : 1;
+    m_pLabelIcon->setPixmap(m_icon.pixmap(QSize(iIconMetric, iIconMetric), fDevicePixelRatio));
 }

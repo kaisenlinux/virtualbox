@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -170,6 +170,11 @@ VMM_INT_DECL(int)       TMCpuTickSetLastSeen(PVMCPUCC pVCpu, uint64_t u64LastSee
 VMM_INT_DECL(uint64_t)  TMCpuTickGetLastSeen(PVMCPUCC pVCpu);
 VMMDECL(uint64_t)       TMCpuTicksPerSecond(PVMCC pVM);
 VMM_INT_DECL(bool)      TMCpuTickIsTicking(PVMCPUCC pVCpu);
+
+#if defined(VBOX_VMM_TARGET_ARMV8)
+VMM_INT_DECL(void)      TMCpuSetVTimerNextActivation(PVMCPUCC pVCpu, uint64_t cNanoSecs);
+VMM_INT_DECL(uint64_t)  TMCpuGetVTimerActivationNano(PVMCPUCC pVCpu);
+#endif
 /** @} */
 
 
@@ -266,6 +271,7 @@ VMMDECL(uint64_t)       TMTimerFromMicro(PVMCC pVM, TMTIMERHANDLE hTimer, uint64
 VMMDECL(uint64_t)       TMTimerFromMilli(PVMCC pVM, TMTIMERHANDLE hTimer, uint64_t cMilliSecs);
 
 VMMDECL(bool)           TMTimerPollBool(PVMCC pVM, PVMCPUCC pVCpu);
+VMM_INT_DECL(uint64_t)  TMTimerPollBoolWithNanoTS(PVMCC pVM, PVMCPUCC pVCpu, uint64_t *pnsNow);
 VMM_INT_DECL(void)      TMTimerPollVoid(PVMCC pVM, PVMCPUCC pVCpu);
 VMM_INT_DECL(uint64_t)  TMTimerPollGIP(PVMCC pVM, PVMCPUCC pVCpu, uint64_t *pu64Delta);
 /** @} */

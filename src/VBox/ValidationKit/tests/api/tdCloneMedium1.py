@@ -8,7 +8,7 @@ VirtualBox Validation Kit - Clone Medium Test #1
 
 __copyright__ = \
 """
-Copyright (C) 2010-2023 Oracle and/or its affiliates.
+Copyright (C) 2010-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -37,20 +37,22 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 
 # Standard Python imports.
 import os
 import sys
+import platform
 
 # Only the main script needs to modify the path.
-try:    __file__
+try:    __file__                            # pylint: disable=used-before-assignment
 except: __file__ = sys.argv[0]
 g_ksValidationKitDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(g_ksValidationKitDir)
 
 # Validation Kit imports.
+from common     import utils
 from testdriver import base
 from testdriver import reporter
 from testdriver import vboxcon
@@ -64,6 +66,15 @@ class SubTstDrvCloneMedium1(base.SubTestDriverBase):
 
     def __init__(self, oTstDrv):
         base.SubTestDriverBase.__init__(self, oTstDrv, 'clone-medium', 'Move Medium');
+        # Solaris delivers a 32-bit version of Python 2.7 which can't handle signed values
+        # above 0x7fffffff (MAXINT) such as 0xdeadbeef.  N.B. If this ever needs to be
+        # extended to other OSes the Python docs:
+        # https://docs.python.org/3/library/platform.html#platform.architecture
+        # mention that the platform.architecture() call can be wrong on macOS.
+        if utils.getHostOs() == 'solaris' and sys.version_info[0] < 3 and platform.architecture()[0] == '32bit':
+            self.iDataToWrite = 0x0badcafe;
+        else:
+            self.iDataToWrite = 0xdeadbeef;
 
     def testIt(self):
         """
@@ -173,7 +184,7 @@ class SubTstDrvCloneMedium1(base.SubTestDriverBase):
 
         oVM = self.oTstDrv.createTestVM('test-medium-clone-only', 1, None, 4)
 
-        hd1 = self.createTestMedium(oVM, "hd1-cloneonly", data=[0xdeadbeef])
+        hd1 = self.createTestMedium(oVM, "hd1-cloneonly", data=[self.iDataToWrite])
         hd2 = self.createTestMedium(oVM, "hd2-cloneonly")
 
         if not self.cloneMedium(hd1, hd2):
@@ -202,9 +213,9 @@ class SubTstDrvCloneMedium1(base.SubTestDriverBase):
 
         reporter.testStart("testResizeAndClone")
 
-        oVM = self.oTstDrv.createTestVM('test-medium-clone-only', 1, None, 4)
+        oVM = self.oTstDrv.createTestVM('test-medium-resize-and-clone', 1, None, 4)
 
-        hd1 = self.createTestMedium(oVM, "hd1-resizeandclone", data=[0xdeadbeef])
+        hd1 = self.createTestMedium(oVM, "hd1-resizeandclone", data=[self.iDataToWrite])
         hd2 = self.createTestMedium(oVM, "hd2-resizeandclone")
 
         if not (hasattr(hd1, "resizeAndCloneTo") and callable(getattr(hd1, "resizeAndCloneTo"))):
@@ -234,7 +245,62 @@ class SubTstDrvCloneMedium1(base.SubTestDriverBase):
         reporter.testDone()
         return True
 
+    def testCloneToBase(self):
+        """
+        Tests cloning diff to base
+        """
+
+        reporter.testStart("testCloneToBase")
+
+        try:
+            oVM = self.oTstDrv.createTestVM('test-medium-clone-base', 1, None, 4)
+            assert oVM is not None
+
+            fRc = True
+            oSession = self.oTstDrv.openSession(oVM)
+            cImages = 10
+            reporter.log('Creating chain with %d disk images' % (cImages))
+            sHddPath = os.path.join(self.oTstDrv.sScratchPath, 'CloneTest1.vdi')
+            hd1 = oSession.createBaseHd(sHddPath, cb=1024*1024)
+            if hd1 is None:
+                fRc = False
+            for i in range(2, cImages + 1):
+                sHddPath = os.path.join(self.oTstDrv.sScratchPath, 'CloneTest' + str(i) + '.vdi')
+                if i == 2:
+                    oHd = oSession.createDiffHd(hd1, sHddPath)
+                else:
+                    oHd = oSession.createDiffHd(oHd, sHddPath)
+                if oHd is None:
+                    fRc = False
+                    break
+
+
+            # modify the VM config, attach HDD
+            sController='SATA Controller'
+            fRc = fRc and oSession.attachHd(sHddPath, sController, fImmutable=False, fForceResource=False)
+            fRc = fRc and oSession.saveSettings()
+
+            try:
+                oProgressCom = oHd.cloneTo(hd1, (vboxcon.MediumVariant_Standard, ), None);
+            except:
+                reporter.errorXcpt('failed to clone medium %s to %s' % (oHd.name, hd1.name));
+                return False;
+            oProgress = vboxwrappers.ProgressWrapper(oProgressCom, self.oTstDrv.oVBoxMgr, self.oTstDrv,
+                                                     'clone disk %s to base disk %s' % (oHd.name, hd1.name));
+            oProgress.wait(cMsTimeout = 15*60*1000); # 15 min
+            oProgress.logResult();
+
+            fRc = oSession.close() and fRc
+            self.deleteVM(oVM)
+
+        except:
+            reporter.errorXcpt()
+
+        return reporter.testDone()[1] == 0
+
     def testAll(self):
+        if self.oTstDrv.fpApiVer >= 7.1 and self.oTstDrv.uRevision > 157873:
+            return self.testCloneOnly() & self.testResizeAndClone() & self.testCloneToBase()
         return self.testCloneOnly() & self.testResizeAndClone()
 
 if __name__ == '__main__':

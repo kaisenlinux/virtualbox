@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -252,6 +252,21 @@ RTDECL(int) RTZipGzipDecompressIoStream(RTVFSIOSTREAM hVfsIosIn, uint32_t fFlags
 
 
 /**
+ * Opens a xz decompression I/O stream.
+ *
+ * @returns IPRT status code.
+ *
+ * @param   hVfsIosIn           The compressed input stream (must be readable).
+ *                              The reference is not consumed, instead another
+ *                              one is retained.
+ * @param   fFlags              Flags, MBZ.
+ * @param   phVfsIosXz          Where to return the handle to the decompressed I/O
+ *                              stream (read).
+ */
+RTDECL(int) RTZipXzDecompressIoStream(RTVFSIOSTREAM hVfsIosIn, uint32_t fFlags, PRTVFSIOSTREAM phVfsIosXz);
+
+
+/**
  * Opens a gzip decompression I/O stream.
  *
  * @returns IPRT status code.
@@ -265,6 +280,23 @@ RTDECL(int) RTZipGzipDecompressIoStream(RTVFSIOSTREAM hVfsIosIn, uint32_t fFlags
  *                              (you write to this).
  */
 RTDECL(int) RTZipGzipCompressIoStream(RTVFSIOSTREAM hVfsIosDst, uint32_t fFlags, uint8_t uLevel, PRTVFSIOSTREAM phVfsIosGzip);
+
+
+/**
+ * Opens a xz decompression I/O stream.
+ *
+ * @returns IPRT status code.
+ *
+ * @param   hVfsIosDst          The compressed output stream (must be writable).
+ *                              The reference is not consumed, instead another
+ *                              one is retained.
+ * @param   fFlags              Flags, MBZ.
+ * @param   uLevel              The xz compression level, 1 thru 9.
+ * @param   phVfsIosXz          Where to return the xz input I/O stream handle
+ *                              (you write to this).
+ */
+RTDECL(int) RTZipXzCompressIoStream(RTVFSIOSTREAM hVfsIosDst, uint32_t fFlags, uint8_t uLevel, PRTVFSIOSTREAM phVfsIosXz);
+
 
 /**
  * A mini GZIP program.
@@ -305,6 +337,12 @@ typedef enum RTZIPTARFORMAT
     RTZIPTARFORMAT_USTAR,
     /** PAX format from POSIX.1-2001. */
     RTZIPTARFORMAT_PAX,
+    /** CPIO format (portable ASCII foramt as defined by SuSV2). */
+    RTZIPTARFORMAT_CPIO_ASCII_SUSV2,
+    /** CPIO format (New ascii format). */
+    RTZIPTARFORMAT_CPIO_ASCII_NEW,
+    /** CPIO format (New ascii format with checksumming). */
+    RTZIPTARFORMAT_CPIO_ASCII_NEW_CHKSUM,
     /** End of valid formats. */
     RTZIPTARFORMAT_END,
     /** Make sure the type is at least 32 bits wide. */

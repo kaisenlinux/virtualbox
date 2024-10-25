@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -369,7 +369,11 @@ RTDECL(uint32_t) RTMpGetMaxFrequency(RTCPUID idCpu)
 # else
     RTStrPrintf(szCpuPath, sizeof(szCpuPath), "IODeviceTree:/cpus/cpu%x", idCpu); /** @todo Hex? M1 Max only has 10 cores... */
 # endif
-    io_registry_entry_t hIoRegEntry = IORegistryEntryFromPath(kIOMasterPortDefault, szCpuPath);
+
+    RT_GCC_NO_WARN_DEPRECATED_BEGIN
+    io_registry_entry_t hIoRegEntry = IORegistryEntryFromPath(kIOMasterPortDefault, szCpuPath); /* kIOMasterPortDefault: Deprecated since 12.0. */
+    RT_GCC_NO_WARN_DEPRECATED_END
+
     if (hIoRegEntry != MACH_PORT_NULL)
     {
         uint32_t uCpuFrequency = rtMpDarwinGetMaxFrequencyFromIOService(hIoRegEntry);

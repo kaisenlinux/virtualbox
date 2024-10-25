@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -289,7 +289,8 @@ DECLHIDDEN(void)         rtThreadWinTlsDestruction(void); /* in tls-win.cpp */
 # endif
 # ifdef RTTHREAD_POSIX_WITH_CREATE_PRIORITY_PROXY
 DECLHIDDEN(bool) rtThreadPosixPriorityProxyStart(void);
-DECLHIDDEN(int)  rtThreadPosixPriorityProxyCall(PRTTHREADINT pTargetThread, PFNRT pfnFunction, int cArgs, ...);
+DECLHIDDEN(int)  rtThreadPosixPriorityProxyCall(PRTTHREADINT pTargetThread, PFNRT pfnFunction,
+                                                int cArgs, ...) RT_IPRT_CALLREQ_ATTR(2, 3, 4);
 # endif
 #endif
 

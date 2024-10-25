@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -29,12 +29,12 @@
 #include <QApplication>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QIcon>
 #include <QPainter>
 #include <QStyle>
+#include <QWindow>
 #ifdef VBOX_WS_MAC
 # include <QContextMenuEvent>
-#endif /* VBOX_WS_MAC */
+#endif
 
 /* GUI includes: */
 #include "QIStatusBarIndicator.h"
@@ -64,15 +64,14 @@ void QIStatusBarIndicator::mousePressEvent(QMouseEvent *pEvent)
     // which would be some kind of overstated.
     if (pEvent->button() == Qt::LeftButton)
     {
-        QContextMenuEvent cme(QContextMenuEvent::Mouse, pEvent->pos(), pEvent->globalPos());
+        QContextMenuEvent cme(QContextMenuEvent::Mouse, pEvent->position().toPoint(), pEvent->globalPosition().toPoint());
         emit sigContextMenuRequest(this, &cme);
         if (cme.isAccepted())
             pEvent->accept();
-        else
-            QWidget::mousePressEvent(pEvent);
     }
-    else
-        QWidget::mousePressEvent(pEvent);
+
+    /* Call to base-class: */
+    QWidget::mousePressEvent(pEvent);
 }
 #endif /* VBOX_WS_MAC */
 
@@ -123,10 +122,8 @@ void QIStateStatusBarIndicator::drawContents(QPainter *pPainter)
 {
     if (m_icons.contains(m_iState))
     {
-        if (window())
-            pPainter->drawPixmap(contentsRect().topLeft(), m_icons.value(m_iState).pixmap(window()->windowHandle(), m_size));
-        else
-            pPainter->drawPixmap(contentsRect().topLeft(), m_icons.value(m_iState).pixmap(m_size));
+        const qreal fDevicePixelRatio = window() && window()->windowHandle() ? window()->windowHandle()->devicePixelRatio() : 1;
+        pPainter->drawPixmap(contentsRect().topLeft(), m_icons.value(m_iState).pixmap(m_size, fDevicePixelRatio));
     }
 }
 
@@ -139,20 +136,17 @@ QITextStatusBarIndicator::QITextStatusBarIndicator(QWidget *pParent /* = 0 */)
     : QIStatusBarIndicator(pParent)
     , m_pLabel(0)
 {
-    /* Create main-layout: */
+    /* Prepare main-layout: */
     QHBoxLayout *pMainLayout = new QHBoxLayout(this);
     if (pMainLayout)
     {
-        /* Configure main-layout: */
         pMainLayout->setContentsMargins(0, 0, 0, 0);
         pMainLayout->setSpacing(0);
+
         /* Create label: */
-        m_pLabel = new QLabel;
+        m_pLabel = new QLabel(this);
         if (m_pLabel)
-        {
-            /* Add label into main-layout: */
             pMainLayout->addWidget(m_pLabel);
-        }
     }
 }
 

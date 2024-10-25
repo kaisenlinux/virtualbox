@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -530,30 +530,6 @@ RT_C_DECLS_END
         break
 #endif
 
-/** @def AssertContinue
- * Assert that an expression is true and continue if it isn't.
- * In RT_STRICT mode it will hit a breakpoint before continuing.
- *
- * @param   expr    Expression which should be true.
- */
-#ifdef RT_STRICT
-# define AssertContinue(expr) \
-    if (RT_LIKELY(!!(expr))) \
-    { /* likely */ } \
-    else if (1) \
-    { \
-        RTAssertMsg1Weak(#expr, __LINE__, __FILE__, RT_GCC_EXTENSION __PRETTY_FUNCTION__); \
-        RTAssertPanic(); \
-        continue; \
-    } else do {} while (0)
-#else
-# define AssertContinue(expr) \
-    if (RT_LIKELY(!!(expr))) \
-    { /* likely */ } \
-    else \
-        continue
-#endif
-
 /** @def AssertBreakStmt
  * Assert that an expression is true and breaks if it isn't.
  * In RT_STRICT mode it will hit a breakpoint before doing break.
@@ -580,6 +556,59 @@ RT_C_DECLS_END
     { \
         stmt; \
         break; \
+    } else do {} while (0)
+#endif
+
+/** @def AssertContinue
+ * Assert that an expression is true and continue if it isn't.
+ * In RT_STRICT mode it will hit a breakpoint before continuing.
+ *
+ * @param   expr    Expression which should be true.
+ */
+#ifdef RT_STRICT
+# define AssertContinue(expr) \
+    if (RT_LIKELY(!!(expr))) \
+    { /* likely */ } \
+    else if (1) \
+    { \
+        RTAssertMsg1Weak(#expr, __LINE__, __FILE__, RT_GCC_EXTENSION __PRETTY_FUNCTION__); \
+        RTAssertPanic(); \
+        continue; \
+    } else do {} while (0)
+#else
+# define AssertContinue(expr) \
+    if (RT_LIKELY(!!(expr))) \
+    { /* likely */ } \
+    else \
+        continue
+#endif
+
+/** @def AssertContinueStmt
+ * Assert that an expression is true and continue if it isn't.
+ * In RT_STRICT mode it will hit a breakpoint before continuing.
+ *
+ * @param   expr    Expression which should be true.
+ * @param   stmt    Statement to execute before contine in case of a failed assertion.
+ */
+#ifdef RT_STRICT
+# define AssertContinueStmt(expr, stmt) \
+    if (RT_LIKELY(!!(expr))) \
+    { /* likely */ } \
+    else if (1) \
+    { \
+        RTAssertMsg1Weak(#expr, __LINE__, __FILE__, RT_GCC_EXTENSION __PRETTY_FUNCTION__); \
+        RTAssertPanic(); \
+        stmt; \
+        continue; \
+    } else do {} while (0)
+#else
+# define AssertContinueStmt(expr, stmt) \
+    if (RT_LIKELY(!!(expr))) \
+    { /* likely */ } \
+    else if (1) \
+    { \
+        stmt; \
+        continue; \
     } else do {} while (0)
 #endif
 
@@ -1168,6 +1197,28 @@ RT_C_DECLS_END
         } \
     } while (0)
 
+/** @def AssertLogRelReturnStmt
+ * Assert that an expression is true, execute \a stmt & return \a rc if it
+ * isn't. Strict builds will hit a breakpoint, non-strict will only do LogRel.
+ *
+ * @param   expr    Expression which should be true.
+ * @param   stmt    Statement to execute before break in case of a failed
+ *                  assertion.
+ * @param   rc      What is to be presented to return.
+ */
+#define AssertLogRelReturnStmt(expr, stmt, rc) \
+    do { \
+        if (RT_LIKELY(!!(expr))) \
+        { /* likely */ } \
+        else \
+        { \
+            RTAssertLogRelMsg1(#expr, __LINE__, __FILE__, RT_GCC_EXTENSION __PRETTY_FUNCTION__); \
+            RTAssertPanic(); \
+            stmt; \
+            return (rc); \
+        } \
+    } while (0)
+
 /** @def AssertLogRelReturnVoid
  * Assert that an expression is true, return void if it isn't.
  * Strict builds will hit a breakpoint, non-strict will only do LogRel.
@@ -1182,6 +1233,27 @@ RT_C_DECLS_END
         { \
             RTAssertLogRelMsg1(#expr, __LINE__, __FILE__, RT_GCC_EXTENSION __PRETTY_FUNCTION__); \
             RTAssertPanic(); \
+            return; \
+        } \
+    } while (0)
+
+/** @def AssertLogRelReturnVoidStmt
+ * Assert that an expression is true, execute \a stmt & return void if it isn't.
+ * Strict builds will hit a breakpoint, non-strict will only do LogRel.
+ *
+ * @param   expr    Expression which should be true.
+ * @param   stmt    Statement to execute before break in case of a failed
+ *                  assertion.
+ */
+#define AssertLogRelReturnVoidStmt(expr, stmt) \
+    do { \
+        if (RT_LIKELY(!!(expr))) \
+        { /* likely */ } \
+        else \
+        { \
+            RTAssertLogRelMsg1(#expr, __LINE__, __FILE__, RT_GCC_EXTENSION __PRETTY_FUNCTION__); \
+            RTAssertPanic(); \
+            stmt; \
             return; \
         } \
     } while (0)
@@ -1624,6 +1696,35 @@ RT_C_DECLS_END
 # define AssertRelease(expr)  do { } while (0)
 #endif
 
+/** @def AssertReleaseStmt
+ * Assert that an expression is true. If false, hit breakpoint and execute the
+ * statement.
+ * @param   expr    Expression which should be true.
+ * @param   stmt    Statement to execute on failure.
+ */
+#if defined(RT_STRICT) || !defined(RTASSERT_NO_RELEASE_ASSERTIONS)
+# define AssertReleaseStmt(expr, stmt)  \
+    do { \
+        if (RT_LIKELY(!!(expr))) \
+        { /* likely */ } \
+        else \
+        { \
+            RTAssertMsg1Weak(#expr, __LINE__, __FILE__, RT_GCC_EXTENSION __PRETTY_FUNCTION__); \
+            RTAssertReleasePanic(); \
+            stmt; \
+        } \
+    } while (0)
+#else
+# define AssertReleaseStmt(expr, stmt)  \
+    do { \
+        if (RT_LIKELY(!!(expr))) \
+        { /* likely */ } \
+        else \
+        { \
+            stmt; \
+        } \
+    } while (0)
+#endif
 
 /** @def AssertReleaseReturn
  * Assert that an expression is true, hit a breakpoint and return if it isn't.
@@ -1890,6 +1991,20 @@ RT_C_DECLS_END
     } while (0)
 #else
 # define AssertReleaseFailed() do { } while (0)
+#endif
+
+/** @def AssertReleaseFailedStmt
+ * An assertion failed, hit breakpoint and execute statement.
+ */
+#if defined(RT_STRICT) || !defined(RTASSERT_NO_RELEASE_ASSERTIONS)
+# define AssertReleaseFailedStmt(stmt) \
+    do { \
+        RTAssertMsg1Weak((const char *)0, __LINE__, __FILE__, RT_GCC_EXTENSION __PRETTY_FUNCTION__); \
+        RTAssertReleasePanic(); \
+        stmt; \
+    } while (0)
+#else
+# define AssertReleaseFailedStmt(stmt)     do { stmt; } while (0)
 #endif
 
 /** @def AssertReleaseFailedReturn

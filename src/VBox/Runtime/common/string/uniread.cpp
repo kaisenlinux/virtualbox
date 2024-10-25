@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -978,7 +978,7 @@ static int Stream1Printf(const char *pszFormat, ...)
 }
 
 
-/** the data store for stream two. */
+/** The data store for stream two. */
 static char g_szStream2[10240];
 static unsigned volatile g_offStream2 = 0;
 
@@ -1010,7 +1010,11 @@ static int Stream2Printf(const char *pszFormat, ...)
     unsigned offStream2 = g_offStream2;
     va_list va;
     va_start(va, pszFormat);
+#if 1
+    int cch = vsnprintf(&g_szStream2[offStream2], sizeof(g_szStream2) - offStream2, pszFormat, va);
+#else
     int cch = vsprintf(&g_szStream2[offStream2], pszFormat, va);
+#endif
     va_end(va);
     offStream2 += cch;
     if (offStream2 >= sizeof(g_szStream2))
@@ -1026,7 +1030,7 @@ static int Stream2Printf(const char *pszFormat, ...)
 /**
  * Print the unidata.cpp file header and include list.
  */
-int PrintHeader(const char *argv0, const char *pszBaseDir)
+static int PrintHeader(const char *argv0, const char *pszBaseDir)
 {
     char szBuf[1024];
     if (!pszBaseDir)
@@ -1093,7 +1097,7 @@ int PrintHeader(const char *argv0, const char *pszBaseDir)
 /**
  * Print the flag tables.
  */
-int PrintFlags(void)
+static int PrintFlags(void)
 {
     /*
      * Print flags table.

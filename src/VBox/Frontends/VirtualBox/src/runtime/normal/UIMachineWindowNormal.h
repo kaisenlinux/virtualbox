@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -57,25 +57,7 @@ public:
 private slots:
 
     /** Handles machine state change event. */
-    void sltMachineStateChanged();
-    /** Handles medium change event. */
-    void sltMediumChange(const CMediumAttachment &attachment);
-    /** Handles USB controller change event. */
-    void sltUSBControllerChange();
-    /** Handles USB device state change event. */
-    void sltUSBDeviceStateChange();
-    /** Handles audio adapter change event. */
-    void sltAudioAdapterChange();
-    /** Handles network adapter change event. */
-    void sltNetworkAdapterChange();
-    /** Handles shared folder change event. */
-    void sltSharedFolderChange();
-    /** Handles recording change event. */
-    void sltRecordingChange();
-    /** Handles CPU execution cap change event. */
-    void sltCPUExecutionCapChange();
-    /** Handles UISession initialized event. */
-    void sltHandleSessionInitialized();
+    void sltMachineStateChanged() RT_OVERRIDE;
 
 #ifndef RT_OS_DARWIN
     /** Handles menu-bar configuration-change. */
@@ -98,32 +80,28 @@ private slots:
 
 private:
 
-    /** Prepare session connections routine. */
-    void prepareSessionConnections();
 #ifndef VBOX_WS_MAC
     /** Prepare menu routine. */
-    void prepareMenu();
+    void prepareMenu()  RT_OVERRIDE RT_FINAL;
 #endif /* !VBOX_WS_MAC */
     /** Prepare status-bar routine. */
-    void prepareStatusBar();
+    void prepareStatusBar() RT_OVERRIDE;
     /** Prepare notification-center routine. */
-    void prepareNotificationCenter();
+    void prepareNotificationCenter() RT_OVERRIDE;
     /** Prepare visual-state routine. */
-    void prepareVisualState();
+    void prepareVisualState() RT_OVERRIDE;
     /** Load settings routine. */
-    void loadSettings();
+    void loadSettings() RT_OVERRIDE;
 
     /** Cleanup visual-state routine. */
-    void cleanupVisualState();
+    void cleanupVisualState() RT_OVERRIDE;
     /** Cleanup notification-center routine. */
-    void cleanupNotificationCenter();
+    void cleanupNotificationCenter() RT_OVERRIDE;
     /** Cleanup status-bar routine. */
-    void cleanupStatusBar();
-    /** Cleanup session connections routine. */
-    void cleanupSessionConnections();
+    void cleanupStatusBar() RT_OVERRIDE;
 
     /** Updates visibility according to visual-state. */
-    void showInNecessaryMode();
+    void showInNecessaryMode() RT_OVERRIDE;
 
     /** Restores cached window geometry. */
     virtual void restoreCachedGeometry() RT_OVERRIDE;
@@ -134,7 +112,7 @@ private:
     virtual void normalizeGeometry(bool fAdjustPosition, bool fResizeToGuestDisplay) RT_OVERRIDE;
 
     /** Common update routine. */
-    void updateAppearanceOf(int aElement);
+    void updateAppearanceOf(int aElement) RT_OVERRIDE;
 
 #ifndef VBOX_WS_MAC
     /** Updates menu-bar content. */
@@ -142,7 +120,7 @@ private:
 #endif /* !VBOX_WS_MAC */
 
     /** Common @a pEvent handler. */
-    bool event(QEvent *pEvent);
+    bool event(QEvent *pEvent) RT_OVERRIDE;
 
     /** Returns whether this window is maximized. */
     bool isMaximizedChecked();

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -203,7 +203,8 @@ VMMR3DECL(int) PGMR3DbgR3Ptr2HCPhys(PUVM pUVM, RTR3PTR R3Ptr, PRTHCPHYS pHCPhys)
 VMMR3DECL(int) PGMR3DbgHCPhys2GCPhys(PUVM pUVM, RTHCPHYS HCPhys, PRTGCPHYS pGCPhys)
 {
     UVM_ASSERT_VALID_EXT_RETURN(pUVM, VERR_INVALID_VM_HANDLE);
-    VM_ASSERT_VALID_EXT_RETURN(pUVM->pVM, VERR_INVALID_VM_HANDLE);
+    PVM const pVM = pUVM->pVM;
+    VM_ASSERT_VALID_EXT_RETURN(pVM, VERR_INVALID_VM_HANDLE);
 
     /*
      * Validate and adjust the input a bit.
@@ -215,10 +216,15 @@ VMMR3DECL(int) PGMR3DbgHCPhys2GCPhys(PUVM pUVM, RTHCPHYS HCPhys, PRTGCPHYS pGCPh
     if (HCPhys == 0)
         return VERR_INVALID_POINTER;
 
-    for (PPGMRAMRANGE pRam = pUVM->pVM->pgm.s.CTX_SUFF(pRamRangesX);
-         pRam;
-         pRam = pRam->CTX_SUFF(pNext))
+    uint32_t const cLookupEntries = RT_MIN(pVM->pgm.s.RamRangeUnion.cLookupEntries, RT_ELEMENTS(pVM->pgm.s.aRamRangeLookup));
+    for (uint32_t idxLookup = 0; idxLookup < cLookupEntries; idxLookup++)
     {
+        uint32_t const idRamRange = PGMRAMRANGELOOKUPENTRY_GET_ID(pVM->pgm.s.aRamRangeLookup[idxLookup]);
+        AssertContinue(idRamRange < RT_ELEMENTS(pVM->pgm.s.apRamRanges));
+        PPGMRAMRANGE const pRam = pVM->pgm.s.apRamRanges[idRamRange];
+        if (pRam != NULL)   { /*likely*/ }
+        else                continue;
+
         uint32_t iPage = pRam->cb >> GUEST_PAGE_SHIFT;
         while (iPage-- > 0)
             if (PGM_PAGE_GET_HCPHYS(&pRam->aPages[iPage]) == HCPhys)
@@ -453,7 +459,7 @@ VMMR3_INT_DECL(int) PGMR3DbgWriteGCPtr(PVM pVM, RTGCPTR GCPtrDst, void const *pv
 static DECLCALLBACK(uint8_t const *) pgmR3DbgFixedMemScan8Wide8Step(uint8_t const *pbHaystack, uint32_t cbHaystack,
                                                                     uint8_t const *pbNeedle, size_t cbNeedle)
 {
-    Assert(cbNeedle == 8); RT_NOREF(cbNeedle);
+    Assert(cbNeedle >= 8); RT_NOREF(cbNeedle);
     const uint64_t uNeedle = *(const uint64_t *)pbNeedle;
     uint64_t const *puHaystack = (uint64_t const *)pbHaystack;
     cbHaystack /= sizeof(uint64_t);
@@ -469,7 +475,7 @@ static DECLCALLBACK(uint8_t const *) pgmR3DbgFixedMemScan8Wide8Step(uint8_t cons
 static DECLCALLBACK(uint8_t const *) pgmR3DbgFixedMemScan4Wide4Step(uint8_t const *pbHaystack, uint32_t cbHaystack,
                                                                     uint8_t const *pbNeedle, size_t cbNeedle)
 {
-    Assert(cbNeedle == 4); RT_NOREF(cbNeedle);
+    Assert(cbNeedle >= 4); RT_NOREF(cbNeedle);
     const uint32_t uNeedle = *(const uint32_t *)pbNeedle;
     uint32_t const *puHaystack = (uint32_t const *)pbHaystack;
     cbHaystack /= sizeof(uint32_t);
@@ -485,7 +491,7 @@ static DECLCALLBACK(uint8_t const *) pgmR3DbgFixedMemScan4Wide4Step(uint8_t cons
 static DECLCALLBACK(uint8_t const *) pgmR3DbgFixedMemScan2Wide2Step(uint8_t const *pbHaystack, uint32_t cbHaystack,
                                                                     uint8_t const *pbNeedle, size_t cbNeedle)
 {
-    Assert(cbNeedle == 2); RT_NOREF(cbNeedle);
+    Assert(cbNeedle >= 2); RT_NOREF(cbNeedle);
     const uint16_t uNeedle = *(const uint16_t *)pbNeedle;
     uint16_t const *puHaystack = (uint16_t const *)pbHaystack;
     cbHaystack /= sizeof(uint16_t);
@@ -500,7 +506,7 @@ static DECLCALLBACK(uint8_t const *) pgmR3DbgFixedMemScan2Wide2Step(uint8_t cons
 static DECLCALLBACK(uint8_t const *) pgmR3DbgFixedMemScan1Wide1Step(uint8_t const *pbHaystack, uint32_t cbHaystack,
                                                                     uint8_t const *pbNeedle, size_t cbNeedle)
 {
-    Assert(cbNeedle == 1); RT_NOREF(cbNeedle);
+    Assert(cbNeedle >= 1); RT_NOREF(cbNeedle);
     const uint8_t bNeedle = *pbNeedle;
     while (cbHaystack-- > 0)
         if (*pbHaystack != bNeedle)
@@ -514,7 +520,7 @@ static DECLCALLBACK(uint8_t const *) pgmR3DbgFixedMemScan1Wide1Step(uint8_t cons
 static DECLCALLBACK(uint8_t const *) pgmR3DbgFixedMemScan4Wide1Step(uint8_t const *pbHaystack, uint32_t cbHaystack,
                                                                     uint8_t const *pbNeedle, size_t cbNeedle)
 {
-    Assert(cbNeedle == 4); RT_NOREF(cbNeedle);
+    Assert(cbNeedle >= 4); RT_NOREF(cbNeedle);
     uint32_t const uNeedle = *(uint32_t const *)pbNeedle;
     while (cbHaystack >= sizeof(uint32_t))
     {
@@ -538,7 +544,7 @@ static DECLCALLBACK(uint8_t const *) pgmR3DbgFixedMemScan4Wide1Step(uint8_t cons
 static DECLCALLBACK(uint8_t const *) pgmR3DbgFixedMemScan8Wide1Step(uint8_t const *pbHaystack, uint32_t cbHaystack,
                                                                     uint8_t const *pbNeedle, size_t cbNeedle)
 {
-    Assert(cbNeedle == 8); RT_NOREF(cbNeedle);
+    Assert(cbNeedle >= 8); RT_NOREF(cbNeedle);
     uint64_t const uNeedle = *(uint64_t const *)pbNeedle;
     while (cbHaystack >= sizeof(uint64_t))
     {
@@ -829,10 +835,16 @@ VMMR3_INT_DECL(int) PGMR3DbgScanPhysical(PVM pVM, RTGCPHYS GCPhys, RTGCPHYS cbRa
      * bother to match across ranges.
      */
     PGM_LOCK_VOID(pVM);
-    for (PPGMRAMRANGE pRam = pVM->pgm.s.CTX_SUFF(pRamRangesX);
-         pRam;
-         pRam = pRam->CTX_SUFF(pNext))
+    uint32_t const cLookupEntries = RT_MIN(pVM->pgm.s.RamRangeUnion.cLookupEntries, RT_ELEMENTS(pVM->pgm.s.aRamRangeLookup));
+/** @todo binary search the start address.   */
+    for (uint32_t idxLookup = 0; idxLookup < cLookupEntries; idxLookup++)
     {
+        uint32_t const idRamRange = PGMRAMRANGELOOKUPENTRY_GET_ID(pVM->pgm.s.aRamRangeLookup[idxLookup]);
+        AssertContinue(idRamRange < RT_ELEMENTS(pVM->pgm.s.apRamRanges));
+        PPGMRAMRANGE const pRam = pVM->pgm.s.apRamRanges[idRamRange];
+        if (pRam != NULL)   { /*likely*/ }
+        else                continue;
+
         /*
          * If the search range starts prior to the current ram range record,
          * adjust the search range and possibly conclude the search.
@@ -987,7 +999,7 @@ VMMR3_INT_DECL(int) PGMR3DbgScanVirtual(PVM pVM, PVMCPU pVCpu, RTGCPTR GCPtr, RT
      * Search the memory - ignore MMIO, zero and not-present pages.
      */
     const bool      fAllZero  = ASMMemIsZero(pabNeedle, cbNeedle);
-    RTGCPTR         GCPtrMask = PGMMODE_IS_LONG_MODE(enmMode) ? UINT64_MAX : UINT32_MAX;
+    RTGCPTR         GCPtrMask = PGMMODE_IS_64BIT_MODE(enmMode) ? UINT64_MAX : UINT32_MAX;
     uint8_t         abPrev[MAX_NEEDLE_SIZE];
     size_t          cbPrev    = 0;
     const uint32_t  cIncPages = GCPtrAlign <= GUEST_PAGE_SIZE
@@ -1006,14 +1018,14 @@ VMMR3_INT_DECL(int) PGMR3DbgScanVirtual(PVM pVM, PVMCPU pVCpu, RTGCPTR GCPtr, RT
     uint32_t const  cYieldCountDownReload   = VMSTATE_IS_RUNNING(enmVMState) ? 4096 : 65536;
     uint32_t        cYieldCountDown         = cYieldCountDownReload;
     RTGCPHYS        GCPhysPrev              = NIL_RTGCPHYS;
+    PGMPTWALK       Walk                    = { NIL_RTGCPTR, NIL_RTGCPHYS, NIL_RTGCPHYS, false };
+    PGMPTWALKGST    WalkGst                 = { {}, PGMPTWALKGSTTYPE_INVALID };
     bool            fFullWalk               = true;
-    PGMPTWALK       Walk;
-    PGMPTWALKGST    WalkGst;
 
     PGM_LOCK_VOID(pVM);
     for (;; offPage = 0)
     {
-        int rc;
+        int             rc;
         if (fFullWalk)
             rc = pgmGstPtWalk(pVCpu, GCPtr, &Walk, &WalkGst);
         else
@@ -1634,9 +1646,9 @@ static int pgmR3DumpHierarchyShwPaePT(PPGMR3DUMPHIERARCHYSTATE pState, RTHCPHYS 
                                         Pte.n.u1CacheDisable? "CD" : "--",
                                         Pte.n.u1PAT         ? "AT" : "--",
                                         Pte.n.u1NoExecute   ? "NX" : "--",
-                                        Pte.u & PGM_PTFLAGS_TRACK_DIRTY   ? 'd' : '-',
-                                        Pte.u & RT_BIT(10)                ? '1' : '0',
-                                        Pte.u & PGM_PTFLAGS_CSAM_VALIDATED? 'v' : '-',
+                                        Pte.u & PGM_PTFLAGS_TRACK_DIRTY ? 'd' : '-',
+                                        Pte.u & RT_BIT(10)  ? '1' : '-',
+                                        Pte.u & RT_BIT(11)  ? '1' : '-',
                                         Pte.u & X86_PTE_PAE_PG_MASK);
                 if (pState->fDumpPageInfo)
                     pgmR3DumpHierarchyShwGuestPageInfo(pState, Pte.u & X86_PTE_PAE_PG_MASK, _4K);
@@ -1963,9 +1975,9 @@ static int pgmR3DumpHierarchyShw32BitPT(PPGMR3DUMPHIERARCHYSTATE pState, RTHCPHY
                                     Pte.n.u1WriteThru   ? "WT" : "--",
                                     Pte.n.u1CacheDisable? "CD" : "--",
                                     Pte.n.u1PAT         ? "AT" : "--",
-                                    Pte.u & PGM_PTFLAGS_TRACK_DIRTY     ? 'd' : '-',
-                                    Pte.u & RT_BIT(10)                  ? '1' : '0',
-                                    Pte.u & PGM_PTFLAGS_CSAM_VALIDATED  ? 'v' : '-',
+                                    Pte.u & PGM_PTFLAGS_TRACK_DIRTY ? 'd' : '-',
+                                    Pte.u & RT_BIT(10)  ? '1' : '-',
+                                    Pte.u & RT_BIT(11)  ? '1' : '-',
                                     Pte.u & X86_PDE_PG_MASK);
             if (pState->fDumpPageInfo)
                 pgmR3DumpHierarchyShwGuestPageInfo(pState, Pte.u & X86_PDE_PG_MASK, _4K);
@@ -3273,7 +3285,7 @@ void pgmLogState(PVM pVM)
     LOG_PGM_MEMBER("RTbool",        fNoMorePhysWrites);
     LOG_PGM_MEMBER("RTbool",        fPageFusionAllowed);
     LOG_PGM_MEMBER("RTbool",        fPciPassthrough);
-    LOG_PGM_MEMBER("#x",            cMmio2Regions);
+    LOG_PGM_MEMBER("#x",            cMmio2Ranges);
     LOG_PGM_MEMBER("RTbool",        fRestoreRomPagesOnReset);
     LOG_PGM_MEMBER("RTbool",        fZeroRamPagesOnReset);
     LOG_PGM_MEMBER("RTbool",        fFinalizedMappings);

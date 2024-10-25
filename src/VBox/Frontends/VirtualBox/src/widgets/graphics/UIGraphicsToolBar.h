@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -63,7 +63,7 @@ protected:
     typedef QPair<int, int> UIGraphicsToolBarIndex;
 
     /* Helpers: Layout stuff: */
-    QSizeF sizeHint(Qt::SizeHint which, const QSizeF &constraint = QSizeF()) const;
+    QSizeF sizeHint(Qt::SizeHint which, const QSizeF &constraint = QSizeF()) const  RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -75,4 +75,3 @@ private:
 };
 
 #endif /* !FEQT_INCLUDED_SRC_widgets_graphics_UIGraphicsToolBar_h */
-

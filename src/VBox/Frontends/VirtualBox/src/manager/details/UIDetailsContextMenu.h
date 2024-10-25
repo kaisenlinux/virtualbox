@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,8 +31,10 @@
 # pragma once
 #endif
 
+/* Qt includes: */
+#include <QWidget>
+
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
 #include "UIExtraDataDefs.h"
 
 /* Forward declaration: */
@@ -41,7 +43,7 @@ class QListWidgetItem;
 class UIDetailsModel;
 
 /** QWidget subclass used as Details pane context menu. */
-class UIDetailsContextMenu : public QIWithRetranslateUI2<QWidget>
+class UIDetailsContextMenu : public QWidget
 {
     Q_OBJECT;
 
@@ -65,9 +67,6 @@ public:
 
 protected:
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
     /** Handles translation event for categories list. */
     void retranslateCategories();
     /** Handles translation event for options list. */
@@ -86,6 +85,8 @@ private slots:
     void sltOptionItemEntered(QListWidgetItem *pItem);
     /** Handles signal about option list-widget @a pItem clicked. */
     void sltOptionItemClicked(QListWidgetItem *pItem);
+    /** Handles translation event. */
+    void sltRetranslateUI();
 
 private:
 

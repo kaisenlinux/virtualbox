@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -61,12 +61,12 @@ public:
 protected slots:
 
     /** Handles button-click. */
-    virtual void sltButtonClicked();
+    virtual void sltButtonClicked() RT_OVERRIDE RT_FINAL;
 
 protected:
 
     /** Handles key-press @a pEvent. */
-    virtual void keyPressEvent(QKeyEvent *pEvent) RT_OVERRIDE;
+    virtual void keyPressEvent(QKeyEvent *pEvent) RT_OVERRIDE RT_FINAL;
 
 private:
 

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -444,6 +444,7 @@ static void HandleSignal(int sig)
 
 # ifdef RT_OS_DARWIN
 
+#if 0 /* unused */
 /* For debugging. */
 uint32_t GetSignalMask(void)
 {
@@ -458,6 +459,7 @@ uint32_t GetSignalMask(void)
         if (sigismember(&Sigs, i)) RTMsgInfo("debug: sig %2d blocked: %s\n", i, strsignal(i));
     return *(uint32_t const *)&Sigs;
 }
+#endif
 
 /**
  * Blocks or unblocks the signals we handle.
@@ -875,7 +877,7 @@ ConsoleCtrlHandler(DWORD dwCtrlType) RT_NOTHROW_DEF
  * Note that machine power up/down operations are not cancelable, so
  * we don't bother checking for signals.
  */
-HRESULT
+static HRESULT
 showProgress(const ComPtr<IProgress> &progress)
 {
     BOOL fCompleted = FALSE;
@@ -959,7 +961,7 @@ extern "C" DECLEXPORT(int) TrustedMain(int argc, char **argv, char **envp)
     const char *vrdeAddress = NULL;
     const char *vrdeEnabled = NULL;
     unsigned cVRDEProperties = 0;
-    const char *aVRDEProperties[16];
+    const char *apszVRDEProperties[16];
     unsigned fPaused = 0;
 #ifdef VBOX_WITH_RECORDING
     bool fRecordEnabled = false;
@@ -1054,8 +1056,8 @@ extern "C" DECLEXPORT(int) TrustedMain(int argc, char **argv, char **envp)
                 vrdeEnabled = ValueUnion.psz;
                 break;
             case 'e':
-                if (cVRDEProperties < RT_ELEMENTS(aVRDEProperties))
-                    aVRDEProperties[cVRDEProperties++] = ValueUnion.psz;
+                if (cVRDEProperties < RT_ELEMENTS(apszVRDEProperties))
+                    apszVRDEProperties[cVRDEProperties++] = ValueUnion.psz;
                 else
                      RTPrintf("Warning: too many VRDE properties. Ignored: '%s'\n", ValueUnion.psz);
                 break;
@@ -1396,32 +1398,18 @@ extern "C" DECLEXPORT(int) TrustedMain(int argc, char **argv, char **envp)
             {
                 for (unsigned i = 0; i < cVRDEProperties; i++)
                 {
-                    /* Parse 'name=value' */
-                    char *pszProperty = RTStrDup(aVRDEProperties[i]);
-                    if (pszProperty)
+                    /* Split 'name=value' and feed the parts to SetVRDEProperty. */
+                    const char *pszDelimiter = strchr(apszVRDEProperties[i], '=');
+                    if (pszDelimiter)
                     {
-                        char *pDelimiter = strchr(pszProperty, '=');
-                        if (pDelimiter)
-                        {
-                            *pDelimiter = '\0';
-
-                            Bstr bstrName = pszProperty;
-                            Bstr bstrValue = &pDelimiter[1];
-                            CHECK_ERROR_BREAK(vrdeServer, SetVRDEProperty(bstrName.raw(), bstrValue.raw()));
-                        }
-                        else
-                        {
-                            RTPrintf("Error: Invalid VRDE property '%s'\n", aVRDEProperties[i]);
-                            RTStrFree(pszProperty);
-                            hrc = E_INVALIDARG;
-                            break;
-                        }
-                        RTStrFree(pszProperty);
+                        Bstr bstrName(apszVRDEProperties[i], pszDelimiter - apszVRDEProperties[i]);
+                        Bstr bstrValue(pszDelimiter + 1);
+                        CHECK_ERROR_BREAK(vrdeServer, SetVRDEProperty(bstrName.raw(), bstrValue.raw()));
                     }
                     else
                     {
-                        RTPrintf("Error: Failed to allocate memory for VRDE property '%s'\n", aVRDEProperties[i]);
-                        hrc = E_OUTOFMEMORY;
+                        RTPrintf("Error: Invalid VRDE property '%s'\n", apszVRDEProperties[i]);
+                        hrc = E_INVALIDARG;
                         break;
                     }
                 }

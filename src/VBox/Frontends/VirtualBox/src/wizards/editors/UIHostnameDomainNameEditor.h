@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,17 +35,14 @@
 #include <QIcon>
 #include <QWidget>
 
-/* Local includes: */
-#include "QIWithRetranslateUI.h"
-
 /* Forward declarations: */
+class QCheckBox;
 class QGridLayout;
 class QLabel;
 class QILineEdit;
-class UIMarkableLineEdit;
 class UIPasswordLineEdit;
 
-class UIHostnameDomainNameEditor : public QIWithRetranslateUI<QWidget>
+class UIHostnameDomainNameEditor : public QWidget
 {
 
     Q_OBJECT;
@@ -53,6 +50,8 @@ class UIHostnameDomainNameEditor : public QIWithRetranslateUI<QWidget>
 signals:
 
     void sigHostnameDomainNameChanged(const QString &strHostNameDomain, bool fIsComplete);
+    void sigProductKeyChanged(const QString &strProductKey);
+    void sigStartHeadlessChanged(bool fChecked);
 
 public:
 
@@ -69,31 +68,28 @@ public:
     bool isComplete() const;
     void mark();
 
-    int firstColumnWidth() const;
-    void setFirstColumnWidth(int iWidth);
-
-
-protected:
-
-    void retranslateUi();
+    void disableEnableProductKeyWidgets(bool fEnabled);
 
 private slots:
 
     void sltHostnameChanged();
     void sltDomainChanged();
+    void sltRetranslateUI();
 
 private:
 
     void prepare();
-    template<class T>
-    void addLineEdit(int &iRow, QLabel *&pLabel, T *&pLineEdit, QGridLayout *pLayout);
+    void addLineEdit(int &iRow, QLabel *&pLabel, QILineEdit *&pLineEdit, QGridLayout *pLayout);
 
-    UIMarkableLineEdit *m_pHostnameLineEdit;
-    QILineEdit         *m_pDomainNameLineEdit;
+    QILineEdit *m_pHostnameLineEdit;
+    QILineEdit *m_pDomainNameLineEdit;
+    QILineEdit *m_pProductKeyLineEdit;
 
     QLabel *m_pHostnameLabel;
     QLabel *m_pDomainNameLabel;
+    QLabel *m_pProductKeyLabel;
     QGridLayout *m_pMainLayout;
+    QCheckBox *m_pStartHeadlessCheckBox;
 };
 
 #endif /* !FEQT_INCLUDED_SRC_wizards_editors_UIHostnameDomainNameEditor_h */

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -70,13 +70,13 @@ public slots:
 protected:
 
     /** Handles network reply progress for @a iReceived amount of bytes among @a iTotal. */
-    virtual void processNetworkReplyProgress(qint64 iReceived, qint64 iTotal);
+    virtual void processNetworkReplyProgress(qint64 iReceived, qint64 iTotal) RT_OVERRIDE RT_FINAL;
     /** Handles network reply failed with specified @a strError. */
-    virtual void processNetworkReplyFailed(const QString &strError);
+    virtual void processNetworkReplyFailed(const QString &strError) RT_OVERRIDE RT_FINAL;
     /** Handles network reply canceling for a passed @a pReply. */
-    virtual void processNetworkReplyCanceled(UINetworkReply *pReply);
+    virtual void processNetworkReplyCanceled(UINetworkReply *pReply) RT_OVERRIDE RT_FINAL;
     /** Handles network reply finishing for a passed @a pReply. */
-    virtual void processNetworkReplyFinished(UINetworkReply *pReply);
+    virtual void processNetworkReplyFinished(UINetworkReply *pReply) RT_OVERRIDE RT_FINAL;
 
 private:
 

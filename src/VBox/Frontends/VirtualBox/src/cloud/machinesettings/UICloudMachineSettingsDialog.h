@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2020-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2020-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -36,11 +36,9 @@
 #include <QWidget>
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
 #include "UICloudMachineSettingsDialogPage.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CCloudMachine.h"
 #include "CForm.h"
 
@@ -49,7 +47,7 @@ class QIDialogButtonBox;
 class UINotificationCenter;
 
 /** Cloud machine settings window. */
-class UICloudMachineSettingsDialog : public QIWithRetranslateUI2<QWidget>
+class UICloudMachineSettingsDialog : public QWidget
 {
     Q_OBJECT;
 
@@ -73,14 +71,12 @@ public:
 
 protected:
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
     /** Handles show @a pEvent. */
-    virtual void showEvent(QShowEvent *pEvent) RT_OVERRIDE;
+    virtual void showEvent(QShowEvent *pEvent) RT_OVERRIDE RT_FINAL;
     /** Handles first show @a pEvent. */
     virtual void polishEvent(QShowEvent*);
     /** Handles close @a pEvent. */
-    virtual void closeEvent(QCloseEvent *pEvent) RT_OVERRIDE;
+    virtual void closeEvent(QCloseEvent *pEvent) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -90,6 +86,8 @@ private slots:
     void init() { load(); }
     /** Accepts the dialog. */
     void accept() { save(); }
+    /** Handles translation event. */
+    void sltRetranslateUI();
 
 private:
 

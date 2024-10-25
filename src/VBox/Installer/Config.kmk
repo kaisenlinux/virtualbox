@@ -4,7 +4,7 @@
 #
 
 #
-# Copyright (C) 2015-2023 Oracle and/or its affiliates.
+# Copyright (C) 2015-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -42,7 +42,6 @@ ifdef VBOX_WITH_PYTHON
  VBOXINST_SDK_BINDINGS_XPCOM_PYTHON_FILES = \
  	sdk/bindings/xpcom/python/xpcom/__init__.py \
  	sdk/bindings/xpcom/python/xpcom/primitives.py \
- 	sdk/bindings/xpcom/python/xpcom/file.py \
  	sdk/bindings/xpcom/python/xpcom/xpcom_consts.py \
  	sdk/bindings/xpcom/python/xpcom/nsError.py \
  	sdk/bindings/xpcom/python/xpcom/xpt.py \
@@ -56,9 +55,11 @@ ifdef VBOX_WITH_PYTHON
  	sdk/bindings/xpcom/python/xpcom/server/module.py \
  	sdk/bindings/xpcom/python/xpcom/server/policy.py
  VBOXINST_SDK_INSTALLER_PYTHON_FILES = \
- 	sdk/installer/vboxapisetup.py \
- 	sdk/installer/vboxapi/__init__.py \
- 	sdk/installer/vboxapi/VirtualBox_constants.py
+ 	sdk/installer/python/vboxapisetup.py \
+ 	sdk/installer/python/vboxapi/setup.py \
+ 	sdk/installer/python/vboxapi/pyproject.toml \
+ 	sdk/installer/python/vboxapi/src/vboxapi/__init__.py \
+ 	sdk/installer/python/vboxapi/src/vboxapi/VirtualBox_constants.py
 endif
 
 
@@ -70,6 +71,8 @@ ifdef VBOX_WITH_UNATTENDED
  VBOX_UNATTENDED_TEMPLATES := \
  	debian_preseed.cfg \
  	ubuntu_preseed.cfg \
+ 	ubuntu_autoinstall_user_data \
+ 	ubuntu_autoinstall_meta_data \
  	fedora_ks.cfg \
  	ol_ks.cfg \
  	ol8_ks.cfg \

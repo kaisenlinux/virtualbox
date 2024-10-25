@@ -7,7 +7,7 @@ Test Manager - Test Manager Constants (without a more appropriate home).
 
 __copyright__ = \
 """
-Copyright (C) 2012-2023 Oracle and/or its affiliates.
+Copyright (C) 2012-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -36,7 +36,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 ## OS agnostic.
 g_ksOsAgnostic      = 'os-agnostic';
@@ -54,7 +54,7 @@ g_ksCpuArchAgnostic = 'noarch';
 ## All known CPU architectures, except the agnostic one.
 # See KBUILD_ARCHES in kBuild/header.kmk for reference.
 g_kasCpuArches      = ['amd64', 'x86', 'sparc32', 'sparc64', 's390', 's390x', 'ppc32', 'ppc64', 'mips32', 'mips64', 'ia64',
-                       'hppa32', 'hppa64', 'arm', 'alpha'];
+                       'hppa32', 'hppa64', 'arm', 'arm64', 'alpha'];
 ## All known CPU architectures, except the agnostic one.
 # See KBUILD_ARCHES in kBuild/header.kmk for reference.
 g_kasCpuArchesAll   = g_kasCpuArches + [g_ksCpuArchAgnostic,];
@@ -71,15 +71,15 @@ g_ksOsDotArchAgnostic = 'os-agnostic.noarch';
 # We do some of them by hand to avoid offering too many choices.
 g_kasOsDotCpus = \
 [
-    'darwin.amd64', 'darwin.x86', 'darwin.ppc32', 'darwin.ppc64', 'darwin.arm',
+    'darwin.amd64', 'darwin.x86', 'darwin.ppc32', 'darwin.ppc64', 'darwin.arm', 'darwin.arm64',
     'dos.x86',
     'dragonfly.amd64', 'dragonfly.x86',
-    'freebsd.amd64', 'freebsd.x86', 'freebsd.sparc64', 'freebsd.ia64', 'freebsd.ppc32', 'freebsd.ppc64', 'freebsd.arm',
-    'freebsd.mips32', 'freebsd.mips64',
+    'freebsd.amd64', 'freebsd.x86', 'freebsd.sparc64', 'freebsd.ia64', 'freebsd.ppc32', 'freebsd.ppc64',
+    'freebsd.arm', 'freebsd.arm64', 'freebsd.mips32', 'freebsd.mips64',
     'haiku.amd64', 'haiku.x86',
     'l4.amd64', 'l4.x86', 'l4.ppc32', 'l4.ppc64', 'l4.arm',
-    'nt.amd64',  'nt.x86',  'nt.arm',  'nt.ia64',  'nt.mips32',  'nt.ppc32',  'nt.alpha',
-    'win.amd64', 'win.x86', 'win.arm', 'win.ia64', 'win.mips32', 'win.ppc32', 'win.alpha',
+    'nt.amd64',  'nt.x86',  'nt.arm',  'nt.arm64',  'nt.ia64',  'nt.mips32',  'nt.ppc32',  'nt.alpha',
+    'win.amd64', 'win.x86', 'win.arm', 'win.arm64', 'win.ia64', 'win.mips32', 'win.ppc32', 'win.alpha',
     'os2.x86',
     'solaris.amd64', 'solaris.x86', 'solaris.sparc32', 'solaris.sparc64',
 ];

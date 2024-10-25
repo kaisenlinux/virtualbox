@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -91,8 +91,13 @@ typedef struct RAWIMAGE
 /** Size of write operations when filling an image with zeroes. */
 #define RAW_FILL_SIZE (128 * _1K)
 
+#if 1
+/** The maximum reasonable size of a floppy image - (fake 63.5MB valkit floppies). */
+# define RAW_MAX_FLOPPY_IMG_SIZE (255 * 2 * 255 * 512)
+#else
 /** The maximum reasonable size of a floppy image (big format 2.88MB medium). */
-#define RAW_MAX_FLOPPY_IMG_SIZE (512 * 82 * 48 * 2)
+# define RAW_MAX_FLOPPY_IMG_SIZE (512 * 82 * 48 * 2)
+#endif
 
 
 /*********************************************************************************************************************************

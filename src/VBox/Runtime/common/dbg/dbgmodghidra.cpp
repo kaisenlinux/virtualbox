@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2021-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2021-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -431,9 +431,9 @@ static int rtDbgModGhidraXmlParse(RTDBGMOD hCnt, xml::Document *a_pDoc)
 
 
 /** @interface_method_impl{RTDBGMODVTDBG,pfnTryOpen} */
-static DECLCALLBACK(int) rtDbgModGhidra_TryOpen(PRTDBGMODINT pMod, RTLDRARCH enmArch)
+static DECLCALLBACK(int) rtDbgModGhidra_TryOpen(PRTDBGMODINT pMod, RTLDRARCH enmArch, RTDBGCFG hDbgCfg)
 {
-    RT_NOREF(enmArch);
+    RT_NOREF(enmArch); RT_NOREF_PV(hDbgCfg);
 
     /*
      * Fend off images.

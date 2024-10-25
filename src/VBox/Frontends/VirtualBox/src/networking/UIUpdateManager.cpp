@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -30,15 +30,19 @@
 #include <QTimer>
 
 /* GUI includes: */
-#include "UICommon.h"
 #include "UIExecutionQueue.h"
 #include "UIExtension.h"
 #include "UIExtraDataManager.h"
+#include "UIGlobalSession.h"
 #include "UIMessageCenter.h"
 #include "UIModalWindowManager.h"
 #include "UINotificationCenter.h"
 #include "UIUpdateDefs.h"
 #include "UIUpdateManager.h"
+#include "UIVersion.h"
+#ifdef VBOX_WITH_UPDATE_REQUEST
+# include "UICommon.h"
+#endif
 
 /* COM includes: */
 #include "CExtPack.h"
@@ -139,7 +143,7 @@ void UIUpdateStepVirtualBoxExtensionPack::exec()
     }
 
     /* Get extension pack manager: */
-    CExtPackManager extPackManager = uiCommon().virtualBox().GetExtensionPackManager();
+    CExtPackManager extPackManager = gpGlobalSession->virtualBox().GetExtensionPackManager();
     /* Return if extension pack manager is NOT available: */
     if (extPackManager.isNull())
     {
@@ -157,7 +161,7 @@ void UIUpdateStepVirtualBoxExtensionPack::exec()
     }
 
     /* Get VirtualBox version: */
-    UIVersion vboxVersion(uiCommon().vboxVersionStringNormalized());
+    UIVersion vboxVersion(UIVersionInfo::vboxVersionStringNormalized());
     /* Get extension pack version: */
     QString strExtPackVersion(extPack.GetVersion());
 
@@ -231,7 +235,7 @@ void UIUpdateStepVirtualBoxExtensionPack::sltHandleDownloadedExtensionPack(const
         /* Delete the downloaded extension pack: */
         QFile::remove(QDir::toNativeSeparators(strTarget));
         /* Get the list of old extension pack files in VirtualBox homefolder: */
-        const QStringList oldExtPackFiles = QDir(uiCommon().homeFolder()).entryList(QStringList("*.vbox-extpack"),
+        const QStringList oldExtPackFiles = QDir(gpGlobalSession->homeFolder()).entryList(QStringList("*.vbox-extpack"),
                                                                                     QDir::Files);
         /* Propose to delete old extension pack files if there are any: */
         if (oldExtPackFiles.size())
@@ -241,7 +245,7 @@ void UIUpdateStepVirtualBoxExtensionPack::sltHandleDownloadedExtensionPack(const
                 foreach (const QString &strExtPackFile, oldExtPackFiles)
                 {
                     /* Delete the old extension pack file: */
-                    QFile::remove(QDir::toNativeSeparators(QDir(uiCommon().homeFolder()).filePath(strExtPackFile)));
+                    QFile::remove(QDir::toNativeSeparators(QDir(gpGlobalSession->homeFolder()).filePath(strExtPackFile)));
                 }
             }
         }
@@ -271,7 +275,7 @@ UIUpdateManager::UIUpdateManager()
 
 #ifdef VBOX_WITH_UPDATE_REQUEST
     /* Ask updater to check for the first time, for Selector UI only: */
-    if (gEDataManager->applicationUpdateEnabled() && uiCommon().uiType() == UICommon::UIType_SelectorUI)
+    if (gEDataManager->applicationUpdateEnabled() && uiCommon().uiType() == UIType_ManagerUI)
         QTimer::singleShot(0, this, SLOT(sltCheckIfUpdateIsNecessary()));
 #endif /* VBOX_WITH_UPDATE_REQUEST */
 }
@@ -327,7 +331,7 @@ void UIUpdateManager::sltCheckIfUpdateIsNecessary(bool fForcedCall /* = false */
 
     /* Load/decode curent update data: */
     VBoxUpdateData currentData;
-    CHost comHost = uiCommon().host();
+    CHost comHost = gpGlobalSession->host();
     currentData.load(comHost);
 
     /* If update is really necessary: */
@@ -351,7 +355,7 @@ void UIUpdateManager::sltHandleUpdateFinishing()
 {
     /* Load/decode curent update data: */
     VBoxUpdateData currentData;
-    CHost comHost = uiCommon().host();
+    CHost comHost = gpGlobalSession->host();
     currentData.load(comHost);
     /* Encode/save new update data: */
     VBoxUpdateData newData(currentData.isCheckEnabled(), currentData.updatePeriod(), currentData.updateChannel());

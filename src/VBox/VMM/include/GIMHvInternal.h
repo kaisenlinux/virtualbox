@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2014-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2014-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -562,6 +562,15 @@ AssertCompile(MSR_GIM_HV_RANGE11_FIRST <= MSR_GIM_HV_RANGE11_LAST);
                                                    | MSR_GIM_HV_STIMER_SINTX)
 /** @} */
 
+
+/** Hyper-V page size.  */
+#define GIM_HV_PAGE_SIZE                          4096
+/** Hyper-V page shift. */
+#define GIM_HV_PAGE_SHIFT                         12
+
+/** Microsoft Hyper-V vendor signature. */
+#define GIM_HV_VENDOR_MICROSOFT                   "Microsoft Hv"
+
 /**
  * Hyper-V APIC-assist (HV_REFERENCE_TSC_PAGE) structure placed in the TSC
  * reference page.
@@ -1080,26 +1089,33 @@ typedef GIMHVEXTQUERYCAP *PGIMHVEXTQUERYCAP;
 AssertCompileSize(GIMHVEXTQUERYCAP, 8);
 
 /**
+ * Hyper-V memory range for HvExtCallGetBootZeroedMemory.
+ */
+typedef struct GIMHVEXTMEMRANGE
+{
+    RTGCPHYS GCPhysStart;
+    uint64_t cPages;
+} GIMHVEXTMEMRANGE;
+
+/** Maximum number of zeroed memory ranges supported by Hyper-V. */
+#define GIM_HV_MAX_BOOT_ZEROED_MEM_RANGES         255
+
+/**
  * HvExtCallGetBootZeroedMemory hypercall output.
  */
 typedef struct GIMHVEXTGETBOOTZEROMEM
 {
-    RTGCPHYS GCPhysStart;
-    uint64_t cPages;
+    uint64_t            cRanges;
+    GIMHVEXTMEMRANGE    aRanges[GIM_HV_MAX_BOOT_ZEROED_MEM_RANGES];
 } GIMHVEXTGETBOOTZEROMEM;
 /** Pointer to a HvExtCallGetBootZeroedMemory output struct. */
 typedef GIMHVEXTGETBOOTZEROMEM *PGIMHVEXTGETBOOTZEROMEM;
-AssertCompileSize(GIMHVEXTGETBOOTZEROMEM, 16);
+/** Pointer to a const HvExtCallGetBootZeroedMemory output struct. */
+typedef GIMHVEXTGETBOOTZEROMEM const *PCGIMHVEXTGETBOOTZEROMEM;
+AssertCompileSize(GIMHVEXTGETBOOTZEROMEM, 4088);
+AssertCompile(sizeof(GIMHVEXTGETBOOTZEROMEM) <= GIM_HV_PAGE_SIZE);
 /** @} */
 
-
-/** Hyper-V page size.  */
-#define GIM_HV_PAGE_SIZE                          4096
-/** Hyper-V page shift. */
-#define GIM_HV_PAGE_SHIFT                         12
-
-/** Microsoft Hyper-V vendor signature. */
-#define GIM_HV_VENDOR_MICROSOFT                   "Microsoft Hv"
 
 /**
  * MMIO2 region indices.
@@ -1366,11 +1382,13 @@ VMM_INT_DECL(PGIMMMIO2REGION)   gimHvGetMmio2Regions(PVM pVM, uint32_t *pcRegion
 VMM_INT_DECL(bool)              gimHvIsParavirtTscEnabled(PVM pVM);
 VMM_INT_DECL(bool)              gimHvAreHypercallsEnabled(PCVM pVM);
 VMM_INT_DECL(bool)              gimHvShouldTrapXcptUD(PVMCPU pVCpu);
-VMM_INT_DECL(VBOXSTRICTRC)      gimHvXcptUD(PVMCPUCC pVCpu, PCPUMCTX pCtx, PDISCPUSTATE pDis, uint8_t *pcbInstr);
+VMM_INT_DECL(VBOXSTRICTRC)      gimHvXcptUD(PVMCPUCC pVCpu, PCPUMCTX pCtx, PDISSTATE pDis, uint8_t *pcbInstr);
 VMM_INT_DECL(VBOXSTRICTRC)      gimHvHypercall(PVMCPUCC pVCpu, PCPUMCTX pCtx);
 VMM_INT_DECL(VBOXSTRICTRC)      gimHvHypercallEx(PVMCPUCC pVCpu, PCPUMCTX pCtx, unsigned uDisOpcode, uint8_t cbInstr);
+#if !defined(VBOX_VMM_TARGET_ARMV8)
 VMM_INT_DECL(VBOXSTRICTRC)      gimHvReadMsr(PVMCPUCC pVCpu, uint32_t idMsr, PCCPUMMSRRANGE pRange, uint64_t *puValue);
 VMM_INT_DECL(VBOXSTRICTRC)      gimHvWriteMsr(PVMCPUCC pVCpu, uint32_t idMsr, PCCPUMMSRRANGE pRange, uint64_t uRawValue);
+#endif
 
 VMM_INT_DECL(void)              gimHvStartStimer(PVMCPUCC pVCpu, PCGIMHVSTIMER pHvStimer);
 

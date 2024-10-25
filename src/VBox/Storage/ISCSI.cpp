@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1890,7 +1890,6 @@ static int iscsiCommand(PISCSIIMAGE pImage, PSCSIREQ pRequest)
     uint32_t *pDst = NULL;
     size_t cbBufLength;
     uint32_t aStatus[256]; /**< Plenty of buffer for status information. */
-    uint32_t ExpDataSN = 0;
     bool final = false;
 
 
@@ -2060,7 +2059,6 @@ static int iscsiCommand(PISCSIIMAGE pImage, PSCSIREQ pRequest)
                     uint32_t len = RT_N2H_U32(aResBHS[1]) & 0x00ffffff;
                     pDst = (uint32_t *)((char *)pDst + len);
                     cbBufLength -= len;
-                    ExpDataSN++;
                     if (final && (RT_N2H_U32(aResBHS[0]) & ISCSI_STATUS_BIT) != 0)
                     {
                         pRequest->status = RT_N2H_U32(aResBHS[0]) & 0x000000ff;
@@ -5400,24 +5398,34 @@ static DECLCALLBACK(int) iscsiComposeLocation(PVDINTERFACE pConfig, char **pszLo
     char *pszTarget  = NULL;
     char *pszLUN     = NULL;
     char *pszAddress = NULL;
-    int rc = VDCFGQueryStringAlloc(VDIfConfigGet(pConfig), "TargetName", &pszTarget);
-    if (RT_SUCCESS(rc))
+
+    int rc;
+    PVDINTERFACECONFIG pIfCfg = VDIfConfigGet(pConfig);
+    if (pIfCfg)
     {
-        rc = VDCFGQueryStringAlloc(VDIfConfigGet(pConfig), "LUN", &pszLUN);
+        rc = VDCFGQueryStringAlloc(pIfCfg, "TargetName", &pszTarget);
         if (RT_SUCCESS(rc))
         {
-            rc = VDCFGQueryStringAlloc(VDIfConfigGet(pConfig), "TargetAddress", &pszAddress);
+            rc = VDCFGQueryStringAlloc(pIfCfg, "LUN", &pszLUN);
             if (RT_SUCCESS(rc))
             {
-                if (RTStrAPrintf(pszLocation, "iscsi://%s/%s/%s",
-                                 pszAddress, pszTarget, pszLUN) < 0)
-                    rc = VERR_NO_MEMORY;
+                rc = VDCFGQueryStringAlloc(pIfCfg, "TargetAddress", &pszAddress);
+                if (RT_SUCCESS(rc))
+                {
+                    if (RTStrAPrintf(pszLocation, "iscsi://%s/%s/%s",
+                                     pszAddress, pszTarget, pszLUN) < 0)
+                        rc = VERR_NO_MEMORY;
+
+                    RTMemFree(pszAddress);
+                }
+                RTMemFree(pszLUN);
             }
+            RTMemFree(pszTarget);
         }
     }
-    RTMemFree(pszTarget);
-    RTMemFree(pszLUN);
-    RTMemFree(pszAddress);
+    else
+        rc = VERR_INVALID_PARAMETER;
+
     return rc;
 }
 
@@ -5427,25 +5435,34 @@ static DECLCALLBACK(int) iscsiComposeName(PVDINTERFACE pConfig, char **pszName)
     char *pszTarget  = NULL;
     char *pszLUN     = NULL;
     char *pszAddress = NULL;
-    int rc = VDCFGQueryStringAlloc(VDIfConfigGet(pConfig), "TargetName", &pszTarget);
-    if (RT_SUCCESS(rc))
+
+    int rc;
+    PVDINTERFACECONFIG pIfCfg = VDIfConfigGet(pConfig);
+    if (pIfCfg)
     {
-        rc = VDCFGQueryStringAlloc(VDIfConfigGet(pConfig), "LUN", &pszLUN);
+        rc = VDCFGQueryStringAlloc(pIfCfg, "TargetName", &pszTarget);
         if (RT_SUCCESS(rc))
         {
-            rc = VDCFGQueryStringAlloc(VDIfConfigGet(pConfig), "TargetAddress", &pszAddress);
+            rc = VDCFGQueryStringAlloc(pIfCfg, "LUN", &pszLUN);
             if (RT_SUCCESS(rc))
             {
-                /** @todo think about a nicer looking location scheme for iSCSI */
-                if (RTStrAPrintf(pszName, "%s/%s/%s",
-                                 pszAddress, pszTarget, pszLUN) < 0)
-                    rc = VERR_NO_MEMORY;
+                rc = VDCFGQueryStringAlloc(pIfCfg, "TargetAddress", &pszAddress);
+                if (RT_SUCCESS(rc))
+                {
+                    /** @todo think about a nicer looking location scheme for iSCSI */
+                    if (RTStrAPrintf(pszName, "%s/%s/%s",
+                                     pszAddress, pszTarget, pszLUN) < 0)
+                        rc = VERR_NO_MEMORY;
+
+                    RTMemFree(pszAddress);
+                }
+                RTMemFree(pszLUN);
             }
+            RTMemFree(pszTarget);
         }
     }
-    RTMemFree(pszTarget);
-    RTMemFree(pszLUN);
-    RTMemFree(pszAddress);
+    else
+        rc = VERR_INVALID_PARAMETER;
 
     return rc;
 }

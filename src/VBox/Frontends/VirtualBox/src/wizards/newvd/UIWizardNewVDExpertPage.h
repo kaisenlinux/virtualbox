@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -34,6 +34,9 @@
 /* GUI includes: */
 #include "UINativeWizardPage.h"
 
+/* COM includes:*/
+#include "KDeviceType.h"
+
 /* Forward declarations: */
 class QGroupBox;
 class UIDiskFormatsComboBox;
@@ -47,7 +50,7 @@ class SHARED_LIBRARY_STUFF UIWizardNewVDExpertPage : public UINativeWizardPage
 
 public:
 
-    UIWizardNewVDExpertPage(const QString &strDefaultName, const QString &strDefaultPath, qulonglong uDefaultSize);
+    UIWizardNewVDExpertPage(qulonglong uDiskMinimumSize, KDeviceType enmDeviceType);
 
 private slots:
 
@@ -56,19 +59,18 @@ private slots:
     void sltMediumVariantChanged(qulonglong uVariant);
     void sltMediumPathChanged(const QString &strPath);
     void sltMediumSizeChanged(qulonglong uSize);
+    /** Translation stuff. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 
-    /** Translation stuff. */
-    void retranslateUi();
-
     /** Prepare stuff. */
-    void prepare();
-    void initializePage();
+    void prepare(qulonglong uDiskMinimumSize, KDeviceType enmDeviceType);
+    virtual void initializePage() RT_OVERRIDE RT_FINAL;
 
     /** Validation stuff. */
-    bool isComplete() const;
-    bool validatePage();
+    virtual bool isComplete() const RT_OVERRIDE RT_FINAL;
+    virtual bool validatePage() RT_OVERRIDE RT_FINAL;
     void updateDiskWidgetsAfterMediumFormatChange();
 
    /** @name Widgets
@@ -81,9 +83,6 @@ private:
 
    /** @name Variable
      * @{ */
-       QString m_strDefaultName;
-       QString m_strDefaultPath;
-       qulonglong m_uDefaultSize;
        qulonglong m_uMediumSizeMin;
        qulonglong m_uMediumSizeMax;
    /** @} */

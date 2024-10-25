@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2022-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2022-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -42,7 +42,27 @@ RT_C_DECLS_BEGIN
  */
 
 /** The saved state version. */
-#define GCM_SAVED_STATE_VERSION         1
+#define GCM_SAVED_STATE_VERSION     1
+
+/**
+ * GCM Fixer Identifiers.
+ * @remarks Part of saved state!
+ * @{
+ */
+/** DOS division by zero, the worst. Includes Windows 3.x. */
+#define GCMFIXER_DBZ_DOS                RT_BIT_32(GCMFIXER_DBZ_DOS_BIT)
+#define GCMFIXER_DBZ_DOS_BIT            0
+/** OS/2 (any version) division by zero. */
+#define GCMFIXER_DBZ_OS2                RT_BIT_32(GCMFIXER_DBZ_OS2_BIT)
+#define GCMFIXER_DBZ_OS2_BIT            1
+/** Windows 9x division by zero. */
+#define GCMFIXER_DBZ_WIN9X              RT_BIT_32(GCMFIXER_DBZ_WIN9X_BIT)
+#define GCMFIXER_DBZ_WIN9X_BIT          2
+/** Workaround for the Mesa vmsvga driver using a IN/OUT backdoor.
+ * @since 7.1  */
+#define GCMFIXER_MESA_VMSVGA_DRV        RT_BIT_32(GCMFIXER_MESA_VMSVGA_DRV_BIT)
+#define GCMFIXER_MESA_VMSVGA_DRV_BIT    3
+/** @} */
 
 /**
  * GCM VM Instance data.
@@ -50,10 +70,7 @@ RT_C_DECLS_BEGIN
 typedef struct GCM
 {
     /** The provider that is active for this VM. */
-    int32_t                         enmFixerIds;
-    /** The interface implementation version. */
-    uint32_t                        u32Version;
-
+    uint32_t                        fFixerSet;
 } GCM;
 /** Pointer to GCM VM instance data. */
 typedef GCM *PGCM;

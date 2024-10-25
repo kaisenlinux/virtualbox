@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -38,7 +38,6 @@
 #endif
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
 #include "UILibraryDefs.h"
 #ifdef VBOX_DARWIN_USE_NATIVE_CONTROLS
 # include "UICocoaSpecialControls.h"
@@ -115,7 +114,7 @@ private:
 #else /* !VBOX_DARWIN_USE_NATIVE_CONTROLS */
 
 /** QAbstractButton subclass, used as mini cancel button. */
-class SHARED_LIBRARY_STUFF UIMiniCancelButton : public QIWithRetranslateUI<QIToolButton>
+class SHARED_LIBRARY_STUFF UIMiniCancelButton : public QIToolButton
 {
     Q_OBJECT;
 
@@ -124,15 +123,15 @@ public:
     /** Constructs mini cancel-button passing @a pParent to the base-class. */
     UIMiniCancelButton(QWidget *pParent = 0);
 
-protected:
+private slots:
 
     /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE {};
+    void sltRetranslateUI() {};
 };
 
 
 /** QAbstractButton subclass, used as mini cancel button. */
-class SHARED_LIBRARY_STUFF UIHelpButton : public QIWithRetranslateUI<QPushButton>
+class SHARED_LIBRARY_STUFF UIHelpButton : public QPushButton
 {
     Q_OBJECT;
 
@@ -146,7 +145,7 @@ public:
     ~UIHelpButton();
 
     /** Returns size-hint. */
-    QSize sizeHint() const;
+    QSize sizeHint() const RT_OVERRIDE;
 # endif /* VBOX_WS_MAC */
 
     /** Inits this button from pOther. */
@@ -154,12 +153,9 @@ public:
 
 protected:
 
-    /** Handles translation event. */
-    void retranslateUi();
-
 # ifdef VBOX_WS_MAC
     /** Handles button hit as certain @a position. */
-    bool hitButton(const QPoint &position) const;
+    bool hitButton(const QPoint &position) const RT_OVERRIDE;
 
     /** Handles paint @a pEvent. */
     virtual void paintEvent(QPaintEvent *pEvent) RT_OVERRIDE;
@@ -190,10 +186,14 @@ private:
     /** Holds the button rect. */
     QRect m_BRect;
 # endif /* VBOX_WS_MAC */
+
+private slots:
+
+    /** Handles translation event. */
+    void sltRetranslateUI();
 };
 
 #endif /* !VBOX_DARWIN_USE_NATIVE_CONTROLS */
 
 
 #endif /* !FEQT_INCLUDED_SRC_widgets_UISpecialControls_h */
-

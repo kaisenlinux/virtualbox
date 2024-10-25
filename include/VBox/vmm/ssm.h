@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1223,10 +1223,18 @@ VMMR3DECL(int)          SSMR3Load(PVM pVM, const char *pszFilename, PCSSMSTRMOPS
                                   SSMAFTER enmAfter, PFNVMPROGRESS pfnProgress, void *pvProgressUser);
 VMMR3DECL(int)          SSMR3ValidateFile(const char *pszFilename, PCSSMSTRMOPS pStreamOps, void *pvStreamOps,
                                           bool fChecksumIt);
+
+/** Flag for SSMR3Open to create a new file for writing. */
+#define SSM_OPEN_F_FOR_WRITING      RT_BIT_32(0)
 VMMR3DECL(int)          SSMR3Open(const char *pszFilename, PCSSMSTRMOPS pStreamOps, void *pvStreamOps,
-                                  unsigned fFlags, PSSMHANDLE *ppSSM);
+                                  uint32_t fFlags, PSSMHANDLE *ppSSM);
 VMMR3DECL(int)          SSMR3Close(PSSMHANDLE pSSM);
 VMMR3DECL(int)          SSMR3Seek(PSSMHANDLE pSSM, const char *pszUnit, uint32_t iInstance, uint32_t *piVersion);
+VMMR3DECL(int)          SSMR3WriteFileHeader(PSSMHANDLE pSSM, uint32_t cUnits);
+VMMR3DECL(int)          SSMR3WriteUnitBegin(PSSMHANDLE pSSM, const char *pszName, uint32_t uVersion, uint32_t uInstance);
+VMMR3DECL(int)          SSMR3WriteUnitComplete(PSSMHANDLE pSSM);
+VMMR3DECL(int)          SSMR3WriteFileFooter(PSSMHANDLE pSSM);
+
 VMMR3DECL(int)          SSMR3HandleGetStatus(PSSMHANDLE pSSM);
 VMMR3DECL(int)          SSMR3HandleSetStatus(PSSMHANDLE pSSM, int iStatus);
 VMMR3DECL(SSMAFTER)     SSMR3HandleGetAfter(PSSMHANDLE pSSM);
@@ -1338,6 +1346,24 @@ VMMR3DECL(int) SSMR3SetCfgErrorV(PSSMHANDLE pSSM, RT_SRC_POS_DECL, const char *p
         AssertRCReturn(rcGetEnum32Tmp, rcGetEnum32Tmp); \
         (a_enmDst) = (a_EnumType)u32GetEnumTmp; \
         AssertCompile(sizeof(a_EnumType) == sizeof(u32GetEnumTmp)); \
+    } while (0)
+
+/** Wrapper around SSMR3GetU32 for simplifying getting standard conforming enum
+ * values saved as uint32_t.  (The valid ragne is between the _INVALID and
+ * _END values.) */
+# define SSM_GET_STD_ENUM32_RET(a_pSSM, a_enmDst, a_EnumType) \
+    do { \
+        uint32_t u32GetEnumTmp = 0; \
+        int rcGetEnum32Tmp = SSMR3GetU32((a_pSSM), &u32GetEnumTmp); \
+        AssertRCReturn(rcGetEnum32Tmp, rcGetEnum32Tmp); \
+        a_EnumType enmTmp = (a_EnumType)u32GetEnumTmp; \
+        AssertCompile(sizeof(a_EnumType) == sizeof(u32GetEnumTmp)); \
+        if (RT_LIKELY(enmTmp > RT_CONCAT(a_EnumType,_INVALID) && enmTmp < RT_CONCAT(a_EnumType,_END))) \
+            (a_enmDst) = (a_EnumType)u32GetEnumTmp; \
+        else \
+            return SSMR3SetLoadError(a_pSSM, VERR_SSM_ENUM_VALUE_OUT_OF_RANGE, RT_SRC_POS, \
+                                     "The value for '%s' is out of range: %d (" #a_EnumType "_INVALID=%d, " #a_EnumType "_END=%d)", \
+                                     #a_enmDst, u32GetEnumTmp, RT_CONCAT(a_EnumType,_INVALID), RT_CONCAT(a_EnumType,_END)); \
     } while (0)
 
 /** @} */

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2018-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2018-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -353,6 +353,42 @@ public:
 };
 
 /**
+ * Implementation for a Guest Additions update process for logging process output to the release log.
+ */
+class UpdateAdditionsProcess : public GuestProcessWrapper
+{
+public:
+
+    UpdateAdditionsProcess(void) { }
+
+    virtual ~UpdateAdditionsProcess();
+
+    int onOutputCallback(uint32_t uHandle, const BYTE *pbData, size_t cbData);
+
+protected:
+
+    /** Current line of stdout. */
+    Utf8Str mLineStdOut;
+    /** Current line of stderr. */
+    Utf8Str mLineStdErr;
+};
+
+/**
+ * Tweaked startup info for a guest Guest Additions update process.
+ */
+class UpdateAdditionsStartupInfo : public GuestProcessStartupInfo
+{
+public:
+
+    UpdateAdditionsStartupInfo(void)
+    {
+        /* We want to have stdout / stderr handled by default for update processes
+         * (disabled as a workaround for #10776). */
+        mFlags = ProcessCreateFlag_None;
+    }
+};
+
+/**
  * Guest session task for automatically updating the Guest Additions on the guest.
  */
 class GuestSessionTaskUpdateAdditions : public GuestSessionTask
@@ -419,9 +455,13 @@ protected:
     int addProcessArguments(ProcessArguments &aArgumentsDest, const ProcessArguments &aArgumentsSource);
     int copyFileToGuest(GuestSession *pSession, RTVFS hVfsIso, Utf8Str const &strFileSource, const Utf8Str &strFileDest, bool fOptional);
     int runFileOnGuest(GuestSession *pSession, GuestProcessStartupInfo &procInfo, bool fSilent = false);
+    HRESULT setUpdateErrorMsg(HRESULT hrc, const Utf8Str &strMsg);
+    HRESULT setUpdateErrorMsg(HRESULT hrc, const Utf8Str &strMsg, const GuestErrorInfo &guestErrorInfo);
 
     int checkGuestAdditionsStatus(GuestSession *pSession, eOSType osType);
-    int waitForGuestSession(ComObjPtr<Guest> pGuest, eOSType osType);
+    int waitForGuestSession(ComObjPtr<Guest> pGuest, eOSType osType, ComObjPtr<GuestSession> &pNewSession);
+
+    PlatformArchitecture_T getPlatformArch(void);
 
     /** Files to handle. */
     std::vector<ISOFile>        mFiles;

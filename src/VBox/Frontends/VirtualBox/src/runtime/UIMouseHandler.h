@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -44,12 +44,10 @@
 /* Forward declarations: */
 class QTouchEvent;
 class QWidget;
-class UISession;
+class UIMachine;
 class UIMachineLogic;
-class UIMachineWindow;
 class UIMachineView;
-class CDisplay;
-class CMouse;
+class UIMachineWindow;
 
 
 /* Delegate to control VM mouse functionality: */
@@ -106,16 +104,11 @@ protected:
     virtual ~UIMouseHandler();
 
     /* Getters: */
-    UIMachineLogic* machineLogic() const;
-    UISession* uisession() const;
-
-    /** Returns the console's display reference. */
-    CDisplay& display() const;
-    /** Returns the console's mouse reference. */
-    CMouse& mouse() const;
+    UIMachineLogic *machineLogic() const { return m_pMachineLogic; }
+    UIMachine *uimachine() const;
 
     /* Event handler for registered machine-view(s): */
-    bool eventFilter(QObject *pWatched, QEvent *pEvent);
+    bool eventFilter(QObject *pWatched, QEvent *pEvent) RT_OVERRIDE RT_FINAL;
 
     /* Separate function to handle most of existing mouse-events: */
     bool mouseEvent(int iEventType, ulong uScreenId,
@@ -161,4 +154,3 @@ protected:
 };
 
 #endif /* !FEQT_INCLUDED_SRC_runtime_UIMouseHandler_h */
-

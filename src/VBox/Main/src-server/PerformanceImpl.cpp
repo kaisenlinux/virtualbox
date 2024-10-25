@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -563,13 +563,17 @@ void PerformanceCollector::unregisterBaseMetricsFor(const ComPtr<IUnknown> &aObj
     pm::Filter filter(name, aObject);
 
     AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
+#ifdef LOG_ENABLED
     int n = 0;
+#endif
     BaseMetricList::iterator it;
     for (it = m.baseMetrics.begin(); it != m.baseMetrics.end(); ++it)
         if (filter.match((*it)->getObject(), (*it)->getName()))
         {
             (*it)->unregister();
+#ifdef LOG_ENABLED
             ++n;
+#endif
         }
     Log7Func(("{%p}: obj=%p, name=%s, marked %d metrics\n", this, (void *)aObject, name.c_str(), n));
     //LogFlowThisFuncLeave();

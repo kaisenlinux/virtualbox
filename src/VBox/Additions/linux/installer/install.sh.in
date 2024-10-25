@@ -1,11 +1,11 @@
 #!/bin/sh
 #
-# Oracle VM VirtualBox
+# Oracle VirtualBox
 # VirtualBox Makeself installation starter script
 # for Linux Guest Additions
 
 #
-# Copyright (C) 2006-2023 Oracle and/or its affiliates.
+# Copyright (C) 2006-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -323,6 +323,10 @@ case "$cpu" in
   x86_64|amd64)
     cpu="amd64"
     lib_candidates="/usr/lib/x86_64-linux-gnu /usr/lib64 /usr/lib /lib64 /lib"
+    ;;
+  aarch64|arm64)
+    cpu="arm64"
+    lib_candidates="/usr/lib64 /usr/lib /lib64 /lib"
     ;;
   *)
     cpu="unknown"

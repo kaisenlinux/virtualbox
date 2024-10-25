@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2007-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2007-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -75,7 +75,11 @@ BS3_CMN_DEF(void, Bs3Trap64InitEx,(bool fMoreIstUsage))
         /* [X86_XCPT_VE] = */   0,
         /* [X86_XCPT_CP] = */   6,
     };
+#ifdef _MSC_VER /* No-SSE hack */
+    X86TSS64 BS3_FAR volatile *pTss;
+#else
     X86TSS64 BS3_FAR *pTss;
+#endif
     unsigned iIdt;
 
     /*

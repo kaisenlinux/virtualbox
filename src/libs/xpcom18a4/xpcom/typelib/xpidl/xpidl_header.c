@@ -252,11 +252,10 @@ interface(TreeState *state)
     }
     fputs(" {\n"
           " public: \n\n", state->file);
-    if (iid) {
-        fputs("  NS_DEFINE_STATIC_IID_ACCESSOR(", state->file);
-        write_classname_iid_define(state->file, className);
-        fputs(")\n\n", state->file);
-    }
+
+    fputs("  NS_DEFINE_STATIC_IID_ACCESSOR(", state->file);
+    write_classname_iid_define(state->file, className);
+    fputs(")\n\n", state->file);
 
     orig = state->tree; /* It would be nice to remove this state-twiddling. */
 
@@ -280,6 +279,9 @@ interface(TreeState *state)
           "interface. */\n", state->file);
     fputs("#define NS_DECL_", state->file);
     classNameUpper = xpidl_strdup(className);
+    if (!classNameUpper)
+        FAIL;
+
     for (cp = classNameUpper; *cp != '\0'; cp++)
         *cp = toupper(*cp);
     fprintf(state->file, "%s \\\n", classNameUpper);
@@ -305,7 +307,7 @@ interface(TreeState *state)
             if (!write_attr_accessor(data, state->file, TRUE, AS_DECL, NULL))
                 FAIL;
             if (!IDL_ATTR_DCL(data).f_readonly) {
-                fputs("; \\\n", state->file); /* Terminate the previous one. */
+                fputs(" NS_OVERRIDE; \\\n", state->file); /* Terminate the previous one. */
                 write_indent(state->file);
                 if (!write_attr_accessor(data, state->file,
                                          FALSE, AS_DECL, NULL))
@@ -336,9 +338,9 @@ interface(TreeState *state)
         }
 
         if (IDL_LIST(iter).next != NULL) {
-            fprintf(state->file, "; \\\n");
+            fprintf(state->file, " NS_OVERRIDE; \\\n");
         } else {
-            fprintf(state->file, "; \n");
+            fprintf(state->file, " NS_OVERRIDE; \n");
         }
     }
     fputc('\n', state->file);
@@ -1133,8 +1135,7 @@ codefrag(TreeState *state)
 {
     const char *desc = IDL_CODEFRAG(state->tree).desc;
     GSList *lines = IDL_CODEFRAG(state->tree).lines;
-    guint fragment_length;
-    
+
     if (strcmp(desc, "C++") && /* libIDL bug? */ strcmp(desc, "C++\r")) {
         XPIDL_WARNING((state->tree, IDL_WARNING1,
                        "ignoring '%%{%s' escape. "
@@ -1151,17 +1152,6 @@ codefrag(TreeState *state)
      * _line seems to refer to the line immediately after the closing %}, so
      * we backtrack to get the proper line for the beginning of the block.
      */
-    /*
-     * Looks like getting this right means maintaining an accurate line
-     * count of everything generated, so we can set the file back to the
-     * correct line in the generated file afterwards.  Skipping for now...
-     */
-
-    fragment_length = g_slist_length(lines);
-/*      fprintf(state->file, "#line %d \"%s\"\n", */
-/*              state->tree->_line - fragment_length - 1, */
-/*              state->tree->_file); */
-
     g_slist_foreach(lines, write_codefrag_line, (gpointer)state);
 
     return TRUE;

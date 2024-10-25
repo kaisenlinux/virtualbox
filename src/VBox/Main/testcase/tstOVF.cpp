@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -88,10 +88,10 @@ struct MyError
  * @param pcszOVF0 File to import.
  * @param llMachinesCreated out: UUIDs of machines that were created so that caller can clean up.
  */
-void importOVF(const char *pcszPrefix,
-               ComPtr<IVirtualBox> &pVirtualBox,
-               const char *pcszOVF0,
-               std::list<Guid> &llMachinesCreated)
+static void importOVF(const char *pcszPrefix,
+                      ComPtr<IVirtualBox> &pVirtualBox,
+                      const char *pcszOVF0,
+                      std::list<Guid> &llMachinesCreated)
 {
     char szAbsOVF[RTPATH_MAX];
     RTPathExecDir(szAbsOVF, sizeof(szAbsOVF));
@@ -249,7 +249,7 @@ void importOVF(const char *pcszPrefix,
                 break;
 
                 default:
-                    throw MyError(E_UNEXPECTED, "Invalid VirtualSystemDescriptionType (enum)\n");
+                    throw MyError(E_UNEXPECTED, Utf8StrFmt("Invalid VirtualSystemDescriptionType (enum=%d)\n", t).c_str());
                 break;
             }
 
@@ -292,9 +292,9 @@ void importOVF(const char *pcszPrefix,
  * @param llFiles2Delete List of strings to append the target file path to.
  * @param pcszDest Target for dummy VMDK.
  */
-void copyDummyDiskImage(const char *pcszPrefix,
-                        std::list<Utf8Str> &llFiles2Delete,
-                        const char *pcszDest)
+static void copyDummyDiskImage(const char *pcszPrefix,
+                               std::list<Utf8Str> &llFiles2Delete,
+                               const char *pcszDest)
 {
     char szSrc[RTPATH_MAX];
     RTPathExecDir(szSrc, sizeof(szSrc));
@@ -326,6 +326,12 @@ void copyDummyDiskImage(const char *pcszPrefix,
 int main(int argc, char *argv[])
 {
     RTR3InitExe(argc, &argv, 0);
+
+    /** @todo r=aeichner: This should work for x86 machines on ARM platforms as well.
+     * Currently we get:
+     *     tstOVF: error: x86-specific platform settings are not available on this platform
+     *     tstOVF: error: Details: code VBOX_E_PLATFORM_ARCH_NOT_SUPPORTED (0x80bb0012), component PlatformWrap, interface IPlatform
+     * */
 
     RTEXITCODE rcExit = RTEXITCODE_SUCCESS;
     HRESULT rc = S_OK;

@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -210,6 +210,24 @@
 #define VMMDEV_DEVICEID             (0xcafe)
 /** @} */
 
+/** @} */
+
+
+/** @defgroup grp_vbox_param_vga   VGA
+ * @{ */
+/** The default amount of VGA VRAM (in bytes). */
+#define VGA_VRAM_DEFAULT            (_4M)
+/** The minimum amount of VGA VRAM (in bytes). */
+#define VGA_VRAM_MIN                (_1M)
+/** The maximum amount of VGA VRAM (in bytes).  */
+#define VGA_VRAM_MAX                (_1G)
+
+/** The minimum amount of SVGA VRAM (in bytes).   */
+#define VBOX_SVGA_VRAM_MIN_SIZE     (4U * 640U * 480U)
+/** The maximum amount of SVGA VRAM (in bytes) when 3D acceleration is enabled. */
+#define VBOX_SVGA_VRAM_MIN_SIZE_3D  _16M
+/** The maximum amount of SVGA VRAM (in bytes). */
+#define VBOX_SVGA_VRAM_MAX_SIZE     _128M
 /** @} */
 
 

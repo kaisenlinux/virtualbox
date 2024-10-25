@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -25,12 +25,15 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
+/* Qt includes: */
+#include <QApplication>
+
 /* GUI includes: */
-#include "UICommon.h"
 #include "UIActionPool.h"
 #include "UIExtraDataManager.h"
+#include "UIGlobalSession.h"
 #include "UIShortcutPool.h"
-
+#include "UITranslationEventListener.h"
 
 /* Namespaces: */
 using namespace UIExtraDataDefs;
@@ -110,14 +113,14 @@ UIShortcutPool *UIShortcutPool::s_pInstance = 0;
 const QString UIShortcutPool::s_strShortcutKeyTemplate = QString("%1/%2");
 const QString UIShortcutPool::s_strShortcutKeyTemplateRuntime = s_strShortcutKeyTemplate.arg(GUI_Input_MachineShortcuts);
 
-void UIShortcutPool::create()
+void UIShortcutPool::create(UIType enmType)
 {
     /* Check that instance do NOT exists: */
     if (s_pInstance)
         return;
 
     /* Create instance: */
-    new UIShortcutPool;
+    new UIShortcutPool(enmType);
 
     /* Prepare instance: */
     s_pInstance->prepare();
@@ -203,8 +206,11 @@ void UIShortcutPool::applyShortcuts(UIActionPool *pActionPool)
             pAction->setShortcuts(existingShortcut.sequences());
             pAction->retranslateUi();
             /* Copy default and standard sequences from the action to the shortcut: */
-            existingShortcut.setDefaultSequence(pAction->defaultShortcut(pActionPool->type()));
-            existingShortcut.setStandardSequence(pAction->standardShortcut(pActionPool->type()));
+            if (pActionPool->type() == m_enmType)
+            {
+                existingShortcut.setDefaultSequence(pAction->defaultShortcut(pActionPool->type()));
+                existingShortcut.setStandardSequence(pAction->standardShortcut(pActionPool->type()));
+            }
         }
         /* If shortcut key is NOT known yet: */
         else
@@ -226,7 +232,31 @@ void UIShortcutPool::applyShortcuts(UIActionPool *pActionPool)
     }
 }
 
-void UIShortcutPool::retranslateUi()
+/* static */
+QKeySequence UIShortcutPool::standardSequence(QKeySequence::StandardKey enmKey)
+{
+    /* We have some overrides: */
+    switch (enmKey)
+    {
+#ifdef VBOX_WS_MAC
+        /* So called Apple default sequence for HelpContents action (CMD+?)
+         * is no more the default one on macOS for many years.
+         * Instead they have redesigned this shortcut to open
+         * system-wide Help menu with native search field.
+         * But the Contents action has no shortcut anymore.
+         * We could leave it empty or make it CMD+/ instead. */
+        case QKeySequence::HelpContents:
+            return QKeySequence("Ctrl+/");
+#endif
+        default:
+            break;
+    }
+
+    /* Use QKeySequence constructor by default: */
+    return QKeySequence(enmKey);
+}
+
+void UIShortcutPool::sltRetranslateUI()
 {
     /* Translate own defaults: */
     m_shortcuts[s_strShortcutKeyTemplateRuntime.arg("PopupMenu")]
@@ -267,7 +297,8 @@ void UIShortcutPool::sltReloadMachineShortcuts()
     emit sigRuntimeShortcutsReloaded();
 }
 
-UIShortcutPool::UIShortcutPool()
+UIShortcutPool::UIShortcutPool(UIType enmType)
+    : m_enmType(enmType)
 {
     /* Prepare instance: */
     if (!s_pInstance)
@@ -298,6 +329,8 @@ void UIShortcutPool::prepareConnections()
             this, &UIShortcutPool::sltReloadSelectorShortcuts);
     connect(gEDataManager, &UIExtraDataManager::sigRuntimeUIShortcutChange,
             this, &UIShortcutPool::sltReloadMachineShortcuts);
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIShortcutPool::sltRetranslateUI);
 }
 
 void UIShortcutPool::loadDefaults()
@@ -417,11 +450,10 @@ void UIShortcutPool::saveOverridesFor(const QString &strPoolExtraDataID)
                                           shortcut.primaryToPortableText());
     }
     /* Save overrides into the extra-data: */
-    uiCommon().virtualBox().SetExtraDataStringList(strPoolExtraDataID, overrides);
+    gpGlobalSession->virtualBox().SetExtraDataStringList(strPoolExtraDataID, overrides);
 }
 
 UIShortcut &UIShortcutPool::shortcut(const QString &strShortcutKey)
 {
     return m_shortcuts[strShortcutKey];
 }
-

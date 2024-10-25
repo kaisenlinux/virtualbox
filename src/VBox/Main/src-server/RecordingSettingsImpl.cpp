@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2018-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2018-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -55,9 +55,12 @@ struct RecordingSettings::Data
     Machine * const                         pMachine;
     const ComObjPtr<RecordingSettings>      pPeer;
     RecordingScreenSettingsObjMap           mapScreenObj;
+    /** The recording progress object.
+     *  There only is one recording progress per VM, shared between multiple recording settings (if any). */
+    ComPtr<IProgress>                       mProgress;
 
     // use the XML settings structure in the members for simplicity
-    Backupable<settings::RecordingCommonSettings> bd;
+    Backupable<settings::RecordingCommon> bd;
 };
 
 DEFINE_EMPTY_CTOR_DTOR(RecordingSettings)
@@ -97,6 +100,8 @@ HRESULT RecordingSettings::init(Machine *aParent)
     m->bd.allocate();
 
     i_applyDefaults();
+
+    /* Note: The progress object gets created in i_start(). */
 
     autoInitSpan.setSucceeded();
 
@@ -144,6 +149,7 @@ HRESULT RecordingSettings::init(Machine *aParent, RecordingSettings *aThat)
         itScreenThat->second->i_reference();
 
     m->mapScreenObj = aThat->m->mapScreenObj;
+    m->mProgress = aThat->m->mProgress;
 
     autoInitSpan.setSucceeded();
 
@@ -198,6 +204,8 @@ HRESULT RecordingSettings::initCopy(Machine *aParent, RecordingSettings *aThat)
         }
     }
 
+    m->mProgress = aThat->m->mProgress;
+
     if (SUCCEEDED(hrc))
         autoInitSpan.setSucceeded();
 
@@ -218,9 +226,7 @@ void RecordingSettings::uninit()
     if (autoUninitSpan.uninitDone())
         return;
 
-    /* Make sure to destroy screen objects attached to this object.
-     * Note: This also decrements the refcount of a screens object, in case it's shared among other recording settings. */
-    i_destroyAllScreenObj(m->mapScreenObj);
+    i_reset();
 
     m->bd.free();
 
@@ -263,46 +269,6 @@ HRESULT RecordingSettings::setEnabled(BOOL enable)
         m->bd->fEnabled = fEnabled;
 
         alock.release();
-
-        hrc = m->pMachine->i_onRecordingChange(enable);
-        if (FAILED(hrc))
-        {
-            com::ErrorInfo errMachine; /* Get error info from machine call above. */
-
-            /*
-             * Normally we would do the actual change _after_ i_onRecordingChange() succeeded.
-             * We cannot do this because that function uses RecordSettings::GetEnabled to
-             * determine if it should start or stop capturing. Therefore we need to manually
-             * undo change.
-             */
-            alock.acquire();
-            m->bd->fEnabled = m->bd.backedUpData()->fEnabled;
-
-            if (errMachine.isBasicAvailable())
-                hrc = setError(errMachine);
-        }
-        else
-        {
-            AutoWriteLock mlock(m->pMachine COMMA_LOCKVAL_SRC_POS);  // pMachine is const, needs no locking
-            m->pMachine->i_setModified(Machine::IsModified_Recording);
-
-            /* Make sure to release the mutable dependency lock from above before
-             * actually saving the settings. */
-            adep.release();
-
-            /** Save settings if online - @todo why is this required? -- @bugref{6818} */
-            if (Global::IsOnline(m->pMachine->i_getMachineState()))
-            {
-                com::ErrorInfo errMachine;
-                hrc = m->pMachine->i_saveSettings(NULL, mlock);
-                if (FAILED(hrc))
-                {
-                    /* Got error info from machine call above. */
-                    if (errMachine.isBasicAvailable())
-                        hrc = setError(errMachine);
-                }
-            }
-        }
     }
 
     return hrc;
@@ -353,6 +319,25 @@ HRESULT RecordingSettings::getScreens(std::vector<ComPtr<IRecordingScreenSetting
     return hrc;
 }
 
+HRESULT RecordingSettings::getProgress(ComPtr<IProgress> &aProgress)
+{
+#ifndef VBOX_WITH_RECORDING
+    RT_NOREF(aProgress);
+    ReturnComNotImplemented();
+#else
+    /* the machine needs to be mutable */
+    AutoMutableOrSavedOrRunningStateDependency adep(m->pMachine);
+    if (FAILED(adep.hrc())) return adep.hrc();
+
+    AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
+
+    if (m->mProgress.isNull())
+        return setError(E_FAIL, tr("Recording not started"));
+
+    return m->mProgress.queryInterfaceTo(aProgress.asOutParam());
+#endif
+}
+
 HRESULT RecordingSettings::getScreenSettings(ULONG uScreenId, ComPtr<IRecordingScreenSettings> &aRecordScreenSettings)
 {
     LogFlowThisFuncEnter();
@@ -381,6 +366,58 @@ HRESULT RecordingSettings::getScreenSettings(ULONG uScreenId, ComPtr<IRecordingS
     return VBOX_E_OBJECT_NOT_FOUND;
 }
 
+HRESULT RecordingSettings::start(ComPtr<IProgress> &aProgress)
+{
+#ifndef VBOX_WITH_RECORDING
+    RT_NOREF(aProgress);
+    ReturnComNotImplemented();
+#else
+    /* the machine needs to be mutable */
+    AutoMutableOrSavedOrRunningStateDependency adep(m->pMachine);
+    if (FAILED(adep.hrc())) return adep.hrc();
+
+    /* Recording not explicitly enabled before? Do so now. */
+    if (!m->bd->fEnabled)
+    {
+        AutoWriteLock alock(this COMMA_LOCKVAL_SRC_POS);
+
+        m->bd.backup();
+        m->bd->fEnabled = true;
+
+        alock.release();
+
+        /* Note: m->bd->fEnabled is transient here, i.e. we don't save the settings,
+                 as this would otherwise start the recording on VM startup the next time. */
+    }
+
+    AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
+
+    if (m->mProgress.isNotNull())
+    {
+        BOOL fCompleted = FALSE;
+        HRESULT const hrc = m->mProgress->COMGETTER(Completed)(&fCompleted);
+        ComAssertComRCRetRC(hrc);
+        if (!fCompleted)
+            return setError(E_FAIL, tr("Recording already started"));
+    }
+
+    m->mProgress.setNull(); /* Make sure to release a dangling object from a former run. */
+
+    alock.release();
+
+    int const vrc = i_start();
+    if (RT_FAILURE(vrc))
+    {
+        /* Make the progress' error info available to the caller on failure. */
+        ComObjPtr<IVirtualBoxErrorInfo> pErrorInfo;
+        m->mProgress->COMGETTER(ErrorInfo)(pErrorInfo.asOutParam());
+        return setError(pErrorInfo);
+    }
+
+    return m->mProgress.queryInterfaceTo(aProgress.asOutParam());
+#endif
+}
+
 // IRecordSettings methods
 /////////////////////////////////////////////////////////////////////////////
 
@@ -396,7 +433,7 @@ HRESULT RecordingSettings::getScreenSettings(ULONG uScreenId, ComPtr<IRecordingS
  * @param   data                Recording screen settings to use for that screen.
  */
 int RecordingSettings::i_createScreenObj(RecordingScreenSettingsObjMap &screenSettingsMap,
-                                         uint32_t idScreen, const settings::RecordingScreenSettings &data)
+                                         uint32_t idScreen, const settings::RecordingScreen &data)
 {
     AssertReturn(screenSettingsMap.find(idScreen) == screenSettingsMap.end(), VERR_ALREADY_EXISTS);
 
@@ -491,11 +528,11 @@ int RecordingSettings::i_destroyAllScreenObj(RecordingScreenSettingsObjMap &scre
  * Loads settings from the given settings.
  * May be called once right after this object creation.
  *
- * @param data                  Capture settings to load from.
+ * @param Settings                  Recording settings to load from.
  *
  * @note Locks this object for writing.
  */
-HRESULT RecordingSettings::i_loadSettings(const settings::RecordingSettings &data)
+HRESULT RecordingSettings::i_loadSettings(const settings::Recording &Settings)
 {
     LogFlowThisFuncEnter();
 
@@ -506,10 +543,10 @@ HRESULT RecordingSettings::i_loadSettings(const settings::RecordingSettings &dat
 
     HRESULT hrc = S_OK;
 
-    LogFlowThisFunc(("Data has %zu screens\n", data.mapScreens.size()));
+    LogFlowThisFunc(("Data has %zu screens\n", Settings.mapScreens.size()));
 
-    settings::RecordingScreenSettingsMap::const_iterator itScreenData = data.mapScreens.begin();
-    while (itScreenData != data.mapScreens.end())
+    settings::RecordingScreenSettingsMap::const_iterator itScreenData = Settings.mapScreens.begin();
+    while (itScreenData != Settings.mapScreens.end())
     {
         RecordingScreenSettingsObjMap::iterator itScreen = m->mapScreenObj.find(itScreenData->first);
         if (itScreen != m->mapScreenObj.end())
@@ -535,10 +572,10 @@ HRESULT RecordingSettings::i_loadSettings(const settings::RecordingSettings &dat
     if (SUCCEEDED(hrc))
     {
         ComAssertComRCRet(hrc, hrc);
-        AssertReturn(m->mapScreenObj.size() == data.mapScreens.size(), E_UNEXPECTED);
+        AssertReturn(m->mapScreenObj.size() == Settings.mapScreens.size(), E_UNEXPECTED);
 
         // simply copy
-        m->bd.assignCopy(&data.common);
+        m->bd.assignCopy(&Settings.common);
     }
 
     LogFlowThisFunc(("Returning %Rhrc\n", hrc));
@@ -552,17 +589,21 @@ void RecordingSettings::i_reset(void)
 {
     LogFlowThisFuncEnter();
 
+    i_stop();
+
+    /* Make sure to destroy screen objects attached to this object.
+     * Note: This also decrements the refcount of a screens object, in case it's shared among other recording settings. */
     i_destroyAllScreenObj(m->mapScreenObj);
 }
 
 /**
  * Saves settings to the given settings.
  *
- * @param data                  Where to store the capture settings to.
+ * @param Settings                  Where to store the recording settings to.
  *
  * @note Locks this object for reading.
  */
-HRESULT RecordingSettings::i_saveSettings(settings::RecordingSettings &data)
+HRESULT RecordingSettings::i_saveSettings(settings::Recording &Settings)
 {
     LogFlowThisFuncEnter();
 
@@ -581,7 +622,7 @@ HRESULT RecordingSettings::i_saveSettings(settings::RecordingSettings &data)
 
     AutoReadLock alock(this COMMA_LOCKVAL_SRC_POS);
 
-    data.common = *m->bd.data();
+    Settings.common = *m->bd.data();
 
     HRESULT hrc = S_OK;
 
@@ -589,7 +630,7 @@ HRESULT RecordingSettings::i_saveSettings(settings::RecordingSettings &data)
                                                        itScreen != m->mapScreenObj.end();
                                                      ++itScreen)
     {
-        hrc = itScreen->second->i_saveSettings(data.mapScreens[itScreen->first /* Screen ID */]);
+        hrc = itScreen->second->i_saveSettings(Settings.mapScreens[itScreen->first /* Screen ID */]);
         if (FAILED(hrc))
             break;
     }
@@ -823,6 +864,43 @@ void RecordingSettings::i_onSettingsChanged(void)
 }
 
 /**
+ * Starts recording.
+ *
+ * @returns VBox status code.
+ */
+int RecordingSettings::i_start(void)
+{
+    AssertReturn(m->mProgress.isNull(), VERR_WRONG_ORDER);
+
+    HRESULT hrc = m->pMachine->i_onRecordingStateChange(TRUE /* Enable recording */, m->mProgress.asOutParam());
+    if (FAILED(hrc))
+        return VERR_RECORDING_INIT_FAILED;
+
+    return VINF_SUCCESS;
+}
+
+/**
+ * Stops recording. Does nothing if recording already has been stopped.
+ *
+ * @returns VBox status code.
+ */
+int RecordingSettings::i_stop(void)
+{
+    if (m->mProgress.isNull()) /* Not started? */
+        return VINF_SUCCESS;
+
+    /* Note: Returned progress object is just a dummy / not needed for disabling recording. */
+    HRESULT hrc = m->pMachine->i_onRecordingStateChange(FALSE /* Disable recording */, m->mProgress.asOutParam());
+    if (SUCCEEDED(hrc))
+        m->mProgress.setNull();
+
+    if (FAILED(hrc))
+        return VERR_COM_UNEXPECTED;
+
+    return VINF_SUCCESS;
+}
+
+/**
  * Synchronizes the screen settings (COM) objects and configuration data
  * to the number of the machine's configured displays.
  *
@@ -844,7 +922,7 @@ int RecordingSettings::i_syncToMachineDisplays(uint32_t cDisplays)
     {
         if (m->mapScreenObj.find(i) == m->mapScreenObj.end())
         {
-            settings::RecordingScreenSettings defaultScreenSettings(i /* Screen ID */); /* Apply default settings. */
+            settings::RecordingScreen defaultScreenSettings(i /* Screen ID */); /* Apply default settings. */
 
             int vrc2 = i_createScreenObj(m->mapScreenObj, i /* Screen ID */, defaultScreenSettings);
             AssertRC(vrc2);

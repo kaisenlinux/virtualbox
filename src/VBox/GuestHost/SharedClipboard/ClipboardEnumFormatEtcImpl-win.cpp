@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -39,40 +39,76 @@
 #include <VBox/log.h>
 
 
+/*********************************************************************************************************************************
+*   Structures and Typedefs                                                                                                      *
+*********************************************************************************************************************************/
 
-SharedClipboardWinEnumFormatEtc::SharedClipboardWinEnumFormatEtc(LPFORMATETC pFormatEtc, ULONG cFormats)
+
+
+/*********************************************************************************************************************************
+*   Static variables                                                                                                             *
+*********************************************************************************************************************************/
+#ifdef VBOX_SHARED_CLIPBOARD_DEBUG_OBJECT_COUNTS
+ extern int g_cDbgDataObj;
+ extern int g_cDbgStreamObj;
+ extern int g_cDbgEnumFmtObj;
+#endif
+
+
+ShClWinEnumFormatEtc::ShClWinEnumFormatEtc(void)
     : m_lRefCount(1),
       m_nIndex(0)
 {
-    HRESULT hr;
-
-    try
-    {
-        LogFlowFunc(("pFormatEtc=%p, cFormats=%RU32\n", pFormatEtc, cFormats));
-        m_pFormatEtc  = new FORMATETC[cFormats];
-
-        for (ULONG i = 0; i < cFormats; i++)
-        {
-            LogFlowFunc(("Format %RU32: cfFormat=%RI16, tyMed=%RU32, dwAspect=%RU32\n",
-                         i, pFormatEtc[i].cfFormat, pFormatEtc[i].tymed, pFormatEtc[i].dwAspect));
-
-            SharedClipboardWinDataObject::logFormat(pFormatEtc[i].cfFormat);
-
-            SharedClipboardWinEnumFormatEtc::CopyFormat(&m_pFormatEtc[i], &pFormatEtc[i]);
-        }
-
-        m_nNumFormats = cFormats;
-        hr = S_OK;
-    }
-    catch (std::bad_alloc &)
-    {
-        hr = E_OUTOFMEMORY;
-    }
-
-    LogFlowFunc(("hr=%Rhrc\n", hr));
+#ifdef VBOX_SHARED_CLIPBOARD_DEBUG_OBJECT_COUNTS
+    g_cDbgEnumFmtObj++;
+    LogFlowFunc(("g_cDataObj=%d, g_cStreamObj=%d, g_cEnumFmtObj=%d\n", g_cDbgDataObj, g_cDbgStreamObj, g_cDbgEnumFmtObj));
+#endif
 }
 
-SharedClipboardWinEnumFormatEtc::~SharedClipboardWinEnumFormatEtc(void)
+ShClWinEnumFormatEtc::~ShClWinEnumFormatEtc(void)
+{
+    Destroy();
+
+    LogFlowFunc(("m_lRefCount=%RI32\n", m_lRefCount));
+
+#ifdef VBOX_SHARED_CLIPBOARD_DEBUG_OBJECT_COUNTS
+    g_cDbgEnumFmtObj--;
+    LogFlowFunc(("g_cDataObj=%d, g_cStreamObj=%d, g_cEnumFmtObj=%d\n", g_cDbgDataObj, g_cDbgStreamObj, g_cDbgEnumFmtObj));
+#endif
+}
+
+/**
+ * Initializes an IEnumFORMATETC instance.
+ *
+ * @returns VBox status code.
+ * @param   pFormatEtc          Array of formats to use for initialization.
+ * @param   cFormats            Number of formats in \a pFormatEtc.
+ */
+int ShClWinEnumFormatEtc::Init(LPFORMATETC pFormatEtc, ULONG cFormats)
+{
+    LogFlowFunc(("pFormatEtc=%p, cFormats=%RU32\n", pFormatEtc, cFormats));
+    m_pFormatEtc = new FORMATETC[cFormats];
+    AssertPtrReturn(m_pFormatEtc, VERR_NO_MEMORY);
+
+    for (ULONG i = 0; i < cFormats; i++)
+    {
+        LogFlowFunc(("Format %RU32: cfFormat=%RI16, tyMed=%RU32, dwAspect=%RU32\n",
+                     i, pFormatEtc[i].cfFormat, pFormatEtc[i].tymed, pFormatEtc[i].dwAspect));
+
+        ShClWinDataObject::logFormat(pFormatEtc[i].cfFormat);
+
+        ShClWinEnumFormatEtc::CopyFormat(&m_pFormatEtc[i], &pFormatEtc[i]);
+    }
+
+    m_nNumFormats = cFormats;
+
+    return VINF_SUCCESS;
+}
+
+/**
+ * Destroys an IEnumFORMATETC instance.
+ */
+void ShClWinEnumFormatEtc::Destroy(void)
 {
     if (m_pFormatEtc)
     {
@@ -86,19 +122,19 @@ SharedClipboardWinEnumFormatEtc::~SharedClipboardWinEnumFormatEtc(void)
         m_pFormatEtc = NULL;
     }
 
-    LogFlowFunc(("m_lRefCount=%RI32\n", m_lRefCount));
+    m_nNumFormats = 0;
 }
 
 /*
  * IUnknown methods.
  */
 
-STDMETHODIMP_(ULONG) SharedClipboardWinEnumFormatEtc::AddRef(void)
+STDMETHODIMP_(ULONG) ShClWinEnumFormatEtc::AddRef(void)
 {
     return InterlockedIncrement(&m_lRefCount);
 }
 
-STDMETHODIMP_(ULONG) SharedClipboardWinEnumFormatEtc::Release(void)
+STDMETHODIMP_(ULONG) ShClWinEnumFormatEtc::Release(void)
 {
     LONG lCount = InterlockedDecrement(&m_lRefCount);
     if (lCount == 0)
@@ -111,7 +147,7 @@ STDMETHODIMP_(ULONG) SharedClipboardWinEnumFormatEtc::Release(void)
     return lCount;
 }
 
-STDMETHODIMP SharedClipboardWinEnumFormatEtc::QueryInterface(REFIID iid, void **ppvObject)
+STDMETHODIMP ShClWinEnumFormatEtc::QueryInterface(REFIID iid, void **ppvObject)
 {
     if (   iid == IID_IEnumFORMATETC
         || iid == IID_IUnknown)
@@ -125,7 +161,7 @@ STDMETHODIMP SharedClipboardWinEnumFormatEtc::QueryInterface(REFIID iid, void **
     return E_NOINTERFACE;
 }
 
-STDMETHODIMP SharedClipboardWinEnumFormatEtc::Next(ULONG cFormats, LPFORMATETC pFormatEtc, ULONG *pcFetched)
+STDMETHODIMP ShClWinEnumFormatEtc::Next(ULONG cFormats, LPFORMATETC pFormatEtc, ULONG *pcFetched)
 {
     ULONG ulCopied  = 0;
 
@@ -135,7 +171,7 @@ STDMETHODIMP SharedClipboardWinEnumFormatEtc::Next(ULONG cFormats, LPFORMATETC p
     while (   m_nIndex < m_nNumFormats
            && ulCopied < cFormats)
     {
-        SharedClipboardWinEnumFormatEtc::CopyFormat(&pFormatEtc[ulCopied], &m_pFormatEtc[m_nIndex]);
+        ShClWinEnumFormatEtc::CopyFormat(&pFormatEtc[ulCopied], &m_pFormatEtc[m_nIndex]);
         ulCopied++;
         m_nIndex++;
     }
@@ -146,29 +182,29 @@ STDMETHODIMP SharedClipboardWinEnumFormatEtc::Next(ULONG cFormats, LPFORMATETC p
     return (ulCopied == cFormats) ? S_OK : S_FALSE;
 }
 
-STDMETHODIMP SharedClipboardWinEnumFormatEtc::Skip(ULONG cFormats)
+STDMETHODIMP ShClWinEnumFormatEtc::Skip(ULONG cFormats)
 {
     m_nIndex += cFormats;
     return (m_nIndex <= m_nNumFormats) ? S_OK : S_FALSE;
 }
 
-STDMETHODIMP SharedClipboardWinEnumFormatEtc::Reset(void)
+STDMETHODIMP ShClWinEnumFormatEtc::Reset(void)
 {
     m_nIndex = 0;
     return S_OK;
 }
 
-STDMETHODIMP SharedClipboardWinEnumFormatEtc::Clone(IEnumFORMATETC **ppEnumFormatEtc)
+STDMETHODIMP ShClWinEnumFormatEtc::Clone(IEnumFORMATETC **ppEnumFormatEtc)
 {
     HRESULT hResult = CreateEnumFormatEtc(m_nNumFormats, m_pFormatEtc, ppEnumFormatEtc);
     if (hResult == S_OK)
-        ((SharedClipboardWinEnumFormatEtc *) *ppEnumFormatEtc)->m_nIndex = m_nIndex;
+        ((ShClWinEnumFormatEtc *) *ppEnumFormatEtc)->m_nIndex = m_nIndex;
 
     return hResult;
 }
 
 /* static */
-void SharedClipboardWinEnumFormatEtc::CopyFormat(LPFORMATETC pDest, LPFORMATETC pSource)
+void ShClWinEnumFormatEtc::CopyFormat(LPFORMATETC pDest, LPFORMATETC pSource)
 {
     AssertPtrReturnVoid(pDest);
     AssertPtrReturnVoid(pSource);
@@ -183,22 +219,23 @@ void SharedClipboardWinEnumFormatEtc::CopyFormat(LPFORMATETC pDest, LPFORMATETC 
 }
 
 /* static */
-HRESULT SharedClipboardWinEnumFormatEtc::CreateEnumFormatEtc(UINT nNumFormats, LPFORMATETC pFormatEtc, IEnumFORMATETC **ppEnumFormatEtc)
+HRESULT ShClWinEnumFormatEtc::CreateEnumFormatEtc(UINT nNumFormats, LPFORMATETC pFormatEtc, IEnumFORMATETC **ppEnumFormatEtc)
 {
     AssertReturn(nNumFormats, E_INVALIDARG);
     AssertPtrReturn(pFormatEtc, E_INVALIDARG);
     AssertPtrReturn(ppEnumFormatEtc, E_INVALIDARG);
 
     HRESULT hr;
-    try
+
+    ShClWinEnumFormatEtc *pEnumFormatEtc = new ShClWinEnumFormatEtc();
+    if (pEnumFormatEtc)
     {
-        *ppEnumFormatEtc = new SharedClipboardWinEnumFormatEtc(pFormatEtc, nNumFormats);
-        hr = S_OK;
+        hr = pEnumFormatEtc->Init(pFormatEtc, nNumFormats);
+        if (SUCCEEDED(hr))
+            *ppEnumFormatEtc = pEnumFormatEtc;
     }
-    catch(std::bad_alloc &)
-    {
+    else
         hr = E_OUTOFMEMORY;
-    }
 
     return hr;
 }

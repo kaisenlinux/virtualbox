@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,16 +32,16 @@
 #include <QLabel>
 
 /* GUI includes: */
-#include "UICommon.h"
-#include "UIConverter.h"
 #include "UIAudioHostDriverEditor.h"
+#include "UIConverter.h"
+#include "UIGlobalSession.h"
 
 /* COM includes: */
 #include "CSystemProperties.h"
 
 
 UIAudioHostDriverEditor::UIAudioHostDriverEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent)
     , m_enmValue(KAudioDriverType_Max)
     , m_pLabel(0)
     , m_pCombo(0)
@@ -76,7 +76,7 @@ void UIAudioHostDriverEditor::setMinimumLayoutIndent(int iIndent)
         m_pLayout->setColumnMinimumWidth(0, iIndent);
 }
 
-void UIAudioHostDriverEditor::retranslateUi()
+void UIAudioHostDriverEditor::sltRetranslateUI()
 {
     if (m_pLabel)
         m_pLabel->setText(tr("Host Audio &Driver:"));
@@ -135,7 +135,7 @@ void UIAudioHostDriverEditor::prepare()
     populateCombo();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIAudioHostDriverEditor::populateCombo()
@@ -146,7 +146,7 @@ void UIAudioHostDriverEditor::populateCombo()
         m_pCombo->clear();
 
         /* Load currently supported audio driver types: */
-        CSystemProperties comProperties = uiCommon().virtualBox().GetSystemProperties();
+        CSystemProperties comProperties = gpGlobalSession->virtualBox().GetSystemProperties();
         m_supportedValues = comProperties.GetSupportedAudioDriverTypes();
 
         /* Make sure requested value if sane is present as well: */
@@ -164,6 +164,6 @@ void UIAudioHostDriverEditor::populateCombo()
             m_pCombo->setCurrentIndex(iIndex);
 
         /* Retranslate finally: */
-        retranslateUi();
+        sltRetranslateUI();
     }
 }

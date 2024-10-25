@@ -10,7 +10,7 @@ from __future__ import print_function;
 
 __copyright__ = \
 """
-Copyright (C) 2012-2023 Oracle and/or its affiliates.
+Copyright (C) 2012-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -39,7 +39,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 162363 $"
+__version__ = "$Revision: 164827 $"
 
 
 # Standard Python imports.
@@ -73,6 +73,24 @@ if sys.version_info[0] >= 3:
     unicode = str;  # pylint: disable=redefined-builtin,invalid-name
     xrange = range; # pylint: disable=redefined-builtin,invalid-name
     long = int;     # pylint: disable=redefined-builtin,invalid-name
+
+
+#
+# Python 2/3 glue.
+#
+
+if sys.version_info[0] >= 3:
+    def iteritems(dDict):
+        """
+        Wrapper around dict.items() / dict.iteritems().
+        """
+        return iter(dDict.items());
+else:
+    def iteritems(dDict):
+        """
+        Wrapper around dict.items() / dict.iteritems().
+        """
+        return dDict.iteritems();
 
 
 #
@@ -169,6 +187,8 @@ def getHostArch():
                 sArch = sArch.strip();
                 if sArch != 'amd64':
                     sArch = 'x86';
+        elif sArch in ('arm64', 'ARM64', 'aarch64'):
+            sArch = 'arm64';
         else:
             raise Exception('Unsupported architecture/machine "%s"' % (sArch,));
         g_sHostArch = sArch;
@@ -197,7 +217,7 @@ def isValidArch(sArch):
     Validates the CPU architecture name.
     """
     if sArch in ('x86', 'amd64', 'sparc32', 'sparc64', 's390', 's390x', 'ppc32', 'ppc64', \
-               'mips32', 'mips64', 'ia64', 'hppa32', 'hppa64', 'arm', 'alpha'):
+               'mips32', 'mips64', 'ia64', 'hppa32', 'hppa64', 'arm', 'arm64', 'alpha'):
         return True;
     return False;
 
@@ -288,8 +308,9 @@ def getHostOsVersion():
             codenames_afterCatalina = {"11": "Big Sur",
                                        "12": "Monterey",
                                        "13": "Ventura",
-                                       "14": "Unknown 14",
-                                       "15": "Unknown 15"}
+                                       "14": "Sonoma",
+                                       "15": "Unknown 15",
+                                       "16": "Unknown 16"}
 
             if aOsVersion[0] == '10':
                 sResult = codenames[aOsVersion[1]]
@@ -326,8 +347,11 @@ def getHostOsVersion():
         if rc == 0:
             # Python platform.release() is not reliable for newer server releases
             if oOsVersion.wProductType != 1:
-                if oOsVersion.dwMajorVersion == 10 and oOsVersion.dwMinorVersion == 0:
-                    sVersion = '2016Server';
+                if oOsVersion.dwMajorVersion == 10 and oOsVersion.dwMinorVersion == 0 \
+                                                   and oOsVersion.dwBuildNumber == 17763:
+                    sVersion = '2019Server'
+                elif oOsVersion.dwMajorVersion == 10 and oOsVersion.dwMinorVersion == 0:
+                    sVersion = '2016Server'; #todo: should probably add dwBuildNumber for it as well..
                 elif oOsVersion.dwMajorVersion == 6 and oOsVersion.dwMinorVersion == 3:
                     sVersion = '2012ServerR2';
                 elif oOsVersion.dwMajorVersion == 6 and oOsVersion.dwMinorVersion == 2:
@@ -1439,8 +1463,7 @@ def processCollectCrashInfo(uPid, fnLog, fnCrashFile):
             pass;
         # Some other useful locations as fallback.
         asDmpDirs.extend([
-            u'/var/cores/',
-            u'/var/core/',
+            u'/var/cores/'
         ]);
         #
         # Solaris by default creates a core file in the directory of the crashing process with the name 'core'.
@@ -1448,9 +1471,9 @@ def processCollectCrashInfo(uPid, fnLog, fnCrashFile):
         # As we need to distinguish the core files correlating to their PIDs and have a persistent storage location,
         # the host needs to be tweaked via:
         #
-        # ```coreadm -g /path/to/cores/core.%f.%p```
+        # ```coreadm -g /var/cores/core.%f.%p```
         #
-        sMatchSuffix = '.%u.core' % (uPid,);
+        sMatchRegEx = r'core\..*\.%u' % (uPid);
         for sDir in asDmpDirs:
             sDir = os.path.expandvars(sDir);
             if not os.path.isdir(sDir):
@@ -1461,7 +1484,7 @@ def processCollectCrashInfo(uPid, fnLog, fnCrashFile):
                 continue;
             for sEntry in asDirEntries:
                 fnLog('Entry: %s' % (os.path.join(sDir, sEntry)));
-                if sEntry.endswith(sMatchSuffix):
+                if re.search(sMatchRegEx, sEntry):
                     sFull = os.path.join(sDir, sEntry);
                     fnLog('Found crash dump for %u: %s' % (uPid, sFull,));
                     fnCrashFile(sFull, True);
@@ -2266,7 +2289,7 @@ def unpackTarFile(sArchive, sDstDir, fnLog, fnError = None, fnFilter = None):
     # 60%+ speedup for python 2.7 and 50%+ speedup for python 3.5, both on windows with PDBs.
     # 20%+ speedup for python 2.7 and 15%+ speedup for python 3.5, both on windows skipping PDBs.
     #
-    if True is True: # pylint: disable=comparison-with-itself
+    if True is True: # pylint: disable=comparison-with-itself,comparison-of-constants
         __installShUtilHacks(shutil);
         global g_fTarCopyFileObjOverriddend;
         if g_fTarCopyFileObjOverriddend is False:
@@ -2312,7 +2335,10 @@ def unpackTarFile(sArchive, sDstDir, fnLog, fnError = None, fnFilter = None):
                         if oTarInfo.isdir():
                             # Just make sure the user (we) got full access to dirs.  Don't bother getting it 100% right.
                             oTarInfo.mode |= 0x1c0; # (octal: 0700)
-                        oTarFile.extract(oTarInfo, sDstDir);
+                        if hasattr(tarfile, 'tar_filter'):
+                            oTarFile.extract(oTarInfo, sDstDir, filter = 'tar');
+                        else:
+                            oTarFile.extract(oTarInfo, sDstDir);
                     asMembers.append(os.path.join(sDstDir, oTarInfo.name.replace('/', os.path.sep)));
             except Exception as oXcpt:
                 fnError('Error unpacking "%s" member "%s" into "%s": %s' % (sArchive, oTarInfo.name, sDstDir, oXcpt));

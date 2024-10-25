@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -195,11 +195,11 @@
 #endif
 
 /* for kernel_fpu_begin / kernel_fpu_end() */
-#if RTLNX_VER_MIN(4,2,0)
+#if RTLNX_VER_MIN(4,2,0) && (defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86))
 # include <asm/fpu/api.h>
 #endif
 
-#if RTLNX_VER_MIN(3,7,0)
+#if RTLNX_VER_MIN(3,7,0) && (defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86))
 # include <asm/smap.h>
 #else
 static inline void clac(void) { }
@@ -442,7 +442,9 @@ DECLINLINE(unsigned long) msecs_to_jiffies(unsigned int cMillies)
  * The AMD 64 switch_to in macro in arch/x86/include/asm/switch_to.h stopped
  * restoring flags.
  * @{ */
-#if (defined(CONFIG_X86_SMAP) || defined(RT_STRICT) || defined(IPRT_WITH_EFLAGS_AC_PRESERVING)) \
+#if (   defined(CONFIG_X86_SMAP) \
+     || (defined(RT_STRICT) && (defined(RT_ARCH_X86) || defined(RT_ARCH_AMD64))) \
+     || defined(IPRT_WITH_EFLAGS_AC_PRESERVING)) \
   && !defined(IPRT_WITHOUT_EFLAGS_AC_PRESERVING)
 # include <iprt/asm-amd64-x86.h>
 # define IPRT_X86_EFL_AC                    RT_BIT(18)

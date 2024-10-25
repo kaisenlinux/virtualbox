@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2021-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2021-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -194,7 +194,7 @@ static DECLCALLBACK(RTEXITCODE) audioTestCmdEnumHandler(PRTGETOPTSTATE pGetState
 
     AUDIOTESTDRVSTACK DrvStack;
     if (fProbeBackends)
-        rc = audioTestDriverStackProbe(&DrvStack, pDrvReg,
+        rc = audioTestDriverStackProbe(&DrvStack,
                                        true /* fEnabledIn */, true /* fEnabledOut */, false /* fWithDrvAudio */);
     else
         rc = audioTestDriverStackInitEx(&DrvStack, pDrvReg,
@@ -205,7 +205,7 @@ static DECLCALLBACK(RTEXITCODE) audioTestCmdEnumHandler(PRTGETOPTSTATE pGetState
     /*
      * Do the enumeration.
      */
-    RTEXITCODE rcExit = RTEXITCODE_FAILURE;
+    RTEXITCODE rcExit = RTEXITCODE_SUCCESS;
 
     if (DrvStack.pIHostAudio->pfnGetDevices)
     {
@@ -245,7 +245,7 @@ static DECLCALLBACK(RTEXITCODE) audioTestCmdEnumHandler(PRTGETOPTSTATE pGetState
         rcExit = RTMsgErrorExitFailure("Enumeration not supported by backend '%s'\n", pDrvReg->szName);
     audioTestDriverStackDelete(&DrvStack);
 
-    return RTEXITCODE_SUCCESS;
+    return rcExit;
 }
 
 
@@ -301,7 +301,7 @@ static RTEXITCODE audioTestPlayOneInner(PAUDIOTESTDRVMIXSTREAM pMix, PAUDIOTESTW
                 uint64_t const cNsWritten = PDMAudioPropsBytesToNano64(pMix->pProps, offStream - cbPreBuffer);
                 uint64_t const cNsElapsed = RTTimeNanoTS() - nsStarted;
                 if (cNsWritten > cNsElapsed + RT_NS_10MS)
-                    RTThreadSleep((cNsWritten - cNsElapsed - RT_NS_10MS / 2) / RT_NS_1MS);
+                    RTThreadSleep(uint32_t(cNsWritten - cNsElapsed - RT_NS_10MS / 2) / RT_NS_1MS);
             }
 
             /* Transfer the data to the audio stream. */
@@ -819,7 +819,7 @@ static RTEXITCODE audioTestRecOneInner(PAUDIOTESTDRVMIXSTREAM pMix, PAUDIOTESTWA
                     { /* likely */ }
                     else
                     {
-                        cFramesCaptured = cMaxFrames - cFramesCaptured;
+                        cFramesCaptured = (uint32_t)cMaxFrames - cFramesCaptured;
                         cbCaptured      = PDMAudioPropsFramesToBytes(pMix->pProps, cFramesCaptured);
                     }
 

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -39,10 +39,10 @@
 
 /* Forward declarations: */
 class UIActionPool;
-class UICustomFileSystemItem;
+class UIFileSystemItem;
 
 /** This class scans the host file system by using the Qt API
-    and connects to the UICustomFileSystemModel*/
+    and connects to the UIFileSystemModel*/
 class UIFileManagerHostTable : public UIFileManagerTable
 {
     Q_OBJECT;
@@ -50,28 +50,30 @@ class UIFileManagerHostTable : public UIFileManagerTable
 public:
 
     UIFileManagerHostTable(UIActionPool *pActionPool, QWidget *pParent = 0);
+
     static KFsObjType  fileType(const QFileInfo &fsInfo);
     static KFsObjType  fileType(const QString &strPath);
+    virtual bool    isWindowsFileSystem() const override final;
 
 protected:
 
     /** Scans the directory with the path @strPath and inserts items to the
      *  tree under the @p parent. */
-    static void scanDirectory(const QString& strPath, UICustomFileSystemItem *parent,
-                              QMap<QString, UICustomFileSystemItem*> &fileObjects);
-    void            retranslateUi() override final;
-    virtual void    readDirectory(const QString& strPath, UICustomFileSystemItem *parent, bool isStartDir = false) override final;
-    virtual void    deleteByItem(UICustomFileSystemItem *item) override final;
-    virtual void    deleteByPath(const QStringList &pathList) override final;
+    static bool scanDirectory(const QString& strPath, UIFileSystemItem *parent,
+                              QMap<QString, UIFileSystemItem*> &fileObjects);
+    virtual bool    readDirectory(const QString& strPath, UIFileSystemItem *parent, bool isStartDir = false) override final;
+    virtual void    deleteByItem(UIFileSystemItem *item) override final;
     virtual void    goToHomeDirectory() override final;
-    virtual bool    renameItem(UICustomFileSystemItem *item, QString newBaseName) override final;
+    virtual bool    renameItem(UIFileSystemItem *item, const QString &strOldPath) override final;
     virtual bool    createDirectory(const QString &path, const QString &directoryName) override final;
     virtual QString fsObjectPropertyString() override final;
     virtual void    showProperties() override final;
     virtual void    determineDriveLetters() override final;
     virtual void    determinePathSeparator() override final;
     virtual void    prepareToolbar() override final;
-    virtual void    createFileViewContextMenu(const QWidget *pWidget, const QPoint &point) override final;
+    virtual void    createFileViewContextMenu(const QWidget *pWidget, const QPoint &point) override;
+    virtual void    toggleForwardBackwardActions() override final;
+
     /** @name Copy/Cut host-to-host stuff. Currently not implemented.
      * @{ */
         /** Disable/enable paste action depending on the m_eFileOperationType. */
@@ -79,10 +81,16 @@ protected:
         virtual void  pasteCutCopiedObjects()  override final {}
     /** @} */
 
+protected slots:
+
+    virtual void sltRetranslateUI() RT_OVERRIDE;
+
 private:
 
     static QString permissionString(QFileDevice::Permissions permissions);
     void    prepareActionConnections();
+
+    QAction *m_pModifierActionSeparator;
 };
 
 #endif /* !FEQT_INCLUDED_SRC_guestctrl_UIFileManagerHostTable_h */

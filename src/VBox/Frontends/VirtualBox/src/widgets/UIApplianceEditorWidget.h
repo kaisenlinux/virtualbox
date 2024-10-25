@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -38,11 +38,9 @@
 #include <QWidget>
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
 #include "UIExtraDataDefs.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CAppliance.h"
 #include "CVirtualSystemDescription.h"
 
@@ -295,7 +293,7 @@ protected:
 
 
 /** QWidget subclass used as the Appliance Editor widget. */
-class UIApplianceEditorWidget : public QIWithRetranslateUI<QWidget>
+class UIApplianceEditorWidget : public QWidget
 {
     Q_OBJECT;
 
@@ -332,9 +330,6 @@ public slots:
 
 protected:
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
     /** Holds the currently set appliance reference. */
     CAppliance  m_comAppliance;
 
@@ -357,6 +352,11 @@ protected:
     QLabel    *m_pLabelWarning;
     /** Holds the warning browser instance. */
     QTextEdit *m_pTextEditWarning;
+
+private slots:
+
+    /** Handles translation event. */
+    void sltRetranslateUI();
 
 private:
 

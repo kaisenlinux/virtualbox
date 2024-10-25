@@ -51,7 +51,6 @@
 #include "nsIFile.h"
 #include "nsIComponentRegistrar.h"
 #include "nsIComponentManagerObsolete.h"
-#include "nsIConsoleService.h"
 #include "nspr.h" // PR_fprintf
 #ifdef VBOX
 # include "nsEventQueueUtils.h"
@@ -68,10 +67,6 @@
 #include "nsIProxyObjectManager.h"
 
 #define LOADER_LINKS_WITH_PYTHON
-
-#ifndef PYXPCOM_USE_PYGILSTATE
-extern PYXPCOM_EXPORT void PyXPCOM_InterpreterState_Ensure();
-#endif
 
 #ifdef VBOX_PYXPCOM
 # include <iprt/cdefs.h>
@@ -525,7 +520,7 @@ PyXPCOMMethod_GetVariantValue(PyObject *self, PyObject *args)
 	return PyObject_FromVariant(parent, var);
 }
 
-PyObject *PyGetSpecialDirectory(PyObject *self, PyObject *args)
+static PyObject *PyGetSpecialDirectory(PyObject *self, PyObject *args)
 {
 	char *dirname;
 	if (!PyArg_ParseTuple(args, "s:GetSpecialDirectory", &dirname))
@@ -538,7 +533,7 @@ PyObject *PyGetSpecialDirectory(PyObject *self, PyObject *args)
 	return Py_nsISupports::PyObjectFromInterface(file, NS_GET_IID(nsIFile));
 }
 
-PyObject *AllocateBuffer(PyObject *self, PyObject *args)
+static PyObject *AllocateBuffer(PyObject *self, PyObject *args)
 {
 	int bufSize;
 	if (!PyArg_ParseTuple(args, "i", &bufSize))
@@ -548,32 +543,6 @@ PyObject *AllocateBuffer(PyObject *self, PyObject *args)
 #else
     return PyBytes_FromStringAndSize(NULL, bufSize);
 #endif
-}
-
-// Writes a message to the console service.  This could be done via pure
-// Python code, but is useful when the logging code is actually the
-// xpcom .py framework itself (ie, we don't want our logging framework to
-// call back into the very code generating the log messages!
-PyObject *LogConsoleMessage(PyObject *self, PyObject *args)
-{
-	char *msg;
-	if (!PyArg_ParseTuple(args, "s", &msg))
-		return NULL;
-
-	nsCOMPtr<nsIConsoleService> consoleService = do_GetService(NS_CONSOLESERVICE_CONTRACTID);
-	if (consoleService)
-		consoleService->LogStringMessage(NS_ConvertASCIItoUCS2(msg).get());
-	else {
-	// This either means no such service, or in shutdown - hardly worth
-	// the warning, and not worth reporting an error to Python about - its
-	// log handler would just need to catch and ignore it.
-	// And as this is only called by this logging setup, any messages should
-	// still go to stderr or a logfile.
-		NS_WARNING("pyxpcom can't log console message.");
-	}
-
-	Py_INCREF(Py_None);
-	return Py_None;
 }
 
 #ifdef VBOX
@@ -739,7 +708,6 @@ static struct PyMethodDef xpcom_methods[]=
 	{"GetProxyForObject", PyXPCOMMethod_GetProxyForObject, 1},
 	{"GetSpecialDirectory", PyGetSpecialDirectory, 1},
 	{"AllocateBuffer", AllocateBuffer, 1},
-	{"LogConsoleMessage", LogConsoleMessage, 1, "Write a message to the xpcom console service"},
 	{"MakeVariant", PyXPCOMMethod_MakeVariant, 1},
 	{"GetVariantValue", PyXPCOMMethod_GetVariantValue, 1},
 #ifdef VBOX
@@ -802,8 +770,11 @@ init_xpcom() {
 		return NULL;
 #endif
 
+	/* Done automatically since python 3.7 and deprecated since python 3.9. */
+#if PY_VERSION_HEX < 0x03090000
 	// Must force Python to start using thread locks
 	PyEval_InitThreads();
+#endif
 
 	// Create the module and add the functions
 #if PY_MAJOR_VERSION <= 2
@@ -847,7 +818,6 @@ init_xpcom() {
 	REGISTER_IID(nsISimpleEnumerator);
 	REGISTER_IID(nsIInterfaceInfo);
 	REGISTER_IID(nsIInputStream);
-	REGISTER_IID(nsIClassInfo);
 	REGISTER_IID(nsIVariant);
 	// for backward compatibility:
 	REGISTER_IID(nsIComponentManagerObsolete);

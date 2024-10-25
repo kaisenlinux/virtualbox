@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -52,10 +52,10 @@ void UIWizardNewVDVariantPage::prepare()
     QVBoxLayout *pMainLayout = new QVBoxLayout(this);
     AssertReturnVoid(pMainLayout);
 
-    m_pDescriptionLabel = new QIRichTextLabel;
-    m_pDynamicLabel = new QIRichTextLabel;
-    m_pFixedLabel = new QIRichTextLabel;
-    m_pSplitLabel = new QIRichTextLabel;
+    m_pDescriptionLabel = new QIRichTextLabel(this);
+    m_pDynamicLabel = new QIRichTextLabel(this);
+    m_pFixedLabel = new QIRichTextLabel(this);
+    m_pSplitLabel = new QIRichTextLabel(this);
 
     pMainLayout->addWidget(m_pDescriptionLabel);
     pMainLayout->addWidget(m_pDynamicLabel);
@@ -68,10 +68,10 @@ void UIWizardNewVDVariantPage::prepare()
 
     connect(m_pVariantWidget, &UIDiskVariantWidget::sigMediumVariantChanged,
             this, &UIWizardNewVDVariantPage::sltMediumVariantChanged);
-    retranslateUi();
+    sltRetranslateUI();
 }
 
-void UIWizardNewVDVariantPage::retranslateUi()
+void UIWizardNewVDVariantPage::sltRetranslateUI()
 {
     setTitle(UIWizardNewVD::tr("Storage on physical hard disk"));
 
@@ -98,7 +98,7 @@ void UIWizardNewVDVariantPage::initializePage()
     AssertReturnVoid(pWizard && m_pVariantWidget);
     setWidgetVisibility(pWizard->mediumFormat());
     pWizard->setMediumVariant(m_pVariantWidget->mediumVariant());
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 bool UIWizardNewVDVariantPage::isComplete() const

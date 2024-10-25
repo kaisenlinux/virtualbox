@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -955,7 +955,7 @@ DECLINLINE(void) rtLockValidatorSerializeDetectionEnter(void)
 /**
  * Call after rtLockValidatorSerializeDetectionEnter.
  */
-DECLHIDDEN(void) rtLockValidatorSerializeDetectionLeave(void)
+DECLINLINE(void) rtLockValidatorSerializeDetectionLeave(void)
 {
     RTSEMXROADS hXRoads = g_hLockValidatorXRoads;
     if (hXRoads != NIL_RTSEMXROADS)
@@ -3384,7 +3384,7 @@ RTDECL(int) RTLockValidatorRecExclCheckBlocking(PRTLOCKVALRECEXCL pRec, RTTHREAD
      */
     else if (   pRecU->Excl.hClass != NIL_RTLOCKVALCLASS
              && (   pRecU->Excl.hClass->cMsMinDeadlock > cMillies
-                 || pRecU->Excl.hClass->cMsMinDeadlock > RT_INDEFINITE_WAIT))
+                 || pRecU->Excl.hClass->cMsMinDeadlock == RT_INDEFINITE_WAIT))
         rc = VINF_SUCCESS;
     else if (!rtLockValidatorIsSimpleNoDeadlockCase(pRecU))
         rc = rtLockValidatorDeadlockDetection(pRecU, pThreadSelf, pSrcPos);

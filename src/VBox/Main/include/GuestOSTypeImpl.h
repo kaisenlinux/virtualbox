@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -52,10 +52,13 @@ public:
     // public methods only for internal purposes
     const Utf8Str &i_id() const { return mID; }
     const Utf8Str &i_familyId() const { return mFamilyID; }
+    const Utf8Str &i_subtype() const { return mOSSubtype; }
+    const Utf8Str &i_description() const { return mDescription; }
     bool i_is64Bit() const { return !!(mOSHint & VBOXOSHINT_64BIT); }
-    bool i_recommendedIOAPIC() const { return !!(mOSHint & VBOXOSHINT_IOAPIC); }
-    bool i_recommendedX2APIC() const { return !!(mOSHint & VBOXOSHINT_X2APIC); }
-    bool i_recommendedVirtEx() const { return !!(mOSHint & VBOXOSHINT_HWVIRTEX); }
+    PlatformArchitecture_T i_platformArchitecture() const;
+    bool i_recommendedIOAPIC() const { return !!(mOSHint & VBOXOSHINT_X86_IOAPIC); }
+    bool i_recommendedX2APIC() const { return !!(mOSHint & VBOXOSHINT_X86_X2APIC); }
+    bool i_recommendedVirtEx() const { return !!(mOSHint & VBOXOSHINT_X86_HWVIRTEX); }
     bool i_recommendedEFI() const { return !!(mOSHint & VBOXOSHINT_EFI); }
     bool i_recommendedEFISecureBoot() const { return !!(mOSHint & VBOXOSHINT_EFI_SECUREBOOT); }
     bool i_recommendedTpm2() const { return !!(mOSHint & VBOXOSHINT_TPM2); }
@@ -67,9 +70,11 @@ private:
     // Wrapped IGuestOSType properties
     HRESULT getFamilyId(com::Utf8Str &aFamilyId);
     HRESULT getFamilyDescription(com::Utf8Str &aFamilyDescription);
+    HRESULT getSubtype(com::Utf8Str &aSubtype);
     HRESULT getId(com::Utf8Str &aId);
     HRESULT getDescription(com::Utf8Str &aDescription);
     HRESULT getIs64Bit(BOOL *aIs64Bit);
+    HRESULT getPlatformArchitecture(PlatformArchitecture_T *aPlatformArchitecture);
     HRESULT getRecommendedIOAPIC(BOOL *aRecommendedIOAPIC);
     HRESULT getRecommendedVirtEx(BOOL *aRecommendedVirtEx);
     HRESULT getRecommendedRAM(ULONG *RAMSize);
@@ -102,12 +107,15 @@ private:
     HRESULT getRecommendedTpmType(TpmType_T *aRecommendedTpmType);
     HRESULT getRecommendedSecureBoot(BOOL *aRecommendedSecureBoot);
     HRESULT getRecommendedWDDMGraphics(BOOL *aRecommendedWDDMGraphics);
+    HRESULT getGuestAdditionsInstallPackageName(com::Utf8Str &aGuestAdditionsInstallPkgName);
 
 
     const Utf8Str mFamilyID;
     const Utf8Str mFamilyDescription;
+    const Utf8Str mOSSubtype;
     const Utf8Str mID;
     const Utf8Str mDescription;
+    const Utf8Str mGuestAdditionsInstallPackageName;
     const VBOXOSTYPE mOSType;
     const uint32_t mOSHint;
     const uint32_t mRAMSize;

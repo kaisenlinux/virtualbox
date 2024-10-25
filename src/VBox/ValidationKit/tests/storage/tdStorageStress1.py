@@ -7,7 +7,7 @@ Storage testcase using xfstests.
 
 __copyright__ = \
 """
-Copyright (C) 2012-2023 Oracle and/or its affiliates.
+Copyright (C) 2012-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -44,7 +44,7 @@ import os;
 import sys;
 
 # Only the main script needs to modify the path.
-try:    __file__
+try:    __file__                            # pylint: disable=used-before-assignment
 except: __file__ = sys.argv[0];
 g_ksValidationKitDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))));
 sys.path.append(g_ksValidationKitDir);
@@ -378,8 +378,8 @@ class tdStorageStress(vbox.TestDriver):                                      # p
                                                          cb = 10*1024*1024*1024, iPort = 1, fImmutable = False);
                 fRc = fRc and oSession.createAndAttachHd(sDiskPath2, sDiskFormat, self.controllerTypeToName(eStorageController),
                                                          cb = 10*1024*1024*1024, iPort = 2, fImmutable = False);
-            fRc = fRc and oSession.enableVirtEx(fHwVirt);
-            fRc = fRc and oSession.enableNestedPaging(fNestedPaging);
+            fRc = fRc and oSession.enableVirtExX86(fHwVirt);
+            fRc = fRc and oSession.enableNestedPagingX86(fNestedPaging);
             fRc = fRc and oSession.setCpuCount(cCpus);
             fRc = fRc and oSession.saveSettings();
             fRc = oSession.close() and fRc and True; # pychecker hack.

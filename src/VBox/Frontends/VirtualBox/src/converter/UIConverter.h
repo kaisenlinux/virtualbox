@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,8 +31,14 @@
 # pragma once
 #endif
 
+/* Qt includes: */
+#include <QColor>
+#include <QIcon>
+#include <QPixmap>
+#include <QString>
+
 /* GUI includes: */
-#include "UIConverterBackend.h"
+#include "UILibraryDefs.h"
 
 /** High-level interface for different conversions between GUI classes.
   * @todo Replace singleton with static template interface. */
@@ -49,88 +55,35 @@ public:
     static void destroy();
 
     /** Converts QColor <= template class. */
-    template<class T> QColor toColor(const T &data) const
-    {
-        if (canConvert<T>())
-            return ::toColor(data);
-        AssertFailed();
-        return QColor();
-    }
+    template<class T> QColor toColor(const T &data) const;
 
     /** Converts QIcon <= template class. */
-    template<class T> QIcon toIcon(const T &data) const
-    {
-        if (canConvert<T>())
-            return ::toIcon(data);
-        AssertFailed();
-        return QIcon();
-    }
+    template<class T> QIcon toIcon(const T &data) const;
+
     /** Converts QPixmap <= template class. */
-    template<class T> QPixmap toWarningPixmap(const T &data) const
-    {
-        if (canConvert<T>())
-            return ::toWarningPixmap(data);
-        AssertFailed();
-        return QPixmap();
-    }
+    template<class T> QPixmap toWarningPixmap(const T &data) const;
 
     /** Converts QString <= template class. */
-    template<class T> QString toString(const T &data) const
-    {
-        if (canConvert<T>())
-            return ::toString(data);
-        AssertFailed();
-        return QString();
-    }
+    template<class T> QString toString(const T &data) const;
     /** Converts template class <= QString. */
-    template<class T> T fromString(const QString &strData) const
-    {
-        if (canConvert<T>())
-            return ::fromString<T>(strData);
-        AssertFailed();
-        return T();
-    }
+    template<class T> T fromString(const QString &strData) const;
 
     /** Converts QString <= template class. */
-    template<class T> QString toInternalString(const T &data) const
-    {
-        if (canConvert<T>())
-            return ::toInternalString(data);
-        AssertFailed();
-        return QString();
-    }
+    template<class T> QString toInternalString(const T &data) const;
     /** Converts template class <= QString. */
-    template<class T> T fromInternalString(const QString &strData) const
-    {
-        if (canConvert<T>())
-            return ::fromInternalString<T>(strData);
-        AssertFailed();
-        return T();
-    }
+    template<class T> T fromInternalString(const QString &strData) const;
 
     /** Converts int <= template class. */
-    template<class T> int toInternalInteger(const T &data) const
-    {
-        if (canConvert<T>())
-            return ::toInternalInteger(data);
-        AssertFailed();
-        return 0;
-    }
+    template<class T> int toInternalInteger(const T &data) const;
     /** Converts template class <= int. */
-    template<class T> T fromInternalInteger(const int &iData) const
-    {
-        if (canConvert<T>())
-            return ::fromInternalInteger<T>(iData);
-        AssertFailed();
-        return T();
-    }
+    template<class T> T fromInternalInteger(const int &iData) const;
 
 private:
 
     /** Constructs converter. */
     UIConverter() { s_pInstance = this; }
     /** Destructs converter. */
-    virtual ~UIConverter() /* override final */ { s_pInstance = 0; }
+    virtual ~UIConverter() { s_pInstance = 0; }
 
     /** Holds the static instance. */
     static UIConverter *s_pInstance;

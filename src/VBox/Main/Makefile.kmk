@@ -4,7 +4,7 @@
 #
 
 #
-# Copyright (C) 2004-2023 Oracle and/or its affiliates.
+# Copyright (C) 2004-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -46,10 +46,15 @@ ifndef VBOX_ONLY_EXTPACKS
  include $(PATH_SUB_CURRENT)/cbinding/Makefile.kmk
  ifndef VBOX_ONLY_SDK
   include $(PATH_SUB_CURRENT)/UnattendedTemplates/Makefile.kmk
-  include $(PATH_SUB_CURRENT)/src-helper-apps/OpenGLTest/Makefile.kmk
   if defined(VBOX_WITH_OPEN_WATCOM) && defined(VBOX_WITH_UNATTENDED)
    include $(PATH_SUB_CURRENT)/src-helper-apps/os2/Makefile.kmk
   endif
+  ifdef VBOX_WITH_DEVMAPPER
+   include $(PATH_SUB_CURRENT)/src-helper-apps/VBoxVolInfo/Makefile.kmk
+  endif
+ endif
+ ifdef VBOX_WITH_PYTHON
+  include $(PATH_SUB_CURRENT)/glue/python/Makefile.kmk
  endif
 endif
 
@@ -150,6 +155,9 @@ endif
 ifdef VBOX_WITH_RECORDING
  VBOX_MAIN_DEFS += VBOX_WITH_RECORDING
 endif
+ifdef VBOX_WITH_STATISTICS
+ VBOX_MAIN_DEFS += VBOX_WITH_STATISTICS
+endif
 ifdef VBOX_WITH_SDS
  VBOX_MAIN_DEFS += VBOX_WITH_SDS
 endif
@@ -197,9 +205,14 @@ endif
 ifdef VBOX_WITH_MAIN_NLS
  VBOX_MAIN_DEFS += VBOX_WITH_MAIN_NLS
 endif
+ifdef VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT
+ VBOX_MAIN_DEFS += VBOX_WITH_GSTCTL_TOOLBOX_SUPPORT
+endif
+ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+ VBOX_MAIN_DEFS += VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+endif
 # Unconditionally enable the new semaphore key generation code
 VBOX_MAIN_DEFS += VBOX_WITH_NEW_SYS_V_KEYGEN
-
 
 VBOX_IDL_FILE.MSCOM    = $(VBOX_PATH_SDK)/bindings/mscom/idl/VirtualBox.idl
 VBOX_IDL_FILE.XPCOM    = $(VBOX_PATH_SDK)/bindings/xpcom/idl/VirtualBox_XPCOM.idl
@@ -327,8 +340,10 @@ ifndef VBOX_ONLY_SDK
  LIBRARIES += VBoxAPIWrap
  VBoxAPIWrap_TEMPLATE        = VBoxMainLib
  ifeq ($(KBUILD_TARGET),win)
-  VBoxAPIWrap_USES           = vccprecomp
-  VBoxAPIWrap_PCH_HDR       := $(PATH_SUB_CURRENT)/src-all/win/VBoxAPIWrap-precomp_vcc.h
+  ifndef VBOX_WITHOUT_PRECOMPILED_HEADERS
+   VBoxAPIWrap_USES           = vccprecomp
+   VBoxAPIWrap_PCH_HDR       := $(PATH_SUB_CURRENT)/src-all/win/VBoxAPIWrap-precomp_vcc.h
+  endif
  else if $(KBUILD_KMK_REVISION) >= 3256 && "$(KBUILD_TARGET)" != "darwin" && !defined(VBOX_WITHOUT_PRECOMPILED_HEADERS)
   if $(VBOX_GCC_VERSION_CXX) >= 50000 # GCC 4.x runs into trouble compiling the header.
    VBoxAPIWrap_USES        = gccprecomp
@@ -339,12 +354,12 @@ ifndef VBOX_ONLY_SDK
  	$(VBoxAPIWrap_0_OUTDIR)/VBoxAPI.d \
  	$(if-expr defined(VBOX_ONLY_EXTPACKS) \
  	, $(addprefix $(VBoxAPIWrap_0_OUTDIR)/,$(filter \
- 	Cloud% \
- 	DataStreamWrap.cpp \
- 	%FormValueWrap.cpp \
- 	%FormWrap.cpp \
- 	StringArrayWrap.cpp \
- 	, $(notdir $(VBOX_MAIN_APIWRAPPER_GEN_SRCS)))) \
+ 			Cloud% \
+ 			DataStreamWrap.cpp \
+ 			%FormValueWrap.cpp \
+ 			%FormWrap.cpp \
+ 			StringArrayWrap.cpp \
+ 			, $(notdir $(VBOX_MAIN_APIWRAPPER_GEN_SRCS)))) \
  	, $(VBOX_MAIN_APIWRAPPER_GEN_SRCS))
  VBoxAPIWrap_INTERMEDIATES   = $(VBOX_MAIN_APIWRAPPER_GEN_HDRS)
  VBoxAPIWrap_DEFS.win.x86   += _WIN32_WINNT=0x0500
@@ -389,43 +404,12 @@ ifndef VBOX_ONLY_SDK
 endif # !VBOX_ONLY_SDK
 
 #
-# Some SDK bit.
+# Some SDK bits.
 #
 INSTALLS += VBox-main-xidl
 VBox-main-xidl_INST = $(INST_SDK)bindings/
 VBox-main-xidl_MODE = a+r,u+w
 VBox-main-xidl_SOURCES = $(VBOX_XIDL_FILE_SRC)
-
-if defined(VBOX_WITH_PYTHON) && !defined(VBOX_ONLY_EXTPACKS)
- INSTALLS += VBox-python-glue
- VBox-python-glue_INST = $(INST_SDK)installer/vboxapi/
- VBox-python-glue_MODE = a+r,u+w
- VBox-python-glue_SOURCES = \
- 	glue/vboxapi.py=>__init__.py \
- 	$(VBox-python-glue_0_OUTDIR)/VirtualBox_constants.py
- VBox-python-glue_CLEAN = \
- 	$(VBox-python-glue_0_OUTDIR)/VirtualBox_constants.py \
- 	$(VBox-python-glue_0_OUTDIR)/VirtualBox_constants_err_h_1.txt
- $(call KB_FN_DO_PASS0_ON_TARGET,VBox-python-glue)
- $(call KB_FN_AUTO_CMD_DEPS,$(VBox-python-glue_0_OUTDIR)/VirtualBox_constants.py)
- $(VBox-python-glue_0_OUTDIR)/VirtualBox_constants.py \
- + $(VBox-python-glue_0_OUTDIR)/VirtualBox_constants_err_h_1.txt: \
- 		$(VBOX_PATH_MAIN_SRC)/glue/constants-python.xsl \
- 		$(VBOX_PATH_MAIN_SRC)/glue/vbox-err-consts.sed \
- 		$(PATH_ROOT)/include/iprt/err.h \
- 		$(PATH_ROOT)/include/VBox/err.h \
- 		$(VBOX_XIDL_FILE) \
- 		| $$(dir $$@)
-	$(call KB_FN_AUTO_CMD_DEPS_COMMANDS)
-	$(call MSG_TOOL,xsltproc,Python constants,$<,$@)
-	$(SED) -f $(VBOX_PATH_MAIN_SRC)/glue/vbox-err-consts.sed \
-       	--output $(VBox-python-glue_0_OUTDIR)/VirtualBox_constants_err_h_1.txt \
-		$(PATH_ROOT)/include/iprt/err.h \
-		$(PATH_ROOT)/include/VBox/err.h
-	$(QUIET)$(VBOX_XSLTPROC) -o $@ \
-		--stringparam "g_sErrHFile" "$(VBox-python-glue_0_OUTDIR)/VirtualBox_constants_err_h_1.txt" \
-		$(VBOX_PATH_MAIN_SRC)/glue/constants-python.xsl $(VBOX_XIDL_FILE)
-endif # VBOX_WITH_PYTHON && !VBOX_ONLY_EXTPACKS
 
 if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on for *very* long
 
@@ -440,19 +424,23 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
 
  #
  # Trust anchors and certificates -> .cpp
+ # Source for the Microsoft Certificates: https://github.com/microsoft/secureboot_objects
  #
  VBOX_SVC_CERTS_FILE = $(VBoxSVC_0_OUTDIR)/TrustAnchorsAndCerts.cpp
  VBOX_SVC_CERTS := \
  	UefiMicrosoftKek=MicCorKEKCA2011_2011-06-24.crt \
- 	UefiMicrosoftCa=MicCorUEFCA2011_2011-06-27.crt \
- 	UefiMicrosoftProPca=MicWinProPCA2011_2011-10-19.crt \
+ 	UefiMicrosoftKek2023=microsoft_corporation_kek_2k_ca_2023.crt \
+ 	UefiMicrosoft3rdCa=MicCorUEFCA2011_2011-06-27.crt \
+ 	UefiMicrosoft3rdCa2023=microsoft_uefi_ca_2023.crt \
+ 	UefiMicrosoftWinCa=MicWinProPCA2011_2011-10-19.crt \
+ 	UefiMicrosoftWinCa2023=windows_uefi_ca_2023.crt \
  	UefiOracleDefPk=OrclUefiDefPk2021_2021-09-29.crt
 
- VBOX_SVC_CERT_NAMES := $(foreach cert,$(VBOX_SVC_CERTS),$(firstword $(subst =,$(SPACE) ,$(cert))))
+ VBOX_SVC_CERT_NAMES := $(foreach cert,$(VBOX_SVC_CERTS),$(firstword $(subst =,$(SP),$(cert))))
  VBOX_SVC_PATH_CERTIFICATES := $(PATH_SUB_CURRENT)/Certificates
 
  $$(VBOX_SVC_CERTS_FILE): $(MAKEFILE_CURRENT) \
- 		$(foreach cert,$(VBOX_SVC_CERTS),$(VBOX_SVC_PATH_CERTIFICATES)/$(lastword $(subst =,$(SPACE) ,$(cert)))) \
+ 		$(foreach cert,$(VBOX_SVC_CERTS),$(VBOX_SVC_PATH_CERTIFICATES)/$(lastword $(subst =,$(SP),$(cert)))) \
  		$(VBOX_BIN2C) \
  		| $$(dir $$@)
 	$(QUIET)$(RM) -f -- $@
@@ -461,8 +449,8 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
        	'#include "TrustAnchorsAndCerts.h"' \
                ''
 	$(foreach cert,$(VBOX_SVC_CERTS), $(NLTAB)$(VBOX_BIN2C) -ascii --append \
-		"$(firstword $(subst =,$(SP) ,$(cert)))" \
-		"$(VBOX_SVC_PATH_CERTIFICATES)/$(lastword $(subst =,$(SP) ,$(cert)))" \
+		"$(firstword $(subst =,$(SP),$(cert)))" \
+		"$(VBOX_SVC_PATH_CERTIFICATES)/$(lastword $(subst =,$(SP),$(cert)))" \
 		"$@")
 
  OTHER_CLEAN += $(VBOX_SVC_CERTS_FILE)
@@ -559,7 +547,12 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
  	$(if $(VBOX_WITH_IOMMU_INTEL),VBOX_WITH_IOMMU_INTEL,) \
  	$(if $(VBOX_WITH_TPM),VBOX_WITH_TPM,) \
  	$(if $(VBOX_WITH_FULL_VM_ENCRYPTION),VBOX_WITH_FULL_VM_ENCRYPTION,) \
- 	$(if-expr defined(VBOX_WITH_SDS),VBOX_WITH_SDS,)
+ 	$(if-expr defined(VBOX_WITH_SDS),VBOX_WITH_SDS,) \
+ 	$(if $(VBOX_WITH_VIRT_ARMV8),VBOX_WITH_VIRT_ARMV8,) \
+ 	$(if $(VBOX_WITH_NATIVE_NEM),VBOX_WITH_NATIVE_NEM,) \
+ 	$(if $(VBOX_WITH_IEM_NATIVE_RECOMPILER),VBOX_WITH_IEM_NATIVE_RECOMPILER,) \
+ 	$(if $(VBOX_WITH_DRIVERLESS_FORCED),VBOX_WITH_DRIVERLESS_FORCED,)
+
  ifdef VBOX_WITH_USB
   VBoxSVC_DEFS += \
   	VBOX_WITH_USB \
@@ -582,7 +575,7 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
  	$(VBOX_MAIN_APIWRAPPER_INCS) \
  	. \
  	$(VBOX_GRAPHICS_INCS)
- VBoxSVC_INCS.win = \
+ VBoxSVC_INCS.win        = \
  	$(VBoxCOM_0_OUTDIR)
  ifdef VBOX_WITH_USB
   VBoxSVC_INCS.os2 = \
@@ -592,6 +585,7 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
  VBoxSVC_LIBS += \
  	$(PATH_STAGE_LIB)/VBoxAPIWrap$(VBOX_SUFF_LIB) \
  	$(PATH_STAGE_LIB)/SSMStandalone$(VBOX_SUFF_LIB) \
+ 	$(LIB_VBOXXPCOMIPCD) \
  	$(LIB_DDU)
 
  VBoxSVC_SDKS = VBoxLibPng VBoxZlib
@@ -626,6 +620,7 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
  	src-all/Logging.cpp \
  	src-all/NvramStoreImpl.cpp \
  	src-all/PCIDeviceAttachmentImpl.cpp \
+ 	src-all/PlatformPropertiesImpl.cpp \
  	src-all/ProgressImpl.cpp \
  	src-all/SecretKeyStore.cpp \
  	src-all/SharedFolderImpl.cpp \
@@ -642,7 +637,7 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
  	src-server/AudioSettingsImpl.cpp \
  	src-server/BandwidthControlImpl.cpp \
  	src-server/BandwidthGroupImpl.cpp \
- 	src-server/BIOSSettingsImpl.cpp \
+ 	src-server/FirmwareSettingsImpl.cpp \
  	src-server/RecordingSettingsImpl.cpp \
  	src-server/RecordingScreenSettingsImpl.cpp \
  	src-server/GraphicsAdapterImpl.cpp \
@@ -657,19 +652,20 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
  	src-server/NetworkServiceRunner.cpp \
  	src-server/NATNetworkImpl.cpp \
  	$(if $(VBOX_WITH_CLOUD_NET), \
- 	src-server/CloudNetworkImpl.cpp \
- 	,) \
+ 		src-server/CloudNetworkImpl.cpp \
+ 		,) \
  	src-server/GuestDebugControlImpl.cpp \
  	src-server/GuestOSTypeImpl.cpp \
  	src-server/HostDnsService.cpp \
  	src-server/HostImpl.cpp \
+ 	src-server/HostX86Impl.cpp \
  	src-server/HostAudioDeviceImpl.cpp \
  	src-server/HostNetworkInterfaceImpl.cpp \
  	src-server/HostPower.cpp \
  	$(if $(VBOX_WITH_LIBCURL), \
- 	$(if $(VBOX_WITH_UPDATE_AGENT), \
- 	src-server/UpdateAgentImpl.cpp,), \
- 	) \
+ 		$(if $(VBOX_WITH_UPDATE_AGENT), \
+ 			src-server/UpdateAgentImpl.cpp,), \
+ 		) \
  	src-server/HostVideoInputDeviceImpl.cpp \
  	src-server/HostDrivePartitionImpl.cpp \
  	src-server/HostDriveImpl.cpp \
@@ -686,6 +682,10 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
  	src-server/NATEngineImpl.cpp \
  	src-server/NetworkAdapterImpl.cpp \
  	src-server/ParallelPortImpl.cpp \
+ 	src-server/PlatformBase.cpp \
+ 	src-server/PlatformImpl.cpp \
+ 	$(if $(VBOX_WITH_VIRT_ARMV8), src-server/PlatformARMImpl.cpp,) \
+ 	src-server/PlatformX86Impl.cpp \
  	src-server/ProgressProxyImpl.cpp \
  	src-server/SerialPortImpl.cpp \
  	src-server/SnapshotImpl.cpp \
@@ -695,12 +695,12 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
  	src-server/TrustedPlatformModuleImpl.cpp \
  	src-server/UefiVariableStoreImpl.cpp \
  	$(if $(VBOX_WITH_UNATTENDED), \
- 	src-server/UnattendedImpl.cpp \
- 	src-server/UnattendedInstaller.cpp \
- 	src-server/UnattendedOs2Installer.cpp \
- 	src-server/UnattendedScript.cpp \
- 	src-all/TextScript.cpp \
- 	,) \
+ 		src-server/UnattendedImpl.cpp \
+ 		src-server/UnattendedInstaller.cpp \
+ 		src-server/UnattendedOs2Installer.cpp \
+ 		src-server/UnattendedScript.cpp \
+ 		src-all/TextScript.cpp \
+ 		,) \
  	src-server/USBControllerImpl.cpp \
  	src-server/USBDeviceFiltersImpl.cpp \
  	src-server/VFSExplorerImpl.cpp \
@@ -792,9 +792,7 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
  VBoxSVC_LDFLAGS.darwin   = -framework IOKit -framework SystemConfiguration
 
  ifdef VBOX_WITH_3D_ACCELERATION
-  VBoxSVC_DEFS           += VBOX_WITH_3D_ACCELERATION
-  VBoxSVC_LIBS           += $(PATH_STAGE_LIB)/VBoxOGLTest$(VBOX_SUFF_LIB)
-  VBoxSVC_LDFLAGS.darwin += -framework OpenGL
+  VBoxSVC_DEFS += VBOX_WITH_3D_ACCELERATION
  endif
 
  ifeq ($(KBUILD_TYPE),debug)
@@ -899,10 +897,18 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
 	$(QUIET)$(VBOX_XSLTPROC)  --stringparam mode define  -o $@ $(VBOX_XML_SCHEMADEFS_XSL) $(VBOX_XML_SCHEMA)
 
  testvalidsettings: $(VBOX_XML_SCHEMA)
+ if ("$(KBUILD_TARGET)" == "solaris")
+	xmllint --schema $< --noout $(HOME)/.config/VirtualBox/VirtualBox.xml
+	xmllint --schema $< --noout $(HOME)/VirtualBox\ VMs/*/*.vbox
+ else if ("$(KBUILD_TARGET)" == "darwin")
+	xmllint --schema $< --noout $(HOME)/Library/VirtualBox/VirtualBox.xml
+	xmllint --schema $< --noout $(HOME)/VirtualBox\ VMs/*/*.vbox
+ else
 	xmllint --schema $< --noout $(HOME)/.VirtualBox/VirtualBox.xml
 	xmllint --schema $< --noout $(HOME)/.VirtualBox/Machines/*/*.xml
 	xmllint --schema $< --noout $(HOME)/.VirtualBox/Machines/*/*.vbox
 	xmllint --schema $< --noout $(HOME)/VirtualBox\ VMs/*/*.vbox
+ endif
 
  OTHER_CLEAN += $(VBOX_XML_SCHEMADEFS_H) $(VBOX_XML_SCHEMADEFS_CPP)
 
@@ -916,14 +922,20 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
  $(VBOX_AUTOGEN_EVENT_H).ts +| $(VBOX_AUTOGEN_EVENT_H): $(VBOX_PATH_MAIN_SRC)/idl/comimpl.xsl $(VBOX_XIDL_FILE) | $$(dir $$@)
 	$(call KB_FN_AUTO_CMD_DEPS_COMMANDS)
 	$(call MSG_TOOL,xsltproc,autogen events,$<,$@)
-	$(QUIET)$(VBOX_XSLTPROC) --stringparam G_kind VBoxEventHeader -o "$@" "$(VBOX_PATH_MAIN_SRC)/idl/comimpl.xsl" "$(VBOX_XIDL_FILE)"
+	$(QUIET)$(VBOX_XSLTPROC) \
+		--stringparam G_kind VBoxEventHeader \
+		--stringparam g_uVBoxCopyrightYear "$(VBOX_C_YEAR)" \
+		-o "$@" "$(VBOX_PATH_MAIN_SRC)/idl/comimpl.xsl" "$(VBOX_XIDL_FILE)"
 	$(QUIET)$(CP) --changed -fv -- "$@" "$(VBOX_AUTOGEN_EVENT_H)"
 
  $(call KB_FN_AUTO_CMD_DEPS,$(VBOX_AUTOGEN_EVENT_CPP).ts)
  $(VBOX_AUTOGEN_EVENT_CPP).ts +| $(VBOX_AUTOGEN_EVENT_CPP): $(VBOX_PATH_MAIN_SRC)/idl/comimpl.xsl $(VBOX_XIDL_FILE) | $$(dir $$@)
 	$(call KB_FN_AUTO_CMD_DEPS_COMMANDS)
 	$(call MSG_TOOL,xsltproc,autogen events,$<,$@)
-	$(QUIET)$(VBOX_XSLTPROC) --stringparam G_kind VBoxEvent -o "$@" "$(VBOX_PATH_MAIN_SRC)/idl/comimpl.xsl" "$(VBOX_XIDL_FILE)"
+	$(QUIET)$(VBOX_XSLTPROC) \
+		--stringparam G_kind VBoxEvent \
+		--stringparam g_uVBoxCopyrightYear "$(VBOX_C_YEAR)" \
+		-o "$@" "$(VBOX_PATH_MAIN_SRC)/idl/comimpl.xsl" "$(VBOX_XIDL_FILE)"
 	$(QUIET)$(CP) --changed -fv -- "$@" "$(VBOX_AUTOGEN_EVENT_CPP)"
 
  OTHER_CLEAN += $(VBOX_AUTOGEN_EVENT_H).ts $(VBOX_AUTOGEN_EVENT_H) $(VBOX_AUTOGEN_EVENT_CPP).ts $(VBOX_AUTOGEN_EVENT_CPP)
@@ -933,14 +945,20 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
  $(VBOX_AUTOGEN_STRINGIFY_ENUMS_H).ts +| $(VBOX_AUTOGEN_STRINGIFY_ENUMS_H): $(VBOX_PATH_MAIN_SRC)/idl/stringify-enums.xsl $(VBOX_XIDL_FILE) | $$(dir $$@)
 	$(call KB_FN_AUTO_CMD_DEPS_COMMANDS)
 	$(call MSG_TOOL,xsltproc,autogen enum stringifiers,$<,$@)
-	$(QUIET)$(VBOX_XSLTPROC) --stringparam G_kind header -o "$@" "$(VBOX_PATH_MAIN_SRC)/idl/stringify-enums.xsl" "$(VBOX_XIDL_FILE)"
+	$(QUIET)$(VBOX_XSLTPROC) \
+		--stringparam G_kind header \
+		--stringparam g_uVBoxCopyrightYear "$(VBOX_C_YEAR)" \
+		-o "$@" "$(VBOX_PATH_MAIN_SRC)/idl/stringify-enums.xsl" "$(VBOX_XIDL_FILE)"
 	$(QUIET)$(CP) --changed -fv -- "$@" "$(VBOX_AUTOGEN_STRINGIFY_ENUMS_H)"
 
  $(call KB_FN_AUTO_CMD_DEPS,$(VBOX_AUTOGEN_STRINGIFY_ENUMS_CPP).ts)
  $(VBOX_AUTOGEN_STRINGIFY_ENUMS_CPP).ts +| $(VBOX_AUTOGEN_STRINGIFY_ENUMS_CPP): $(VBOX_PATH_MAIN_SRC)/idl/stringify-enums.xsl $(VBOX_XIDL_FILE) | $$(dir $$@)
 	$(call KB_FN_AUTO_CMD_DEPS_COMMANDS)
 	$(call MSG_TOOL,xsltproc,autogen enum stringifiers,$<,$@)
-	$(QUIET)$(VBOX_XSLTPROC) --stringparam G_kind source -o "$@" "$(VBOX_PATH_MAIN_SRC)/idl/stringify-enums.xsl" "$(VBOX_XIDL_FILE)"
+	$(QUIET)$(VBOX_XSLTPROC) \
+		--stringparam G_kind source \
+		--stringparam g_uVBoxCopyrightYear "$(VBOX_C_YEAR)" \
+		-o "$@" "$(VBOX_PATH_MAIN_SRC)/idl/stringify-enums.xsl" "$(VBOX_XIDL_FILE)"
 	$(QUIET)$(CP) --changed -fv -- "$@" "$(VBOX_AUTOGEN_STRINGIFY_ENUMS_CPP)"
 
  OTHER_CLEAN += $(VBOX_AUTOGEN_STRINGIFY_ENUMS_H).ts $(VBOX_AUTOGEN_STRINGIFY_ENUMS_H) $(VBOX_AUTOGEN_STRINGIFY_ENUMS_CPP).ts $(VBOX_AUTOGEN_STRINGIFY_ENUMS_CPP)
@@ -1005,6 +1023,7 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
  	$(if $(VBOX_WITH_EFI),VBOX_WITH_EFI,) \
  	$(if $(VBOX_WITH_HGSMI),VBOX_WITH_HGSMI,) \
  	$(if $(VBOX_WITH_VIDEOHWACCEL),VBOX_WITH_VIDEOHWACCEL,) \
+ 	$(if $(VBOX_WITH_3D_ACCELERATION),VBOX_WITH_3D_ACCELERATION,) \
  	$(if $(VBOX_WITH_DRAG_AND_DROP),VBOX_WITH_DRAG_AND_DROP,) \
  	$(if $(VBOX_WITH_DRAG_AND_DROP_GH),VBOX_WITH_DRAG_AND_DROP_GH,) \
  	$(if $(VBOX_WITH_USB),VBOX_WITH_USB,) \
@@ -1012,13 +1031,15 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
  	$(if $(VBOX_WITH_IOMMU_AMD),VBOX_WITH_IOMMU_AMD,) \
  	$(if $(VBOX_WITH_IOMMU_INTEL),VBOX_WITH_IOMMU_INTEL,) \
  	$(if $(VBOX_WITH_TPM),VBOX_WITH_TPM,) \
- 	$(if $(VBOX_WITH_FULL_VM_ENCRYPTION),VBOX_WITH_FULL_VM_ENCRYPTION,)
+ 	$(if $(VBOX_WITH_FULL_VM_ENCRYPTION),VBOX_WITH_FULL_VM_ENCRYPTION,) \
+ 	$(if $(VBOX_WITH_VIRT_ARMV8),VBOX_WITH_VIRT_ARMV8,)
  ifdef VBOX_WITH_NETSHAPER
   VBoxC_DEFS += VBOX_WITH_NETSHAPER
  endif
  VBoxC_DEFS.darwin.x86 = VBOX_WITH_2X_4GB_ADDR_SPACE
  VBoxC_DEFS.win.x86 += _WIN32_WINNT=0x0500
  VBoxC_DEFS.win.amd64 += _WIN32_WINNT=0x0510
+ VBoxC_DEFS.win.arm64 += _WIN32_WINNT=0x0510
 
  if $(KBUILD_TARGET) != "win" && $(VBOX_GCC_VERSION_CXX) >= 40900 # gcc 4.9.x (4.8.x is causing endless RT_ELEMENT trouble)
   # VBoxC_CXXFLAGS = -Wunused -Wconversion
@@ -1129,6 +1150,7 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
  	src-all/Logging.cpp \
  	src-all/NvramStoreImpl.cpp \
  	src-all/PCIDeviceAttachmentImpl.cpp \
+ 	src-all/PlatformPropertiesImpl.cpp \
  	src-all/ProgressImpl.cpp \
  	src-all/SecretKeyStore.cpp \
  	src-all/AutoCaller.cpp \
@@ -1143,7 +1165,9 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
  	$(if $(VBOX_WITH_PCI_PASSTHROUGH),src-client/PCIRawDevImpl.cpp,) \
  	src-client/ClientTokenHolder.cpp \
  	src-client/ConsoleImpl.cpp \
- 	src-client/ConsoleImpl2.cpp \
+ 	src-client/ConsoleImplConfigCommon.cpp \
+ 	src-client/ConsoleImplConfigX86.cpp \
+ 	$(if $(VBOX_WITH_VIRT_ARMV8),src-client/ConsoleImplConfigArmV8.cpp,) \
  	src-client/ConsoleImplTeleporter.cpp \
  	src-client/ConsoleVRDPServer.cpp \
  	src-client/DisplayImpl.cpp \
@@ -1156,6 +1180,8 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
  	src-client/MachineDebuggerImpl.cpp \
  	src-client/MouseImpl.cpp \
  	src-client/RemoteUSBDeviceImpl.cpp \
+ 	$(if $(VBOX_WITH_VIRT_ARMV8),src-client/ResourceAssignmentManager.cpp,) \
+ 	$(if $(VBOX_WITH_VIRT_ARMV8),src-client/ResourceStoreImpl.cpp,) \
  	src-client/SessionImpl.cpp \
  	src-client/USBDeviceImpl.cpp \
  	src-client/VBoxDriversRegister.cpp \
@@ -1205,9 +1231,14 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
   	src-client/GuestCtrlPrivate.cpp \
   	src-client/GuestDirectoryImpl.cpp \
   	src-client/GuestFileImpl.cpp \
+  	src-client/GuestFsInfoImpl.cpp \
   	src-client/GuestFsObjInfoImpl.cpp \
   	src-client/GuestProcessImpl.cpp \
   	src-client/GuestSessionImpl.cpp
+ endif
+ ifdef VBOX_WITH_SHARED_CLIPBOARD
+  VBoxC_SOURCES += \
+  	src-client/GuestShClPrivate.cpp
  endif
  ifdef VBOX_WITH_DRAG_AND_DROP
   VBoxC_SOURCES += \
@@ -1286,7 +1317,7 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
   VBoxClient-x86_SDKS = $(filter-out VBoxLibVpx,$(VBoxC_SDKS))
   VBoxClient-x86_DEFS = VBOX_COM_INPROC_API_CLIENT \
   	$(filter-out VBOX_WITH_RECORDING VBOX_WITH_AUDIO_RECORDING \
-  	VBOX_WITH_LIBVPX,$(VBoxC_DEFS))
+  		VBOX_WITH_LIBVPX,$(VBoxC_DEFS))
   VBoxClient-x86_INCS.win = \
   	$(VBoxClient-x86_0_OUTDIR) \
   	$(VBoxCOM-x86_0_OUTDIR) \
@@ -1361,16 +1392,6 @@ if !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) # Note this goes on f
   	$(LIB_RUNTIME)
  endif # VBOX_WITH_EXTPACK
 
- #
- # VolInfo
- #
- ifdef VBOX_WITH_DEVMAPPER
-  PROGRAMS.linux     += VBoxVolInfo
-  VBoxVolInfo_TEMPLATE = VBoxR3SetUidToRoot
-  VBoxVolInfo_SOURCES = src-helper-apps/VBoxVolInfo.cpp
-  VBoxVolInfo_LIBS    = devmapper
- endif
-
 
 endif # !defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_EXTPACKS) (the ifndef is far above)
 
@@ -1407,6 +1428,7 @@ ifeq ($(KBUILD_TARGET),win)
  endif
  VBoxCOM_DEFS.x86      = _WIN32_WINNT=0x0500
  VBoxCOM_DEFS.amd64    = _WIN32_WINNT=0x0510
+ VBoxCOM_DEFS.arm64    = _WIN32_WINNT=0x0510
  VBoxCOM_SOURCES      += \
  	$(VBoxCOM_0_OUTDIR)/VirtualBox_i.c
  VBoxCOM_CLEAN         = \
@@ -1460,15 +1482,15 @@ ifndef VBOX_ONLY_SDK
  ifeq ($(KBUILD_TARGET).$(VBOX_VCC_CRT_TYPE),win.d)
   ifndef VBOX_ONLY_EXTPACKS
    LIBRARIES += VBoxCOM-GUI
-   USES += qt5
+   USES += qt6
    VBoxCOM-GUI_TEMPLATE = $(if-expr defined(VBOX_WITH_HARDENING),VBoxQtGuiDll,VBoxQtGuiExe)
    VBoxCOM-GUI_EXTENDS = VBoxCOM
   endif
  endif
 
- # define qt5 tools for translation even if VBOX_ONLY_EXTPACKS is enabled
+ # define qt6 tools for translation even if VBOX_ONLY_EXTPACKS is enabled
  ifdef VBOX_WITH_NLS
-  USES += qt5
+  USES += qt6
  endif
 
 endif # !VBOX_ONLY_SDK
@@ -1519,7 +1541,8 @@ if defined(VBOX_WITH_MIDL_PROXY_STUB) && "$(KBUILD_TARGET)" == "win" && !defined
  ifdef VBOX_WITH_SDS_CLIENT_WATCHER
   VBoxProxyStub_DEFS   += VBOX_WITH_SDS_CLIENT_WATCHER,)
  endif
- VBoxProxyStub_DEFS.win.x86 = WIN32
+ VBoxProxyStub_DEFS.win.x86   = WIN32
+ VBoxProxyStub_DEFS.win.arm64 = WIN32
  VBoxProxyStub_SDKS     = VBoxNtDll
  VBoxProxyStub_DEFPATH  = $(VBoxCOM_0_OUTDIR)/# Hack to workaround drive letter in $(VBoxCOM_0_OUTDIR)/ for CFLAGS hack below.
  VBoxProxyStub_INCS     = $(VBoxCOM_0_OUTDIR)/
@@ -1532,18 +1555,20 @@ if defined(VBOX_WITH_MIDL_PROXY_STUB) && "$(KBUILD_TARGET)" == "win" && !defined
  src-all/win/VBoxProxyStub.rc_DEPS = $(VBoxCOM_0_OUTDIR)/VirtualBox.tlb
  VBoxProxyStub_VirtualBox_p.c_CFLAGS.x86 = /Gz # Workaround for incorrect ObjectStublessClient* prototypes in SDK v7.1.
 
- DLLS += VBoxProxyStubLegacy
- VBoxProxyStubLegacy_TEMPLATE = VBoxMainComp
- VBoxProxyStubLegacy_EXTENDS  = VBoxProxyStub
- VBoxProxyStubLegacy_DEFS     = $(VBoxProxyStub_DEFS) VBOX_IN_PROXY_STUB_LEGACY
- VBoxProxyStubLegacy_INCS     = $(VBoxCOM_0_OUTDIR)/legacy/
- VBoxProxyStubLegacy_SOURCES  = \
- 	$(VBoxCOM_0_OUTDIR)/legacy/VirtualBox_p.c \
- 	$(VBoxCOM_0_OUTDIR)/legacy/VirtualBox_i.c \
- 	src-all/win/VBoxProxyStub.def \
- 	src-all/win/VBoxProxyStubLegacy.rc \
- 	src-all/win/VBoxProxyStub.c
- src-all/win/VBoxProxyStubLegacy.rc_DEPS = $(VBoxCOM_0_OUTDIR)/legacy/VirtualBox.tlb
+ ifn1of ($(KBUILD_TARGET_ARCH), arm64)
+  DLLS += VBoxProxyStubLegacy
+  VBoxProxyStubLegacy_TEMPLATE = VBoxMainComp
+  VBoxProxyStubLegacy_EXTENDS  = VBoxProxyStub
+  VBoxProxyStubLegacy_DEFS     = $(VBoxProxyStub_DEFS) VBOX_IN_PROXY_STUB_LEGACY
+  VBoxProxyStubLegacy_INCS     = $(VBoxCOM_0_OUTDIR)/legacy/
+  VBoxProxyStubLegacy_SOURCES  = \
+  	$(VBoxCOM_0_OUTDIR)/legacy/VirtualBox_p.c \
+  	$(VBoxCOM_0_OUTDIR)/legacy/VirtualBox_i.c \
+  	src-all/win/VBoxProxyStub.def \
+  	src-all/win/VBoxProxyStubLegacy.rc \
+  	src-all/win/VBoxProxyStub.c
+  src-all/win/VBoxProxyStubLegacy.rc_DEPS = $(VBoxCOM_0_OUTDIR)/legacy/VirtualBox.tlb
+ endif
 
  ifdef VBOX_WITH_32_ON_64_MAIN_API
   DLLS += VBoxProxyStub-x86
@@ -1572,19 +1597,19 @@ ifdef VBOX_WITH_MAIN_NLS
  VirtualBoxAPI_TEMPLATE = VBoxNLS
  VirtualBoxAPI_QT_TRANSLATIONS = $(addsuffix .ts,$(addprefix $(VBOX_PATH_MAIN_SRC)/nls/VirtualBoxAPI_,$(VBOX_APPROVED_MAIN_LANGUAGES)))
  VirtualBoxAPI_VBOX_ALL_NLS_SOURCES = $(wildcard \
- 	$(VBOX_PATH_MAIN_SRC)/include/*.h \
- 	$(VBOX_PATH_MAIN_SRC)/src-all/*.cpp \
- 	$(VBOX_PATH_MAIN_SRC)/src-all/*.h \
- 	$(VBOX_PATH_MAIN_SRC)/src-server/*.cpp \
- 	$(VBOX_PATH_MAIN_SRC)/src-server/*.h \
- 	$(VBOX_PATH_MAIN_SRC)/src-client/*.cpp \
- 	$(VBOX_PATH_MAIN_SRC)/src-client/*.h )
+ 		$(VBOX_PATH_MAIN_SRC)/include/*.h \
+ 		$(VBOX_PATH_MAIN_SRC)/src-all/*.cpp \
+ 		$(VBOX_PATH_MAIN_SRC)/src-all/*.h \
+ 		$(VBOX_PATH_MAIN_SRC)/src-server/*.cpp \
+ 		$(VBOX_PATH_MAIN_SRC)/src-server/*.h \
+ 		$(VBOX_PATH_MAIN_SRC)/src-client/*.cpp \
+ 		$(VBOX_PATH_MAIN_SRC)/src-client/*.h )
 
  updatenls:: makeallnls $(VBOX_PATH_MAIN_SRC)/nls/VirtualBoxAPI_en.ts
 
  makeallnls:: $(VirtualBoxAPI_VBOX_ALL_NLS_SOURCES)
 	$(call MSG_L1,lupdate all languages (nls/*.ts))
-	$(QUIET)$(TOOL_QT5_LUPDATE) \
+	$(QUIET)$(TOOL_QT6_LUPDATE) \
 		$^ \
 		-ts \
 		$(filter-out nls/VirtualBoxAPI_en.ts, $(VirtualBoxAPI_QT_TRANSLATIONS)) \
@@ -1606,7 +1631,7 @@ ifdef VBOX_WITH_MAIN_NLS
  # contain the plural forms only.
  $(VBOX_PATH_MAIN_SRC)/nls/VirtualBoxAPI_en.ts: $(VirtualBoxAPI_VBOX_ALL_NLS_SOURCES)
 	$(call MSG_L1,lupdate $@)
-	$(QUIET)$(TOOL_QT5_LUPDATE) \
+	$(QUIET)$(TOOL_QT6_LUPDATE) \
 		$^ \
 		-ts \
 		"$@"
@@ -1690,7 +1715,7 @@ if "$(KBUILD_TARGET)" == "win" || (defined(VBOX_ONLY_SDK) && !defined(VBOX_ONLY_
  + $(VBoxCOM_0_OUTDIR)/VirtualBox.tlb: $(VBOX_IDL_FILE.MSCOM) | $$(dir $$@)
 	$(call KB_FN_AUTO_CMD_DEPS_COMMANDS)
 	$(VBOX_MIDL_REDIRECT) $(VBOX_WIN_MIDL) /nologo /W4 \
-		/env $(if-expr "$(KBUILD_TARGET).$(KBUILD_TARGET_ARCH)" == "win.amd64" ,amd64,win32) \
+		/env $(if-expr "$(KBUILD_TARGET).$(KBUILD_TARGET_ARCH)" == "win.amd64" ,amd64,$(if-expr "$(KBUILD_TARGET).$(KBUILD_TARGET_ARCH)" == "win.arm64" ,arm64,win32)) \
 		/robust /protocol all /target $(if-expr defined(VBOX_WITH_MIDL_PROXY_STUB),NT61,NT51) \
 		/out $(call VBOX_FN_MAKE_WIN_PATH,$(VBoxCOM_0_OUTDIR)) \
 		/cpp_cmd $(VBOX_MIDL_CPP_CMD) \
@@ -1790,12 +1815,12 @@ ifdef VBOX_WITH_JMSCOM
  	$(VBoxJMscom-inst-jar_0_OUTDIR)/vboxjmscom.jar \
  	$(VBOX_JMSCOM_GEN)/jmscomglue.list \
  	$(wildcard \
- 	$(VBOX_JMSCOM_GEN)/java/*.java \
- 	$(VBOX_JMSCOM_JDEST)/*.class \
- 	$(VBOX_JMSCOM_JDEST)/*/*.class \
- 	$(VBOX_JMSCOM_JDEST)/*/*/*.class \
- 	$(VBOX_JMSCOM_JDEST)/*/*/*/*.class \
- 	)
+ 		$(VBOX_JMSCOM_GEN)/java/*.java \
+ 		$(VBOX_JMSCOM_JDEST)/*.class \
+ 		$(VBOX_JMSCOM_JDEST)/*/*.class \
+ 		$(VBOX_JMSCOM_JDEST)/*/*/*.class \
+ 		$(VBOX_JMSCOM_JDEST)/*/*/*/*.class \
+ 		)
  VBoxJMscom-inst-jar_BLDDIRS += $(VBOX_JMSCOM_GEN)/java
  $(call KB_FN_DO_PASS0_ON_TARGET,VBoxJMscom-inst-jar) # Sets VBoxJMscom-inst-jar_0_OUTDIR
 
@@ -1813,6 +1838,7 @@ ifdef VBOX_WITH_JMSCOM
 		--stringparam G_vboxApiSuffix $(VBOX_API_SUFFIX) \
 		--stringparam G_vboxGlueStyle mscom \
 		--stringparam G_vboxDirPrefix "" \
+		--stringparam g_uVBoxCopyrightYear "$(VBOX_C_YEAR)" \
 		-o $(VBOX_JMSCOM_GEN)/java/merged.file $(VBOX_GLUE_XSLT_DIR)/glue-java.xsl $(VBOX_XIDL_FILE)
 	$(QUIET)$(VBOX_FILESPLIT) $(VBOX_JMSCOM_GEN)/java/merged.file $(VBOX_JMSCOM_GEN)/java
 	$(QUIET)echo $(VBOX_JMSCOM_GEN)/java/*.java > $@
@@ -1877,6 +1903,7 @@ $(VBoxAPIWrap_0_OUTDIR)/apiwrappers-headers \
 	$(QUIET)$(RM) -f -- $(filter-out $(VBOX_MAIN_APIWRAPPER_GEN_HDRS), $(wildcard $(VBoxAPIWrap_0_OUTDIR)/*.h))
 	$(QUIET)$(VBOX_XSLTPROC) --stringparam KBUILD_HOST $(KBUILD_HOST) \
 		--stringparam generating "headers" \
+		--stringparam g_uVBoxCopyrightYear "$(VBOX_C_YEAR)" \
 		-o $@ $(VBoxAPIWrap_VBOX_XSLT) $(VBOX_XIDL_FILE)
 	$(QUIET)$(VBOX_FILESPLIT) $@ $(VBoxAPIWrap_0_OUTDIR)
 
@@ -1894,6 +1921,7 @@ $(VBoxAPIWrap_0_OUTDIR)/VBoxAPI.d.ts \
 	$(QUIET)$(RM) -f -- "$@" "$@.tmp"
 	$(QUIET)$(VBOX_XSLTPROC) --stringparam KBUILD_HOST $(KBUILD_HOST) \
 		--stringparam generating "dtrace-probes" \
+		--stringparam g_uVBoxCopyrightYear "$(VBOX_C_YEAR)" \
 		-o "$@" $(VBoxAPIWrap_VBOX_XSLT) $(VBOX_XIDL_FILE)
 	$(QUIET)$(SED) -e '' -o "$@.tmp" \
 		"$(VBOX_PATH_MAIN_SRC)/src-all/VBoxAPI-start$(if-expr "$(VBOX_HOST_DTRACE_VERSION)" == "dtrace: Sun D 1.6.2",-alternative,).d" \
@@ -1917,6 +1945,7 @@ $(VBoxAPIWrap_0_OUTDIR)/apiwrappers-sources-even \
 	$(QUIET)$(VBOX_XSLTPROC) --stringparam KBUILD_HOST $(KBUILD_HOST) \
 		--stringparam generating "sources" \
 		--param reminder 0 \
+		--stringparam g_uVBoxCopyrightYear "$(VBOX_C_YEAR)" \
 		-o $@ $(VBoxAPIWrap_VBOX_XSLT) $(VBOX_XIDL_FILE)
 	$(QUIET)$(VBOX_FILESPLIT) $@ $(VBoxAPIWrap_0_OUTDIR)
 
@@ -1934,6 +1963,7 @@ $(VBoxAPIWrap_0_OUTDIR)/apiwrappers-sources-odd \
 	$(QUIET)$(VBOX_XSLTPROC) --stringparam KBUILD_HOST $(KBUILD_HOST) \
 		--stringparam generating "sources" \
 		--param reminder 1 \
+		--stringparam g_uVBoxCopyrightYear "$(VBOX_C_YEAR)" \
 		-o $@ $(VBoxAPIWrap_VBOX_XSLT) $(VBOX_XIDL_FILE)
 	$(QUIET)$(VBOX_FILESPLIT) $@ $(VBoxAPIWrap_0_OUTDIR)
 

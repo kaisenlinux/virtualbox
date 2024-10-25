@@ -4,7 +4,7 @@
 #
 
 #
-# Copyright (C) 2006-2023 Oracle and/or its affiliates.
+# Copyright (C) 2006-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -50,8 +50,10 @@ VBOX_VALIDATIONKIT_INSTALLS := $(INSTALLS)
 #
 include $(PATH_SUB_CURRENT)/tests/Makefile.kmk
 ifneq ($(KBUILD_HOST),os2)            # needs yasm
- if1of ($(KBUILD_TARGET_ARCH), amd64 x86) # needs yasm
-  include $(PATH_SUB_CURRENT)/bootsectors/Makefile.kmk
+ if1of ($(KBUILD_TARGET_ARCH), amd64 x86 arm64) # needs yasm
+  ifn1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), linux.arm64) # No yasm for linux.arm64 right now
+   include $(PATH_SUB_CURRENT)/bootsectors/Makefile.kmk
+  endif
  endif
 endif
 include $(PATH_SUB_CURRENT)/utils/Makefile.kmk
@@ -116,9 +118,9 @@ ifndef VBOX_WITHOUT_VALIDATIONKIT_ZIP
  			$$(filter $(PATH_STAGE)/$(INST_VALIDATIONKIT)%, $$($$(inst)_2_STAGE_TARGETS)))
 	$(call MSG_L1,Packing the Test Suite $@)
 	$(QUIET)$(RM) -f $@
-	# Note: Exclude packing the testcase directory into .zip, as that directory only needs to be
-	#       included in VBoxValidationKit.iso.
-	$(foreach os, darwin freebsd linux os2 solaris win,$(foreach arch, x86 amd64 \
+ # Note: Exclude packing the testcase directory into .zip, as that directory only needs to be
+ #       included in VBoxValidationKit.iso.
+	$(foreach os, darwin freebsd linux os2 solaris win,$(foreach arch, x86 amd64 arm64\
 	,$(if-expr defined(VBOX_WITH_VALIDATIONKIT_PACKING.$(os).$(arch))\
 		,$(NLTAB)$(QUIET)$(REDIRECT) -C $(PATH_OUT_BASE)/$(os).$(arch)/$(KBUILD_TYPE)/ \
 			-- $(VBOX_ZIP) -r9 $@ $(INST_VALIDATIONKIT) -x '$(INST_VALIDATIONKIT)testcase/*' -x '*.pyc',)))
@@ -133,7 +135,7 @@ ifndef VBOX_WITHOUT_VALIDATIONKIT_ZIP
  		$$(TestBoxHelper_2_STAGE_TARGETS)
 	$(call MSG_L1,Packing the TestBox Script files to $@)
 	$(QUIET)$(RM) -f $@
-	$(foreach os, darwin freebsd linux os2 solaris win,$(foreach arch, x86 amd64 \
+	$(foreach os, darwin freebsd linux os2 solaris win,$(foreach arch, x86 amd64 arm64\
 	,$(if-expr defined(VBOX_WITH_VALIDATIONKIT_PACKING.$(os).$(arch))\
 		,$(NLTAB)$(QUIET)$(REDIRECT) -C $(PATH_OUT_BASE)/$(os).$(arch)/$(KBUILD_TYPE)/ \
 			-- $(VBOX_ZIP) -r9X $@ $(INST_TESTBOXSCRIPT) -x '*.pyc',)))
@@ -182,7 +184,7 @@ endif
 VBOX_VALIDATIONKIT_FILESPEC_UNITTESTS =
 
 # Generate VBOX_PATH_VALIDATIONKIT.os.arch variables.
-$(foreach os, darwin freebsd linux os2 solaris win,$(foreach arch, x86 amd64, \
+$(foreach os, darwin freebsd linux os2 solaris win,$(foreach arch, x86 amd64 arm64, \
 	$(eval VBOX_PATH_VALIDATIONKIT.$(os).$(arch) = $(PATH_OUT_BASE)/$(os).$(arch)/$(KBUILD_TYPE)/$(INST_VALIDATIONKIT)$(os)/$(arch)) \
 	$(eval VBOX_PATH_VALIDATIONKIT_UNITTESTS.$(os).$(arch) = $(abspath $(VBOX_PATH_VALIDATIONKIT.$(os).$(arch))/../../testcase/$(os)/$(arch)/testcase)) \
 ))
@@ -191,7 +193,6 @@ $(foreach os, darwin freebsd linux os2 solaris win,$(foreach arch, x86 amd64, \
 define def_vbox_validationkit_common_files
  ifdef VBOX_WITH_VALIDATIONKIT_PACKING.$(os).$(arch)
   VBOX_VALIDATIONKIT_FILESPEC += \
-  	$$(VBOX_PATH_VALIDATIONKIT.$(os).$(arch))/exceptionsR3$(TMP_SUFF_EXE) \
   	$$(VBOX_PATH_VALIDATIONKIT.$(os).$(arch))/cpu-alloc-all-mem$(TMP_SUFF_EXE) \
   	$$(VBOX_PATH_VALIDATIONKIT.$(os).$(arch))/cpu-numa$(TMP_SUFF_EXE) \
   	$$(VBOX_PATH_VALIDATIONKIT.$(os).$(arch))/FsPerf$(TMP_SUFF_EXE) \
@@ -202,19 +203,27 @@ define def_vbox_validationkit_common_files
   	$$(VBOX_PATH_VALIDATIONKIT.$(os).$(arch))/TestExecService$(TMP_SUFF_EXE) \
   	$$(VBOX_PATH_VALIDATIONKIT.$(os).$(arch))/vts_rm$(TMP_SUFF_EXE) \
   	$$(VBOX_PATH_VALIDATIONKIT.$(os).$(arch))/vts_shutdown$(TMP_SUFF_EXE) \
-  	$$(VBOX_PATH_VALIDATIONKIT.$(os).$(arch))/vts_tar$(TMP_SUFF_EXE) \
-  	$$(VBOX_PATH_VALIDATIONKIT.$(os).$(arch))/xmmsaving$(TMP_SUFF_EXE)
+  	$$(VBOX_PATH_VALIDATIONKIT.$(os).$(arch))/vts_tar$(TMP_SUFF_EXE)
   if1of ($(arch), amd64) ## HACK ALERT! This mirrors VBOX_WITH_R0_MODULES logic in /Config.kmk.
    VBOX_VALIDATIONKIT_FILESPEC += \
    	$$(VBOX_PATH_VALIDATIONKIT.$(os).$(arch))/loadgeneratorR0.r0
   endif
-  ifn1of ($(os), os2) ## not compiling bootsectors, no yasm.  could fix this better.
+  ifn1of ($(os).$(arch), os2.x86 linux.arm64) ## not compiling bootsectors, no yasm.  could fix this better.
    VBOX_VALIDATIONKIT_FILESPEC += \
    	$$(VBOX_PATH_VALIDATIONKIT.$(os).$(arch))/bs3-timing-1$(TMP_SUFF_EXE)
   endif
   ifn1of ($(os), os2 freebsd netbsd openbsd) ## must match utils/audio/Makefile.kmk
    VBOX_VALIDATIONKIT_FILESPEC += \
    	$$(VBOX_PATH_VALIDATIONKIT.$(os).$(arch))/vkat$(TMP_SUFF_EXE)
+  endif
+  if1of ($(os), win) ## must match utils/guestcontrol/Makefile.kmk
+   VBOX_VALIDATIONKIT_FILESPEC += \
+   	$$(VBOX_PATH_VALIDATIONKIT.$(os).$(arch))/VBoxGuestControlHelper$(TMP_SUFF_EXE)
+  endif
+  ifn1of ($(arch), arm64)
+   VBOX_VALIDATIONKIT_FILESPEC += \
+   	$$(VBOX_PATH_VALIDATIONKIT.$(os).$(arch))/exceptionsR3$(TMP_SUFF_EXE) \
+   	$$(VBOX_PATH_VALIDATIONKIT.$(os).$(arch))/xmmsaving$(TMP_SUFF_EXE)
   endif
  endif
 endef
@@ -224,7 +233,7 @@ $(foreach os, os2 win,$(foreach arch, x86 amd64, \
 	$(eval $(def_vbox_validationkit_common_files)) \
 ))
 TMP_SUFF_EXE =
-$(foreach os, darwin freebsd linux solaris,$(foreach arch, x86 amd64, \
+$(foreach os, darwin freebsd linux solaris,$(foreach arch, x86 amd64 arm64, \
 	$(eval $(def_vbox_validationkit_common_files)) \
 ))
 
@@ -275,7 +284,8 @@ endif
 ifdef VBOX_WITH_VALIDATIONKIT_PACKING.win.x86
  VBOX_VALIDATIONKIT_FILESPEC += \
  	$(VBOX_PATH_VALIDATIONKIT.win.x86)/ntSetFreq.exe \
- 	$(VBOX_PATH_VALIDATIONKIT.win.x86)/ntTimeSources.exe
+ 	$(VBOX_PATH_VALIDATIONKIT.win.x86)/ntTimeSources.exe \
+ 	$(VBOX_PATH_VALIDATIONKIT.win.x86)/ntDisplay.exe
  # Disabled for now; does not work without WinMM.dll export verification files.
  #ifdef VBOX_WITH_AUDIO_VALIDATIONKIT
  # VBOX_VALIDATIONKIT_FILESPEC += \
@@ -285,7 +295,8 @@ endif
 ifdef VBOX_WITH_VALIDATIONKIT_PACKING.win.amd64
  VBOX_VALIDATIONKIT_FILESPEC += \
  	$(VBOX_PATH_VALIDATIONKIT.win.amd64)/ntSetFreq.exe \
- 	$(VBOX_PATH_VALIDATIONKIT.win.amd64)/ntTimeSources.exe
+ 	$(VBOX_PATH_VALIDATIONKIT.win.amd64)/ntTimeSources.exe \
+ 	$(VBOX_PATH_VALIDATIONKIT.win.amd64)/ntDisplay.exe
  # Disabled for now; does not work without WinMM.dll export verification files.
  #ifdef VBOX_WITH_AUDIO_VALIDATIONKIT
  # VBOX_VALIDATIONKIT_FILESPEC += \
@@ -321,11 +332,11 @@ ifdef VBOX_WITH_VALIDATIONKIT_UNITTESTS_PACKING
   # IPRT unit tests.
   VBOX_VALIDATIONKIT_FILESPEC_UNITTESTS += \
   	$(foreach whitelisted, $(VALKIT_UNITTESTS_WHITELIST_IPRT) $(VALKIT_UNITTESTS_WHITELIST_IPRT.$(os)), \
-  	$$(wildcard $(VBOX_PATH_VALIDATIONKIT_UNITTESTS.$(os).$(arch))/$(whitelisted)$(TMP_SUFF_EXE)))
+  		$$(wildcard $(VBOX_PATH_VALIDATIONKIT_UNITTESTS.$(os).$(arch))/$(whitelisted)$(TMP_SUFF_EXE)))
   # Unit tests which utilize parts of the Guest Additions.
   VBOX_VALIDATIONKIT_FILESPEC_UNITTESTS += \
   	$(foreach whitelisted, $(VALKIT_UNITTESTS_WHITELIST_GUEST_ADDITIONS) $(VALKIT_UNITTESTS_WHITELIST_GUEST_ADDITIONS.$(os)), \
-  	$$(wildcard $(VBOX_PATH_VALIDATIONKIT_UNITTESTS.$(os).$(arch))/$(whitelisted)$(TMP_SUFF_EXE)))
+  		$$(wildcard $(VBOX_PATH_VALIDATIONKIT_UNITTESTS.$(os).$(arch))/$(whitelisted)$(TMP_SUFF_EXE)))
  endef
 
  TMP_SUFF_EXE = .exe
@@ -333,7 +344,7 @@ ifdef VBOX_WITH_VALIDATIONKIT_UNITTESTS_PACKING
  	$(eval $(def_vbox_validationkit_unittests)) \
  ))
  TMP_SUFF_EXE =
- $(foreach os, darwin freebsd linux solaris,$(foreach arch, x86 amd64, \
+ $(foreach os, darwin freebsd linux solaris,$(foreach arch, x86 amd64 arm64, \
  	$(eval $(def_vbox_validationkit_unittests)) \
  ))
 
@@ -384,7 +395,7 @@ ifneq ($(KBUILD_TARGET),os2)
 	$(QUIET)$(ECHO) VBOX_VALIDATIONKIT_FILESPEC $(VBOX_VALIDATIONKIT_FILESPEC)
 endif
 ifdef VBOX_WITH_VALIDATIONKIT_UNITTESTS_PACKING
-	$(foreach os, darwin linux solaris win,$(foreach arch, x86 amd64, \
+	$(foreach os, darwin linux solaris win,$(foreach arch, x86 amd64 arm64, \
 		$(call MSG_L1, VBOX_PATH_VALIDATIONKIT_UNITTESTS.$(os).$(arch): $(VBOX_PATH_VALIDATIONKIT_UNITTESTS.$(os).$(arch))) \
 	))
 	$(call MSG_L1, VBOX_VALIDATIONKIT_FILESPEC_UNITTESTS $(VBOX_VALIDATIONKIT_FILESPEC_UNITTESTS))

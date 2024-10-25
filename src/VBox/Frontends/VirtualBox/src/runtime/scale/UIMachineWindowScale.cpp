@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -30,7 +30,7 @@
 #include <QTimerEvent>
 #include <QSpacerItem>
 #include <QResizeEvent>
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
 # include <QTimer>
 #endif
 
@@ -38,7 +38,8 @@
 #include "UICommon.h"
 #include "UIDesktopWidgetWatchdog.h"
 #include "UIExtraDataManager.h"
-#include "UISession.h"
+#include "UILoggingDefs.h"
+#include "UIMachine.h"
 #include "UIMachineLogic.h"
 #include "UIMachineWindowScale.h"
 #include "UIMachineView.h"
@@ -47,6 +48,7 @@
 # include "VBoxUtils.h"
 # include "UIImageTools.h"
 # include "UICocoaApplication.h"
+# include "UIVersion.h"
 #endif
 
 
@@ -81,7 +83,7 @@ void UIMachineWindowScale::prepareVisualState()
     UIMachineWindow::prepareVisualState();
 
     /* Beta label? */
-    if (uiCommon().showBetaLabel())
+    if (UIVersionInfo::showBetaLabel())
     {
         QPixmap betaLabel = ::betaLabel(QSize(74, darwinWindowTitleHeight(this) - 1));
         ::darwinLabelWindow(this, &betaLabel);
@@ -135,11 +137,11 @@ void UIMachineWindowScale::loadSettings()
         }
 
         /* Normalize to the optimal size: */
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
         QTimer::singleShot(0, this, SLOT(sltNormalizeGeometry()));
-#else /* !VBOX_WS_X11 */
+#else /* !VBOX_WS_NIX */
         normalizeGeometry(true /* adjust position */, true /* resize to fit guest display. ignored in scaled case */);
-#endif /* !VBOX_WS_X11 */
+#endif /* !VBOX_WS_NIX */
     }
 }
 
@@ -160,7 +162,7 @@ void UIMachineWindowScale::cleanupNotificationCenter()
 void UIMachineWindowScale::showInNecessaryMode()
 {
     /* Make sure this window should be shown at all: */
-    if (!uisession()->isScreenVisible(m_uScreenId))
+    if (!uimachine()->isScreenVisible(m_uScreenId))
         return hide();
 
     /* Make sure this window is not minimized: */
@@ -214,11 +216,11 @@ bool UIMachineWindowScale::event(QEvent *pEvent)
     {
         case QEvent::Resize:
         {
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
             /* Prevent handling if fake screen detected: */
             if (UIDesktopWidgetWatchdog::isFakeScreenDetected())
                 break;
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
 
             QResizeEvent *pResizeEvent = static_cast<QResizeEvent*>(pEvent);
             if (!isMaximizedChecked())
@@ -238,11 +240,11 @@ bool UIMachineWindowScale::event(QEvent *pEvent)
         }
         case QEvent::Move:
         {
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
             /* Prevent handling if fake screen detected: */
             if (UIDesktopWidgetWatchdog::isFakeScreenDetected())
                 break;
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
 
             if (!isMaximizedChecked())
             {

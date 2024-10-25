@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,16 +32,18 @@
 /* GUI includes: */
 #include "UIDesktopWidgetWatchdog.h"
 #include "UIExtraDataManager.h"
+#include "UIGlobalSession.h"
 #include "UIIconPool.h"
 #include "UIFileManager.h"
 #include "UIFileManagerDialog.h"
-#include "UICommon.h"
+#include "UILoggingDefs.h"
+#include "UIShortcutPool.h"
+#include "UITranslationEventListener.h"
 #ifdef VBOX_WS_MAC
 # include "VBoxUtils-darwin.h"
 #endif
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CMachine.h"
 
 /*********************************************************************************************************************************
@@ -76,7 +78,7 @@ UIFileManagerDialog::UIFileManagerDialog(QWidget *pCenterWidget,
                                          UIActionPool *pActionPool,
                                          const QUuid &uMachineId,
                                          const QString &strMachineName)
-    : QIWithRetranslateUI<QIManagerDialog>(pCenterWidget)
+    : QIManagerDialog(pCenterWidget)
     , m_pActionPool(pActionPool)
     , m_uMachineId(uMachineId)
     , m_strMachineName(strMachineName)
@@ -87,7 +89,7 @@ UIFileManagerDialog::~UIFileManagerDialog()
 {
 }
 
-void UIFileManagerDialog::retranslateUi()
+void UIFileManagerDialog::sltRetranslateUI()
 {
     if (!m_strMachineName.isEmpty())
         setWindowTitle(UIFileManager::tr("%1 - File Manager").arg(m_strMachineName));
@@ -107,7 +109,7 @@ void UIFileManagerDialog::retranslateUi()
     {
         button(ButtonType_Help)->setText(UIFileManager::tr("Help"));
         button(ButtonType_Help)->setStatusTip(UIFileManager::tr("Show dialog help"));
-        button(ButtonType_Help)->setShortcut(QKeySequence::HelpContents);
+        button(ButtonType_Help)->setShortcut(UIShortcutPool::standardSequence(QKeySequence::HelpContents));
         button(ButtonType_Help)->setToolTip(UIFileManager::tr("Show Help (%1)").arg(button(ButtonType_Help)->shortcut().toString()));
     }
 }
@@ -123,7 +125,7 @@ void UIFileManagerDialog::configure()
 void UIFileManagerDialog::configureCentralWidget()
 {
     CMachine comMachine;
-    CVirtualBox vbox = uiCommon().virtualBox();
+    CVirtualBox vbox = gpGlobalSession->virtualBox();
     if (!vbox.isNull() && !m_uMachineId.isNull())
         comMachine = vbox.FindMachine(m_uMachineId.toString());
     /* Create widget: */
@@ -149,7 +151,9 @@ void UIFileManagerDialog::configureCentralWidget()
 void UIFileManagerDialog::finalize()
 {
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+        this, &UIFileManagerDialog::sltRetranslateUI);
     manageEscapeShortCut();
 }
 

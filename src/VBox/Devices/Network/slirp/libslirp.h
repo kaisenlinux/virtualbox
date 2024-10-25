@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -83,10 +83,10 @@ void slirp_urg_output(void *pvUser, struct mbuf *, const uint8_t *pu8Buf, int cb
 void slirp_post_sent(PNATState pData, void *pvArg);
 
 int slirp_call(void *pvUser, PRTREQ *ppReq, RTMSINTERVAL cMillies,
-               unsigned fFlags, PFNRT pfnFunction, unsigned cArgs, ...);
+               unsigned fFlags, PFNRT pfnFunction, unsigned cArgs, ...) RT_IPRT_CALLREQ_ATTR(5, 6, 7);
 
 int slirp_call_hostres(void *pvUser, PRTREQ *ppReq, RTMSINTERVAL cMillies,
-                       unsigned fFlags, PFNRT pfnFunction, unsigned cArgs, ...);
+                       unsigned fFlags, PFNRT pfnFunction, unsigned cArgs, ...) RT_IPRT_CALLREQ_ATTR(5, 6, 7);
 
 
 void slirp_update_guest_addr_guess(PNATState pData, uint32_t guess, const char *msg);

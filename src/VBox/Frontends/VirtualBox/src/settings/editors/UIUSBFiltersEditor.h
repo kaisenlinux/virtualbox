@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,7 +32,7 @@
 #endif
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
+#include "UIEditor.h"
 #include "UIExtraDataDefs.h"
 
 /* Forward declartions: */
@@ -96,8 +96,8 @@ struct UIDataUSBFilter
     UIRemoteMode  m_enmRemoteMode;
 };
 
-/** QWidget subclass used as a USB filters editor. */
-class SHARED_LIBRARY_STUFF UIUSBFiltersEditor : public QIWithRetranslateUI<QWidget>
+/** UIEditor sub-class used as a USB filters editor. */
+class SHARED_LIBRARY_STUFF UIUSBFiltersEditor : public UIEditor
 {
     Q_OBJECT;
 
@@ -116,13 +116,10 @@ public:
     /** Returns editor value. */
     QList<UIDataUSBFilter> value() const;
 
-protected:
-
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
 private slots:
 
+    /** Handles translation event. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
     /** Handles @a pCurrentItem change. */
     void sltHandleCurrentItemChange(QTreeWidgetItem *pCurrentItem);
     /** Handles @a pItem double-click. */

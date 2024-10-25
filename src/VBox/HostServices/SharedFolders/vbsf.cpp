@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -41,6 +41,7 @@
 
 #include <VBox/AssertGuest.h>
 #include <VBox/param.h>
+#include <VBox/VMMDev.h>
 #include <iprt/alloc.h>
 #include <iprt/assert.h>
 #include <iprt/asm.h>
@@ -189,7 +190,7 @@ static bool vbsfErrorStyleIsWindowsInvalidNameForNonDir(char *pszPath)
 
 #endif /* RT_OS_WINDOWS */
 
-void vbsfStripLastComponent(char *pszFullPath, uint32_t cbFullPathRoot)
+static void vbsfStripLastComponent(char *pszFullPath, uint32_t cbFullPathRoot)
 {
     RTUNICP cp;
 
@@ -254,8 +255,8 @@ static int vbsfBuildFullPath(SHFLCLIENTDATA *pClient, SHFLROOT root, PCSHFLSTRIN
     char *pszHostPath = NULL;
     uint32_t fu32PathFlags = 0;
     uint32_t fu32Options =   VBSF_O_PATH_CHECK_ROOT_ESCAPE
-                           | (fWildCard? VBSF_O_PATH_WILDCARD: 0)
-                           | (fPreserveLastComponent? VBSF_O_PATH_PRESERVE_LAST_COMPONENT: 0);
+                           | (fWildCard ? VBSF_O_PATH_WILDCARD : 0)
+                           | (fPreserveLastComponent ? VBSF_O_PATH_PRESERVE_LAST_COMPONENT : 0);
 
     int rc = vbsfPathGuestToHost(pClient, root, pPath, cbPath,
                                  &pszHostPath, pcbFullPathRoot, fu32Options, &fu32PathFlags);
@@ -265,7 +266,7 @@ static int vbsfBuildFullPath(SHFLCLIENTDATA *pClient, SHFLROOT root, PCSHFLSTRIN
     }
     else
     {
-        LogRel2(("SharedFolders: GuestToHost 0x%RX32 [%.*ls]->[%s] %Rrc\n", fu32PathFlags, pPath->u16Length / 2, &pPath->String.ucs2[0], pszHostPath, rc));
+        LogRel2(("SharedFolders: GuestToHost 0x%RX32 [%.*ls]->[%s] %Rrc\n", fu32PathFlags, pPath->u16Length / 2, &pPath->String.utf16[0], pszHostPath, rc));
     }
 
     if (RT_SUCCESS(rc))
@@ -1059,7 +1060,7 @@ int vbsfCreate(SHFLCLIENTDATA *pClient, SHFLROOT root, SHFLSTRING *pPath, uint32
     /** @todo */
 
     /* Build a host full path for the given path, handle file name case issues (if the guest
-     * expects case-insensitive paths but the host is case-sensitive) and convert ucs2 to utf8 if
+     * expects case-insensitive paths but the host is case-sensitive) and convert utf16 to utf8 if
      * necessary.
      */
     char *pszFullPath = NULL;
@@ -1228,10 +1229,16 @@ static int vbsfPagesToSgBuf(VBOXHGCMSVCPARMPAGES const *pPages, uint32_t cbLeft,
             Assert(iSeg < pPages->cPages);
             Assert(iPage < pPages->cPages);
 
+            /** @todo r=aeichner This was just using PAGE_SIZE before which doesn't work if the host and guest use different
+             * page sizes (think of 16KiB on macOS.arm64 vs linux.arm64) causing data corruption, yay! VMMDev now imposes a page size of 4KiB and
+             * VBOXHGCMSVCPARMPAGES should really have a cbPage member to indicate the used page size instead of dragging
+             * in VMMDev.h here. OTOH the size of VBOXHGCMSVCPARMPAGES can be part of a saved state which would mean increasing
+             * the HGCM saved state version... */
+
             /* Current page. */
             void *pvSeg;
             paSegs[iSeg].pvSeg = pvSeg = pPages->papvPages[iPage];
-            uint32_t cbSeg = PAGE_SIZE - (uint32_t)((uintptr_t)pvSeg & PAGE_OFFSET_MASK);
+            uint32_t cbSeg = VMMDEV_PAGE_SIZE - (uint32_t)((uintptr_t)pvSeg & VMMDEV_PAGE_OFFSET_MASK);
             iPage++;
 
             /* Adjacent to the next page? */
@@ -1239,7 +1246,7 @@ static int vbsfPagesToSgBuf(VBOXHGCMSVCPARMPAGES const *pPages, uint32_t cbLeft,
                    && (uintptr_t)pvSeg + cbSeg == (uintptr_t)pPages->papvPages[iPage])
             {
                 iPage++;
-                cbSeg += PAGE_SIZE;
+                cbSeg += VMMDEV_PAGE_SIZE;
             }
 
             /* Adjust for max size. */
@@ -1674,7 +1681,7 @@ int vbsfDirList(SHFLCLIENTDATA *pClient, SHFLROOT root, SHFLHANDLE Handle, SHFLS
         if (pHandle->dir.SearchHandle == 0)
         {
             /* Build a host full path for the given path
-             * and convert ucs2 to utf8 if necessary.
+             * and convert utf16 to utf8 if necessary.
              */
             char *pszFullPath = NULL;
 
@@ -1786,8 +1793,8 @@ int vbsfDirList(SHFLCLIENTDATA *pClient, SHFLROOT root, SHFLHANDLE Handle, SHFLS
         }
         else
         {
-            pSFDEntry->name.String.ucs2[0] = 0;
-            pwszString = pSFDEntry->name.String.ucs2;
+            pSFDEntry->name.String.utf16[0] = 0;
+            pwszString = pSFDEntry->name.String.utf16;
             int rc2 = RTStrToUtf16Ex(pDirEntry->szName, RTSTR_MAX, &pwszString, pDirEntry->cbName+1, NULL);
             AssertRC(rc2);
 
@@ -1816,11 +1823,11 @@ int vbsfDirList(SHFLCLIENTDATA *pClient, SHFLROOT root, SHFLHANDLE Handle, SHFLS
                 CFRelease(inStr);
             }
 #endif
-            pSFDEntry->name.u16Length = (uint32_t)RTUtf16Len(pSFDEntry->name.String.ucs2) * 2;
+            pSFDEntry->name.u16Length = (uint32_t)RTUtf16Len(pSFDEntry->name.String.utf16) * 2;
             pSFDEntry->name.u16Size = pSFDEntry->name.u16Length + 2;
 
             Log(("SHFL: File name size %d\n", pSFDEntry->name.u16Size));
-            Log(("SHFL: File name %ls\n", &pSFDEntry->name.String.ucs2));
+            Log(("SHFL: File name %ls\n", &pSFDEntry->name.String.utf16));
 
             // adjust cbNeeded (it was overestimated before)
             cbNeeded = RT_OFFSETOF(SHFLDIRINFO, name.String) + pSFDEntry->name.u16Size;
@@ -1877,7 +1884,7 @@ int vbsfReadLink(SHFLCLIENTDATA *pClient, SHFLROOT root, SHFLSTRING *pPath, uint
 
     /* Build a host full path for the given path, handle file name case issues
      * (if the guest expects case-insensitive paths but the host is
-     * case-sensitive) and convert ucs2 to utf8 if necessary.
+     * case-sensitive) and convert utf16 to utf8 if necessary.
      */
     char *pszFullPath = NULL;
     uint32_t cbFullPathRoot = 0;
@@ -2168,7 +2175,7 @@ static int vbsfSetEndOfFile(SHFLCLIENTDATA *pClient, SHFLROOT root, SHFLHANDLE H
     return rc;
 }
 
-int vbsfQueryVolumeInfo(SHFLCLIENTDATA *pClient, SHFLROOT root, uint32_t flags, uint32_t *pcbBuffer, uint8_t *pBuffer)
+static int vbsfQueryVolumeInfo(SHFLCLIENTDATA *pClient, SHFLROOT root, uint32_t flags, uint32_t *pcbBuffer, uint8_t *pBuffer)
 {
     RT_NOREF2(root, flags);
     int            rc = VINF_SUCCESS;
@@ -2193,7 +2200,7 @@ int vbsfQueryVolumeInfo(SHFLCLIENTDATA *pClient, SHFLROOT root, uint32_t flags, 
     pSFDEntry   = (PSHFLVOLINFO)pBuffer;
 
     ShflStringInitBuffer(&Buf.Dummy, sizeof(Buf));
-    Buf.Dummy.String.ucs2[0] = '\0';
+    Buf.Dummy.String.utf16[0] = '\0';
     rc = vbsfBuildFullPath(pClient, root, &Buf.Dummy, sizeof(Buf), &pszFullPath, NULL);
 
     if (RT_SUCCESS(rc))
@@ -2409,7 +2416,7 @@ int vbsfRemove(SHFLCLIENTDATA *pClient, SHFLROOT root, PCSHFLSTRING pPath, uint3
     if (RT_SUCCESS(rc))
     {
         /*
-         * Build a host full path for the given path and convert ucs2 to utf8 if necessary.
+         * Build a host full path for the given path and convert utf16 to utf8 if necessary.
          */
         char *pszFullPath = NULL;
         rc = vbsfBuildFullPath(pClient, root, pPath, cbPath, &pszFullPath, NULL);
@@ -2487,7 +2494,7 @@ int vbsfRename(SHFLCLIENTDATA *pClient, SHFLROOT root, SHFLSTRING *pSrc, SHFLSTR
     }
 
     /* Build a host full path for the given path
-     * and convert ucs2 to utf8 if necessary.
+     * and convert utf16 to utf8 if necessary.
      */
     char *pszFullPathSrc = NULL;
     char *pszFullPathDest = NULL;
@@ -2541,6 +2548,20 @@ int vbsfRename(SHFLCLIENTDATA *pClient, SHFLROOT root, SHFLSTRING *pSrc, SHFLSTR
     return rc;
 }
 
+#ifdef UNITTEST
+/** Unit test the SHFL_FN_COPY_FILE API.  Located here as a form of API
+ * documentation. */
+void testCopyFile(RTTEST hTest)
+{
+    /* Verify copying a file within a read-write share. */
+    testCopyFileReadWrite(hTest);
+
+    /* Verify attempts to copy a file within a read-only share returns EROFS. */
+    testCopyFileReadOnly(hTest);
+    /* Add tests as required... */
+}
+#endif
+
 /**
  * Implements SHFL_FN_COPY_FILE (wrapping RTFileCopy).
  */
@@ -2567,10 +2588,17 @@ int vbsfCopyFile(SHFLCLIENTDATA *pClient, SHFLROOT idRootSrc, PCSHFLSTRING pStrP
         rc = vbsfBuildFullPath(pClient, idRootDst, pStrPathDst, pStrPathDst->u16Size + SHFLSTRING_HEADER_SIZE, &pszPathDst, NULL);
         if (RT_SUCCESS(rc))
         {
+            /* is the guest allowed to write to this share? */
+            bool fWritable;
+            rc = vbsfMappingsQueryWritable(pClient, idRootDst, &fWritable);
+            if (RT_FAILURE(rc) || !fWritable)
+                rc = VERR_WRITE_PROTECT;
+
             /*
              * Do the job.
              */
-            rc = RTFileCopy(pszPathSrc, pszPathDst);
+            if (RT_SUCCESS(rc))
+                rc = RTFileCopy(pszPathSrc, pszPathDst);
 
             vbsfFreeFullPath(pszPathDst);
         }
@@ -2589,55 +2617,75 @@ void testSymlink(RTTEST hTest)
 {
     /* If the number or types of parameters are wrong the API should fail. */
     testSymlinkBadParameters(hTest);
-    /* Add tests as required... */
+    /* Exercise symbolic link creation with various symlink policies in place. */
+    testSymlinkCreation(hTest);
+    /* Verify attempts to create a symbolic link within a read-only share returns EROFS. */
+    testSymlinkReadOnlyCreation(hTest);
+    /* Add additional tests as required... */
 }
 #endif
-int vbsfSymlink(SHFLCLIENTDATA *pClient, SHFLROOT root, SHFLSTRING *pNewPath, SHFLSTRING *pOldPath, SHFLFSOBJINFO *pInfo)
+
+int vbsfSymlink(SHFLCLIENTDATA *pClient, SHFLROOT root, SHFLSTRING *pSymlinkPath, SHFLSTRING *pSourcePath, SHFLFSOBJINFO *pInfo)
 {
     int rc = VINF_SUCCESS;
 
-    char *pszFullNewPath = NULL;
-    char *pszFullOldPath = NULL;
+    char *pszFullSymlinkPath = NULL;
+    char *pszFullSourcePath = NULL;
 
     /* XXX: no support for UCS2 at the moment. */
     if (!BIT_FLAG(pClient->fu32Flags, SHFL_CF_UTF8))
         return VERR_NOT_IMPLEMENTED;
 
+    /* is the guest allowed to create symlinks in this share? */
     bool fSymlinksCreate;
     rc = vbsfMappingsQuerySymlinksCreate(pClient, root, &fSymlinksCreate);
-    AssertRCReturn(rc, rc);
-    if (!fSymlinksCreate)
+    if (RT_FAILURE(rc) || !fSymlinksCreate)
         return VERR_WRITE_PROTECT; /* XXX or VERR_TOO_MANY_SYMLINKS? */
 
-    rc = vbsfBuildFullPath(pClient, root, pNewPath, pNewPath->u16Size + SHFLSTRING_HEADER_SIZE, &pszFullNewPath, NULL);
-    AssertRCReturn(rc, rc);
+    /* is the guest allowed to write to this share? */
+    bool fWritable;
+    rc = vbsfMappingsQueryWritable(pClient, root, &fWritable);
+    if (RT_FAILURE(rc) || !fWritable)
+        return VERR_WRITE_PROTECT;
 
-    /* Verify that the link target can be a valid host path, i.e. does not contain invalid characters. */
+    rc = vbsfBuildFullPath(pClient, root, pSymlinkPath, pSymlinkPath->u16Size + SHFLSTRING_HEADER_SIZE, &pszFullSymlinkPath,
+                           NULL);
+    if (RT_FAILURE(rc))
+        return rc;
+
+    /*
+     * The symbolic link source path may be located outside of the shared folder so thus
+     * we don't call vbsfBuildFullPath() which includes VBSF_O_PATH_CHECK_ROOT_ESCAPE to
+     * verify that the pathname resides within the shared folder.  Instead we call the
+     * heart of vbsfBuildFullPath() which is vbsfPathGuestToHost() to perform a subset
+     * of its checks to verify that the symbolic link source is a valid path by checking
+     * for invalid characters, replacing path delimiters if the guest uses a different
+     * slash than the host, and evaluating the symbolic link policy if one has been set.
+     * We don't collapse path components of '..' for example or alter the path otherwise
+     * as this is the documented behavior of symbolic links: the source pathname can be
+     * any pathname and isn't required to exist.
+     */
     uint32_t fu32PathFlags = 0;
-    uint32_t fu32Options = 0;
-    rc = vbsfPathGuestToHost(pClient, root, pOldPath, pOldPath->u16Size + SHFLSTRING_HEADER_SIZE,
-                             &pszFullOldPath, NULL, fu32Options, &fu32PathFlags);
+    uint32_t fu32Options = VBSF_O_PATH_CHECK_SYMLINK_POLICY;
+    rc = vbsfPathGuestToHost(pClient, root, pSourcePath, pSourcePath->u16Size + SHFLSTRING_HEADER_SIZE,
+                             &pszFullSourcePath, NULL, fu32Options, &fu32PathFlags);
     if (RT_FAILURE(rc))
     {
-        vbsfFreeFullPath(pszFullNewPath);
+        vbsfFreeFullPath(pszFullSymlinkPath);
         return rc;
     }
 
-    /** @todo r=bird: We _must_ perform slash conversion on the target (what this
-     *        code calls 'pOldPath' for some peculiar reason)! */
-
-    rc = RTSymlinkCreate(pszFullNewPath, (const char *)pOldPath->String.utf8,
-                         RTSYMLINKTYPE_UNKNOWN, 0);
+    rc = RTSymlinkCreate(pszFullSymlinkPath, pszFullSourcePath, RTSYMLINKTYPE_UNKNOWN, 0);
     if (RT_SUCCESS(rc))
     {
         RTFSOBJINFO info;
-        rc = RTPathQueryInfoEx(pszFullNewPath, &info, RTFSOBJATTRADD_NOTHING, RTPATH_F_ON_LINK);
+        rc = RTPathQueryInfoEx(pszFullSymlinkPath, &info, RTFSOBJATTRADD_NOTHING, RTPATH_F_ON_LINK);
         if (RT_SUCCESS(rc))
             vbfsCopyFsObjInfoFromIprt(pInfo, &info);
     }
 
-    vbsfFreeFullPath(pszFullOldPath);
-    vbsfFreeFullPath(pszFullNewPath);
+    vbsfFreeFullPath(pszFullSourcePath);
+    vbsfFreeFullPath(pszFullSymlinkPath);
 
     return rc;
 }

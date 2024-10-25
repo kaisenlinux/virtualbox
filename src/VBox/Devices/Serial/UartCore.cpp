@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2018-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2018-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -639,8 +639,9 @@ static void uartR3RecvFifoFill(PPDMDEVINS pDevIns, PUARTCORE pThis, PUARTCORECC 
     LogFlowFunc(("pThis=%#p\n", pThis));
 
     PUARTFIFO pFifo = &pThis->FifoRecv;
-    size_t cbFill = RT_MIN(uartFifoFreeGet(pFifo),
-                           ASMAtomicReadU32(&pThis->cbAvailRdr));
+    size_t const cbFifoFree = uartFifoFreeGet(pFifo);
+    uint32_t const cbAvailRdr = ASMAtomicReadU32(&pThis->cbAvailRdr);
+    size_t const cbFill = RT_MIN(cbFifoFree, cbAvailRdr);
     size_t cbFilled = 0;
 
     while (cbFilled < cbFill)

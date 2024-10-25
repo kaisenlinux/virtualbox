@@ -4,7 +4,7 @@
 #
 
 #
-# Copyright (C) 2010-2023 Oracle and/or its affiliates.
+# Copyright (C) 2010-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -58,6 +58,8 @@ ifndef VBOX_ONLY_SDK
  	$(VBOX_PATH_XPCOM_SRC)/xpcom/glue \
  	$(VBOX_PATH_XPCOM_SRC)/xpcom/build \
  	$(VBOX_JXPCOM_JDEST)
+ VBoxJXpcom_INCS.darwin += \
+ 	$(VBOX_JAVA_INC)/darwin
  VBoxJXpcom_SOURCES = \
  	src/nsAppFileLocProviderProxy.cpp \
  	src/nsJavaWrapper.cpp \
@@ -105,15 +107,15 @@ VBoxJXpcom-inst-jar_CLEAN = \
 	$(VBOX_JXPCOM_GEN)/jxpcomgen.list \
 	$(VBOX_JXPCOM_GEN)/jxpcomglue.list \
 	$(wildcard \
-	$(VBOX_JXPCOM_GEN)/java/*.java \
-	$(VBOX_JXPCOM_GEN)/java/glue/*.java \
-	$(VBOX_JXPCOM_JDEST)/*.class \
-	$(VBOX_JXPCOM_JDEST)/*/*.class \
-	$(VBOX_JXPCOM_JDEST)/*/*/*.class \
-	$(VBOX_JXPCOM_JDEST)/*/*/*/*.class \
-	$(VBOX_JXPCOM_JDEST)/*/*/*/*/*.class \
-	$(VBOX_JXPCOM_JDEST)/*/*/*/*/*/*.class \
-	)
+		$(VBOX_JXPCOM_GEN)/java/*.java \
+		$(VBOX_JXPCOM_GEN)/java/glue/*.java \
+		$(VBOX_JXPCOM_JDEST)/*.class \
+		$(VBOX_JXPCOM_JDEST)/*/*.class \
+		$(VBOX_JXPCOM_JDEST)/*/*/*.class \
+		$(VBOX_JXPCOM_JDEST)/*/*/*/*.class \
+		$(VBOX_JXPCOM_JDEST)/*/*/*/*/*.class \
+		$(VBOX_JXPCOM_JDEST)/*/*/*/*/*/*.class \
+		)
 VBoxJXpcom-inst-jar_BLDDIRS += $(VBOX_JXPCOM_GEN)/java $(VBOX_JXPCOM_GEN)/java/glue $(VBOX_JXPCOM_GEN)/java/interfaces
 
 #

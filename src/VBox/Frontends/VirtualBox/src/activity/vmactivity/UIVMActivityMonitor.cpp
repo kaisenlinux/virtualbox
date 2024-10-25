@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -27,6 +27,7 @@
 
 /* Qt includes: */
 #include <QApplication>
+#include <QColorDialog>
 #include <QDateTime>
 #include <QLabel>
 #include <QMenu>
@@ -34,14 +35,21 @@
 #include <QGridLayout>
 #include <QScrollArea>
 #include <QStyle>
+#include <QToolTip>
 #include <QXmlStreamReader>
 #include <QTimer>
 
 /* GUI includes: */
 #include "QIFileDialog.h"
+#include "UIActionPool.h"
 #include "UICommon.h"
+#include "UIConverter.h"
+#include "UIExtraDataManager.h"
+#include "UIGlobalSession.h"
 #include "UIIconPool.h"
+#include "UILocalMachineStuff.h"
 #include "UITranslator.h"
+#include "UITranslationEventListener.h"
 #include "UIVMActivityMonitor.h"
 #include "UIVirtualBoxEventHandler.h"
 
@@ -50,25 +58,26 @@
 #include "CGuest.h"
 #include "CPerformanceCollector.h"
 #include "CPerformanceMetric.h"
-#include <iprt/string.h>
+#include <iprt/path.h>
 
 /* External includes: */
 #include <math.h>
 
 /** The time in seconds between metric inquries done to API. */
 const ULONG g_iPeriod = 1;
-/** The number of data points we store in UIChart. with g_iPeriod=1 it corresponds to 2 min. of data. */
-const int g_iMaximumQueueSize = 120;
+
 /** This is passed to IPerformanceCollector during its setup. When 1 that means IPerformanceCollector object does a data cache of size 1. */
 const int g_iMetricSetupCount = 1;
 const int g_iDecimalCount = 2;
+const int g_iBackgroundTint = 104;
+const quint64 uInvalidValueSentinel = ~0U;
 
 
 /*********************************************************************************************************************************
 *   UIChart definition.                                                                                                          *
 *********************************************************************************************************************************/
 
-class UIChart : public QIWithRetranslateUI<QWidget>
+class UIChart : public QWidget
 {
 
     Q_OBJECT;
@@ -79,7 +88,7 @@ signals:
 
 public:
 
-    UIChart(QWidget *pParent, UIMetric *pMetric);
+    UIChart(QWidget *pParent, UIMetric *pMetric, UIActionPool *pActionPool, int iMaximumQueueSize);
     void setFontSize(int iFontSize);
     int  fontSize() const;
     const QStringList &textList() const;
@@ -108,8 +117,6 @@ public:
     bool isAvailable() const;
     void setIsAvailable(bool fIsAvailable);
 
-    void setMouseOver(bool isOver);
-
 protected:
 
     virtual void resizeEvent(QResizeEvent *pEvent) RT_OVERRIDE;
@@ -117,7 +124,7 @@ protected:
     virtual void paintEvent(QPaintEvent *pEvent) RT_OVERRIDE;
     virtual QSize minimumSizeHint() const RT_OVERRIDE;
     virtual QSize sizeHint() const  RT_OVERRIDE;
-    virtual void retranslateUi()  RT_OVERRIDE;
+    virtual bool event(QEvent *pEvent) RT_OVERRIDE;
 
 private slots:
 
@@ -125,6 +132,7 @@ private slots:
     void sltResetMetric();
     void sltSetShowPieChart(bool fShowPieChart);
     void sltSetUseAreaChart(bool fUseAreaChart);
+    void sltRetranslateUI();
 
 private:
 
@@ -138,6 +146,11 @@ private:
        void drawDisabledChartRectangle(QPainter &painter);
        QConicalGradient conicalGradientForDataSeries(const QRectF &rectangle, int iDataIndex);
     /** @} */
+    int maxDataSize() const;
+    QString toolTipText() const;
+    bool isUnderMouse() const;
+    void updateIndexUnderCursor(const QPoint &point);
+    void updateToolTip();
 
     UIMetric *m_pMetric;
     QSize m_size;
@@ -172,17 +185,22 @@ private:
     QString m_strResetActionLabel;
     QString m_strPieChartToggleActionLabel;
     QString m_strAreaChartToggleActionLabel;
+    QString m_strSelectChartColor0;
+    QString m_strSelectChartColor1;
     bool    m_fDrawCurenValueIndicators;
     /** The width of the right margin in characters. */
     int m_iRightMarginCharWidth;
+    int m_iMaximumQueueSize;
+    QLabel *m_pMouseOverLabel;
+    UIActionPool *m_pActionPool;
 };
 
 /*********************************************************************************************************************************
 *   UIChart implementation.                                                                                     *
 *********************************************************************************************************************************/
 
-UIChart::UIChart(QWidget *pParent, UIMetric *pMetric)
-    :QIWithRetranslateUI<QWidget>(pParent)
+UIChart::UIChart(QWidget *pParent, UIMetric *pMetric, UIActionPool *pActionPool, int iMaximumQueueSize)
+    : QWidget(pParent)
     , m_pMetric(pMetric)
     , m_size(QSize(50, 50))
     , m_iOverlayAlpha(80)
@@ -194,9 +212,18 @@ UIChart::UIChart(QWidget *pParent, UIMetric *pMetric)
     , m_fUseAreaChart(true)
     , m_fIsAvailable(true)
     , m_fIsAreaChartAllowed(false)
-    , m_fDrawCurenValueIndicators(false)
+    , m_fDrawCurenValueIndicators(true)
     , m_iRightMarginCharWidth(10)
+    , m_iMaximumQueueSize(iMaximumQueueSize)
+    , m_pMouseOverLabel(0)
+    , m_pActionPool(pActionPool)
 {
+    QPalette tempPal = palette();
+    tempPal.setColor(QPalette::Window, tempPal.color(QPalette::Window).lighter(g_iBackgroundTint));
+    setPalette(tempPal);
+    setAutoFillBackground(true);
+
+    setToolTipDuration(-1);
     m_axisFont = font();
     m_axisFont.setPixelSize(14);
     setContextMenuPolicy(Qt::CustomContextMenu);
@@ -204,12 +231,9 @@ UIChart::UIChart(QWidget *pParent, UIMetric *pMetric)
     connect(this, &UIChart::customContextMenuRequested,
             this, &UIChart::sltCreateContextMenu);
 
-    m_dataSeriesColor[0] = QColor(200, 0, 0, 255);
-    m_dataSeriesColor[1] = QColor(0, 0, 200, 255);
-
     m_iMarginLeft = 3 * QFontMetricsF(m_axisFont).averageCharWidth();
     m_iMarginRight = m_iRightMarginCharWidth * QFontMetricsF(m_axisFont).averageCharWidth();
-    m_iMarginTop = 0.3 * qApp->QApplication::style()->pixelMetric(QStyle::PM_LayoutTopMargin);
+    m_iMarginTop = QFontMetrics(m_axisFont).height();
     m_iMarginBottom = QFontMetrics(m_axisFont).height();
 
     float fAppIconSize = qApp->style()->pixelMetric(QStyle::PM_LargeIconSize);
@@ -217,7 +241,15 @@ UIChart::UIChart(QWidget *pParent, UIMetric *pMetric)
     m_iPieChartSpacing = 2;
     m_iPieChartRadius = m_size.height() - (m_iMarginTop + m_iMarginBottom + 2 * m_iPieChartSpacing);
 
-    retranslateUi();
+    m_pMouseOverLabel = new QLabel(this);
+    m_pMouseOverLabel->hide();
+    m_pMouseOverLabel->setFrameStyle(QFrame::Box);
+
+    m_pMouseOverLabel->setAutoFillBackground(true);
+    m_pMouseOverLabel->setMargin(0.1 * QStyle::PM_HeaderMargin);
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIChart::sltRetranslateUI);
 }
 
 bool UIChart::isPieChartAllowed() const
@@ -325,12 +357,6 @@ void UIChart::setIsAvailable(bool fIsAvailable)
     update();
 }
 
-void UIChart::setMouseOver(bool isOver)
-{
-    if (!isOver)
-        m_iDataIndexUnderCursor = -1;
-}
-
 QSize UIChart::minimumSizeHint() const
 {
     return m_size;
@@ -341,37 +367,98 @@ QSize UIChart::sizeHint() const
     return m_size;
 }
 
-void UIChart::retranslateUi()
+void UIChart::sltRetranslateUI()
 {
     m_strGAWarning = QApplication::translate("UIVMInformationDialog", "This metric requires guest additions to work.");
     m_strResetActionLabel = QApplication::translate("UIVMInformationDialog", "Reset");
     m_strPieChartToggleActionLabel = QApplication::translate("UIVMInformationDialog", "Show Pie Chart");
     m_strAreaChartToggleActionLabel = QApplication::translate("UIVMInformationDialog", "Draw Area Chart");
+    m_strSelectChartColor0 = QApplication::translate("UIVMInformationDialog", "Change 1st Dataseries' Color");
+    m_strSelectChartColor1 = QApplication::translate("UIVMInformationDialog", "Change 2nd Dataseries' Color");
     update();
+}
+
+bool UIChart::event(QEvent *pEvent)
+{
+    if (pEvent->type() == QEvent::Leave)
+    {
+        if (m_pMouseOverLabel)
+            m_pMouseOverLabel->setVisible(false);
+        m_iDataIndexUnderCursor = -1;
+    }
+    else if (pEvent->type() == QEvent::ToolTip)
+        updateToolTip();
+
+    return QWidget::event(pEvent);
 }
 
 void UIChart::resizeEvent(QResizeEvent *pEvent)
 {
     int iWidth = width() - m_iMarginLeft - m_iMarginRight;
-    if (g_iMaximumQueueSize > 0)
-        m_fPixelPerDataPoint = iWidth / (float)g_iMaximumQueueSize;
-    QIWithRetranslateUI<QWidget>::resizeEvent(pEvent);
+    if (m_iMaximumQueueSize > 0)
+        m_fPixelPerDataPoint = iWidth / (float)m_iMaximumQueueSize;
+    QWidget::resizeEvent(pEvent);
 }
 
+void UIChart::updateIndexUnderCursor(const QPoint &point)
+{
+    if (!isUnderMouse())
+    {
+        m_iDataIndexUnderCursor = -1;
+        return;
+    }
+    const int iX = width() - point.x() - m_iMarginRight;
+
+    int iDataSize = maxDataSize();
+    m_iDataIndexUnderCursor = -1;
+
+    if (iDataSize > 0 && m_lineChartRect.contains(point))
+    {
+        m_iDataIndexUnderCursor = m_iMaximumQueueSize  - (int)((iX) / m_fPixelPerDataPoint) - 1;
+        m_iDataIndexUnderCursor = m_iDataIndexUnderCursor - (m_iMaximumQueueSize - iDataSize);
+    }
+}
+
+void UIChart::updateToolTip()
+{
+    updateIndexUnderCursor(mapFromGlobal(QCursor::pos()));
+    if (m_pMouseOverLabel)
+    {
+        if (m_iDataIndexUnderCursor < 0)
+            m_pMouseOverLabel->setVisible(false);
+        else
+        {
+
+            QString strToolTip = toolTipText();
+            QPoint pos = mapFromGlobal(QCursor::pos());
+
+            if (!strToolTip.isEmpty())
+            {
+                m_pMouseOverLabel->setText(strToolTip);
+                m_pMouseOverLabel->move(QPoint(pos.x(), pos.y() - m_pMouseOverLabel->height()));
+                m_pMouseOverLabel->setVisible(true);
+                m_pMouseOverLabel->adjustSize();
+            }
+            else
+                m_pMouseOverLabel->setVisible(false);
+        }
+    }
+}
 void UIChart::mouseMoveEvent(QMouseEvent *pEvent)
 {
-    int iX = width() - pEvent->x() - m_iMarginRight;
-    m_iDataIndexUnderCursor = -1;
-    if (iX > m_iMarginLeft && iX <= width() - m_iMarginRight)
-        m_iDataIndexUnderCursor = (int)((iX) / m_fPixelPerDataPoint) + 1;
+    QPoint eventPosition(pEvent->position().x(), pEvent->position().y());
+    updateIndexUnderCursor(eventPosition);
     update();
-    QIWithRetranslateUI<QWidget>::mouseMoveEvent(pEvent);
+    QWidget::mouseMoveEvent(pEvent);
 }
 
 void UIChart::paintEvent(QPaintEvent *pEvent)
 {
+    if (isUnderMouse())
+        updateToolTip();
+
     Q_UNUSED(pEvent);
-    if (!m_pMetric || g_iMaximumQueueSize <= 1)
+    if (!m_pMetric || m_iMaximumQueueSize <= 1)
         return;
 
     QPainter painter(this);
@@ -424,48 +511,53 @@ void UIChart::paintEvent(QPaintEvent *pEvent)
     quint64 iMaximum = m_pMetric->maximum();
     QFontMetrics fontMetrics(painter.font());
     int iFontHeight = fontMetrics.height();
-    int iAverageFontWidth = fontMetrics.averageCharWidth();
 
-    /* Draw a straight line per data series: */
-    if (iMaximum == 0)
+    /* Draw the data lines: */
+    float fBarWidth = m_lineChartRect.width() / (float) (m_iMaximumQueueSize - 1);
+    float fH = iMaximum == 0 ? 0 : m_lineChartRect.height() / (float)iMaximum;
+    const float fPenWidth = 1.5f;
+    const float fPointSize = 3.5f;
+    for (int k = 0; k < DATA_SERIES_SIZE; ++k)
     {
-        for (int k = 0; k < DATA_SERIES_SIZE; ++k)
+        if (m_fUseGradientLineColor)
         {
-            QLineF bar(0 + m_iMarginLeft, height() - m_iMarginBottom,
-                       width() - m_iMarginRight, height() - m_iMarginBottom);
-            painter.drawLine(bar);
-            painter.setPen(QPen(m_dataSeriesColor[k], 2.5));
-            painter.setBrush(m_dataSeriesColor[k]);
+            QLinearGradient gradient(0, 0, 0, m_lineChartRect.height());
+            gradient.setColorAt(0, Qt::black);
+            gradient.setColorAt(1, m_dataSeriesColor[k]);
+            painter.setPen(QPen(gradient, fPenWidth));
         }
-    }
-    else
-    {
-        /* Draw the data lines: */
-        float fBarWidth = m_lineChartRect.width() / (float) (g_iMaximumQueueSize - 1);
-        float fH = m_lineChartRect.height() / (float)iMaximum;
-        for (int k = 0; k < DATA_SERIES_SIZE; ++k)
+        const QQueue<quint64> *data = m_pMetric->data(k);
+        if (!m_fUseGradientLineColor)
+            painter.setPen(QPen(m_dataSeriesColor[k], fPenWidth));
+        if (m_fUseAreaChart && m_fIsAreaChartAllowed)
         {
-            if (m_fUseGradientLineColor)
+            QVector<QPointF> points;
+            /* Create two polygons. Polygon of data series 0 is on top of the one of 1st data series: */
+            /* We add the points to vector in counter clockwise fashion: */
+            if (k == 0)
             {
-                QLinearGradient gradient(0, 0, 0, m_lineChartRect.height());
-                gradient.setColorAt(0, Qt::black);
-                gradient.setColorAt(1, m_dataSeriesColor[k]);
-                painter.setPen(QPen(gradient, 2.5));
+                for (int i = 0; i < data->size(); ++i)
+                {
+                    float fX = (width() - m_iMarginRight) - ((data->size() - i - 1) * fBarWidth);
+                    float fHeight = fH * data->at(i);
+                    if (m_pMetric->data(1) && m_pMetric->data(1)->size() > i)
+                        fHeight += fH * m_pMetric->data(1)->at(i);
+                    points << QPointF(fX, height() - (fHeight + m_iMarginBottom));
+                }
+                for (int i = data->size() - 1; i >= 0; --i)
+                {
+                    float fX = (width() - m_iMarginRight) - ((data->size() - i - 1) * fBarWidth);
+                    float fHeight = 0;
+                    if (m_pMetric->data(1) && m_pMetric->data(1)->size() > i)
+                        fHeight = fH * m_pMetric->data(1)->at(i);
+                    points << QPointF(fX, height() - (fHeight + m_iMarginBottom));
+                }
             }
-            const QQueue<quint64> *data = m_pMetric->data(k);
-            if (!m_fUseGradientLineColor)
-                painter.setPen(QPen(m_dataSeriesColor[k], 2.5));
-            if (m_fUseAreaChart && m_fIsAreaChartAllowed)
+            else if (k == 1)
             {
-                QVector<QPointF> points;
                 for (int i = 0; i < data->size(); ++i)
                 {
                     float fHeight = fH * data->at(i);
-                    if (k == 0)
-                    {
-                        if (m_pMetric->data(1) && m_pMetric->data(1)->size() > i)
-                            fHeight += fH * m_pMetric->data(1)->at(i);
-                    }
                     float fX = (width() - m_iMarginRight) - ((data->size() - i - 1) * fBarWidth);
                     if (i == 0)
                         points << QPointF(fX, height() - m_iMarginBottom);
@@ -473,54 +565,56 @@ void UIChart::paintEvent(QPaintEvent *pEvent)
                     if (i == data->size() - 1)
                         points << QPointF(fX, height() - + m_iMarginBottom);
                 }
-                painter.setPen(Qt::NoPen);
-                painter.setBrush(m_dataSeriesColor[k]);
-                painter.drawPolygon(points, Qt::WindingFill);
             }
-            else
+            painter.setOpacity(0.6);
+            painter.setPen(Qt::NoPen);
+            painter.setBrush(m_dataSeriesColor[k]);
+            painter.drawPolygon(points, Qt::WindingFill);
+            painter.setOpacity(1.0);
+        }
+        else
+        {
+            /* Draw lines between data  points: */
+            for (int i = 0; i < data->size() - 1; ++i)
             {
-                for (int i = 0; i < data->size() - 1; ++i)
-                {
-                    int j = i + 1;
-                    float fHeight = fH * data->at(i);
-                    float fX = (width() - m_iMarginRight) - ((data->size() -i - 1) * fBarWidth);
-                    float fHeight2 = fH * data->at(j);
-                    float fX2 = (width() - m_iMarginRight) - ((data->size() -j - 1) * fBarWidth);
-                    QLineF bar(fX, height() - (fHeight + m_iMarginBottom), fX2, height() - (fHeight2 + m_iMarginBottom));
-                    painter.drawLine(bar);
-                }
-            }
-            /* Draw a horizontal and vertical line on data point under the mouse cursor
-             * and draw the value on the left hand side of the chart: */
-            if (m_fDrawCurenValueIndicators && m_iDataIndexUnderCursor >= 0 && m_iDataIndexUnderCursor < data->size())
-            {
-                painter.setPen(QPen(m_dataSeriesColor[k], 0.5));
-                float fHeight = fH * data->at(data->size() - m_iDataIndexUnderCursor);
-                if (fHeight > 0)
-                {
-                    painter.drawLine(m_iMarginLeft, height() - (fHeight + m_iMarginBottom),
-                                     width() - m_iMarginRight, height() - (fHeight + m_iMarginBottom));
-                    QPoint cursorPosition = mapFromGlobal(cursor().pos());
-                    painter.setPen(mainAxisColor);
-                    painter.drawLine(cursorPosition.x(), 0,
-                                     cursorPosition.x(), height() - m_iMarginBottom);
-                    QString strValue = QString::number(data->at(data->size() - m_iDataIndexUnderCursor));
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
-                    painter.drawText(m_iMarginLeft - fontMetrics.horizontalAdvance(strValue) - iAverageFontWidth,
-                                     height() - (fHeight + m_iMarginBottom) + 0.5 * iFontHeight, strValue);
-#else
-                    painter.drawText(m_iMarginLeft - fontMetrics.width(strValue) - iAverageFontWidth,
-                                     height() - (fHeight + m_iMarginBottom) + 0.5 * iFontHeight, strValue);
-#endif
+                int j = i + 1;
+                if (data->at(i) == uInvalidValueSentinel || data->at(j) == uInvalidValueSentinel)
+                    continue;
 
-                }
+                float fHeight = fH * data->at(i);
+                float fX = (width() - m_iMarginRight) - ((data->size() - i - 1) * fBarWidth);
+                float fHeight2 = fH * data->at(j);
+                float fX2 = (width() - m_iMarginRight) - ((data->size() - j - 1) * fBarWidth);
+                QLineF bar(fX, height() - (fHeight + m_iMarginBottom), fX2, height() - (fHeight2 + m_iMarginBottom));
+                painter.drawLine(bar);
+            }
+            /* Draw a point at each data point: */
+            painter.setPen(QPen(m_dataSeriesColor[k], fPointSize));
+            for (int i = 0; i < data->size(); ++i)
+            {
+                if (data->at(i) == uInvalidValueSentinel)
+                    continue;
+                float fHeight = fH * data->at(i);
+                float fX = (width() - m_iMarginRight) - ((data->size() - i - 1) * fBarWidth);
+                painter.drawPoint(fX, height() - (fHeight + m_iMarginBottom));
             }
         }
-    }// else of if (iMaximum == 0)
+        /* Draw a horizontal and vertical line on data point under the mouse cursor
+         * and draw the value on the left hand side of the chart: */
+        if (m_fDrawCurenValueIndicators && m_iDataIndexUnderCursor >= 0 && m_iDataIndexUnderCursor < data->size())
+        {
+
+            painter.setPen(QPen(m_dataSeriesColor[k], 0.5));
+            painter.setPen(mainAxisColor);
+            float fX = (width() - m_iMarginRight) - ((data->size() - m_iDataIndexUnderCursor - 1) * fBarWidth);
+            painter.drawLine(fX, m_iMarginTop, fX, height() - m_iMarginBottom);
+        }
+    }
 
     /* Draw YAxis tick labels: */
     painter.setPen(mainAxisColor);
-    for (int i = iYSubAxisCount + 1; i >= 0; --i)
+    /* This skips 0 and starts at the 2nd Y axis tick to label: */
+    for (int i = iYSubAxisCount; i >= 0; --i)
     {
         /* Draw the bottom most label and skip others when data maximum is 0: */
         if (iMaximum == 0 && i <= iYSubAxisCount)
@@ -538,15 +632,19 @@ void UIChart::paintEvent(QPaintEvent *pEvent)
 
 QString UIChart::YAxisValueLabel(quint64 iValue) const
 {
+    if (iValue == uInvalidValueSentinel)
+        return QString();
     if (m_pMetric->unit().compare("%", Qt::CaseInsensitive) == 0)
-        return QString::number(iValue);
+        return QString::number(iValue).append("%");
     if (m_pMetric->unit().compare("kb", Qt::CaseInsensitive) == 0)
-        return UITranslator::formatSize(_1K * (quint64)iValue, g_iDecimalCount);
+        return UITranslator::formatSize(_1K * iValue, g_iDecimalCount);
     if (   m_pMetric->unit().compare("b", Qt::CaseInsensitive) == 0
         || m_pMetric->unit().compare("b/s", Qt::CaseInsensitive) == 0)
         return UITranslator::formatSize(iValue, g_iDecimalCount);
     if (m_pMetric->unit().compare("times", Qt::CaseInsensitive) == 0)
         return UITranslator::addMetricSuffixToNumber(iValue);
+    if (m_pMetric->unit().compare("gb", Qt::CaseInsensitive) == 0)
+        return QString::number(iValue).append(" GB");
     return QString();
 }
 
@@ -557,23 +655,31 @@ void UIChart::drawXAxisLabels(QPainter &painter, int iXSubAxisCount)
     QFontMetrics fontMetrics(painter.font());
     int iFontHeight = fontMetrics.height();
 
-    int iTotalSeconds = g_iPeriod * g_iMaximumQueueSize;
+    int iTotalSeconds = g_iPeriod * m_iMaximumQueueSize;
     for (int i = 0; i < iXSubAxisCount + 2; ++i)
     {
-        int iTextX = m_lineChartRect.left() + i * m_lineChartRect.width() / (float) (iXSubAxisCount + 1);
-        QString strCurrentSec = QString::number(iTotalSeconds - i * iTotalSeconds / (float)(iXSubAxisCount + 1));
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
-        int iTextWidth = fontMetrics.horizontalAdvance(strCurrentSec);
-#else
-        int iTextWidth = fontMetrics.width(strCurrentSec);
-#endif
-        if (i == 0)
+        int iTimeIndex = i * iTotalSeconds / (float)(iXSubAxisCount + 1);
+
+        QString strAxisText;
+        if (m_pMetric && m_pMetric->hasDataLabels())
         {
-            strCurrentSec += " " + m_strXAxisLabel;
-            painter.drawText(iTextX, m_lineChartRect.bottom() + iFontHeight, strCurrentSec);
+            const QQueue<QString> *labels = m_pMetric->labels();
+            int iDataIndex = qMin(labels->size() - 1, iTimeIndex - (m_iMaximumQueueSize - maxDataSize()));
+            if (iDataIndex >= 0)
+                strAxisText = labels->at(iDataIndex);
         }
         else
-            painter.drawText(iTextX - 0.5 * iTextWidth, m_lineChartRect.bottom() + iFontHeight, strCurrentSec);
+            strAxisText = QString::number(iTotalSeconds - iTimeIndex);
+        const int iTextWidth = fontMetrics.horizontalAdvance(strAxisText);
+        const int iTextX = m_lineChartRect.left() + i * m_lineChartRect.width() / (float) (iXSubAxisCount + 1);
+        if (i == 0)
+        {
+            if (!m_pMetric || !m_pMetric->hasDataLabels())
+                strAxisText += " " + m_strXAxisLabel;
+            painter.drawText(iTextX, m_lineChartRect.bottom() + iFontHeight, strAxisText);
+        }
+        else
+            painter.drawText(iTextX - 0.5 * iTextWidth, m_lineChartRect.bottom() + iFontHeight, strAxisText);
     }
 }
 
@@ -623,6 +729,55 @@ QConicalGradient UIChart::conicalGradientForDataSeries(const QRectF &rectangle, 
     return gradient;
 }
 
+int UIChart::maxDataSize() const
+{
+    int iSize = 0;
+    for (int k = 0; k < DATA_SERIES_SIZE; ++k)
+    {
+        if (m_pMetric->data(k))
+            iSize = qMax(iSize, m_pMetric->data(k)->size());
+    }
+    return iSize;
+}
+
+QString UIChart::toolTipText() const
+{
+    if (m_iDataIndexUnderCursor < 0)
+        return QString();
+
+    if (!m_pMetric->data(0) ||  m_pMetric->data(0)->isEmpty())
+        return QString();
+    QString strToolTip;
+    QString strData0;
+    if (m_iDataIndexUnderCursor < m_pMetric->data(0)->size())
+        strData0 = YAxisValueLabel(m_pMetric->data(0)->at(m_iDataIndexUnderCursor));
+    QString strData1;
+    if (m_iDataIndexUnderCursor < m_pMetric->data(1)->size())
+        strData1 = YAxisValueLabel(m_pMetric->data(1)->at(m_iDataIndexUnderCursor));
+    if (!strData0.isEmpty() && !strData1.isEmpty())
+    {
+        strToolTip = QString("<font color=\"%1\">%2</font> / <font color=\"%3\">%4</font>")
+            .arg(m_dataSeriesColor[0].name(QColor::HexRgb)).arg(strData0)
+            .arg(m_dataSeriesColor[1].name(QColor::HexRgb)).arg(strData1);
+    }
+    else if (!strData0.isEmpty())
+    {
+        strToolTip = QString("<font color=\"%1\">%2</font>")
+            .arg(m_dataSeriesColor[0].name(QColor::HexRgb)).arg(strData0);
+    }
+    else if (!strData1.isEmpty())
+    {
+        strToolTip = QString("<font color=\"%1\">%2</font>")
+            .arg(m_dataSeriesColor[1].name(QColor::HexRgb)).arg(strData1);
+    }
+    return strToolTip;
+}
+
+bool UIChart::isUnderMouse() const
+{
+    return rect().contains(mapFromGlobal(QCursor::pos()));
+}
+
 void UIChart::drawCombinedPieCharts(QPainter &painter, quint64 iMaximum)
 {
     if (!m_pMetric)
@@ -639,16 +794,10 @@ void UIChart::drawCombinedPieCharts(QPainter &painter, quint64 iMaximum)
         /* Draw a doughnut chart where data series are stacked on to of each other: */
         if (m_pMetric->data(0) && !m_pMetric->data(0)->isEmpty() &&
             m_pMetric->data(1) && !m_pMetric->data(1)->isEmpty())
-            UIMonitorCommon::drawCombinedDoughnutChart(m_pMetric->data(1)->back(), dataSeriesColor(1, 50),
-                                                       m_pMetric->data(0)->back(), dataSeriesColor(0, 50),
+            UIMonitorCommon::drawCombinedDoughnutChart(m_pMetric->data(1)->back(), dataSeriesColor(1, 0),
+                                                       m_pMetric->data(0)->back(), dataSeriesColor(0, 0),
                                                        painter, iMaximum, chartRect,
                                                        UIMonitorCommon::getScaledRect(chartRect, 0.5f, 0.5f), m_iOverlayAlpha);
-#if 0
-        /* Draw a doughnut shaped chart and then pie chart inside it: */
-        UIMonitorCommon::drawDoughnutChart(painter, iMaximum, m_pMetric->data(0)->back(),
-                                           chartRect, innerRect, m_iOverlayAlpha, dataSeriesColor(0));
-        drawPieChart(painter, iMaximum, 1 /* iDataIndex */, innerRect, false);
-#endif
     }
     else if (fData0 && !fData1)
         drawPieChart(painter, iMaximum, 0 /* iDataIndex */, chartRect);
@@ -667,11 +816,7 @@ void UIChart::drawDisabledChartRectangle(QPainter &painter)
     do {
         font.setPixelSize(iFontSize);
         --iFontSize;
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
     } while (QFontMetrics(font).horizontalAdvance(m_strGAWarning) >= 0.8 * m_lineChartRect.width());
-#else
-    } while (QFontMetrics(font).width(m_strGAWarning) >= 0.8 * m_lineChartRect.width());
-#endif
     font.setBold(true);
     painter.setFont(font);
     painter.drawText(m_lineChartRect, m_strGAWarning);
@@ -684,6 +829,8 @@ void UIChart::sltCreateContextMenu(const QPoint &point)
         menu.addAction(QApplication::translate("UIVMInformationDialog", "Export"));
     pExportAction->setIcon(UIIconPool::iconSet(":/performance_monitor_export_16px.png"));
     connect(pExportAction, &QAction::triggered, this, &UIChart::sigExportMetricsToFile);
+    if (uiCommon().uiType() == UIType_RuntimeUI)
+        menu.addAction(m_pActionPool->action(UIActionIndex_M_Activity_T_Preferences));
     menu.addSeparator();
     QAction *pResetAction = menu.addAction(m_strResetActionLabel);
     connect(pResetAction, &QAction::triggered, this, &UIChart::sltResetMetric);
@@ -701,7 +848,6 @@ void UIChart::sltCreateContextMenu(const QPoint &point)
         pAreaChartToggle->setChecked(m_fUseAreaChart);
         connect(pAreaChartToggle, &QAction::toggled, this, &UIChart::sltSetUseAreaChart);
     }
-
     menu.exec(mapToGlobal(point));
 }
 
@@ -726,35 +872,27 @@ void UIChart::sltSetUseAreaChart(bool fUseAreaChart)
 *   UIMetric implementation.                                                                                                     *
 *********************************************************************************************************************************/
 
-UIMetric::UIMetric(const QString &strName, const QString &strUnit, int iMaximumQueueSize)
-    : m_strName(strName)
-    , m_strUnit(strUnit)
+UIMetric::UIMetric(const QString &strUnit, int iMaximumQueueSize)
+    : m_strUnit(strUnit)
     , m_iMaximum(0)
-#if 0 /* Unused according to Clang 11. */
-    , m_iMaximumQueueSize(iMaximumQueueSize) /** @todo r=bird: m_iMaximumQueueSize is not used anywhere that I can see. */
-#endif
     , m_fRequiresGuestAdditions(false)
     , m_fIsInitialized(false)
     , m_fAutoUpdateMaximum(false)
+    , m_iMaximumQueueSize(iMaximumQueueSize)
 {
-    RT_NOREF(iMaximumQueueSize); /* Unused according to Clang 11. */
     m_iTotal[0] = 0;
     m_iTotal[1] = 0;
 }
 
 UIMetric::UIMetric()
     : m_iMaximum(0)
-#if 0 /* Unused according to Clang 11. */
-    , m_iMaximumQueueSize(0)
-#endif
     , m_fRequiresGuestAdditions(false)
     , m_fIsInitialized(false)
+    , m_fAutoUpdateMaximum(false)
+    , m_iMaximumQueueSize(0)
 {
-}
-
-const QString &UIMetric::name() const
-{
-    return m_strName;
+    m_iTotal[0] = 0;
+    m_iTotal[1] = 0;
 }
 
 void UIMetric::setMaximum(quint64 iMaximum)
@@ -781,23 +919,42 @@ void UIMetric::addData(int iDataSeriesIndex, quint64 iData)
 {
     if (iDataSeriesIndex >= DATA_SERIES_SIZE)
         return;
-    m_data[iDataSeriesIndex].enqueue(iData);
-    if (m_fAutoUpdateMaximum)
-        m_iMaximum = qMax(m_iMaximum, iData);
 
-    if (m_data[iDataSeriesIndex].size() > g_iMaximumQueueSize)
-    {
-        bool fSearchMax = false;
-        /* Check if the dequeued value is the Max value. In which case we will scan and find a new Max: */
-        if (m_fAutoUpdateMaximum && m_data[iDataSeriesIndex].head() >= m_iMaximum)
-            fSearchMax = true;
+    m_data[iDataSeriesIndex].enqueue(iData);
+
+    /* dequeue if needed and update the maximum value: */
+    if (m_data[iDataSeriesIndex].size() > m_iMaximumQueueSize)
         m_data[iDataSeriesIndex].dequeue();
-        if (fSearchMax)
+
+    updateMax();
+}
+
+void UIMetric::updateMax()
+{
+    if (!m_fAutoUpdateMaximum)
+        return;
+    m_iMaximum = 0;
+    for (int k = 0; k < DATA_SERIES_SIZE; ++k)
+    {
+        for (int i = 0; i < m_data[k].size(); ++i)
         {
-            m_iMaximum = 0;
-            foreach (quint64 iVal, m_data[iDataSeriesIndex])
-                m_iMaximum = qMax(m_iMaximum, iVal);
+            if (m_data[k].at(i) != uInvalidValueSentinel)
+                m_iMaximum = qMax(m_iMaximum, m_data[k].at(i));
         }
+    }
+}
+
+void UIMetric::addData(int iDataSeriesIndex, quint64 iData, const QString &strLabel)
+{
+    if (iDataSeriesIndex >= DATA_SERIES_SIZE)
+        return;
+
+    addData(iDataSeriesIndex, iData);
+    if (iDataSeriesIndex == 0)
+    {
+        m_labels.enqueue(strLabel);
+        if (m_labels.size() > m_iMaximumQueueSize)
+            m_labels.dequeue();
     }
 }
 
@@ -806,6 +963,16 @@ const QQueue<quint64> *UIMetric::data(int iDataSeriesIndex) const
     if (iDataSeriesIndex >= DATA_SERIES_SIZE)
         return 0;
     return &m_data[iDataSeriesIndex];
+}
+
+const QQueue<QString> *UIMetric::labels() const
+{
+    return &m_labels;
+}
+
+bool UIMetric::hasDataLabels() const
+{
+    return !m_labels.isEmpty();
 }
 
 int UIMetric::dataSize(int iDataSeriesIndex) const
@@ -876,7 +1043,6 @@ void UIMetric::reset()
 
 void UIMetric::toFile(QTextStream &stream) const
 {
-    stream << "Metric Name: " << m_strName << "\n";
     stream << "Unit: " << m_strUnit << "\n";
     stream << "Maximum: " << m_iMaximum << "\n";
     for (int i = 0; i < 2; ++i)
@@ -906,165 +1072,58 @@ bool UIMetric::autoUpdateMaximum() const
 *   UIVMActivityMonitor implementation.                                                                              *
 *********************************************************************************************************************************/
 
-UIVMActivityMonitor::UIVMActivityMonitor(EmbedTo enmEmbedding, QWidget *pParent,
-                                           const CMachine &machine)
-    : QIWithRetranslateUI<QWidget>(pParent)
-    , m_fGuestAdditionsAvailable(false)
-    , m_pMainLayout(0)
+UIVMActivityMonitor::UIVMActivityMonitor(EmbedTo enmEmbedding, QWidget *pParent, UIActionPool *pActionPool, int iMaximumQueueSize)
+    : QWidget(pParent)
+    , m_pContainerLayout(0)
     , m_pTimer(0)
-    , m_strCPUMetricName("CPU Load")
-    , m_strRAMMetricName("RAM Usage")
-    , m_strDiskMetricName("Disk Usage")
-    , m_strNetworkMetricName("Network")
-    , m_strDiskIOMetricName("DiskIO")
-    , m_strVMExitMetricName("VMExits")
     , m_iTimeStep(0)
+    , m_iMaximumQueueSize(iMaximumQueueSize)
+    , m_pActionPool(pActionPool)
+    , m_pMainLayout(0)
     , m_enmEmbedding(enmEmbedding)
 {
-    prepareMetrics();
-    prepareWidgets();
-    prepareActions();
-    retranslateUi();
-    connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigMachineStateChange, this, &UIVMActivityMonitor::sltMachineStateChange);
-    setMachine(machine);
-    uiCommon().setHelpKeyword(this, "vm-session-information");
+    uiCommon().setHelpKeyword(this, "vm-activity-session-information");
     setContextMenuPolicy(Qt::CustomContextMenu);
     connect(this, &UIVMActivityMonitor::customContextMenuRequested,
             this, &UIVMActivityMonitor::sltCreateContextMenu);
-    connect(&uiCommon(), &UICommon::sigAskToDetachCOM,
-            this, &UIVMActivityMonitor::sltClearCOMData);
 }
 
-UIVMActivityMonitor::~UIVMActivityMonitor()
+void UIVMActivityMonitor::sltRetranslateUI()
 {
-    sltClearCOMData();
-}
-
-void UIVMActivityMonitor::setMachine(const CMachine &comMachine)
-{
-    reset();
-    if (comMachine.isNull())
-        return;
-
-    if (!m_comSession.isNull())
-        m_comSession.UnlockMachine();
-
-    m_comMachine = comMachine;
-
-    if (m_comMachine.GetState() == KMachineState_Running)
-    {
-        setEnabled(true);
-        openSession();
-        start();
-    }
-}
-
-QUuid UIVMActivityMonitor::machineId() const
-{
-    if (m_comMachine.isNull())
-        return QUuid();
-    return m_comMachine.GetId();
-}
-
-QString UIVMActivityMonitor::machineName() const
-{
-    if (m_comMachine.isNull())
-        return QString();
-    return m_comMachine.GetName();
-}
-
-void UIVMActivityMonitor::openSession()
-{
-    if (!m_comSession.isNull())
-        return;
-    m_comSession = uiCommon().openSession(m_comMachine.GetId(), KLockType_Shared);
-    AssertReturnVoid(!m_comSession.isNull());
-
-    CConsole comConsole = m_comSession.GetConsole();
-    AssertReturnVoid(!comConsole.isNull());
-    m_comGuest = comConsole.GetGuest();
-
-    m_comMachineDebugger = comConsole.GetDebugger();
-}
-
-void UIVMActivityMonitor::retranslateUi()
-{
-    foreach (UIChart *pChart, m_charts)
-        pChart->setXAxisLabel(QApplication::translate("UIVMInformationDialog", "Sec."));
-
     /* Translate the chart info labels: */
-    int iMaximum = 0;
+    m_iMaximumLabelLength = 0;
     m_strCPUInfoLabelTitle = QApplication::translate("UIVMInformationDialog", "CPU Load");
-    iMaximum = qMax(iMaximum, m_strCPUInfoLabelTitle.length());
+    m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strCPUInfoLabelTitle.length());
     m_strCPUInfoLabelGuest = QApplication::translate("UIVMInformationDialog", "Guest Load");
-    iMaximum = qMax(iMaximum, m_strCPUInfoLabelGuest.length());
+    m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strCPUInfoLabelGuest.length());
     m_strCPUInfoLabelVMM = QApplication::translate("UIVMInformationDialog", "VMM Load");
-    iMaximum = qMax(iMaximum, m_strCPUInfoLabelVMM.length());
+    m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strCPUInfoLabelVMM.length());
     m_strRAMInfoLabelTitle = QApplication::translate("UIVMInformationDialog", "RAM Usage");
-    iMaximum = qMax(iMaximum, m_strRAMInfoLabelTitle.length());
+    m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strRAMInfoLabelTitle.length());
     m_strRAMInfoLabelTotal = QApplication::translate("UIVMInformationDialog", "Total");
-    iMaximum = qMax(iMaximum, m_strRAMInfoLabelTotal.length());
+    m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strRAMInfoLabelTotal.length());
     m_strRAMInfoLabelFree = QApplication::translate("UIVMInformationDialog", "Free");
-    iMaximum = qMax(iMaximum, m_strRAMInfoLabelFree.length());
+    m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strRAMInfoLabelFree.length());
     m_strRAMInfoLabelUsed = QApplication::translate("UIVMInformationDialog", "Used");
-    iMaximum = qMax(iMaximum, m_strRAMInfoLabelUsed.length());
-    m_strNetworkInfoLabelTitle = QApplication::translate("UIVMInformationDialog", "Network Rate");
-    iMaximum = qMax(iMaximum, m_strNetworkInfoLabelTitle.length());
+    m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strRAMInfoLabelUsed.length());
     m_strNetworkInfoLabelReceived = QApplication::translate("UIVMInformationDialog", "Receive Rate");
-    iMaximum = qMax(iMaximum, m_strNetworkInfoLabelReceived.length());
+    m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strNetworkInfoLabelReceived.length());
     m_strNetworkInfoLabelTransmitted = QApplication::translate("UIVMInformationDialog", "Transmit Rate");
-    iMaximum = qMax(iMaximum, m_strNetworkInfoLabelTransmitted.length());
+    m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strNetworkInfoLabelTransmitted.length());
     m_strNetworkInfoLabelReceivedTotal = QApplication::translate("UIVMInformationDialog", "Total Received");
-    iMaximum = qMax(iMaximum, m_strNetworkInfoLabelReceivedTotal.length());
+    m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strNetworkInfoLabelReceivedTotal.length());
     m_strNetworkInfoLabelTransmittedTotal = QApplication::translate("UIVMInformationDialog", "Total Transmitted");
-    iMaximum = qMax(iMaximum, m_strNetworkInfoLabelReceivedTotal.length());
-    m_strDiskIOInfoLabelTitle = QApplication::translate("UIVMInformationDialog", "Disk IO Rate");
-    iMaximum = qMax(iMaximum, m_strDiskIOInfoLabelTitle.length());
+    m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strNetworkInfoLabelReceivedTotal.length());
+    m_strDiskIOInfoLabelTitle = QApplication::translate("UIVMInformationDialog", "Disk IO");
+    m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strDiskIOInfoLabelTitle.length());
     m_strDiskIOInfoLabelWritten = QApplication::translate("UIVMInformationDialog", "Write Rate");
-    iMaximum = qMax(iMaximum, m_strDiskIOInfoLabelWritten.length());
+    m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strDiskIOInfoLabelWritten.length());
     m_strDiskIOInfoLabelRead = QApplication::translate("UIVMInformationDialog", "Read Rate");
-    iMaximum = qMax(iMaximum, m_strDiskIOInfoLabelRead.length());
+    m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strDiskIOInfoLabelRead.length());
     m_strDiskIOInfoLabelWrittenTotal = QApplication::translate("UIVMInformationDialog", "Total Written");
-    iMaximum = qMax(iMaximum, m_strDiskIOInfoLabelWrittenTotal.length());
+    m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strDiskIOInfoLabelWrittenTotal.length());
     m_strDiskIOInfoLabelReadTotal = QApplication::translate("UIVMInformationDialog", "Total Read");
-    iMaximum = qMax(iMaximum, m_strDiskIOInfoLabelReadTotal.length());
-    m_strVMExitInfoLabelTitle = QApplication::translate("UIVMInformationDialog", "VM Exits");
-    iMaximum = qMax(iMaximum, m_strVMExitInfoLabelTitle.length());
-    m_strVMExitLabelCurrent = QApplication::translate("UIVMInformationDialog", "Current");
-    iMaximum = qMax(iMaximum, m_strVMExitLabelCurrent.length());
-    m_strVMExitLabelTotal = QApplication::translate("UIVMInformationDialog", "Total");
-    iMaximum = qMax(iMaximum, m_strVMExitLabelTotal.length());
-
-    /* Compute the maximum label string length and set it as a fixed width to labels to prevent always changing widths: */
-    /* Add m_iDecimalCount plus 4 characters for the number and 3 for unit string: */
-    iMaximum += (g_iDecimalCount + 7);
-    if (!m_infoLabels.isEmpty())
-    {
-        QLabel *pLabel = m_infoLabels.begin().value();
-        if (pLabel)
-        {
-            QFontMetrics labelFontMetric(pLabel->font());
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
-            int iWidth = iMaximum * labelFontMetric.horizontalAdvance('X');
-#else
-            int iWidth = iMaximum * labelFontMetric.width('X');
-#endif
-            foreach (QLabel *pInfoLabel, m_infoLabels)
-                pInfoLabel->setFixedWidth(iWidth);
-        }
-    }
-}
-
-bool UIVMActivityMonitor::eventFilter(QObject *pObj, QEvent *pEvent)
-{
-    if (pEvent-> type() == QEvent::Enter ||
-        pEvent-> type() == QEvent::Leave)
-    {
-        UIChart *pChart = qobject_cast<UIChart*>(pObj);
-        if (pChart)
-            pChart->setMouseOver(pEvent-> type() == QEvent::Enter);
-    }
-    return false;
+    m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strDiskIOInfoLabelReadTotal.length());
 }
 
 void UIVMActivityMonitor::prepareWidgets()
@@ -1088,60 +1147,220 @@ void UIVMActivityMonitor::prepareWidgets()
     m_pMainLayout->addWidget(pScrollArea);
 
     QWidget *pContainerWidget = new QWidget(pScrollArea);
-    QGridLayout *pContainerLayout = new QGridLayout(pContainerWidget);
-    pContainerWidget->setLayout(pContainerLayout);
-    pContainerLayout->setSpacing(10);
+    m_pContainerLayout = new QGridLayout(pContainerWidget);
+    pContainerWidget->setLayout(m_pContainerLayout);
+    m_pContainerLayout->setSpacing(10);
     pContainerWidget->show();
     pScrollArea->setWidget(pContainerWidget);
     pScrollArea->setWidgetResizable(true);
-
-    QStringList chartOrder;
-    chartOrder << m_strCPUMetricName << m_strRAMMetricName <<
-        m_strDiskMetricName << m_strNetworkMetricName << m_strDiskIOMetricName << m_strVMExitMetricName;
-    int iRow = 0;
-    foreach (const QString &strMetricName, chartOrder)
-    {
-        if (!m_metrics.contains(strMetricName))
-            continue;
-        QHBoxLayout *pChartLayout = new QHBoxLayout;
-        pChartLayout->setSpacing(0);
-
-        QLabel *pLabel = new QLabel(this);
-        pLabel->setAlignment(Qt::AlignLeft | Qt::AlignTop);
-        pChartLayout->addWidget(pLabel);
-        m_infoLabels.insert(strMetricName, pLabel);
-
-        UIChart *pChart = new UIChart(this, &(m_metrics[strMetricName]));
-        pChart->installEventFilter(this);
-        connect(pChart, &UIChart::sigExportMetricsToFile,
-                this, &UIVMActivityMonitor::sltExportMetricsToFile);
-        m_charts.insert(strMetricName, pChart);
-        pChart->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-        pChartLayout->addWidget(pChart);
-        pContainerLayout->addLayout(pChartLayout, iRow, 0, 1, 2);
-        ++iRow;
-    }
-
-    /* Configure charts: */
-    if (m_charts.contains(m_strCPUMetricName) && m_charts[m_strCPUMetricName])
-    {
-        m_charts[m_strCPUMetricName]->setIsPieChartAllowed(true);
-        m_charts[m_strCPUMetricName]->setIsAreaChartAllowed(true);
-    }
-
-    QWidget *bottomSpacerWidget = new QWidget(this);
-    bottomSpacerWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
-    bottomSpacerWidget->setVisible(true);
-    pContainerLayout->addWidget(bottomSpacerWidget, iRow, 0, 1, 2);
 }
 
 void UIVMActivityMonitor::sltTimeout()
 {
-    if (m_performanceCollector.isNull())
+    obtainDataAndUpdate();
+}
+
+void UIVMActivityMonitor::sltExportMetricsToFile()
+{
+    QString strStartFileName = QString("%1/%2_%3").
+        arg(defaultMachineFolder()).
+        arg(machineName()).
+        arg(QDateTime::currentDateTime().toString("dd-MM-yyyy_hh-mm-ss"));
+    QString strFileName = QIFileDialog::getSaveFileName(strStartFileName,"",this,
+                                                        QApplication::translate("UIVMInformationDialog",
+                                                                                "Export activity data of the machine \"%1\"")
+                                                                                .arg(machineName()));
+    QFile dataFile(strFileName);
+
+    if (dataFile.open(QFile::WriteOnly | QFile::Truncate))
+    {
+        QTextStream stream(&dataFile);
+        for (QMap<Metric_Type, UIMetric>::const_iterator iterator =  m_metrics.begin(); iterator != m_metrics.end(); ++iterator)
+            iterator.value().toFile(stream);
+        dataFile.close();
+    }
+}
+
+void UIVMActivityMonitor::sltCreateContextMenu(const QPoint &point)
+{
+    QMenu menu;
+    QAction *pExportAction =
+        menu.addAction(QApplication::translate("UIVMInformationDialog", "Export"));
+    pExportAction->setIcon(UIIconPool::iconSet(":/performance_monitor_export_16px.png"));
+    connect(pExportAction, &QAction::triggered, this, &UIVMActivityMonitor::sltExportMetricsToFile);
+    if (uiCommon().uiType() == UIType_RuntimeUI)
+        menu.addAction(m_pActionPool->action(UIActionIndex_M_Activity_T_Preferences));
+    menu.exec(mapToGlobal(point));
+}
+
+void UIVMActivityMonitor::prepareActions()
+{
+}
+
+void UIVMActivityMonitor::resetRAMInfoLabel()
+{
+    if (m_infoLabels.contains(Metric_Type_RAM)  && m_infoLabels[Metric_Type_RAM])
+    {
+        QString strInfo = QString("<b>%1</b><br/>%2: %3<br/>%4: %5<br/>%6: %7").
+            arg(m_strRAMInfoLabelTitle).arg(m_strRAMInfoLabelTotal).arg("--")
+            .arg(m_strRAMInfoLabelFree).arg("--")
+            .arg(m_strRAMInfoLabelUsed).arg("--");
+        m_infoLabels[Metric_Type_RAM]->setText(strInfo);
+    }
+}
+
+QString UIVMActivityMonitor::dataColorString(Metric_Type enmType, int iDataIndex)
+{
+    if (!m_charts.contains(enmType))
+        return QColor(Qt::black).name(QColor::HexRgb);
+    UIChart *pChart = m_charts[enmType];
+    if (!pChart)
+        return QColor(Qt::black).name(QColor::HexRgb);
+    return pChart->dataSeriesColor(iDataIndex).name(QColor::HexRgb);
+}
+
+void UIVMActivityMonitor::setInfoLabelWidth()
+{
+    /* Compute the maximum label string length and set it as a fixed width to labels to prevent always changing widths: */
+    /* Add m_iDecimalCount plus 4 characters for the number and 3 for unit string: */
+    m_iMaximumLabelLength += (g_iDecimalCount + 7);
+    if (!m_infoLabels.isEmpty())
+    {
+        QLabel *pLabel = m_infoLabels.begin().value();
+        if (pLabel)
+        {
+            const QFontMetrics labelFontMetric(pLabel->font());
+            const int iWidth = m_iMaximumLabelLength * labelFontMetric.horizontalAdvance('X');
+            foreach (QLabel *pInfoLabel, m_infoLabels)
+                pInfoLabel->setFixedWidth(iWidth);
+        }
+    }
+}
+
+void UIVMActivityMonitor::setDataSeriesColor(int iIndex, const QColor &color)
+{
+    if (iIndex < 0 || iIndex >= DATA_SERIES_SIZE)
         return;
+    m_dataSeriesColor[iIndex] = color;
+
+    foreach (UIChart *pChart, m_charts)
+        if (pChart)
+            pChart->setDataSeriesColor(iIndex, color);
+}
+
+/*********************************************************************************************************************************
+*   UIVMActivityMonitorLocal definition.                                                                         *
+*********************************************************************************************************************************/
+
+UIVMActivityMonitorLocal::UIVMActivityMonitorLocal(EmbedTo enmEmbedding, QWidget *pParent,
+                                                   const CMachine &machine, UIActionPool *pActionPool)
+    :UIVMActivityMonitor(enmEmbedding, pParent, pActionPool, 120 /* iMaximumQueueSize */)
+    , m_fGuestAdditionsAvailable(false)
+    , m_fCOMPerformanceCollectorConfigured(false)
+{
+    prepareMetrics();
+    prepareWidgets();
+    sltRetranslateUI();
+    prepareActions();
+    connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigMachineStateChange, this, &UIVMActivityMonitorLocal::sltMachineStateChange);
+    connect(&uiCommon(), &UICommon::sigAskToDetachCOM, this, &UIVMActivityMonitorLocal::sltClearCOMData);
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI, this, &UIVMActivityMonitorLocal::sltRetranslateUI);
+    setMachine(machine);
+
+    /* Configure charts: */
+    if (m_charts.contains(Metric_Type_CPU) && m_charts[Metric_Type_CPU])
+    {
+        m_charts[Metric_Type_CPU]->setIsPieChartAllowed(true);
+        m_charts[Metric_Type_CPU]->setIsAreaChartAllowed(true);
+    }
+}
+
+void UIVMActivityMonitorLocal::start()
+{
+    if (m_comMachine.isNull() || m_comMachine.GetState() != KMachineState_Running)
+        return;
+
+    m_fGuestAdditionsAvailable = guestAdditionsAvailable("6.1");
+    enableDisableGuestAdditionDependedWidgets(m_fGuestAdditionsAvailable);
+    if (m_pTimer)
+        m_pTimer->start(1000 * g_iPeriod);
+}
+
+UIVMActivityMonitorLocal::~UIVMActivityMonitorLocal()
+{
+    sltClearCOMData();
+}
+
+QUuid UIVMActivityMonitorLocal::machineId() const
+{
+    if (m_comMachine.isNull())
+        return QUuid();
+    return m_comMachine.GetId();
+}
+
+void UIVMActivityMonitorLocal::sltRetranslateUI()
+{
+    UIVMActivityMonitor::sltRetranslateUI();
+
+    foreach (UIChart *pChart, m_charts)
+        pChart->setXAxisLabel(QApplication::translate("UIVMInformationDialog", "Sec.", "short from seconds"));
+
+    m_strVMExitInfoLabelTitle = QApplication::translate("UIVMInformationDialog", "VM Exits");
+    m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strVMExitInfoLabelTitle.length());
+    m_strVMExitLabelCurrent = QApplication::translate("UIVMInformationDialog", "Current");
+    m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strVMExitLabelCurrent.length());
+    m_strVMExitLabelTotal = QApplication::translate("UIVMInformationDialog", "Total");
+    m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strVMExitLabelTotal.length());
+    m_strNetworkInfoLabelTitle = QApplication::translate("UIVMInformationDialog", "Network Rate");
+    m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strNetworkInfoLabelTitle.length());
+    setInfoLabelWidth();
+}
+
+void UIVMActivityMonitorLocal::setMachine(const CMachine &comMachine)
+{
+    reset();
+    if (comMachine.isNull())
+        return;
+
+    if (!m_comSession.isNull())
+        m_comSession.UnlockMachine();
+
+    m_comMachine = comMachine;
+
+    if (m_comMachine.GetState() == KMachineState_Running)
+    {
+        setEnabled(true);
+        openSession();
+        start();
+    }
+}
+
+QString UIVMActivityMonitorLocal::machineName() const
+{
+    if (m_comMachine.isNull())
+        return QString();
+    return m_comMachine.GetName();
+}
+
+void UIVMActivityMonitorLocal::openSession()
+{
+    if (!m_comSession.isNull())
+        return;
+    m_comSession = UILocalMachineStuff::openSession(m_comMachine.GetId(), KLockType_Shared);
+    AssertReturnVoid(!m_comSession.isNull());
+
+    CConsole comConsole = m_comSession.GetConsole();
+    AssertReturnVoid(!comConsole.isNull());
+    m_comGuest = comConsole.GetGuest();
+
+    m_comMachineDebugger = comConsole.GetDebugger();
+}
+
+void UIVMActivityMonitorLocal::obtainDataAndUpdate()
+{
     ++m_iTimeStep;
 
-    if (m_metrics.contains(m_strRAMMetricName))
+    if (m_metrics.contains(Metric_Type_RAM) && !m_performanceCollector.isNull())
     {
         quint64 iTotalRAM = 0;
         quint64 iFreeRAM = 0;
@@ -1150,13 +1369,13 @@ void UIVMActivityMonitor::sltTimeout()
     }
 
     /* Update the CPU load chart with values we get from IMachineDebugger::getCPULoad(..): */
-    if (m_metrics.contains(m_strCPUMetricName))
+    if (m_metrics.contains(Metric_Type_CPU))
     {
         ULONG aPctExecuting;
         ULONG aPctHalted;
         ULONG aPctOther;
         m_comMachineDebugger.GetCPULoad(0x7fffffff, aPctExecuting, aPctHalted, aPctOther);
-        updateCPUGraphsAndMetric(aPctExecuting, aPctOther);
+        updateCPUChart(aPctExecuting, aPctOther);
     }
 
     /* Update the network load chart with values we find under /Public/NetAdapter/: */
@@ -1164,7 +1383,7 @@ void UIVMActivityMonitor::sltTimeout()
         quint64 cbNetworkTotalReceived = 0;
         quint64 cbNetworkTotalTransmitted = 0;
         UIMonitorCommon::getNetworkLoad(m_comMachineDebugger, cbNetworkTotalReceived, cbNetworkTotalTransmitted);
-        updateNetworkGraphsAndMetric(cbNetworkTotalReceived, cbNetworkTotalTransmitted);
+        updateNetworkChart(cbNetworkTotalReceived, cbNetworkTotalTransmitted);
     }
 
     /* Update the Disk I/O chart with values we find under /Public/Storage/?/Port?/Bytes*: */
@@ -1172,7 +1391,7 @@ void UIVMActivityMonitor::sltTimeout()
         quint64 cbDiskIOTotalWritten = 0;
         quint64 cbDiskIOTotalRead = 0;
         UIMonitorCommon::getDiskLoad(m_comMachineDebugger, cbDiskIOTotalWritten, cbDiskIOTotalRead);
-        updateDiskIOGraphsAndMetric(cbDiskIOTotalWritten, cbDiskIOTotalRead);
+        updateDiskIOChart(cbDiskIOTotalWritten, cbDiskIOTotalRead);
     }
 
     /* Update the VM exit chart with values we find as /PROF/CPU?/EM/RecordedExits: */
@@ -1183,7 +1402,7 @@ void UIVMActivityMonitor::sltTimeout()
     }
 }
 
-void UIVMActivityMonitor::sltMachineStateChange(const QUuid &uId)
+void UIVMActivityMonitorLocal::sltMachineStateChange(const QUuid &uId)
 {
     if (m_comMachine.isNull())
         return;
@@ -1205,37 +1424,15 @@ void UIVMActivityMonitor::sltMachineStateChange(const QUuid &uId)
         reset();
 }
 
-void UIVMActivityMonitor::sltExportMetricsToFile()
+QString UIVMActivityMonitorLocal::defaultMachineFolder() const
 {
-    QString strStartFileName = QString("%1/%2_%3").
-        arg(QFileInfo(m_comMachine.GetSettingsFilePath()).absolutePath()).
-        arg(m_comMachine.GetName()).
-        arg(QDateTime::currentDateTime().toString("dd-MM-yyyy_hh-mm-ss"));
-    QString strFileName = QIFileDialog::getSaveFileName(strStartFileName,"",this,
-                                                        QApplication::translate("UIVMInformationDialog",
-                                                                                "Export activity data of the machine \"%1\"")
-                                                                                .arg(m_comMachine.GetName()));
-    QFile dataFile(strFileName);
-    if (dataFile.open(QFile::WriteOnly | QFile::Truncate))
-    {
-        QTextStream stream(&dataFile);
-        for (QMap<QString, UIMetric>::const_iterator iterator =  m_metrics.begin(); iterator != m_metrics.end(); ++iterator)
-            iterator.value().toFile(stream);
-        dataFile.close();
-    }
+    if (m_comMachine.isOk())
+        return m_comMachine.GetLogFolder();
+    else
+        return QString();
 }
 
-void UIVMActivityMonitor::sltCreateContextMenu(const QPoint &point)
-{
-    QMenu menu;
-    QAction *pExportAction =
-        menu.addAction(QApplication::translate("UIVMInformationDialog", "Export"));
-    pExportAction->setIcon(UIIconPool::iconSet(":/performance_monitor_export_16px.png"));
-    connect(pExportAction, &QAction::triggered, this, &UIVMActivityMonitor::sltExportMetricsToFile);
-    menu.exec(mapToGlobal(point));
-}
-
-void UIVMActivityMonitor::sltGuestAdditionsStateChange()
+void UIVMActivityMonitorLocal::guestAdditionsStateChange()
 {
     bool fGuestAdditionsAvailable = guestAdditionsAvailable("6.1");
     if (m_fGuestAdditionsAvailable == fGuestAdditionsAvailable)
@@ -1244,7 +1441,7 @@ void UIVMActivityMonitor::sltGuestAdditionsStateChange()
     enableDisableGuestAdditionDependedWidgets(m_fGuestAdditionsAvailable);
 }
 
-void UIVMActivityMonitor::sltClearCOMData()
+void UIVMActivityMonitorLocal::sltClearCOMData()
 {
     if (!m_comSession.isNull())
     {
@@ -1253,14 +1450,93 @@ void UIVMActivityMonitor::sltClearCOMData()
     }
 }
 
-void UIVMActivityMonitor::prepareMetrics()
+void UIVMActivityMonitorLocal::reset()
 {
-    m_performanceCollector = uiCommon().virtualBox().GetPerformanceCollector();
-    if (m_performanceCollector.isNull())
+    m_fGuestAdditionsAvailable = false;
+    setEnabled(false);
+
+    if (m_pTimer)
+        m_pTimer->stop();
+    /* reset the metrics. this will delete their data cache: */
+    for (QMap<Metric_Type, UIMetric>::iterator iterator =  m_metrics.begin();
+         iterator != m_metrics.end(); ++iterator)
+        iterator.value().reset();
+    /* force update on the charts to draw now emptied metrics' data: */
+    for (QMap<Metric_Type, UIChart*>::iterator iterator =  m_charts.begin();
+         iterator != m_charts.end(); ++iterator)
+        iterator.value()->update();
+    /* Reset the info labels: */
+    resetCPUInfoLabel();
+    resetRAMInfoLabel();
+    resetNetworkInfoLabel();
+    resetDiskIOInfoLabel();
+    resetVMExitInfoLabel();
+    update();
+    sltClearCOMData();
+}
+
+void UIVMActivityMonitorLocal::prepareWidgets()
+{
+    UIVMActivityMonitor::prepareWidgets();
+
+    QVector<Metric_Type> chartOrder;
+    chartOrder << Metric_Type_CPU << Metric_Type_RAM <<
+        Metric_Type_Network_InOut << Metric_Type_Disk_InOut;
+#ifdef DEBUG
+    chartOrder << Metric_Type_VM_Exits;
+#else
+    if (gEDataManager->VMActivityMonitorShowVMExits())
+        chartOrder << Metric_Type_VM_Exits;
+#endif
+    int iRow = 0;
+    foreach (Metric_Type enmType, chartOrder)
+    {
+        if (!m_metrics.contains(enmType))
+            continue;
+
+        QHBoxLayout *pChartLayout = new QHBoxLayout;
+        pChartLayout->setSpacing(0);
+
+        QLabel *pLabel = new QLabel(this);
+
+        QPalette tempPal = pLabel->palette();
+        tempPal.setColor(QPalette::Window, tempPal.color(QPalette::Window).lighter(g_iBackgroundTint));
+        pLabel->setPalette(tempPal);
+        pLabel->setAutoFillBackground(true);
+
+        pLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        pChartLayout->addWidget(pLabel);
+        m_infoLabels.insert(enmType, pLabel);
+
+        UIChart *pChart = new UIChart(this, &(m_metrics[enmType]), m_pActionPool, m_iMaximumQueueSize);
+        connect(pChart, &UIChart::sigExportMetricsToFile,
+                this, &UIVMActivityMonitor::sltExportMetricsToFile);
+        m_charts.insert(enmType, pChart);
+        pChart->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+        pChartLayout->addWidget(pChart);
+        m_pContainerLayout->addLayout(pChartLayout, iRow, 0, 1, 2);
+        ++iRow;
+    }
+
+    QWidget *bottomSpacerWidget = new QWidget(this);
+    bottomSpacerWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
+    bottomSpacerWidget->setVisible(true);
+    m_pContainerLayout->addWidget(bottomSpacerWidget, iRow, 0, 1, 2);
+}
+
+void UIVMActivityMonitorLocal::configureCOMPerformanceCollector()
+{
+    /* Only once: */
+    if (m_fCOMPerformanceCollectorConfigured)
         return;
 
     m_nameList << "Guest/RAM/Usage*";
     m_objectList = QVector<CUnknown>(m_nameList.size(), CUnknown());
+
+    m_performanceCollector = gpGlobalSession->virtualBox().GetPerformanceCollector();
+    if (m_performanceCollector.isNull())
+        return;
+
     m_performanceCollector.SetupMetrics(m_nameList, m_objectList, g_iPeriod, g_iMetricSetupCount);
     {
         QVector<CPerformanceMetric> metrics = m_performanceCollector.GetMetrics(m_nameList, m_objectList);
@@ -1271,47 +1547,52 @@ void UIVMActivityMonitor::prepareMetrics()
             {
                 if (strName.contains("RAM", Qt::CaseInsensitive) && strName.contains("Free", Qt::CaseInsensitive))
                 {
-                    UIMetric ramMetric(m_strRAMMetricName, metrics[i].GetUnit(), g_iMaximumQueueSize);
-                    ramMetric.setDataSeriesName(0, "Free");
-                    ramMetric.setDataSeriesName(1, "Used");
-                    ramMetric.setRequiresGuestAdditions(true);
-                    m_metrics.insert(m_strRAMMetricName, ramMetric);
+                    if (m_metrics.contains(Metric_Type_RAM))
+                        m_metrics[Metric_Type_RAM].setUnit(metrics[i].GetUnit());
                 }
             }
         }
     }
+    m_fCOMPerformanceCollectorConfigured = true;
+}
 
+void UIVMActivityMonitorLocal::prepareMetrics()
+{
     /* CPU Metric: */
-    UIMetric cpuMetric(m_strCPUMetricName, "%", g_iMaximumQueueSize);
+    UIMetric cpuMetric("%", m_iMaximumQueueSize);
     cpuMetric.setDataSeriesName(0, "Guest Load");
     cpuMetric.setDataSeriesName(1, "VMM Load");
-    m_metrics.insert(m_strCPUMetricName, cpuMetric);
+    m_metrics.insert(Metric_Type_CPU, cpuMetric);
+
+    /* RAM Metric: */
+    UIMetric ramMetric(""/*metrics[i].GetUnit()*/, m_iMaximumQueueSize);
+    ramMetric.setDataSeriesName(0, "Free");
+    ramMetric.setDataSeriesName(1, "Used");
+    ramMetric.setRequiresGuestAdditions(true);
+    m_metrics.insert(Metric_Type_RAM, ramMetric);
+
 
     /* Network metric: */
-    UIMetric networkMetric(m_strNetworkMetricName, "B", g_iMaximumQueueSize);
+    UIMetric networkMetric("B", m_iMaximumQueueSize);
     networkMetric.setDataSeriesName(0, "Receive Rate");
     networkMetric.setDataSeriesName(1, "Transmit Rate");
     networkMetric.setAutoUpdateMaximum(true);
-    m_metrics.insert(m_strNetworkMetricName, networkMetric);
+    m_metrics.insert(Metric_Type_Network_InOut, networkMetric);
 
     /* Disk IO metric */
-    UIMetric diskIOMetric(m_strDiskIOMetricName, "B", g_iMaximumQueueSize);
+    UIMetric diskIOMetric("B", m_iMaximumQueueSize);
     diskIOMetric.setDataSeriesName(0, "Write Rate");
     diskIOMetric.setDataSeriesName(1, "Read Rate");
     diskIOMetric.setAutoUpdateMaximum(true);
-    m_metrics.insert(m_strDiskIOMetricName, diskIOMetric);
+    m_metrics.insert(Metric_Type_Disk_InOut, diskIOMetric);
 
     /* VM exits metric */
-    UIMetric VMExitsMetric(m_strVMExitMetricName, "times", g_iMaximumQueueSize);
+    UIMetric VMExitsMetric("times", m_iMaximumQueueSize);
     VMExitsMetric.setAutoUpdateMaximum(true);
-    m_metrics.insert(m_strVMExitMetricName, VMExitsMetric);
+    m_metrics.insert(Metric_Type_VM_Exits, VMExitsMetric);
 }
 
-void UIVMActivityMonitor::prepareActions()
-{
-}
-
-bool UIVMActivityMonitor::guestAdditionsAvailable(const char *pszMinimumVersion)
+bool UIVMActivityMonitorLocal::guestAdditionsAvailable(const char *pszMinimumVersion)
 {
     if (m_comGuest.isNull() || !pszMinimumVersion)
         return false;
@@ -1338,9 +1619,12 @@ bool UIVMActivityMonitor::guestAdditionsAvailable(const char *pszMinimumVersion)
     return false;
 }
 
-void UIVMActivityMonitor::enableDisableGuestAdditionDependedWidgets(bool fEnable)
+void UIVMActivityMonitorLocal::enableDisableGuestAdditionDependedWidgets(bool fEnable)
 {
-    for (QMap<QString, UIMetric>::const_iterator iterator =  m_metrics.begin();
+    /* Configure performace monitor: */
+    if (fEnable)
+        configureCOMPerformanceCollector();
+    for (QMap<Metric_Type, UIMetric>::const_iterator iterator =  m_metrics.begin();
          iterator != m_metrics.end(); ++iterator)
     {
         if (!iterator.value().requiresGuestAdditions())
@@ -1355,184 +1639,12 @@ void UIVMActivityMonitor::enableDisableGuestAdditionDependedWidgets(bool fEnable
     }
 }
 
-void UIVMActivityMonitor::updateCPUGraphsAndMetric(ULONG iExecutingPercentage, ULONG iOtherPercentage)
-{
-    UIMetric &CPUMetric = m_metrics[m_strCPUMetricName];
-    CPUMetric.addData(0, iExecutingPercentage);
-    CPUMetric.addData(1, iOtherPercentage);
-    CPUMetric.setMaximum(100);
-    if (m_infoLabels.contains(m_strCPUMetricName)  && m_infoLabels[m_strCPUMetricName])
-    {
-        QString strInfo;
-
-        strInfo = QString("<b>%1</b></b><br/><font color=\"%2\">%3: %4%5</font><br/><font color=\"%6\">%7: %8%9</font>")
-            .arg(m_strCPUInfoLabelTitle)
-            .arg(dataColorString(m_strCPUMetricName, 0))
-            .arg(m_strCPUInfoLabelGuest).arg(QString::number(iExecutingPercentage)).arg(CPUMetric.unit())
-            .arg(dataColorString(m_strCPUMetricName, 1))
-            .arg(m_strCPUInfoLabelVMM).arg(QString::number(iOtherPercentage)).arg(CPUMetric.unit());
-        m_infoLabels[m_strCPUMetricName]->setText(strInfo);
-    }
-
-    if (m_charts.contains(m_strCPUMetricName))
-        m_charts[m_strCPUMetricName]->update();
-}
-
-void UIVMActivityMonitor::updateRAMGraphsAndMetric(quint64 iTotalRAM, quint64 iFreeRAM)
-{
-    UIMetric &RAMMetric = m_metrics[m_strRAMMetricName];
-    RAMMetric.setMaximum(iTotalRAM);
-    RAMMetric.addData(0, iTotalRAM - iFreeRAM);
-    if (m_infoLabels.contains(m_strRAMMetricName)  && m_infoLabels[m_strRAMMetricName])
-    {
-        QString strInfo;
-        strInfo = QString("<b>%1</b><br/>%2: %3<br/>%4: %5<br/>%6: %7").arg(m_strRAMInfoLabelTitle).arg(m_strRAMInfoLabelTotal).arg(UITranslator::formatSize(_1K * iTotalRAM, g_iDecimalCount))
-            .arg(m_strRAMInfoLabelFree).arg(UITranslator::formatSize(_1K * (iFreeRAM), g_iDecimalCount))
-            .arg(m_strRAMInfoLabelUsed).arg(UITranslator::formatSize(_1K * (iTotalRAM - iFreeRAM), g_iDecimalCount));
-        m_infoLabels[m_strRAMMetricName]->setText(strInfo);
-    }
-    if (m_charts.contains(m_strRAMMetricName))
-        m_charts[m_strRAMMetricName]->update();
-}
-
-void UIVMActivityMonitor::updateNetworkGraphsAndMetric(quint64 iReceiveTotal, quint64 iTransmitTotal)
-{
-    UIMetric &NetMetric = m_metrics[m_strNetworkMetricName];
-
-    quint64 iReceiveRate = iReceiveTotal - NetMetric.total(0);
-    quint64 iTransmitRate = iTransmitTotal - NetMetric.total(1);
-
-    NetMetric.setTotal(0, iReceiveTotal);
-    NetMetric.setTotal(1, iTransmitTotal);
-
-    if (!NetMetric.isInitialized())
-    {
-        NetMetric.setIsInitialized(true);
-        return;
-    }
-
-    NetMetric.addData(0, iReceiveRate);
-    NetMetric.addData(1, iTransmitRate);
-
-    if (m_infoLabels.contains(m_strNetworkMetricName)  && m_infoLabels[m_strNetworkMetricName])
-    {
-        QString strInfo;
-        strInfo = QString("<b>%1</b></b><br/><font color=\"%2\">%3: %4<br/>%5 %6</font><br/><font color=\"%7\">%8: %9<br/>%10 %11</font>")
-            .arg(m_strNetworkInfoLabelTitle)
-            .arg(dataColorString(m_strNetworkMetricName, 0)).arg(m_strNetworkInfoLabelReceived).arg(UITranslator::formatSize((quint64)iReceiveRate, g_iDecimalCount))
-            .arg(m_strNetworkInfoLabelReceivedTotal).arg(UITranslator::formatSize((quint64)iReceiveTotal, g_iDecimalCount))
-            .arg(dataColorString(m_strNetworkMetricName, 1)).arg(m_strNetworkInfoLabelTransmitted).arg(UITranslator::formatSize((quint64)iTransmitRate, g_iDecimalCount))
-            .arg(m_strNetworkInfoLabelTransmittedTotal).arg(UITranslator::formatSize((quint64)iTransmitTotal, g_iDecimalCount));
-        m_infoLabels[m_strNetworkMetricName]->setText(strInfo);
-    }
-    if (m_charts.contains(m_strNetworkMetricName))
-        m_charts[m_strNetworkMetricName]->update();
-}
-
-void UIVMActivityMonitor::resetCPUInfoLabel()
-{
-    if (m_infoLabels.contains(m_strCPUMetricName)  && m_infoLabels[m_strCPUMetricName])
-    {
-        QString strInfo =QString("<b>%1</b></b><br/>%2: %3<br/>%4: %5")
-            .arg(m_strCPUInfoLabelTitle)
-            .arg(m_strCPUInfoLabelGuest).arg("--")
-            .arg(m_strCPUInfoLabelVMM).arg("--");
-        m_infoLabels[m_strCPUMetricName]->setText(strInfo);
-    }
-}
-
-void UIVMActivityMonitor::resetRAMInfoLabel()
-{
-    if (m_infoLabels.contains(m_strRAMMetricName)  && m_infoLabels[m_strRAMMetricName])
-    {
-        QString strInfo = QString("<b>%1</b><br/>%2: %3<br/>%4: %5<br/>%6: %7").
-            arg(m_strRAMInfoLabelTitle).arg(m_strRAMInfoLabelTotal).arg("--")
-            .arg(m_strRAMInfoLabelFree).arg("--")
-            .arg(m_strRAMInfoLabelUsed).arg("--");
-        m_infoLabels[m_strRAMMetricName]->setText(strInfo);
-    }
-}
-
-void UIVMActivityMonitor::resetNetworkInfoLabel()
-{
-    if (m_infoLabels.contains(m_strNetworkMetricName)  && m_infoLabels[m_strNetworkMetricName])
-    {
-        QString strInfo = QString("<b>%1</b></b><br/>%2: %3<br/>%4 %5<br/>%6: %7<br/>%8 %9")
-            .arg(m_strNetworkInfoLabelTitle)
-            .arg(m_strNetworkInfoLabelReceived).arg("--")
-            .arg(m_strNetworkInfoLabelReceivedTotal).arg("--")
-            .arg(m_strNetworkInfoLabelTransmitted).arg("--")
-            .arg(m_strNetworkInfoLabelTransmittedTotal).arg("--");
-        m_infoLabels[m_strNetworkMetricName]->setText(strInfo);
-    }
-}
-
-void UIVMActivityMonitor::resetVMExitInfoLabel()
-{
-    if (m_infoLabels.contains(m_strVMExitMetricName)  && m_infoLabels[m_strVMExitMetricName])
-    {
-        QString strInfo;
-        strInfo = QString("<b>%1</b></b><br/>%2: %3<br/>%4: %5")
-            .arg(m_strVMExitInfoLabelTitle)
-            .arg(m_strVMExitLabelCurrent).arg("--")
-            .arg(m_strVMExitLabelTotal).arg("--");
-
-        m_infoLabels[m_strVMExitMetricName]->setText(strInfo);
-    }
-}
-
-void UIVMActivityMonitor::resetDiskIOInfoLabel()
-{
-    if (m_infoLabels.contains(m_strDiskIOMetricName)  && m_infoLabels[m_strDiskIOMetricName])
-    {
-        QString strInfo = QString("<b>%1</b></b><br/>%2: %3<br/>%4 %5<br/>%6: %7<br/>%8 %9")
-            .arg(m_strDiskIOInfoLabelTitle)
-            .arg(m_strDiskIOInfoLabelWritten).arg("--")
-            .arg(m_strDiskIOInfoLabelWrittenTotal).arg("--")
-            .arg(m_strDiskIOInfoLabelRead).arg("--")
-            .arg(m_strDiskIOInfoLabelReadTotal).arg("--");
-        m_infoLabels[m_strDiskIOMetricName]->setText(strInfo);
-    }
-}
-
-void UIVMActivityMonitor::updateDiskIOGraphsAndMetric(quint64 uDiskIOTotalWritten, quint64 uDiskIOTotalRead)
-{
-    UIMetric &diskMetric = m_metrics[m_strDiskIOMetricName];
-
-    quint64 iWriteRate = uDiskIOTotalWritten - diskMetric.total(0);
-    quint64 iReadRate = uDiskIOTotalRead - diskMetric.total(1);
-
-    diskMetric.setTotal(0, uDiskIOTotalWritten);
-    diskMetric.setTotal(1, uDiskIOTotalRead);
-
-    /* Do not set data and maximum if the metric has not been initialized  since we need to initialize totals "(t-1)" first: */
-    if (!diskMetric.isInitialized()){
-        diskMetric.setIsInitialized(true);
-        return;
-    }
-    diskMetric.addData(0, iWriteRate);
-    diskMetric.addData(1, iReadRate);
-
-    if (m_infoLabels.contains(m_strDiskIOMetricName)  && m_infoLabels[m_strDiskIOMetricName])
-    {
-        QString strInfo = QString("<b>%1</b></b><br/><font color=\"%2\">%3: %4<br/>%5 %6</font><br/><font color=\"%7\">%8: %9<br/>%10 %11</font>")
-            .arg(m_strDiskIOInfoLabelTitle)
-            .arg(dataColorString(m_strDiskIOMetricName, 0)).arg(m_strDiskIOInfoLabelWritten).arg(UITranslator::formatSize((quint64)iWriteRate, g_iDecimalCount))
-            .arg(m_strDiskIOInfoLabelWrittenTotal).arg(UITranslator::formatSize((quint64)uDiskIOTotalWritten, g_iDecimalCount))
-            .arg(dataColorString(m_strDiskIOMetricName, 1)).arg(m_strDiskIOInfoLabelRead).arg(UITranslator::formatSize((quint64)iReadRate, g_iDecimalCount))
-            .arg(m_strDiskIOInfoLabelReadTotal).arg(UITranslator::formatSize((quint64)uDiskIOTotalRead, g_iDecimalCount));
-        m_infoLabels[m_strDiskIOMetricName]->setText(strInfo);
-    }
-    if (m_charts.contains(m_strDiskIOMetricName))
-        m_charts[m_strDiskIOMetricName]->update();
-}
-
-void UIVMActivityMonitor::updateVMExitMetric(quint64 uTotalVMExits)
+void UIVMActivityMonitorLocal::updateVMExitMetric(quint64 uTotalVMExits)
 {
     if (uTotalVMExits <= 0)
         return;
 
-    UIMetric &VMExitMetric = m_metrics[m_strVMExitMetricName];
+    UIMetric &VMExitMetric = m_metrics[Metric_Type_VM_Exits];
     quint64 iRate = uTotalVMExits - VMExitMetric.total(0);
     VMExitMetric.setTotal(0, uTotalVMExits);
     /* Do not set data and maximum if the metric has not been initialized  since we need to initialize totals "(t-1)" first: */
@@ -1542,64 +1654,766 @@ void UIVMActivityMonitor::updateVMExitMetric(quint64 uTotalVMExits)
         return;
     }
     VMExitMetric.addData(0, iRate);
-    if (m_infoLabels.contains(m_strVMExitMetricName)  && m_infoLabels[m_strVMExitMetricName])
+    if (m_infoLabels.contains(Metric_Type_VM_Exits)  && m_infoLabels[Metric_Type_VM_Exits])
     {
         QString strInfo;
-        strInfo = QString("<b>%1</b></b><br/>%2: %3 %4<br/>%5: %6 %7")
+        strInfo = QString("<b>%1</b><br/><font color=\"%2\">%3: %4 %5</font><br/>%6: %7 %8")
             .arg(m_strVMExitInfoLabelTitle)
-            .arg(m_strVMExitLabelCurrent).arg(UITranslator::addMetricSuffixToNumber(iRate)).arg(VMExitMetric.unit())
+            .arg(dataColorString(Metric_Type_VM_Exits, 0)).arg(m_strVMExitLabelCurrent).arg(UITranslator::addMetricSuffixToNumber(iRate)).arg(VMExitMetric.unit())
             .arg(m_strVMExitLabelTotal).arg(UITranslator::addMetricSuffixToNumber(uTotalVMExits)).arg(VMExitMetric.unit());
-         m_infoLabels[m_strVMExitMetricName]->setText(strInfo);
+         m_infoLabels[Metric_Type_VM_Exits]->setText(strInfo);
     }
-    if (m_charts.contains(m_strVMExitMetricName))
-        m_charts[m_strVMExitMetricName]->update();
+    if (m_charts.contains(Metric_Type_VM_Exits))
+        m_charts[Metric_Type_VM_Exits]->update();
 }
 
-QString UIVMActivityMonitor::dataColorString(const QString &strChartName, int iDataIndex)
+void UIVMActivityMonitorLocal::updateCPUChart(quint64 iExecutingPercentage, ULONG iOtherPercentage)
 {
-    if (!m_charts.contains(strChartName))
-        return QColor(Qt::black).name(QColor::HexRgb);
-    UIChart *pChart = m_charts[strChartName];
-    if (!pChart)
-        return QColor(Qt::black).name(QColor::HexRgb);
-    return pChart->dataSeriesColor(iDataIndex).name(QColor::HexRgb);
+    UIMetric &CPUMetric = m_metrics[Metric_Type_CPU];
+    CPUMetric.addData(0, iExecutingPercentage);
+    CPUMetric.addData(1, iOtherPercentage);
+    CPUMetric.setMaximum(100);
+    if (m_infoLabels.contains(Metric_Type_CPU)  && m_infoLabels[Metric_Type_CPU])
+    {
+        QString strInfo;
+
+        strInfo = QString("<b>%1</b></b><br/><font color=\"%2\">%3: %4%5</font><br/><font color=\"%6\">%7: %8%9</font>")
+            .arg(m_strCPUInfoLabelTitle)
+            .arg(dataColorString(Metric_Type_CPU, 0))
+            .arg(m_strCPUInfoLabelGuest).arg(QString::number(iExecutingPercentage)).arg(CPUMetric.unit())
+            .arg(dataColorString(Metric_Type_CPU, 1))
+            .arg(m_strCPUInfoLabelVMM).arg(QString::number(iOtherPercentage)).arg(CPUMetric.unit());
+        m_infoLabels[Metric_Type_CPU]->setText(strInfo);
+    }
+
+    if (m_charts.contains(Metric_Type_CPU))
+        m_charts[Metric_Type_CPU]->update();
 }
 
-void UIVMActivityMonitor::reset()
+void UIVMActivityMonitorLocal::updateRAMGraphsAndMetric(quint64 iTotalRAM, quint64 iFreeRAM)
 {
-    m_fGuestAdditionsAvailable = false;
+    UIMetric &RAMMetric = m_metrics[Metric_Type_RAM];
+    RAMMetric.setMaximum(iTotalRAM);
+    RAMMetric.addData(0, iTotalRAM - iFreeRAM);
+    if (m_infoLabels.contains(Metric_Type_RAM)  && m_infoLabels[Metric_Type_RAM])
+    {
+        QString strInfo;
+        strInfo = QString("<b>%1</b><br/>%2: %3<br/><font color=\"%4\">%5: %6</font><br/><font color=\"%7\">%8: %9</font>")
+            .arg(m_strRAMInfoLabelTitle)
+            .arg(m_strRAMInfoLabelTotal).arg(UITranslator::formatSize(_1K * iTotalRAM, g_iDecimalCount))
+            .arg(dataColorString(Metric_Type_RAM, 1)).arg(m_strRAMInfoLabelFree).arg(UITranslator::formatSize(_1K * (iFreeRAM), g_iDecimalCount))
+            .arg(dataColorString(Metric_Type_RAM, 0)).arg(m_strRAMInfoLabelUsed).arg(UITranslator::formatSize(_1K * (iTotalRAM - iFreeRAM), g_iDecimalCount));
+        m_infoLabels[Metric_Type_RAM]->setText(strInfo);
+    }
+    if (m_charts.contains(Metric_Type_RAM))
+        m_charts[Metric_Type_RAM]->update();
+}
+
+void UIVMActivityMonitorLocal::updateNetworkChart(quint64 uReceiveTotal, quint64 uTransmitTotal)
+{
+    UIMetric &NetMetric = m_metrics[Metric_Type_Network_InOut];
+
+    quint64 uReceiveRate = uReceiveTotal - NetMetric.total(0);
+    quint64 uTransmitRate = uTransmitTotal - NetMetric.total(1);
+
+    NetMetric.setTotal(0, uReceiveTotal);
+    NetMetric.setTotal(1, uTransmitTotal);
+
+    if (!NetMetric.isInitialized())
+    {
+        NetMetric.setIsInitialized(true);
+        return;
+    }
+
+    NetMetric.addData(0, uReceiveRate);
+    NetMetric.addData(1, uTransmitRate);
+
+    if (m_infoLabels.contains(Metric_Type_Network_InOut)  && m_infoLabels[Metric_Type_Network_InOut])
+    {
+        QString strInfo;
+        strInfo = QString("<b>%1</b></b><br/><font color=\"%2\">%3: %4<br/>%5: %6</font><br/><font color=\"%7\">%8: %9<br/>%10: %11</font>")
+            .arg(m_strNetworkInfoLabelTitle)
+            .arg(dataColorString(Metric_Type_Network_InOut, 0)).arg(m_strNetworkInfoLabelReceived).arg(UITranslator::formatSize(uReceiveRate, g_iDecimalCount))
+            .arg(m_strNetworkInfoLabelReceivedTotal).arg(UITranslator::formatSize(uReceiveTotal, g_iDecimalCount))
+            .arg(dataColorString(Metric_Type_Network_InOut, 1)).arg(m_strNetworkInfoLabelTransmitted).arg(UITranslator::formatSize(uTransmitRate, g_iDecimalCount))
+            .arg(m_strNetworkInfoLabelTransmittedTotal).arg(UITranslator::formatSize(uTransmitTotal, g_iDecimalCount));
+        m_infoLabels[Metric_Type_Network_InOut]->setText(strInfo);
+    }
+    if (m_charts.contains(Metric_Type_Network_InOut))
+        m_charts[Metric_Type_Network_InOut]->update();
+}
+
+void UIVMActivityMonitorLocal::updateDiskIOChart(quint64 uDiskIOTotalWritten, quint64 uDiskIOTotalRead)
+{
+    UIMetric &diskMetric = m_metrics[Metric_Type_Disk_InOut];
+
+    quint64 uWriteRate = uDiskIOTotalWritten - diskMetric.total(0);
+    quint64 uReadRate = uDiskIOTotalRead - diskMetric.total(1);
+
+    diskMetric.setTotal(0, uDiskIOTotalWritten);
+    diskMetric.setTotal(1, uDiskIOTotalRead);
+
+    /* Do not set data and maximum if the metric has not been initialized  since we need to initialize totals "(t-1)" first: */
+    if (!diskMetric.isInitialized()){
+        diskMetric.setIsInitialized(true);
+        return;
+    }
+    diskMetric.addData(0, uWriteRate);
+    diskMetric.addData(1, uReadRate);
+
+    if (m_infoLabels.contains(Metric_Type_Disk_InOut)  && m_infoLabels[Metric_Type_Disk_InOut])
+    {
+        QString strInfo = QString("<b>%1</b></b><br/><font color=\"%2\">%3: %4<br/>%5: %6</font><br/><font color=\"%7\">%8: %9<br/>%10: %11</font>")
+            .arg(m_strDiskIOInfoLabelTitle)
+            .arg(dataColorString(Metric_Type_Disk_InOut, 0)).arg(m_strDiskIOInfoLabelWritten).arg(UITranslator::formatSize(uWriteRate, g_iDecimalCount))
+            .arg(m_strDiskIOInfoLabelWrittenTotal).arg(UITranslator::formatSize((quint64)uDiskIOTotalWritten, g_iDecimalCount))
+            .arg(dataColorString(Metric_Type_Disk_InOut, 1)).arg(m_strDiskIOInfoLabelRead).arg(UITranslator::formatSize(uReadRate, g_iDecimalCount))
+            .arg(m_strDiskIOInfoLabelReadTotal).arg(UITranslator::formatSize((quint64)uDiskIOTotalRead, g_iDecimalCount));
+        m_infoLabels[Metric_Type_Disk_InOut]->setText(strInfo);
+    }
+    if (m_charts.contains(Metric_Type_Disk_InOut))
+        m_charts[Metric_Type_Disk_InOut]->update();
+}
+
+void UIVMActivityMonitorLocal::resetVMExitInfoLabel()
+{
+    if (m_infoLabels.contains(Metric_Type_VM_Exits)  && m_infoLabels[Metric_Type_VM_Exits])
+    {
+        QString strInfo;
+        strInfo = QString("<b>%1</b></b><br/>%2: %3<br/>%4: %5")
+            .arg(m_strVMExitInfoLabelTitle)
+            .arg(m_strVMExitLabelCurrent).arg("--")
+            .arg(m_strVMExitLabelTotal).arg("--");
+
+        m_infoLabels[Metric_Type_VM_Exits]->setText(strInfo);
+    }
+}
+
+void UIVMActivityMonitorLocal::resetCPUInfoLabel()
+{
+    if (m_infoLabels.contains(Metric_Type_CPU)  && m_infoLabels[Metric_Type_CPU])
+    {
+        QString strInfo =QString("<b>%1</b></b><br/>%2: %3<br/>%4: %5")
+            .arg(m_strCPUInfoLabelTitle)
+            .arg(m_strCPUInfoLabelGuest).arg("--")
+            .arg(m_strCPUInfoLabelVMM).arg("--");
+        m_infoLabels[Metric_Type_CPU]->setText(strInfo);
+    }
+}
+
+void UIVMActivityMonitorLocal::resetNetworkInfoLabel()
+{
+    if (m_infoLabels.contains(Metric_Type_Network_InOut)  && m_infoLabels[Metric_Type_Network_InOut])
+    {
+        QString strInfo = QString("<b>%1</b></b><br/>%2: %3<br/>%4 %5<br/>%6: %7<br/>%8 %9")
+            .arg(m_strNetworkInfoLabelTitle)
+            .arg(m_strNetworkInfoLabelReceived).arg("--")
+            .arg(m_strNetworkInfoLabelReceivedTotal).arg("--")
+            .arg(m_strNetworkInfoLabelTransmitted).arg("--")
+            .arg(m_strNetworkInfoLabelTransmittedTotal).arg("--");
+        m_infoLabels[Metric_Type_Network_InOut]->setText(strInfo);
+    }
+}
+
+void UIVMActivityMonitorLocal::resetDiskIOInfoLabel()
+{
+    if (m_infoLabels.contains(Metric_Type_Disk_InOut)  && m_infoLabels[Metric_Type_Disk_InOut])
+    {
+        QString strInfo = QString("<b>%1</b></b><br/>%2: %3<br/>%4 %5<br/>%6: %7<br/>%8 %9")
+            .arg(m_strDiskIOInfoLabelTitle)
+            .arg(m_strDiskIOInfoLabelWritten).arg("--")
+            .arg(m_strDiskIOInfoLabelWrittenTotal).arg("--")
+            .arg(m_strDiskIOInfoLabelRead).arg("--")
+            .arg(m_strDiskIOInfoLabelReadTotal).arg("--");
+        m_infoLabels[Metric_Type_Disk_InOut]->setText(strInfo);
+    }
+}
+
+/*********************************************************************************************************************************
+*   UIVMActivityMonitorCloud definition.                                                                         *
+*********************************************************************************************************************************/
+
+UIVMActivityMonitorCloud::UIVMActivityMonitorCloud(EmbedTo enmEmbedding, QWidget *pParent,
+                                                   const CCloudMachine &machine, UIActionPool *pActionPool)
+    :UIVMActivityMonitor(enmEmbedding, pParent, pActionPool, 60 /* iMaximumQueueSize */)
+    , m_pMachineStateUpdateTimer(0)
+    , m_enmMachineState(KCloudMachineState_Invalid)
+{
+    m_metricTypeDict[KMetricType_CpuUtilization]    = Metric_Type_CPU;
+    m_metricTypeDict[KMetricType_MemoryUtilization] = Metric_Type_RAM;
+    m_metricTypeDict[KMetricType_DiskBytesRead]     = Metric_Type_Disk_Out;
+    m_metricTypeDict[KMetricType_DiskBytesWritten]  = Metric_Type_Disk_In;
+    m_metricTypeDict[KMetricType_NetworksBytesIn]   = Metric_Type_Network_In;
+    m_metricTypeDict[KMetricType_NetworksBytesOut]  = Metric_Type_Network_Out;
+
+    setMachine(machine);
+    m_uTotalRAM = UIMonitorCommon::determineTotalRAMAmount(m_comMachine);
+
+    m_pMachineStateUpdateTimer = new QTimer(this);
+    if (m_pMachineStateUpdateTimer)
+        connect(m_pMachineStateUpdateTimer, &QTimer::timeout, this, &UIVMActivityMonitorCloud::sltMachineStateUpdateTimeout);
+
+    prepareMetrics();
+    prepareWidgets();
+    sltRetranslateUI();
+    prepareActions();
+    resetCPUInfoLabel();
+    resetNetworkInInfoLabel();
+    resetNetworkOutInfoLabel();
+    resetDiskIOWrittenInfoLabel();
+    resetDiskIOReadInfoLabel();
+    resetRAMInfoLabel();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI, this, &UIVMActivityMonitorCloud::sltRetranslateUI);
+
+    /* Start the timer: */
+    start();
+}
+
+void UIVMActivityMonitorCloud::setMachine(const CCloudMachine &comMachine)
+{
+    m_comMachine = comMachine;
+    if (!m_comMachine.isOk())
+        return;
+    setEnabled(m_comMachine.GetState() == KCloudMachineState_Running);
+}
+
+void UIVMActivityMonitorCloud::sltMachineStateUpdateTimeout()
+{
+    if (!m_comMachine.isOk())
+        return;
+
+    KCloudMachineState enmNewState = m_comMachine.GetState();
+    /* No changes. Noting to do: */
+    if (m_enmMachineState == enmNewState)
+        return;
+
+    if (m_ReadListProgressTask)
+    {
+        disconnect(m_ReadListProgressTask, &UIProgressTaskReadCloudMachineMetricList::sigMetricListReceived,
+                   this, &UIVMActivityMonitorCloud::sltMetricNameListingComplete);
+        delete m_ReadListProgressTask;
+    }
+
+    if (enmNewState == KCloudMachineState_Running)
+    {
+        m_ReadListProgressTask = new UIProgressTaskReadCloudMachineMetricList(this, m_comMachine);
+        if (m_ReadListProgressTask)
+        {
+            connect(m_ReadListProgressTask, &UIProgressTaskReadCloudMachineMetricList::sigMetricListReceived,
+                    this, &UIVMActivityMonitorCloud::sltMetricNameListingComplete);
+            m_ReadListProgressTask->start();
+        }
+        setEnabled(true);
+        /* Every minute: */
+        if (m_pTimer)
+            m_pTimer->start(1000 * 60);
+    }
+    else
+    {
+        reset();
+        if (m_pTimer)
+            m_pTimer->stop();
+    }
+    m_enmMachineState = enmNewState;
+}
+
+void UIVMActivityMonitorCloud::sltMetricNameListingComplete(QVector<QString> metricNameList)
+{
+    m_availableMetricTypes.clear();
+    foreach (const QString &strName, metricNameList)
+        m_availableMetricTypes << gpConverter->fromInternalString<KMetricType>(strName);
+
+    if (!m_availableMetricTypes.isEmpty())
+        start();
+
+    sender()->deleteLater();
+    obtainDataAndUpdate();
+}
+
+void UIVMActivityMonitorCloud::sltMetricDataReceived(KMetricType enmMetricType,
+                                                     const QVector<QString> &data, const QVector<QString> &timeStamps)
+{
+    if (data.size() != timeStamps.size())
+        return;
+    /* Hack alert!! I am told that time series' interval is `guaranteed` to be 1 min. although it is clearly
+     * parametrized in OCI API. I would much prefer to have some way of deermining the said interval via our API
+     * but it looks like Christmas is over: */
+    const int iInterval = 60;
+    QVector<QString> newTimeStamps;
+    QVector<quint64> newData;
+    for (int i = 0; i < timeStamps.size() - 1; ++i)
+    {
+        if (timeStamps[i].isEmpty())
+            continue;
+        QTime time = QDateTime::fromString(timeStamps[i], Qt::RFC2822Date).time();
+        if (!time.isValid())
+            continue;
+        newTimeStamps << time.toString("hh:mm");
+        /* It looks like in some cases OCI sends us negative values: */
+        if (data[i].toFloat() < 0)
+            newData << 0U;
+        else
+            newData << (quint64)data[i].toFloat();
+
+        QTime nextTime = QDateTime::fromString(timeStamps[i + 1], Qt::RFC2822Date).time();
+        while(time.secsTo(nextTime) > iInterval)
+        {
+            time = time.addSecs(iInterval);
+            newTimeStamps << time.toString("hh:mm");
+            newData << uInvalidValueSentinel;
+        }
+    }
+    if (!data.isEmpty())
+    {
+        if (!timeStamps.last().isEmpty())
+            newTimeStamps << QDateTime::fromString(timeStamps.last(), Qt::RFC2822Date).time().toString("hh:mm");
+        newData << (quint64)data.last().toFloat();
+    }
+    AssertReturnVoid(newData.size() == newTimeStamps.size());
+
+    if (enmMetricType == KMetricType_NetworksBytesIn)
+        m_metrics[Metric_Type_Network_In].reset();
+    else if (enmMetricType == KMetricType_NetworksBytesOut)
+        m_metrics[Metric_Type_Network_Out].reset();
+    else if (enmMetricType == KMetricType_DiskBytesRead)
+        m_metrics[Metric_Type_Disk_Out].reset();
+    else if (enmMetricType == KMetricType_DiskBytesWritten)
+        m_metrics[Metric_Type_Disk_In].reset();
+    else if (enmMetricType == KMetricType_CpuUtilization)
+        m_metrics[Metric_Type_CPU].reset();
+    else if (enmMetricType == KMetricType_MemoryUtilization)
+        m_metrics[Metric_Type_RAM].reset();
+
+
+    for (int i = 0; i < newData.size(); ++i)
+    {
+        if (enmMetricType == KMetricType_CpuUtilization)
+            updateCPUChart(newData[i], newTimeStamps[i]);
+        else if (enmMetricType == KMetricType_NetworksBytesOut)
+            updateNetworkOutChart(newData[i], newTimeStamps[i]);
+        else if (enmMetricType == KMetricType_NetworksBytesIn)
+            updateNetworkInChart(newData[i], newTimeStamps[i]);
+        else if (enmMetricType == KMetricType_DiskBytesRead)
+            updateDiskIOReadChart(newData[i], newTimeStamps[i]);
+        else if (enmMetricType == KMetricType_DiskBytesWritten)
+            updateDiskIOWrittenChart(newData[i], newTimeStamps[i]);
+        else if (enmMetricType == KMetricType_MemoryUtilization)
+        {
+            if (m_uTotalRAM != 0)
+            {
+                /* calculate used RAM amount in kb: */
+                if (newData[i] != uInvalidValueSentinel)
+                {
+                    quint64 iUsedRAM = newData[i] * (m_uTotalRAM / 100.f);
+                    updateRAMChart(iUsedRAM, newTimeStamps[i]);
+                }
+                else
+                    updateRAMChart(newData[i], newTimeStamps[i]);
+            }
+        }
+    }
+    sender()->deleteLater();
+}
+
+QUuid UIVMActivityMonitorCloud::machineId() const
+{
+    if (m_comMachine.isOk())
+        return m_comMachine.GetId();
+    return QUuid();
+}
+
+QString UIVMActivityMonitorCloud::machineName() const
+{
+    if (m_comMachine.isOk())
+        return m_comMachine.GetName();
+    return QString();
+}
+
+void UIVMActivityMonitorCloud::sltRetranslateUI()
+{
+    UIVMActivityMonitor::sltRetranslateUI();
+    foreach (UIChart *pChart, m_charts)
+        pChart->setXAxisLabel(QApplication::translate("UIVMInformationDialog", "Min.", "short from minutes"));
+
+    m_strNetworkInInfoLabelTitle = QApplication::translate("UIVMInformationDialog", "Network");
+    m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strNetworkInInfoLabelTitle.length());
+
+    m_strNetworkOutInfoLabelTitle = QApplication::translate("UIVMInformationDialog", "Network");
+    m_iMaximumLabelLength = qMax(m_iMaximumLabelLength, m_strNetworkOutInfoLabelTitle.length());
+
+    setInfoLabelWidth();
+}
+
+void UIVMActivityMonitorCloud::obtainDataAndUpdate()
+{
+    foreach (const KMetricType &enmMetricType, m_availableMetricTypes)
+    {
+        UIMetric metric;
+        int iDataSeriesIndex = 0;
+        if (!findMetric(enmMetricType, metric, iDataSeriesIndex))
+            continue;
+        /* Be a paranoid: */
+        if (iDataSeriesIndex >= DATA_SERIES_SIZE)
+            continue;
+#if 0
+        int iDataSize = 1;
+        if (metric.dataSize(iDataSeriesIndex) == 0)
+            iDataSize = 60;
+#endif
+        /* Request the whole time series (all 60 values) at each iteration to detect time points with no
+         * data (due to stop and restart). We sanitize the data when we receive it and mark time points
+         * with no data with sentinel value: */
+        int iDataSize = 60;
+        UIProgressTaskReadCloudMachineMetricData *pTask = new UIProgressTaskReadCloudMachineMetricData(this, m_comMachine,
+                                                                                                       enmMetricType, iDataSize);
+        connect(pTask, &UIProgressTaskReadCloudMachineMetricData::sigMetricDataReceived,
+                this, &UIVMActivityMonitorCloud::sltMetricDataReceived);
+        pTask->start();
+    }
+}
+
+QString UIVMActivityMonitorCloud::defaultMachineFolder() const
+{
+    char szPath[RTPATH_MAX];
+    int rc = RTPathUserDocuments(szPath, sizeof(szPath));
+    if (RT_SUCCESS(rc))
+        return QString(szPath);
+    return gpGlobalSession->virtualBox().GetHomeFolder();
+}
+
+void UIVMActivityMonitorCloud::reset()
+{
     setEnabled(false);
 
     if (m_pTimer)
         m_pTimer->stop();
     /* reset the metrics. this will delete their data cache: */
-    for (QMap<QString, UIMetric>::iterator iterator =  m_metrics.begin();
+    for (QMap<Metric_Type, UIMetric>::iterator iterator =  m_metrics.begin();
          iterator != m_metrics.end(); ++iterator)
         iterator.value().reset();
     /* force update on the charts to draw now emptied metrics' data: */
-    for (QMap<QString, UIChart*>::iterator iterator =  m_charts.begin();
+    for (QMap<Metric_Type, UIChart*>::iterator iterator =  m_charts.begin();
          iterator != m_charts.end(); ++iterator)
         iterator.value()->update();
     /* Reset the info labels: */
     resetCPUInfoLabel();
     resetRAMInfoLabel();
-    resetNetworkInfoLabel();
-    resetDiskIOInfoLabel();
-    resetVMExitInfoLabel();
+    resetNetworkInInfoLabel();
+    resetNetworkOutInfoLabel();
+    resetDiskIOWrittenInfoLabel();
+    resetDiskIOReadInfoLabel();
+
     update();
-    sltClearCOMData();
+    //sltClearCOMData();
 }
 
-void UIVMActivityMonitor::start()
+void UIVMActivityMonitorCloud::start()
 {
-    if (m_comMachine.isNull() || m_comMachine.GetState() != KMachineState_Running)
-        return;
-
-    m_fGuestAdditionsAvailable = guestAdditionsAvailable("6.1");
-    enableDisableGuestAdditionDependedWidgets(m_fGuestAdditionsAvailable);
-    if (m_pTimer)
-        m_pTimer->start(1000 * g_iPeriod);
+    sltMachineStateUpdateTimeout();
+    if (m_pMachineStateUpdateTimer)
+        m_pMachineStateUpdateTimer->start(1000 * 10);
 }
 
+void UIVMActivityMonitorCloud::updateCPUChart(quint64 iLoadPercentage, const QString &strLabel)
+{
+    UIMetric &CPUMetric = m_metrics[Metric_Type_CPU];
+    CPUMetric.addData(0, iLoadPercentage, strLabel);
+    CPUMetric.setMaximum(100);
+    if (m_infoLabels.contains(Metric_Type_CPU)  && m_infoLabels[Metric_Type_CPU])
+    {
+        QString strInfo;
+
+        strInfo = QString("<b>%1</b></b><br/><font color=\"%2\">%3: %4%5</font>")
+            .arg(m_strCPUInfoLabelTitle)
+            .arg(dataColorString(Metric_Type_CPU, 0))
+            .arg(m_strCPUInfoLabelGuest).arg(QString::number(iLoadPercentage)).arg(CPUMetric.unit());
+
+        m_infoLabels[Metric_Type_CPU]->setText(strInfo);
+    }
+
+    if (m_charts.contains(Metric_Type_CPU))
+        m_charts[Metric_Type_CPU]->update();
+}
+
+void UIVMActivityMonitorCloud::updateNetworkInChart(quint64 uReceiveRate, const QString &strLabel)
+{
+    UIMetric &networkMetric = m_metrics[Metric_Type_Network_In];
+    networkMetric.addData(0, uReceiveRate, strLabel);
+
+
+    if (m_infoLabels.contains(Metric_Type_Network_In)  && m_infoLabels[Metric_Type_Network_In])
+    {
+        QString strInfo;
+        strInfo = QString("<b>%1</b></b><br/><font color=\"%2\">%3: %4</font><br/>")
+            .arg(m_strNetworkInInfoLabelTitle)
+            .arg(dataColorString(Metric_Type_Network_In, 0)).arg(m_strNetworkInfoLabelReceived).arg(UITranslator::formatSize(uReceiveRate, g_iDecimalCount));
+
+        m_infoLabels[Metric_Type_Network_In]->setText(strInfo);
+    }
+    if (m_charts.contains(Metric_Type_Network_In))
+        m_charts[Metric_Type_Network_In]->update();
+}
+
+void UIVMActivityMonitorCloud::updateNetworkOutChart(quint64 uTransmitRate, const QString &strLabel)
+{
+    UIMetric &networkMetric = m_metrics[Metric_Type_Network_Out];
+    networkMetric.addData(0, uTransmitRate, strLabel);
+
+    if (m_infoLabels.contains(Metric_Type_Network_Out)  && m_infoLabels[Metric_Type_Network_Out])
+    {
+        QString strInfo;
+        strInfo = QString("<b>%1</b></b><br/><font color=\"%5\">%6: %7<br/></font>")
+            .arg(m_strNetworkOutInfoLabelTitle)
+            .arg(dataColorString(Metric_Type_Network_Out, 0)).arg(m_strNetworkInfoLabelTransmitted).arg(UITranslator::formatSize(uTransmitRate, g_iDecimalCount));
+
+        m_infoLabels[Metric_Type_Network_Out]->setText(strInfo);
+    }
+    if (m_charts.contains(Metric_Type_Network_Out))
+        m_charts[Metric_Type_Network_Out]->update();
+}
+
+void UIVMActivityMonitorCloud::updateDiskIOWrittenChart(quint64 uWriteRate, const QString &strLabel)
+{
+    UIMetric &diskMetric = m_metrics[Metric_Type_Disk_In];
+
+    diskMetric.addData(0, uWriteRate, strLabel);
+
+
+    if (m_infoLabels.contains(Metric_Type_Disk_In)  && m_infoLabels[Metric_Type_Disk_In])
+    {
+        QString strInfo = QString("<b>%1</b></b><br/> <font color=\"%2\">%3: %4</font>")
+            .arg(m_strDiskIOInfoLabelTitle)
+            .arg(dataColorString(Metric_Type_Disk_In, 0)).arg(m_strDiskIOInfoLabelWritten).arg(UITranslator::formatSize(uWriteRate, g_iDecimalCount));
+
+        m_infoLabels[Metric_Type_Disk_In]->setText(strInfo);
+    }
+
+    if (m_charts.contains(Metric_Type_Disk_In))
+        m_charts[Metric_Type_Disk_In]->update();
+}
+
+void UIVMActivityMonitorCloud::updateDiskIOReadChart(quint64 uReadRate, const QString &strLabel)
+{
+    UIMetric &diskMetric = m_metrics[Metric_Type_Disk_Out];
+
+    diskMetric.addData(0, uReadRate, strLabel);
+
+
+    if (m_infoLabels.contains(Metric_Type_Disk_Out)  && m_infoLabels[Metric_Type_Disk_Out])
+    {
+        QString strInfo = QString("<b>%1</b></b><br/> <font color=\"%2\">%3: %4</font>")
+            .arg(m_strDiskIOInfoLabelTitle)
+            .arg(dataColorString(Metric_Type_Disk_Out, 0)).arg(m_strDiskIOInfoLabelRead).arg(UITranslator::formatSize(uReadRate, g_iDecimalCount));
+
+        m_infoLabels[Metric_Type_Disk_Out]->setText(strInfo);
+    }
+
+    if (m_charts.contains(Metric_Type_Disk_Out))
+        m_charts[Metric_Type_Disk_Out]->update();
+}
+
+
+void UIVMActivityMonitorCloud::updateRAMChart(quint64 iUsedRAM, const QString &strLabel)
+{
+    UIMetric &RAMMetric = m_metrics[Metric_Type_RAM];
+    RAMMetric.setMaximum(m_uTotalRAM);
+    RAMMetric.addData(0, iUsedRAM, strLabel);
+
+    if (m_infoLabels.contains(Metric_Type_RAM)  && m_infoLabels[Metric_Type_RAM])
+    {
+        QString strInfo;
+        strInfo = QString("<b>%1</b><br/>%2: %3<br/><font color=\"%4\">%5: %6</font><br/><font color=\"%7\">%8: %9</font>")
+            .arg(m_strRAMInfoLabelTitle)
+            .arg(m_strRAMInfoLabelTotal).arg(UITranslator::formatSize(_1K * m_uTotalRAM, g_iDecimalCount))
+            .arg(dataColorString(Metric_Type_RAM, 1)).arg(m_strRAMInfoLabelFree).arg(UITranslator::formatSize(_1K * (m_uTotalRAM - iUsedRAM), g_iDecimalCount))
+            .arg(dataColorString(Metric_Type_RAM, 0)).arg(m_strRAMInfoLabelUsed).arg(UITranslator::formatSize(_1K * iUsedRAM, g_iDecimalCount));
+        m_infoLabels[Metric_Type_RAM]->setText(strInfo);
+    }
+
+    if (m_charts.contains(Metric_Type_RAM))
+        m_charts[Metric_Type_RAM]->update();
+}
+
+bool UIVMActivityMonitorCloud::findMetric(KMetricType enmMetricType, UIMetric &metric, int &iDataSeriesIndex) const
+{
+    if (!m_metricTypeDict.contains(enmMetricType))
+        return false;
+
+    Metric_Type enmType = m_metricTypeDict[enmMetricType];
+
+    if (!m_metrics.contains(enmType))
+        return false;
+
+    metric = m_metrics[enmType];
+    iDataSeriesIndex = 0;
+    if (enmMetricType == KMetricType_NetworksBytesOut ||
+        enmMetricType == KMetricType_DiskBytesRead)
+        iDataSeriesIndex = 1;
+    return true;
+}
+
+void UIVMActivityMonitorCloud::prepareMetrics()
+{
+    /* RAM Metric: */
+    if (m_uTotalRAM != 0)
+    {
+        UIMetric ramMetric("kb", m_iMaximumQueueSize);
+        ramMetric.setDataSeriesName(0, "Used");
+        m_metrics.insert(Metric_Type_RAM, ramMetric);
+    }
+
+    /* CPU Metric: */
+    UIMetric cpuMetric("%", m_iMaximumQueueSize);
+    cpuMetric.setDataSeriesName(0, "CPU Utilization");
+    m_metrics.insert(Metric_Type_CPU, cpuMetric);
+
+    /* Network in metric: */
+    UIMetric networkInMetric("B", m_iMaximumQueueSize);
+    networkInMetric.setDataSeriesName(0, "Receive Rate");
+    networkInMetric.setAutoUpdateMaximum(true);
+    m_metrics.insert(Metric_Type_Network_In, networkInMetric);
+
+    /* Network out metric: */
+    UIMetric networkOutMetric("B", m_iMaximumQueueSize);
+    networkOutMetric.setDataSeriesName(0, "Transmit Rate");
+    networkOutMetric.setAutoUpdateMaximum(true);
+    m_metrics.insert(Metric_Type_Network_Out, networkOutMetric);
+
+    /* Disk write metric */
+    UIMetric diskIOWrittenMetric("B", m_iMaximumQueueSize);
+    diskIOWrittenMetric.setDataSeriesName(0, "Write Rate");
+    diskIOWrittenMetric.setAutoUpdateMaximum(true);
+    m_metrics.insert(Metric_Type_Disk_In, diskIOWrittenMetric);
+
+    /* Disk read metric */
+    UIMetric diskIOReadMetric("B", m_iMaximumQueueSize);
+    diskIOReadMetric.setDataSeriesName(0, "Read Rate");
+    diskIOReadMetric.setAutoUpdateMaximum(true);
+    m_metrics.insert(Metric_Type_Disk_Out, diskIOReadMetric);
+
+}
+
+void UIVMActivityMonitorCloud::prepareWidgets()
+{
+    UIVMActivityMonitor::prepareWidgets();
+
+    QVector<Metric_Type> chartOrder;
+    chartOrder << Metric_Type_CPU << Metric_Type_RAM <<
+        Metric_Type_Network_In << Metric_Type_Network_Out << Metric_Type_Disk_In << Metric_Type_Disk_Out;
+    int iRow = 0;
+    foreach (Metric_Type enmType, chartOrder)
+    {
+        if (!m_metrics.contains(enmType))
+            continue;
+
+        QHBoxLayout *pChartLayout = new QHBoxLayout;
+        pChartLayout->setSpacing(0);
+
+        QLabel *pLabel = new QLabel(this);
+
+        QPalette tempPal = pLabel->palette();
+        tempPal.setColor(QPalette::Window, tempPal.color(QPalette::Window).lighter(g_iBackgroundTint));
+        pLabel->setPalette(tempPal);
+        pLabel->setAutoFillBackground(true);
+
+        pLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        pChartLayout->addWidget(pLabel);
+        m_infoLabels.insert(enmType, pLabel);
+
+        UIChart *pChart = new UIChart(this, &(m_metrics[enmType]), m_pActionPool, m_iMaximumQueueSize);
+        connect(pChart, &UIChart::sigExportMetricsToFile,
+                this, &UIVMActivityMonitor::sltExportMetricsToFile);
+        m_charts.insert(enmType, pChart);
+        pChart->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+        pChartLayout->addWidget(pChart);
+        m_pContainerLayout->addLayout(pChartLayout, iRow, 0, 1, 2);
+        ++iRow;
+    }
+
+    // if (m_charts.contains(Metric_Type_Network_Out) && m_charts[Metric_Type_Network_Out])
+    //     m_charts[Metric_Type_Network_Out]->setDataSeriesColor(0, QColor(0, 0, 200, 255));
+
+    // if (m_charts.contains(Metric_Type_Disk_Out) && m_charts[Metric_Type_Disk_Out])
+    //     m_charts[Metric_Type_Disk_Out]->setDataSeriesColor(0, QColor(0, 0, 200, 255));
+
+    QWidget *bottomSpacerWidget = new QWidget(this);
+    bottomSpacerWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
+    bottomSpacerWidget->setVisible(true);
+    m_pContainerLayout->addWidget(bottomSpacerWidget, iRow, 0, 1, 2);
+    m_charts[Metric_Type_CPU]->setShowPieChart(false);
+}
+
+void UIVMActivityMonitorCloud::resetCPUInfoLabel()
+{
+    if (m_infoLabels.contains(Metric_Type_CPU)  && m_infoLabels[Metric_Type_CPU])
+    {
+        QString strInfo;
+
+        strInfo = QString("<b>%1</b></b><br/><font>%2: %3</font>")
+            .arg(m_strCPUInfoLabelTitle)
+            .arg(m_strCPUInfoLabelGuest).arg("---");
+
+        m_infoLabels[Metric_Type_CPU]->setText(strInfo);
+    }
+}
+
+void UIVMActivityMonitorCloud::resetNetworkInInfoLabel()
+{
+    if (m_infoLabels.contains(Metric_Type_Network_In)  && m_infoLabels[Metric_Type_Network_In])
+    {
+        QString strInfo = QString("<b>%1</b></b><br/>%2: %3")
+            .arg(m_strNetworkInInfoLabelTitle)
+            .arg(m_strNetworkInfoLabelReceived).arg("--");
+
+        m_infoLabels[Metric_Type_Network_In]->setText(strInfo);
+    }
+}
+
+void UIVMActivityMonitorCloud::resetNetworkOutInfoLabel()
+{
+    if (m_infoLabels.contains(Metric_Type_Network_Out)  && m_infoLabels[Metric_Type_Network_Out])
+    {
+        QString strInfo = QString("<b>%1</b></b><br/>%2: %3")
+            .arg(m_strNetworkOutInfoLabelTitle)
+            .arg(m_strNetworkInfoLabelTransmitted).arg("--");
+
+        m_infoLabels[Metric_Type_Network_Out]->setText(strInfo);
+    }
+}
+
+void UIVMActivityMonitorCloud::resetDiskIOWrittenInfoLabel()
+{
+    if (m_infoLabels.contains(Metric_Type_Disk_In)  && m_infoLabels[Metric_Type_Disk_In])
+    {
+        QString strInfo = QString("<b>%1</b></b><br/>%2: %3")
+            .arg(m_strDiskIOInfoLabelTitle)
+            .arg(m_strDiskIOInfoLabelWritten).arg("--");
+        m_infoLabels[Metric_Type_Disk_In]->setText(strInfo);
+    }
+}
+
+void UIVMActivityMonitorCloud::resetDiskIOReadInfoLabel()
+{
+    if (m_infoLabels.contains(Metric_Type_Disk_Out)  && m_infoLabels[Metric_Type_Disk_Out])
+    {
+        QString strInfo = QString("<b>%1</b></b><br/>%2: %3")
+            .arg(m_strDiskIOInfoLabelTitle)
+            .arg(m_strDiskIOInfoLabelRead).arg("--");
+        m_infoLabels[Metric_Type_Disk_Out]->setText(strInfo);
+    }
+}
+
+/* static */
+QString UIVMActivityMonitorCloud::formatCloudTimeStamp(const QString &strInput)
+{
+    if (strInput.isEmpty())
+        return QString();
+    QDateTime dateTime = QDateTime::fromString(strInput, Qt::RFC2822Date);
+
+    if (!dateTime.isValid())
+        return QString();
+
+    return dateTime.time().toString("HH:mm");
+}
 
 #include "UIVMActivityMonitor.moc"

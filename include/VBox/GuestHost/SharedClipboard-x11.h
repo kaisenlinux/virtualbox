@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -41,6 +41,7 @@
 
 #include <X11/Intrinsic.h>
 
+#include <iprt/req.h>
 #include <iprt/thread.h>
 
 #include <VBox/GuestHost/SharedClipboard.h>
@@ -72,8 +73,18 @@ typedef enum _SHCLX11FMT
     SHCLX11FMT_BMP,
     SHCLX11FMT_HTML
 #ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS
+    /** URI list as (UTF-8) text. */
     , SHCLX11FMT_URI_LIST
-#endif
+    /** URI list as a representation for copying files for GNOME-based applications. */
+    , SHCLX11FMT_URI_LIST_GNOME_COPIED_FILES
+    /** URI list as a representation for copying files for MATE-based applications. */
+    , SHCLX11FMT_URI_LIST_MATE_COPIED_FILES
+    /** URI list as representation for copying files for the Nautilus file manager (GNOME). */
+    , SHCLX11FMT_URI_LIST_NAUTILUS_CLIPBOARD
+    /** URI list as a representation for copying files for KDE-based applications.
+     *  Also being used for Dolphin (KDE). */
+    , SHCLX11FMT_URI_LIST_KDE_CUTSELECTION
+#endif /* VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS */
 } SHCLX11FMT;
 
 /**
@@ -104,8 +115,14 @@ typedef struct _SHCLX11CTX
     PSHCLCONTEXT     pFrontend;
     /** Our callback table to use. */
     SHCLCALLBACKS    Callbacks;
-    /** Is an X server actually available? */
-    bool             fHaveX11;
+    /**
+     * Are we running in headless mode?
+     *
+     * This is a special situation for running on UNIX-y environments, where an
+     * X server could not be available when running on a server without any
+     * desktop environment available, for example.
+     */
+    bool             fHeadless;
     /** The X Toolkit application context structure. */
     XtAppContext     pAppContext;
     /** We have a separate thread to wait for window and clipboard events. */
@@ -132,10 +149,8 @@ typedef struct _SHCLX11CTX
 #endif
     /** What kind of formats does VBox have to offer? */
     SHCLFORMATS      vboxFormats;
-    /** Cache of the last unicode data that we received. */
-    void            *pvUnicodeCache;
-    /** Size of the unicode data in the cache. */
-    uint32_t         cbUnicodeCache;
+    /** Internval cache of VBox clipboard formats. */
+    SHCLCACHE        Cache;
     /** When we wish the clipboard to exit, we have to wake up the event
      * loop.  We do this by writing into a pipe.  This end of the pipe is
      * the end that another thread can write to. */
@@ -158,29 +173,113 @@ typedef struct _SHCLX11CTX
 } SHCLX11CTX, *PSHCLX11CTX;
 
 /**
- * Structure for keeping a X11 read data request.
+ * Enumeration for an X11 event type.
  */
-typedef struct _SHCLX11READDATAREQ
+typedef enum _SHCLX11EVENTTYPE
 {
-    /** Actual read request to handle. */
-    CLIPREADCBREQ *pReq;
-    /** Result code of the operation on completion. */
-    int            rcCompletion;
-} SHCLX11READDATAREQ;
-/** Pointer to a send data request. */
-typedef SHCLX11READDATAREQ *PSHCLX11READDATAREQ;
+    /** Invalid event type. */
+    SHCLX11EVENTTYPE_INVALID = 0,
+    /** Reports formats to X11. */
+    SHCLX11EVENTTYPE_REPORT_FORMATS,
+    /** Reads clipboard from X11. */
+    SHCLX11EVENTTYPE_READ,
+    /** Writes clipboard to X11. */
+    SHCLX11EVENTTYPE_WRITE
+} SHCLX11EVENTTYPE;
+/** Pointer to an enumeration for an X11 event type. */
+typedef SHCLX11EVENTTYPE *PSHCLX11EVENTTYPE;
+
+/**
+ * Structure describing an X11 clipboard request.
+ */
+typedef struct _SHCLX11REQUEST
+{
+    /** The clipboard context this request is associated with. */
+    SHCLX11CTX      *pCtx;
+    /** Event associated to this request. */
+    PSHCLEVENT       pEvent;
+    /** Request type for the union below. */
+    SHCLX11EVENTTYPE enmType;
+    union
+    {
+        /** Format announcement to X. */
+        struct
+        {
+            /** VBox formats to announce. */
+            SHCLFORMATS      fFormats;
+        } Formats;
+        /** Read request. */
+        struct
+        {
+            /** The format VBox would like the data in. */
+            SHCLFORMAT       uFmtVBox;
+            /** The format we requested from X11. */
+            SHCLX11FMTIDX    idxFmtX11;
+            /** How much bytes to read at max. */
+            uint32_t         cbMax;
+        } Read;
+        /** Write request. */
+        struct
+        {
+            /** The format of the data to write. */
+            SHCLFORMAT       uFmtVBox;
+            /** The format to write to X11. */
+            SHCLX11FMTIDX    idxFmtX11;
+            /** Data to write. */
+            void            *pvData;
+            /** How much bytes to write. */
+            uint32_t         cbData;
+        } Write;
+    };
+} SHCLX11REQUEST;
+/** Pointer to an X11 clipboard request. */
+typedef SHCLX11REQUEST *PSHCLX11REQUEST;
+
+/**
+ * Structure describing an X11 clipboard response to an X11 clipboard request.
+ */
+typedef struct _SHCLX11RESPONSE
+{
+    /** Response type for the union below. */
+    SHCLX11EVENTTYPE enmType;
+    /** rc (IPRT-style) of the operation performed as part of the X event thread. */
+    int              rc;
+    union
+    {
+        struct
+        {
+            void    *pvData;
+            uint32_t cbData;
+        } Read;
+        struct
+        {
+            const void *pvData;
+            uint32_t    cbData;
+        } Write;
+    };
+} SHCLX11RESPONSE;
+/** Pointer to an X11 clipboard response. */
+typedef SHCLX11RESPONSE *PSHCLX11RESPONSE;
 
 /** @name Shared Clipboard APIs for X11.
  * @{
  */
 int ShClX11Init(PSHCLX11CTX pCtx, PSHCLCALLBACKS pCallbacks, PSHCLCONTEXT pParent, bool fHeadless);
-void ShClX11Destroy(PSHCLX11CTX pCtx);
+int ShClX11Destroy(PSHCLX11CTX pCtx);
 int ShClX11ThreadStart(PSHCLX11CTX pCtx, bool grab);
 int ShClX11ThreadStartEx(PSHCLX11CTX pCtx, const char *pszName, bool fGrab);
 int ShClX11ThreadStop(PSHCLX11CTX pCtx);
-int ShClX11ReportFormatsToX11(PSHCLX11CTX pCtx, SHCLFORMATS vboxFormats);
-int ShClX11ReadDataFromX11(PSHCLX11CTX pCtx, SHCLFORMATS vboxFormat, CLIPREADCBREQ *pReq);
+int ShClX11ReportFormatsToX11Async(PSHCLX11CTX pCtx, SHCLFORMATS vboxFormats);
+int ShClX11ReadDataFromX11Async(PSHCLX11CTX pCtx, SHCLFORMAT uFmt, uint32_t cbMax, PSHCLEVENT pEvent);
+int ShClX11ReadDataFromX11Ex(PSHCLX11CTX pCtx, PSHCLEVENTSOURCE pEventSource, RTMSINTERVAL msTimeout, SHCLFORMAT uFmt, void **ppvBuf, uint32_t *pcbBuf);
+int ShClX11ReadDataFromX11(PSHCLX11CTX pCtx, PSHCLEVENTSOURCE pEventSource, RTMSINTERVAL msTimeout, SHCLFORMAT uFmt, void *pvBuf, uint32_t cbBuf, uint32_t *pcbBuf);
+int ShClX11WriteDataToX11Async(PSHCLX11CTX pCtx, SHCLFORMAT uFmt, const void *pvBuf, uint32_t cbBuf, PSHCLEVENT pEvent);
+int ShClX11WriteDataToX11(PSHCLX11CTX pCtx, PSHCLEVENTSOURCE pEventSource, RTMSINTERVAL msTimeout, SHCLFORMAT uFmt, const void *pvBuf, uint32_t cbBuf, uint32_t *pcbWritten);
 void ShClX11SetCallbacks(PSHCLX11CTX pCtx, PSHCLCALLBACKS pCallbacks);
+#ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS
+int ShClX11TransferConvertToX11(const char *pszSrc, size_t cbSrc,  SHCLX11FMT enmFmtX11, void **ppvDst, size_t *pcbDst);
+int ShClX11TransferConvertFromX11(const char *pvData, size_t cbData, char **ppszList, size_t *pcbList);
+#endif
 /** @} */
 
 #endif /* !VBOX_INCLUDED_GuestHost_SharedClipboard_x11_h */

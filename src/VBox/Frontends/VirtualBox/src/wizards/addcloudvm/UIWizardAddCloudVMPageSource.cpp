@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,15 +26,15 @@
  */
 
 /* Qt includes: */
+#include <QComboBox>
 #include <QGridLayout>
 #include <QHeaderView>
 #include <QLabel>
-#include <QListWidget>
 #include <QPushButton>
 #include <QVBoxLayout>
 
 /* GUI includes: */
-#include "QIComboBox.h"
+#include "QIListWidget.h"
 #include "QIRichTextLabel.h"
 #include "QIToolButton.h"
 #include "UICloudNetworkingStuff.h"
@@ -56,7 +56,7 @@ using namespace UIWizardAddCloudVMSource;
 *   Namespace UIWizardAddCloudVMSource implementation.                                                                           *
 *********************************************************************************************************************************/
 
-void UIWizardAddCloudVMSource::populateProviders(QIComboBox *pCombo, UINotificationCenter *pCenter)
+void UIWizardAddCloudVMSource::populateProviders(QComboBox *pCombo, UINotificationCenter *pCenter)
 {
     /* Sanity check: */
     AssertPtrReturnVoid(pCombo);
@@ -111,7 +111,7 @@ void UIWizardAddCloudVMSource::populateProviders(QIComboBox *pCombo, UINotificat
     pCombo->blockSignals(false);
 }
 
-void UIWizardAddCloudVMSource::populateProfiles(QIComboBox *pCombo,
+void UIWizardAddCloudVMSource::populateProfiles(QComboBox *pCombo,
                                                 UINotificationCenter *pCenter,
                                                 const QString &strProviderShortName,
                                                 const QString &strProfileName)
@@ -196,7 +196,7 @@ void UIWizardAddCloudVMSource::populateProfiles(QIComboBox *pCombo,
     pCombo->blockSignals(false);
 }
 
-void UIWizardAddCloudVMSource::populateProfileInstances(QListWidget *pList, UINotificationCenter *pCenter, const CCloudClient &comClient)
+void UIWizardAddCloudVMSource::populateProfileInstances(QIListWidget *pList, UINotificationCenter *pCenter, const CCloudClient &comClient)
 {
     /* Sanity check: */
     AssertPtrReturnVoid(pList);
@@ -219,7 +219,7 @@ void UIWizardAddCloudVMSource::populateProfileInstances(QListWidget *pList, UINo
         for (int i = 0; i < names.size(); ++i)
         {
             /* Create list item: */
-            QListWidgetItem *pItem = new QListWidgetItem(names.at(i), pList);
+            QIListWidgetItem *pItem = new QIListWidgetItem(names.at(i), pList);
             if (pItem)
             {
                 pItem->setFlags(pItem->flags() & ~Qt::ItemIsEditable);
@@ -236,24 +236,10 @@ void UIWizardAddCloudVMSource::populateProfileInstances(QListWidget *pList, UINo
     pList->blockSignals(false);
 }
 
-void UIWizardAddCloudVMSource::updateComboToolTip(QIComboBox *pCombo)
-{
-    /* Sanity check: */
-    AssertPtrReturnVoid(pCombo);
-
-    const int iCurrentIndex = pCombo->currentIndex();
-    if (iCurrentIndex != -1)
-    {
-        const QString strCurrentToolTip = pCombo->itemData(iCurrentIndex, Qt::ToolTipRole).toString();
-        AssertMsg(!strCurrentToolTip.isEmpty(), ("Tool-tip data not found!\n"));
-        pCombo->setToolTip(strCurrentToolTip);
-    }
-}
-
-QStringList UIWizardAddCloudVMSource::currentListWidgetData(QListWidget *pList)
+QStringList UIWizardAddCloudVMSource::currentListWidgetData(QIListWidget *pList)
 {
     QStringList result;
-    foreach (QListWidgetItem *pItem, pList->selectedItems())
+    foreach (QIListWidgetItem *pItem, pList->selectedItems())
         result << pItem->data(Qt::UserRole).toString();
     return result;
 }
@@ -297,8 +283,9 @@ UIWizardAddCloudVMPageSource::UIWizardAddCloudVMPageSource()
             m_pProviderLabel = new QLabel(this);
             if (m_pProviderLabel)
                 m_pProviderLayout->addWidget(m_pProviderLabel, 0, 0, Qt::AlignRight);
+
             /* Prepare provider combo-box: */
-            m_pProviderComboBox = new QIComboBox(this);
+            m_pProviderComboBox = new QComboBox(this);
             if (m_pProviderComboBox)
             {
                 m_pProviderLabel->setBuddy(m_pProviderComboBox);
@@ -337,7 +324,7 @@ UIWizardAddCloudVMPageSource::UIWizardAddCloudVMPageSource()
                 pProfileLayout->setSpacing(1);
 
                 /* Prepare profile combo-box: */
-                m_pProfileComboBox = new QIComboBox(this);
+                m_pProfileComboBox = new QComboBox(this);
                 if (m_pProfileComboBox)
                 {
                     m_pProfileLabel->setBuddy(m_pProfileComboBox);
@@ -363,18 +350,14 @@ UIWizardAddCloudVMPageSource::UIWizardAddCloudVMPageSource()
                 m_pOptionsLayout->addWidget(m_pSourceInstanceLabel, 1, 0, Qt::AlignRight);
 
             /* Prepare source instances table: */
-            m_pSourceInstanceList = new QListWidget(this);
+            m_pSourceInstanceList = new QIListWidget(this);
             if (m_pSourceInstanceList)
             {
                 m_pSourceInstanceLabel->setBuddy(m_pSourceInstanceLabel);
                 /* Make source image list fit 50 symbols
                  * horizontally and 8 lines vertically: */
                 const QFontMetrics fm(m_pSourceInstanceList->font());
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
                 const int iFontWidth = fm.horizontalAdvance('x');
-#else
-                const int iFontWidth = fm.width('x');
-#endif
                 const int iTotalWidth = 50 * iFontWidth;
                 const int iFontHeight = fm.height();
                 const int iTotalHeight = 8 * iFontHeight;
@@ -398,13 +381,13 @@ UIWizardAddCloudVMPageSource::UIWizardAddCloudVMPageSource()
             this, &UIWizardAddCloudVMPageSource::sltHandleProviderComboChange);
     connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigCloudProfileChanged,
             this, &UIWizardAddCloudVMPageSource::sltHandleProviderComboChange);
-    connect(m_pProviderComboBox, &QIComboBox::activated,
+    connect(m_pProviderComboBox, &QComboBox::activated,
             this, &UIWizardAddCloudVMPageSource::sltHandleProviderComboChange);
-    connect(m_pProfileComboBox, static_cast<void(QIComboBox::*)(int)>(&QIComboBox::currentIndexChanged),
+    connect(m_pProfileComboBox, &QComboBox::currentIndexChanged,
             this, &UIWizardAddCloudVMPageSource::sltHandleProfileComboChange);
     connect(m_pProfileToolButton, &QIToolButton::clicked,
             this, &UIWizardAddCloudVMPageSource::sltHandleProfileButtonClick);
-    connect(m_pSourceInstanceList, &QListWidget::itemSelectionChanged,
+    connect(m_pSourceInstanceList, &QIListWidget::itemSelectionChanged,
             this, &UIWizardAddCloudVMPageSource::sltHandleSourceInstanceChange);
 }
 
@@ -413,49 +396,67 @@ UIWizardAddCloudVM *UIWizardAddCloudVMPageSource::wizard() const
     return qobject_cast<UIWizardAddCloudVM*>(UINativeWizardPage::wizard());
 }
 
-void UIWizardAddCloudVMPageSource::retranslateUi()
+void UIWizardAddCloudVMPageSource::sltRetranslateUI()
 {
     /* Translate page: */
     setTitle(UIWizardAddCloudVM::tr("Source to add from"));
 
     /* Translate main label: */
-    m_pLabelMain->setText(UIWizardAddCloudVM::tr("Please choose the source to add cloud virtual machine from.  This can "
-                                                 "be one of known cloud service providers below."));
+    if (m_pLabelMain)
+        m_pLabelMain->setText(UIWizardAddCloudVM::tr("Please choose the source to add cloud virtual machine from.  This can "
+                                                     "be one of known cloud service providers below."));
 
     /* Translate provider label: */
-    m_pProviderLabel->setText(UIWizardAddCloudVM::tr("&Source:"));
-    /* Translate received values of Source combo-box.
+    if (m_pProviderLabel)
+        m_pProviderLabel->setText(UIWizardAddCloudVM::tr("&Provider:"));
+    /* Translate received values of Provider combo-box.
      * We are enumerating starting from 0 for simplicity: */
-    for (int i = 0; i < m_pProviderComboBox->count(); ++i)
+    if (m_pProviderComboBox)
     {
-        m_pProviderComboBox->setItemText(i, m_pProviderComboBox->itemData(i, ProviderData_Name).toString());
-        m_pProviderComboBox->setItemData(i, UIWizardAddCloudVM::tr("Add VM from cloud service provider."), Qt::ToolTipRole);
+        m_pProviderComboBox->setToolTip(UIWizardAddCloudVM::tr("Selects cloud service provider."));
+        for (int i = 0; i < m_pProviderComboBox->count(); ++i)
+            m_pProviderComboBox->setItemText(i, m_pProviderComboBox->itemData(i, ProviderData_Name).toString());
     }
 
     /* Translate description label: */
-    m_pLabelDescription->setText(UIWizardAddCloudVM::tr("Please choose one of cloud service profiles you have registered to "
-                                                        "add virtual machine from.  Existing instance list will be "
-                                                        "updated.  To continue, select at least one instance to add virtual "
-                                                        "machine on the basis of it."));
+    if (m_pLabelDescription)
+        m_pLabelDescription->setText(UIWizardAddCloudVM::tr("Please choose one of cloud service profiles you have registered to "
+                                                            "add virtual machine from.  Existing instance list will be "
+                                                            "updated.  To continue, select at least one instance to add virtual "
+                                                            "machine on the basis of it."));
 
     /* Translate profile stuff: */
-    m_pProfileLabel->setText(UIWizardAddCloudVM::tr("&Profile:"));
-    m_pProfileToolButton->setToolTip(UIWizardAddCloudVM::tr("Open Cloud Profile Manager..."));
-    m_pSourceInstanceLabel->setText(UIWizardAddCloudVM::tr("&Instances:"));
+    if (m_pProfileLabel)
+        m_pProfileLabel->setText(UIWizardAddCloudVM::tr("P&rofile:"));
+    if (m_pProfileComboBox)
+        m_pProfileComboBox->setToolTip(UIWizardAddCloudVM::tr("Selects cloud profile."));
+    if (m_pProfileToolButton)
+    {
+        m_pProfileToolButton->setText(UIWizardAddCloudVM::tr("Cloud Profile Manager"));
+        m_pProfileToolButton->setToolTip(UIWizardAddCloudVM::tr("Opens cloud profile manager..."));
+    }
+
+    /* Translate instances stuff: */
+    if (m_pSourceInstanceLabel)
+        m_pSourceInstanceLabel->setText(UIWizardAddCloudVM::tr("&Instances:"));
+    if (m_pSourceInstanceList)
+        m_pSourceInstanceList->setWhatsThis(UIWizardAddCloudVM::tr("Lists all the cloud VM instances."));
 
     /* Adjust label widths: */
     QList<QWidget*> labels;
-    labels << m_pProviderLabel;
-    labels << m_pProfileLabel;
-    labels << m_pSourceInstanceLabel;
+    if (m_pProviderLabel)
+        labels << m_pProviderLabel;
+    if (m_pProfileLabel)
+        labels << m_pProfileLabel;
+    if (m_pSourceInstanceLabel)
+        labels << m_pSourceInstanceLabel;
     int iMaxWidth = 0;
     foreach (QWidget *pLabel, labels)
         iMaxWidth = qMax(iMaxWidth, pLabel->minimumSizeHint().width());
-    m_pProviderLayout->setColumnMinimumWidth(0, iMaxWidth);
-    m_pOptionsLayout->setColumnMinimumWidth(0, iMaxWidth);
-
-    /* Update tool-tips: */
-    updateComboToolTip(m_pProviderComboBox);
+    if (m_pProviderLayout)
+        m_pProviderLayout->setColumnMinimumWidth(0, iMaxWidth);
+    if (m_pOptionsLayout)
+        m_pOptionsLayout->setColumnMinimumWidth(0, iMaxWidth);
 }
 
 void UIWizardAddCloudVMPageSource::initializePage()
@@ -463,7 +464,7 @@ void UIWizardAddCloudVMPageSource::initializePage()
     /* Populate providers: */
     populateProviders(m_pProviderComboBox, wizard()->notificationCenter());
     /* Translate providers: */
-    retranslateUi();
+    sltRetranslateUI();
     /* Fetch it, asynchronously: */
     QMetaObject::invokeMethod(this, "sltHandleProviderComboChange", Qt::QueuedConnection);
     /* Make image list focused by default: */
@@ -498,9 +499,6 @@ bool UIWizardAddCloudVMPageSource::validatePage()
 
 void UIWizardAddCloudVMPageSource::sltHandleProviderComboChange()
 {
-    /* Update combo tool-tip: */
-    updateComboToolTip(m_pProviderComboBox);
-
     /* Update wizard fields: */
     wizard()->setProviderShortName(m_pProviderComboBox->currentData(ProviderData_ShortName).toString());
 
@@ -519,9 +517,7 @@ void UIWizardAddCloudVMPageSource::sltHandleProfileComboChange()
     wizard()->setClient(cloudClientByName(wizard()->providerShortName(), wizard()->profileName(), wizard()->notificationCenter()));
 
     /* Update profile instances: */
-    wizard()->wizardButton(WizardButtonType_Expert)->setEnabled(false);
     populateProfileInstances(m_pSourceInstanceList, wizard()->notificationCenter(), wizard()->client());
-    wizard()->wizardButton(WizardButtonType_Expert)->setEnabled(true);
     sltHandleSourceInstanceChange();
 
     /* Notify about changes: */

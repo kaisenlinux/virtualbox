@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -25,6 +25,10 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
+
+/*********************************************************************************************************************************
+*   Header Files                                                                                                                 *
+*********************************************************************************************************************************/
 #include "../VBoxSharedClipboardSvc-internal.h"
 
 #include <VBox/HostServices/VBoxClipboardSvc.h>
@@ -36,8 +40,8 @@
 # include <VBox/GuestHost/SharedClipboard-win.h>
 #endif
 
-#include <VBox/GuestHost/HGCMMock.h>
-#include <VBox/GuestHost/HGCMMockUtils.h>
+#include <VBox/HostServices/TstHGCMMock.h>
+#include <VBox/HostServices/TstHGCMMockUtils.h>
 
 #include <iprt/assert.h>
 #include <iprt/initterm.h>
@@ -50,7 +54,7 @@
 
 
 /*********************************************************************************************************************************
-*   Static globals                                                                                                               *
+*   Global Variables                                                                                                             *
 *********************************************************************************************************************************/
 static RTTEST     g_hTest;
 
@@ -215,12 +219,12 @@ static void testSetTransferMode(void)
     RTTESTI_CHECK_RC(rc, VERR_INVALID_FLAGS);
 
     /* Enable transfers. */
-    HGCMSvcSetU32(&parms[0], VBOX_SHCL_TRANSFER_MODE_ENABLED);
+    HGCMSvcSetU32(&parms[0], VBOX_SHCL_TRANSFER_MODE_F_ENABLED);
     rc = TstHgcmMockSvcHostCall(pSvc, NULL, VBOX_SHCL_HOST_FN_SET_TRANSFER_MODE, 1, parms);
     RTTESTI_CHECK_RC(rc, VINF_SUCCESS);
 
     /* Disable transfers again. */
-    HGCMSvcSetU32(&parms[0], VBOX_SHCL_TRANSFER_MODE_DISABLED);
+    HGCMSvcSetU32(&parms[0], VBOX_SHCL_TRANSFER_MODE_F_NONE);
     rc = TstHgcmMockSvcHostCall(pSvc, NULL, VBOX_SHCL_HOST_FN_SET_TRANSFER_MODE, 1, parms);
     RTTESTI_CHECK_RC(rc, VINF_SUCCESS);
 }
@@ -600,11 +604,11 @@ static DECLCALLBACK(int) tstTestReadFromHostSetup(PCLIPBOARDTESTCTX pTstCtx, voi
     ShClCallbacks.pfnOnClipboardRead = tstTestReadFromHost_OnClipboardReadCallback;
     ShClBackendSetCallbacks(pBackend, &ShClCallbacks);
 #elif defined (RT_OS_WINDOWS)
-    rc = SharedClipboardWinOpen(GetDesktopWindow());
+    rc = ShClWinOpen(GetDesktopWindow());
     if (RT_SUCCESS(rc))
     {
-        rc = SharedClipboardWinDataWrite(CF_UNICODETEXT, pTask->pvData, (uint32_t)pTask->cbData);
-        SharedClipboardWinClose();
+        rc = ShClWinDataWrite(CF_UNICODETEXT, pTask->pvData, (uint32_t)pTask->cbData);
+        ShClWinClose();
     }
 #endif /* defined (RT_OS_LINUX) || defined (RT_OS_SOLARIS) */
 
@@ -648,8 +652,8 @@ static DECLCALLBACK(int) tstTestReadFromHostDestroy(PCLIPBOARDTESTCTX pTstCtx, v
 
 
 /*********************************************************************************************************************************
- * Main                                                                                                                          *
- ********************************************************************************************************************************/
+*   Main                                                                                                                         *
+*********************************************************************************************************************************/
 
 /** Test definition table. */
 CLIPBOARDTESTDESC g_aTests[] =
@@ -678,37 +682,27 @@ static int tstOne(PTESTDESC pTstDesc)
     return rc;
 }
 
-int main(int argc, char *argv[])
+int main()
 {
     /*
      * Init the runtime, test and say hello.
      */
-    const char *pcszExecName;
-    NOREF(argc);
-    pcszExecName = strrchr(argv[0], '/');
-    pcszExecName = pcszExecName ? pcszExecName + 1 : argv[0];
-    RTEXITCODE rcExit = RTTestInitAndCreate(pcszExecName, &g_hTest);
+    RTEXITCODE rcExit = RTTestInitAndCreate("tstClipboardMockHGCM", &g_hTest);
     if (rcExit != RTEXITCODE_SUCCESS)
         return rcExit;
     RTTestBanner(g_hTest);
 
-#ifndef DEBUG_andy
-    /* Don't let assertions in the host service panic (core dump) the test cases. */
-    RTAssertSetMayPanic(false);
-#endif
-
     PTSTHGCMMOCKSVC const pSvc = TstHgcmMockSvcInst();
-    TstHgcmMockSvcCreate(pSvc, sizeof(SHCLCLIENT));
+    TstHgcmMockSvcCreate(pSvc);
     TstHgcmMockSvcStart(pSvc);
 
     /*
      * Run the tests.
      */
-    if (0)
-    {
+    if (0) /** @todo triggers assertion */
         testGuestSimple();
+    if (1)
         testHostCall();
-    }
 
     RT_ZERO(g_TstCtx);
 

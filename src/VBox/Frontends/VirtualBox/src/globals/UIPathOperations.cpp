@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -143,11 +143,7 @@ const QChar UIPathOperations::dosDelimiter = QChar('\\');
 
 /* static */ QStringList UIPathOperations::pathTrail(const QString &path)
 {
-#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
     return path.split(UIPathOperations::delimiter, Qt::SkipEmptyParts);
-#else
-    return path.split(UIPathOperations::delimiter, QString::SkipEmptyParts);
-#endif
 }
 
 /* static */ bool UIPathOperations::doesPathStartWithDriveLetter(const QString &path)
@@ -160,4 +156,10 @@ const QChar UIPathOperations::dosDelimiter = QChar('\\');
     if (path[1] != ':')
         return false;
     return true;
+}
+
+/* static */ const QString UIPathOperations::replaceDosDelimeter(const QString &path)
+{
+    QString newPath(path);
+    return newPath.replace(dosDelimiter, delimiter);
 }

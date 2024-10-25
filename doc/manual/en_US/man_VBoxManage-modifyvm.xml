@@ -3,7 +3,7 @@
     manpage, user manual, usage: VBoxManage modifyvm
 -->
 <!--
-    Copyright (C) 2006-2023 Oracle and/or its affiliates.
+    Copyright (C) 2006-2024 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.
@@ -30,7 +30,7 @@
 ]>
 <refentry id="vboxmanage-modifyvm" lang="en">
   <refentryinfo>
-    <pubdate>$Date: 2024-02-19 16:32:13 +0100 (Mon, 19 Feb 2024) $</pubdate>
+    <pubdate>$Date: 2024-09-16 16:03:52 +0200 (Mon, 16 Sep 2024) $</pubdate>
     <title>VBoxManage modifyvm</title>
   </refentryinfo>
 
@@ -54,7 +54,7 @@
         <arg choice="plain"><replaceable>vmname</replaceable></arg>
       </group>
       <arg>--name=<replaceable>name</replaceable></arg>
-      <arg>--groups= <arg choice="plain"><replaceable>group</replaceable> [,<replaceable>group</replaceable>...]</arg></arg>
+      <arg>--groups=<replaceable>group</replaceable><arg rep="repeat">,<replaceable>group</replaceable></arg></arg>
       <arg>--description=<replaceable>description</replaceable></arg>
       <arg>--os-type=<replaceable>OS-type</replaceable></arg>
       <arg>--icon-file=<replaceable>filename</replaceable></arg>
@@ -81,11 +81,11 @@
       <arg>--plug-cpu=<replaceable>CPU-ID</replaceable></arg>
       <arg>--unplug-cpu=<replaceable>CPU-ID</replaceable></arg>
       <arg>--cpu-execution-cap=<replaceable>number</replaceable></arg>
-      <arg>--pae=<group choice="plain">
+      <arg>--x86-pae=<group choice="plain">
           <arg choice="plain">on</arg>
           <arg choice="plain">off</arg>
         </group></arg>
-      <arg>--long-mode=<group choice="plain">
+      <arg>--x86-long-mode=<group choice="plain">
           <arg choice="plain">on</arg>
           <arg choice="plain">off</arg>
         </group></arg>
@@ -123,7 +123,7 @@
           <arg choice="plain">Intel 80286</arg>
           <arg choice="plain">Intel 80386</arg>
         </group></arg>
-      <arg>--hpet=<group choice="plain">
+      <arg>--x86-hpet=<group choice="plain">
           <arg choice="plain">on</arg>
           <arg choice="plain">off</arg>
         </group></arg>
@@ -139,7 +139,7 @@
           <arg choice="plain">on</arg>
           <arg choice="plain">off</arg>
         </group></arg>
-      <arg>--x2apic=<group choice="plain">
+      <arg>--x86-x2apic=<group choice="plain">
           <arg choice="plain">on</arg>
           <arg choice="plain">off</arg>
         </group></arg>
@@ -151,7 +151,7 @@
           <arg choice="plain">hyperv</arg>
           <arg choice="plain">kvm</arg>
         </group></arg>
-      <arg>--paravirt-debug= <arg choice="plain"><replaceable>key</replaceable>=<replaceable>value</replaceable> [,<replaceable>key</replaceable>=<replaceable>value</replaceable>...]</arg></arg>
+      <arg>--paravirt-debug=<arg choice="plain"><replaceable>key</replaceable>=<replaceable>value</replaceable> [,<replaceable>key</replaceable>=<replaceable>value</replaceable>...]</arg></arg>
       <arg>--nested-paging=<group choice="plain">
           <arg choice="plain">on</arg>
           <arg choice="plain">off</arg>
@@ -160,11 +160,11 @@
           <arg choice="plain">on</arg>
           <arg choice="plain">off</arg>
         </group></arg>
-      <arg>--vtx-vpid=<group choice="plain">
+      <arg>--x86-vtx-vpid=<group choice="plain">
           <arg choice="plain">on</arg>
           <arg choice="plain">off</arg>
         </group></arg>
-      <arg>--vtx-ux=<group choice="plain">
+      <arg>--x86-vtx-ux=<group choice="plain">
           <arg choice="plain">on</arg>
           <arg choice="plain">off</arg>
         </group></arg>
@@ -187,6 +187,7 @@
       <arg>--chipset=<group choice="plain">
           <arg choice="plain">ich9</arg>
           <arg choice="plain">piix3</arg>
+          <arg choice="plain">armv8virtual</arg>
         </group></arg>
     <arg>--iommu=<group choice="plain">
         <arg choice="plain">none</arg>
@@ -201,31 +202,29 @@
         <arg choice="plain">host</arg>
         <arg choice="plain">swtpm</arg>
       </group></arg>
-      <arg>--tpm-location=<group choice="plain">
-          <arg choice="plain"><replaceable>location</replaceable></arg>
-        </group></arg>
-      <arg>--bios-logo-fade-in=<group choice="plain">
+      <arg>--tpm-location=<replaceable>location</replaceable></arg>
+      <arg>--firmware-logo-fade-in=<group choice="plain">
           <arg choice="plain">on</arg>
           <arg choice="plain">off</arg>
         </group></arg>
-      <arg>--bios-logo-fade-out=<group choice="plain">
+      <arg>--firmware-logo-fade-out=<group choice="plain">
           <arg choice="plain">on</arg>
           <arg choice="plain">off</arg>
         </group></arg>
-      <arg>--bios-logo-display-time=<replaceable>msec</replaceable></arg>
-      <arg>--bios-logo-image-path=<replaceable>pathname</replaceable></arg>
-      <arg>--bios-boot-menu=<group choice="plain">
+      <arg>--firmware-logo-display-time=<replaceable>msec</replaceable></arg>
+      <arg>--firmware-logo-image-path=<replaceable>pathname</replaceable></arg>
+      <arg>--firmware-boot-menu=<group choice="plain">
           <arg choice="plain">disabled</arg>
           <arg choice="plain">menuonly</arg>
           <arg choice="plain">messageandmenu</arg>
         </group></arg>
-      <arg>--bios-apic=<group choice="plain">
+      <arg>--firmware-apic=<group choice="plain">
           <arg choice="plain">disabled</arg>
           <arg choice="plain">apic</arg>
           <arg choice="plain">x2apic</arg>
         </group></arg>
-      <arg>--bios-system-time-offset=<replaceable>msec</replaceable></arg>
-      <arg>--bios-pxe-debug=<group choice="plain">
+      <arg>--firmware-system-time-offset=<replaceable>msec</replaceable></arg>
+      <arg>--firmware-pxe-debug=<group choice="plain">
           <arg choice="plain">on</arg>
           <arg choice="plain">off</arg>
         </group></arg>
@@ -274,6 +273,15 @@ time on documenting it. -->
           <arg choice="plain">low</arg>
           <arg choice="plain">normal</arg>
           <arg choice="plain">high</arg>
+        </group></arg>
+      <arg>--vm-execution-engine=<group choice="plain">
+          <arg choice="plain">default</arg>
+          <arg choice="plain">hm</arg>
+          <arg choice="plain">hwvirt</arg>
+          <arg choice="plain">nem</arg>
+          <arg choice="plain">native-api</arg>
+          <arg choice="plain">interpreter</arg>
+          <arg choice="plain">recompiler</arg>
         </group></arg>
     </cmdsynopsis>
 
@@ -465,9 +473,10 @@ time on documenting it. -->
           <arg choice="plain">guesttohost</arg>
           <arg choice="plain">bidirectional</arg>
         </group></arg>
-<!-- There is a currently undocumented option &#45;&#45;clipboard-file-transfers.
-The implementation is not finished, so postpone documenting until it
-actually is ready for users. -->
+      <arg>--clipboard-file-transfers=<group choice="plain">
+          <arg choice="plain">enabled</arg>
+          <arg choice="plain">disabled</arg>
+        </group></arg>
       <arg>--drag-and-drop=<group choice="plain">
           <arg choice="plain">disabled</arg>
           <arg choice="plain">hosttoguest</arg>
@@ -511,7 +520,7 @@ actually is ready for users. -->
       <arg>--recording-opts= <arg choice="plain"><replaceable>key</replaceable>=<replaceable>value</replaceable>[,<replaceable>key</replaceable>=<replaceable>value</replaceable>...]</arg></arg>
       <arg>--recording-video-fps=<replaceable>fps</replaceable></arg>
       <arg>--recording-video-rate=<replaceable>rate</replaceable></arg>
-      <arg>--recording-video-res=<replaceable>width</replaceable> <replaceable>height</replaceable></arg>
+      <arg>--recording-video-res=<replaceable>width</replaceable> x <replaceable>height</replaceable></arg><!-- 'x' shouldn't need spaces around it... -->
     </cmdsynopsis>
 
     <cmdsynopsis id="synopsis-vboxmanage-modifyvm-vrde">
@@ -524,7 +533,7 @@ actually is ready for users. -->
           <arg choice="plain">on</arg>
           <arg choice="plain">off</arg>
         </group></arg>
-      <arg>--vrde-property=<replaceable>property-name</replaceable>= <arg><replaceable>property-value</replaceable></arg></arg>
+      <arg>--vrde-property=<replaceable>property-name</replaceable>=<arg><replaceable>property-value</replaceable></arg></arg>
       <arg>--vrde-extpack=<group choice="plain">
           <arg choice="plain">default</arg>
           <arg choice="plain"><replaceable>name</replaceable></arg>
@@ -675,7 +684,7 @@ it unless this changes. -->
     </cmdsynopsis>
   </refsynopsisdiv>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-modifyvm-description">
     <title>Description</title>
     <para>
       The <command>VBoxManage modifyvm</command> command enables you to
@@ -872,14 +881,14 @@ it unless this changes. -->
           </listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--pae=on | off</option></term>
+          <term><option>--x86-pae=on | off</option></term>
           <listitem><para>
               Enables or disables physical address extension (PAE). See
               <xref linkend="settings-processor" />.
             </para></listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--long-mode=on | off</option></term>
+          <term><option>--x86-long-mode=on | off</option></term>
           <listitem><para>
               Enables or disables long mode. See
               <xref linkend="settings-processor" />.
@@ -952,7 +961,7 @@ it unless this changes. -->
             </para></listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--hpet=on | off</option></term>
+          <term><option>--x86-hpet=on | off</option></term>
           <listitem><para>
               Enables or disables a High Precision Event Timer (HPET)
               that can replace a legacy system timer. This feature is
@@ -989,7 +998,7 @@ it unless this changes. -->
             </para></listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--x2apic=on | off</option></term>
+          <term><option>--x86-x2apic=on | off</option></term>
           <listitem><para>
               Enables or disables the CPU x2APIC feature. CPU x2APIC
               enables an OS to run more efficiently on high core count
@@ -1065,7 +1074,7 @@ it unless this changes. -->
             </para></listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--vtx-vpid=on | off</option></term>
+          <term><option>--x86-vtx-vpid=on | off</option></term>
           <listitem><para>
               Enables or disables the use of the tagged TLB (VPID)
               feature in the processor of your host system. See
@@ -1074,7 +1083,7 @@ it unless this changes. -->
             </para></listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--vtx-ux=on | off</option></term>
+          <term><option>--x86-vtx-ux=on | off</option></term>
           <listitem><para>
               Enables or disables the use of unrestricted guest mode for
               executing the guest VM. This option is available only when
@@ -1115,17 +1124,17 @@ it unless this changes. -->
           <term><option>--accelerate-2d-video=on | off</option></term>
           <listitem><para>
               Enables or disables 2D video acceleration for the graphics
-              adapter variants which support it. This option has an effect
-              only when the Guest Additions are installed. See
-              <xref linkend="guestadd-2d" />.
+              adapter variants which support it.
             </para></listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--chipset=piix3 | ich9</option></term>
+          <term><option>--chipset=piix3 | ich9 | armv8virtual</option></term>
           <listitem><para>
               Specify the Intel chipset for &product-name; to emulate.
-              The default value is the Intel PIIX3 chipset
+              For the x86 platform, the default value is the Intel PIIX3 chipset.
               (<literal>piix3</literal>).
+              For the ARM platform, the default value is the ARMv8Virtual chipset.
+              (<literal>armv8virtual</literal>).
             </para><para>
               Change this value only if you need to relax some of the
               chipset constraints. See
@@ -1192,27 +1201,27 @@ it unless this changes. -->
             </itemizedlist></listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--bios-logo-fade-in=on | off</option></term>
+          <term><option>--firmware-logo-fade-in=on | off</option></term>
           <listitem><para>
               Specifies whether the BIOS logo fades in on VM startup. By
               default, an &product-name; logo is shown.
             </para></listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--bios-logo-fade-out=on | off</option></term>
+          <term><option>--firmware-logo-fade-out=on | off</option></term>
           <listitem><para>
               Specifies whether the BIOS logo fades out on VM startup.
             </para></listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--bios-logo-display-time=<replaceable>msec</replaceable></option></term>
+          <term><option>--firmware-logo-display-time=<replaceable>msec</replaceable></option></term>
           <listitem><para>
               Specifies the amount of time in milliseconds that the BIOS
               logo is visible.
             </para></listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--bios-logo-image-path=<replaceable>pathname</replaceable></option></term>
+          <term><option>--firmware-logo-image-path=<replaceable>pathname</replaceable></option></term>
           <listitem><para>
               Replaces the existing BIOS logo with a different image.
               The replacement image must be an uncompressed 16, 256 or 16M
@@ -1222,7 +1231,7 @@ it unless this changes. -->
             </para></listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--bios-boot-menu=disabled | menuonly | messageandmenu</option></term>
+          <term><option>--firmware-boot-menu=disabled | menuonly | messageandmenu</option></term>
           <listitem><para>
               Specifies whether the BIOS permits you to select a
               temporary boot device. Valid values are:
@@ -1245,7 +1254,7 @@ it unless this changes. -->
             </itemizedlist></listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--bios-apic=x2apic | apic | disabled</option></term>
+          <term><option>--firmware-apic=x2apic | apic | disabled</option></term>
           <listitem><para>
               Specifies the APIC level of the firmware. Valid values
               are: <literal>x2apic</literal>, <literal>apic</literal>,
@@ -1265,7 +1274,7 @@ it unless this changes. -->
             </para></listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--bios-system-time-offset=<replaceable>msec</replaceable></option></term>
+          <term><option>--firmware-system-time-offset=<replaceable>msec</replaceable></option></term>
           <listitem><para>
               Specifies the time offset in milliseconds of the guest VM
               relative to the time on the host system. If the offset
@@ -1274,7 +1283,7 @@ it unless this changes. -->
             </para></listitem>
         </varlistentry>
         <varlistentry>
-          <term><option>--bios-pxe-debug=on | off</option></term>
+          <term><option>--firmware-pxe-debug=on | off</option></term>
           <listitem><para>
               Enables or disables additional debugging output when using
               the Intel PXE boot ROM. The debug output is written to the
@@ -2017,6 +2026,19 @@ it unless this changes. -->
             </para></listitem>
         </varlistentry>
         <varlistentry>
+          <term><option>--clipboard-file-transfers=<replaceable>value</replaceable></option></term>
+          <listitem><para>
+              Specifies whether file transfers via clipboard between
+              the guest VM and the host are enabled or not.
+              Valid values are: <literal>disabled</literal>,
+              <literal>enabled</literal>. Depends on the current
+              clipboard mode being set.
+            </para><para>
+              This clipboard file transfer feature is available only if you have the
+              Guest Additions be installed in the VM.
+            </para></listitem>
+        </varlistentry>
+        <varlistentry>
           <term><option>--drag-and-drop=<replaceable>value</replaceable></option></term>
           <listitem><para>
               Specifies how to use the drag and drop feature between the
@@ -2129,8 +2151,8 @@ it unless this changes. -->
               <literal>foo=bar,a=b</literal>.
             </para><para>
               Only use this option if you are an advanced user. For
-              information about keywords, see the <citetitle>Oracle VM
-              VirtualBox Programming Guide and Reference</citetitle>.
+              information about keywords, see the <citetitle>&product-name;
+              Programming Guide and Reference</citetitle>.
             </para></listitem>
         </varlistentry>
         <varlistentry>
@@ -2184,7 +2206,7 @@ it unless this changes. -->
               uses port <literal>3389</literal>, which is the standard
               RDP port.
             </para><para>
-              Also see the <option>--vrde-port</option> option
+              See also the <option>--vrde-port</option> option
               description.
             </para></listitem>
         </varlistentry>
@@ -2196,7 +2218,7 @@ it unless this changes. -->
               When specified, the server accepts connections only on the
               host network interface at that IP address.
             </para><para>
-              Also see the <option>--vrde-address</option> option
+              See also the <option>--vrde-address</option> option
               description.
             </para></listitem>
         </varlistentry>
@@ -2251,8 +2273,8 @@ it unless this changes. -->
           <listitem><para>
               Disables the display VRDE server feature.
             </para><para>
-              To reenable a feature, assign an empty value. For example,
-              to reenable the display feature, specify the
+              To re-enable a feature, assign an empty value. For example,
+              to re-enable the display feature, specify the
               <command>VBoxManage modifyvm
               --vrde-property=Client/DisableDisplay=</command> command.
               See <xref linkend="vrde-customization" />.
@@ -2279,7 +2301,7 @@ it unless this changes. -->
         <varlistentry>
           <term><option>--vrde-property=Client/DisableClipboard=1</option></term>
           <listitem><para>
-              Disables the clipboard VRDE server feature. To reenable
+              Disables the clipboard VRDE server feature. To re-enable
               the feature, assign an empty value. See
               <xref linkend="vrde-customization" />.
             </para></listitem>
@@ -2288,7 +2310,7 @@ it unless this changes. -->
           <term><option>--vrde-property=DisableUpstreamAudio=1</option></term>
           <listitem><para>
               Disables the upstream audio VRDE server feature. To
-              reenable the feature, assign an empty value. See
+              re-enable the feature, assign an empty value. See
               <xref linkend="vrde-customization" />.
             </para></listitem>
         </varlistentry>
@@ -2296,7 +2318,7 @@ it unless this changes. -->
           <term><option>--vrde-property=Client/DisableRDPDR=1</option></term>
           <listitem><para>
               Disables the RDP device redirection for smart cards VRDE
-              server feature. To reenable this feature, assign an empty
+              server feature. To re-enable this feature, assign an empty
               value.
             </para></listitem>
         </varlistentry>
@@ -2583,7 +2605,7 @@ it unless this changes. -->
               integer values designate more restrictive behavior. The
               default level of <literal>0</literal> indicates that all
               virtualized features supported by the host are made available
-              to the guest. The value <literal>3</literal> supresses most
+              to the guest. The value <literal>3</literal> suppresses most
               features. Values of <literal>1</literal> and <literal>2</literal>
               represent restrictions in between. The behavior may change
               depending on the product version.
@@ -2781,7 +2803,7 @@ it unless this changes. -->
           <term><option>--testing-cfg-dword<replaceable>idx</replaceable>=<replaceable>value</replaceable></option></term>
           <listitem><para>
                 This sets one of the 10 dword configuration values. The
-                <replaceable>idx</replaceable> must be in the range 0 thru 9.
+                <replaceable>idx</replaceable> must be in the range 0 through 9.
                 The <replaceable>value</replaceable> is limited to 32 bits (dword).
             </para></listitem>
         </varlistentry>
@@ -2790,7 +2812,7 @@ it unless this changes. -->
 
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-modifyvm-examples">
     <title>Examples</title>
     <remark role="help-scope" condition="GLOBAL" />
     <para>
@@ -2805,7 +2827,7 @@ it unless this changes. -->
 <screen>$ VBoxManage modifyvm ol7 --vrde on</screen>
   </refsect1>
 
-  <refsect1>
+  <refsect1 id="vboxmanage-modifyvm-see-also">
     <title>See Also</title>
     <para>
       <xref linkend="vboxmanage-showvminfo" />,

@@ -8,7 +8,7 @@ VirtualBox Validation Kit - Networking benchmark #1.
 
 __copyright__ = \
 """
-Copyright (C) 2010-2023 Oracle and/or its affiliates.
+Copyright (C) 2010-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -37,7 +37,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 
 # Standard Python imports.
@@ -46,7 +46,7 @@ import socket
 import sys;
 
 # Only the main script needs to modify the path.
-try:    __file__
+try:    __file__                            # pylint: disable=used-before-assignment
 except: __file__ = sys.argv[0];
 g_ksValidationKitDir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))));
 sys.path.append(g_ksValidationKitDir);
@@ -494,8 +494,8 @@ class tdNetBenchmark1(vbox.TestDriver):                                         
         oSession = self.openSession(oVM);
         if oSession is not None:
             fRc = fRc and oSession.setNicType(eNicType);
-            fRc = fRc and oSession.enableVirtEx(fHwVirt);
-            fRc = fRc and oSession.enableNestedPaging(fNestedPaging);
+            fRc = fRc and oSession.enableVirtExX86(fHwVirt);
+            fRc = fRc and oSession.enableNestedPagingX86(fNestedPaging);
             fRc = fRc and oSession.setCpuCount(cCpus);
             fRc = fRc and oSession.saveSettings();
             fRc = oSession.close() and fRc and True; # pychecker hack.

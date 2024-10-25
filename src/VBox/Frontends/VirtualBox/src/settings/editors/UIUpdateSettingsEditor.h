@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,7 +35,7 @@
 #include <QMap>
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
+#include "UIEditor.h"
 #include "UIUpdateDefs.h"
 
 /* Forward declarations: */
@@ -45,8 +45,8 @@ class QCheckBox;
 class QComboBox;
 class QLabel;
 
-/** QWidget subclass used as a update settings editor. */
-class SHARED_LIBRARY_STUFF UIUpdateSettingsEditor : public QIWithRetranslateUI<QWidget>
+/** UIEditor sub-class used as a update settings editor. */
+class SHARED_LIBRARY_STUFF UIUpdateSettingsEditor : public UIEditor
 {
     Q_OBJECT;
 
@@ -62,8 +62,8 @@ public:
 
 protected:
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
+    /** Handles filter change. */
+    virtual void handleFilterChange() RT_OVERRIDE;
 
 private slots:
 
@@ -71,6 +71,8 @@ private slots:
     void sltHandleUpdateToggle(bool fEnabled);
     /** Handles update period change. */
     void sltHandleUpdatePeriodChange();
+    /** Handles translation event. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -87,6 +89,9 @@ private:
     UpdatePeriodType updatePeriod() const;
     /** Returns update channel. */
     KUpdateChannel updateChannel() const;
+
+    /** Fetches passed value. */
+    void fetchValue();
 
     /** Holds the value to be set. */
     VBoxUpdateData  m_guiValue;

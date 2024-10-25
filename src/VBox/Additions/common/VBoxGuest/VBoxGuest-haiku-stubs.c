@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -173,9 +173,9 @@ RTR0DECL(RTR3PTR) RTR0MemObjAddressR3(RTR0MEMOBJ MemObj)
 {
     return g_VBoxGuest->_RTR0MemObjAddressR3(MemObj);
 }
-RTR0DECL(int) RTR0MemObjAllocContTag(PRTR0MEMOBJ pMemObj, size_t cb, bool fExecutable, const char *pszTag)
+RTR0DECL(int) RTR0MemObjAllocContTag(PRTR0MEMOBJ pMemObj, size_t cb, RTHCPHYS PhysHighest, bool fExecutable, const char *pszTag)
 {
-    return g_VBoxGuest->_RTR0MemObjAllocContTag(pMemObj, cb, fExecutable, pszTag);
+    return g_VBoxGuest->_RTR0MemObjAllocContTag(pMemObj, cb, PhysHighest, fExecutable, pszTag);
 }
 RTR0DECL(int) RTR0MemObjAllocLowTag(PRTR0MEMOBJ pMemObj, size_t cb, bool fExecutable, const char *pszTag)
 {

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -41,7 +41,7 @@
 #include "internal/iprt.h"
 #include <iprt/vfs.h>
 
-#include <iprt/asm.h>
+#include <iprt/asm-mem.h>
 #include <iprt/assert.h>
 #include <iprt/err.h>
 #include <iprt/file.h>
@@ -263,7 +263,7 @@ DECLINLINE(PRTVFSMEMEXTENT) rtVfsMemFile_LocateExtent(PRTVFSMEMFILE pThis, uint6
 /**
  * @interface_method_impl{RTVFSIOSTREAMOPS,pfnRead}
  */
-static DECLCALLBACK(int) rtVfsMemFile_Read(void *pvThis, RTFOFF off, PCRTSGBUF pSgBuf, bool fBlocking, size_t *pcbRead)
+static DECLCALLBACK(int) rtVfsMemFile_Read(void *pvThis, RTFOFF off, PRTSGBUF pSgBuf, bool fBlocking, size_t *pcbRead)
 {
     PRTVFSMEMFILE pThis = (PRTVFSMEMFILE)pvThis;
 
@@ -304,6 +304,8 @@ static DECLCALLBACK(int) rtVfsMemFile_Read(void *pvThis, RTFOFF off, PCRTSGBUF p
      */
     if (cbLeftToRead > 0)
     {
+        RTSgBufAdvance(pSgBuf, cbLeftToRead);
+
         uint8_t        *pbDst   = (uint8_t *)pSgBuf->paSegs[0].pvSeg;
         bool            fHit;
         PRTVFSMEMEXTENT pExtent = rtVfsMemFile_LocateExtent(pThis, offUnsigned, &fHit);
@@ -457,7 +459,7 @@ static PRTVFSMEMEXTENT rtVfsMemFile_AllocExtent(PRTVFSMEMFILE pThis, uint64_t of
 /**
  * @interface_method_impl{RTVFSIOSTREAMOPS,pfnWrite}
  */
-static DECLCALLBACK(int) rtVfsMemFile_Write(void *pvThis, RTFOFF off, PCRTSGBUF pSgBuf, bool fBlocking, size_t *pcbWritten)
+static DECLCALLBACK(int) rtVfsMemFile_Write(void *pvThis, RTFOFF off, PRTSGBUF pSgBuf, bool fBlocking, size_t *pcbWritten)
 {
     PRTVFSMEMFILE pThis = (PRTVFSMEMFILE)pvThis;
 
@@ -550,8 +552,10 @@ static DECLCALLBACK(int) rtVfsMemFile_Write(void *pvThis, RTFOFF off, PCRTSGBUF 
     if ((uint64_t)pThis->Base.ObjInfo.cbObject < offUnsigned)
         pThis->Base.ObjInfo.cbObject = offUnsigned;
 
+    size_t const cbWritten = pSgBuf->paSegs[0].cbSeg - cbLeftToWrite;
     if (pcbWritten)
-        *pcbWritten = pSgBuf->paSegs[0].cbSeg - cbLeftToWrite;
+        *pcbWritten = cbWritten;
+    RTSgBufAdvance(pSgBuf, cbWritten);
     return rc;
 }
 
@@ -704,10 +708,35 @@ static DECLCALLBACK(int) rtVfsMemFile_SetSize(void *pvThis, uint64_t cbFile, uin
     AssertReturn(RTVFSFILE_SIZE_F_IS_VALID(fFlags), VERR_INVALID_PARAMETER);
 
     PRTVFSMEMFILE pThis = (PRTVFSMEMFILE)pvThis;
-    if (   (fFlags & RTVFSFILE_SIZE_F_ACTION_MASK) == RTVFSFILE_SIZE_F_NORMAL
-        && (RTFOFF)cbFile >= pThis->Base.ObjInfo.cbObject)
+    if ((fFlags & RTVFSFILE_SIZE_F_ACTION_MASK) == RTVFSFILE_SIZE_F_NORMAL)
     {
-        /* Growing is just a matter of increasing the size of the object. */
+        if ((RTFOFF)cbFile < pThis->Base.ObjInfo.cbObject)
+        {
+            /* Remove any extent beyond the file size. */
+            bool            fHit;
+            PRTVFSMEMEXTENT pExtent = rtVfsMemFile_LocateExtent(pThis, cbFile, &fHit);
+            if (   fHit
+                && cbFile < (pExtent->off + pExtent->cb))
+            {
+                /* Clear the data in this extent. */
+                uint64_t cbRemaining = cbFile - pExtent->off;
+                memset(&pExtent->abData[cbRemaining], 0, pExtent->cb - cbRemaining);
+                pExtent = RTListGetNext(&pThis->ExtentHead, pExtent, RTVFSMEMEXTENT, Entry);
+            }
+
+            while (pExtent)
+            {
+                PRTVFSMEMEXTENT pFree = pExtent;
+                pExtent = RTListGetNext(&pThis->ExtentHead, pExtent, RTVFSMEMEXTENT, Entry);
+
+                RTListNodeRemove(&pFree->Entry);
+                RTMemFree(pFree);
+            }
+
+            pThis->pCurExt = NULL;
+        }
+        /* else: Growing is just a matter of increasing the size of the object. */
+
         pThis->Base.ObjInfo.cbObject = cbFile;
         return VINF_SUCCESS;
     }

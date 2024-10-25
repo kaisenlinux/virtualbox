@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2021-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2021-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,11 +35,11 @@
 #include <QUuid>
 
 /* GUI includes: */
-#include "UICommon.h"
+#include "UIDefs.h"
+#include "UIMediumDefs.h"
 #include "UINotificationObject.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CAppliance.h"
 #include "CCloudClient.h"
 #include "CCloudMachine.h"
@@ -71,10 +71,19 @@ class CCloudProviderManager;
 class CCloudProvider;
 class CCloudProfile;
 class CEmulatedUSB;
+class CGuestOSType;
+class CKeyboard;
+class CMachineDebugger;
+class CMediumAttachment;
+class CMouse;
 class CNetworkAdapter;
+class CPlatformProperties;
+class CStorageController;
+class CSystemProperties;
 class CVirtualBox;
 class CVirtualBoxErrorInfo;
 class CVRDEServer;
+class CVRDEServerInfo;
 class CUnattended;
 
 /** UINotificationObject extension for message functionality. */
@@ -99,6 +108,8 @@ public:
         /** Notifies about invalid encryption password.
           * @param  strPasswordId  Brings password ID. */
         static void warnAboutInvalidEncryptionPassword(const QString &strPasswordId);
+        /** Notifies about a clipboard error. */
+        static void warnAboutClipboardError(const QString &strMsg);
 
 #ifdef VBOX_GUI_WITH_NETWORK_MANAGER
         /** Notifies about update not found. */
@@ -274,6 +285,15 @@ public:
           * @param  comVBox  Brings the object parameter get acquired from. */
         static void cannotAcquireApplianceParameter(const CAppliance &comAppliance,
                                                     UINotificationCenter *pParent = 0);
+        /** Notifies about inability to acquire IPlatform parameter.
+          * @param  comPlatform  Brings the object parameter get acquired from. */
+        static void cannotAcquirePlatformParameter(const CPlatform &comPlatform);
+        /** Notifies about inability to acquire IPlatformProperties parameter.
+          * @param  comProperties  Brings the object parameter get acquired from. */
+        static void cannotAcquirePlatformPropertiesParameter(const CPlatformProperties &comProperties);
+        /** Notifies about inability to acquire ISystemProperties parameter.
+          * @param  comProperties  Brings the object parameter get acquired from. */
+        static void cannotAcquireSystemPropertiesParameter(const CSystemProperties &comProperties);
         /** Notifies about inability to acquire IExtPackManager parameter.
           * @param  comVBox  Brings the object parameter get acquired from. */
         static void cannotAcquireExtensionPackManagerParameter(const CExtPackManager &comEPManager);
@@ -283,6 +303,12 @@ public:
         /** Notifies about inability to acquire IHost parameter.
           * @param  comHost  Brings the object parameter get acquired from. */
         static void cannotAcquireHostParameter(const CHost &comHost);
+        /** Notifies about inability to acquire IStorageController parameter.
+          * @param  comStorageController  Brings the object parameter get acquired from. */
+        static void cannotAcquireStorageControllerParameter(const CStorageController &comStorageController);
+        /** Notifies about inability to acquire IMediumAttachment parameter.
+          * @param  comMediumAttachment  Brings the object parameter get acquired from. */
+        static void cannotAcquireMediumAttachmentParameter(const CMediumAttachment &comMediumAttachment);
         /** Notifies about inability to acquire IMedium parameter.
           * @param  comMedium  Brings the object parameter get acquired from. */
         static void cannotAcquireMediumParameter(const CMedium &comMedium);
@@ -290,8 +316,32 @@ public:
           * @param  comSession  Brings the object parameter get acquired from. */
         static void cannotAcquireSessionParameter(const CSession &comSession);
         /** Notifies about inability to acquire IMachine parameter.
-          * @param  comSession  Brings the object parameter get acquired from. */
+          * @param  comMachine  Brings the object parameter get acquired from. */
         static void cannotAcquireMachineParameter(const CMachine &comMachine);
+        /** Notifies about inability to acquire IMachineDebugger parameter.
+          * @param  comMachineDebugger  Brings the object parameter get acquired from. */
+        static void cannotAcquireMachineDebuggerParameter(const CMachineDebugger &comMachineDebugger);
+        /** Notifies about inability to acquire IGraphicsAdapter parameter.
+          * @param  comAdapter  Brings the object parameter get acquired from. */
+        static void cannotAcquireGraphicsAdapterParameter(const CGraphicsAdapter &comAdapter);
+        /** Notifies about inability to acquire IAudioSettings parameter.
+          * @param  comSettings  Brings the object parameter get acquired from. */
+        static void cannotAcquireAudioSettingsParameter(const CAudioSettings &comSettings);
+        /** Notifies about inability to acquire IAudioAdapter parameter.
+          * @param  comAdapter  Brings the object parameter get acquired from. */
+        static void cannotAcquireAudioAdapterParameter(const CAudioAdapter &comAdapter);
+        /** Notifies about inability to acquire INetworkAdapter parameter.
+          * @param  comAdapter  Brings the object parameter get acquired from. */
+        static void cannotAcquireNetworkAdapterParameter(const CNetworkAdapter &comAdapter);
+        /** Notifies about inability to acquire IConsole parameter.
+          * @param  comConsole  Brings the object parameter get acquired from. */
+        static void cannotAcquireConsoleParameter(const CConsole &comConsole);
+        /** Notifies about inability to acquire IGuest parameter.
+          * @param  comGuest  Brings the object parameter get acquired from. */
+        static void cannotAcquireGuestParameter(const CGuest &comGuest);
+        /** Notifies about inability to acquire IGuestOSType parameter.
+          * @param  comGuestOSType  Brings the object parameter get acquired from. */
+        static void cannotAcquireGuestOSTypeParameter(const CGuestOSType &comGuestOSType);
         /** Notifies about inability to acquire ISnapshot parameter.
           * @param  comSnapshot  Brings the object parameter get acquired from. */
         static void cannotAcquireSnapshotParameter(const CSnapshot &comSnapshot);
@@ -310,12 +360,27 @@ public:
         /** Notifies about inability to acquire INATNetwork parameter.
           * @param  comNetwork  Brings the object parameter get acquired from. */
         static void cannotAcquireNATNetworkParameter(const CNATNetwork &comNetwork);
-        /** Notifies about inability to acquire INATNetwork parameter.
-          * @param  comNetwork  Brings the object parameter get acquired from. */
-        static void cannotAcquireDispayParameter(const CDisplay &comDisplay);
+        /** Notifies about inability to acquire IDisplay parameter.
+          * @param  comDisplay  Brings the object parameter get acquired from. */
+        static void cannotAcquireDisplayParameter(const CDisplay &comDisplay);
         /** Notifies about inability to acquire IUpdateAgent parameter.
           * @param  comAgent  Brings the object parameter get acquired from. */
         static void cannotAcquireUpdateAgentParameter(const CUpdateAgent &comAgent);
+        /** Notifies about inability to acquire IMouse parameter.
+          * @param  comMouse  Brings the object parameter get acquired from. */
+        static void cannotAcquireMouseParameter(const CMouse &comMouse);
+        /** Notifies about inability to acquire IEmulatedUSB parameter.
+          * @param  comDispatcher  Brings the object parameter get acquired from. */
+        static void cannotAcquireEmulatedUSBParameter(const CEmulatedUSB &comDispatcher);
+        /** Notifies about inability to acquire IRecordingSettings parameter.
+          * @param  comSettings  Brings the object parameter get acquired from. */
+        static void cannotAcquireRecordingSettingsParameter(const CRecordingSettings &comSettings);
+        /** Notifies about inability to acquire IVRDEServer parameter.
+          * @param  comServer  Brings the object parameter get acquired from. */
+        static void cannotAcquireVRDEServerParameter(const CVRDEServer &comServer);
+        /** Notifies about inability to acquire IVRDEServerInfo parameter.
+          * @param  comVRDEServerInfo  Brings the object parameter get acquired from. */
+        static void cannotAcquireVRDEServerInfoParameter(const CVRDEServerInfo &comVRDEServerInfo);
         /** Notifies about inability to acquire IVirtualSystemDescription parameter.
           * @param  comVsd  Brings the object parameter get acquired from. */
         static void cannotAcquireVirtualSystemDescriptionParameter(const CVirtualSystemDescription &comVsd,
@@ -347,6 +412,9 @@ public:
         /** Notifies about inability to change IMachine parameter.
           * @param  comMachine  Brings the object parameter being changed for. */
         static void cannotChangeMachineParameter(const CMachine &comMachine);
+        /** Notifies about inability to change IMachineDebugger parameter.
+          * @param  comMachineDebugger  Brings the object parameter being changed for. */
+        static void cannotChangeMachineDebuggerParameter(const CMachineDebugger &comMachineDebugger);
         /** Notifies about inability to change IGraphicsAdapter parameter.
           * @param  comAdapter  Brings the object parameter being changed for. */
         static void cannotChangeGraphicsAdapterParameter(const CGraphicsAdapter &comAdapter);
@@ -371,12 +439,21 @@ public:
         /** Notifies about inability to change INATNetwork parameter.
           * @param  comNetwork  Brings the object parameter being changed for. */
         static void cannotChangeNATNetworkParameter(const CNATNetwork &comNetwork);
+        /** Notifies about inability to change IDisplay parameter.
+          * @param  comDisplay  Brings the object parameter being changed for. */
+        static void cannotChangeDisplayParameter(const CDisplay &comDisplay);
         /** Notifies about inability to change ICloudProfile parameter.
           * @param  comProfile  Brings the object parameter being changed for. */
         static void cannotChangeCloudProfileParameter(const CCloudProfile &comProfile);
         /** Notifies about inability to change IUpdateAgent parameter.
           * @param  comAgent  Brings the object parameter being changed for. */
         static void cannotChangeUpdateAgentParameter(const CUpdateAgent &comAgent);
+        /** Notifies about inability to change IKeyboard parameter.
+          * @param  comKeyboard  Brings the object parameter being changed for. */
+        static void cannotChangeKeyboardParameter(const CKeyboard &comKeyboard);
+        /** Notifies about inability to change IMouse parameter.
+          * @param  comMouse  Brings the object parameter being changed for. */
+        static void cannotChangeMouseParameter(const CMouse &comMouse);
         /** Notifies about inability to change IVirtualSystemDescription parameter.
           * @param  comVsd  Brings the object parameter being changed for. */
         static void cannotChangeVirtualSystemDescriptionParameter(const CVirtualSystemDescription &comVsd,
@@ -400,6 +477,9 @@ public:
         /** Notifies about inability to ACPI shutdown machine.
           * @param  comConsole  Brings console trying to shutdown machine. */
         static void cannotACPIShutdownMachine(const CConsole &comConsole);
+        /** Notifies about inability to reset machine.
+          * @param  comConsole  Brings console trying to reset machine. */
+        static void cannotResetMachine(const CConsole &comConsole);
     /** @} */
 
     /** @name COM VirtualBox Manager warnings.
@@ -650,7 +730,7 @@ protected:
                           const QString &strInternalName,
                           const QString &strHelpKeyword);
     /** Destructs message notification-object. */
-    virtual ~UINotificationMessage() /* override final */;
+    virtual ~UINotificationMessage() RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -705,11 +785,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -741,21 +821,24 @@ signals:
 public:
 
     /** Constructs medium copy notification-progress.
-      * @param  comSource  Brings the medium being copied.
-      * @param  comTarget  Brings the medium being the target.
-      * @param  variants   Brings the target medium options. */
+      * @param  comSource    Brings the medium being copied.
+      * @param  comTarget    Brings the medium being the target.
+      * @param  variants     Brings the target medium options.
+      * @param  uMediumSize  Brings the target medium size.
+      */
     UINotificationProgressMediumCopy(const CMedium &comSource,
                                      const CMedium &comTarget,
-                                     const QVector<KMediumVariant> &variants);
+                                     const QVector<KMediumVariant> &variants,
+                                     qulonglong uMediumSize);
 
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -774,6 +857,8 @@ private:
     QString                  m_strTargetLocation;
     /** Holds the target medium options. */
     QVector<KMediumVariant>  m_variants;
+    /** Holds the target medium size. */
+    qulonglong m_uMediumSize;
 };
 
 /** UINotificationProgress extension for medium move functionality. */
@@ -792,11 +877,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -824,11 +909,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -859,11 +944,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -883,11 +968,6 @@ class SHARED_LIBRARY_STUFF UINotificationProgressMachineCopy : public UINotifica
 {
     Q_OBJECT;
 
-signals:
-
-    /** Notifies listeners about @a comMachine was copied. */
-    void sigMachineCopied(const CMachine &comMachine);
-
 public:
 
     /** Constructs machine copy notification-progress.
@@ -903,11 +983,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -948,11 +1028,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -987,11 +1067,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -1030,11 +1110,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -1076,11 +1156,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -1117,11 +1197,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -1147,11 +1227,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -1177,11 +1257,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -1219,11 +1299,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -1270,11 +1350,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -1317,11 +1397,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -1360,11 +1440,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -1404,11 +1484,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -1448,11 +1528,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -1490,11 +1570,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -1532,11 +1612,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -1584,11 +1664,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -1640,11 +1720,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -1695,11 +1775,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -1734,15 +1814,81 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private:
 
     /** Holds the machine being powered-up. */
+    CCloudMachine  m_comMachine;
+    /** Holds the machine name. */
+    QString        m_strName;
+};
+
+/** UINotificationProgress extension for cloud machine clone functionality. */
+class SHARED_LIBRARY_STUFF UINotificationProgressCloudMachineClone : public UINotificationProgress
+{
+    Q_OBJECT;
+
+public:
+
+    /** Constructs cloud machine clone notification-progress.
+      * @param  comClient     Brings the cloud client to clone cloud machine.
+      * @param  comMachine    Brings the cloud machine to be cloned.
+      * @param  strCloneName  Brings the clone name. */
+    UINotificationProgressCloudMachineClone(const CCloudClient &comClient,
+                                            const CCloudMachine &comMachine,
+                                            const QString &strCloneName);
+
+protected:
+
+    /** Returns object name. */
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
+    /** Returns object details. */
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
+    /** Creates and returns started progress-wrapper. */
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
+
+private:
+
+    /** Holds the client cloning machine. */
+    CCloudClient   m_comClient;
+    /** Holds the machine being reset. */
+    CCloudMachine  m_comMachine;
+    /** Holds the clone name. */
+    QString        m_strCloneName;
+    /** Holds the machine internal id. */
+    QString        m_strId;
+    /** Holds the machine name. */
+    QString        m_strName;
+};
+
+/** UINotificationProgress extension for cloud machine reset functionality. */
+class SHARED_LIBRARY_STUFF UINotificationProgressCloudMachineReset : public UINotificationProgress
+{
+    Q_OBJECT;
+
+public:
+
+    /** Constructs cloud machine reset notification-progress.
+      * @param  comMachine  Brings the machine being reset. */
+    UINotificationProgressCloudMachineReset(const CCloudMachine &comMachine);
+
+protected:
+
+    /** Returns object name. */
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
+    /** Returns object details. */
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
+    /** Creates and returns started progress-wrapper. */
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
+
+private:
+
+    /** Holds the machine being reset. */
     CCloudMachine  m_comMachine;
     /** Holds the machine name. */
     QString        m_strName;
@@ -1762,11 +1908,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -1790,11 +1936,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -1818,11 +1964,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -1854,11 +2000,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -1891,11 +2037,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -1921,11 +2067,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -1951,11 +2097,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -1984,11 +2130,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -2028,11 +2174,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -2082,11 +2228,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -2125,11 +2271,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -2170,11 +2316,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -2204,11 +2350,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -2234,11 +2380,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -2252,12 +2398,6 @@ private:
 class SHARED_LIBRARY_STUFF UINotificationProgressExtensionPackInstall : public UINotificationProgress
 {
     Q_OBJECT;
-
-signals:
-
-    /** Notifies listeners about extension pack installed.
-      * @param  strExtensionPackName  Brings extension pack name. */
-    void sigExtensionPackInstalled(const QString &strExtensionPackName);
 
 public:
 
@@ -2274,16 +2414,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
-
-private slots:
-
-    /** Handles signal about progress being finished. */
-    void sltHandleProgressFinished();
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -2302,12 +2437,6 @@ class SHARED_LIBRARY_STUFF UINotificationProgressExtensionPackUninstall : public
 {
     Q_OBJECT;
 
-signals:
-
-    /** Notifies listeners about extension pack uninstalled.
-      * @param  strExtensionPackName  Brings extension pack name. */
-    void sigExtensionPackUninstalled(const QString &strExtensionPackName);
-
 public:
 
     /** Constructs extension pack uninstall notification-progress.
@@ -2321,16 +2450,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
-
-private slots:
-
-    /** Handles signal about progress being finished. */
-    void sltHandleProgressFinished();
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -2364,11 +2488,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -2405,11 +2529,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -2446,11 +2570,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -2494,14 +2618,19 @@ public:
       * @param  iInteger  Brings the value our value being set to. */
     UINotificationProgressVsdFormValueSet(const CRangedIntegerFormValue &comValue, int iInteger);
 
+    /** Constructs virtual system description form value set notification-progress.
+      * @param  comValue    Brings our value being set.
+      * @param  iInteger64  Brings the value our value being set to. */
+    UINotificationProgressVsdFormValueSet(const CRangedInteger64FormValue &comValue, qlonglong iInteger64);
+
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -2512,13 +2641,15 @@ private:
     CFormValue  m_comValue;
 
     /** Holds the bool value. */
-    bool     m_fBool;
+    bool       m_fBool;
     /** Holds the string value. */
-    QString  m_strString;
+    QString    m_strString;
     /** Holds the choice value. */
-    int      m_iChoice;
+    int        m_iChoice;
     /** Holds the integer value. */
-    int      m_iInteger;
+    int        m_iInteger;
+    /** Holds the integer64 value. */
+    qlonglong  m_iInteger64;
 };
 
 #ifdef VBOX_GUI_WITH_NETWORK_MANAGER
@@ -2547,7 +2678,7 @@ public:
 
     /** Destructs extension pack downloading notification-downloader.
       * @note  Notification-center can destroy us at any time. */
-    virtual ~UINotificationDownloaderExtensionPack() /* override final */;
+    virtual ~UINotificationDownloaderExtensionPack() RT_OVERRIDE RT_FINAL;
 
 protected:
 
@@ -2556,11 +2687,11 @@ protected:
     UINotificationDownloaderExtensionPack(const QString &strPackName);
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started downloader. */
-    virtual UIDownloader *createDownloader() /* override final */;
+    virtual UIDownloader *createDownloader() RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -2592,7 +2723,7 @@ public:
 
     /** Destructs guest additions downloading notification-downloader.
       * @note  Notification-center can destroy us at any time. */
-    virtual ~UINotificationDownloaderGuestAdditions() /* override final */;
+    virtual ~UINotificationDownloaderGuestAdditions() RT_OVERRIDE RT_FINAL;
 
 protected:
 
@@ -2601,11 +2732,11 @@ protected:
     UINotificationDownloaderGuestAdditions(const QString &strFileName);
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started downloader. */
-    virtual UIDownloader *createDownloader() /* override final */;
+    virtual UIDownloader *createDownloader() RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -2637,7 +2768,7 @@ public:
 
     /** Destructs user manual downloading notification-downloader.
       * @note  Notification-center can destroy us at any time. */
-    virtual ~UINotificationDownloaderUserManual() /* override final */;
+    virtual ~UINotificationDownloaderUserManual() RT_OVERRIDE RT_FINAL;
 
 protected:
 
@@ -2646,11 +2777,11 @@ protected:
     UINotificationDownloaderUserManual(const QString &strFileName);
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started downloader. */
-    virtual UIDownloader *createDownloader() /* override final */;
+    virtual UIDownloader *createDownloader() RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -2675,11 +2806,11 @@ public:
 protected:
 
     /** Returns object name. */
-    virtual QString name() const /* override final */;
+    virtual QString name() const RT_OVERRIDE RT_FINAL;
     /** Returns object details. */
-    virtual QString details() const /* override final */;
+    virtual QString details() const RT_OVERRIDE RT_FINAL;
     /** Creates and returns started progress-wrapper. */
-    virtual CProgress createProgress(COMResult &comResult) /* override final */;
+    virtual CProgress createProgress(COMResult &comResult) RT_OVERRIDE RT_FINAL;
 
 private slots:
 

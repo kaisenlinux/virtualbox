@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -37,6 +37,7 @@
 #include "QIArrowButtonSwitch.h"
 #include "UIDesktopWidgetWatchdog.h"
 #include "UIIconPool.h"
+#include "UITranslationEventListener.h"
 
 /* Other VBox includes: */
 #include "iprt/assert.h"
@@ -56,9 +57,9 @@ public:
     QIDetailsBrowser(QWidget *pParent = 0);
 
     /** Returns minimum size-hint. */
-    QSize minimumSizeHint() const;
+    QSize minimumSizeHint() const RT_OVERRIDE RT_FINAL;
     /** Returns size-hint. */
-    QSize sizeHint() const;
+    QSize sizeHint() const RT_OVERRIDE RT_FINAL;
 
     /** Update scroll-bars. */
     void updateScrollBars();
@@ -130,7 +131,7 @@ void QIDetailsBrowser::updateScrollBars()
 *********************************************************************************************************************************/
 
 QIArrowSplitter::QIArrowSplitter(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_pMainLayout(0)
     , m_pSwitchButton(0)
     , m_pBackButton(0)
@@ -239,7 +240,7 @@ void QIArrowSplitter::sltSwitchDetailsPageNext()
     updateDetails();
 }
 
-void QIArrowSplitter::retranslateUi()
+void QIArrowSplitter::sltRetranslateUI()
 {
     /* Update details: */
     updateDetails();
@@ -328,6 +329,8 @@ void QIArrowSplitter::prepare()
 
     /* Apply size-policy finally: */
     setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &QIArrowSplitter::sltRetranslateUI);
 }
 
 void QIArrowSplitter::updateDetails()

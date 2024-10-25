@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2007-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2007-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -40,6 +40,7 @@
 *********************************************************************************************************************************/
 #include "bs3kit-template-header.h"
 #include "bs3-cmn-test.h"
+#include <iprt/asm-amd64-x86.h>
 
 
 /**
@@ -62,6 +63,12 @@ BS3_CMN_DEF(void, Bs3TestInit,(const char BS3_FAR *pszTest))
     g_cusBs3SubTests            = 0;
     g_cusBs3SubTestsFailed      = 0;
     g_fbBs3VMMDevTesting        = bs3TestIsVmmDevTestingPresent();
+    if (g_fbBs3VMMDevTesting)
+    {
+        uint16_t uValue = Bs3TestQueryCfgU16(VMMDEV_TESTING_CFG_THRESHOLD_NATIVE_RECOMPILER, 0);
+        if (uValue > 0 && uValue < 1024)
+            g_cBs3ThresholdNativeRecompiler = uValue;
+    }
 
     /*
      * Print the name - RTTestBanner.

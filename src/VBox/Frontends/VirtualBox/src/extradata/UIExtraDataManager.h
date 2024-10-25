@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -62,10 +62,10 @@ class SHARED_LIBRARY_STUFF UIExtraDataManager : public QObject
 {
     Q_OBJECT;
 
-    /** Extra-data Manager constructor. */
+    /** Constructs Extra-data Manager. */
     UIExtraDataManager();
-    /** Extra-data Manager destructor. */
-    ~UIExtraDataManager();
+    /** Destructs Extra-data Manager. */
+    virtual ~UIExtraDataManager();
 
 signals:
 
@@ -79,6 +79,9 @@ signals:
     void sigNotificationCenterAlignmentChange();
     /** Notifies about notification-center order change. */
     void sigNotificationCenterOrderChange();
+
+    /** Notifies about settings expert mode change. */
+    void sigSettingsExpertModeChange();
 
     /** Notifies about GUI language change. */
     void sigLanguageChange(QString strLanguage);
@@ -133,7 +136,7 @@ signals:
     void sigDockIconOverlayAppearanceChange(bool fEnabled);
 #endif /* VBOX_WS_MAC */
 
-#if defined (VBOX_WS_X11) || defined (VBOX_WS_WIN)
+#if defined (VBOX_WS_NIX) || defined (VBOX_WS_WIN)
     /* Is emitted when host screen saver inhibition state changes. */
     void sigDisableHostScreenSaverStateChange(bool fDisable);
 #endif
@@ -143,10 +146,12 @@ public:
     /** Global extra-data ID. */
     static const QUuid GlobalID;
 
+    /** Singleton object contructor. */
+    static void create();
+    /** Singleton object destructor. */
+    static void destroy();
     /** Static Extra-data Manager instance/constructor. */
     static UIExtraDataManager* instance();
-    /** Static Extra-data Manager destructor. */
-    static void destroy();
 
 #ifdef VBOX_GUI_WITH_EXTRADATA_MANAGER_UI
     /** Static show and raise API. */
@@ -193,9 +198,9 @@ public:
 
     /** @name Messaging
       * @{ */
-        /** Returns the list of supressed messages for the Message/Popup center frameworks. */
+        /** Returns the list of suppressed messages for the Message/Popup center frameworks. */
         QStringList suppressedMessages(const QUuid &uID = GlobalID);
-        /** Defines the @a list of supressed messages for the Message/Popup center frameworks. */
+        /** Defines the @a list of suppressed messages for the Message/Popup center frameworks. */
         void setSuppressedMessages(const QStringList &list);
 
         /** Returns the list of messages for the Message/Popup center frameworks with inverted check-box state. */
@@ -219,7 +224,7 @@ public:
         void setNotificationCenterOrder(Qt::SortOrder enmOrder);
 
         /** Returns whether BETA build label should be hidden. */
-        bool preventBetaBuildLavel();
+        bool preventBetaBuildLabel();
 #if !defined(VBOX_BLEEDING_EDGE) && !defined(DEBUG)
         /** Returns version for which user wants to prevent BETA build warning. */
         QString preventBetaBuildWarningForVersion();
@@ -259,6 +264,11 @@ public:
         QList<GlobalSettingsPageType> restrictedGlobalSettingsPages();
         /** Returns restricted machine settings pages. */
         QList<MachineSettingsPageType> restrictedMachineSettingsPages(const QUuid &uID);
+
+        /** Returns whether settings are in expert mode. */
+        bool isSettingsInExpertMode();
+        /** Defines whether settings are in @a fExpertMode. */
+        void setSettingsInExpertMode(bool fExpertMode);
     /** @} */
 
     /** @name Settings: Language
@@ -397,6 +407,10 @@ public:
         QList<UIToolType> toolsPaneLastItemsChosen();
         /** Defines last selected tool @a set of VirtualBox Manager. */
         void setToolsPaneLastItemsChosen(const QList<UIToolType> &set);
+        /** Returns the list of detached tools of VirtualBox Manager. */
+        QList<UIToolType> detachedTools();
+        /** Defines the list of detached @a tools of VirtualBox Manager. */
+        void setDetachedTools(const QList<UIToolType> &tools);
 
         /** Returns whether selector-window status-bar visible. */
         bool selectorWindowStatusBarVisible();
@@ -508,14 +522,6 @@ public:
         void setCloudConsolePublicKeyPath(const QString &strPath);
     /** @} */
 
-    /** @name Wizards
-      * @{ */
-        /** Returns mode for wizard of passed @a type. */
-        WizardMode modeForWizardType(WizardType type);
-        /** Defines @a mode for wizard of passed @a type. */
-        void setModeForWizardType(WizardType type, WizardMode mode);
-    /** @} */
-
     /** @name Virtual Machine
       * @{ */
         /** Returns whether machine should be shown in VirtualBox Manager Chooser-pane. */
@@ -611,7 +617,7 @@ public:
         /** Defines requested Runtime UI visual-state as @a visualState. */
         void setRequestedVisualState(UIVisualStateType visualState, const QUuid &uID);
 
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
         /** Returns whether legacy full-screen mode is requested. */
         bool legacyFullscreenModeRequested();
 
@@ -619,7 +625,7 @@ public:
         bool distinguishMachineWindowGroups(const QUuid &uID);
         /** Defines whether internal machine-window name should be unique. */
         void setDistinguishMachineWindowGroups(const QUuid &uID, bool fEnabled);
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
 
         /** Returns whether guest-screen auto-resize according machine-window size is enabled. */
         bool guestScreenAutoResizeEnabled(const QUuid &uID);
@@ -855,12 +861,16 @@ public:
         QStringList helpBrowserBookmarks();
     /** @} */
 
-    /** @name Manager UI: VM Activity Overview
+    /** @name Manager UI: VM Activity Monitor and Overview
       * @{ */
         void setVMActivityOverviewHiddenColumnList(const QStringList &hiddenColumnList);
         QStringList VMActivityOverviewHiddenColumnList();
         bool VMActivityOverviewShowAllMachines();
         void setVMActivityOverviewShowAllMachines(bool fShow);
+        void setVMActivityMonitorDataSeriesColors(const QStringList &colorList);
+        QStringList VMActivityMonitorDataSeriesColors();
+        bool VMActivityMonitorShowVMExits();
+        void setVMActivityMonitorShowVMExits(bool fShow);
     /** @} */
 
     /** @name Medium Selector
@@ -883,6 +893,8 @@ private:
     void prepareGlobalExtraDataMap();
     /** Prepare extra-data event-handler. */
     void prepareExtraDataEventHandler();
+    /** Prepare extra-data settings. */
+    void prepareExtraDataSettings();
 #ifdef VBOX_GUI_WITH_EXTRADATA_MANAGER_UI
     // /** Prepare window. */
     // void prepareWindow();

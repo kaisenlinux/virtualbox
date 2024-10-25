@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -211,7 +211,7 @@ static DECLCALLBACK(int) rtVfsReadAhead_QueryInfo(void *pvThis, PRTFSOBJINFO pOb
 /**
  * @interface_method_impl{RTVFSIOSTREAMOPS,pfnRead}
  */
-static DECLCALLBACK(int) rtVfsReadAhead_Read(void *pvThis, RTFOFF off, PCRTSGBUF pSgBuf, bool fBlocking, size_t *pcbRead)
+static DECLCALLBACK(int) rtVfsReadAhead_Read(void *pvThis, RTFOFF off, PRTSGBUF pSgBuf, bool fBlocking, size_t *pcbRead)
 {
     PRTVFSREADAHEAD pThis = (PRTVFSREADAHEAD)pvThis;
 
@@ -347,6 +347,7 @@ static DECLCALLBACK(int) rtVfsReadAhead_Read(void *pvThis, RTFOFF off, PCRTSGBUF
     if (pcbRead)
         *pcbRead = cbTotalRead;
     Assert(cbTotalRead <= pSgBuf->paSegs[0].cbSeg);
+    RTSgBufAdvance(pSgBuf, cbTotalRead);
 
     return rc;
 }
@@ -355,7 +356,7 @@ static DECLCALLBACK(int) rtVfsReadAhead_Read(void *pvThis, RTFOFF off, PCRTSGBUF
 /**
  * @interface_method_impl{RTVFSIOSTREAMOPS,pfnWrite}
  */
-static DECLCALLBACK(int) rtVfsReadAhead_Write(void *pvThis, RTFOFF off, PCRTSGBUF pSgBuf, bool fBlocking, size_t *pcbWritten)
+static DECLCALLBACK(int) rtVfsReadAhead_Write(void *pvThis, RTFOFF off, PRTSGBUF pSgBuf, bool fBlocking, size_t *pcbWritten)
 {
     RT_NOREF_PV(pvThis); RT_NOREF_PV(off); RT_NOREF_PV(pSgBuf); RT_NOREF_PV(fBlocking); RT_NOREF_PV(pcbWritten);
     AssertFailed();
@@ -713,7 +714,7 @@ static DECLCALLBACK(int) rtVfsReadAheadThreadProc(RTTHREAD hThreadSelf, void *pv
          */
         rc = RTThreadUserWait(hThreadSelf, RT_MS_1MIN);
         if (RT_SUCCESS(rc))
-            rc = RTThreadUserReset(hThreadSelf);
+            RTThreadUserReset(hThreadSelf);
     }
 
     return VINF_SUCCESS;

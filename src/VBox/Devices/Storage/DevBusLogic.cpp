@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -419,7 +419,7 @@ typedef struct BUSLOGIC
     /** Physical base address of the incoming mailboxes. */
     RTGCPHYS                        GCPhysAddrMailboxIncomingBase;
 
-    /** Critical section protecting access to the interrupt status register. */
+    /** Critical section protecting access to the interrupt status register and uMailboxIncomingPositionCurrent. */
     PDMCRITSECT                     CritSectIntr;
 
     /** Device presence indicators.
@@ -548,6 +548,7 @@ typedef CTX_SUFF(PBUSLOGIC) PBUSLOGICCC;
 
 #define BUSLOGIC_REGISTER_GEOMETRY  3 /* Readonly */
 # define BL_GEOM_XLATEN  RT_BIT(7)  /* Extended geometry translation enabled. */
+# define BL_GEOM_ISA     0x55       /* ISA adapter? Utterly undocumented. */
 
 /** Structure for the INQUIRE_PCI_HOST_ADAPTER_INFORMATION reply. */
 typedef struct ReplyInquirePCIHostAdapterInformation
@@ -1148,7 +1149,9 @@ static void buslogicClearInterrupt(PPDMDEVINS pDevIns, PBUSLOGIC pThis)
  */
 DECLINLINE(void) buslogicR3OutgoingMailboxAdvance(PBUSLOGIC pThis)
 {
-    pThis->uMailboxOutgoingPositionCurrent = (pThis->uMailboxOutgoingPositionCurrent + 1) % pThis->cMailbox;
+    uint32_t    uNextPos = pThis->uMailboxOutgoingPositionCurrent + 1;
+    Assert(uNextPos <= pThis->cMailbox);
+    pThis->uMailboxOutgoingPositionCurrent = uNextPos >= pThis->cMailbox ? 0 : uNextPos;
 }
 
 /**
@@ -1196,6 +1199,20 @@ static int buslogicR3HwReset(PPDMDEVINS pDevIns, PBUSLOGIC pThis, bool fResetIO)
     /* Reset registers to default values. */
     pThis->regStatus = BL_STAT_HARDY | BL_STAT_INREQ;
     pThis->regGeometry = BL_GEOM_XLATEN;
+
+    /* BusLogic's BTDOSM.SYS version 4.20 DOS ASPI driver (but not e.g.
+     * version 3.00) insists that bit 6 in the completely undocumented
+     * "geometry register" must be set when scanning for ISA devices.
+     * This bit may be a convenient way of avoiding a "double scan" of
+     * PCI HBAs (which do not have bit 6 set) in ISA compatibility mode.
+     *
+     * On a BT-542B and BT-545C, the geometry register contains the value
+     * 55h after power up/reset. In addition, bit 7 reflects the state
+     * of the >1GB disk setting (DIP switch or EEPROM).
+     */
+    if (pThis->uDevType == DEV_BT_545C)
+        pThis->regGeometry |= BL_GEOM_ISA;
+
     pThis->uOperationCode = 0xff; /* No command executing. */
     pThis->uPrevCmd = 0xff;
     pThis->iParameter = 0;
@@ -1380,9 +1397,16 @@ static void buslogicR3SendIncomingMailbox(PPDMDEVINS pDevIns, PBUSLOGIC pThis, R
                                        + (   pThis->uMailboxIncomingPositionCurrent
                                           * (pThis->fMbxIs24Bit ? sizeof(Mailbox24) : sizeof(Mailbox32)) );
 
+    /* Advance to next mailbox position. */
+    pThis->uMailboxIncomingPositionCurrent++;
+    if (pThis->uMailboxIncomingPositionCurrent >= pThis->cMailbox)
+        pThis->uMailboxIncomingPositionCurrent = 0;
+
+    PDMDevHlpCritSectLeave(pDevIns, &pThis->CritSectIntr);
+
     if (uMailboxCompletionCode != BUSLOGIC_MAILBOX_INCOMING_COMPLETION_ABORTED_NOT_FOUND)
     {
-        LogFlowFunc(("Completing CCB %RGp hstat=%u, dstat=%u, outgoing mailbox at %RGp\n", GCPhysAddrCCB,
+        LogFlowFunc(("Completing CCB %RGp hstat=%u, dstat=%u, incoming mailbox at %RGp\n", GCPhysAddrCCB,
                      uHostAdapterStatus, uDeviceStatus, GCPhysAddrMailboxIncoming));
 
         /* Update CCB. */
@@ -1415,10 +1439,8 @@ static void buslogicR3SendIncomingMailbox(PPDMDEVINS pDevIns, PBUSLOGIC pThis, R
         blPhysWriteMeta(pDevIns, pThis, GCPhysAddrMailboxIncoming, &MbxIn, sizeof(Mailbox32));
     }
 
-    /* Advance to next mailbox position. */
-    pThis->uMailboxIncomingPositionCurrent++;
-    if (pThis->uMailboxIncomingPositionCurrent >= pThis->cMailbox)
-        pThis->uMailboxIncomingPositionCurrent = 0;
+    rc = PDMDevHlpCritSectEnter(pDevIns, &pThis->CritSectIntr, VINF_SUCCESS);
+    PDM_CRITSECT_RELEASE_ASSERT_RC_DEV(pDevIns, &pThis->CritSectIntr, rc);
 
 # ifdef LOG_ENABLED
     ASMAtomicIncU32(&pThis->cInMailboxesReadyIfLogEnabled);
@@ -1914,6 +1936,15 @@ static int buslogicProcessCommand(PPDMDEVINS pDevIns, PBUSLOGIC pThis)
             break;
         case BUSLOGICCOMMAND_INQUIRE_PCI_HOST_ADAPTER_INFORMATION:
         {
+            /* Only supported on PCI BusLogic HBAs. */
+            if (pThis->uDevType != DEV_BT_958D)
+            {
+                Log(("Command %#x not valid for this adapter\n", pThis->uOperationCode));
+                pThis->cbReplyParametersLeft = 0;
+                pThis->regStatus |= BL_STAT_CMDINV;
+                break;
+            }
+
             PReplyInquirePCIHostAdapterInformation pReply = (PReplyInquirePCIHostAdapterInformation)pThis->aReplyBuffer;
             memset(pReply, 0, sizeof(ReplyInquirePCIHostAdapterInformation));
 
@@ -1978,9 +2009,16 @@ static int buslogicProcessCommand(PPDMDEVINS pDevIns, PBUSLOGIC pThis)
                 pThis->aReplyBuffer[1] = 'A'; /* Special option byte */
             }
 
-            /* We report version 5.07B. This reply will provide the first two digits. */
-            pThis->aReplyBuffer[2] = '5'; /* Major version 5 */
-            pThis->aReplyBuffer[3] = '0'; /* Minor version 0 */
+            /* FW version 5.07B for BT-958, version 4.25J for BT-545. */
+            if (pThis->uDevType == DEV_BT_958D) {
+                pThis->aReplyBuffer[2] = '5'; /* Major version 5 */
+                pThis->aReplyBuffer[3] = '0'; /* Minor version 0 */
+            }
+            else
+            {
+                pThis->aReplyBuffer[2] = '4';
+                pThis->aReplyBuffer[3] = '2';
+            }
             pThis->cbReplyParametersLeft = 4; /* Reply is 4 bytes long */
             break;
         }
@@ -1995,13 +2033,21 @@ static int buslogicProcessCommand(PPDMDEVINS pDevIns, PBUSLOGIC pThis)
                 break;
             }
 
-            pThis->aReplyBuffer[0] = '7';
+            /* FW version 5.07B for BT-958, version 4.25J for BT-545. */
+            if (pThis->uDevType == DEV_BT_958D)
+                pThis->aReplyBuffer[0] = '7';
+            else
+                pThis->aReplyBuffer[0] = '5';
             pThis->cbReplyParametersLeft = 1;
             break;
         }
         case BUSLOGICCOMMAND_INQUIRE_FIRMWARE_VERSION_LETTER:
         {
-            pThis->aReplyBuffer[0] = 'B';
+            /* FW version 5.07B for BT-958, version 4.25J for BT-545. */
+            if (pThis->uDevType == DEV_BT_958D)
+                pThis->aReplyBuffer[0] = 'B';
+            else
+                pThis->aReplyBuffer[0] = 'J';
             pThis->cbReplyParametersLeft = 1;
             break;
         }
@@ -2072,13 +2118,16 @@ static int buslogicProcessCommand(PPDMDEVINS pDevIns, PBUSLOGIC pThis)
             }
             pThis->cbReplyParametersLeft = pThis->aCommandBuffer[0];
             memset(pThis->aReplyBuffer, 0, sizeof(pThis->aReplyBuffer));
-            const char aModelName[] = "958D ";  /* Trailing \0 is fine, that's the filler anyway. */
-            int cCharsToTransfer =   pThis->cbReplyParametersLeft <= sizeof(aModelName)
+            const char aModelName958[] = "958D ";   /* Trailing \0 is fine, that's the filler anyway. */
+            const char aModelName545[] = "54xC ";
+            AssertCompile(sizeof(aModelName958) == sizeof(aModelName545));
+            const char *pModelName = pThis->uDevType == DEV_BT_958D ? aModelName958 : aModelName545;
+            int cCharsToTransfer =   pThis->cbReplyParametersLeft <= sizeof(aModelName958)
                                    ? pThis->cbReplyParametersLeft
-                                   : sizeof(aModelName);
+                                   : sizeof(aModelName958);
 
             for (int i = 0; i < cCharsToTransfer; i++)
-                pThis->aReplyBuffer[i] = aModelName[i];
+                pThis->aReplyBuffer[i] = pModelName[i];
 
             break;
         }
@@ -2138,14 +2187,22 @@ static int buslogicProcessCommand(PPDMDEVINS pDevIns, PBUSLOGIC pThis)
             memset(pReply, 0, sizeof(ReplyInquireExtendedSetupInformation));
 
             /** @todo should this reflect the RAM contents (AutoSCSIRam)? */
-            pReply->uBusType = 'E';         /* EISA style */
+            if (pThis->uDevType == DEV_BT_958D)
+                pReply->uBusType = 'E';         /* EISA style */
+            else
+                pReply->uBusType = 'A';         /* ISA */
+
             pReply->u16ScatterGatherLimit = 8192;
             pReply->cMailbox = pThis->cMailbox;
             pReply->uMailboxAddressBase = (uint32_t)pThis->GCPhysAddrMailboxOutgoingBase;
             pReply->fLevelSensitiveInterrupt = true;
             pReply->fHostWideSCSI = true;
             pReply->fHostUltraSCSI = true;
-            memcpy(pReply->aFirmwareRevision, "07B", sizeof(pReply->aFirmwareRevision));
+            /* FW version 5.07B for BT-958, version 4.25J for BT-545. */
+            if (pThis->uDevType == DEV_BT_958D)
+                memcpy(pReply->aFirmwareRevision, "07B", sizeof(pReply->aFirmwareRevision));
+            else
+                memcpy(pReply->aFirmwareRevision, "25J", sizeof(pReply->aFirmwareRevision));
 
             break;
         }
@@ -2173,7 +2230,10 @@ static int buslogicProcessCommand(PPDMDEVINS pDevIns, PBUSLOGIC pThis)
                 pReply->uSignature  = 'B';
                 pReply->uCharacterD = 'D';      /* BusLogic model. */
             }
-            pReply->uHostBusType = 'F';     /* PCI bus. */
+            if (pThis->uDevType == DEV_BT_958D)
+                pReply->uHostBusType = 'F';     /* PCI bus. */
+            else
+                pReply->uHostBusType = 'A';     /* ISA bus. */
             break;
         }
         case BUSLOGICCOMMAND_FETCH_HOST_ADAPTER_LOCAL_RAM:
@@ -2552,6 +2612,11 @@ static int buslogicRegisterRead(PPDMDEVINS pDevIns, PBUSLOGIC pThis, unsigned iR
         {
             if (pThis->uDevType == DEV_AHA_1540B)
             {
+                /* NB: The AHA-154xB actually does not respond on this I/O port and
+                 * returns 0xFF. However, Adaptec's last ASP4DOS.SYS version (3.36)
+                 * assumes the AHA-154xC behavior and fails to load if the 'ADAP'
+                 * signature is not present.
+                 */
                 uint8_t off = pThis->uAhaSigIdx & 3;
                 *pu32 = s_szAhaSig[off];
                 pThis->uAhaSigIdx = (off + 1) & 3;
@@ -2787,7 +2852,7 @@ static DECLCALLBACK(VBOXSTRICTRC) buslogicMMIORead(PPDMDEVINS pDevIns, void *pvU
 
     /* the linux driver does not make use of the MMIO area. */
     ASSERT_GUEST_MSG_FAILED(("MMIO Read: %RGp LB %u\n", off, cb));
-    return VINF_SUCCESS;
+    return VINF_IOM_MMIO_UNUSED_FF;
 }
 
 /**
@@ -3358,7 +3423,11 @@ static int buslogicR3ProcessMailboxNext(PPDMDEVINS pDevIns, PBUSLOGIC pThis, PBU
         rc = buslogicR3DeviceSCSIRequestAbort(pDevIns, pThis, (RTGCPHYS)MailboxGuest.u32PhysAddrCCB);
     }
     else
+    {
         AssertMsgFailed(("Invalid outgoing mailbox action code %u\n", MailboxGuest.u.out.uActionCode));
+        /** @todo We ought to report an error in the incoming mailbox here */
+        rc = VINF_NOT_SUPPORTED;    /* Not immediately an error, keep going. */
+    }
 
     AssertRC(rc);
 
@@ -3765,10 +3834,25 @@ static DECLCALLBACK(int) buslogicR3Worker(PPDMDEVINS pDevIns, PPDMTHREAD pThread
 
         if (ASMAtomicXchgU32(&pThis->cMailboxesReady, 0))
         {
-            /* Process mailboxes. */
+            /* Process mailboxes as long as there are new entries. The loop can potentially
+             * keep going for a while if the guest keeps supplying new entries.
+             * If there are too many invalid mailbox entries, abort processing because
+             * we're just wasting time. This might happen if the guest keeps supplying
+             * new invalid entries (extremely unlikely), or if the mailbox memory is not
+             * writable for whatever reason.
+             */
+            uint32_t cMaxInvalid = pThis->cMailbox * 2; /* NB: cMailbox can't be more than 255. */
             do
             {
                 rc = buslogicR3ProcessMailboxNext(pDevIns, pThis, pThisCC);
+                if (RT_UNLIKELY(rc == VINF_NOT_SUPPORTED))
+                {
+                    if (cMaxInvalid-- == 0)
+                    {
+                        LogRelMax(10, ("BusLogic: Too many invalid entries, aborting maibox processing!\n"));
+                        break;
+                    }
+                }
                 AssertMsg(RT_SUCCESS(rc) || rc == VERR_NO_DATA, ("Processing mailbox failed rc=%Rrc\n", rc));
             } while (RT_SUCCESS(rc));
         }
@@ -4268,7 +4352,7 @@ static DECLCALLBACK(int) buslogicR3Construct(PPDMDEVINS pDevIns, int iInstance, 
 
         rc = PDMDevHlpPCIIORegionCreateMmio(pDevIns, 1 /*iPciRegion*/, 32 /*cbRegion*/, PCI_ADDRESS_SPACE_MEM,
                                             buslogicMMIOWrite, buslogicMMIORead, NULL /*pvUser*/,
-                                            IOMMMIO_FLAGS_READ_PASSTHRU | IOMMMIO_FLAGS_WRITE_PASSTHRU,
+                                            IOMMMIO_FLAGS_READ_DWORD | IOMMMIO_FLAGS_WRITE_DWORD_ZEROED,
                                             "BusLogic MMIO", &pThis->hMmio);
         AssertRCReturn(rc, rc);
     }

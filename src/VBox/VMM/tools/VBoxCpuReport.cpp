@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -4603,6 +4603,7 @@ static const char *cpuVendorToString(CPUMCPUVENDOR enmCpuVendor)
         case CPUMCPUVENDOR_CYRIX:       return "Cyrix";
         case CPUMCPUVENDOR_SHANGHAI:    return "Shanghai";
         case CPUMCPUVENDOR_HYGON:       return "Hygon";
+        case CPUMCPUVENDOR_APPLE:       return "Apple";
         case CPUMCPUVENDOR_INVALID:
         case CPUMCPUVENDOR_UNKNOWN:
         case CPUMCPUVENDOR_32BIT_HACK:

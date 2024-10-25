@@ -4,7 +4,7 @@
 #
 
 #
-# Copyright (C) 2006-2023 Oracle and/or its affiliates.
+# Copyright (C) 2006-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -95,12 +95,16 @@ VBOX_LNX_ADD_INST_DEP_ON_MAKEFILE := $(MAKEFILE_CURRENT)
 VBOX_SELINUX_CMPLD := $(PATH_SUB_CURRENT)/selinux-fedora/vbox_x11.pp
 VBOX_LNX_ADD_ARCHIVE.x86   := $(PATH_OUT_BASE)/linux.x86/$(KBUILD_TYPE)/bin/additions/VBoxGuestAdditions-x86.tar.bz2
 VBOX_LNX_ADD_ARCHIVE.amd64 := $(PATH_OUT_BASE)/linux.amd64/$(KBUILD_TYPE)/bin/additions/VBoxGuestAdditions-amd64.tar.bz2
+ifdef VBOX_WITH_LNX_ARM64_ADDITIONS
+ VBOX_LNX_ADD_ARCHIVE.arm64 := $(PATH_OUT_BASE)/linux.arm64/$(KBUILD_TYPE)/bin/additions/VBoxGuestAdditions-arm64.tar.bz2
+endif
 ifndef VBOX_WITH_COMBINED_LINUX_GUEST_PACKAGE
  VBOX_LNX_ADD_ARCHIVES := $(PATH_STAGE_BIN)/additions/VBoxGuestAdditions-$(KBUILD_TARGET_ARCH).tar.bz2
 else
  VBOX_LNX_ADD_ARCHIVES := \
  	$(VBOX_LNX_ADD_ARCHIVE.x86) \
- 	$(VBOX_LNX_ADD_ARCHIVE.amd64)
+ 	$(VBOX_LNX_ADD_ARCHIVE.amd64) \
+ 	$(if-expr defined(VBOX_WITH_LNX_ARM64_ADDITIONS) && defined(VBOX_WITH_COMBINED_LINUX_GUEST_PACKAGE_INCLUDING_ARM64),$(VBOX_LNX_ADD_ARCHIVE.arm64),)
 endif
 BLDDIRS     += \
 	$(VBOX_LNX_ADD_ARCH_INST_DIRS) \
@@ -130,29 +134,39 @@ ifdef VBOX_WITH_ADDITIONS_SHIPPING_AUDIO_TEST
  VBOX_LNX_ADD_STRIP_BIN += \
  	VBoxAudioTest
 endif
+ifdef VBOX_WITH_WAYLAND_ADDITIONS
+ VBOX_LNX_ADD_STRIP_BIN += \
+ 	vboxwl
+endif
 
 VBOX_LNX_ADD_STRIP_SBIN += \
 	VBoxService \
 	$(if $(VBOX_WITH_LIGHTDM_GREETER),vbox-greeter)
 
 VBOX_LNX_ADD_STRIP_MOD = \
-	vboxmouse_drv_70.so \
-	vboxmouse_drv_71.so \
-	vboxmouse_drv_13.so \
-	vboxmouse_drv_14.so \
-	vboxmouse_drv_15.so \
-	vboxmouse_drv_16.so \
-	$(addsuffix .so,$(filter-out %_32,$(filter vboxvideo_drv_%,$(DLLS)))) \
 	$(if $(VBOX_WITH_PAM),pam_vbox.so,) \
 	mount.vboxsf
+
+ifndef VBOX_NO_LEGACY_XORG_X11
+ VBOX_LNX_ADD_STRIP_MOD += \
+ 	vboxmouse_drv_70.so \
+ 	vboxmouse_drv_71.so \
+ 	vboxmouse_drv_13.so \
+ 	vboxmouse_drv_14.so \
+ 	vboxmouse_drv_15.so \
+ 	vboxmouse_drv_16.so \
+ 	$(addsuffix .so,$(filter-out %_32,$(filter vboxvideo_drv_%,$(DLLS))))
+endif
 
 VBOX_LNX_ADD_MOD = \
 	98vboxadd-xclient \
 	x11config.sh
 
-VBOX_LNX_ADD_STRIP_OBJ = \
-	vboxmouse_drv.o \
-	vboxvideo_drv.o
+ifndef VBOX_NO_LEGACY_XORG_X11
+ VBOX_LNX_ADD_STRIP_OBJ = \
+ 	vboxmouse_drv.o \
+ 	vboxvideo_drv.o
+endif
 
 VBOX_LNX_ADD_INIT = \
 	vboxadd \

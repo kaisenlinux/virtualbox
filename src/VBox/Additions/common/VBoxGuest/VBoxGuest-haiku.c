@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -475,7 +475,8 @@ static status_t vgdrvHaikuAttach(const pci_info *pDevice)
             /*
              * Call the common device extension initializer.
              */
-            rc = VGDrvCommonInitDevExt(&g_DevExt, pState->uIOPortBase, pState->pMMIOBase, pState->VMMDevMemSize,
+            rc = VGDrvCommonInitDevExt(&g_DevExt, pState->uIOPortBase, NULL /*pvMmioReq*/,
+                                       pState->pMMIOBase, pState->VMMDevMemSize,
 #if ARCH_BITS == 64
                                        VBOXOSTYPE_Haiku_x64,
 #else

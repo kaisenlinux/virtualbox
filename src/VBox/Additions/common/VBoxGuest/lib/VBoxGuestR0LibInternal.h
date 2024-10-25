@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -124,11 +124,14 @@ enum VbglLibStatus
  */
 typedef struct VBGLDATA
 {
-    enum VbglLibStatus status;
-
-    RTIOPORT portVMMDev;
-
-    VMMDevMemory *pVMMDevMemory;
+    /** Init status of the library. */
+    enum VbglLibStatus      status;
+    /** I/O port to issue requests to. */
+    RTIOPORT                portVMMDev;
+    /** MMIO request region if available. */
+    volatile uintptr_t      *pMmioReq;
+    /** VMMDev adapter memory region if available. */
+    VMMDevMemory            *pVMMDevMemory;
 
     /** Physical memory heap data.
      * @{
@@ -148,6 +151,8 @@ typedef struct VBGLDATA
     int32_t                 cFreeBlocks;
     /** Head of the chunk list. */
     VBGLPHYSHEAPCHUNK      *pChunkHead;
+    /** Maximum physical address allowed for allocations, inclusive. */
+    RTHCPHYS                HCPhysMax;
     /** @} */
 
     /**

@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
 <!--
-    docbook-refentry-to-manual-sect1.xsl:
+    docbook-refentry-to-C-help.xsl:
         XSLT stylesheet for nicking the refsynopsisdiv bit of a
         refentry (manpage) for use in the command overview section
         in the user manual.
 -->
 <!--
-    Copyright (C) 2006-2023 Oracle and/or its affiliates.
+    Copyright (C) 2006-2024 Oracle and/or its affiliates.
 
     This file is part of VirtualBox base platform packages, as
     available from https://www.virtualbox.org.
@@ -148,8 +148,13 @@ static const RTMSGREFENTRYSTR </xsl:text><xsl:value-of select="$sDataBaseSym"/><
 
     <!-- Then comes the description and other refsect1 -->
     <xsl:for-each select="./refsect1">
+      <!-- assertions -->
       <xsl:if test="name(*[1]) != 'title'"><xsl:message terminate="yes"><xsl:call-template name="error-prefix"/>Expected title as the first element in refsect1.</xsl:message></xsl:if>
       <xsl:if test="text()"><xsl:message terminate="yes"><xsl:call-template name="error-prefix"/>No text supported in refsect1.</xsl:message></xsl:if>
+      <xsl:if test="not(@id)"><xsl:message terminate="yes"><xsl:call-template name="error-prefix"/>refsect1 must have an @id attribute.</xsl:message></xsl:if>
+      <xsl:if test="not(starts-with(@id, concat(../@id, '-')))"><xsl:message terminate="yes"><xsl:call-template name="error-prefix"/>Wrong @id refsect1 prefix: '<xsl:value-of select="@id"/>', expected it to start with '<xsl:value-of select="../@id"/>-'</xsl:message></xsl:if>
+
+      <!-- .... -->
       <xsl:if test="not(./remark[@role='help-skip'])">
         <xsl:variable name="sTitle">
           <xsl:apply-templates select="./title/node()"/>
@@ -264,9 +269,12 @@ static const RTMSGREFENTRY </xsl:text><xsl:value-of select="$sDataBaseSym"/><xsl
   <xsl:template match="arg|group">
     <!-- separator char if we're not the first child -->
     <xsl:if test="position() > 1">
+      <!--<xsl:value-of select="concat('*',name(),'=', position(),'#')"/>-->
       <xsl:choose>
+        <xsl:when test="parent::group and ancestor::*[@role='compact']"><xsl:value-of select="$arg.or.sep.compact"/></xsl:when>
         <xsl:when test="parent::group"><xsl:value-of select="$arg.or.sep"/></xsl:when>
-        <xsl:when test="ancestor-or-self::*/@sepchar"><xsl:value-of select="ancestor-or-self::*/@sepchar"/></xsl:when>
+        <xsl:when test="ancestor::*[@role='compact']"></xsl:when>
+        <xsl:when test="ancestor::*/@sepchar"><xsl:value-of select="ancestor::*/@sepchar"/></xsl:when>
         <xsl:otherwise><xsl:text> </xsl:text></xsl:otherwise>
       </xsl:choose>
     </xsl:if>
@@ -301,9 +309,11 @@ static const RTMSGREFENTRY </xsl:text><xsl:value-of select="$sDataBaseSym"/><xsl
         <xsl:when test="@choice = 'req'">               <xsl:value-of select="$arg.choice.req.close.str"/></xsl:when>
       </xsl:choose>
       <!-- Add a space padding if we're the last element in a repeating arg or group -->
-      <xsl:if test="(parent::arg or parent::group) and not(following-sibiling)">
+      <!-- 2023-03-22 bird: This is incorrectly written. Fix as needed...
+      <xsl:if test="(parent::arg or parent::group) and not(following-sibiling) and not(ancestor::*[@role='compact'])">
         <xsl:text> </xsl:text>
       </xsl:if>
+      -->
     </xsl:if>
   </xsl:template>
 
@@ -315,6 +325,8 @@ static const RTMSGREFENTRY </xsl:text><xsl:value-of select="$sDataBaseSym"/><xsl
     <!-- assertions -->
     <xsl:if test="text()"><xsl:message terminate="yes"><xsl:call-template name="error-prefix"/>refsect2 shouldn't contain text</xsl:message></xsl:if>
     <xsl:if test="count(./title) != 1"><xsl:message terminate="yes"><xsl:call-template name="error-prefix"/>refsect2 requires a title (<xsl:value-of select="ancestor-or-self::*[@id][1]/@id"/>)</xsl:message></xsl:if>
+    <xsl:if test="not(@id)"><xsl:message terminate="yes"><xsl:call-template name="error-prefix"/>refsect2 must have an @id attribute.</xsl:message></xsl:if>
+    <xsl:if test="not(starts-with(@id, concat(../../@id, '-')))"><xsl:message terminate="yes"><xsl:call-template name="error-prefix"/>Wrong @id refsect2 prefix: '<xsl:value-of select="@id"/>', expected it to start with '<xsl:value-of select="../../@id"/>-'</xsl:message></xsl:if>
 
     <!-- title / command synopsis - sets the scope. -->
     <xsl:variable name="sTitle">
@@ -725,10 +737,10 @@ Only supported on: refsect1, refsect2, refsynopsisdiv/cmdsynopsis</xsl:message>
   <!-- Figures out the scope of a refsect1 element. -->
   <xsl:template name="calc-scope-refsect1">
     <xsl:choose>
-      <xsl:when test="title[text() = 'Description']">
+      <xsl:when test="contains(@id, '-description') or title[text() = 'Description']">
         <xsl:text>RTMSGREFENTRYSTR_SCOPE_GLOBAL</xsl:text>
       </xsl:when>
-      <xsl:when test="@id or remark[@role='help-scope']">
+      <xsl:when test="(@id and not(contains(@id, '-see-also')) and not(contains(@id, '-examples'))) or remark[@role='help-scope']">
         <xsl:call-template name="calc-scope-from-remark-or-id"/>
       </xsl:when>
       <xsl:otherwise>
@@ -740,7 +752,7 @@ Only supported on: refsect1, refsect2, refsynopsisdiv/cmdsynopsis</xsl:message>
   <!-- Figures out the scope of a refsect2 element. -->
   <xsl:template name="calc-scope-refsect2">
     <xsl:choose>
-      <xsl:when test="@id or remark[@role='help-scope']">
+      <xsl:when test="(@id and not(contains(@id, '-see-also')) and not(contains(@id, '-examples'))) or remark[@role='help-scope']">
         <xsl:call-template name="calc-scope-from-remark-or-id"/>
       </xsl:when>
       <xsl:otherwise>

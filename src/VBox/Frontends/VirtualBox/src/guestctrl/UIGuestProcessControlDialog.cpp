@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,28 +35,23 @@
 #include "UIIconPool.h"
 #include "UIGuestControlConsole.h"
 #include "UIGuestProcessControlDialog.h"
-#include "UICommon.h"
-#ifdef VBOX_WS_MAC
-# include "VBoxUtils-darwin.h"
-#endif
+#include "UILoggingDefs.h"
+#include "UIMachine.h"
+#include "UISession.h"
+#include "UITranslationEventListener.h"
 
 
 /*********************************************************************************************************************************
 *   Class UIGuestProcessControlDialogFactory implementation.                                                                     *
 *********************************************************************************************************************************/
 
-UIGuestProcessControlDialogFactory::UIGuestProcessControlDialogFactory(UIActionPool *pActionPool /* = 0 */,
-                                                         const CGuest &comGuest /* = CGuest() */,
-                                                         const QString &strMachineName /* = QString() */)
-    : m_pActionPool(pActionPool)
-    , m_comGuest(comGuest)
-    , m_strMachineName(strMachineName)
+UIGuestProcessControlDialogFactory::UIGuestProcessControlDialogFactory()
 {
 }
 
 void UIGuestProcessControlDialogFactory::create(QIManagerDialog *&pDialog, QWidget *pCenterWidget)
 {
-    pDialog = new UIGuestProcessControlDialog(pCenterWidget, m_pActionPool, m_comGuest, m_strMachineName);
+    pDialog = new UIGuestProcessControlDialog(pCenterWidget);
 }
 
 
@@ -64,18 +59,14 @@ void UIGuestProcessControlDialogFactory::create(QIManagerDialog *&pDialog, QWidg
 *   Class UIGuestProcessControlDialog implementation.                                                                            *
 *********************************************************************************************************************************/
 
-UIGuestProcessControlDialog::UIGuestProcessControlDialog(QWidget *pCenterWidget,
-                                           UIActionPool *pActionPool,
-                                           const CGuest &comGuest,
-                                           const QString &strMachineName /* = QString() */)
-    : QIWithRetranslateUI<QIManagerDialog>(pCenterWidget)
-    , m_pActionPool(pActionPool)
-    , m_comGuest(comGuest)
-    , m_strMachineName(strMachineName)
+UIGuestProcessControlDialog::UIGuestProcessControlDialog(QWidget *pCenterWidget)
+    : QIManagerDialog(pCenterWidget)
+    , m_comGuest(gpMachine->uisession()->guest())
+    , m_strMachineName(gpMachine->machineName())
 {
 }
 
-void UIGuestProcessControlDialog::retranslateUi()
+void UIGuestProcessControlDialog::sltRetranslateUI()
 {
     /* Translate window title: */
     setWindowTitle(tr("%1 - Guest Control").arg(m_strMachineName));
@@ -112,7 +103,9 @@ void UIGuestProcessControlDialog::configureCentralWidget()
 void UIGuestProcessControlDialog::finalize()
 {
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIGuestProcessControlDialog::sltRetranslateUI);
 }
 
 void UIGuestProcessControlDialog::loadSettings()

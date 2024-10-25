@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -2941,8 +2941,8 @@ typedef struct
 } SCMMATCHWORD;
 
 
-int ScmMatchWords(const char *pchLine, size_t cchLine, SCMMATCHWORD const *paWords, size_t cWords,
-                  size_t *poffNext, PRTSTRTUPLE paIdentifiers, PRTERRINFO pErrInfo)
+static int ScmMatchWords(const char *pchLine, size_t cchLine, SCMMATCHWORD const *paWords, size_t cWords,
+                         size_t *poffNext, PRTSTRTUPLE paIdentifiers, PRTERRINFO pErrInfo)
 {
     int rc = VINF_SUCCESS;
 

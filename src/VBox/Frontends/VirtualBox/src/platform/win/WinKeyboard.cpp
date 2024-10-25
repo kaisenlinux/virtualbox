@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2014-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2014-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -25,15 +25,12 @@
  * SPDX-License-Identifier: GPL-3.0-only
  */
 
-/* Defines: */
-#define LOG_GROUP LOG_GROUP_GUI
-
 /* GUI includes: */
+#include "UILoggingDefs.h"
 #include "WinKeyboard.h"
 
 /* Other VBox includes: */
 #include <iprt/assert.h>
-#include <VBox/log.h>
 
 /* External includes: */
 #include <stdio.h>

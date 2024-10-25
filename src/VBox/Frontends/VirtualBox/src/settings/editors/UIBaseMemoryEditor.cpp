@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,7 +35,7 @@
 /* GUI includes: */
 #include "QIAdvancedSlider.h"
 #include "UIBaseMemoryEditor.h"
-#include "UICommon.h"
+#include "UIGlobalSession.h"
 
 /* COM includes: */
 #include "CSystemProperties.h"
@@ -127,8 +127,8 @@ uint UIBaseMemorySlider::maxRAM() const
 
 void UIBaseMemorySlider::prepare()
 {
-    ulong uFullSize = uiCommon().host().GetMemorySize();
-    CSystemProperties sys = uiCommon().virtualBox().GetSystemProperties();
+    ulong uFullSize = gpGlobalSession->host().GetMemorySize();
+    CSystemProperties sys = gpGlobalSession->virtualBox().GetSystemProperties();
     m_uMinRAM = sys.GetMinGuestRAM();
     m_uMaxRAM = RT_MIN(RT_ALIGN(uFullSize, _1G / _1M), sys.GetMaxGuestRAM());
 
@@ -248,7 +248,7 @@ int UIBaseMemorySlider::calcPageStep(int iMaximum) const
 *********************************************************************************************************************************/
 
 UIBaseMemoryEditor::UIBaseMemoryEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent, true /* show in basic mode? */)
     , m_iValue(0)
     , m_pLayout(0)
     , m_pLabelMemory(0)
@@ -298,7 +298,7 @@ void UIBaseMemoryEditor::setMinimumLayoutIndent(int iIndent)
         m_pLayout->setColumnMinimumWidth(0, iIndent);
 }
 
-void UIBaseMemoryEditor::retranslateUi()
+void UIBaseMemoryEditor::sltRetranslateUI()
 {
     if (m_pLabelMemory)
         m_pLabelMemory->setText(tr("Base &Memory:"));
@@ -420,14 +420,14 @@ void UIBaseMemoryEditor::prepare()
                 m_pLabelMemory->setBuddy(m_pSpinBox);
             m_pSpinBox->setMinimum(m_pSlider->minRAM());
             m_pSpinBox->setMaximum(m_pSlider->maxRAM());
-            connect(m_pSpinBox, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged),
+            connect(m_pSpinBox, &QSpinBox::valueChanged,
                     this, &UIBaseMemoryEditor::sltHandleSpinBoxChange);
             m_pLayout->addWidget(m_pSpinBox, 0, 2);
         }
     }
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIBaseMemoryEditor::revalidate()

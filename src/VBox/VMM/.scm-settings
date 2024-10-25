@@ -4,7 +4,7 @@
 #
 
 #
-# Copyright (C) 2017-2023 Oracle and/or its affiliates.
+# Copyright (C) 2017-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -26,7 +26,7 @@
 #
 
 
-/VMMAll/IEMAllInstructionsPython.py: --license-ose-dual
+/VMMAll/IEMAllInstPython.py: --license-ose-dual
 
 --filter-out-files /testcase/dev.tar.gz
 
@@ -40,6 +40,9 @@
 /VMMAll/PGMAllBth.h: --no-fix-header-guards
 /VMMAll/PGMAllGst.h: --no-fix-header-guards
 /VMMAll/PGMAllShw.h: --no-fix-header-guards
+/VMMAll/IEMAllInstCommonBodyMacros.h: --no-fix-header-guards
+/VMMAll/IEMAllN8veLiveness.h: --no-fix-header-guards
+/VMMAll/IEMAllN8veRecompFuncs.h: --no-fix-header-guards
 /testcase/tstVMStruct.h: --no-fix-header-guards
 /testcase/tstIEMAImplData.h: --no-fix-header-guards
 
@@ -54,7 +57,7 @@
 /VMMR3/PGMPool.cpp:     --no-page-restrictions
 /testcase/tstVMStructSize.cpp:     --no-page-restrictions
 
-# Forbit ASMMemIsZeroPage and ASMMemZeroPage.
+# Forbid ASMMemIsZeroPage and ASMMemZeroPage.
 /*.cpp: --no-ASMMemPage-use
 /*.h:   --no-ASMMemPage-use
 # Except in the pool where more care/work is needed.

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -33,13 +33,12 @@
 
 /* GUI includes: */
 #include "QIRichToolButton.h"
-#include "QIWithRetranslateUI.h"
 #include "UILibraryDefs.h"
 
 /** QIRichToolButton extension
   * representing arrow tool-button with text-label,
   * can be used as back/next buttons in various places. */
-class SHARED_LIBRARY_STUFF QIArrowButtonPress : public QIWithRetranslateUI<QIRichToolButton>
+class SHARED_LIBRARY_STUFF QIArrowButtonPress : public QIRichToolButton
 {
     Q_OBJECT;
 
@@ -54,11 +53,13 @@ public:
 
 protected:
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
     /** Handles key-press @a pEvent. */
     virtual void keyPressEvent(QKeyEvent *pEvent) RT_OVERRIDE;
+
+private slots:
+
+    /** Handles translation event. */
+    void sltRetranslateUI();
 
 private:
 

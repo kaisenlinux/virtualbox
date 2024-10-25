@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,14 +32,14 @@
 #endif
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
+#include "UIEditor.h"
 
 /* Forward declarations: */
 class QCheckBox;
 class QLabel;
 
-/** QWidget subclass used as an auto capture keyboard editor. */
-class SHARED_LIBRARY_STUFF UIAutoCaptureKeyboardEditor : public QIWithRetranslateUI<QWidget>
+/** UIEditor sub-class used as an auto capture keyboard editor. */
+class SHARED_LIBRARY_STUFF UIAutoCaptureKeyboardEditor : public UIEditor
 {
     Q_OBJECT;
 
@@ -53,10 +53,10 @@ public:
     /** Returns editor value. */
     bool value() const;
 
-protected:
+private slots:
 
     /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 

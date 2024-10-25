@@ -5,7 +5,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1307,7 +1307,7 @@ int main(int argc, char **argv)
         pBtnMenu->add("Shutdown", "" /* Shortcut */, cb_btn_shutdown, &ctx, 0 /* Flags */);
 
     char szLabel[255];
-    RTStrPrintf(szLabel, sizeof(szLabel), "Oracle VM VirtualBox Guest Additions %sr%s",
+    RTStrPrintf(szLabel, sizeof(szLabel), "Oracle VirtualBox Guest Additions %sr%s",
                 RTBldCfgVersion(), RTBldCfgRevisionStr());
     Fl_Box *pLblInfo = new Fl_Box(FL_NO_BOX , 50, uOffsetY + 150,
                                   400, 20, szLabel);
@@ -1528,4 +1528,3 @@ DECLEXPORT(void) RTAssertMsg1Weak(const char *pszExpr, unsigned uLine, const cha
     RTAssertMsg1(pszExpr, uLine, pszFile, pszFunction);
 }
 #endif
-

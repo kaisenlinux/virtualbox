@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -37,7 +37,7 @@
 #include <QVector>
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
+#include "UIDefs.h"
 #include "UIExtraDataDefs.h"
 #include "UILibraryDefs.h"
 
@@ -48,13 +48,6 @@ class UIActionPool;
 class UIActionPoolRuntime;
 class UIActionPoolManager;
 
-
-/** Action-pool types. */
-enum UIActionPoolType
-{
-    UIActionPoolType_Manager,
-    UIActionPoolType_Runtime
-};
 
 /** Action types. */
 enum UIActionType
@@ -88,11 +81,11 @@ enum UIActionIndex
     /* 'Help' menu actions: */
     UIActionIndex_Menu_Help,
     UIActionIndex_Simple_Contents,
+    UIActionIndex_Simple_OnlineDocumentation,
     UIActionIndex_Simple_WebSite,
     UIActionIndex_Simple_BugTracker,
     UIActionIndex_Simple_Forums,
     UIActionIndex_Simple_Oracle,
-    UIActionIndex_Simple_OnlineDocumentation,
 #ifndef VBOX_WS_MAC
     UIActionIndex_Simple_About,
 #endif
@@ -103,7 +96,7 @@ enum UIActionIndex
     UIActionIndex_M_Log_T_Find,
     UIActionIndex_M_Log_T_Filter,
     UIActionIndex_M_Log_T_Bookmark,
-    UIActionIndex_M_Log_T_Options,
+    UIActionIndex_M_Log_T_Preferences,
     UIActionIndex_M_Log_S_Refresh,
     UIActionIndex_M_Log_S_Reload,
     UIActionIndex_M_Log_S_Save,
@@ -112,6 +105,7 @@ enum UIActionIndex
     UIActionIndex_M_Activity,
     UIActionIndex_M_Activity_S_Export,
     UIActionIndex_M_Activity_S_ToVMActivityOverview,
+    UIActionIndex_M_Activity_T_Preferences,
 
     /* File Manager actions: */
     UIActionIndex_M_FileManager,
@@ -119,7 +113,7 @@ enum UIActionIndex
     UIActionIndex_M_FileManager_M_GuestSubmenu,
     UIActionIndex_M_FileManager_S_CopyToGuest,
     UIActionIndex_M_FileManager_S_CopyToHost,
-    UIActionIndex_M_FileManager_T_Options,
+    UIActionIndex_M_FileManager_T_Preferences,
     UIActionIndex_M_FileManager_T_Log,
     UIActionIndex_M_FileManager_T_Operations,
     UIActionIndex_M_FileManager_T_GuestSession,
@@ -127,6 +121,10 @@ enum UIActionIndex
     UIActionIndex_M_FileManager_S_Guest_GoUp,
     UIActionIndex_M_FileManager_S_Host_GoHome,
     UIActionIndex_M_FileManager_S_Guest_GoHome,
+    UIActionIndex_M_FileManager_S_Host_GoForward,
+    UIActionIndex_M_FileManager_S_Guest_GoForward,
+    UIActionIndex_M_FileManager_S_Host_GoBackward,
+    UIActionIndex_M_FileManager_S_Guest_GoBackward,
     UIActionIndex_M_FileManager_S_Host_Refresh,
     UIActionIndex_M_FileManager_S_Guest_Refresh,
     UIActionIndex_M_FileManager_S_Host_Delete,
@@ -150,13 +148,25 @@ enum UIActionIndex
 
     /* VISO Creator actions: */
     UIActionIndex_M_VISOCreator,
-    UIActionIndex_M_VISOCreator_ToggleConfigPanel,
-    UIActionIndex_M_VISOCreator_ToggleOptionsPanel,
+    UIActionIndex_M_VISOCreator_TogglePreferences,
     UIActionIndex_M_VISOCreator_Add,
     UIActionIndex_M_VISOCreator_Remove,
+    UIActionIndex_M_VISOCreator_Restore,
     UIActionIndex_M_VISOCreator_CreateNewDirectory,
     UIActionIndex_M_VISOCreator_Rename,
     UIActionIndex_M_VISOCreator_Reset,
+    UIActionIndex_M_VISOCreator_Open,
+    UIActionIndex_M_VISOCreator_SaveAs,
+    UIActionIndex_M_VISOCreator_ImportISO,
+    UIActionIndex_M_VISOCreator_RemoveISO,
+    UIActionIndex_M_VISOCreator_VisoContent_GoHome,
+    UIActionIndex_M_VISOCreator_VisoContent_GoUp,
+    UIActionIndex_M_VISOCreator_VisoContent_GoForward,
+    UIActionIndex_M_VISOCreator_VisoContent_GoBackward,
+    UIActionIndex_M_VISOCreator_Host_GoHome,
+    UIActionIndex_M_VISOCreator_Host_GoUp,
+    UIActionIndex_M_VISOCreator_Host_GoForward,
+    UIActionIndex_M_VISOCreator_Host_GoBackward,
 
     /* Medium selector actions : */
     UIActionIndex_M_MediumSelector,
@@ -209,7 +219,7 @@ public:
 protected:
 
     /** Handles any Qt @a pEvent. */
-    virtual bool event(QEvent *pEvent);
+    virtual bool event(QEvent *pEvent) RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -283,9 +293,9 @@ public:
     /** Returns extra-data ID to save keyboard shortcut under. */
     virtual QString shortcutExtraDataID() const { return QString(); }
     /** Returns default keyboard shortcut for this action. */
-    virtual QKeySequence defaultShortcut(UIActionPoolType) const { return QKeySequence(); }
+    virtual QKeySequence defaultShortcut(UIType) const { return QKeySequence(); }
     /** Returns standard keyboard shortcut for this action. */
-    virtual QKeySequence standardShortcut(UIActionPoolType) const { return QKeySequence(); }
+    virtual QKeySequence standardShortcut(UIType) const { return QKeySequence(); }
 
     /** Retranslates action. */
     virtual void retranslateUi() = 0;
@@ -308,9 +318,9 @@ protected:
     static QString simplifyText(QString strText);
 
     /** Holds the reference to the action-pool this action belongs to. */
-    UIActionPool           *m_pActionPool;
+    UIActionPool *m_pActionPool;
     /** Holds the type of the action-pool this action belongs to. */
-    const UIActionPoolType  m_enmActionPoolType;
+    const UIType  m_enmActionPoolType;
 
     /** Holds the action type. */
     const UIActionType  m_enmType;
@@ -461,7 +471,7 @@ private:
 
 /** Abstract QObject extension
   * representing action-pool interface and factory. */
-class SHARED_LIBRARY_STUFF UIActionPool : public QIWithRetranslateUI3<QObject>
+class SHARED_LIBRARY_STUFF UIActionPool : public QObject
 {
     Q_OBJECT;
 
@@ -499,13 +509,13 @@ signals:
 public:
 
     /** Creates singleton instance. */
-    static UIActionPool *create(UIActionPoolType enmType);
+    static UIActionPool *create(UIType enmType);
     /** Destroys singleton instance. */
     static void destroy(UIActionPool *pActionPool);
 
     /** Creates temporary singleton instance,
       * used to initialize shortcuts-pool from action-pool of passed @a enmType. */
-    static void createTemporary(UIActionPoolType enmType);
+    static void createTemporary(UIType enmType);
 
     /** Cast action-pool to Manager one. */
     UIActionPoolManager *toManager();
@@ -513,7 +523,7 @@ public:
     UIActionPoolRuntime *toRuntime();
 
     /** Returns action-pool type. */
-    UIActionPoolType type() const { return m_enmType; }
+    UIType type() const { return m_enmType; }
     /** Returns whether this action-pool is temporary. */
     bool isTemporary() const { return m_fTemporary; }
 
@@ -577,7 +587,7 @@ protected slots:
 protected:
 
     /** Constructs probably @a fTemporary action-pool of passed @a enmType. */
-    UIActionPool(UIActionPoolType enmType, bool fTemporary = false);
+    UIActionPool(UIType enmType, bool fTemporary = false);
 
     /** Prepares pool. */
     virtual void preparePool();
@@ -601,9 +611,6 @@ protected:
 
     /** Handles any Qt @a pEvent */
     virtual bool event(QEvent *pEvent) RT_OVERRIDE;
-
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
 
     /** Adds action into corresponding menu. */
     bool addAction(UIMenu *pMenu, UIAction *pAction, bool fReallyAdd = true);
@@ -655,6 +662,11 @@ protected:
     /** Holds restricted action types of the Help menu. */
     QMap<UIActionRestrictionLevel, UIExtraDataMetaDefs::MenuHelpActionType>         m_restrictedActionsMenuHelp;
 
+private slots:
+
+    /** Handles translation event. */
+    void sltRetranslateUI();
+
 private:
 
     /** Prepares all. */
@@ -663,9 +675,9 @@ private:
     void cleanup();
 
     /** Holds the action-pool type. */
-    const UIActionPoolType  m_enmType;
+    const UIType  m_enmType;
     /** Holds whether this action-pool is temporary. */
-    const bool              m_fTemporary;
+    const bool    m_fTemporary;
 };
 
 

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -129,7 +129,11 @@
 #include <VBox/vmm/em.h>
 #include <VBox/sup.h>
 #include <VBox/vmm/dbgf.h>
-#include <VBox/vmm/apic.h>
+#if defined(VBOX_VMM_TARGET_ARMV8)
+# include <VBox/vmm/gic.h>
+#else
+# include <VBox/vmm/apic.h>
+#endif
 #include <VBox/vmm/ssm.h>
 #include <VBox/vmm/tm.h>
 #include "VMMInternal.h"
@@ -141,6 +145,9 @@
 #include <VBox/vmm/hm.h>
 #include <iprt/assert.h>
 #include <iprt/alloc.h>
+#if defined(VBOX_VMM_TARGET_ARMV8)
+# include <iprt/armv8.h>
+#endif
 #include <iprt/asm.h>
 #include <iprt/time.h>
 #include <iprt/semaphore.h>
@@ -569,6 +576,7 @@ VMMR3_INT_DECL(int) VMMR3InitCompleted(PVM pVM, VMINITCOMPLETED enmWhat)
 
         case VMINITCOMPLETED_HM:
         {
+#if !defined(VBOX_VMM_TARGET_ARMV8)
             /*
              * Disable the periodic preemption timers if we can use the
              * VMX-preemption timer instead.
@@ -577,6 +585,7 @@ VMMR3_INT_DECL(int) VMMR3InitCompleted(PVM pVM, VMINITCOMPLETED enmWhat)
                 && HMR3IsVmxPreemptionTimerUsed(pVM))
                 pVM->vmm.s.fUsePeriodicPreemptionTimers = false;
             LogRel(("VMM: fUsePeriodicPreemptionTimers=%RTbool\n", pVM->vmm.s.fUsePeriodicPreemptionTimers));
+#endif
 
             /*
              * Last chance for GIM to update its CPUID leaves if it requires
@@ -1209,30 +1218,36 @@ static DECLCALLBACK(void) vmmR3YieldEMT(PVM pVM, TMTIMERHANDLE hTimer, void *pvU
  */
 VMMR3_INT_DECL(int) VMMR3HmRunGC(PVM pVM, PVMCPU pVCpu)
 {
+#if defined(VBOX_VMM_TARGET_ARMV8)
+    /* We should actually never get here as the only execution engine is NEM. */
+    RT_NOREF(pVM, pVCpu);
+    AssertReleaseFailed();
+    return VERR_NOT_SUPPORTED;
+#else
     Log2(("VMMR3HmRunGC: (cs:rip=%04x:%RX64)\n", CPUMGetGuestCS(pVCpu), CPUMGetGuestRIP(pVCpu)));
 
     int rc;
     do
     {
-#ifdef NO_SUPCALLR0VMM
+# ifdef NO_SUPCALLR0VMM
         rc = VERR_GENERAL_FAILURE;
-#else
+# else
         rc = SUPR3CallVMMR0Fast(VMCC_GET_VMR0_FOR_CALL(pVM), VMMR0_DO_HM_RUN, pVCpu->idCpu);
         if (RT_LIKELY(rc == VINF_SUCCESS))
             rc = pVCpu->vmm.s.iLastGZRc;
-#endif
+# endif
     } while (rc == VINF_EM_RAW_INTERRUPT_HYPER);
 
-#if 0 /** @todo triggers too often */
+# if 0 /** @todo triggers too often */
     Assert(!VMCPU_FF_IS_SET(pVCpu, VMCPU_FF_TO_R3));
-#endif
+# endif
 
     /*
      * Flush the logs
      */
-#ifdef LOG_ENABLED
+# ifdef LOG_ENABLED
     VMM_FLUSH_R0_LOG(pVM, pVCpu, &pVCpu->vmm.s.u.s.Logger, NULL);
-#endif
+# endif
     VMM_FLUSH_R0_LOG(pVM, pVCpu, &pVCpu->vmm.s.u.s.RelLogger, RTLogRelGetDefaultInstance());
     if (rc != VERR_VMM_RING0_ASSERTION)
     {
@@ -1240,6 +1255,7 @@ VMMR3_INT_DECL(int) VMMR3HmRunGC(PVM pVM, PVMCPU pVCpu)
         return rc;
     }
     return vmmR3HandleRing0Assert(pVM, pVCpu);
+#endif
 }
 
 
@@ -1278,6 +1294,61 @@ VMMR3_INT_DECL(VBOXSTRICTRC) VMMR3CallR0EmtFast(PVM pVM, PVMCPU pVCpu, VMMR0OPER
 }
 
 
+#if defined(VBOX_VMM_TARGET_ARMV8)
+
+/**
+ * VCPU worker for VMMR3CpuOn.
+ *
+ * @param   pVM             The cross context VM structure.
+ * @param   idCpu           Virtual CPU to perform SIPI on.
+ * @param   GCPhysExecAddr  The guest physical address to start executing at.
+ * @param   u64CtxId        The context ID passed in x0/w0.
+ */
+static DECLCALLBACK(int) vmmR3CpuOn(PVM pVM, VMCPUID idCpu, RTGCPHYS GCPhysExecAddr, uint64_t u64CtxId)
+{
+    PVMCPU pVCpu = pVM->apCpusR3[idCpu];
+    VMCPU_ASSERT_EMT(pVCpu);
+
+    if (EMGetState(pVCpu) != EMSTATE_WAIT_SIPI)
+        return VINF_SUCCESS;
+
+    PCPUMCTX pCtx = CPUMQueryGuestCtxPtr(pVCpu);
+
+    pCtx->aGRegs[ARMV8_AARCH64_REG_X0].x = u64CtxId;
+    pCtx->Pc.u64                         = GCPhysExecAddr;
+
+    Log(("vmmR3CpuOn for VCPU %d with GCPhysExecAddr=%RGp u64CtxId=%#RX64\n", idCpu, GCPhysExecAddr, u64CtxId));
+
+# if 1 /* If we keep the EMSTATE_WAIT_SIPI method, then move this to EM.cpp. */
+    EMSetState(pVCpu, EMSTATE_HALTED);
+    return VINF_EM_RESCHEDULE;
+# else /* And if we go the VMCPU::enmState way it can stay here. */
+    VMCPU_ASSERT_STATE(pVCpu, VMCPUSTATE_STOPPED);
+    VMCPU_SET_STATE(pVCpu, VMCPUSTATE_STARTED);
+    return VINF_SUCCESS;
+# endif
+}
+
+
+/**
+ * Sends a Startup IPI to the virtual CPU by setting CS:EIP into
+ * vector-dependent state and unhalting processor.
+ *
+ * @param   pVM             The cross context VM structure.
+ * @param   idCpu           Virtual CPU to perform SIPI on.
+ * @param   GCPhysExecAddr  The guest physical address to start executing at.
+ * @param   u64CtxId        The context ID passed in x0/w0.
+ */
+VMMR3_INT_DECL(void)    VMMR3CpuOn(PVM pVM, VMCPUID idCpu, RTGCPHYS GCPhysExecAddr, uint64_t u64CtxId)
+{
+    AssertReturnVoid(idCpu < pVM->cCpus);
+
+    int rc = VMR3ReqCallNoWait(pVM, idCpu, (PFNRT)vmmR3CpuOn, 4, pVM, idCpu, GCPhysExecAddr, u64CtxId);
+    AssertRC(rc);
+}
+
+#else /* !VBOX_VMM_TARGET_ARMV8 */
+
 /**
  * VCPU worker for VMMR3SendStartupIpi.
  *
@@ -1285,9 +1356,9 @@ VMMR3_INT_DECL(VBOXSTRICTRC) VMMR3CallR0EmtFast(PVM pVM, PVMCPU pVCpu, VMMR0OPER
  * @param   idCpu       Virtual CPU to perform SIPI on.
  * @param   uVector     The SIPI vector.
  */
-static DECLCALLBACK(int) vmmR3SendStarupIpi(PVM pVM, VMCPUID idCpu, uint32_t uVector)
+static DECLCALLBACK(int) vmmR3SendStartupIpi(PVM pVM, VMCPUID idCpu, uint32_t uVector)
 {
-    PVMCPU pVCpu = VMMGetCpuById(pVM, idCpu);
+    PVMCPU pVCpu = pVM->apCpusR3[idCpu];
     VMCPU_ASSERT_EMT(pVCpu);
 
     /*
@@ -1301,7 +1372,7 @@ static DECLCALLBACK(int) vmmR3SendStarupIpi(PVM pVM, VMCPUID idCpu, uint32_t uVe
         return VINF_SUCCESS;
 
     PCPUMCTX pCtx = CPUMQueryGuestCtxPtr(pVCpu);
-#ifdef VBOX_WITH_NESTED_HWVIRT_VMX
+# ifdef VBOX_WITH_NESTED_HWVIRT_VMX
     if (CPUMIsGuestInVmxRootMode(pCtx))
     {
         /* If the CPU is in VMX non-root mode we must cause a VM-exit. */
@@ -1311,7 +1382,7 @@ static DECLCALLBACK(int) vmmR3SendStarupIpi(PVM pVM, VMCPUID idCpu, uint32_t uVe
         /* If the CPU is in VMX root mode (and not in VMX non-root mode) SIPIs are blocked. */
         return VINF_SUCCESS;
     }
-#endif
+# endif
 
     pCtx->cs.Sel        = uVector << 8;
     pCtx->cs.ValidSel   = uVector << 8;
@@ -1342,7 +1413,7 @@ static DECLCALLBACK(int) vmmR3SendStarupIpi(PVM pVM, VMCPUID idCpu, uint32_t uVe
  */
 static DECLCALLBACK(int) vmmR3SendInitIpi(PVM pVM, VMCPUID idCpu)
 {
-    PVMCPU pVCpu = VMMGetCpuById(pVM, idCpu);
+    PVMCPU pVCpu = pVM->apCpusR3[idCpu];
     VMCPU_ASSERT_EMT(pVCpu);
 
     Log(("vmmR3SendInitIpi for VCPU %d\n", idCpu));
@@ -1351,18 +1422,20 @@ static DECLCALLBACK(int) vmmR3SendInitIpi(PVM pVM, VMCPUID idCpu)
      *        wait-for-SIPI state. Verify. */
 
     /* If the CPU is in VMX non-root mode, INIT signals cause VM-exits. */
-#ifdef VBOX_WITH_NESTED_HWVIRT_VMX
+# ifdef VBOX_WITH_NESTED_HWVIRT_VMX
     PCCPUMCTX pCtx = CPUMQueryGuestCtxPtr(pVCpu);
     if (CPUMIsGuestInVmxNonRootMode(pCtx))
         return VBOXSTRICTRC_TODO(IEMExecVmxVmexit(pVCpu, VMX_EXIT_INIT_SIGNAL, 0 /* uExitQual */));
-#endif
+# endif
 
     /** @todo Figure out how to handle a SVM nested-guest intercepts here for INIT
      *  IPI (e.g. SVM_EXIT_INIT). */
 
     PGMR3ResetCpu(pVM, pVCpu);
     PDMR3ResetCpu(pVCpu);   /* Only clears pending interrupts force flags */
+# if !defined(VBOX_VMM_TARGET_ARMV8)
     APICR3InitIpi(pVCpu);
+# endif
     TRPMR3ResetCpu(pVCpu);
     CPUMR3ResetCpu(pVM, pVCpu);
     EMR3ResetCpu(pVCpu);
@@ -1386,7 +1459,7 @@ VMMR3_INT_DECL(void) VMMR3SendStartupIpi(PVM pVM, VMCPUID idCpu,  uint32_t uVect
 {
     AssertReturnVoid(idCpu < pVM->cCpus);
 
-    int rc = VMR3ReqCallNoWait(pVM, idCpu, (PFNRT)vmmR3SendStarupIpi, 3, pVM, idCpu, uVector);
+    int rc = VMR3ReqCallNoWait(pVM, idCpu, (PFNRT)vmmR3SendStartupIpi, 3, pVM, idCpu, uVector);
     AssertRC(rc);
 }
 
@@ -1405,6 +1478,7 @@ VMMR3_INT_DECL(void) VMMR3SendInitIpi(PVM pVM, VMCPUID idCpu)
     AssertRC(rc);
 }
 
+#endif /* !VBOX_VMM_TARGET_ARMV8 */
 
 /**
  * Registers the guest memory range that can be used for patching.
@@ -2537,8 +2611,13 @@ static DECLCALLBACK(void) vmmR3InfoFF(PVM pVM, PCDBGFINFOHLP pHlp, const char *p
         /* show the flag mnemonics */
         c = 0;
         f = fLocalForcedActions;
+#if defined(VBOX_VMM_TARGET_ARMV8)
+        PRINT_FLAG(VMCPU_FF_,INTERRUPT_IRQ);
+        PRINT_FLAG(VMCPU_FF_,INTERRUPT_FIQ);
+#else
         PRINT_FLAG(VMCPU_FF_,INTERRUPT_APIC);
         PRINT_FLAG(VMCPU_FF_,INTERRUPT_PIC);
+#endif
         PRINT_FLAG(VMCPU_FF_,TIMER);
         PRINT_FLAG(VMCPU_FF_,INTERRUPT_NMI);
         PRINT_FLAG(VMCPU_FF_,INTERRUPT_SMI);

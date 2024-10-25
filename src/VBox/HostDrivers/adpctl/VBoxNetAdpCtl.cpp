@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -128,7 +128,7 @@ CmdList& CmdList::operator<<(const char *pcszArgument)
 }
 
 /** Simple helper to distinguish IPv4 and IPv6 addresses. */
-inline bool isAddrV6(const char *pcszAddress)
+DECLINLINE(bool) isAddrV6(const char *pcszAddress)
 {
     return !!(strchr(pcszAddress, ':'));
 }
@@ -947,7 +947,10 @@ bool GlobalNetworkPermissionsConfig::forbids(NetworkAddress& address)
                 fprintf(stderr, "Info: %s(%d) matching against '%s' => %s\n", VBOX_GLOBAL_NETWORK_CONFIG_PATH, line, pszToken,
                     address.matches(pszToken) ? "MATCH" : "no match");
             if (address.matches(pszToken))
+            {
+                fclose(fp);
                 return false;
+            }
         }
     }
     fclose(fp);

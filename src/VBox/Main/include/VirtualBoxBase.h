@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -608,19 +608,19 @@ public:
     DECLARE_TRANSLATE_METHODS(cls)
 
 #define VIRTUALBOXBASE_ADD_VIRTUAL_COMPONENT_METHODS(cls, iface) \
-    virtual const IID& getClassIID() const \
+    virtual const IID &getClassIID() const RT_OVERRIDE \
     { \
         return cls::getStaticClassIID(); \
     } \
-    static const IID& getStaticClassIID() \
+    static const IID &getStaticClassIID() \
     { \
         return COM_IIDOF(iface); \
     } \
-    virtual const char* getComponentName() const \
+    virtual const char *getComponentName() const RT_OVERRIDE \
     { \
         return cls::getStaticComponentName(); \
     } \
-    static const char* getStaticComponentName() \
+    static const char *getStaticComponentName() \
     { \
         return #cls; \
     }
@@ -641,7 +641,7 @@ public:
 #else // !VBOX_WITH_XPCOM
   #define VIRTUALBOXBASE_ADD_ERRORINFO_SUPPORT(cls, iface) \
     VIRTUALBOXBASE_ADD_VIRTUAL_COMPONENT_METHODS(cls, iface) \
-    STDMETHOD(InterfaceSupportsErrorInfo)(REFIID riid) \
+    STDMETHOD(InterfaceSupportsErrorInfo)(REFIID riid) RT_OVERRIDE \
     { \
         const ATL::_ATL_INTMAP_ENTRY* pEntries = cls::_GetEntries(); \
         Assert(pEntries); \
@@ -781,6 +781,7 @@ public:
     HRESULT setErrorBoth(HRESULT hrc, int vrc, const char *pcszMsgFmt, ...);
     HRESULT setWarning(HRESULT aResultCode, const char *pcsz, ...);
     HRESULT setErrorNoLog(HRESULT aResultCode, const char *pcsz, ...);
+    HRESULT setErrorBothNoLog(HRESULT hrc, int vrc, const char *pcszMsgFmt, ...);
 
 
     /** Initialize COM for a new thread. */

@@ -6,7 +6,7 @@
  */
 
 /*
- * Copyright (C) 2022-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2022-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -418,8 +418,7 @@ static DECLCALLBACK(int) drvCloudTunnelUp_SendBuf(PPDMINETWORKUP pInterface, PPD
     {
         Log2(("%s: submitting TX request (pvSeg=%p, %u bytes) to I/O queue...\n",
               pThis->pszInstance, pSgBuf->aSegs[0].pvSeg, pSgBuf->cbUsed));
-        rc = RTReqQueueCallEx(pThis->hIoReqQueue, NULL /*ppReq*/, 0 /*cMillies*/,
-                              RTREQFLAGS_VOID | RTREQFLAGS_NO_WAIT,
+        rc = RTReqQueueCallEx(pThis->hIoReqQueue, NULL /*ppReq*/, 0 /*cMillies*/, RTREQFLAGS_VOID | RTREQFLAGS_NO_WAIT,
                               (PFNRT)drvCloudTunnelSendWorker, 2, pThis, pSgBuf);
 
         if (RT_SUCCESS(rc))
@@ -742,8 +741,7 @@ static int drvCloudTunnelReceiveCallback(ssh_session session, ssh_channel channe
         STAM_PROFILE_ADV_STOP(&pThis->StatReceive, a);
         return len;
     }
-    int rc = RTReqQueueCallEx(pThis->hDevReqQueue, NULL /*ppReq*/, 0 /*cMillies*/,
-                              RTREQFLAGS_VOID | RTREQFLAGS_NO_WAIT,
+    int rc = RTReqQueueCallEx(pThis->hDevReqQueue, NULL /*ppReq*/, 0 /*cMillies*/, RTREQFLAGS_VOID | RTREQFLAGS_NO_WAIT,
                               (PFNRT)drvCloudTunnelReceiveWorker, 3, pThis, pvPacket, len);
     if (RT_FAILURE(rc))
     {
@@ -820,8 +818,7 @@ static DECLCALLBACK(int) drvCloudTunnelDevWakeup(PPDMDRVINS pDrvIns, PPDMTHREAD 
 
     /* Wake up device thread. */
     PRTREQ pReq;
-    int rc = RTReqQueueCall(pThis->hDevReqQueue, &pReq, 10000 /*cMillies*/,
-                            (PFNRT)drvCloudTunnelReceiveWakeup, 1, pThis);
+    int rc = RTReqQueueCall(pThis->hDevReqQueue, &pReq, 10000 /*cMillies*/, (PFNRT)drvCloudTunnelReceiveWakeup, 1, pThis);
     if (RT_FAILURE(rc))
         LogRel(("%s: failed to wake up device thread - %Rrc\n", pThis->pszInstance, rc));
     if (RT_SUCCESS(rc))
@@ -837,9 +834,9 @@ static int drvCloudTunnelExecuteRemoteCommandNoOutput(PDRVCLOUDTUNNEL pThis, con
 {
     va_list va;
     va_start(va, pcszCommand);
-
-    size_t cb = RTStrPrintfV(pThis->pszCommandBuffer, DRVCLOUDTUNNEL_COMMAND_BUFFER_SIZE, pcszCommand, va);
-    if (cb == 0)
+    ssize_t const cch = RTStrPrintf2V(pThis->pszCommandBuffer, DRVCLOUDTUNNEL_COMMAND_BUFFER_SIZE, pcszCommand, va);
+    va_end(va);
+    if (cch <= 0)
     {
         Log(("%s: Failed to process '%s'\n", pThis->pszInstance, pcszCommand));
         return PDMDrvHlpVMSetError(pThis->pDrvIns, VERR_PDM_HIF_OPEN_FAILED, RT_SRC_POS,
@@ -871,7 +868,7 @@ static int drvCloudTunnelExecuteRemoteCommandNoOutput(PDRVCLOUDTUNNEL pThis, con
     }
     ssh_channel_free(channel);
 
-    return VINF_SUCCESS;
+    return rc;
 }
 
 
@@ -879,9 +876,9 @@ static int drvCloudTunnelExecuteRemoteCommand(PDRVCLOUDTUNNEL pThis, const char 
 {
     va_list va;
     va_start(va, pcszCommand);
-
-    size_t cb = RTStrPrintfV(pThis->pszCommandBuffer, DRVCLOUDTUNNEL_COMMAND_BUFFER_SIZE, pcszCommand, va);
-    if (cb == 0)
+    ssize_t const cch = RTStrPrintf2V(pThis->pszCommandBuffer, DRVCLOUDTUNNEL_COMMAND_BUFFER_SIZE, pcszCommand, va);
+    va_end(va);
+    if (cch <= 0)
     {
         Log(("%s: Failed to process '%s'\n", pThis->pszInstance, pcszCommand));
         return PDMDrvHlpVMSetError(pThis->pDrvIns, VERR_PDM_HIF_OPEN_FAILED, RT_SRC_POS,
@@ -976,7 +973,7 @@ static int drvCloudTunnelExecuteRemoteCommand(PDRVCLOUDTUNNEL pThis, const char 
     }
     ssh_channel_free(channel);
 
-    return VINF_SUCCESS;
+    return rc;
 }
 
 

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,13 +31,12 @@
 #endif
 
 /* GUI includes: */
-#include "UICommon.h"
-#include "UIDesktopWidgetWatchdog.h"
-#include "UIMessageCenter.h"
-#include "UISession.h"
 #include "UIActionPoolRuntime.h"
+#include "UIDesktopWidgetWatchdog.h"
+#include "UIMachine.h"
 #include "UIMachineLogicScale.h"
 #include "UIMachineWindow.h"
+#include "UIMessageCenter.h"
 #include "UIShortcutPool.h"
 #ifndef VBOX_WS_MAC
 # include "QIMenu.h"
@@ -49,8 +48,8 @@
 #include "CGraphicsAdapter.h"
 
 
-UIMachineLogicScale::UIMachineLogicScale(QObject *pParent, UISession *pSession)
-    : UIMachineLogic(pParent, pSession, UIVisualStateType_Scale)
+UIMachineLogicScale::UIMachineLogicScale(UIMachine *pMachine)
+    : UIMachineLogic(pMachine)
 #ifndef VBOX_WS_MAC
     , m_pPopupMenu(0)
 #endif /* !VBOX_WS_MAC */
@@ -84,7 +83,7 @@ void UIMachineLogicScale::sltInvokePopupMenu()
 
 void UIMachineLogicScale::sltHostScreenAvailableAreaChange()
 {
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     /* Prevent handling if fake screen detected: */
     if (UIDesktopWidgetWatchdog::isFakeScreenDetected())
         return;
@@ -92,7 +91,7 @@ void UIMachineLogicScale::sltHostScreenAvailableAreaChange()
     /* Make sure all machine-window(s) have previous but normalized geometry: */
     foreach (UIMachineWindow *pMachineWindow, machineWindows())
         pMachineWindow->restoreCachedGeometry();
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
 
     /* Call to base-class: */
     UIMachineLogic::sltHostScreenAvailableAreaChange();
@@ -149,20 +148,16 @@ void UIMachineLogicScale::prepareMachineWindows()
     ::darwinSetFrontMostProcess();
 #endif /* VBOX_WS_MAC */
 
-    /* Get monitors count: */
-    ulong uMonitorCount = machine().GetGraphicsAdapter().GetMonitorCount();
+    /* Acquire monitor count: */
+    ulong cMonitorCount = 0;
+    uimachine()->acquireMonitorCount(cMonitorCount);
+
     /* Create machine window(s): */
-    for (ulong uScreenId = 0; uScreenId < uMonitorCount; ++ uScreenId)
+    for (ulong uScreenId = 0; uScreenId < cMonitorCount; ++ uScreenId)
         addMachineWindow(UIMachineWindow::create(this, uScreenId));
     /* Order machine window(s): */
-    for (ulong uScreenId = uMonitorCount; uScreenId > 0; -- uScreenId)
+    for (ulong uScreenId = cMonitorCount; uScreenId > 0; -- uScreenId)
         machineWindows()[uScreenId - 1]->raise();
-
-    /* Listen for frame-buffer resize: */
-    foreach (UIMachineWindow *pMachineWindow, machineWindows())
-        connect(pMachineWindow, &UIMachineWindow::sigFrameBufferResize,
-                this, &UIMachineLogicScale::sigFrameBufferResize);
-    emit sigFrameBufferResize();
 
     /* Mark machine-window(s) created: */
     setMachineWindowsCreated(true);

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,28 +26,18 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QDesktopServices>
 #include <QDir>
-#include <QFileDialog>
-#include <QGraphicsWidget>
-#include <QLibraryInfo>
 #include <QLocale>
-#include <QMenu>
-#include <QMutex>
-#include <QProcess>
-#include <QProgressDialog>
-#include <QRegularExpression>
 #include <QSessionManager>
-#include <QSettings>
 #include <QSpinBox>
 #include <QStandardPaths>
 #include <QStyleOptionSpinBox>
 #include <QThread>
-#include <QTimer>
-#include <QToolButton>
-#include <QToolTip>
-#include <QTranslator>
+#include <QUrl>
 #ifdef VBOX_WS_WIN
+# include <QSettings>
 # include <QStyleFactory>
 #endif
 #ifdef VBOX_GUI_WITH_PIDFILE
@@ -55,20 +45,17 @@
 #endif
 
 /* GUI includes: */
-#include "QIDialogButtonBox.h"
-#include "QIFileDialog.h"
-#include "QIMessageBox.h"
-#include "QIWithRestorableGeometry.h"
 #include "UICommon.h"
 #include "UIConverter.h"
 #include "UIDesktopWidgetWatchdog.h"
+#include "UIGlobalSession.h"
+#include "UIGuestOSType.h"
 #include "UIExtraDataDefs.h"
 #include "UIExtraDataManager.h"
-#include "UIFDCreationDialog.h"
 #include "UIIconPool.h"
-#include "UIMedium.h"
+#include "UILocalMachineStuff.h"
+#include "UILoggingDefs.h"
 #include "UIMediumEnumerator.h"
-#include "UIMediumSelector.h"
 #include "UIMessageCenter.h"
 #include "UIModalWindowManager.h"
 #include "UINotificationCenter.h"
@@ -76,18 +63,17 @@
 #include "UIShortcutPool.h"
 #include "UIThreadPool.h"
 #include "UITranslator.h"
+#include "UITranslationEventListener.h"
+#include "UIVersion.h"
 #include "UIVirtualBoxClientEventHandler.h"
 #include "UIVirtualBoxEventHandler.h"
-#include "UIVisoCreator.h"
-#include "UIWizardNewVD.h"
 #ifdef VBOX_WS_MAC
-# include "UIMachineWindowFullscreen.h"
-# include "UIMachineWindowSeamless.h"
+# include "UICocoaApplication.h"
 #endif
 #ifdef VBOX_WS_WIN
 # include "VBoxUtils-win.h"
 #endif
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
 # include "UIHostComboEditor.h"
 #endif
 #ifdef VBOX_GUI_WITH_NETWORK_MANAGER
@@ -96,58 +82,30 @@
 #endif
 
 /* COM includes: */
-#include "CAudioAdapter.h"
-#include "CBIOSSettings.h"
-#include "CCloudMachine.h"
-#include "CConsole.h"
-#include "CExtPack.h"
-#include "CExtPackFile.h"
-#include "CExtPackManager.h"
-#include "CHostUSBDevice.h"
-#include "CHostVideoInputDevice.h"
 #include "CMachine.h"
-#include "CMediumAttachment.h"
-#include "CNetworkAdapter.h"
-#include "CSerialPort.h"
-#include "CSharedFolder.h"
-#include "CSnapshot.h"
-#include "CStorageController.h"
-#include "CSystemProperties.h"
-#include "CUSBController.h"
-#include "CUSBDevice.h"
-#include "CUSBDeviceFilter.h"
-#include "CUSBDeviceFilters.h"
-#include "CVRDEServer.h"
 
 /* Other VBox includes: */
-#include <iprt/asm.h>
-#include <iprt/ctype.h>
-#include <iprt/env.h>
-#include <iprt/err.h>
-#include <iprt/file.h>
-#include <iprt/ldr.h>
-#include <iprt/param.h>
+#include <iprt/ctype.h> /* for RT_C_IS_CNTRL */
 #include <iprt/path.h>
-#include <iprt/system.h>
-#include <VBox/sup.h>
-#include <VBox/VBoxOGL.h>
+#include <iprt/stream.h>
 #include <VBox/vd.h>
 #include <VBox/com/Guid.h>
-
-/* VirtualBox interface declarations: */
-#include <VBox/com/VirtualBox.h>
+#ifdef VBOX_WITH_DEBUGGER_GUI
+# include <iprt/env.h> /* for RTEnvExist & RTENV_DEFAULT */
+# include <iprt/ldr.h>
+# include <VBox/sup.h> /* for SUPR3HardenedLdrLoadAppPriv */
+#endif
 
 /* External includes: */
 #ifdef VBOX_WS_MAC
 # include <sys/utsname.h>
 #endif
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
 # include <xcb/xcb.h>
 #endif
 
 /* Namespaces: */
 using namespace UIExtraDataDefs;
-using namespace UIMediumDefs;
 
 
 /* static */
@@ -188,10 +146,15 @@ UICommon::UICommon(UIType enmType)
 #ifdef VBOX_WS_WIN
     , m_fDataCommitted(false)
 #endif
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_MAC
+    , m_enmMacOSVersion(MacOSXRelease_Old)
+#endif
+#ifdef VBOX_WS_NIX
     , m_enmWindowManagerType(X11WMType_Unknown)
     , m_fCompositingManagerRunning(false)
+    , m_enmDisplayServerType(VBGHDISPLAYSERVERTYPE_NONE)
 #endif
+    , m_fDarkMode(false)
     , m_fSeparateProcess(false)
     , m_fShowStartVMErrors(true)
 #if defined(DEBUG_bird)
@@ -199,6 +162,7 @@ UICommon::UICommon(UIType enmType)
 #else
     , m_fAgressiveCaching(true)
 #endif
+    , m_fNoKeyboardGrabbing(false)
     , m_fRestoreCurrentSnapshot(false)
     , m_fExecuteAllInIem(false)
     , m_uWarpPct(100)
@@ -211,11 +175,8 @@ UICommon::UICommon(UIType enmType)
     , m_enmLaunchRunning(LaunchRunning_Default)
 #endif
     , m_fSettingsPwSet(false)
-    , m_fWrappersValid(false)
-    , m_fVBoxSVCAvailable(true)
     , m_pThreadPool(0)
     , m_pThreadPoolCloud(0)
-    , m_pMediumEnumerator(0)
 {
     /* Assign instance: */
     s_pInstance = this;
@@ -241,6 +202,16 @@ void UICommon::prepare()
             this, &UICommon::sltHandleCommitDataRequest);
 #endif /* VBOX_GUI_WITH_CUSTOMIZATIONS1 */
 
+#ifdef VBOX_WS_MAC
+    /* Determine OS release early: */
+    m_enmMacOSVersion = determineOsRelease();
+#endif
+
+#ifdef VBOX_WS_NIX
+    /* Detect display server type: */
+    m_enmDisplayServerType = VBGHDisplayServerTypeDetect();
+#endif
+
     /* Create converter: */
     UIConverter::create();
 
@@ -258,51 +229,30 @@ void UICommon::prepare()
     /* Load translation based on the current locale: */
     UITranslator::loadLanguage();
 
-    HRESULT rc = COMBase::InitializeCOM(true);
-    if (FAILED(rc))
-    {
-#ifdef VBOX_WITH_XPCOM
-        if (rc == NS_ERROR_FILE_ACCESS_DENIED)
-        {
-            char szHome[RTPATH_MAX] = "";
-            com::GetVBoxUserHomeDirectory(szHome, sizeof(szHome));
-            msgCenter().cannotInitUserHome(QString(szHome));
-        }
-        else
-#endif
-            msgCenter().cannotInitCOM(rc);
+    /* Init COM: */
+    UIGlobalSession::create();
+    if (!gpGlobalSession->prepare())
         return;
-    }
-
-    /* Make sure VirtualBoxClient instance created: */
-    m_comVBoxClient.createInstance(CLSID_VirtualBoxClient);
-    if (!m_comVBoxClient.isOk())
-    {
-        msgCenter().cannotCreateVirtualBoxClient(m_comVBoxClient);
-        return;
-    }
-    /* Make sure VirtualBox instance acquired: */
-    m_comVBox = m_comVBoxClient.GetVirtualBox();
-    if (!m_comVBoxClient.isOk())
-    {
-        msgCenter().cannotAcquireVirtualBox(m_comVBoxClient);
-        return;
-    }
-    /* Init wrappers: */
-    comWrappersReinit();
-
-    /* Watch for the VBoxSVC availability changes: */
-    connect(gVBoxClientEvents, &UIVirtualBoxClientEventHandler::sigVBoxSVCAvailabilityChange,
+    connect(gpGlobalSession, &UIGlobalSession::sigVBoxSVCAvailabilityChange,
             this, &UICommon::sltHandleVBoxSVCAvailabilityChange);
+
+    /* Create extra-data manager right after COM init: */
+    UIExtraDataManager::create();
 
     /* Prepare thread-pool instances: */
     m_pThreadPool = new UIThreadPool(3 /* worker count */, 5000 /* worker timeout */);
     m_pThreadPoolCloud = new UIThreadPool(2 /* worker count */, 1000 /* worker timeout */);
 
-#ifdef VBOX_WS_WIN
+    /* Load whether host OS is in Dark mode: */
+#if defined(VBOX_WS_MAC)
+    m_fDarkMode = UICocoaApplication::instance()->isDarkMode();
+#elif defined(VBOX_WS_WIN)
+    m_fDarkMode = isWindowsInDarkMode();
+#else /* Linux, BSD, Solaris */
+    m_fDarkMode = isPaletteInDarkMode();
+#endif /* Linux, BSD, Solaris */
     /* Load color theme: */
     loadColorTheme();
-#endif
 
     /* Load translation based on the user settings: */
     QString strLanguageId = gEDataManager->languageId();
@@ -310,6 +260,9 @@ void UICommon::prepare()
         UITranslator::loadLanguage(strLanguageId);
 
     retranslateUi();
+
+    /* Create translation event listener instance: */
+    UITranslationEventListener::create();
 
     connect(gEDataManager, &UIExtraDataManager::sigLanguageChange,
             this, &UICommon::sltGUILanguageChange);
@@ -322,13 +275,13 @@ void UICommon::prepare()
 
     UIVisualStateType visualStateType = UIVisualStateType_Invalid;
 
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     /* Check whether we have compositing manager running: */
-    m_fCompositingManagerRunning = NativeWindowSubsystem::X11IsCompositingManagerRunning();
+    m_fCompositingManagerRunning = NativeWindowSubsystem::isCompositingManagerRunning(X11ServerAvailable());
 
     /* Acquire current Window Manager type: */
-    m_enmWindowManagerType = NativeWindowSubsystem::X11WindowManagerType();
-#endif /* VBOX_WS_X11 */
+    m_enmWindowManagerType = NativeWindowSubsystem::windowManagerType(X11ServerAvailable());
+#endif /* VBOX_WS_NIX */
 
 #ifdef VBOX_WITH_DEBUGGER_GUI
 # ifdef VBOX_WITH_DEBUGGER_GUI_MENU
@@ -361,18 +314,31 @@ void UICommon::prepare()
         const QByteArray &argBytes = arguments.at(i).toUtf8();
         const char *arg = argBytes.constData();
         enum { OptType_Unknown, OptType_VMRunner, OptType_VMSelector, OptType_MaybeBoth } enmOptType = OptType_Unknown;
+
+        const char *pszSep = NULL;
+#define MATCH_OPT_WITH_VALUE(a_szOption) \
+            (    !::strncmp(arg,RT_STR_TUPLE(a_szOption)) \
+              && (   *(pszSep = &arg[sizeof(a_szOption) - 1]) == '\0' \
+                  || *pszSep == '=' \
+                  || *pszSep == ':') )
+#define ASSIGN_OPT_VALUE_TO_QSTRING(a_strDst) do { \
+                if (*pszSep != '\0') \
+                    (a_strDst) = &pszSep[1]; \
+                else if (++i < argc) \
+                    (a_strDst) = arguments.at(i); \
+                else \
+                    (a_strDst).clear(); \
+            } while (0)
+
         /* NOTE: the check here must match the corresponding check for the
          * options to start a VM in main.cpp and hardenedmain.cpp exactly,
          * otherwise there will be weird error messages. */
-        if (   !::strcmp(arg, "--startvm")
-            || !::strcmp(arg, "-startvm"))
+        if (   MATCH_OPT_WITH_VALUE("--startvm")
+            || MATCH_OPT_WITH_VALUE("-startvm") /* legacy */)
         {
             enmOptType = OptType_VMRunner;
-            if (++i < argc)
-            {
-                vmNameOrUuid = arguments.at(i);
-                startVM = true;
-            }
+            ASSIGN_OPT_VALUE_TO_QSTRING(vmNameOrUuid);
+            startVM = true;
         }
         else if (!::strcmp(arg, "-separate") || !::strcmp(arg, "--separate"))
         {
@@ -380,11 +346,10 @@ void UICommon::prepare()
             fSeparateProcess = true;
         }
 #ifdef VBOX_GUI_WITH_PIDFILE
-        else if (!::strcmp(arg, "-pidfile") || !::strcmp(arg, "--pidfile"))
+        else if (MATCH_OPT_WITH_VALUE("--pidfile") || MATCH_OPT_WITH_VALUE("-pidfile"))
         {
             enmOptType = OptType_MaybeBoth;
-            if (++i < argc)
-                m_strPidFile = arguments.at(i);
+            ASSIGN_OPT_VALUE_TO_QSTRING(m_strPidFile);
         }
 #endif /* VBOX_GUI_WITH_PIDFILE */
         /* Visual state type options: */
@@ -409,21 +374,25 @@ void UICommon::prepare()
             visualStateType = UIVisualStateType_Scale;
         }
         /* Passwords: */
-        else if (!::strcmp(arg, "--settingspw"))
+        else if (MATCH_OPT_WITH_VALUE("--settingspw") || MATCH_OPT_WITH_VALUE("--settings-pw"))
         {
             enmOptType = OptType_MaybeBoth;
-            if (++i < argc)
-            {
+            if (*pszSep == '\0')
+                RTStrCopy(m_astrSettingsPw, sizeof(m_astrSettingsPw), &pszSep[1]);
+            else if (++i < argc)
                 RTStrCopy(m_astrSettingsPw, sizeof(m_astrSettingsPw), arguments.at(i).toLocal8Bit().constData());
-                m_fSettingsPwSet = true;
-            }
+            else
+                m_astrSettingsPw[0] = '\0';
+            m_fSettingsPwSet = m_astrSettingsPw[0] != '\0';
         }
-        else if (!::strcmp(arg, "--settingspwfile"))
+        else if (MATCH_OPT_WITH_VALUE("--settingspwfile") || MATCH_OPT_WITH_VALUE("--settings-pw-file"))
         {
             enmOptType = OptType_MaybeBoth;
-            if (++i < argc)
+            QString strFilename;
+            ASSIGN_OPT_VALUE_TO_QSTRING(strFilename);
+            if (!strFilename.isEmpty())
             {
-                const QByteArray &argFileBytes = arguments.at(i).toLocal8Bit();
+                const QByteArray &argFileBytes = strFilename.toLocal8Bit();
                 const char *pszFile = argFileBytes.constData();
                 bool fStdIn = !::strcmp(pszFile, "stdin");
                 int vrc = VINF_SUCCESS;
@@ -452,10 +421,11 @@ void UICommon::prepare()
             }
         }
         /* Misc options: */
-        else if (!::strcmp(arg, "-comment") || !::strcmp(arg, "--comment"))
+        else if (MATCH_OPT_WITH_VALUE("--comment") || MATCH_OPT_WITH_VALUE("--comment"))
         {
             enmOptType = OptType_MaybeBoth;
-            ++i;
+            if (*pszSep == '\0')
+                ++i; /* we completely ignore the option value here, it's here only for 'ps' listing. */
         }
         else if (!::strcmp(arg, "--no-startvm-errormsgbox"))
         {
@@ -476,19 +446,29 @@ void UICommon::prepare()
         {
             enmOptType = OptType_VMRunner;
             m_fRestoreCurrentSnapshot = true;
+            m_strSnapshotToRestore.clear();
+        }
+        else if (MATCH_OPT_WITH_VALUE("--restore-snapshot"))
+        {
+            enmOptType = OptType_VMRunner;
+            ASSIGN_OPT_VALUE_TO_QSTRING(m_strSnapshotToRestore);
+            m_fRestoreCurrentSnapshot = false;
+        }
+        else if (!::strcmp(arg, "--no-keyboard-grabbing"))
+        {
+            enmOptType = OptType_VMRunner;
+            m_fNoKeyboardGrabbing = true;
         }
         /* Ad hoc VM reconfig options: */
-        else if (!::strcmp(arg, "--fda"))
+        else if (MATCH_OPT_WITH_VALUE("--fda"))
         {
             enmOptType = OptType_VMRunner;
-            if (++i < argc)
-                m_uFloppyImage = QUuid(arguments.at(i));
+            ASSIGN_OPT_VALUE_TO_QSTRING(m_strFloppyImage);
         }
-        else if (!::strcmp(arg, "--dvd") || !::strcmp(arg, "--cdrom"))
+        else if (MATCH_OPT_WITH_VALUE("--dvd") || MATCH_OPT_WITH_VALUE("--cdrom"))
         {
             enmOptType = OptType_VMRunner;
-            if (++i < argc)
-                m_uDvdImage = QUuid(arguments.at(i));
+            ASSIGN_OPT_VALUE_TO_QSTRING(m_strDvdImage);
         }
         /* VMM Options: */
         else if (!::strcmp(arg, "--execute-all-in-iem"))
@@ -498,11 +478,12 @@ void UICommon::prepare()
         }
         else if (!::strcmp(arg, "--driverless"))
             enmOptType = OptType_VMRunner;
-        else if (!::strcmp(arg, "--warp-pct"))
+        else if (MATCH_OPT_WITH_VALUE("--warp-pct"))
         {
             enmOptType = OptType_VMRunner;
-            if (++i < argc)
-                m_uWarpPct = RTStrToUInt32(arguments.at(i).toLocal8Bit().constData());
+            QString strValue;
+            ASSIGN_OPT_VALUE_TO_QSTRING(strValue);
+            m_uWarpPct = strValue.isEmpty() ? 100 : RTStrToUInt32(strValue.toLocal8Bit().constData());
         }
 #ifdef VBOX_WITH_DEBUGGER_GUI
         /* Debugger/Debugging options: */
@@ -533,33 +514,27 @@ void UICommon::prepare()
             setDebuggerVar(&m_fDbgAutoShow, true);
             setDebuggerVar(&m_fDbgAutoShowStatistics, true);
         }
-        else if (!::strcmp(arg, "--statistics-expand") || !::strcmp(arg, "--stats-expand"))
+        else if (MATCH_OPT_WITH_VALUE("--statistics-expand") || MATCH_OPT_WITH_VALUE("--stats-expand"))
         {
             enmOptType = OptType_VMRunner;
-            if (++i < argc)
+            QString strValue;
+            ASSIGN_OPT_VALUE_TO_QSTRING(strValue);
+            if (!strValue.isEmpty())
             {
                 if (!m_strDbgStatisticsExpand.isEmpty())
                     m_strDbgStatisticsExpand.append('|');
-                m_strDbgStatisticsExpand.append(arguments.at(i));
+                m_strDbgStatisticsExpand.append(strValue);
             }
         }
-        else if (!::strncmp(arg, RT_STR_TUPLE("--statistics-expand=")) || !::strncmp(arg, RT_STR_TUPLE("--stats-expand=")))
+        else if (MATCH_OPT_WITH_VALUE("--statistics-filter") || MATCH_OPT_WITH_VALUE("--stats-filter"))
         {
             enmOptType = OptType_VMRunner;
-            if (!m_strDbgStatisticsExpand.isEmpty())
-                m_strDbgStatisticsExpand.append('|');
-            m_strDbgStatisticsExpand.append(arguments.at(i).section('=', 1));
+            ASSIGN_OPT_VALUE_TO_QSTRING(m_strDbgStatisticsFilter);
         }
-        else if (!::strcmp(arg, "--statistics-filter") || !::strcmp(arg, "--stats-filter"))
+        else if (MATCH_OPT_WITH_VALUE("--statistics-config") || MATCH_OPT_WITH_VALUE("--stats-config"))
         {
             enmOptType = OptType_VMRunner;
-            if (++i < argc)
-                m_strDbgStatisticsFilter = arguments.at(i);
-        }
-        else if (!::strncmp(arg, RT_STR_TUPLE("--statistics-filter=")) || !::strncmp(arg, RT_STR_TUPLE("--stats-filter=")))
-        {
-            enmOptType = OptType_VMRunner;
-            m_strDbgStatisticsFilter = arguments.at(i).section('=', 1);
+            ASSIGN_OPT_VALUE_TO_QSTRING(m_strDbgStatisticsConfig);
         }
         else if (!::strcmp(arg, "-no-debug") || !::strcmp(arg, "--no-debug"))
         {
@@ -586,31 +561,34 @@ void UICommon::prepare()
 
         i++;
     }
+#undef MATCH_OPT_WITH_VALUE
+#undef ASSIGN_OPT_VALUE_TO_QSTRING
 
-    if (m_enmType == UIType_RuntimeUI && startVM)
+    if (uiType() == UIType_RuntimeUI && startVM)
     {
         /* m_fSeparateProcess makes sense only if a VM is started. */
         m_fSeparateProcess = fSeparateProcess;
 
         /* Search for corresponding VM: */
         QUuid uuid = QUuid(vmNameOrUuid);
-        const CMachine machine = m_comVBox.FindMachine(vmNameOrUuid);
+        const CVirtualBox comVBox = gpGlobalSession->virtualBox();
+        const CMachine comMachine = comVBox.FindMachine(vmNameOrUuid);
         if (!uuid.isNull())
         {
-            if (machine.isNull() && showStartVMErrors())
-                return msgCenter().cannotFindMachineById(m_comVBox, uuid);
+            if (comMachine.isNull() && showStartVMErrors())
+                return msgCenter().cannotFindMachineById(comVBox, uuid);
         }
         else
         {
-            if (machine.isNull() && showStartVMErrors())
-                return msgCenter().cannotFindMachineByName(m_comVBox, vmNameOrUuid);
+            if (comMachine.isNull() && showStartVMErrors())
+                return msgCenter().cannotFindMachineByName(comVBox, vmNameOrUuid);
         }
-        m_strManagedVMId = machine.GetId();
+        m_uManagedVMId = comMachine.GetId();
 
         if (m_fSeparateProcess)
         {
             /* Create a log file for VirtualBoxVM process. */
-            QString str = machine.GetLogFolder();
+            QString str = comMachine.GetLogFolder();
             com::Utf8Str logDir(str.toUtf8().constData());
 
             /* make sure the Logs folder exists */
@@ -631,7 +609,7 @@ void UICommon::prepare()
     }
 
     /* For Selector UI: */
-    if (uiType() == UIType_SelectorUI)
+    if (uiType() == UIType_ManagerUI)
     {
         /* We should create separate logging file for VM selector: */
         char szLogFile[RTPATH_MAX];
@@ -652,14 +630,17 @@ void UICommon::prepare()
                               _1M,
                               NULL /*pErrInfo*/);
 
-        LogRel(("Qt version: %s\n", qtRTVersionString().toUtf8().constData()));
+        LogRel(("Qt version: %s\n", UIVersionInfo::qtRTVersionString().toUtf8().constData()));
     }
 
     if (m_fSettingsPwSet)
-        m_comVBox.SetSettingsSecret(m_astrSettingsPw);
+    {
+        CVirtualBox comVBox = gpGlobalSession->virtualBox();
+        comVBox.SetSettingsSecret(m_astrSettingsPw);
+    }
 
-    if (visualStateType != UIVisualStateType_Invalid && !m_strManagedVMId.isNull())
-        gEDataManager->setRequestedVisualState(visualStateType, m_strManagedVMId);
+    if (visualStateType != UIVisualStateType_Invalid && !m_uManagedVMId.isNull())
+        gEDataManager->setRequestedVisualState(visualStateType, m_uManagedVMId);
 
 #ifdef VBOX_WITH_DEBUGGER_GUI
     /* For Runtime UI: */
@@ -686,23 +667,10 @@ void UICommon::prepare()
     m_fValid = true;
 
     /* Create medium-enumerator but don't do any immediate caching: */
-    m_pMediumEnumerator = new UIMediumEnumerator;
-    {
-        /* Prepare medium-enumerator: */
-        connect(m_pMediumEnumerator, &UIMediumEnumerator::sigMediumCreated,
-                this, &UICommon::sigMediumCreated);
-        connect(m_pMediumEnumerator, &UIMediumEnumerator::sigMediumDeleted,
-                this, &UICommon::sigMediumDeleted);
-        connect(m_pMediumEnumerator, &UIMediumEnumerator::sigMediumEnumerationStarted,
-                this, &UICommon::sigMediumEnumerationStarted);
-        connect(m_pMediumEnumerator, &UIMediumEnumerator::sigMediumEnumerated,
-                this, &UICommon::sigMediumEnumerated);
-        connect(m_pMediumEnumerator, &UIMediumEnumerator::sigMediumEnumerationFinished,
-                this, &UICommon::sigMediumEnumerationFinished);
-    }
+    UIMediumEnumerator::create();
 
     /* Create shortcut pool: */
-    UIShortcutPool::create();
+    UIShortcutPool::create(uiType());
 
 #ifdef VBOX_GUI_WITH_NETWORK_MANAGER
     /* Create network manager: */
@@ -716,15 +684,6 @@ void UICommon::prepare()
     /* Make sure no wrong USB mounted: */
     checkForWrongUSBMounted();
 #endif /* RT_OS_LINUX */
-
-    /* Populate the list of medium names to be excluded from the
-       recently used media extra data: */
-#if 0 /* bird: This is counter productive as it is _frequently_ necessary to re-insert the
-               viso to refresh the files (like after you rebuilt them on the host).
-               The guest caches ISOs aggressively and files sizes may change. */
-    m_recentMediaExcludeList << "ad-hoc.viso";
-#endif
-
 
     iOriginalFontPixelSize = qApp->font().pixelSize();
     iOriginalFontPointSize = qApp->font().pointSize();
@@ -777,15 +736,8 @@ void UICommon::cleanup()
     deletePidfile();
 #endif /* VBOX_GUI_WITH_PIDFILE */
 
-    /* Starting medium-enumerator cleanup: */
-    m_meCleanupProtectionToken.lockForWrite();
-    {
-        /* Destroy medium-enumerator: */
-        delete m_pMediumEnumerator;
-        m_pMediumEnumerator = 0;
-    }
-    /* Finishing medium-enumerator cleanup: */
-    m_meCleanupProtectionToken.unlock();
+    /* Destroy medium-enumerator: */
+    UIMediumEnumerator::destroy();
 
     /* Destroy the global (VirtualBox and VirtualBoxClient) Main event
      * handlers which are used in both Manager and Runtime UIs. */
@@ -805,29 +757,12 @@ void UICommon::cleanup()
     delete m_pThreadPoolCloud;
     m_pThreadPoolCloud = 0;
 
-    /* Ensure CGuestOSType objects are no longer used: */
-    m_guestOSFamilyIDs.clear();
-    m_guestOSTypes.clear();
+    /* First, make sure we don't use COM any more: */
+    emit sigAskToDetachCOM();
 
-    /* Starting COM cleanup: */
-    m_comCleanupProtectionToken.lockForWrite();
-    {
-        /* First, make sure we don't use COM any more: */
-        emit sigAskToDetachCOM();
-        m_comHost.detach();
-        m_comVBox.detach();
-        m_comVBoxClient.detach();
-
-        /* There may be UIMedium(s)EnumeratedEvent instances still in the message
-         * queue which reference COM objects. Remove them to release those objects
-         * before uninitializing the COM subsystem. */
-        QApplication::removePostedEvents(this);
-
-        /* Finally cleanup COM itself: */
-        COMBase::CleanupCOM();
-    }
-    /* Finishing COM cleanup: */
-    m_comCleanupProtectionToken.unlock();
+    /* Cleanup COM: */
+    gpGlobalSession->cleanup();
+    UIGlobalSession::destroy();
 
     /* Notify listener it can close UI now: */
     emit sigAskToCloseUI();
@@ -843,103 +778,61 @@ void UICommon::cleanup()
     /* Destroy desktop-widget watchdog: */
     UIDesktopWidgetWatchdog::destroy();
 
+    /* Destroy translation event listener instance: */
+    UITranslationEventListener::destroy();
+
     m_fValid = false;
 
     LogRel(("GUI: UICommon: aboutToQuit request handled!\n"));
 }
 
+#ifdef VBOX_WS_MAC
 /* static */
-QString UICommon::qtRTVersionString()
+MacOSXRelease UICommon::determineOsRelease()
 {
-    return QString::fromLatin1(qVersion());
-}
-
-/* static */
-uint UICommon::qtRTVersion()
-{
-    const QString strVersionRT = UICommon::qtRTVersionString();
-    return (strVersionRT.section('.', 0, 0).toInt() << 16) +
-           (strVersionRT.section('.', 1, 1).toInt() << 8) +
-           strVersionRT.section('.', 2, 2).toInt();
-}
-
-/* static */
-uint UICommon::qtRTMajorVersion()
-{
-    return UICommon::qtRTVersionString().section('.', 0, 0).toInt();
-}
-
-/* static */
-uint UICommon::qtRTMinorVersion()
-{
-    return UICommon::qtRTVersionString().section('.', 1, 1).toInt();
-}
-
-/* static */
-uint UICommon::qtRTRevisionNumber()
-{
-    return UICommon::qtRTVersionString().section('.', 2, 2).toInt();
-}
-
-/* static */
-QString UICommon::qtCTVersionString()
-{
-    return QString::fromLatin1(QT_VERSION_STR);
-}
-
-/* static */
-uint UICommon::qtCTVersion()
-{
-    const QString strVersionCompiled = UICommon::qtCTVersionString();
-    return (strVersionCompiled.section('.', 0, 0).toInt() << 16) +
-           (strVersionCompiled.section('.', 1, 1).toInt() << 8) +
-           strVersionCompiled.section('.', 2, 2).toInt();
-}
-
-QString UICommon::vboxVersionString() const
-{
-    return m_comVBox.GetVersion();
-}
-
-QString UICommon::vboxVersionStringNormalized() const
-{
-    return m_comVBox.GetVersionNormalized();
-}
-
-bool UICommon::isBeta() const
-{
-    return vboxVersionString().contains(QRegularExpression("BETA|ALPHA", QRegularExpression::CaseInsensitiveOption));
-}
-
-bool UICommon::showBetaLabel() const
-{
-    return    isBeta()
-           && !gEDataManager->preventBetaBuildLavel();
-}
-
-bool UICommon::brandingIsActive(bool fForce /* = false */)
-{
-    if (fForce)
-        return true;
-
-    if (m_strBrandingConfigFilePath.isEmpty())
+    /* Prepare 'utsname' struct: */
+    utsname info;
+    if (uname(&info) != -1)
     {
-        m_strBrandingConfigFilePath = QDir(QApplication::applicationDirPath()).absolutePath();
-        m_strBrandingConfigFilePath += "/custom/custom.ini";
+        /* Cut the major release index of the string we have, s.a. 'man uname': */
+        const int iRelease = QString(info.release).section('.', 0, 0).toInt();
+        /* Check boundaries: */
+        if (iRelease <= MacOSXRelease_FirstUnknown)
+            return MacOSXRelease_Old;
+        else if (iRelease >= MacOSXRelease_LastUnknown)
+            return MacOSXRelease_New;
+        else
+            return (MacOSXRelease)iRelease;
     }
-
-    return QFile::exists(m_strBrandingConfigFilePath);
+    /* Return 'Old' by default: */
+    return MacOSXRelease_Old;
 }
+#endif /* VBOX_WS_MAC */
 
-QString UICommon::brandingGetKey(QString strKey) const
+#ifdef VBOX_WS_NIX
+bool UICommon::X11ServerAvailable() const
 {
-    QSettings settings(m_strBrandingConfigFilePath, QSettings::IniFormat);
-    return settings.value(QString("%1").arg(strKey)).toString();
+    return VBGHDisplayServerTypeIsXAvailable(m_enmDisplayServerType);
 }
 
-#ifdef VBOX_WS_WIN
-/* static */
-void UICommon::loadColorTheme()
+VBGHDISPLAYSERVERTYPE UICommon::displayServerType() const
+{
+    return m_enmDisplayServerType;
+}
+#endif
+
+QString UICommon::hostOperatingSystem() const
+{
+    const CHost comHost = gpGlobalSession->host();
+    return comHost.GetOperatingSystem();
+}
+
+#if defined(VBOX_WS_MAC)
+// Provided by UICocoaApplication ..
+
+#elif defined(VBOX_WS_WIN)
+
+bool UICommon::isWindowsInDarkMode() const
 {
     /* Load saved color theme: */
     UIColorThemeType enmColorTheme = gEDataManager->colorTheme();
@@ -953,8 +846,101 @@ void UICommon::loadColorTheme()
             enmColorTheme = UIColorThemeType_Dark;
     }
 
-    /* Check whether dark theme was requested by any means: */
-    if (enmColorTheme == UIColorThemeType_Dark)
+    /* Return result: */
+    return enmColorTheme == UIColorThemeType_Dark;
+}
+
+#else /* Linux, BSD, Solaris */
+
+bool UICommon::isPaletteInDarkMode() const
+{
+    const QPalette pal = qApp->palette();
+    const QColor background = pal.color(QPalette::Active, QPalette::Window);
+    const double dLuminance = (0.299 * background.red() + 0.587 * background.green() + 0.114 * background.blue()) / 255;
+    return dLuminance < 0.5;
+}
+#endif /* Linux, BSD, Solaris */
+
+void UICommon::loadColorTheme()
+{
+#if defined (VBOX_WS_MAC)
+    /* macOS has Window color hardcoded somewhere inside, Qt has no access to it,
+     * moreover these colors are influenced by window background blending,
+     * making Qt default colors incredibly inconsistent with native macOS apps. */
+
+    /* Redefine colors for known OS types: */
+    enum ColorSlot
+    {
+        ColorSlot_DarkActive,
+        ColorSlot_DarkInactive,
+        ColorSlot_DarkAlternate,
+        ColorSlot_LightActive,
+        ColorSlot_LightInactive,
+        ColorSlot_LightAlternate,
+    };
+    QMap<ColorSlot, QColor> colors;
+    switch (osRelease())
+    {
+        case MacOSXRelease_BigSur:
+        {
+            colors[ColorSlot_DarkActive] = QColor("#282628");
+            colors[ColorSlot_DarkInactive] = QColor("#2E292E");
+            colors[ColorSlot_LightActive] = QColor("#E7E2E3");
+            colors[ColorSlot_LightInactive] = QColor("#EEE9EA");
+            break;
+        }
+        case MacOSXRelease_Monterey:
+        {
+            colors[ColorSlot_DarkActive] = QColor("#252328");
+            colors[ColorSlot_DarkInactive] = QColor("#2A2630");
+            colors[ColorSlot_LightActive] = QColor("#E1DEE4");
+            colors[ColorSlot_LightInactive] = QColor("#EEE8E9");
+            break;
+        }
+        case MacOSXRelease_Ventura:
+        {
+            colors[ColorSlot_DarkActive] = QColor("#322827");
+            colors[ColorSlot_DarkInactive] = QColor("#332A28");
+            colors[ColorSlot_LightActive] = QColor("#E5E0DF");
+            colors[ColorSlot_LightInactive] = QColor("#ECE7E5");
+            break;
+        }
+        default:
+            break;
+    }
+    /* Redefine colors common for various OS types: */
+    // we do it only if we have redefined something above:
+    if (!colors.isEmpty())
+    {
+        colors[ColorSlot_DarkAlternate] = QColor("#2F2A2F");
+        colors[ColorSlot_LightAlternate] = QColor("#F4F5F5");
+    }
+
+    /* Do we have redefined colors? */
+    if (!colors.isEmpty())
+    {
+        QPalette pal = qApp->palette();
+        if (isInDarkMode())
+        {
+            pal.setColor(QPalette::Active, QPalette::Window, colors.value(ColorSlot_DarkActive));
+            pal.setColor(QPalette::Inactive, QPalette::Window, colors.value(ColorSlot_DarkInactive));
+            pal.setColor(QPalette::Active, QPalette::AlternateBase, colors.value(ColorSlot_DarkAlternate));
+            pal.setColor(QPalette::Inactive, QPalette::AlternateBase, colors.value(ColorSlot_DarkAlternate));
+        }
+        else
+        {
+            pal.setColor(QPalette::Active, QPalette::Window, colors.value(ColorSlot_LightActive));
+            pal.setColor(QPalette::Inactive, QPalette::Window, colors.value(ColorSlot_LightInactive));
+            pal.setColor(QPalette::Active, QPalette::AlternateBase, colors.value(ColorSlot_LightAlternate));
+            pal.setColor(QPalette::Inactive, QPalette::AlternateBase, colors.value(ColorSlot_LightAlternate));
+        }
+        qApp->setPalette(pal);
+    }
+
+#elif defined(VBOX_WS_WIN)
+
+    /* For the Dark mode! */
+    if (isInDarkMode())
     {
         qApp->setStyle(QStyleFactory::create("Fusion"));
         QPalette darkPalette;
@@ -982,8 +968,48 @@ void UICommon::loadColorTheme()
         qApp->setPalette(darkPalette);
         qApp->setStyleSheet("QToolTip { color: #ffffff; background-color: #2b2b2b; border: 1px solid #737373; }");
     }
+
+#else /* Linux, BSD, Solaris */
+
+    /* For the Dark mode! */
+    if (isInDarkMode())
+    {
+        // WORKAROUND:
+        // Have seen it on Linux with Qt5 but still see it with Qt6.
+        // In Dark themes on KDE (at least) PlaceholderText foreground
+        // is indistinguishable on Base background.
+
+        /* Acquire global palette: */
+        QPalette darkPalette = qApp->palette();
+
+        /* Get text base color: */
+        const QColor base = darkPalette.color(QPalette::Active, QPalette::Base);
+
+        /* Get possible foreground colors: */
+        const QColor simpleText = darkPalette.color(QPalette::Active, QPalette::Text);
+        const QColor placeholderText = darkPalette.color(QPalette::Active, QPalette::PlaceholderText);
+        QColor lightText = simpleText.black() < placeholderText.black() ? simpleText : placeholderText;
+        QColor darkText = simpleText.black() > placeholderText.black() ? simpleText : placeholderText;
+        if (lightText.black() > 128)
+            lightText = QColor(Qt::white);
+        lightText = lightText.darker(150);
+        if (darkText.black() < 128)
+            darkText = QColor(Qt::black);
+        darkText = darkText.lighter(150);
+
+        /* Measure base luminance: */
+        double dLuminance = (0.299 * base.red() + 0.587 * base.green() + 0.114 * base.blue()) / 255;
+
+        /* Adjust color accordingly: */
+        darkPalette.setColor(QPalette::Active, QPalette::PlaceholderText,
+                             dLuminance > 0.5 ? darkText : lightText);
+
+        /* Put palette back: */
+        qApp->setPalette(darkPalette);
+    }
+
+#endif /* Linux, BSD, Solaris */
 }
-#endif /* VBOX_WS_WIN */
 
 bool UICommon::processArgs()
 {
@@ -1024,7 +1050,7 @@ bool UICommon::processArgs()
             if (UICommon::hasAllowedExtension(strFile, VBoxFileExts))
             {
                 /* So that we could run existing VMs: */
-                CVirtualBox comVBox = virtualBox();
+                CVirtualBox comVBox = gpGlobalSession->virtualBox();
                 CMachine comMachine = comVBox.FindMachine(strFile);
                 if (!comMachine.isNull())
                 {
@@ -1119,1208 +1145,12 @@ void UICommon::deletePidfile()
 
 #endif /* VBOX_GUI_WITH_PIDFILE */
 
-QString UICommon::vmGuestOSFamilyDescription(const QString &strFamilyId) const
-{
-    AssertMsg(m_guestOSFamilyDescriptions.contains(strFamilyId),
-              ("Family ID incorrect: '%s'.", strFamilyId.toLatin1().constData()));
-    return m_guestOSFamilyDescriptions.value(strFamilyId);
-}
-
-QList<CGuestOSType> UICommon::vmGuestOSTypeList(const QString &strFamilyId) const
-{
-    AssertMsg(m_guestOSFamilyIDs.contains(strFamilyId),
-              ("Family ID incorrect: '%s'.", strFamilyId.toLatin1().constData()));
-    return m_guestOSFamilyIDs.contains(strFamilyId) ?
-           m_guestOSTypes[m_guestOSFamilyIDs.indexOf(strFamilyId)] : QList<CGuestOSType>();
-}
-
-CGuestOSType UICommon::vmGuestOSType(const QString &strTypeId,
-                                     const QString &strFamilyId /* = QString() */) const
-{
-    QList<CGuestOSType> list;
-    if (m_guestOSFamilyIDs.contains(strFamilyId))
-    {
-        list = m_guestOSTypes.at(m_guestOSFamilyIDs.indexOf(strFamilyId));
-    }
-    else
-    {
-        for (int i = 0; i < m_guestOSFamilyIDs.size(); ++i)
-            list += m_guestOSTypes.at(i);
-    }
-    for (int j = 0; j < list.size(); ++j)
-        if (!list.at(j).GetId().compare(strTypeId))
-            return list.at(j);
-    return CGuestOSType();
-}
-
-QString UICommon::vmGuestOSTypeDescription(const QString &strTypeId) const
-{
-    for (int i = 0; i < m_guestOSFamilyIDs.size(); ++i)
-    {
-        QList<CGuestOSType> list(m_guestOSTypes[i]);
-        for (int j = 0; j < list.size(); ++j)
-            if (!list.at(j).GetId().compare(strTypeId))
-                return list.at(j).GetDescription();
-    }
-    return QString();
-}
-
-/* static */
-bool UICommon::isDOSType(const QString &strOSTypeId)
-{
-    if (   strOSTypeId.left(3) == "dos"
-        || strOSTypeId.left(3) == "win"
-        || strOSTypeId.left(3) == "os2")
-        return true;
-
-    return false;
-}
-
-/* static */
-bool UICommon::switchToMachine(CMachine &comMachine)
-{
-#ifdef VBOX_WS_MAC
-    const ULONG64 id = comMachine.ShowConsoleWindow();
-#else
-    const WId id = (WId)comMachine.ShowConsoleWindow();
-#endif
-    AssertWrapperOk(comMachine);
-    if (!comMachine.isOk())
-        return false;
-
-    // WORKAROUND:
-    // id == 0 means the console window has already done everything
-    // necessary to implement the "show window" semantics.
-    if (id == 0)
-        return true;
-
-#if defined(VBOX_WS_WIN) || defined(VBOX_WS_X11)
-
-    return UIDesktopWidgetWatchdog::activateWindow(id, true);
-
-#elif defined(VBOX_WS_MAC)
-
-    // WORKAROUND:
-    // This is just for the case were the other process cannot steal
-    // the focus from us. It will send us a PSN so we can try.
-    ProcessSerialNumber psn;
-    psn.highLongOfPSN = id >> 32;
-    psn.lowLongOfPSN = (UInt32)id;
-# ifdef __clang__
-#  pragma GCC diagnostic push
-#  pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-    OSErr rc = ::SetFrontProcess(&psn);
-#  pragma GCC diagnostic pop
-# else
-    OSErr rc = ::SetFrontProcess(&psn);
-# endif
-    if (!rc)
-        Log(("GUI: %#RX64 couldn't do SetFrontProcess on itself, the selector (we) had to do it...\n", id));
-    else
-        Log(("GUI: Failed to bring %#RX64 to front. rc=%#x\n", id, rc));
-    return !rc;
-
-#else
-
-    return false;
-
-#endif
-}
-
-/* static */
-bool UICommon::launchMachine(CMachine &comMachine, UILaunchMode enmLaunchMode /* = UILaunchMode_Default */)
-{
-    /* Switch to machine window(s) if possible: */
-    if (   comMachine.GetSessionState() == KSessionState_Locked /* precondition for CanShowConsoleWindow() */
-        && comMachine.CanShowConsoleWindow())
-    {
-        switch (uiCommon().uiType())
-        {
-            /* For Selector UI: */
-            case UIType_SelectorUI:
-            {
-                /* Just switch to existing VM window: */
-                return switchToMachine(comMachine);
-            }
-            /* For Runtime UI: */
-            case UIType_RuntimeUI:
-            {
-                /* Only separate UI process can reach that place.
-                 * Switch to existing VM window and exit. */
-                switchToMachine(comMachine);
-                return false;
-            }
-        }
-    }
-
-    /* Not for separate UI (which can connect to machine in any state): */
-    if (enmLaunchMode != UILaunchMode_Separate)
-    {
-        /* Make sure machine-state is one of required: */
-        const KMachineState enmState = comMachine.GetState(); NOREF(enmState);
-        AssertMsg(   enmState == KMachineState_PoweredOff
-                  || enmState == KMachineState_Saved
-                  || enmState == KMachineState_Teleported
-                  || enmState == KMachineState_Aborted
-                  || enmState == KMachineState_AbortedSaved
-                  , ("Machine must be PoweredOff/Saved/Teleported/Aborted (%d)", enmState));
-    }
-
-    /* Create empty session instance: */
-    CSession comSession;
-    comSession.createInstance(CLSID_Session);
-    if (comSession.isNull())
-    {
-        msgCenter().cannotOpenSession(comSession);
-        return false;
-    }
-
-    /* Configure environment: */
-    QVector<QString> astrEnv;
-#ifdef VBOX_WS_WIN
-    /* Allow started VM process to be foreground window: */
-    AllowSetForegroundWindow(ASFW_ANY);
-#endif
-#ifdef VBOX_WS_X11
-    /* Make sure VM process will start on the same
-     * display as window this wrapper is called from: */
-    const char *pDisplay = RTEnvGet("DISPLAY");
-    if (pDisplay)
-        astrEnv.append(QString("DISPLAY=%1").arg(pDisplay));
-    const char *pXauth = RTEnvGet("XAUTHORITY");
-    if (pXauth)
-        astrEnv.append(QString("XAUTHORITY=%1").arg(pXauth));
-#endif
-    QString strType;
-    switch (enmLaunchMode)
-    {
-        case UILaunchMode_Default:  strType = ""; break;
-        case UILaunchMode_Separate: strType = uiCommon().isSeparateProcess() ? "headless" : "separate"; break;
-        case UILaunchMode_Headless: strType = "headless"; break;
-        default: AssertFailedReturn(false);
-    }
-
-    /* Prepare "VM spawning" progress: */
-    CProgress comProgress = comMachine.LaunchVMProcess(comSession, strType, astrEnv);
-    if (!comMachine.isOk())
-    {
-        /* If the VM is started separately and the VM process is already running, then it is OK. */
-        if (enmLaunchMode == UILaunchMode_Separate)
-        {
-            const KMachineState enmState = comMachine.GetState();
-            if (   enmState >= KMachineState_FirstOnline
-                && enmState <= KMachineState_LastOnline)
-            {
-                /* Already running: */
-                return true;
-            }
-        }
-
-        msgCenter().cannotOpenSession(comMachine);
-        return false;
-    }
-
-    /* Show "VM spawning" progress: */
-    msgCenter().showModalProgressDialog(comProgress, comMachine.GetName(),
-                                        ":/progress_start_90px.png", 0, 0);
-    if (!comProgress.isOk() || comProgress.GetResultCode() != 0)
-        msgCenter().cannotOpenSession(comProgress, comMachine.GetName());
-
-    /* Unlock machine, close session: */
-    comSession.UnlockMachine();
-
-    /* True finally: */
-    return true;
-}
-
-CSession UICommon::openSession(const QUuid &uId, KLockType lockType /* = KLockType_Shared */)
-{
-    /* Prepare session: */
-    CSession comSession;
-
-    /* Simulate try-catch block: */
-    bool fSuccess = false;
-    do
-    {
-        /* Create empty session instance: */
-        comSession.createInstance(CLSID_Session);
-        if (comSession.isNull())
-        {
-            msgCenter().cannotOpenSession(comSession);
-            break;
-        }
-
-        /* Search for the corresponding machine: */
-        CMachine comMachine = m_comVBox.FindMachine(uId.toString());
-        if (comMachine.isNull())
-        {
-            msgCenter().cannotFindMachineById(m_comVBox, uId);
-            break;
-        }
-
-        if (lockType == KLockType_VM)
-            comSession.SetName("GUI/Qt");
-
-        /* Lock found machine to session: */
-        comMachine.LockMachine(comSession, lockType);
-        if (!comMachine.isOk())
-        {
-            msgCenter().cannotOpenSession(comMachine);
-            break;
-        }
-
-        /* Pass the language ID as the property to the guest: */
-        if (comSession.GetType() == KSessionType_Shared)
-        {
-            CMachine comStartedMachine = comSession.GetMachine();
-            /* Make sure that the language is in two letter code.
-             * Note: if languageId() returns an empty string lang.name() will
-             * return "C" which is an valid language code. */
-            QLocale lang(UITranslator::languageId());
-            comStartedMachine.SetGuestPropertyValue("/VirtualBox/HostInfo/GUI/LanguageID", lang.name());
-        }
-
-        /* Success finally: */
-        fSuccess = true;
-    }
-    while (0);
-    /* Cleanup try-catch block: */
-    if (!fSuccess)
-        comSession.detach();
-
-    /* Return session: */
-    return comSession;
-}
-
-CSession UICommon::tryToOpenSessionFor(CMachine &comMachine)
-{
-    /* Prepare session: */
-    CSession comSession;
-
-    /* Session state unlocked? */
-    if (comMachine.GetSessionState() == KSessionState_Unlocked)
-    {
-        /* Open own 'write' session: */
-        comSession = openSession(comMachine.GetId());
-        AssertReturn(!comSession.isNull(), CSession());
-        comMachine = comSession.GetMachine();
-    }
-    /* Is this a Selector UI call? */
-    else if (uiType() == UIType_SelectorUI)
-    {
-        /* Open existing 'shared' session: */
-        comSession = openExistingSession(comMachine.GetId());
-        AssertReturn(!comSession.isNull(), CSession());
-        comMachine = comSession.GetMachine();
-    }
-    /* Else this is Runtime UI call
-     * which has session locked for itself. */
-
-    /* Return session: */
-    return comSession;
-}
-
-void UICommon::notifyCloudMachineUnregistered(const QString &strProviderShortName,
-                                              const QString &strProfileName,
-                                              const QUuid &uId)
-{
-    emit sigCloudMachineUnregistered(strProviderShortName, strProfileName, uId);
-}
-
-void UICommon::notifyCloudMachineRegistered(const QString &strProviderShortName,
-                                            const QString &strProfileName,
-                                            const CCloudMachine &comMachine)
-{
-    emit sigCloudMachineRegistered(strProviderShortName, strProfileName, comMachine);
-}
-
-void UICommon::enumerateMedia(const CMediumVector &comMedia /* = CMediumVector() */)
-{
-    /* Make sure UICommon is already valid: */
-    AssertReturnVoid(m_fValid);
-    /* Ignore the request during UICommon cleanup: */
-    if (m_fCleaningUp)
-        return;
-    /* Ignore the request during startup snapshot restoring: */
-    if (shouldRestoreCurrentSnapshot())
-        return;
-
-    /* Make sure medium-enumerator is already created: */
-    if (!m_pMediumEnumerator)
-        return;
-
-    /* Redirect request to medium-enumerator under proper lock: */
-    if (m_meCleanupProtectionToken.tryLockForRead())
-    {
-        if (m_pMediumEnumerator)
-            m_pMediumEnumerator->enumerateMedia(comMedia);
-        m_meCleanupProtectionToken.unlock();
-    }
-}
-
-void UICommon::refreshMedia()
-{
-    /* Make sure UICommon is already valid: */
-    AssertReturnVoid(m_fValid);
-    /* Ignore the request during UICommon cleanup: */
-    if (m_fCleaningUp)
-        return;
-    /* Ignore the request during startup snapshot restoring: */
-    if (shouldRestoreCurrentSnapshot())
-        return;
-
-    /* Make sure medium-enumerator is already created: */
-    if (!m_pMediumEnumerator)
-        return;
-    /* Make sure enumeration is not already started: */
-    if (m_pMediumEnumerator->isMediumEnumerationInProgress())
-        return;
-
-    /* We assume it's safe to call it without locking,
-     * since we are performing blocking operation here. */
-    m_pMediumEnumerator->refreshMedia();
-}
-
-bool UICommon::isFullMediumEnumerationRequested() const
-{
-    /* Redirect request to medium-enumerator: */
-    return    m_pMediumEnumerator
-           && m_pMediumEnumerator->isFullMediumEnumerationRequested();
-}
-
-bool UICommon::isMediumEnumerationInProgress() const
-{
-    /* Redirect request to medium-enumerator: */
-    return    m_pMediumEnumerator
-           && m_pMediumEnumerator->isMediumEnumerationInProgress();
-}
-
-UIMedium UICommon::medium(const QUuid &uMediumID) const
-{
-    if (m_meCleanupProtectionToken.tryLockForRead())
-    {
-        /* Redirect call to medium-enumerator: */
-        UIMedium guiMedium;
-        if (m_pMediumEnumerator)
-            guiMedium = m_pMediumEnumerator->medium(uMediumID);
-        m_meCleanupProtectionToken.unlock();
-        return guiMedium;
-    }
-    return UIMedium();
-}
-
-QList<QUuid> UICommon::mediumIDs() const
-{
-    if (m_meCleanupProtectionToken.tryLockForRead())
-    {
-        /* Redirect call to medium-enumerator: */
-        QList<QUuid> listOfMedia;
-        if (m_pMediumEnumerator)
-            listOfMedia = m_pMediumEnumerator->mediumIDs();
-        m_meCleanupProtectionToken.unlock();
-        return listOfMedia;
-    }
-    return QList<QUuid>();
-}
-
-void UICommon::createMedium(const UIMedium &guiMedium)
-{
-    if (m_meCleanupProtectionToken.tryLockForRead())
-    {
-        /* Create medium in medium-enumerator: */
-        if (m_pMediumEnumerator)
-            m_pMediumEnumerator->createMedium(guiMedium);
-        m_meCleanupProtectionToken.unlock();
-    }
-}
-
-QUuid UICommon::openMedium(UIMediumDeviceType enmMediumType, QString strMediumLocation, QWidget *pParent /* = 0 */)
-{
-    /* Convert to native separators: */
-    strMediumLocation = QDir::toNativeSeparators(strMediumLocation);
-
-    /* Initialize variables: */
-    CVirtualBox comVBox = virtualBox();
-
-    /* Open corresponding medium: */
-    CMedium comMedium = comVBox.OpenMedium(strMediumLocation, mediumTypeToGlobal(enmMediumType), KAccessMode_ReadWrite, false);
-
-    if (comVBox.isOk())
-    {
-        /* Prepare vbox medium wrapper: */
-        UIMedium guiMedium = medium(comMedium.GetId());
-
-        /* First of all we should test if that medium already opened: */
-        if (guiMedium.isNull())
-        {
-            /* And create new otherwise: */
-            guiMedium = UIMedium(comMedium, enmMediumType, KMediumState_Created);
-            createMedium(guiMedium);
-        }
-
-        /* Return guiMedium id: */
-        return guiMedium.id();
-    }
-    else
-        msgCenter().cannotOpenMedium(comVBox, strMediumLocation, pParent);
-
-    return QUuid();
-}
-
-QUuid UICommon::openMediumWithFileOpenDialog(UIMediumDeviceType enmMediumType, QWidget *pParent,
-                                               const QString &strDefaultFolder /* = QString() */,
-                                               bool fUseLastFolder /* = false */)
-{
-    /* Initialize variables: */
-    QList<QPair <QString, QString> > filters;
-    QStringList backends;
-    QStringList prefixes;
-    QString strFilter;
-    QString strTitle;
-    QString allType;
-    QString strLastFolder = defaultFolderPathForType(enmMediumType);
-
-    /* For DVDs and Floppies always check first the last recently used medium folder. For hard disk use
-       the caller's setting: */
-    fUseLastFolder = (enmMediumType == UIMediumDeviceType_DVD) || (enmMediumType == UIMediumDeviceType_Floppy);
-
-    switch (enmMediumType)
-    {
-        case UIMediumDeviceType_HardDisk:
-        {
-            filters = HDDBackends(virtualBox());
-            strTitle = tr("Please choose a virtual hard disk file");
-            allType = tr("All virtual hard disk files (%1)");
-            break;
-        }
-        case UIMediumDeviceType_DVD:
-        {
-            filters = DVDBackends(virtualBox());
-            strTitle = tr("Please choose a virtual optical disk file");
-            allType = tr("All virtual optical disk files (%1)");
-            break;
-        }
-        case UIMediumDeviceType_Floppy:
-        {
-            filters = FloppyBackends(virtualBox());
-            strTitle = tr("Please choose a virtual floppy disk file");
-            allType = tr("All virtual floppy disk files (%1)");
-            break;
-        }
-        default:
-            break;
-    }
-    QString strHomeFolder = fUseLastFolder && !strLastFolder.isEmpty() ? strLastFolder :
-                            strDefaultFolder.isEmpty() ? homeFolder() : strDefaultFolder;
-
-    /* Prepare filters and backends: */
-    for (int i = 0; i < filters.count(); ++i)
-    {
-        /* Get iterated filter: */
-        QPair<QString, QString> item = filters.at(i);
-        /* Create one backend filter string: */
-        backends << QString("%1 (%2)").arg(item.first).arg(item.second);
-        /* Save the suffix's for the "All" entry: */
-        prefixes << item.second;
-    }
-    if (!prefixes.isEmpty())
-        backends.insert(0, allType.arg(prefixes.join(" ").trimmed()));
-    backends << tr("All files (*)");
-    strFilter = backends.join(";;").trimmed();
-
-    /* Create open file dialog: */
-    QStringList files = QIFileDialog::getOpenFileNames(strHomeFolder, strFilter, pParent, strTitle, 0, true, true);
-
-    /* If dialog has some result: */
-    if (!files.empty() && !files[0].isEmpty())
-    {
-        QUuid uMediumId = openMedium(enmMediumType, files[0], pParent);
-        if (enmMediumType == UIMediumDeviceType_DVD || enmMediumType == UIMediumDeviceType_Floppy ||
-            (enmMediumType == UIMediumDeviceType_HardDisk && fUseLastFolder))
-            updateRecentlyUsedMediumListAndFolder(enmMediumType, medium(uMediumId).location());
-        return uMediumId;
-    }
-    return QUuid();
-}
-
-QUuid UICommon::openMediumCreatorDialog(UIActionPool *pActionPool, QWidget *pParent, UIMediumDeviceType enmMediumType,
-                                       const QString &strDefaultFolder /* = QString() */,
-                                       const QString &strMachineName /* = QString() */,
-                                       const QString &strMachineGuestOSTypeId /*= QString() */)
-{
-    /* Depending on medium-type: */
-    QUuid uMediumId;
-    switch (enmMediumType)
-    {
-        case UIMediumDeviceType_HardDisk:
-            uMediumId = UIWizardNewVD::createVDWithWizard(pParent, strDefaultFolder, strMachineName, strMachineGuestOSTypeId);
-            break;
-        case UIMediumDeviceType_DVD:
-            uMediumId = UIVisoCreatorWidget::createViso(pActionPool, pParent, strDefaultFolder, strMachineName);
-            break;
-        case UIMediumDeviceType_Floppy:
-            uMediumId = UIFDCreationDialog::createFloppyDisk(pParent, strDefaultFolder, strMachineName);
-            break;
-        default:
-            break;
-    }
-    if (uMediumId.isNull())
-        return QUuid();
-
-    /* Update the recent medium list only if the medium type is DVD or floppy: */
-    if (enmMediumType == UIMediumDeviceType_DVD || enmMediumType == UIMediumDeviceType_Floppy)
-        updateRecentlyUsedMediumListAndFolder(enmMediumType, medium(uMediumId).location());
-    return uMediumId;
-}
-
-void UICommon::prepareStorageMenu(QMenu &menu,
-                                    QObject *pListener, const char *pszSlotName,
-                                    const CMachine &comMachine, const QString &strControllerName, const StorageSlot &storageSlot)
-{
-    /* Current attachment attributes: */
-    const CMediumAttachment comCurrentAttachment = comMachine.GetMediumAttachment(strControllerName,
-                                                                                  storageSlot.port,
-                                                                                  storageSlot.device);
-    const CMedium comCurrentMedium = comCurrentAttachment.GetMedium();
-    const QUuid uCurrentID = comCurrentMedium.isNull() ? QUuid() : comCurrentMedium.GetId();
-    const QString strCurrentLocation = comCurrentMedium.isNull() ? QString() : comCurrentMedium.GetLocation();
-
-    /* Other medium-attachments of same machine: */
-    const CMediumAttachmentVector comAttachments = comMachine.GetMediumAttachments();
-
-    /* Determine device & medium types: */
-    const UIMediumDeviceType enmMediumType = mediumTypeToLocal(comCurrentAttachment.GetType());
-    AssertMsgReturnVoid(enmMediumType != UIMediumDeviceType_Invalid, ("Incorrect storage medium type!\n"));
-
-    /* Prepare open-existing-medium action: */
-    QAction *pActionOpenExistingMedium = menu.addAction(UIIconPool::iconSet(":/select_file_16px.png"),
-                                                        QString(), pListener, pszSlotName);
-    pActionOpenExistingMedium->setData(QVariant::fromValue(UIMediumTarget(strControllerName, comCurrentAttachment.GetPort(),
-                                                                          comCurrentAttachment.GetDevice(), enmMediumType)));
-    pActionOpenExistingMedium->setText(QApplication::translate("UIMachineSettingsStorage", "Choose/Create a disk image..."));
-
-
-    /* Prepare open medium file action: */
-    QAction *pActionFileSelector = menu.addAction(UIIconPool::iconSet(":/select_file_16px.png"),
-                                                  QString(), pListener, pszSlotName);
-    pActionFileSelector->setData(QVariant::fromValue(UIMediumTarget(strControllerName, comCurrentAttachment.GetPort(),
-                                                                    comCurrentAttachment.GetDevice(), enmMediumType,
-                                                                    UIMediumTarget::UIMediumTargetType_WithFileDialog)));
-    pActionFileSelector->setText(QApplication::translate("UIMachineSettingsStorage", "Choose a disk file..."));
-
-
-    /* Insert separator: */
-    menu.addSeparator();
-
-    /* Get existing-host-drive vector: */
-    CMediumVector comMedia;
-    switch (enmMediumType)
-    {
-        case UIMediumDeviceType_DVD:    comMedia = host().GetDVDDrives(); break;
-        case UIMediumDeviceType_Floppy: comMedia = host().GetFloppyDrives(); break;
-        default: break;
-    }
-    /* Prepare choose-existing-host-drive actions: */
-    foreach (const CMedium &comMedium, comMedia)
-    {
-        /* Make sure host-drive usage is unique: */
-        bool fIsHostDriveUsed = false;
-        foreach (const CMediumAttachment &comOtherAttachment, comAttachments)
-        {
-            if (comOtherAttachment != comCurrentAttachment)
-            {
-                const CMedium &comOtherMedium = comOtherAttachment.GetMedium();
-                if (!comOtherMedium.isNull() && comOtherMedium.GetId() == comMedium.GetId())
-                {
-                    fIsHostDriveUsed = true;
-                    break;
-                }
-            }
-        }
-        /* If host-drives usage is unique: */
-        if (!fIsHostDriveUsed)
-        {
-            QAction *pActionChooseHostDrive = menu.addAction(UIMedium(comMedium, enmMediumType).name(), pListener, pszSlotName);
-            pActionChooseHostDrive->setCheckable(true);
-            pActionChooseHostDrive->setChecked(!comCurrentMedium.isNull() && comMedium.GetId() == uCurrentID);
-            pActionChooseHostDrive->setData(QVariant::fromValue(UIMediumTarget(strControllerName,
-                                                                               comCurrentAttachment.GetPort(),
-                                                                               comCurrentAttachment.GetDevice(),
-                                                                               enmMediumType,
-                                                                               UIMediumTarget::UIMediumTargetType_WithID,
-                                                                               comMedium.GetId().toString())));
-        }
-    }
-
-    /* Get recent-medium list: */
-    QStringList recentMediumList;
-    QStringList recentMediumListUsed;
-    switch (enmMediumType)
-    {
-        case UIMediumDeviceType_HardDisk: recentMediumList = gEDataManager->recentListOfHardDrives(); break;
-        case UIMediumDeviceType_DVD:      recentMediumList = gEDataManager->recentListOfOpticalDisks(); break;
-        case UIMediumDeviceType_Floppy:   recentMediumList = gEDataManager->recentListOfFloppyDisks(); break;
-        default: break;
-    }
-    /* Prepare choose-recent-medium actions: */
-    foreach (const QString &strRecentMediumLocationBase, recentMediumList)
-    {
-        /* Confirm medium uniqueness: */
-        if (recentMediumListUsed.contains(strRecentMediumLocationBase))
-            continue;
-        /* Mark medium as known: */
-        recentMediumListUsed << strRecentMediumLocationBase;
-        /* Convert separators to native: */
-        const QString strRecentMediumLocation = QDir::toNativeSeparators(strRecentMediumLocationBase);
-        /* Confirm medium presence: */
-        if (!QFile::exists(strRecentMediumLocation))
-            continue;
-        /* Make sure recent-medium usage is unique: */
-        bool fIsRecentMediumUsed = false;
-        if (enmMediumType != UIMediumDeviceType_DVD)
-        {
-            foreach (const CMediumAttachment &otherAttachment, comAttachments)
-            {
-                if (otherAttachment != comCurrentAttachment)
-                {
-                    const CMedium &comOtherMedium = otherAttachment.GetMedium();
-                    if (!comOtherMedium.isNull() && comOtherMedium.GetLocation() == strRecentMediumLocation)
-                    {
-                        fIsRecentMediumUsed = true;
-                        break;
-                    }
-                }
-            }
-        }
-        /* If recent-medium usage is unique: */
-        if (!fIsRecentMediumUsed)
-        {
-            QAction *pActionChooseRecentMedium = menu.addAction(QFileInfo(strRecentMediumLocation).fileName(),
-                                                                pListener, pszSlotName);
-            pActionChooseRecentMedium->setCheckable(true);
-            pActionChooseRecentMedium->setChecked(!comCurrentMedium.isNull() && strRecentMediumLocation == strCurrentLocation);
-            pActionChooseRecentMedium->setData(QVariant::fromValue(UIMediumTarget(strControllerName,
-                                                                                  comCurrentAttachment.GetPort(),
-                                                                                  comCurrentAttachment.GetDevice(),
-                                                                                  enmMediumType,
-                                                                                  UIMediumTarget::UIMediumTargetType_WithLocation,
-                                                                                  strRecentMediumLocation)));
-            pActionChooseRecentMedium->setToolTip(strRecentMediumLocation);
-        }
-    }
-
-    /* Last action for optical/floppy attachments only: */
-    if (enmMediumType == UIMediumDeviceType_DVD || enmMediumType == UIMediumDeviceType_Floppy)
-    {
-        /* Insert separator: */
-        menu.addSeparator();
-
-        /* Prepare unmount-current-medium action: */
-        QAction *pActionUnmountMedium = menu.addAction(QString(), pListener, pszSlotName);
-        pActionUnmountMedium->setEnabled(!comCurrentMedium.isNull());
-        pActionUnmountMedium->setData(QVariant::fromValue(UIMediumTarget(strControllerName, comCurrentAttachment.GetPort(),
-                                                                         comCurrentAttachment.GetDevice())));
-        pActionUnmountMedium->setText(QApplication::translate("UIMachineSettingsStorage", "Remove disk from virtual drive"));
-        if (enmMediumType == UIMediumDeviceType_DVD)
-            pActionUnmountMedium->setIcon(UIIconPool::iconSet(":/cd_unmount_16px.png", ":/cd_unmount_disabled_16px.png"));
-        else if (enmMediumType == UIMediumDeviceType_Floppy)
-            pActionUnmountMedium->setIcon(UIIconPool::iconSet(":/fd_unmount_16px.png", ":/fd_unmount_disabled_16px.png"));
-    }
-}
-
-void UICommon::updateMachineStorage(const CMachine &comConstMachine, const UIMediumTarget &target, UIActionPool *pActionPool)
-{
-    /* Mount (by default): */
-    bool fMount = true;
-    /* Null medium (by default): */
-    CMedium comMedium;
-    /* With null ID (by default): */
-    QUuid uActualID;
-
-    /* Current mount-target attributes: */
-    const CStorageController comCurrentController = comConstMachine.GetStorageControllerByName(target.name);
-    const KStorageBus enmCurrentStorageBus = comCurrentController.GetBus();
-    const CMediumAttachment comCurrentAttachment = comConstMachine.GetMediumAttachment(target.name, target.port, target.device);
-    const CMedium comCurrentMedium = comCurrentAttachment.GetMedium();
-    const QUuid uCurrentID = comCurrentMedium.isNull() ? QUuid() : comCurrentMedium.GetId();
-    const QString strCurrentLocation = comCurrentMedium.isNull() ? QString() : comCurrentMedium.GetLocation();
-
-    /* Which additional info do we have? */
-    switch (target.type)
-    {
-        /* Do we have an exact ID or do we let the user open a medium? */
-        case UIMediumTarget::UIMediumTargetType_WithID:
-        case UIMediumTarget::UIMediumTargetType_WithFileDialog:
-        case UIMediumTarget::UIMediumTargetType_CreateAdHocVISO:
-        case UIMediumTarget::UIMediumTargetType_CreateFloppyDisk:
-        {
-            /* New mount-target attributes: */
-            QUuid uNewID;
-
-            /* Invoke file-open dialog to choose medium ID: */
-            if (target.mediumType != UIMediumDeviceType_Invalid && target.data.isNull())
-            {
-                /* Keyboard can be captured by machine-view.
-                 * So we should clear machine-view focus to let file-open dialog get it.
-                 * That way the keyboard will be released too.. */
-                QWidget *pLastFocusedWidget = 0;
-                if (QApplication::focusWidget())
-                {
-                    pLastFocusedWidget = QApplication::focusWidget();
-                    pLastFocusedWidget->clearFocus();
-                }
-                /* Call for file-open dialog: */
-                const QString strMachineFolder(QFileInfo(comConstMachine.GetSettingsFilePath()).absolutePath());
-                QUuid uMediumID;
-                if (target.type == UIMediumTarget::UIMediumTargetType_WithID)
-                {
-                    int iDialogReturn = UIMediumSelector::openMediumSelectorDialog(windowManager().mainWindowShown(), target.mediumType,
-                                                                                   uCurrentID, uMediumID,
-                                                                                   strMachineFolder, comConstMachine.GetName(),
-                                                                                   comConstMachine.GetOSTypeId(), true /*fEnableCreate */,
-                                                                                   comConstMachine.GetId(), pActionPool);
-                    if (iDialogReturn == UIMediumSelector::ReturnCode_LeftEmpty &&
-                        (target.mediumType == UIMediumDeviceType_DVD || target.mediumType == UIMediumDeviceType_Floppy))
-                        fMount = false;
-                }
-                else if (target.type == UIMediumTarget::UIMediumTargetType_WithFileDialog)
-                {
-                    uMediumID = openMediumWithFileOpenDialog(target.mediumType, windowManager().mainWindowShown(),
-                                                             strMachineFolder, false /* fUseLastFolder */);
-                }
-                else if(target.type == UIMediumTarget::UIMediumTargetType_CreateAdHocVISO)
-                    uMediumID = UIVisoCreatorWidget::createViso(pActionPool, windowManager().mainWindowShown(),
-                                                                strMachineFolder, comConstMachine.GetName());
-
-                else if(target.type == UIMediumTarget::UIMediumTargetType_CreateFloppyDisk)
-                    uMediumID = UIFDCreationDialog::createFloppyDisk(windowManager().mainWindowShown(), strMachineFolder, comConstMachine.GetName());
-
-                /* Return focus back: */
-                if (pLastFocusedWidget)
-                    pLastFocusedWidget->setFocus();
-                /* Accept new medium ID: */
-                if (!uMediumID.isNull())
-                    uNewID = uMediumID;
-                else
-                    /* Else just exit in case left empty is not chosen in medium selector dialog: */
-                    if (fMount)
-                        return;
-            }
-            /* Use medium ID which was passed: */
-            else if (!target.data.isNull() && target.data != uCurrentID.toString())
-                uNewID = QUuid(target.data);
-
-            /* Should we mount or unmount? */
-            fMount = !uNewID.isNull();
-
-            /* Prepare target medium: */
-            const UIMedium guiMedium = medium(uNewID);
-            comMedium = guiMedium.medium();
-            uActualID = fMount ? uNewID : uCurrentID;
-            break;
-        }
-        /* Do we have a recent location? */
-        case UIMediumTarget::UIMediumTargetType_WithLocation:
-        {
-            /* Open medium by location and get new medium ID if any: */
-            const QUuid uNewID = openMedium(target.mediumType, target.data);
-            /* Else just exit: */
-            if (uNewID.isNull())
-                return;
-
-            /* Should we mount or unmount? */
-            fMount = uNewID != uCurrentID;
-
-            /* Prepare target medium: */
-            const UIMedium guiMedium = fMount ? medium(uNewID) : UIMedium();
-            comMedium = fMount ? guiMedium.medium() : CMedium();
-            uActualID = fMount ? uNewID : uCurrentID;
-            break;
-        }
-    }
-
-    /* Do not unmount hard-drives: */
-    if (target.mediumType == UIMediumDeviceType_HardDisk && !fMount)
-        return;
-
-    /* Get editable machine & session: */
-    CMachine comMachine = comConstMachine;
-    CSession comSession = tryToOpenSessionFor(comMachine);
-
-    /* Remount medium to the predefined port/device: */
-    bool fWasMounted = false;
-    /* Hard drive case: */
-    if (target.mediumType == UIMediumDeviceType_HardDisk)
-    {
-        /* Detaching: */
-        comMachine.DetachDevice(target.name, target.port, target.device);
-        fWasMounted = comMachine.isOk();
-        if (!fWasMounted)
-            msgCenter().cannotDetachDevice(comMachine, UIMediumDeviceType_HardDisk, strCurrentLocation,
-                                           StorageSlot(enmCurrentStorageBus, target.port, target.device));
-        else
-        {
-            /* Attaching: */
-            comMachine.AttachDevice(target.name, target.port, target.device, KDeviceType_HardDisk, comMedium);
-            fWasMounted = comMachine.isOk();
-            if (!fWasMounted)
-                msgCenter().cannotAttachDevice(comMachine, UIMediumDeviceType_HardDisk, strCurrentLocation,
-                                               StorageSlot(enmCurrentStorageBus, target.port, target.device));
-        }
-    }
-    /* Optical/floppy drive case: */
-    else
-    {
-        /* Remounting: */
-        comMachine.MountMedium(target.name, target.port, target.device, comMedium, false /* force? */);
-        fWasMounted = comMachine.isOk();
-        if (!fWasMounted)
-        {
-            /* Ask for force remounting: */
-            if (msgCenter().cannotRemountMedium(comMachine, medium(uActualID),
-                                                fMount, true /* retry? */))
-            {
-                /* Force remounting: */
-                comMachine.MountMedium(target.name, target.port, target.device, comMedium, true /* force? */);
-                fWasMounted = comMachine.isOk();
-                if (!fWasMounted)
-                    msgCenter().cannotRemountMedium(comMachine, medium(uActualID),
-                                                    fMount, false /* retry? */);
-            }
-        }
-    }
-
-    /* Save settings: */
-    if (fWasMounted)
-    {
-        comMachine.SaveSettings();
-        if (!comMachine.isOk())
-            msgCenter().cannotSaveMachineSettings(comMachine, windowManager().mainWindowShown());
-    }
-
-    /* Close session to editable comMachine if necessary: */
-    if (!comSession.isNull())
-        comSession.UnlockMachine();
-}
-
-QString UICommon::storageDetails(const CMedium &comMedium, bool fPredictDiff, bool fUseHtml /* = true */)
-{
-    /* Search for corresponding UI medium: */
-    const QUuid uMediumID = comMedium.isNull() ? UIMedium::nullID() : comMedium.GetId();
-    UIMedium guiMedium = medium(uMediumID);
-    if (!comMedium.isNull() && guiMedium.isNull())
-    {
-        /* UI medium may be new and not among cached media, request enumeration: */
-        enumerateMedia(CMediumVector() << comMedium);
-
-        /* Search for corresponding UI medium again: */
-        guiMedium = medium(uMediumID);
-        if (guiMedium.isNull())
-        {
-            /* Medium might be deleted already, return null string: */
-            return QString();
-        }
-    }
-
-    /* For differencing hard-disk we have to request
-     * enumeration of whole tree based in it's root item: */
-    if (   comMedium.isNotNull()
-        && comMedium.GetDeviceType() == KDeviceType_HardDisk)
-    {
-        /* Traverse through parents to root to catch it: */
-        CMedium comRootMedium;
-        CMedium comParentMedium = comMedium.GetParent();
-        while (comParentMedium.isNotNull())
-        {
-            comRootMedium = comParentMedium;
-            comParentMedium = comParentMedium.GetParent();
-        }
-        /* Enumerate root if it's found and wasn't cached: */
-        if (comRootMedium.isNotNull())
-        {
-            const QUuid uRootId = comRootMedium.GetId();
-            if (medium(uRootId).isNull())
-                enumerateMedia(CMediumVector() << comRootMedium);
-        }
-    }
-
-    /* Return UI medium details: */
-    return fUseHtml ? guiMedium.detailsHTML(true /* no diffs? */, fPredictDiff) :
-                      guiMedium.details(true /* no diffs? */, fPredictDiff);
-}
-
-void UICommon::updateRecentlyUsedMediumListAndFolder(UIMediumDeviceType enmMediumType, QString strMediumLocation)
-{
-    /** Don't add the medium to extra data if its name is in exclude list, m_recentMediaExcludeList: */
-    foreach (QString strExcludeName, m_recentMediaExcludeList)
-    {
-        if (strMediumLocation.contains(strExcludeName))
-            return;
-    }
-
-    /* Remember the path of the last chosen medium: */
-    switch (enmMediumType)
-    {
-        case UIMediumDeviceType_HardDisk: gEDataManager->setRecentFolderForHardDrives(QFileInfo(strMediumLocation).absolutePath()); break;
-        case UIMediumDeviceType_DVD:      gEDataManager->setRecentFolderForOpticalDisks(QFileInfo(strMediumLocation).absolutePath()); break;
-        case UIMediumDeviceType_Floppy:   gEDataManager->setRecentFolderForFloppyDisks(QFileInfo(strMediumLocation).absolutePath()); break;
-        default: break;
-    }
-
-    /* Update recently used list: */
-    QStringList recentMediumList;
-    switch (enmMediumType)
-    {
-        case UIMediumDeviceType_HardDisk: recentMediumList = gEDataManager->recentListOfHardDrives(); break;
-        case UIMediumDeviceType_DVD:      recentMediumList = gEDataManager->recentListOfOpticalDisks(); break;
-        case UIMediumDeviceType_Floppy:   recentMediumList = gEDataManager->recentListOfFloppyDisks(); break;
-        default: break;
-    }
-    if (recentMediumList.contains(strMediumLocation))
-        recentMediumList.removeAll(strMediumLocation);
-    recentMediumList.prepend(strMediumLocation);
-    while(recentMediumList.size() > 5)
-        recentMediumList.removeLast();
-    switch (enmMediumType)
-    {
-        case UIMediumDeviceType_HardDisk: gEDataManager->setRecentListOfHardDrives(recentMediumList); break;
-        case UIMediumDeviceType_DVD:      gEDataManager->setRecentListOfOpticalDisks(recentMediumList); break;
-        case UIMediumDeviceType_Floppy:   gEDataManager->setRecentListOfFloppyDisks(recentMediumList); break;
-        default: break;
-    }
-    emit sigRecentMediaListUpdated(enmMediumType);
-}
-
-QString UICommon::defaultFolderPathForType(UIMediumDeviceType enmMediumType)
-{
-    QString strLastFolder;
-    switch (enmMediumType)
-    {
-        case UIMediumDeviceType_HardDisk:
-            strLastFolder = gEDataManager->recentFolderForHardDrives();
-            if (strLastFolder.isEmpty())
-                strLastFolder = gEDataManager->recentFolderForOpticalDisks();
-            if (strLastFolder.isEmpty())
-                strLastFolder = gEDataManager->recentFolderForFloppyDisks();
-            break;
-        case UIMediumDeviceType_DVD:
-            strLastFolder = gEDataManager->recentFolderForOpticalDisks();
-            if (strLastFolder.isEmpty())
-                strLastFolder = gEDataManager->recentFolderForFloppyDisks();
-            if (strLastFolder.isEmpty())
-                strLastFolder = gEDataManager->recentFolderForHardDrives();
-            break;
-        case UIMediumDeviceType_Floppy:
-            strLastFolder = gEDataManager->recentFolderForFloppyDisks();
-            if (strLastFolder.isEmpty())
-                strLastFolder = gEDataManager->recentFolderForOpticalDisks();
-            if (strLastFolder.isEmpty())
-                strLastFolder = gEDataManager->recentFolderForHardDrives();
-            break;
-        default:
-            break;
-    }
-
-    if (strLastFolder.isEmpty())
-        return virtualBox().GetSystemProperties().GetDefaultMachineFolder();
-
-    return strLastFolder;
-}
-
-#ifdef RT_OS_LINUX
-/* static */
-void UICommon::checkForWrongUSBMounted()
-{
-    /* Make sure '/proc/mounts' exists and can be opened: */
-    QFile file("/proc/mounts");
-    if (!file.exists() || !file.open(QIODevice::ReadOnly | QIODevice::Text))
-        return;
-
-    /* Fetch contents: */
-    QStringList contents;
-    for (;;)
-    {
-        QByteArray line = file.readLine();
-        if (line.isEmpty())
-            break;
-        contents << line;
-    }
-    /* Grep contents for usbfs presence: */
-    QStringList grep1(contents.filter("/sys/bus/usb/drivers"));
-    QStringList grep2(grep1.filter("usbfs"));
-    if (grep2.isEmpty())
-        return;
-
-    /* Show corresponding warning: */
-    msgCenter().warnAboutWrongUSBMounted();
-}
-#endif /* RT_OS_LINUX */
-
-/* static */
-QString UICommon::usbDetails(const CUSBDevice &comDevice)
-{
-    QString strDetails;
-    if (comDevice.isNull())
-        strDetails = tr("Unknown device", "USB device details");
-    else
-    {
-        QVector<QString> devInfoVector = comDevice.GetDeviceInfo();
-        QString strManufacturer;
-        QString strProduct;
-
-        if (devInfoVector.size() >= 1)
-            strManufacturer = devInfoVector[0].trimmed();
-        if (devInfoVector.size() >= 2)
-            strProduct = devInfoVector[1].trimmed();
-
-        if (strManufacturer.isEmpty() && strProduct.isEmpty())
-        {
-            strDetails =
-                tr("Unknown device %1:%2", "USB device details")
-                   .arg(QString::number(comDevice.GetVendorId(),  16).toUpper().rightJustified(4, '0'))
-                   .arg(QString::number(comDevice.GetProductId(), 16).toUpper().rightJustified(4, '0'));
-        }
-        else
-        {
-            if (strProduct.toUpper().startsWith(strManufacturer.toUpper()))
-                strDetails = strProduct;
-            else
-                strDetails = strManufacturer + " " + strProduct;
-        }
-        ushort iRev = comDevice.GetRevision();
-        if (iRev != 0)
-        {
-            strDetails += " [";
-            strDetails += QString::number(iRev, 16).toUpper().rightJustified(4, '0');
-            strDetails += "]";
-        }
-    }
-
-    return strDetails.trimmed();
-}
-
-/* static */
-QString UICommon::usbToolTip(const CUSBDevice &comDevice)
-{
-    QString strTip =
-        tr("<nobr>Vendor ID: %1</nobr><br>"
-           "<nobr>Product ID: %2</nobr><br>"
-           "<nobr>Revision: %3</nobr>", "USB device tooltip")
-           .arg(QString::number(comDevice.GetVendorId(),  16).toUpper().rightJustified(4, '0'))
-           .arg(QString::number(comDevice.GetProductId(), 16).toUpper().rightJustified(4, '0'))
-           .arg(QString::number(comDevice.GetRevision(),  16).toUpper().rightJustified(4, '0'));
-
-    const QString strSerial = comDevice.GetSerialNumber();
-    if (!strSerial.isEmpty())
-        strTip += QString(tr("<br><nobr>Serial No. %1</nobr>", "USB device tooltip"))
-                             .arg(strSerial);
-
-    /* Add the state field if it's a host USB device: */
-    CHostUSBDevice hostDev(comDevice);
-    if (!hostDev.isNull())
-    {
-        strTip += QString(tr("<br><nobr>State: %1</nobr>", "USB device tooltip"))
-                             .arg(gpConverter->toString(hostDev.GetState()));
-    }
-
-    return strTip;
-}
-
-/* static */
-QString UICommon::usbToolTip(const CUSBDeviceFilter &comFilter)
-{
-    QString strTip;
-
-    const QString strVendorId = comFilter.GetVendorId();
-    if (!strVendorId.isEmpty())
-        strTip += tr("<nobr>Vendor ID: %1</nobr>", "USB filter tooltip")
-                     .arg(strVendorId);
-
-    const QString strProductId = comFilter.GetProductId();
-    if (!strProductId.isEmpty())
-        strTip += strTip.isEmpty() ? "":"<br/>" + tr("<nobr>Product ID: %2</nobr>", "USB filter tooltip")
-                                                     .arg(strProductId);
-
-    const QString strRevision = comFilter.GetRevision();
-    if (!strRevision.isEmpty())
-        strTip += strTip.isEmpty() ? "":"<br/>" + tr("<nobr>Revision: %3</nobr>", "USB filter tooltip")
-                                                     .arg(strRevision);
-
-    const QString strProduct = comFilter.GetProduct();
-    if (!strProduct.isEmpty())
-        strTip += strTip.isEmpty() ? "":"<br/>" + tr("<nobr>Product: %4</nobr>", "USB filter tooltip")
-                                                     .arg(strProduct);
-
-    const QString strManufacturer = comFilter.GetManufacturer();
-    if (!strManufacturer.isEmpty())
-        strTip += strTip.isEmpty() ? "":"<br/>" + tr("<nobr>Manufacturer: %5</nobr>", "USB filter tooltip")
-                                                     .arg(strManufacturer);
-
-    const QString strSerial = comFilter.GetSerialNumber();
-    if (!strSerial.isEmpty())
-        strTip += strTip.isEmpty() ? "":"<br/>" + tr("<nobr>Serial No.: %1</nobr>", "USB filter tooltip")
-                                                     .arg(strSerial);
-
-    const QString strPort = comFilter.GetPort();
-    if (!strPort.isEmpty())
-        strTip += strTip.isEmpty() ? "":"<br/>" + tr("<nobr>Port: %1</nobr>", "USB filter tooltip")
-                                                     .arg(strPort);
-
-    /* Add the state field if it's a host USB device: */
-    CHostUSBDevice hostDev(comFilter);
-    if (!hostDev.isNull())
-    {
-        strTip += strTip.isEmpty() ? "":"<br/>" + tr("<nobr>State: %1</nobr>", "USB filter tooltip")
-                                                     .arg(gpConverter->toString(hostDev.GetState()));
-    }
-
-    return strTip;
-}
-
-/* static */
-QString UICommon::usbToolTip(const CHostVideoInputDevice &comWebcam)
-{
-    QStringList records;
-
-    const QString strName = comWebcam.GetName();
-    if (!strName.isEmpty())
-        records << strName;
-
-    const QString strPath = comWebcam.GetPath();
-    if (!strPath.isEmpty())
-        records << strPath;
-
-    return records.join("<br>");
-}
-
-int UICommon::supportedRecordingFeatures() const
-{
-    int iSupportedFlag = 0;
-    CSystemProperties comProperties = virtualBox().GetSystemProperties();
-    foreach (const KRecordingFeature &enmFeature, comProperties.GetSupportedRecordingFeatures())
-        iSupportedFlag |= enmFeature;
-    return iSupportedFlag;
-}
-
 /* static */
 QString UICommon::helpFile()
 {
-#if defined (VBOX_WITH_QHELP_VIEWER)
     const QString strName = "UserManual";
     const QString strSuffix = "qhc";
-#else
- #if defined(VBOX_WS_WIN)
-     const QString strName = "VirtualBox";
-     const QString strSuffix = "chm";
- #elif defined(VBOX_WS_MAC)
-     const QString strName = "UserManual";
-     const QString strSuffix = "pdf";
- #elif defined(VBOX_WS_X11)
-     //# if defined(VBOX_OSE) || !defined(VBOX_WITH_KCHMVIEWER)
-     const QString strName = "UserManual";
-     const QString strSuffix = "pdf";
- #endif
-#endif
+
     /* Where are the docs located? */
     char szDocsPath[RTPATH_MAX];
     int rc = RTPathAppDocs(szDocsPath, sizeof(szDocsPath));
@@ -2419,91 +1249,12 @@ void UICommon::setMinimumWidthAccordingSymbolCount(QSpinBox *pSpinBox, int cCoun
     const int iSpinBoxWidth = pSpinBox->width();
     const int iSpinBoxEditFieldWidth = rect.width();
     const int iSpinBoxDelta = qMax(0, iSpinBoxWidth - iSpinBoxEditFieldWidth);
-    QFontMetrics metrics(pSpinBox->font(), pSpinBox);
+    const QFontMetrics metrics(pSpinBox->font(), pSpinBox);
     const QString strDummy(cCount, '0');
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
     const int iTextWidth = metrics.horizontalAdvance(strDummy);
-#else
-    const int iTextWidth = metrics.width(strDummy);
-#endif
 
     /* Tune spin-box minimum-width: */
     pSpinBox->setMinimumWidth(iTextWidth + iSpinBoxDelta);
-}
-
-#ifdef VBOX_WITH_3D_ACCELERATION
-/* static */
-bool UICommon::isWddmCompatibleOsType(const QString &strGuestOSTypeId)
-{
-    return    strGuestOSTypeId.startsWith("WindowsVista")
-           || strGuestOSTypeId.startsWith("Windows7")
-           || strGuestOSTypeId.startsWith("Windows8")
-           || strGuestOSTypeId.startsWith("Windows81")
-           || strGuestOSTypeId.startsWith("Windows10")
-           || strGuestOSTypeId.startsWith("Windows11")
-           || strGuestOSTypeId.startsWith("Windows2008")
-           || strGuestOSTypeId.startsWith("Windows2012")
-           || strGuestOSTypeId.startsWith("Windows2016")
-           || strGuestOSTypeId.startsWith("Windows2019");
-}
-#endif /* VBOX_WITH_3D_ACCELERATION */
-
-/* static */
-quint64 UICommon::requiredVideoMemory(const QString &strGuestOSTypeId, int cMonitors /* = 1 */)
-{
-    /* We create a list of the size of all available host monitors. This list
-     * is sorted by value and by starting with the biggest one, we calculate
-     * the memory requirements for every guest screen. This is of course not
-     * correct, but as we can't predict on which host screens the user will
-     * open the guest windows, this is the best assumption we can do, cause it
-     * is the worst case. */
-    const int cHostScreens = UIDesktopWidgetWatchdog::screenCount();
-    QVector<int> screenSize(qMax(cMonitors, cHostScreens), 0);
-    for (int i = 0; i < cHostScreens; ++i)
-    {
-        QRect r = gpDesktop->screenGeometry(i);
-        screenSize[i] = r.width() * r.height();
-    }
-    /* Now sort the vector: */
-    std::sort(screenSize.begin(), screenSize.end(), std::greater<int>());
-    /* For the case that there are more guest screens configured then host
-     * screens available, replace all zeros with the greatest value in the
-     * vector. */
-    for (int i = 0; i < screenSize.size(); ++i)
-        if (screenSize.at(i) == 0)
-            screenSize.replace(i, screenSize.at(0));
-
-    quint64 uNeedBits = 0;
-    for (int i = 0; i < cMonitors; ++i)
-    {
-        /* Calculate summary required memory amount in bits: */
-        uNeedBits += (screenSize.at(i) * /* with x height */
-                     32 + /* we will take the maximum possible bpp for now */
-                     8 * _1M) + /* current cache per screen - may be changed in future */
-                     8 * 4096; /* adapter info */
-    }
-    /* Translate value into megabytes with rounding to highest side: */
-    quint64 uNeedMBytes = uNeedBits % (8 * _1M)
-                        ? uNeedBits / (8 * _1M) + 1
-                        : uNeedBits / (8 * _1M) /* convert to megabytes */;
-
-    if (strGuestOSTypeId.startsWith("Windows"))
-    {
-        /* Windows guests need offscreen VRAM too for graphics acceleration features: */
-#ifdef VBOX_WITH_3D_ACCELERATION
-        if (isWddmCompatibleOsType(strGuestOSTypeId))
-        {
-            /* WDDM mode, there are two surfaces for each screen: shadow & primary: */
-            uNeedMBytes *= 3;
-        }
-        else
-#endif /* VBOX_WITH_3D_ACCELERATION */
-        {
-            uNeedMBytes *= 2;
-        }
-    }
-
-    return uNeedMBytes * _1M;
 }
 
 /* static */
@@ -2559,7 +1310,7 @@ bool UICommon::openURL(const QString &strUrl) const
     private:
 
         /** Handles any Qt @a pEvent. */
-        bool event(QEvent *pEvent)
+        bool event(QEvent *pEvent) RT_OVERRIDE RT_FINAL
         {
             /* Handle service event: */
             if (pEvent->type() == QEvent::User)
@@ -2588,7 +1339,7 @@ bool UICommon::openURL(const QString &strUrl) const
     private:
 
         /** Executes thread task. */
-        void run()
+        void run() RT_OVERRIDE RT_FINAL
         {
             QApplication::postEvent(&m_client, new ServiceEvent(QDesktopServices::openUrl(m_strUrl)));
         }
@@ -2614,56 +1365,13 @@ bool UICommon::openURL(const QString &strUrl) const
     return fResult;
 }
 
-void UICommon::sltGUILanguageChange(QString strLanguage)
-{
-    /* Make sure medium-enumeration is not in progress! */
-    AssertReturnVoid(!isMediumEnumerationInProgress());
-    /* Load passed language: */
-    UITranslator::loadLanguage(strLanguage);
-}
-
-void UICommon::sltHandleMediumCreated(const CMedium &comMedium)
-{
-    /* Acquire device type: */
-    const KDeviceType enmDeviceType = comMedium.GetDeviceType();
-    if (!comMedium.isOk())
-        UINotificationMessage::cannotAcquireMediumParameter(comMedium);
-    else
-    {
-        /* Convert to medium type: */
-        const UIMediumDeviceType enmMediumType = mediumTypeToLocal(enmDeviceType);
-
-        /* Make sure we cached created medium in GUI: */
-        createMedium(UIMedium(comMedium, enmMediumType, KMediumState_Created));
-    }
-}
-
-void UICommon::sltHandleMachineCreated(const CMachine &comMachine)
-{
-    /* Register created machine. */
-    CVirtualBox comVBox = virtualBox();
-    comVBox.RegisterMachine(comMachine);
-    if (!comVBox.isOk())
-        UINotificationMessage::cannotRegisterMachine(comVBox, comMachine.GetName());
-}
-
-void UICommon::sltHandleCloudMachineAdded(const QString &strProviderShortName,
-                                          const QString &strProfileName,
-                                          const CCloudMachine &comMachine)
-{
-    /* Make sure we cached added cloud VM in GUI: */
-    notifyCloudMachineRegistered(strProviderShortName,
-                                 strProfileName,
-                                 comMachine);
-}
-
 bool UICommon::eventFilter(QObject *pObject, QEvent *pEvent)
 {
     /** @todo Just use the QIWithRetranslateUI3 template wrapper. */
 
     if (   pEvent->type() == QEvent::LanguageChange
         && pObject->isWidgetType()
-        && static_cast<QWidget*>(pObject)->isTopLevel())
+        && qobject_cast<QWidget*>(pObject)->isWindow())
     {
         /* Catch the language change event before any other widget gets it in
          * order to invalidate cached string resources (like the details view
@@ -2677,29 +1385,65 @@ bool UICommon::eventFilter(QObject *pObject, QEvent *pEvent)
         }
     }
 
+    /* Handle application palette change event: */
+    if (   pEvent->type() == QEvent::ApplicationPaletteChange
+        && pObject == windowManager().mainWindowShown())
+    {
+#if defined(VBOX_WS_MAC)
+        const bool fDarkMode = UICocoaApplication::instance()->isDarkMode();
+#elif defined(VBOX_WS_WIN)
+        const bool fDarkMode = isWindowsInDarkMode();
+#else /* Linux, BSD, Solaris */
+        const bool fDarkMode = isPaletteInDarkMode();
+#endif /* Linux, BSD, Solaris */
+        if (m_fDarkMode != fDarkMode)
+        {
+            m_fDarkMode = fDarkMode;
+            loadColorTheme();
+            emit sigThemeChange();
+        }
+    }
+
     /* Call to base-class: */
     return QObject::eventFilter(pObject, pEvent);
 }
 
+void UICommon::sltGUILanguageChange(QString strLanguage)
+{
+    /* Make sure medium-enumeration is not in progress! */
+    AssertReturnVoid(!gpMediumEnumerator->isMediumEnumerationInProgress());
+    /* Load passed language: */
+    UITranslator::loadLanguage(strLanguage);
+}
 
 void UICommon::sltHandleFontScaleFactorChanged(int iFontScaleFactor)
 {
     QFont appFont = qApp->font();
 
+    /* Let's round up some double var: */
+    auto roundUp = [](double dValue)
+    {
+        const int iValue = dValue;
+        return dValue > (double)iValue ? iValue + 1 : iValue;
+    };
+
+    /* Do we have pixel font? */
     if (iOriginalFontPixelSize != -1)
-        appFont.setPixelSize(iFontScaleFactor / 100.f * iOriginalFontPixelSize);
+        appFont.setPixelSize(roundUp(iFontScaleFactor / 100.f * iOriginalFontPixelSize));
+    /* Point font otherwise: */
     else
-        appFont.setPointSize(iFontScaleFactor / 100.f * iOriginalFontPointSize);
+        appFont.setPointSize(roundUp(iFontScaleFactor / 100.f * iOriginalFontPointSize));
+
     qApp->setFont(appFont);
 }
 
 void UICommon::retranslateUi()
 {
     /* Re-enumerate uimedium since they contain some translations too: */
-    if (m_fValid)
-        refreshMedia();
+    if (isValid())
+        gpMediumEnumerator->refreshMedia();
 
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
     // WORKAROUND:
     // As X11 do not have functionality for providing human readable key names,
     // we keep a table of them, which must be updated when the language is changed.
@@ -2729,6 +1473,7 @@ void UICommon::sltHandleCommitDataRequest(QSessionManager &manager)
             if (!isSeparateProcess())
             {
 # if defined(VBOX_WS_MAC) && defined(VBOX_IS_QT6_OR_LATER) /** @todo qt6: ... */
+                Q_UNUSED(manager);
                 /* This code prevents QWindowSystemInterface::handleApplicationTermination
                    for running, so among other things QApplication::closeAllWindows isn't
                    called and we're somehow stuck in a half closed down state.  That said,
@@ -2762,63 +1507,23 @@ void UICommon::sltHandleCommitDataRequest(QSessionManager &manager)
 
 void UICommon::sltHandleVBoxSVCAvailabilityChange(bool fAvailable)
 {
-    /* Make sure the VBoxSVC availability changed: */
-    if (m_fVBoxSVCAvailable == fAvailable)
-        return;
-
-    /* Cache the new VBoxSVC availability value: */
-    m_fVBoxSVCAvailable = fAvailable;
-
-    /* If VBoxSVC is not available: */
-    if (!m_fVBoxSVCAvailable)
-    {
-        /* Mark wrappers invalid: */
-        m_fWrappersValid = false;
-        /* Re-fetch corresponding CVirtualBox to restart VBoxSVC: */
-        m_comVBox = m_comVBoxClient.GetVirtualBox();
-        if (!m_comVBoxClient.isOk())
-        {
-            // The proper behavior would be to show the message and to exit the app, e.g.:
-            // msgCenter().cannotAcquireVirtualBox(m_comVBoxClient);
-            // return QApplication::quit();
-            // But CVirtualBox is still NULL in current Main implementation,
-            // and this call do not restart anything, so we are waiting
-            // for subsequent event about VBoxSVC is available again.
-        }
-    }
     /* If VBoxSVC is available: */
-    else
+    if (fAvailable)
     {
-        if (!m_fWrappersValid)
+        /* For Selector UI: */
+        if (uiType() == UIType_ManagerUI)
         {
-            /* Re-fetch corresponding CVirtualBox: */
-            m_comVBox = m_comVBoxClient.GetVirtualBox();
-            if (!m_comVBoxClient.isOk())
-            {
-                msgCenter().cannotAcquireVirtualBox(m_comVBoxClient);
-                return QApplication::quit();
-            }
-            /* Re-init wrappers: */
-            comWrappersReinit();
-
-            /* For Selector UI: */
-            if (uiType() == UIType_SelectorUI)
-            {
-                /* Recreate Main event listeners: */
-                UIVirtualBoxEventHandler::destroy();
-                UIVirtualBoxClientEventHandler::destroy();
-                UIExtraDataManager::destroy();
-                UIExtraDataManager::instance();
-                UIVirtualBoxEventHandler::instance();
-                UIVirtualBoxClientEventHandler::instance();
-                /* Ask UIStarter to restart UI: */
-                emit sigAskToRestartUI();
-            }
+            /* Recreate Main event listeners: */
+            UIVirtualBoxEventHandler::destroy();
+            UIVirtualBoxClientEventHandler::destroy();
+            UIExtraDataManager::destroy();
+            UIExtraDataManager::instance();
+            UIVirtualBoxEventHandler::instance();
+            UIVirtualBoxClientEventHandler::instance();
+            /* Ask UIStarter to restart UI: */
+            emit sigAskToRestartUI();
         }
     }
-
-    /* Notify listeners about the VBoxSVC availability change: */
-    emit sigVBoxSVCAvailabilityChange();
 }
 
 #ifdef VBOX_WITH_DEBUGGER_GUI
@@ -2843,7 +1548,8 @@ void UICommon::initDebuggerVar(int *piDbgCfgVar, const char *pszEnvVar, const ch
     else if (rc != VERR_ENV_VAR_NOT_FOUND)
         strEnvValue = "veto";
 
-    QString strExtraValue = m_comVBox.GetExtraData(pszExtraDataName).toLower().trimmed();
+    CVirtualBox comVBox = gpGlobalSession->virtualBox();
+    QString strExtraValue = comVBox.GetExtraData(pszExtraDataName).toLower().trimmed();
     if (strExtraValue.isEmpty())
         strExtraValue = QString();
 
@@ -2911,42 +1617,31 @@ bool UICommon::isDebuggerWorker(int *piDbgCfgVar, const char *pszExtraDataName) 
 
 #endif /* VBOX_WITH_DEBUGGER_GUI */
 
-void UICommon::comWrappersReinit()
+#ifdef RT_OS_LINUX
+/* static */
+void UICommon::checkForWrongUSBMounted()
 {
-    /* Re-fetch corresponding objects/values: */
-    m_comHost = virtualBox().GetHost();
-    m_strHomeFolder = virtualBox().GetHomeFolder();
+    /* Make sure '/proc/mounts' exists and can be opened: */
+    QFile file("/proc/mounts");
+    if (!file.exists() || !file.open(QIODevice::ReadOnly | QIODevice::Text))
+        return;
 
-    /* Re-initialize guest OS Type list: */
-    m_guestOSFamilyIDs.clear();
-    m_guestOSTypes.clear();
-    const CGuestOSTypeVector guestOSTypes = m_comVBox.GetGuestOSTypes();
-    const int cGuestOSTypeCount = guestOSTypes.size();
-    AssertMsg(cGuestOSTypeCount > 0, ("Number of OS types must not be zero"));
-    if (cGuestOSTypeCount > 0)
+    /* Fetch contents: */
+    QStringList contents;
+    for (;;)
     {
-        /* Here we ASSUME the 'Other' types are always the first,
-         * so we remember them and will append them to the list when finished.
-         * We do a two pass, first adding the specific types, then the two 'Other' types. */
-        for (int j = 0; j < 2; ++j)
-        {
-            int cMax = j == 0 ? cGuestOSTypeCount : RT_MIN(2, cGuestOSTypeCount);
-            for (int i = j == 0 ? 2 : 0; i < cMax; ++i)
-            {
-                const CGuestOSType os = guestOSTypes.at(i);
-                const QString strFamilyID = os.GetFamilyId();
-                const QString strFamilyDescription = os.GetFamilyDescription();
-                if (!m_guestOSFamilyIDs.contains(strFamilyID))
-                {
-                    m_guestOSFamilyIDs << strFamilyID;
-                    m_guestOSFamilyDescriptions[strFamilyID] = strFamilyDescription;
-                    m_guestOSTypes << QList<CGuestOSType>();
-                }
-                m_guestOSTypes[m_guestOSFamilyIDs.indexOf(strFamilyID)].append(os);
-            }
-        }
+        QByteArray line = file.readLine();
+        if (line.isEmpty())
+            break;
+        contents << line;
     }
+    /* Grep contents for usbfs presence: */
+    QStringList grep1(contents.filter("/sys/bus/usb/drivers"));
+    QStringList grep2(grep1.filter("usbfs"));
+    if (grep2.isEmpty())
+        return;
 
-    /* Mark wrappers valid: */
-    m_fWrappersValid = true;
+    /* Show corresponding warning: */
+    msgCenter().warnAboutWrongUSBMounted();
 }
+#endif /* RT_OS_LINUX */

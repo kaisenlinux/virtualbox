@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -38,7 +38,7 @@
 #include "UINativeWizardPage.h"
 
 /* Forward declarations: */
-class QListWidget;
+class QIListWidget;
 class QIRichTextLabel;
 class UIWizardExportApp;
 
@@ -46,15 +46,15 @@ class UIWizardExportApp;
 namespace UIWizardExportAppVMs
 {
     /** Populates @a pVMSelector with items on the basis of passed @a selectedVMNames. */
-    void populateVMItems(QListWidget *pVMSelector, const QStringList &selectedVMNames);
+    void populateVMItems(QIListWidget *pVMSelector, const QStringList &selectedVMNames);
 
     /** Refresh a list of saved machines selected in @a pVMSelector. */
-    void refreshSavedMachines(QStringList &savedMachines, QListWidget *pVMSelector);
+    void refreshSavedMachines(QStringList &savedMachines, QIListWidget *pVMSelector);
 
     /** Returns a list of machine names selected in @a pVMSelector. */
-    QStringList machineNames(QListWidget *pVMSelector);
+    QStringList machineNames(QIListWidget *pVMSelector);
     /** Returns a list of machine IDs selected in @a pVMSelector. */
-    QList<QUuid> machineIDs(QListWidget *pVMSelector);
+    QList<QUuid> machineIDs(QIListWidget *pVMSelector);
 }
 
 /** UINativeWizardPage extension for VMs page of the Export Appliance wizard,
@@ -75,22 +75,21 @@ protected:
     /** Returns wizard this page belongs to. */
     UIWizardExportApp *wizard() const;
 
-    /** Handles translation event. */
-    virtual void retranslateUi() /* override final */;
-
     /** Performs page initialization. */
-    virtual void initializePage() /* override final */;
+    virtual void initializePage() RT_OVERRIDE RT_FINAL;
 
     /** Returns whether page is complete. */
-    virtual bool isComplete() const /* override final */;
+    virtual bool isComplete() const RT_OVERRIDE RT_FINAL;
 
     /** Performs page validation. */
-    virtual bool validatePage() /* override final */;
+    virtual bool validatePage() RT_OVERRIDE RT_FINAL;
 
 private slots:
 
     /** Handles VM item selection change. */
     void sltHandleVMItemSelectionChanged();
+    /** Handles translation event. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -103,7 +102,7 @@ private:
     QIRichTextLabel *m_pLabelMain;
 
     /** Holds the VM selector instance. */
-    QListWidget *m_pVMSelector;
+    QIListWidget *m_pVMSelector;
 };
 
 #endif /* !FEQT_INCLUDED_SRC_wizards_exportappliance_UIWizardExportAppPageVMs_h */

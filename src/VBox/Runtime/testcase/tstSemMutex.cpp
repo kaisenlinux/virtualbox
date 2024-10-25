@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -59,7 +59,7 @@ static uint32_t volatile    g_cbConcurrent;
 static uint32_t volatile    g_cErrors;
 
 
-int PrintError(const char *pszFormat, ...)
+static int PrintError(const char *pszFormat, ...)
 {
     ASMAtomicIncU32(&g_cErrors);
 

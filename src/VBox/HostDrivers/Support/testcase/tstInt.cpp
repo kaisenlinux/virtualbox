@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -61,7 +61,6 @@ int main(int argc, char **argv)
 {
     int rcRet = 0;
     int i;
-    int rc;
     int cIterations = argc > 1 ? RTStrToUInt32(argv[1]) : 32;
     if (cIterations == 0)
         cIterations = 64;
@@ -71,20 +70,19 @@ int main(int argc, char **argv)
      */
     RTR3InitExe(argc, &argv, 0);
     PSUPDRVSESSION pSession;
-    rc = SUPR3Init(&pSession);
-    rcRet += rc != 0;
+    int rc = SUPR3Init(&pSession);
     RTPrintf("tstInt: SUPR3Init -> rc=%Rrc\n", rc);
+    if (RT_FAILURE(rc))
+        return 1;
+
     char szFile[RTPATH_MAX];
-    if (!rc)
-    {
-        rc = RTPathExecDir(szFile, sizeof(szFile) - sizeof("/VMMR0.r0"));
-    }
+    rc = RTPathExecDir(szFile, sizeof(szFile));
+    if (RT_SUCCESS(rc))
+        rc = RTPathAppend(szFile, sizeof(szFile), "VMMR0.r0");
+
     char szAbsFile[RTPATH_MAX];
     if (RT_SUCCESS(rc))
-    {
-        strcat(szFile, "/VMMR0.r0");
         rc = RTPathAbs(szFile, szAbsFile, sizeof(szAbsFile));
-    }
     if (RT_SUCCESS(rc))
     {
         /*
@@ -234,7 +232,12 @@ int main(int argc, char **argv)
         rcRet += rc != 0;
         RTPrintf("tstInt: SUPR3Term -> rc=%Rrc\n", rc);
     }
+    else
+    {
+        RTPrintf("tstInt: Failed to construct VMMR0.r0 path: %Rrc\n", rc);
+        rcRet++;
+    }
 
-    return !!rc;
+    return rcRet;
 }
 

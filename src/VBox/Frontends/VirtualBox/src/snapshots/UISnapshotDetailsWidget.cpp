@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -27,6 +27,7 @@
 
 /* Qt includes: */
 #include <QAccessibleWidget>
+#include <QApplication>
 #include <QHBoxLayout>
 #include <QDateTime>
 #include <QDir>
@@ -41,33 +42,43 @@
 #include <QTextBrowser>
 #include <QTextEdit>
 #include <QVBoxLayout>
+#include <QWindow>
 
 /* GUI includes: */
 #include "QIDialogButtonBox.h"
 #include "QIFlowLayout.h"
-#include "UICommon.h"
 #include "UIConverter.h"
-#include "UICursor.h"
 #include "UIDesktopWidgetWatchdog.h"
+#include "UIDetailsGenerator.h"
+#include "UIGlobalSession.h"
+#include "UIGuestOSType.h"
 #include "UIIconPool.h"
 #include "UISnapshotDetailsWidget.h"
+#include "UIMediumTools.h"
 #include "UIMessageCenter.h"
 #include "UITranslator.h"
+#include "UITranslationEventListener.h"
 #include "VBoxUtils.h"
 
 /* COM includes: */
 #include "CAudioAdapter.h"
 #include "CAudioSettings.h"
+#include "CFirmwareSettings.h"
 #include "CRecordingSettings.h"
 #include "CRecordingScreenSettings.h"
 #include "CMachine.h"
 #include "CMedium.h"
 #include "CMediumAttachment.h"
 #include "CNetworkAdapter.h"
+#include "CNvramStore.h"
+#include "CPlatform.h"
+#include "CPlatformX86.h"
+#include "CPlatformProperties.h"
 #include "CSerialPort.h"
 #include "CSharedFolder.h"
 #include "CStorageController.h"
-#include "CSystemProperties.h"
+#include "CTrustedPlatformModule.h"
+#include "CUefiVariableStore.h"
 #include "CUSBController.h"
 #include "CUSBDeviceFilter.h"
 #include "CUSBDeviceFilters.h"
@@ -135,7 +146,7 @@ public:
     void setText(const QString &strText);
 
     /** Returns the minimum size-hint. */
-    QSize minimumSizeHint() const;
+    QSize minimumSizeHint() const RT_OVERRIDE;
 
 protected:
 
@@ -167,7 +178,7 @@ private:
 
 
 /** QWiget extension providing GUI with snapshot screenshot viewer widget. */
-class UIScreenshotViewer : public QIWithRetranslateUI2<QWidget>
+class UIScreenshotViewer : public QWidget
 {
     Q_OBJECT;
 
@@ -184,9 +195,6 @@ public:
 
 protected:
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
     /** Handles show @a pEvent. */
     virtual void showEvent(QShowEvent *pEvent) RT_OVERRIDE;
     /** Handles polish @a pEvent. */
@@ -199,6 +207,11 @@ protected:
     virtual void mousePressEvent(QMouseEvent *pEvent) RT_OVERRIDE;
     /** Handles key press @a pEvent. */
     virtual void keyPressEvent(QKeyEvent *pEvent) RT_OVERRIDE;
+
+private slots:
+
+    /** Handles translation event. */
+    void sltRetranslateUI();
 
 private:
 
@@ -400,7 +413,7 @@ void UISnapshotDetailsElement::paintEvent(QPaintEvent * /* pEvent */)
 
 void UISnapshotDetailsElement::prepare()
 {
-    /* Install QIComboBox accessibility interface factory: */
+    /* Install UISnapshotDetailsElement accessibility interface factory: */
     QAccessible::installFactory(UIAccessibilityInterfaceForUISnapshotDetailsElement::pFactory);
 
     /* Create layout: */
@@ -446,10 +459,11 @@ void UISnapshotDetailsElement::updatePixmap()
 {
     /* Re-register icon in the element's text-document: */
     const int iMetric = QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize);
+    const qreal fDevicePixelRatio = window() && window()->windowHandle() ? window()->windowHandle()->devicePixelRatio() : 1;
     document()->addResource(
         QTextDocument::ImageResource,
         QUrl(QString("details://%1").arg(m_strName)),
-        QVariant(m_icon.pixmap(window()->windowHandle(), QSize(iMetric, iMetric))));
+        QVariant(m_icon.pixmap(QSize(iMetric, iMetric), fDevicePixelRatio)));
 }
 
 
@@ -461,7 +475,7 @@ UIScreenshotViewer::UIScreenshotViewer(const QPixmap &pixmapScreenshot,
                                        const QString &strSnapshotName,
                                        const QString &strMachineName,
                                        QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI2<QWidget>(pParent, Qt::Tool)
+    : QWidget(pParent, Qt::Tool)
     , m_fPolished(false)
     , m_pixmapScreenshot(pixmapScreenshot)
     , m_strSnapshotName(strSnapshotName)
@@ -474,7 +488,7 @@ UIScreenshotViewer::UIScreenshotViewer(const QPixmap &pixmapScreenshot,
     prepare();
 }
 
-void UIScreenshotViewer::retranslateUi()
+void UIScreenshotViewer::sltRetranslateUI()
 {
     /* Translate window title: */
     setWindowTitle(tr("Screenshot of %1 (%2)").arg(m_strSnapshotName).arg(m_strMachineName));
@@ -483,7 +497,7 @@ void UIScreenshotViewer::retranslateUi()
 void UIScreenshotViewer::showEvent(QShowEvent *pEvent)
 {
     /* Call to base-class: */
-    QIWithRetranslateUI2<QWidget>::showEvent(pEvent);
+    QWidget::showEvent(pEvent);
 
     /* Make sure we should polish dialog: */
     if (m_fPolished)
@@ -505,7 +519,7 @@ void UIScreenshotViewer::polishEvent(QShowEvent * /* pEvent */)
 void UIScreenshotViewer::resizeEvent(QResizeEvent *pEvent)
 {
     /* Call to base-class: */
-    QIWithRetranslateUI2<QWidget>::resizeEvent(pEvent);
+    QWidget::resizeEvent(pEvent);
 
     /* Adjust the picture: */
     adjustPicture();
@@ -522,7 +536,7 @@ void UIScreenshotViewer::mousePressEvent(QMouseEvent *pEvent)
     adjustPicture();
 
     /* Call to base-class: */
-    QIWithRetranslateUI2<QWidget>::mousePressEvent(pEvent);
+    QWidget::mousePressEvent(pEvent);
 }
 
 void UIScreenshotViewer::keyPressEvent(QKeyEvent *pEvent)
@@ -532,7 +546,7 @@ void UIScreenshotViewer::keyPressEvent(QKeyEvent *pEvent)
         close();
 
     /* Call to base-class: */
-    QIWithRetranslateUI2<QWidget>::keyPressEvent(pEvent);
+    QWidget::keyPressEvent(pEvent);
 }
 
 void UIScreenshotViewer::prepare()
@@ -540,7 +554,7 @@ void UIScreenshotViewer::prepare()
     /* Screenshot viewer is an application-modal window: */
     setWindowModality(Qt::ApplicationModal);
     /* With the pointing-hand cursor: */
-    UICursor::setCursor(this, Qt::PointingHandCursor);
+    setCursor(Qt::PointingHandCursor);
     /* And it's being deleted when closed: */
     setAttribute(Qt::WA_DeleteOnClose);
 
@@ -572,7 +586,9 @@ void UIScreenshotViewer::prepare()
     }
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+        this, &UIScreenshotViewer::sltRetranslateUI);
 
     /* Adjust window size: */
     adjustWindowSize();
@@ -636,7 +652,7 @@ void UIScreenshotViewer::adjustPicture()
 *********************************************************************************************************************************/
 
 UISnapshotDetailsWidget::UISnapshotDetailsWidget(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_pTabWidget(0)
     , m_pLayoutOptions(0)
     , m_pLabelName(0), m_pEditorName(0), m_pErrorPaneName(0)
@@ -697,7 +713,7 @@ void UISnapshotDetailsWidget::clearData()
     loadSnapshotData();
 }
 
-void UISnapshotDetailsWidget::retranslateUi()
+void UISnapshotDetailsWidget::sltRetranslateUI()
 {
     /* Translate labels: */
     m_pTabWidget->setTabText(0, tr("&Attributes"));
@@ -1186,7 +1202,9 @@ void UISnapshotDetailsWidget::loadSnapshotData()
     }
 
     /* Retranslate: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+        this, &UISnapshotDetailsWidget::sltRetranslateUI);
 
     /* Update button states finally: */
     updateButtonStates();
@@ -1282,8 +1300,8 @@ QString UISnapshotDetailsWidget::detailsReport(DetailsElementType enmType,
             /* Operating System: */
             ++iRowCount;
             strItem += QString(sSectionItemTpl2).arg(QApplication::translate("UIDetails", "Operating System", "details (general)"),
-                                                     empReport(uiCommon().vmGuestOSTypeDescription(comMachine.GetOSTypeId()),
-                                                               uiCommon().vmGuestOSTypeDescription(comMachineOld.GetOSTypeId())));
+                                                     empReport(gpGlobalSession->guestOSTypeManager().getDescription(comMachine.GetOSTypeId()),
+                                                               gpGlobalSession->guestOSTypeManager().getDescription(comMachineOld.GetOSTypeId())));
 
             /* Location of the settings file: */
             QString strSettingsFilePath = comMachine.GetSettingsFilePath();
@@ -1347,14 +1365,29 @@ QString UISnapshotDetailsWidget::detailsReport(DetailsElementType enmType,
                                                      empReport(strBootOrder, strBootOrderOld));
 
             /* Chipset Type? */
-            const KChipsetType enmChipsetType = comMachine.GetChipsetType();
-            const KChipsetType enmChipsetTypeOld = comMachineOld.GetChipsetType();
+            CPlatform comPlatform = comMachine.GetPlatform();
+            const KChipsetType enmChipsetType = comPlatform.GetChipsetType();
+            CPlatform comPlatformOld = comMachineOld.GetPlatform();
+            const KChipsetType enmChipsetTypeOld = comPlatformOld.GetChipsetType();
             if (enmChipsetType == KChipsetType_ICH9)
             {
                 ++iRowCount;
                 strItem += QString(sSectionItemTpl2).arg(QApplication::translate("UIDetails", "Chipset Type", "details (system)"),
                                                          empReport(gpConverter->toString(enmChipsetType),
                                                                    gpConverter->toString(enmChipsetTypeOld)));
+            }
+
+            /* TPM Type? */
+            const CTrustedPlatformModule comModule = comMachine.GetTrustedPlatformModule();
+            const KTpmType enmTpmType = comModule.GetType();
+            const CTrustedPlatformModule comModuleOld = comMachineOld.GetTrustedPlatformModule();
+            const KTpmType enmTpmTypeOld = comModuleOld.GetType();
+            if (enmTpmType != KTpmType_None)
+            {
+                ++iRowCount;
+                strItem += QString(sSectionItemTpl2).arg(QApplication::translate("UIDetails", "TPM Type", "details (system)"),
+                                                         empReport(gpConverter->toString(enmTpmType),
+                                                                   gpConverter->toString(enmTpmTypeOld)));
             }
 
             /* EFI? */
@@ -1365,6 +1398,32 @@ QString UISnapshotDetailsWidget::detailsReport(DetailsElementType enmType,
                 ++iRowCount;
                 strItem += QString(sSectionItemTpl2).arg(QApplication::translate("UIDetails", "EFI", "details (system)"),
                                                          empReport(strEfiState, strEfiStateOld));
+            }
+
+            /* Secure Boot? */
+            CNvramStore comStoreLvl1 = comMachine.GetNonVolatileStore();
+            QString strSecureBootStatus;
+            if (comStoreLvl1.isNotNull())
+            {
+                CUefiVariableStore comStoreLvl2 = comStoreLvl1.GetUefiVariableStore();
+                if (   comStoreLvl2.isNotNull()
+                    && comStoreLvl2.GetSecureBootEnabled())
+                    strSecureBootStatus = QApplication::translate("UIDetails", "Enabled", "details (system/secure boot)");
+            }
+            CNvramStore comStoreLvl1Old = comMachineOld.GetNonVolatileStore();
+            QString strSecureBootStatusOld;
+            if (comStoreLvl1Old.isNotNull())
+            {
+                CUefiVariableStore comStoreLvl2Old = comStoreLvl1Old.GetUefiVariableStore();
+                if (   comStoreLvl2Old.isNotNull()
+                    && comStoreLvl2Old.GetSecureBootEnabled())
+                    strSecureBootStatusOld = QApplication::translate("UIDetails", "Enabled", "details (system/secure boot)");
+            }
+            if (!strSecureBootStatus.isNull())
+            {
+                ++iRowCount;
+                strItem += QString(sSectionItemTpl2).arg(QApplication::translate("UIDetails", "Secure Boot", "details (system)"),
+                                                         empReport(strSecureBootStatus, strSecureBootStatusOld));
             }
 
             /* Acceleration? */
@@ -1428,13 +1487,17 @@ QString UISnapshotDetailsWidget::detailsReport(DetailsElementType enmType,
                                                      empReport(strGc, strGcOld));
 
             /* Acceleration? */
-            const QString strAcceleration = displayAccelerationReport(comGraphics);
-            const QString strAccelerationOld = displayAccelerationReport(comGraphicsOld);
-            if (!strAcceleration.isNull())
+            const QString str3DAccelerationStatus =   comGraphics.IsFeatureEnabled(KGraphicsFeature_Acceleration3D)
+                                                    ? QApplication::translate("UIDetails", "Enabled", "details (display/3D Acceleration)")
+                                                    : QString();
+            const QString str3DAccelerationStatusOld =   comGraphicsOld.IsFeatureEnabled(KGraphicsFeature_Acceleration3D)
+                                                       ? QApplication::translate("UIDetails", "Enabled", "details (display/3D Acceleration)")
+                                                       : QString();
+            if (!str3DAccelerationStatus.isNull())
             {
                 ++iRowCount;
-                strItem += QString(sSectionItemTpl2).arg(QApplication::translate("UIDetails", "Acceleration", "details (display)"),
-                                                         empReport(strAcceleration, strAccelerationOld));
+                strItem += QString(sSectionItemTpl2).arg(QApplication::translate("UIDetails", "3D Acceleration", "details (display)"),
+                                                         empReport(str3DAccelerationStatus, str3DAccelerationStatusOld));
             }
 
             /* Remote Desktop Server: */
@@ -1703,7 +1766,10 @@ QString UISnapshotDetailsWidget::bootOrderReport(const CMachine &comMachine)
     /* Prepare report: */
     QStringList aReport;
     /* Iterate through boot device types: */
-    for (ulong i = 1; i <= uiCommon().virtualBox().GetSystemProperties().GetMaxBootPosition(); ++i)
+    CPlatform comPlatform = comMachine.GetPlatform();
+    const KPlatformArchitecture enmArch = comPlatform.GetArchitecture();
+    CPlatformProperties comProperties = gpGlobalSession->virtualBox().GetPlatformProperties(enmArch);
+    for (ulong i = 1; i <= comProperties.GetMaxBootPosition(); ++i)
     {
         const KDeviceType enmDevice = comMachine.GetBootOrder(i);
         if (enmDevice != KDeviceType_Null)
@@ -1721,7 +1787,8 @@ QString UISnapshotDetailsWidget::efiStateReport(const CMachine &comMachine)
 {
     /* Prepare report: */
     QString strReport;
-    switch (comMachine.GetFirmwareType())
+    CFirmwareSettings comFirmwareSettings = comMachine.GetFirmwareSettings();
+    switch (comFirmwareSettings.GetFirmwareType())
     {
         case KFirmwareType_EFI:
         case KFirmwareType_EFI32:
@@ -1732,10 +1799,7 @@ QString UISnapshotDetailsWidget::efiStateReport(const CMachine &comMachine)
             break;
         }
         default:
-        {
-            /* strReport = */ QApplication::translate("UIDetails", "Disabled", "details (system/EFI)");
             break;
-        }
     }
     /* Return report: */
     return strReport;
@@ -1744,23 +1808,47 @@ QString UISnapshotDetailsWidget::efiStateReport(const CMachine &comMachine)
 /* static */
 QString UISnapshotDetailsWidget::accelerationReport(const CMachine &comMachine)
 {
+    /* Acquire platform stuff: */
+    CPlatform comPlatform = comMachine.GetPlatform();
+
     /* Prepare report: */
     QStringList aReport;
-    /* VT-x/AMD-V and Nested Paging? */
-    if (uiCommon().host().GetProcessorFeature(KProcessorFeature_HWVirtEx))
+    switch (comPlatform.GetArchitecture())
     {
-        /* VT-x/AMD-V? */
-        if (comMachine.GetHWVirtExProperty(KHWVirtExPropertyType_Enabled))
+        case KPlatformArchitecture_x86:
         {
-            aReport << QApplication::translate("UIDetails", "VT-x/AMD-V", "details (system)");
-            /* Nested Paging? */
-            if (comMachine.GetHWVirtExProperty(KHWVirtExPropertyType_NestedPaging))
-                aReport << QApplication::translate("UIDetails", "Nested Paging", "details (system)");
+            CPlatformX86 comPlatformX86 = comPlatform.GetX86();
+
+            /* VT-x/AMD-V and Nested Paging? */
+            if (gpGlobalSession->host().GetProcessorFeature(KProcessorFeature_HWVirtEx))
+            {
+                /* VT-x/AMD-V? */
+                if (comPlatformX86.GetHWVirtExProperty(KHWVirtExPropertyType_Enabled))
+                {
+                    aReport << QApplication::translate("UIDetails", "VT-x/AMD-V", "details (system)");
+                    /* Nested Paging? */
+                    if (comPlatformX86.GetHWVirtExProperty(KHWVirtExPropertyType_NestedPaging))
+                        aReport << QApplication::translate("UIDetails", "Nested Paging", "details (system)");
+                }
+            }
+            /* PAE/NX? */
+            if (comPlatformX86.GetCPUProperty(KCPUPropertyTypeX86_PAE))
+                aReport << QApplication::translate("UIDetails", "PAE/NX", "details (system)");
+
+            break;
         }
+
+#ifdef VBOX_WITH_VIRT_ARMV8
+        case KPlatformArchitecture_ARM:
+        {
+            /** @todo BUGBUG ARM stuff goes here. */
+            break;
+        }
+#endif
+
+        default:
+            break;
     }
-    /* PAE/NX? */
-    if (comMachine.GetCPUProperty(KCPUPropertyType_PAE))
-        aReport << QApplication::translate("UIDetails", "PAE/NX", "details (system)");
     /* Paravirtualization Interface? */
     switch (comMachine.GetEffectiveParavirtProvider())
     {
@@ -1789,18 +1877,6 @@ double UISnapshotDetailsWidget::scaleFactorReport(CMachine comMachine)
         dReport = 1.0;
     /* Return report: */
     return dReport;
-}
-
-/* static */
-QString UISnapshotDetailsWidget::displayAccelerationReport(CGraphicsAdapter comGraphics)
-{
-    /* Prepare report: */
-    QStringList aReport;
-    /* 3D Acceleration? */
-    if (comGraphics.GetAccelerate3DEnabled())
-        aReport << QApplication::translate("UIDetails", "3D", "details (display)");
-    /* Compose and return report: */
-    return aReport.isEmpty() ? QString() : aReport.join(", ");
 }
 
 /* static */
@@ -1853,7 +1929,7 @@ QPair<QStringList, QList<QMap<QString, QString> > > UISnapshotDetailsWidget::sto
     foreach (const CStorageController &comController, comMachine.GetStorageControllers())
     {
         /* Append controller information: */
-        aControllers << QApplication::translate("UIMachineSettingsStorage", "Controller: %1").arg(comController.GetName());
+        aControllers << QApplication::translate("UIStorageSettingsEditor", "Controller: %1").arg(comController.GetName());
 
         /* Prepare attachment information: */
         QMap<QString, QString> mapAttachments;
@@ -1871,7 +1947,7 @@ QPair<QStringList, QList<QMap<QString, QString> > > UISnapshotDetailsWidget::sto
 
             /* Prepare current medium information: */
             const QString strMediumInfo = comAttachment.isOk()
-                                        ? wipeHtmlStuff(uiCommon().storageDetails(comAttachment.GetMedium(), false))
+                                        ? wipeHtmlStuff(UIMediumTools::storageDetails(comAttachment.GetMedium(), false))
                                         : QString();
 
             /* Cache current slot/medium information: */
@@ -1923,8 +1999,12 @@ QStringList UISnapshotDetailsWidget::networkReport(CMachine comMachine)
     /* Prepare report: */
     QStringList aReport;
     /* Iterate through machine network adapters: */
-    const ulong iCount = uiCommon().virtualBox().GetSystemProperties().GetMaxNetworkAdapters(comMachine.GetChipsetType());
-    for (ulong iSlot = 0; iSlot < iCount; ++iSlot)
+    CPlatform comPlatform = comMachine.GetPlatform();
+    const KPlatformArchitecture enmArch = comPlatform.GetArchitecture();
+    const KChipsetType enmChipsetType = comPlatform.GetChipsetType();
+    CPlatformProperties comProperties = gpGlobalSession->virtualBox().GetPlatformProperties(enmArch);
+    const ulong cMaxNetworkAdapters = comProperties.GetMaxNetworkAdapters(enmChipsetType);
+    for (ulong iSlot = 0; iSlot < cMaxNetworkAdapters; ++iSlot)
     {
         /* Get current network adapter: */
         const CNetworkAdapter &comAdapter = comMachine.GetNetworkAdapter(iSlot);
@@ -1951,7 +2031,7 @@ QStringList UISnapshotDetailsWidget::networkReport(CMachine comMachine)
                     break;
                 case KNetworkAttachmentType_Generic:
                 {
-                    QString strGenericDriverProperties(summarizeGenericProperties(comAdapter));
+                    QString strGenericDriverProperties(UIDetailsGenerator::summarizeGenericProperties(comAdapter));
                     strInfo = strInfo.arg(  strGenericDriverProperties.isNull()
                                           ? strInfo.arg(QApplication::translate("UIDetails", "Generic Driver, '%1'", "details (network)")
                                                                                 .arg(comAdapter.GetGenericDriver()))
@@ -1963,6 +2043,18 @@ QStringList UISnapshotDetailsWidget::networkReport(CMachine comMachine)
                     strInfo = strInfo.arg(QApplication::translate("UIDetails", "NAT Network, '%1'", "details (network)")
                                                                   .arg(comAdapter.GetNATNetwork()));
                     break;
+#ifdef VBOX_WITH_CLOUD_NET
+                case KNetworkAttachmentType_Cloud:
+                    strInfo = strInfo.arg(QApplication::translate("UIDetails", "Cloud Network, '%1'", "details (network)")
+                                                                  .arg(comAdapter.GetCloudNetwork()));
+                    break;
+#endif
+#ifdef VBOX_WITH_VMNET
+                case KNetworkAttachmentType_HostOnlyNetwork:
+                    strInfo = strInfo.arg(QApplication::translate("UIDetails", "Host-only Network, '%1'", "details (network)")
+                                                                  .arg(comAdapter.GetHostOnlyNetwork()));
+                    break;
+#endif
                 default:
                     strInfo = strInfo.arg(gpConverter->toString(enmType));
                     break;
@@ -1981,8 +2073,11 @@ QStringList UISnapshotDetailsWidget::serialReport(CMachine comMachine)
     /* Prepare report: */
     QStringList aReport;
     /* Iterate through machine serial ports: */
-    const ulong iCount = uiCommon().virtualBox().GetSystemProperties().GetSerialPortCount();
-    for (ulong iSlot = 0; iSlot < iCount; ++iSlot)
+    CPlatform comPlatform = comMachine.GetPlatform();
+    const KPlatformArchitecture enmArch = comPlatform.GetArchitecture();
+    CPlatformProperties comProperties = gpGlobalSession->virtualBox().GetPlatformProperties(enmArch);
+    const ulong cMaxSerialPorts = comProperties.GetSerialPortCount();
+    for (ulong iSlot = 0; iSlot < cMaxSerialPorts; ++iSlot)
     {
         /* Get current serial port: */
         const CSerialPort &comPort = comMachine.GetSerialPort(iSlot);
@@ -1992,7 +2087,7 @@ QStringList UISnapshotDetailsWidget::serialReport(CMachine comMachine)
             const KPortMode enmMode = comPort.GetHostMode();
             /* Compose the data: */
             QStringList aInfo;
-            aInfo << UITranslator::toCOMPortName(comPort.GetIRQ(), comPort.GetIOBase());
+            aInfo << UITranslator::toCOMPortName(comPort.GetIRQ(), comPort.GetIOAddress());
             if (   enmMode == KPortMode_HostPipe
                 || enmMode == KPortMode_HostDevice
                 || enmMode == KPortMode_TCP
@@ -2060,22 +2155,6 @@ QString UISnapshotDetailsWidget::empReport(const QString &strValue, const QStrin
 QString UISnapshotDetailsWidget::empReport(const QString &strValue, bool fIgnore)
 {
     return fIgnore ? strValue : QString("<u>%1</u>").arg(strValue);
-}
-
-/* static */
-QString UISnapshotDetailsWidget::summarizeGenericProperties(const CNetworkAdapter &comNetwork)
-{
-    QVector<QString> names;
-    QVector<QString> props;
-    props = comNetwork.GetProperties(QString(), names);
-    QString strResult;
-    for (int i = 0; i < names.size(); ++i)
-    {
-        strResult += names[i] + "=" + props[i];
-        if (i < names.size() - 1)
-            strResult += ", ";
-    }
-    return strResult;
 }
 
 #include "UISnapshotDetailsWidget.moc"

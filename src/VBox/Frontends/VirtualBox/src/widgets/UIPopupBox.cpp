@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,6 +31,7 @@
 #include <QPaintEvent>
 #include <QStyle>
 #include <QVBoxLayout>
+#include <QWindow>
 
 /* GUI includes: */
 #include "UIPopupBox.h"
@@ -340,7 +341,8 @@ void UIPopupBox::updateTitleIcon()
 {
     /* Assign title-icon: */
     const int iIconMetric = QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize);
-    m_pTitleIcon->setPixmap(m_titleIcon.pixmap(window()->windowHandle(), QSize(iIconMetric, iIconMetric)));
+    const qreal fDevicePixelRatio = window() && window()->windowHandle() ? window()->windowHandle()->devicePixelRatio() : 1;
+    m_pTitleIcon->setPixmap(m_titleIcon.pixmap(QSize(iIconMetric, iIconMetric), fDevicePixelRatio));
 }
 
 void UIPopupBox::updateWarningIcon()
@@ -350,7 +352,8 @@ void UIPopupBox::updateWarningIcon()
 
     /* Assign warning-icon: */
     const int iIconMetric = QApplication::style()->pixelMetric(QStyle::PM_SmallIconSize);
-    m_pWarningIcon->setPixmap(m_warningIcon.pixmap(window()->windowHandle(), QSize(iIconMetric, iIconMetric)));
+    const qreal fDevicePixelRatio = window() && window()->windowHandle() ? window()->windowHandle()->devicePixelRatio() : 1;
+    m_pWarningIcon->setPixmap(m_warningIcon.pixmap(QSize(iIconMetric, iIconMetric), fDevicePixelRatio));
 }
 
 void UIPopupBox::updateTitle()

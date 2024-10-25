@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,11 +35,11 @@
 #include "UINativeWizardPage.h"
 
 /* Forward declarations: */
+class QComboBox;
 class QGridLayout;
 class QLabel;
 class QListWidget;
 class QStackedWidget;
-class QIComboBox;
 class QIRichTextLabel;
 class QIToolButton;
 class UIEmptyFilePathSelector;
@@ -66,22 +66,22 @@ enum
 namespace UIWizardImportAppSource
 {
     /** Populates sources. */
-    void populateSources(QIComboBox *pCombo,
+    void populateSources(QComboBox *pCombo,
                          UINotificationCenter *pCenter,
                          bool fImportFromOCIByDefault,
                          const QString &strSource);
 
     /** Returns current source of @a pCombo specified. */
-    QString source(QIComboBox *pCombo);
+    QString source(QComboBox *pCombo);
     /** Returns whether source under certain @a iIndex is cloud one. */
-    bool isSourceCloudOne(QIComboBox *pCombo, int iIndex = -1);
+    bool isSourceCloudOne(QComboBox *pCombo, int iIndex = -1);
 
     /** Refresh stacked widget. */
     void refreshStackedWidget(QStackedWidget *pStackedWidget,
                               bool fIsFormatCloudOne);
 
     /** Refresh profile combo. */
-    void refreshProfileCombo(QIComboBox *pCombo,
+    void refreshProfileCombo(QComboBox *pCombo,
                              UINotificationCenter *pCenter,
                              const QString &strSource,
                              const QString &strProfileName,
@@ -105,12 +105,12 @@ namespace UIWizardImportAppSource
     QString path(UIEmptyFilePathSelector *pFileSelector);
 
     /** Returns profile name. */
-    QString profileName(QIComboBox *pCombo);
+    QString profileName(QComboBox *pCombo);
     /** Returns machine ID. */
     QString machineId(QListWidget *pListWidget);
 
     /** Updates source combo tool-tips. */
-    void updateSourceComboToolTip(QIComboBox *pCombo);
+    void updateSourceComboToolTip(QComboBox *pCombo);
 }
 
 /** UINativeWizardPage extension for Source page of the Import Appliance wizard,
@@ -131,17 +131,14 @@ protected:
     /** Returns wizard this page belongs to. */
     UIWizardImportApp *wizard() const;
 
-    /** Handles translation event. */
-    virtual void retranslateUi() /* override final */;
-
     /** Performs page initialization. */
-    virtual void initializePage() /* override final */;
+    virtual void initializePage() RT_OVERRIDE RT_FINAL;
 
     /** Returns whether page is complete. */
-    virtual bool isComplete() const /* override final */;
+    virtual bool isComplete() const RT_OVERRIDE RT_FINAL;
 
     /** Performs page validation. */
-    virtual bool validatePage() /* override final */;
+    virtual bool validatePage() RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -152,6 +149,9 @@ private slots:
     void sltHandleProfileComboChange();
     /** Handles profile tool-button click. */
     void sltHandleProfileButtonClick();
+
+    /** Handles translation event. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -180,7 +180,7 @@ private:
     /** Holds the source type label instance. */
     QLabel      *m_pSourceLabel;
     /** Holds the source type combo-box instance. */
-    QIComboBox  *m_pSourceComboBox;
+    QComboBox   *m_pSourceComboBox;
 
     /** Holds the settings widget 1 instance. */
     QStackedWidget *m_pSettingsWidget1;
@@ -197,7 +197,7 @@ private:
     /** Holds the profile label instance. */
     QLabel       *m_pProfileLabel;
     /** Holds the profile combo-box instance. */
-    QIComboBox   *m_pProfileComboBox;
+    QComboBox    *m_pProfileComboBox;
     /** Holds the profile management tool-button instance. */
     QIToolButton *m_pProfileToolButton;
     /** Holds the profile instance label instance. */

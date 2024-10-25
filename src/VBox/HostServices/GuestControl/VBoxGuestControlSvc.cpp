@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -623,8 +623,8 @@ typedef struct ClientState
         m_PendingReq.mHandle   = NULL;
         m_PendingReq.mParms    = NULL;
         m_PendingReq.mNumParms = 0;
-        m_enmPendingMsg            = (guestControl::eGuestMsg)0;
-        m_fPendingCancel      = false;
+        m_enmPendingMsg        = (guestControl::eGuestMsg)0;
+        m_fPendingCancel       = false;
         return VINF_SUCCESS;
     }
 
@@ -951,6 +951,7 @@ private:
 
 /** Host feature mask for GUEST_MSG_REPORT_FEATURES/GUEST_MSG_QUERY_FEATURES. */
 static uint64_t const g_fGstCtrlHostFeatures0 = VBOX_GUESTCTRL_HF_0_NOTIFY_RDWR_OFFSET
+                                              | VBOX_GUESTCTRL_HF_0_PROCESS_CWD
                                               | VBOX_GUESTCTRL_HF_0_PROCESS_ARGV0;
 
 
@@ -1381,7 +1382,7 @@ int GstCtrlService::clientMsgPeek(ClientState *pClient, VBOXHGCMCALLHANDLE hCall
     pClient->m_PendingReq.mHandle   = hCall;
     pClient->m_PendingReq.mNumParms = cParms;
     pClient->m_PendingReq.mParms    = paParms;
-    pClient->m_enmPendingMsg         = GUEST_MSG_PEEK_WAIT;
+    pClient->m_enmPendingMsg        = GUEST_MSG_PEEK_WAIT;
     LogFlowFunc(("[Client %RU32] Is now in pending mode...\n", pClient->m_idClient));
     return VINF_HGCM_ASYNC_EXECUTE;
 }
@@ -1625,6 +1626,7 @@ int GstCtrlService::clientMsgSkip(ClientState *pClient, VBOXHGCMCALLHANDLE hCall
                         hostCallback(GUEST_MSG_FILE_NOTIFY, 3, aReplyParams);
                         break;
                     case HOST_MSG_FILE_READ:
+                        RT_FALL_THROUGH();
                     case HOST_MSG_FILE_READ_AT:
                         HGCMSvcSetU32(&aReplyParams[1], GUEST_FILE_NOTIFYTYPE_READ);  /* type */
                         HGCMSvcSetU32(&aReplyParams[2], rcSkip);                      /* rc */
@@ -1632,6 +1634,7 @@ int GstCtrlService::clientMsgSkip(ClientState *pClient, VBOXHGCMCALLHANDLE hCall
                         hostCallback(GUEST_MSG_FILE_NOTIFY, 4, aReplyParams);
                         break;
                     case HOST_MSG_FILE_WRITE:
+                        RT_FALL_THROUGH();
                     case HOST_MSG_FILE_WRITE_AT:
                         HGCMSvcSetU32(&aReplyParams[1], GUEST_FILE_NOTIFYTYPE_WRITE); /* type */
                         HGCMSvcSetU32(&aReplyParams[2], rcSkip);                      /* rc */
@@ -1656,14 +1659,40 @@ int GstCtrlService::clientMsgSkip(ClientState *pClient, VBOXHGCMCALLHANDLE hCall
                         HGCMSvcSetU64(&aReplyParams[3], 0);                              /* actual */
                         hostCallback(GUEST_MSG_FILE_NOTIFY, 4, aReplyParams);
                         break;
-
-                    case HOST_MSG_EXEC_GET_OUTPUT: /** @todo This can't be right/work. */
-                    case HOST_MSG_EXEC_TERMINATE:  /** @todo This can't be right/work. */
-                    case HOST_MSG_EXEC_WAIT_FOR:   /** @todo This can't be right/work. */
-                    case HOST_MSG_PATH_USER_DOCUMENTS:
-                    case HOST_MSG_PATH_USER_HOME:
-                    case HOST_MSG_PATH_RENAME:
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+                    case HOST_MSG_FS_OBJ_QUERY_INFO:
+                        RT_FALL_THROUGH();
+                    case HOST_MSG_FS_CREATE_TEMP:
+                        RT_FALL_THROUGH();
+                    case HOST_MSG_FS_QUERY_INFO:
+                        RT_FALL_THROUGH();
+                    case HOST_MSG_FILE_REMOVE:
+                        RT_FALL_THROUGH();
+                    case HOST_MSG_DIR_OPEN:
+                        RT_FALL_THROUGH();
+                    case HOST_MSG_DIR_CLOSE:
+                        RT_FALL_THROUGH();
+                    case HOST_MSG_DIR_READ:
+                        RT_FALL_THROUGH();
+                    case HOST_MSG_DIR_REWIND:
+                        RT_FALL_THROUGH();
+                    case HOST_MSG_DIR_CREATE:
+                        RT_FALL_THROUGH();
+#endif /* VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS */
+                    case HOST_MSG_MOUNT_POINTS:
+                        RT_FALL_THROUGH();
+                    case HOST_MSG_EXEC_GET_OUTPUT: /** @todo BUGBUG This can't be right/work. */
+                    case HOST_MSG_EXEC_TERMINATE:  /** @todo BUGBUG This can't be right/work. */
+                    case HOST_MSG_EXEC_WAIT_FOR:   /** @todo BUGBUG This can't be right/work. */
+                        break;
                     case HOST_MSG_DIR_REMOVE:
+                        RT_FALL_THROUGH();
+                    case HOST_MSG_PATH_RENAME:
+                        RT_FALL_THROUGH();
+                    case HOST_MSG_PATH_USER_DOCUMENTS:
+                        RT_FALL_THROUGH();
+                    case HOST_MSG_PATH_USER_HOME:
+                        RT_FALL_THROUGH();
                     default:
                         HGCMSvcSetU32(&aReplyParams[1], pFirstMsg->mType);
                         HGCMSvcSetU32(&aReplyParams[2], (uint32_t)rcSkip);
@@ -1794,7 +1823,7 @@ int GstCtrlService::clientSessionCancelPrepared(ClientState *pClient, uint32_t c
     /*
      * Do the work.
      */
-    int rc = VWRN_NOT_FOUND;
+    int rc = VINF_SUCCESS;
     if (idSession == UINT32_MAX)
     {
         GstCtrlPreparedSession *pCur, *pNext;
@@ -1802,12 +1831,12 @@ int GstCtrlService::clientSessionCancelPrepared(ClientState *pClient, uint32_t c
         {
             RTListNodeRemove(&pCur->ListEntry);
             RTMemFree(pCur);
-            rc = VINF_SUCCESS;
         }
         m_cPreparedSessions = 0;
     }
     else
     {
+        rc = VWRN_NOT_FOUND;
         GstCtrlPreparedSession *pCur, *pNext;
         RTListForEachSafe(&m_PreparedSessions, pCur, pNext, GstCtrlPreparedSession, ListEntry)
         {
@@ -1821,7 +1850,7 @@ int GstCtrlService::clientSessionCancelPrepared(ClientState *pClient, uint32_t c
             }
         }
     }
-    return VINF_SUCCESS;
+    return rc;
 }
 
 
@@ -2223,6 +2252,9 @@ GstCtrlService::svcCall(void *pvService, VBOXHGCMCALLHANDLE hCall, uint32_t idCl
         case GUEST_MSG_EXEC_IO_NOTIFY:
         case GUEST_MSG_DIR_NOTIFY:
         case GUEST_MSG_FILE_NOTIFY:
+#ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+        case GUEST_MSG_FS_NOTIFY:
+#endif
             LogFlowFunc(("[Client %RU32] %s\n", idClient, GstCtrlGuestMsgToStr((eGuestMsg)u32Function)));
             rc = pThis->clientToMain(pClient, u32Function /* Msg */, cParms, paParms);
             Assert(rc != VINF_HGCM_ASYNC_EXECUTE);
@@ -2475,7 +2507,7 @@ GstCtrlService::svcLoadState(void *pvService, uint32_t idClient, void *pvClient,
         AssertRCReturn(rc, rc);
         if (uSubVersion != 1)
             return pVMM->pfnSSMR3SetLoadError(pSSM, VERR_SSM_DATA_UNIT_FORMAT_CHANGED, RT_SRC_POS,
-                                     "sub version %u, expected 1\n", uSubVersion);
+                                              "sub version %u, expected 1\n", uSubVersion);
         bool fLegacyMode;
         rc = pVMM->pfnSSMR3GetBool(pSSM, &fLegacyMode);
         AssertRCReturn(rc, rc);
@@ -2609,4 +2641,3 @@ extern "C" DECLCALLBACK(DECLEXPORT(int)) VBoxHGCMSvcLoad(VBOXHGCMSVCFNTABLE *pTa
     LogFlowFunc(("Returning %Rrc\n", rc));
     return rc;
 }
-

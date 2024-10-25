@@ -4,7 +4,7 @@
 #
 
 #
-# Copyright (C) 2006-2023 Oracle and/or its affiliates.
+# Copyright (C) 2006-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -60,9 +60,6 @@ endif
 #
 INSTALLS += \
 	NSPRPUB-HEADERS \
-	NSPRPUB-MD-HEADERS \
-	NSPRPUB-OBS-HEADERS \
-	NSPRPUB-PRIV-HEADERS \
 	STRING-HEADERS \
 	XPCOM-HEADERS \
 	IPCD-HEADERS
@@ -107,7 +104,9 @@ if !defined(VBOX_ONLY_SDK) && (!defined(VBOX_ONLY_EXTPACKS) || !defined(VBOX_ONL
 
  VBOX_XPCOM_DLLS := \
  	VBoxXPCOM \
- 	VBoxXPCOMIPCC
+ 	VBoxXPCOMIPCC \
+ 	VBoxXPCOMIPCD
+
  DLLS += $(VBOX_XPCOM_DLLS)
 
  ifdef VBOX_WITH_32_ON_64_MAIN_API
@@ -128,8 +127,6 @@ if !defined(VBOX_ONLY_SDK) && (!defined(VBOX_ONLY_EXTPACKS) || !defined(VBOX_ONL
   	tstTestHashtables \
   	tstTestID \
   	tstTestObserverService \
-  	tstTestPipes \
-  	tstTestThreads \
   	tstTestXPIDLString \
   	tstTestXPTCInvoke \
   	tstTestDeque \
@@ -137,16 +134,7 @@ if !defined(VBOX_ONLY_SDK) && (!defined(VBOX_ONLY_EXTPACKS) || !defined(VBOX_ONL
   	tstTestMinStringAPI \
   	tstTestStrings \
   	tstPrimitiveTest
-  #	tstnsIFileEnumerator
-  #	tstTestAtoms
-  #	tstTestServMgr
-  #	tstTestCallTemplates
-  #	tstTestPermanentAtoms
-  #	tstSimpleTypeLib
-  #	tstXptDump
-  #	tstXptLink
  endif # VBOX_WITH_TESTCASES
- PROGRAMS += VBoxXPCOMIPCD
 
 endif # !VBOX_ONLY_SDK && (!defined(VBOX_ONLY_EXTPACKS) || !defined(VBOX_ONLY_EXTPACKS_USE_IMPLIBS))
 
@@ -166,93 +154,14 @@ NSPRPUB-HEADERS_SOURCES = \
 	nsprpub/pr/include/nspr.h \
 	nsprpub/lib/ds/plarena.h \
 	nsprpub/lib/ds/plarenas.h \
-	nsprpub/lib/libc/include/plbase64.h \
-	nsprpub/lib/libc/include/plerror.h \
-	nsprpub/lib/libc/include/plgetopt.h \
 	nsprpub/lib/ds/plhash.h \
-	nsprpub/lib/libc/include/plresolv.h \
-	nsprpub/lib/libc/include/plstr.h \
-	nsprpub/pr/include/pratom.h \
 	nsprpub/pr/include/prbit.h \
-	nsprpub/pr/include/prclist.h \
-	nsprpub/pr/include/prcmon.h \
-	nsprpub/pr/include/prcountr.h \
-	nsprpub/pr/include/prcvar.h \
-	nsprpub/pr/include/prdtoa.h \
-	nsprpub/pr/include/prenv.h \
-	nsprpub/pr/include/prerr.h \
-	nsprpub/pr/include/prerror.h \
-	nsprpub/pr/include/prinet.h \
-	nsprpub/pr/include/prinit.h \
-	nsprpub/pr/include/prinrval.h \
-	nsprpub/pr/include/prio.h \
-	nsprpub/pr/include/pripcsem.h \
-	nsprpub/pr/include/prlink.h \
-	nsprpub/pr/include/prlock.h \
-	nsprpub/pr/include/prlog.h \
 	nsprpub/pr/include/prlong.h \
 	nsprpub/pr/include/prmem.h \
 	nsprpub/pr/include/prmon.h \
-	nsprpub/pr/include/prmwait.h \
-	nsprpub/pr/include/prnetdb.h \
-	nsprpub/pr/include/prolock.h \
-	nsprpub/pr/include/prpdce.h \
-	nsprpub/pr/include/prprf.h \
-	nsprpub/pr/include/prproces.h \
-	nsprpub/pr/include/prrng.h \
-	nsprpub/pr/include/prrwlock.h \
-	nsprpub/pr/include/prshm.h \
-	nsprpub/pr/include/prshma.h \
-	nsprpub/pr/include/prsystem.h \
-	nsprpub/pr/include/prthread.h \
 	nsprpub/pr/include/prtime.h \
-	nsprpub/pr/include/prtpool.h \
-	nsprpub/pr/include/prtrace.h \
 	nsprpub/pr/include/prtypes.h \
-	nsprpub/pr/include/prvrsion.h \
-	nsprpub/pr/include/prwin16.h \
 	nsprpub/pr/include/md/_vbox.cfg=>prcpucfg.h
-NSPRPUB-MD-HEADERS_INST = $(INST_SDK)bindings/xpcom/include/nsprpub/md/
-NSPRPUB-MD-HEADERS_IFFLAGS = -m 644
-NSPRPUB-MD-HEADERS_SOURCES = \
-	nsprpub/pr/include/md/_iprt_atomic.h \
-	nsprpub/pr/include/md/_darwin.h \
-	nsprpub/pr/include/md/_freebsd.h \
-	nsprpub/pr/include/md/_linux.h \
-	nsprpub/pr/include/md/_macos.h \
-	nsprpub/pr/include/md/_netbsd.h \
-	nsprpub/pr/include/md/_openbsd.h \
-	nsprpub/pr/include/md/_os2_errors.h \
-	nsprpub/pr/include/md/_os2.h \
-	nsprpub/pr/include/md/_pcos.h \
-	nsprpub/pr/include/md/_solaris.h \
-	nsprpub/pr/include/md/_unix_errors.h \
-	nsprpub/pr/include/md/_unixos.h \
-	nsprpub/pr/include/md/_pth.h \
-	nsprpub/pr/include/md/prosdep.h \
-	\
-	nsprpub/pr/include/md/_freebsd.cfg \
-	nsprpub/pr/include/md/_linux.cfg \
-	nsprpub/pr/include/md/_darwin.cfg \
-	nsprpub/pr/include/md/_netbsd.cfg \
-	nsprpub/pr/include/md/_openbsd.cfg \
-	nsprpub/pr/include/md/_os2.cfg \
-	nsprpub/pr/include/md/_solaris32.cfg \
-	nsprpub/pr/include/md/_solaris64.cfg
-NSPRPUB-OBS-HEADERS_INST = $(INST_SDK)bindings/xpcom/include/nsprpub/obsolete/
-NSPRPUB-OBS-HEADERS_IFFLAGS = -m 644
-NSPRPUB-OBS-HEADERS_SOURCES = \
-	nsprpub/pr/include/obsolete/pralarm.h \
-	nsprpub/pr/include/obsolete/probslet.h \
-	nsprpub/pr/include/obsolete/protypes.h \
-	nsprpub/pr/include/obsolete/prsem.h
-
-NSPRPUB-PRIV-HEADERS_INST = $(INST_SDK)bindings/xpcom/include/nsprpub/private/
-NSPRPUB-PRIV-HEADERS_IFFLAGS = -m 644
-NSPRPUB-PRIV-HEADERS_SOURCES = \
-	nsprpub/pr/include/private/pprio.h \
-	nsprpub/pr/include/private/pprthred.h \
-	nsprpub/pr/include/private/prpriv.h
 
 STRING-HEADERS_INST = $(INST_SDK)bindings/xpcom/include/string/
 STRING-HEADERS_IFFLAGS = -m 644
@@ -296,19 +205,15 @@ XPCOM-HEADERS_SOURCES = \
 	xpcom/ds/nsArray.h \
 	xpcom/ds/nsArrayEnumerator.h \
 	xpcom/ds/nsAtomService.h \
-	xpcom/ds/nsAutoBuffer.h \
 	xpcom/threads/nsAutoLock.h \
 	xpcom/base/nsAutoPtr.h \
 	xpcom/ds/nsBaseHashtable.h \
 	xpcom/ds/nsCOMArray.h \
 	xpcom/ds/nsCRT.h \
 	xpcom/components/nsCategoryManagerUtils.h \
-	xpcom/ds/nsCheapSets.h \
 	xpcom/ds/nsClassHashtable.h \
-	xpcom/base/nsCom.h \
 	xpcom/components/nsComponentManagerObsolete.h \
 	xpcom/components/nsComponentManagerUtils.h \
-	xpcom/ds/nsCppSharedAllocator.h \
 	xpcom/ds/nsDataHashtable.h \
 	xpcom/base/nsDebugImpl.h \
 	xpcom/ds/nsDeque.h \
@@ -318,61 +223,36 @@ XPCOM-HEADERS_SOURCES = \
 	xpcom/ds/nsDoubleHashtable.h \
 	xpcom/ds/nsEnumeratorUtils.h \
 	xpcom/base/nsError.h \
-	xpcom/io/nsEscape.h \
 	xpcom/threads/nsEventQueueUtils.h \
-	xpcom/io/nsFastLoadPtr.h \
-	xpcom/io/nsFastLoadService.h \
-	xpcom/ds/nsFixedSizeAllocator.h \
 	xpcom/ds/nsHashKeys.h \
 	xpcom/ds/nsHashSets.h \
 	xpcom/ds/nsHashtable.h \
-	xpcom/base/nsIAllocator.h \
-	xpcom/ds/nsIByteBuffer.h \
 	xpcom/base/nsID.h \
 	xpcom/base/nsIID.h \
 	xpcom/components/nsIServiceManagerObsolete.h \
 	xpcom/components/nsIServiceManagerUtils.h \
 	xpcom/base/nsISupportsBase.h \
-	xpcom/base/nsISupportsObsolete.h \
-	xpcom/ds/nsIUnicharBuffer.h \
-	xpcom/io/nsIUnicharInputStream.h \
 	xpcom/ds/nsInt64.h \
 	xpcom/ds/nsInterfaceHashtable.h \
-	xpcom/io/nsLinebreakConverter.h \
 	xpcom/io/nsLocalFile.h \
 	xpcom/io/nsLocalFileUnix.h \
-	xpcom/io/nsLocalFileOS2.h \
-	xpcom/io/nsLocalFileOSX.h \
 	xpcom/components/nsModule.h \
-	xpcom/io/nsMultiplexInputStream.h \
 	xpcom/io/nsNativeCharsetUtils.h \
 	xpcom/components/nsNativeComponentLoader.h \
 	xpcom/ds/nsObserverService.h \
 	xpcom/components/nsObsoleteModuleLoading.h \
-	xpcom/threads/nsProcess.h \
 	xpcom/proxy/public/nsProxiedService.h \
 	xpcom/proxy/public/nsProxyEvent.h \
 	xpcom/proxy/public/nsProxyRelease.h \
-	xpcom/ds/nsQuickSort.h \
-	xpcom/ds/nsRecyclingAllocator.h \
 	xpcom/ds/nsRefPtrHashtable.h \
-	xpcom/io/nsScriptableInputStream.h \
 	xpcom/ds/nsStaticAtom.h \
 	xpcom/components/nsStaticComponent.h \
-	xpcom/ds/nsStaticNameTable.h \
-	xpcom/io/nsStorageStream.h \
-	xpcom/io/nsStreamUtils.h \
 	xpcom/ds/nsStringEnumerator.h \
 	xpcom/io/nsStringIO.h \
-	xpcom/io/nsStringStream.h \
 	xpcom/ds/nsSupportsArray.h \
 	xpcom/ds/nsSupportsPrimitives.h \
 	xpcom/ds/nsTHashtable.h \
-	xpcom/ds/nsTextFormatter.h \
-	xpcom/ds/nsTime.h \
 	xpcom/base/nsTraceRefcntImpl.h \
-	xpcom/ds/nsUnitConversion.h \
-	xpcom/ds/nsValueArray.h \
 	xpcom/ds/nsVariant.h \
 	xpcom/ds/nsVoidArray.h \
 	xpcom/base/nsWeakPtr.h \
@@ -411,11 +291,6 @@ IPCD-HEADERS_INST = $(INST_SDK)bindings/xpcom/include/ipcd/
 IPCD-HEADERS_IFFLAGS = -m 644
 IPCD-HEADERS_SOURCES = \
 	ipc/ipcd/client/public/ipcCID.h \
-	ipc/ipcd/extensions/lock/public/ipcLockCID.h \
-	ipc/ipcd/util/public/ipcMessageReader.h \
-	ipc/ipcd/util/public/ipcMessageWriter.h \
-	ipc/ipcd/daemon/public/ipcModule.h \
-	ipc/ipcd/daemon/public/ipcModuleUtil.h \
 	ipc/ipcd/client/public/ipcdclient.h
 
 
@@ -453,50 +328,29 @@ xpidl_SOURCES = \
 	xpcom/typelib/xpt/src/xpt_struct.c \
 	xpcom/typelib/xpt/src/xpt_xdr.c
 
-ifeq ($(KBUILD_TARGET),os2)
- # glib and libIDL needed by XPCOM on OS/2.
- ifeq ($(VBOX_PATH_GLIB),)
-  VBOX_PATH_GLIB := $(lastword $(sort $(wildcard $(KBUILD_DEVTOOLS_TRG)/glibidl/*/glibidl/gcc335)))
- endif
- VBOX_PATH_LIBIDL ?= $(VBOX_PATH_GLIB)
- ifeq ($(wildcard $(VBOX_PATH_GLIB)),)
-  $(warning VBOX_PATH_GLIB is "$(VBOX_PATH_GLIB)" which is not a valid directory!)
- endif
- ifeq ($(wildcard $(VBOX_PATH_LIBIDL)),)
-  $(warning VBOX_PATH_LIBIDL is "$(VBOX_PATH_LIBIDL)" which is not a valid directory!)
- endif
- xpidl_INCS = \
- 	$(VBOX_PATH_LIBIDL)/include \
- 	$(VBOX_PATH_GLIB)/include
- xpidl_LIBS = \
- 	$(VBOX_PATH_LIBIDL)/lib/libidl.lib \
- 	$(VBOX_PATH_LIBIDL)/lib/glib.lib
- # install necessary DLLs to the same place where xpidl goes
- INSTALLS += xpidl-DLLS
- xpidl_ORDERDEPS = $(xpidl-DLLS_1_TARGET)
- xpidl-DLLS_INST = $(xpidl_INST)
- # static libraries of these may be provided instead,
- # so copy DLLs only when they are present
- xpidl-DLLS_SOURCES += $(wildcard $(VBOX_PATH_GLIB)/lib/glib.dll)
- xpidl-DLLS_SOURCES += $(wildcard $(VBOX_PATH_LIBIDL)/lib/libIDL.dll)
+# We do these ONCE.
+libIDL_config_cflags := $(shell $(VBOX_LIBIDL_CONFIG) --cflags)
+libIDL_config_libs   := $(shell $(VBOX_LIBIDL_CONFIG) --libs)
+xpidl_CFLAGS = \
+	$(libIDL_config_cflags)
+if1of ($(KBUILD_HOST), linux solaris)
+ xpidl_LDFLAGS = \
+ 	$(filter-out -l%,$(libIDL_config_libs))
+ xpidl_LIBS.$(KBUILD_HOST) += \
+ 	$(subst -l,,$(filter -l%,$(libIDL_config_libs)))
 else
- # We do these ONCE.
- libIDL_config_cflags := $(shell $(VBOX_LIBIDL_CONFIG) --cflags)
- libIDL_config_libs   := $(shell $(VBOX_LIBIDL_CONFIG) --libs)
- xpidl_CFLAGS = \
- 	$(libIDL_config_cflags)
- if1of ($(KBUILD_HOST), linux solaris)
+ ifeq ($(KBUILD_HOST),darwin)
+  # Need to put the SDK /usr/lib before the libIDL path to make it pick the system iconv
   xpidl_LDFLAGS = \
-  	$(filter-out -l%,$(libIDL_config_libs))
-  xpidl_LIBS.$(KBUILD_HOST) += \
-  	$(subst -l,,$(filter -l%,$(libIDL_config_libs)))
+  	-L$(VBOX_PATH_MACOSX_SDK)/usr/lib \
+  	$(libIDL_config_libs)
  else
   xpidl_LDFLAGS = \
   	$(libIDL_config_libs)
  endif
- xpidl_LDFLAGS.linux = \
- 	$(VBOX_LD_as_needed)
 endif
+xpidl_LDFLAGS.linux = \
+	$(VBOX_LD_as_needed)
 
 #
 # The XPT linker.
@@ -515,189 +369,22 @@ xpt_link_SOURCES = \
 VBox-xpcom-nspr_TEMPLATE   = XPComDll
 VBox-xpcom-nspr_INSTTYPE   = none
 VBox-xpcom-nspr_DEFS       = \
-	_NSPR_BUILD_ \
-	HAVE_LCHOWN=1 \
-	HAVE_STRERROR=1 \
-	FORCE_PR_LOG
-VBox-xpcom-nspr_DEFS      += \
-	VBOX_USE_IPRT_IN_NSPR
-VBox-xpcom-nspr_DEFS.darwin.amd64 = \
-	VBOX_USE_MORE_IPRT_IN_NSPR
-VBox-xpcom-nspr_DEFS.darwin.arm64 = \
-	VBOX_USE_MORE_IPRT_IN_NSPR
-VBox-xpcom-nspr_DEFS.darwin = \
-	HAVE_BSD_FLOCK=1 \
-	HAVE_SOCKLEN_T=1 \
-	_PR_PTHREADS
-VBox-xpcom-nspr_DEFS.freebsd = \
-	FREEBSD=1 \
-	HAVE_CVAR_BUILT_ON_SEM \
-	_PR_PTHREADS
-## @todo filling in the missing stuff, please don't just copy it from linux.
-# FIXME: LINUX should be defined by _linux.cfg
+	_NSPR_BUILD_
 VBox-xpcom-nspr_DEFS.linux = \
-	LINUX=1 \
 	_POSIX_SOURCE=1 \
 	_BSD_SOURCE=1 \
 	_SVID_SOURCE=1 \
 	_DEFAULT_SOURCE \
-	_REENTRANT=1 \
-	_LARGEFILE64_SOURCE=1 \
-	HAVE_FCNTL_FILE_LOCKING=1 \
-	HAVE_CVAR_BUILT_ON_SEM \
-	_PR_PTHREADS
+	_REENTRANT=1
 # _BSD_SOURCE is here to keep the Glibc header files happy and make them include the right things
-VBox-xpcom-nspr_DEFS.netbsd = \
-	_PR_PTHREADS
-VBox-xpcom-nspr_DEFS.openbsd = \
-	_PR_PTHREADS
-VBox-xpcom-nspr_DEFS.os2 =
-VBox-xpcom-nspr_DEFS.solaris = \
-	HAVE_FCNTL_FILE_LOCKING=1 \
-	HAVE_SOCKLEN_T=1 \
-	_PR_PTHREADS
 VBox-xpcom-nspr_INCS = \
-	nsprpub/pr/include/private \
 	$(VBox-xpcom-nspr_0_OUTDIR)
-
 VBox-xpcom-nspr_SOURCES  = \
-	nsprpub/pr/src/io/prfdcach.c \
-	nsprpub/pr/src/io/prmwait.c \
-	nsprpub/pr/src/io/priometh.c \
-	nsprpub/pr/src/io/pripv6.c \
-	nsprpub/pr/src/io/prmapopt.c \
-	nsprpub/pr/src/io/prlayer.c \
-	nsprpub/pr/src/io/prlog.c \
-	nsprpub/pr/src/io/prmmap.c \
-	nsprpub/pr/src/io/prpolevt.c \
-	nsprpub/pr/src/io/prprf.c \
-	nsprpub/pr/src/io/prscanf.c \
-	nsprpub/pr/src/io/prstdio.c \
-	nsprpub/pr/src/linking/prlink.c \
-	nsprpub/pr/src/malloc/prmalloc.c \
-	nsprpub/pr/src/malloc/prmem.c \
-	nsprpub/pr/src/md/prosdep.c \
-	nsprpub/pr/src/memory/prseg.c \
-	nsprpub/pr/src/memory/prshm.c \
-	nsprpub/pr/src/memory/prshma.c \
-	nsprpub/pr/src/misc/pralarm.c \
-	nsprpub/pr/src/misc/pratom.c \
-	nsprpub/pr/src/misc/prcountr.c \
-	nsprpub/pr/src/misc/prdtoa.c \
-	nsprpub/pr/src/misc/prenv.c \
-	nsprpub/pr/src/misc/prerr.c \
-	nsprpub/pr/src/misc/prerror.c \
-	nsprpub/pr/src/misc/prerrortable.c \
-	nsprpub/pr/src/misc/prinit.c \
-	nsprpub/pr/src/misc/prinrval.c \
-	nsprpub/pr/src/misc/pripc.c \
-	nsprpub/pr/src/misc/prlog2.c \
-	nsprpub/pr/src/misc/prlong.c \
-	nsprpub/pr/src/misc/prnetdb.c \
-	nsprpub/pr/src/misc/prolock.c \
-	nsprpub/pr/src/misc/prrng.c \
-	nsprpub/pr/src/misc/prsystem.c \
-	nsprpub/pr/src/misc/prtime.c \
-	nsprpub/pr/src/misc/prthinfo.c \
-	nsprpub/pr/src/misc/prtpool.c \
-	nsprpub/pr/src/misc/prtrace.c \
-	nsprpub/pr/src/threads/prcmon.c \
-	nsprpub/pr/src/threads/prrwlock.c \
-	nsprpub/pr/src/threads/prtpd.c \
-	nsprpub/pr/src/prvrsion.c \
 	nsprpub/lib/ds/plarena.c \
 	nsprpub/lib/ds/plhash.c \
-	nsprpub/lib/libc/src/strlen.c \
-	nsprpub/lib/libc/src/strcpy.c \
-	nsprpub/lib/libc/src/strdup.c \
-	nsprpub/lib/libc/src/strcat.c \
-	nsprpub/lib/libc/src/strcmp.c \
-	nsprpub/lib/libc/src/strccmp.c \
-	nsprpub/lib/libc/src/strchr.c \
-	nsprpub/lib/libc/src/strpbrk.c \
-	nsprpub/lib/libc/src/strstr.c \
-	nsprpub/lib/libc/src/strcstr.c \
-	nsprpub/lib/libc/src/strtok.c \
-	nsprpub/lib/libc/src/base64.c \
-	nsprpub/lib/libc/src/plerror.c \
-	nsprpub/lib/libc/src/plgetopt.c
-
-ifeq ($(filter-out darwin freebsd linux netbsd openbsd solaris,$(KBUILD_TARGET)),) # unixish
- VBox-xpcom-nspr_SOURCES += \
- 	nsprpub/pr/src/md/unix/unix.c \
- 	nsprpub/pr/src/md/unix/unix_errors.c \
- 	nsprpub/pr/src/md/unix/uxproces.c \
- 	nsprpub/pr/src/md/unix/uxrng.c \
- 	nsprpub/pr/src/md/unix/uxshm.c \
- 	nsprpub/pr/src/md/unix/uxwrap.c \
- 	nsprpub/pr/src/pthreads/ptio.c \
- 	nsprpub/pr/src/pthreads/ptsynch.c \
- 	nsprpub/pr/src/pthreads/ptthread.c \
- 	nsprpub/pr/src/pthreads/ptmisc.c
-endif
-
-VBox-xpcom-nspr_SOURCES.darwin = nsprpub/pr/src/md/unix/darwin.c
-VBox-xpcom-nspr_SOURCES.darwin.x86 = nsprpub/pr/src/md/unix/os_Darwin_x86.s
-
-VBox-xpcom-nspr_SOURCES.freebsd = nsprpub/pr/src/md/unix/freebsd.c
-
-VBox-xpcom-nspr_SOURCES.linux = nsprpub/pr/src/md/unix/linux.c
-VBox-xpcom-nspr_SOURCES.linux.x86 = nsprpub/pr/src/md/unix/os_Linux_x86.s
-VBox-xpcom-nspr_SOURCES.linux.amd64 = nsprpub/pr/src/md/unix/os_Linux_x86_64.s
-
-VBox-xpcom-nspr_SOURCES.os2 = \
-	nsprpub/pr/src/io/prdir.c \
-	nsprpub/pr/src/io/prfile.c \
-	nsprpub/pr/src/io/prio.c \
-	nsprpub/pr/src/io/prsocket.c \
-	nsprpub/pr/src/md/os2/os2misc.c \
-	nsprpub/pr/src/md/os2/os2sem.c \
-	nsprpub/pr/src/md/os2/os2inrval.c \
-	nsprpub/pr/src/md/os2/os2gc.c \
-	nsprpub/pr/src/md/os2/os2thred.c \
-	nsprpub/pr/src/md/os2/os2io.c \
-	nsprpub/pr/src/md/os2/os2cv.c \
-	nsprpub/pr/src/md/os2/os2sock.c \
-	nsprpub/pr/src/md/os2/os2_errors.c \
-	nsprpub/pr/src/md/os2/os2poll.c \
-	nsprpub/pr/src/md/os2/os2rng.c \
-	nsprpub/pr/src/threads/prdump.c \
-	nsprpub/pr/src/threads/prmon.c \
-	nsprpub/pr/src/threads/prsem.c \
-	nsprpub/pr/src/threads/prcthr.c \
-	nsprpub/pr/src/threads/combined/prucpu.c \
-	nsprpub/pr/src/threads/combined/prucv.c \
-	nsprpub/pr/src/threads/combined/prulock.c \
-	nsprpub/pr/src/threads/combined/prustack.c \
-	nsprpub/pr/src/threads/combined/pruthr.c
-# gcc/emx sources
-VBox-xpcom-nspr_SOURCES.os2 += \
-	nsprpub/pr/src/md/os2/os2emx.s \
-	nsprpub/pr/src/md/os2/os2vaclegacy.s
-# IBM VAC sources (not used)
-#VBox-xpcom-nspr_SOURCES.os2  += \
-#	nsprpub/pr/src/md/os2/os2vacpp.asm
-
-VBox-xpcom-nspr_SOURCES.solaris = nsprpub/pr/src/md/unix/solaris.c
-VBox-xpcom-nspr_SOURCES.solaris.x86 = nsprpub/pr/src/md/unix/os_SunOS_x86.s
-VBox-xpcom-nspr_SOURCES.solaris.amd64 = nsprpub/pr/src/md/unix/os_SunOS_x86_64.s
-
-# generate build stamps
-nsprpub/pr/src/prvrsion.c_DEPS = $(VBox-xpcom-nspr_0_OUTDIR)/_pr_bld.h
-nsprpub/lib/ds/plvrsion.c_DEPS = $(VBox-xpcom-nspr_0_OUTDIR)/_pl_bld.h
-VBox-xpcom-nspr_CLEAN += \
-	$(VBox-xpcom-nspr_0_OUTDIR)/_pr_bld.h \
-	$(VBox-xpcom-nspr_0_OUTDIR)/_pl_bld.h
+	nsprpub/pr/src/pthreads/ptsynch.c
 
 $(call KB_FN_DO_PASS0_ON_TARGET,VBox-xpcom-nspr)
-
-$$(VBox-xpcom-nspr_0_OUTDIR)/_pr_bld.h: | $$(VBox-xpcom-nspr_0_OUTDIR)/
-	$(call MSG_GENERATE,,$@)
-	$(QUIET)$(APPEND) -t $@ '#define _BUILD_STRING "$(date +%Y-%m-%d %T)"'
-
-$$(VBox-xpcom-nspr_0_OUTDIR)/_pl_bld.h: | $$(VBox-xpcom-nspr_0_OUTDIR)/
-	$(call MSG_GENERATE,,$@)
-	$(QUIET)$(APPEND) -t $@ '#define _BUILD_STRING "$(date +%Y-%m-%d %T)"'
 
 $(evalcall2 VBOX_XPCOM_X86,VBox-xpcom-nspr)
 
@@ -730,16 +417,11 @@ VBox-xpcom-base_TEMPLATE = XPComDll
 VBox-xpcom-base_INSTTYPE = none
 VBox-xpcom-base_DEFS = _IMPL_NS_COM
 VBox-xpcom-base_SOURCES = \
-	xpcom/base/nsAllocator.cpp \
-	xpcom/base/nsConsoleMessage.cpp \
-	xpcom/base/nsConsoleService.cpp \
 	xpcom/base/nsDebugImpl.cpp \
 	xpcom/base/nsErrorService.cpp \
 	xpcom/base/nsExceptionService.cpp \
 	xpcom/base/nsID.cpp \
-	xpcom/base/nsMemoryImpl.cpp \
-	xpcom/base/nsTraceRefcntImpl.cpp \
-	xpcom/base/nsStackFrameUnix.cpp
+	xpcom/base/nsTraceRefcntImpl.cpp
 $(evalcall VBOX_XPCOM_X86,VBox-xpcom-base)
 
 VBox-xpcom-ds_TEMPLATE = XPComDll
@@ -749,37 +431,25 @@ VBox-xpcom-ds_SOURCES = \
 	xpcom/ds/pldhash.c \
 	xpcom/ds/nsAtomTable.cpp \
 	xpcom/ds/nsAtomService.cpp \
-	xpcom/ds/nsByteBuffer.cpp \
-	xpcom/ds/nsCheapSets.cpp \
 	xpcom/ds/nsCRT.cpp \
 	xpcom/ds/nsDeque.cpp \
 	xpcom/ds/nsEmptyEnumerator.cpp \
 	xpcom/ds/nsEnumeratorUtils.cpp \
-	xpcom/ds/nsFixedSizeAllocator.cpp \
 	xpcom/ds/nsHashSets.cpp \
 	xpcom/ds/nsHashtable.cpp \
 	xpcom/ds/nsObserverList.cpp \
 	xpcom/ds/nsObserverService.cpp \
 	xpcom/ds/nsProperties.cpp \
-	xpcom/ds/nsPersistentProperties.cpp \
-	xpcom/ds/nsQuickSort.cpp \
-	xpcom/ds/nsRecyclingAllocator.cpp \
-	xpcom/ds/nsStaticNameTable.cpp \
 	xpcom/ds/nsStringEnumerator.cpp \
 	xpcom/ds/nsSupportsArray.cpp \
 	xpcom/ds/nsSupportsArrayEnumerator.cpp \
 	xpcom/ds/nsSupportsPrimitives.cpp \
 	xpcom/ds/nsTHashtable.cpp \
-	xpcom/ds/nsUnicharBuffer.cpp \
 	xpcom/ds/nsVariant.cpp \
 	xpcom/ds/nsVoidArray.cpp \
-	xpcom/ds/nsTextFormatter.cpp \
-	xpcom/ds/nsTimelineService.cpp \
-	xpcom/ds/nsValueArray.cpp \
 	xpcom/ds/nsCOMArray.cpp \
 	xpcom/ds/nsArray.cpp \
 	xpcom/ds/nsArrayEnumerator.cpp
-#   xpcom/ds/nsHashPropertyBag.cpp
 $(evalcall VBOX_XPCOM_X86,VBox-xpcom-ds)
 
 # @todo what about MOZ_USER_DIR?
@@ -797,39 +467,16 @@ if defined(VBOX_WITH_HARDENING) && defined(VBOX_PATH_APP_PRIVATE_ARCH)
   VBox-xpcom-io_DEFS += MOZ_DEFAULT_VBOX_XPCOM_HOME=\"$(VBOX_PATH_APP_PRIVATE_ARCH)\"
  endif
 endif
-VBox-xpcom-io_INCS.darwin = \
-	xpcom/MoreFiles
 VBox-xpcom-io_SOURCES = \
 	xpcom/io/nsAppFileLocationProvider.cpp \
-	xpcom/io/nsBinaryStream.cpp \
-	xpcom/io/nsByteArrayInputStream.cpp \
 	xpcom/io/nsDirectoryService.cpp \
-	xpcom/io/nsEscape.cpp \
-	xpcom/io/nsFastLoadFile.cpp \
-	xpcom/io/nsFastLoadService.cpp \
-	xpcom/io/nsInputStreamTee.cpp \
-	xpcom/io/nsLinebreakConverter.cpp \
 	xpcom/io/nsLocalFileCommon.cpp \
-	xpcom/io/nsMultiplexInputStream.cpp \
-	xpcom/io/nsPipe3.cpp \
-	xpcom/io/nsStreamUtils.cpp \
-	xpcom/io/nsScriptableInputStream.cpp \
-	xpcom/io/nsSegmentedBuffer.cpp \
 	xpcom/io/SpecialSystemDirectory.cpp \
-	xpcom/io/nsStorageStream.cpp \
-	xpcom/io/nsStringStream.cpp \
-	xpcom/io/nsUnicharInputStream.cpp \
 	xpcom/io/nsNativeCharsetUtils.cpp
-VBox-xpcom-io_SOURCES.darwin.x86 = \
-	xpcom/io/nsLocalFileOSX.cpp \
-	xpcom/MoreFiles/FSCopyObject.c \
-	xpcom/MoreFiles/MoreFilesX.c
 if1of ($(KBUILD_TARGET) $(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), freebsd linux netbsd openbsd solaris darwin.amd64 darwin.arm64)
  VBox-xpcom-io_SOURCES += \
  	xpcom/io/nsLocalFileUnix.cpp
 endif
-VBox-xpcom-io_SOURCES.os2 = \
-	xpcom/io/nsLocalFileOS2.cpp
 $(evalcall VBOX_XPCOM_X86,VBox-xpcom-io)
 
 VBox-xpcom-components_TEMPLATE = XPComDll
@@ -851,13 +498,8 @@ VBox-xpcom-threads_DEFS = _IMPL_NS_COM
 VBox-xpcom-threads_SOURCES = \
 	xpcom/threads/plevent.c \
 	xpcom/threads/nsAutoLock.cpp \
-	xpcom/threads/nsEnvironment.cpp \
 	xpcom/threads/nsEventQueue.cpp \
-	xpcom/threads/nsEventQueueService.cpp \
-	xpcom/threads/nsThread.cpp \
-	xpcom/threads/nsTimerImpl.cpp \
-	xpcom/threads/nsProcessCommon.cpp \
-	xpcom/threads/TimerThread.cpp
+	xpcom/threads/nsEventQueueService.cpp
 $(evalcall VBOX_XPCOM_X86,VBox-xpcom-threads)
 
 VBox-xpcom-xptinfo_TEMPLATE = XPComDll
@@ -880,17 +522,11 @@ VBox-xpcom-xptcall_TEMPLATE = XPComDllYasm
 VBox-xpcom-xptcall_INSTTYPE = none
 VBox-xpcom-xptcall_DEFS                  = _IMPL_NS_COM _IMPL_NS_BASE EXPORT_XPTC_API
 VBox-xpcom-xptcall_DEFS.darwin           = KEEP_STACK_16_BYTE_ALIGNED
-VBox-xpcom-xptcall_DEFS.os2              = MOZ_NEED_LEADING_UNDERSCORE
-VBox-xpcom-xptcall_INCS.os2              = xpcom/reflect/xptcall/src/md/unix
 VBox-xpcom-xptcall_SOURCES               = xpcom/reflect/xptcall/src/xptcall.cpp
-VBox-xpcom-xptcall_SOURCES.darwin.x86    = xpcom/reflect/xptcall/src/md/unix/xptcinvoke_unixish_x86.cpp \
-	xpcom/reflect/xptcall/src/md/unix/xptcstubs_unixish_x86.cpp
 VBox-xpcom-xptcall_SOURCES.freebsd.x86   = xpcom/reflect/xptcall/src/md/unix/xptcinvoke_gcc_x86_unix.cpp \
 	xpcom/reflect/xptcall/src/md/unix/xptcstubs_gcc_x86_unix.cpp
 VBox-xpcom-xptcall_SOURCES.linux.x86     = xpcom/reflect/xptcall/src/md/unix/xptcinvoke_gcc_x86_unix.cpp \
 	xpcom/reflect/xptcall/src/md/unix/xptcstubs_gcc_x86_unix.cpp
-VBox-xpcom-xptcall_SOURCES.os2           = xpcom/reflect/xptcall/src/md/os2/xptcinvoke_gcc_x86_os2.cpp \
-	xpcom/reflect/xptcall/src/md/os2/xptcstubs_gcc_x86_os2.cpp
 VBox-xpcom-xptcall_SOURCES.solaris.x86   = xpcom/reflect/xptcall/src/md/unix/xptcinvoke_x86_solaris.cpp \
 	xpcom/reflect/xptcall/src/md/unix/xptcstubs_x86_solaris.cpp
 VBox-xpcom-xptcall_SOURCES.amd64         = xpcom/reflect/xptcall/src/md/unix/xptcinvoke_amd64_vbox.asm
@@ -985,8 +621,6 @@ VBoxXPCOM_SOURCES = \
 	xpcom/build/nsXPComInit.cpp \
 	xpcom/build/nsStringAPI.cpp
 VBoxXPCOM_SOURCES.darwin = \
-	vboxdeps.cpp
-VBoxXPCOM_SOURCES.os2 = \
 	vboxdeps.cpp
 VBoxXPCOM_SOURCES.solaris = \
 	vboxdeps.cpp
@@ -1117,11 +751,14 @@ endif
 
 TEMPLATE_XPComIpcDll                  = XPCOM IPC libraries
 TEMPLATE_XPComIpcDll_EXTENDS          = XPComDll
-TEMPLATE_XPComIpcDll_DEFS             = $(TEMPLATE_XPComDll_DEFS) BUILD_DCONNECT=1
+TEMPLATE_XPComIpcDll_DEFS             = \
+	$(TEMPLATE_XPComDll_DEFS) \
+	BUILD_DCONNECT=1
+
 ifdef VBOX_WITH_AUTOMATIC_DEFS_QUOTING
- TEMPLATE_XPComIpcDll_DEFS           += IPC_DAEMON_APP_NAME="VBoxXPCOMIPCD$(SUFF_EXE)"
+ TEMPLATE_XPComIpcDll_DEFS           += IPC_DAEMON_APP_NAME="VBoxSVC$(SUFF_EXE)"
 else
- TEMPLATE_XPComIpcDll_DEFS           += IPC_DAEMON_APP_NAME=\"VBoxXPCOMIPCD$(SUFF_EXE)\"
+ TEMPLATE_XPComIpcDll_DEFS           += IPC_DAEMON_APP_NAME=\"VBoxSVC$(SUFF_EXE)\"
 endif
 ifdef IPC_LOGGING
  TEMPLATE_XPComIpcDll_DEFS           += IPC_LOGGING
@@ -1157,10 +794,7 @@ endif
 VBox-xpcom-ipcshared_TEMPLATE = XPComIpcDll
 VBox-xpcom-ipcshared_INSTTYPE = none
 VBox-xpcom-ipcshared_SOURCES = \
-	ipc/ipcd/shared/src/ipcLog.cpp \
 	ipc/ipcd/shared/src/ipcConfig.cpp \
-	ipc/ipcd/shared/src/ipcMessage.cpp \
-	ipc/ipcd/shared/src/ipcMessagePrimitives.cpp \
 	ipc/ipcd/shared/src/ipcStringList.cpp \
 	ipc/ipcd/shared/src/ipcIDList.cpp \
 	ipc/ipcd/shared/src/ipcm.cpp
@@ -1171,33 +805,14 @@ $(evalcall VBOX_XPCOM_X86,VBox-xpcom-ipcshared)
 # DCONNECT client shared object
 #
 VBoxXPCOMIPCC_TEMPLATE = XPComIpcDll
-VBoxXPCOMIPCC_NAME.os2 = VBoxIPCC
 VBoxXPCOMIPCC_INST = $(INST_BIN)components/
-#VBoxXPCOMIPCC_DEFS = HAVE_DEPENDENT_LIBS - dependentLibs.h is linux specific, so this cannot be required.
 VBoxXPCOMIPCC_SOURCES = \
 	ipc/ipcd/client/src/ipcdclient.cpp \
 	ipc/ipcd/client/src/ipcService.cpp \
 	ipc/ipcd/client/src/ipcModuleFactory.cpp \
-	ipc/ipcd/extensions/dconnect/src/ipcDConnectService.cpp \
+	ipc/ipcd/client/src/ipcDConnectService.cpp \
 	\
-	ipc/ipcd/util/src/ipcMessageReader.cpp \
-	ipc/ipcd/util/src/ipcMessageWriter.cpp \
-	\
-	ipc/ipcd/extensions/lock/src/ipcLockProtocol.cpp \
-	ipc/ipcd/extensions/lock/src/ipcLockService.cpp \
-	\
-	ipc/ipcd/extensions/transmngr/src/tmTransactionService.cpp \
-	\
-	ipc/ipcd/extensions/transmngr/common/tmTransaction.cpp \
-	ipc/ipcd/extensions/transmngr/common/tmVector.cpp
-
-ifeq ($(KBUILD_TARGET),win)
- VBoxXPCOMIPCC_SOURCES += \
- 	ipc/ipcd/client/src/ipcConnectionWin.cpp
-else
- VBoxXPCOMIPCC_SOURCES += \
- 	ipc/ipcd/client/src/ipcConnectionUnix.cpp
-endif
+	ipc/ipcd/client/src/ipcConnectionUnix.cpp
 VBoxXPCOMIPCC_LDFLAGS.darwin = -install_name $(VBOX_DYLD_EXECUTABLE_PATH)/components/VBoxXPCOMIPCC.dylib
 VBoxXPCOMIPCC_LIBS = \
 	$(VBox-xpcom-ipcshared_1_TARGET)
@@ -1211,19 +826,16 @@ VBoxXPCOMIPCC-x86_LIBS = \
 #
 # DCONNECT daemon executable
 #
-VBoxXPCOMIPCD_TEMPLATE = XPComIpcExe
+VBoxXPCOMIPCD_TEMPLATE = XPComIpcDll
 VBoxXPCOMIPCD_SOURCES = \
 	ipc/ipcd/daemon/src/ipcd.cpp \
 	ipc/ipcd/daemon/src/ipcClient.cpp \
-	ipc/ipcd/daemon/src/ipcModuleReg.cpp \
 	ipc/ipcd/daemon/src/ipcCommandModule.cpp
-ifeq ($(KBUILD_TARGET),win)
- VBoxXPCOMIPCD_SOURCES += \
- 	ipc/ipcd/daemon/src/ipcdWin.cpp
-else
- VBoxXPCOMIPCD_SOURCES += \
- 	ipc/ipcd/daemon/src/ipcdUnix.cpp
-endif
+VBoxXPCOMIPCD_LDFLAGS.darwin = -install_name $(VBOX_DYLD_EXECUTABLE_PATH)/VBoxXPCOMIPCD.dylib
+VBoxXPCOMIPCD_LIBS = \
+	$(VBox-xpcom-ipcshared_1_TARGET) \
+	$(VBoxXPCOM_1_TARGET) \
+	$(TEMPLATE_XPComDll_LIBS)
 
 
 #
@@ -1244,8 +856,6 @@ endif # !VBOX_ONLY_EXTPACKS
 #
 # testcases
 #
-tstnsIFileEnumerator_TEMPLATE  = XPComTstExe
-tstnsIFileEnumerator_SOURCES   = xpcom/tests/nsIFileEnumerator.cpp
 tstnsIFileTest_TEMPLATE        = XPComTstExe
 tstnsIFileTest_SOURCES         = xpcom/tests/nsIFileTest.cpp
 tstTestArray_TEMPLATE          = XPComTstExe
@@ -1254,8 +864,6 @@ tstTestAtoms_TEMPLATE          = XPComTstExe
 tstTestAtoms_SOURCES           = xpcom/tests/TestAtoms.cpp
 tstTestAutoLock_TEMPLATE       = XPComTstExe
 tstTestAutoLock_SOURCES        = xpcom/tests/TestAutoLock.cpp
-tstTestCallTemplates_TEMPLATE  = XPComTstExe
-tstTestCallTemplates_SOURCES   = xpcom/tests/TestCallTemplates.cpp
 tstTestCOMPtr_TEMPLATE         = XPComTstExe
 tstTestCOMPtr_SOURCES          = xpcom/tests/TestCOMPtr.cpp
 tstTestCOMPtrEq_TEMPLATE       = XPComTstExe
@@ -1270,15 +878,6 @@ tstTestID_TEMPLATE             = XPComTstExe
 tstTestID_SOURCES              = xpcom/tests/TestID.cpp
 tstTestObserverService_TEMPLATE = XPComTstExe
 tstTestObserverService_SOURCES = xpcom/tests/TestObserverService.cpp
-tstTestPermanentAtoms_TEMPLATE = XPComTstExe
-tstTestPermanentAtoms_SOURCES  = xpcom/tests/TestPermanentAtoms.cpp
-tstTestPipes_TEMPLATE          = XPComTstExe
-tstTestPipes_SOURCES           = xpcom/tests/TestPipes.cpp
-tstTestServMgr_TEMPLATE        = XPComTstExe
-tstTestServMgr_SOURCES         = xpcom/tests/TestServMgr.cpp
-tstTestServMgr_INCS            = xpcom/tests/services
-tstTestThreads_TEMPLATE        = XPComTstExe
-tstTestThreads_SOURCES         = xpcom/tests/TestThreads.cpp
 tstTestXPIDLString_TEMPLATE    = XPComTstExe
 tstTestXPIDLString_SOURCES     = xpcom/tests/TestXPIDLString.cpp
 tstTestXPTCInvoke_TEMPLATE     = XPComTstExe
@@ -1293,12 +892,6 @@ tstTestStrings_TEMPLATE        = XPComTstExe
 tstTestStrings_SOURCES         = xpcom/tests/TestStrings.cpp
 tstPrimitiveTest_TEMPLATE      = XPComTstExe
 tstPrimitiveTest_SOURCES       = xpcom/typelib/xpt/tests/PrimitiveTest.c
-tstSimpleTypeLib_TEMPLATE      = XPComTstExe
-tstSimpleTypeLib_SOURCES       = xpcom/typelib/xpt/tests/SimpleTypeLib.c
-tstXptDump_TEMPLATE            = XPComTstExe
-tstXptDump_SOURCES             = xpcom/typelib/xpt/tools/xpt_dump.c
-tstXptLink_TEMPLATE            = XPComTstExe
-tstXptLink_SOURCES             = xpcom/typelib/xpt/tools/xpt_link.c
 
 
 
@@ -1315,86 +908,58 @@ OTHER_CLEAN += \
 #
 INSTALLS += VBoxXPCOMBase-xpt-inst
 VBOX_XPTFILES = $(addprefix $(PATH_TARGET)/VBox-xpcom-xpt-files/, \
-	nsIConsoleListener.xpt \
-	nsIConsoleMessage.xpt \
-	nsIConsoleService.xpt \
-	nsIErrorService.xpt \
-	nsIException.xpt \
-	nsIExceptionService.xpt \
-	nsIDebug.xpt \
-	nsIInterfaceRequestor.xpt \
-	nsIMemory.xpt \
-	nsIProgrammingLanguage.xpt \
-	nsISupports.xpt \
-	nsITraceRefcnt.xpt \
-	nsIWeakReference.xpt \
-	nsrootidl.xpt \
-	nsIAtom.xpt \
-	nsIAtomService.xpt \
-	nsICollection.xpt \
-	nsIEnumerator.xpt \
-	nsIPersistentProperties2.xpt \
-	nsIPropertyBag.xpt \
-	nsIRecyclingAllocator.xpt \
-	nsIVariant.xpt \
-	nsISerializable.xpt \
-	nsIStringEnumerator.xpt \
-	nsISupportsArray.xpt \
-	nsISupportsIterators.xpt \
-	nsITimelineService.xpt \
-	nsIArray.xpt \
-	nsIObserverService.xpt \
-	nsIObserver.xpt \
-	nsIProperties.xpt \
-	nsISimpleEnumerator.xpt \
-	nsISupportsPrimitives.xpt \
-	nsIBinaryInputStream.xpt \
-	nsIBinaryOutputStream.xpt \
-	nsIByteArrayInputStream.xpt \
-	nsIFastLoadFileControl.xpt \
-	nsIFastLoadService.xpt \
-	nsIInputStreamTee.xpt \
-	nsILineInputStream.xpt \
-	nsIMultiplexInputStream.xpt \
-	nsIObjectInputStream.xpt \
-	nsIObjectOutputStream.xpt \
-	nsIPipe.xpt \
-	nsISeekableStream.xpt \
-	nsIStorageStream.xpt \
-	nsIStringStream.xpt \
-	nsIStreamBufferAccess.xpt \
-	nsIAsyncInputStream.xpt \
-	nsIAsyncOutputStream.xpt \
-	nsIDirectoryService.xpt \
-	nsIFile.xpt \
-	nsILocalFile.xpt \
-	nsIInputStream.xpt \
-	nsIOutputStream.xpt \
-	nsIScriptableInputStream.xpt \
-	nsIComponentLoader.xpt \
-	nsIComponentLoaderManager.xpt \
-	nsIComponentManagerObsolete.xpt \
-	nsINativeComponentLoader.xpt \
-	nsIClassInfo.xpt \
-	nsIComponentRegistrar.xpt \
-	nsIFactory.xpt \
-	nsIModule.xpt \
-	nsIServiceManager.xpt \
-	nsIComponentManager.xpt \
-	nsICategoryManager.xpt \
-	nsIThread.xpt \
-	nsITimer.xpt \
-	nsITimerInternal.xpt \
-	nsITimerManager.xpt \
-	nsIRunnable.xpt \
-	nsIEventTarget.xpt \
-	nsIEventQueue.xpt \
-	nsIEventQueueService.xpt \
-	nsIEnvironment.xpt \
-	nsIProcess.xpt \
-	nsIInterfaceInfo.xpt \
-	nsIInterfaceInfoManager.xpt \
-	nsIXPTLoader.xpt)
+		nsIErrorService.xpt \
+		nsIException.xpt \
+		nsIExceptionService.xpt \
+		nsIDebug.xpt \
+		nsIInterfaceRequestor.xpt \
+		nsIProgrammingLanguage.xpt \
+		nsISupports.xpt \
+		nsITraceRefcnt.xpt \
+		nsIWeakReference.xpt \
+		nsrootidl.xpt \
+		nsIAtom.xpt \
+		nsIAtomService.xpt \
+		nsICollection.xpt \
+		nsIEnumerator.xpt \
+		nsIVariant.xpt \
+		nsISerializable.xpt \
+		nsIStringEnumerator.xpt \
+		nsISupportsArray.xpt \
+		nsISupportsIterators.xpt \
+		nsIArray.xpt \
+		nsIObserverService.xpt \
+		nsIObserver.xpt \
+		nsIProperties.xpt \
+		nsISimpleEnumerator.xpt \
+		nsISupportsPrimitives.xpt \
+		nsIBinaryInputStream.xpt \
+		nsIBinaryOutputStream.xpt \
+		nsIObjectInputStream.xpt \
+		nsIObjectOutputStream.xpt \
+		nsIDirectoryService.xpt \
+		nsIFile.xpt \
+		nsILocalFile.xpt \
+		nsIInputStream.xpt \
+		nsIOutputStream.xpt \
+		nsIComponentLoader.xpt \
+		nsIComponentLoaderManager.xpt \
+		nsIComponentManagerObsolete.xpt \
+		nsINativeComponentLoader.xpt \
+		nsIClassInfo.xpt \
+		nsIComponentRegistrar.xpt \
+		nsIFactory.xpt \
+		nsIModule.xpt \
+		nsIServiceManager.xpt \
+		nsIComponentManager.xpt \
+		nsICategoryManager.xpt \
+		nsIRunnable.xpt \
+		nsIEventTarget.xpt \
+		nsIEventQueue.xpt \
+		nsIEventQueueService.xpt \
+		nsIInterfaceInfo.xpt \
+		nsIInterfaceInfoManager.xpt \
+		nsIXPTLoader.xpt)
 
 VBoxXPCOMBase-xpt-inst_INST = $(INST_BIN)components/
 VBoxXPCOMBase-xpt-inst_MODE = 0644

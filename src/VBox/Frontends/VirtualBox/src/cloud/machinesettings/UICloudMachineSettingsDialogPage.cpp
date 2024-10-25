@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2020-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2020-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,14 +32,14 @@
 /* GUI includes: */
 #include "UICloudMachineSettingsDialog.h"
 #include "UICloudMachineSettingsDialogPage.h"
+#include "UITranslationEventListener.h"
 
 /* Other VBox includes: */
 #include "iprt/assert.h"
 
-
 UICloudMachineSettingsDialogPage::UICloudMachineSettingsDialogPage(QWidget *pParent,
                                                                    bool fFullScale /* = true */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_pParent(qobject_cast<UICloudMachineSettingsDialog*>(pParent))
     , m_fFullScale(fFullScale)
 {
@@ -64,7 +64,7 @@ void UICloudMachineSettingsDialogPage::makeSureDataCommitted()
     m_pFormEditor->makeSureEditorDataCommitted();
 }
 
-void UICloudMachineSettingsDialogPage::retranslateUi()
+void UICloudMachineSettingsDialogPage::sltRetranslateUI()
 {
     AssertPtrReturnVoid(m_pFormEditor.data());
     m_pFormEditor->setWhatsThis(UICloudMachineSettingsDialog::tr("Contains a list of cloud machine settings."));
@@ -99,7 +99,9 @@ void UICloudMachineSettingsDialogPage::prepare()
     }
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UICloudMachineSettingsDialogPage::sltRetranslateUI);
 }
 
 void UICloudMachineSettingsDialogPage::updateEditor()
@@ -117,7 +119,7 @@ void UICloudMachineSettingsDialogPage::updateEditor()
         if (m_strFilter.isNull())
         {
             /* Push initial values to editor: */
-            m_pFormEditor->setValues(initialValues);
+            m_pFormEditor->setFormValues(initialValues);
         }
         /* If filter present: */
         else
@@ -130,7 +132,7 @@ void UICloudMachineSettingsDialogPage::updateEditor()
                 if (groupFields.contains(comValue.GetLabel()))
                     filteredValues << comValue;
             /* Push filtered values to editor: */
-            m_pFormEditor->setValues(filteredValues);
+            m_pFormEditor->setFormValues(filteredValues);
         }
     }
 

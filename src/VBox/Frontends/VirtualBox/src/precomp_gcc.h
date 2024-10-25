@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -55,7 +55,6 @@
 #include <QtCore/qsize.h> /* 627 */
 #include <QtCore/qglobal.h> /* 591 */
 #include <QtCore/qvariant.h> /* 588 */
-#include <QtCore/qregexp.h> /* 587 */
 #include <QtCore/qversiontagging.h> /* 585 */
 #include <QtCore/qtypeinfo.h> /* 585 */
 #include <QtCore/qtcore-config.h> /* 585 */
@@ -173,9 +172,7 @@
 /* These two are freuqently used internal headers. */
 #include "UILibraryDefs.h"
 /*#include "QIWithRestorableGeometry.h" - broken as it includes iprt/log.h thru UIDefs.h via UICommon.h. */
-/*#include "QIWithRetranslateUI.h"      - broken as it includes iprt/log.h thru UIDefs.h via UITranslator.h. */
 
 #if defined(Log) || defined(LogIsEnabled)
 # error "Log() from iprt/log.h cannot be defined in the precompiled header!"
 #endif
-

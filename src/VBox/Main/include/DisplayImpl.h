@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -43,6 +43,10 @@
 #include "DisplaySourceBitmapWrap.h"
 #include "GuestScreenInfoWrap.h"
 
+#ifdef VBOX_WITH_RECORDING
+# include "RecordingInternals.h"
+class RecordingContext;
+#endif
 
 class Console;
 
@@ -92,13 +96,6 @@ typedef struct _DISPLAYFBINFO
     bool fVBVAForceResize;
     VBVAHOSTFLAGS RT_UNTRUSTED_VOLATILE_GUEST *pVBVAHostFlags;
 #endif /* VBOX_WITH_HGSMI */
-
-#ifdef VBOX_WITH_RECORDING
-    struct
-    {
-        ComPtr<IDisplaySourceBitmap> pSourceBitmap;
-    } Recording;
-#endif /* VBOX_WITH_RECORDING */
 
     /** Description of the currently plugged monitor with preferred mode,
      * a.k.a the last mode hint sent. */
@@ -186,11 +183,16 @@ public:
     int  VideoAccelEnableVMMDev(bool fEnable, VBVAMEMORY *pVbvaMemory);
     void VideoAccelFlushVMMDev(void);
 
-    void i_UpdateDeviceCursorCapabilities(void);
+    void i_updateDeviceCursorCapabilities(void);
 
 #ifdef VBOX_WITH_RECORDING
-    int  i_recordingInvalidate(void);
-    void i_recordingScreenChanged(unsigned uScreenId);
+    int i_recordingStart(void);
+    int i_recordingStop(void);
+    int i_recordingInvalidate(void);
+    int i_recordingScreenChanged(unsigned uScreenId, const DISPLAYFBINFO *pFBInfo);
+    int i_recordingScreenUpdate(unsigned uScreenId, uint8_t *pauFramebuffer, size_t cbFramebuffer, uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t uBytesPerLine);
+    int i_recordingScreenUpdate(unsigned uScreenId, uint32_t x, uint32_t y, uint32_t w, uint32_t h);
+    int i_recordingCursorPositionChange(unsigned uScreenId, uint32_t fFlags, int32_t x, int32_t y);
 #endif
 
     void i_notifyPowerDown(void);
@@ -413,10 +415,41 @@ private:
     RTCRITSECT           mVideoAccelLock;
 
 #ifdef VBOX_WITH_RECORDING
-    /* Serializes access to video recording source bitmaps. */
-    RTCRITSECT           mVideoRecLock;
-    /** Array which defines which screens are being enabled for recording. */
-    bool                 maRecordingEnabled[SchemaDefs::MaxGuestMonitors];
+    /** Struct which holds information and state about (video) recording. */
+    struct Recording
+    {
+        Recording()
+            : pCtx(NULL) { }
+
+        /** Recording context. Constant across lifetime.
+         *  Might be NULL if not being used. */
+        RecordingContext * const pCtx;
+    } Recording;
+#endif
+
+#ifdef VBOX_WITH_STATISTICS
+    /** Struct for keeping STAM values. */
+    struct
+    {
+        /** Profiling Display::i_displayRefreshCallback(). */
+        STAMPROFILE profileDisplayRefreshCallback;
+        /** Statistics for monitor N. */
+        struct
+        {
+            /** Statistics for recording of monitor N. */
+            struct
+            {
+                /** Profiling recording code of monitor N. */
+                STAMPROFILE profileRecording;
+            } Recording;
+        } Monitor[SchemaDefs::MaxGuestMonitors];
+        /** Statistics for audio/video recording. */
+        struct
+        {
+            /** Profiling recording code of all active monitors. */
+            STAMPROFILE profileRecording;
+        } Recording;
+    } Stats;
 #endif
 
 public:

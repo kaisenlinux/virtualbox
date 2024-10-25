@@ -38,29 +38,17 @@
 #include "nsCOMPtr.h"
 #include "nsEventQueue.h"
 #include "nsIEventQueueService.h"
-#include "nsIThread.h"
 
 #include "nsIServiceManager.h"
 #include "nsIObserverService.h"
 
 #include "nsString.h"
 
-#include "prlog.h"
-
 #ifdef NS_DEBUG
-#include "prprf.h"
+#include <iprt/string.h>
 #endif
 
-#if defined(PR_LOGGING) && defined(DEBUG_danm)
-/* found these logs useful in conjunction with netlibStreamEvent logging
-   from netwerk. */
-PRLogModuleInfo* gEventQueueLog = 0;
-PRUint32 gEventQueueLogCount = 0;
-PRUint32 gEventQueueLogPPCount = 0;
-static int gEventQueueLogPPLevel = 0;
-static PLEventQueue *gEventQueueLogQueue = 0;
-static PRThread *gEventQueueLogThread = 0;
-#endif
+#include <VBox/log.h>
 
 // in a real system, these would be members in a header class...
 static const char gActivatedNotification[] = "nsIEventQueueActivated";
@@ -112,11 +100,7 @@ nsEventQueueImpl::nsEventQueueImpl()
        A dark queue no longer accepts events.  An empty queue simply has no events.
   */
 
-#if defined(PR_LOGGING) && defined(DEBUG_danm)
-  PR_LOG(gEventQueueLog, PR_LOG_DEBUG,
-         ("EventQueue: Created [queue=%lx]",(long)mEventQueue));
-  ++gEventQueueLogCount;
-#endif
+  Log(("EventQueue: Created [queue=%lx]\n",(long)mEventQueue));
 
   mYoungerQueue = nsnull;
   mEventQueue = nsnull;
@@ -128,11 +112,7 @@ nsEventQueueImpl::~nsEventQueueImpl()
 {
   Unlink();
 
-#if defined(PR_LOGGING) && defined(DEBUG_danm)
-  PR_LOG(gEventQueueLog, PR_LOG_DEBUG,
-         ("EventQueue: Destroyed [queue=%lx]",(long)mEventQueue));
-  ++gEventQueueLogCount;
-#endif
+  Log(("EventQueue: Destroyed [queue=%lx]\n",(long)mEventQueue));
 
   if (mEventQueue) {
     NotifyObservers(gDestroyedNotification);
@@ -143,39 +123,33 @@ nsEventQueueImpl::~nsEventQueueImpl()
 NS_IMETHODIMP 
 nsEventQueueImpl::Init(PRBool aNative)
 {
-  PRThread *thread = PR_GetCurrentThread();
+  RTTHREAD hThread = RTThreadSelf();
   if (aNative)
-    mEventQueue = PL_CreateNativeEventQueue("Thread event queue...", thread);
+    mEventQueue = PL_CreateNativeEventQueue("Thread event queue...", hThread);
   else
-    mEventQueue = PL_CreateMonitoredEventQueue("Thread event queue...", thread);
+    mEventQueue = PL_CreateMonitoredEventQueue("Thread event queue...", hThread);
   NotifyObservers(gActivatedNotification);
   return NS_OK;
 }
 
 NS_IMETHODIMP 
-nsEventQueueImpl::InitFromPRThread(PRThread* thread, PRBool aNative)
+nsEventQueueImpl::InitFromPRThread(RTTHREAD hThread, PRBool aNative)
 {
-  if (thread == NS_CURRENT_THREAD) 
+  if (hThread == NS_CURRENT_THREAD) 
   {
-     thread = PR_GetCurrentThread();
+     hThread = RTThreadSelf();
   }
-  else if (thread == NS_UI_THREAD) 
+  else if (hThread == NS_UI_THREAD) 
   {
-    nsCOMPtr<nsIThread>  mainIThread;
-    nsresult rv;
-  
     // Get the primordial thread
-    rv = nsIThread::GetMainThread(getter_AddRefs(mainIThread));
+    nsresult rv = NS_GetMainThread(&hThread);
     if (NS_FAILED(rv)) return rv;
-
-    rv = mainIThread->GetPRThread(&thread);
-    if (NS_FAILED(rv)) return rv;
-  }  
+  } 
 
   if (aNative)
-    mEventQueue = PL_CreateNativeEventQueue("Thread event queue...", thread);
+    mEventQueue = PL_CreateNativeEventQueue("Thread event queue...", hThread);
   else
-    mEventQueue = PL_CreateMonitoredEventQueue("Thread event queue...", thread);
+    mEventQueue = PL_CreateMonitoredEventQueue("Thread event queue...", hThread);
   NotifyObservers(gActivatedNotification);
   return NS_OK;
 }
@@ -206,12 +180,9 @@ nsEventQueueImpl::StopAcceptingEvents()
   NS_ASSERTION(mElderQueue || !mYoungerQueue, "attempted to disable eldest queue in chain");
   mAcceptingEvents = PR_FALSE;
   CheckForDeactivation();
-#if defined(PR_LOGGING) && defined(DEBUG_danm)
-  PR_LOG(gEventQueueLog, PR_LOG_DEBUG,
-         ("EventQueue: StopAccepting [queue=%lx, accept=%d, could=%d]",
-         (long)mEventQueue,(int)mAcceptingEvents,(int)mCouldHaveEvents));
-  ++gEventQueueLogCount;
-#endif
+
+  Log(("EventQueue: StopAccepting [queue=%lx, accept=%d, could=%d]\n",
+       (long)mEventQueue,(int)mAcceptingEvents,(int)mCouldHaveEvents));
   return NS_OK;
 }
 
@@ -245,12 +216,10 @@ NS_IMETHODIMP
 nsEventQueueImpl::PostEvent(PLEvent* aEvent)
 {
   if (!mAcceptingEvents) {
-#if defined(PR_LOGGING) && defined(DEBUG_danm)
-    PR_LOG(gEventQueueLog, PR_LOG_DEBUG,
-           ("EventQueue: Punt posted event [queue=%lx, accept=%d, could=%d]",
+
+    Log(("EventQueue: Punt posted event [queue=%lx, accept=%d, could=%d]\n",
          (long)mEventQueue,(int)mAcceptingEvents,(int)mCouldHaveEvents));
-  ++gEventQueueLogCount;
-#endif
+
     nsresult rv = NS_ERROR_FAILURE;
     NS_ASSERTION(mElderQueue, "event dropped because event chain is dead");
     if (mElderQueue) {
@@ -260,11 +229,8 @@ nsEventQueueImpl::PostEvent(PLEvent* aEvent)
     }
     return rv;
   }
-#if defined(PR_LOGGING) && defined(DEBUG_danm)
-  PR_LOG(gEventQueueLog, PR_LOG_DEBUG,
-         ("EventQueue: Posting event [queue=%lx]", (long)mEventQueue));
-  ++gEventQueueLogCount;
-#endif
+
+  Log(("EventQueue: Posting event [queue=%lx]\n", (long)mEventQueue));
   return PL_PostEvent(mEventQueue, aEvent) == PR_SUCCESS ? NS_OK : NS_ERROR_FAILURE;
 }
 
@@ -272,12 +238,9 @@ NS_IMETHODIMP
 nsEventQueueImpl::PostSynchronousEvent(PLEvent* aEvent, void** aResult)
 {
   if (!mAcceptingEvents) {
-#if defined(PR_LOGGING) && defined(DEBUG_danm)
-    PR_LOG(gEventQueueLog, PR_LOG_DEBUG,
-           ("EventQueue: Punt posted synchronous event [queue=%lx, accept=%d, could=%d]",
+    Log(("EventQueue: Punt posted synchronous event [queue=%lx, accept=%d, could=%d]\n",
          (long)mEventQueue,(int)mAcceptingEvents,(int)mCouldHaveEvents));
-  ++gEventQueueLogCount;
-#endif
+
     nsresult rv = NS_ERROR_NO_INTERFACE;
     NS_ASSERTION(mElderQueue, "event dropped because event chain is dead");
     if (mElderQueue) {
@@ -289,11 +252,7 @@ nsEventQueueImpl::PostSynchronousEvent(PLEvent* aEvent, void** aResult)
     return NS_ERROR_ABORT;
   }
 
-#if defined(PR_LOGGING) && defined(DEBUG_danm)
-  PR_LOG(gEventQueueLog, PR_LOG_DEBUG,
-         ("EventQueue: Posting synchronous event [queue=%lx]", (long)mEventQueue));
-  ++gEventQueueLogCount;
-#endif
+  Log(("EventQueue: Posting synchronous event [queue=%lx]\n", (long)mEventQueue));
   void* result = PL_PostSynchronousEvent(mEventQueue, aEvent);
   if (aResult)
     *aResult = result;
@@ -376,18 +335,9 @@ nsEventQueueImpl::ProcessPendingEvents()
 
   if (!correctThread)
     return NS_ERROR_FAILURE;
-#if defined(PR_LOGGING) && defined(DEBUG_danm)
-  ++gEventQueueLogPPLevel;
-  if ((gEventQueueLogQueue != mEventQueue || gEventQueueLogThread != PR_GetCurrentThread() ||
-       gEventQueueLogCount != gEventQueueLogPPCount) && gEventQueueLogPPLevel == 1) {
-    PR_LOG(gEventQueueLog, PR_LOG_DEBUG,
-           ("EventQueue: Process pending [queue=%lx, accept=%d, could=%d]",
-           (long)mEventQueue,(int)mAcceptingEvents,(int)mCouldHaveEvents));
-    gEventQueueLogPPCount = ++gEventQueueLogCount;
-    gEventQueueLogQueue = mEventQueue;
-    gEventQueueLogThread = PR_GetCurrentThread();
-  }
-#endif
+
+  Log(("EventQueue: Process pending [queue=%lx, accept=%d, could=%d]\n",
+       (long)mEventQueue,(int)mAcceptingEvents,(int)mCouldHaveEvents));
   PL_ProcessPendingEvents(mEventQueue);
 
   // if we're no longer accepting events and there are still events in the
@@ -402,9 +352,7 @@ nsEventQueueImpl::ProcessPendingEvents()
     if (elder)
       elder->ProcessPendingEvents();
   }
-#if defined(PR_LOGGING) && defined(DEBUG_danm)
-  --gEventQueueLogPPLevel;
-#endif
+
   return NS_OK;
 }
 
@@ -445,12 +393,9 @@ nsEventQueueImpl::HandleEvent(PLEvent* aEvent)
   if (!correctThread)
     return NS_ERROR_FAILURE;
 
-#if defined(PR_LOGGING) && defined(DEBUG_danm)
-  PR_LOG(gEventQueueLog, PR_LOG_DEBUG,
-         ("EventQueue: handle event [queue=%lx, accept=%d, could=%d]",
-         (long)mEventQueue,(int)mAcceptingEvents,(int)mCouldHaveEvents));
-  ++gEventQueueLogCount;
-#endif
+  Log(("EventQueue: handle event [queue=%lx, accept=%d, could=%d]\n",
+       (long)mEventQueue,(int)mAcceptingEvents,(int)mCouldHaveEvents));
+
   PL_HandleEvent(aEvent);
   return NS_OK;
 }
@@ -463,12 +408,9 @@ nsEventQueueImpl::WaitForEvent(PLEvent** aResult)
     if (!correctThread)
       return NS_ERROR_FAILURE;
 
-#if defined(PR_LOGGING) && defined(DEBUG_danm)
-  PR_LOG(gEventQueueLog, PR_LOG_DEBUG,
-         ("EventQueue: wait for event [queue=%lx, accept=%d, could=%d]",
+    Log(("EventQueue: wait for event [queue=%lx, accept=%d, could=%d]\n",
          (long)mEventQueue,(int)mAcceptingEvents,(int)mCouldHaveEvents));
-  ++gEventQueueLogCount;
-#endif
+
     *aResult = PL_WaitForEvent(mEventQueue);
     CheckForDeactivation();
     return NS_OK;
@@ -522,8 +464,8 @@ nsEventQueueImpl::AppendQueue(nsIEventQueue *aQueue)
   }
   if (depth > 5) {
     char warning[80];
-    PR_snprintf(warning, sizeof(warning),
-      "event queue chain length is %d. this is almost certainly a leak.", depth);
+    RTStrPrintf2(warning, sizeof(warning),
+                 "event queue chain length is %d. this is almost certainly a leak.", depth);
     NS_WARNING(warning);
   }
 #endif
@@ -546,12 +488,8 @@ nsEventQueueImpl::Unlink()
   nsCOMPtr<nsPIEventQueueChain> young = mYoungerQueue,
                                 old = mElderQueue;
 
-#if defined(PR_LOGGING) && defined(DEBUG_danm)
-  PR_LOG(gEventQueueLog, PR_LOG_DEBUG,
-         ("EventQueue: unlink [queue=%lx, younger=%lx, elder=%lx]",
-         (long)mEventQueue,(long)mYoungerQueue, (long)mElderQueue.get()));
-  ++gEventQueueLogCount;
-#endif
+  Log(("EventQueue: unlink [queue=%lx, younger=%lx, elder=%lx]\n",
+       (long)mEventQueue,(long)mYoungerQueue, (long)mElderQueue.get()));
 
   // this is probably OK, but shouldn't happen by design, so tell me if it does
   NS_ASSERTION(!mYoungerQueue, "event queue chain broken in middle");

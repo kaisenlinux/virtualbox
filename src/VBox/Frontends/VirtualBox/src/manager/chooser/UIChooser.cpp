@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -29,10 +29,10 @@
 #include <QVBoxLayout>
 
 /* GUI includes: */
-#include "UICommon.h"
 #include "UIChooser.h"
 #include "UIChooserModel.h"
 #include "UIChooserView.h"
+#include "UIVirtualMachineItem.h"
 
 
 UIChooser::UIChooser(QWidget *pParent, UIActionPool *pActionPool)
@@ -55,10 +55,22 @@ bool UIChooser::isGroupSavingInProgress() const
     return model()->isGroupSavingInProgress();
 }
 
+void UIChooser::setKeepCloudNodesUpdated(bool fUpdate)
+{
+    AssertPtrReturnVoid(model());
+    return model()->setKeepCloudNodesUpdated(fUpdate);
+}
+
 bool UIChooser::isCloudProfileUpdateInProgress() const
 {
     AssertPtrReturn(model(), false);
     return model()->isCloudProfileUpdateInProgress();
+}
+
+QList<UIVirtualMachineItemCloud*> UIChooser::cloudMachineItems() const
+{
+    AssertPtrReturn(model(), QList<UIVirtualMachineItemCloud*>());
+    return model()->cloudMachineItems();
 }
 
 UIVirtualMachineItem *UIChooser::currentItem() const
@@ -211,11 +223,11 @@ void UIChooser::setGlobalItemHeightHint(int iHeight)
     model()->setGlobalItemHeightHint(iHeight);
 }
 
-void UIChooser::sltToolMenuRequested(UIToolClass enmClass, const QPoint &position)
+void UIChooser::sltToolMenuRequested(const QPoint &position, UIVirtualMachineItem *pItem)
 {
     /* Translate scene coordinates to global one: */
     AssertPtrReturnVoid(view());
-    emit sigToolMenuRequested(enmClass, mapToGlobal(view()->mapFromScene(position)));
+    emit sigToolMenuRequested(mapToGlobal(view()->mapFromScene(position)), pItem);
 }
 
 void UIChooser::prepare()
@@ -266,10 +278,12 @@ void UIChooser::prepareConnections()
     AssertPtrReturnVoid(view());
 
     /* Abstract Chooser-model connections: */
-    connect(model(), &UIChooserModel::sigCloudMachineStateChange,
-            this, &UIChooser::sigCloudMachineStateChange);
     connect(model(), &UIChooserModel::sigGroupSavingStateChanged,
             this, &UIChooser::sigGroupSavingStateChanged);
+    connect(model(), &UIChooserModel::sigCloudProfileStateChange,
+            this, &UIChooser::sigCloudProfileStateChange);
+    connect(model(), &UIChooserModel::sigCloudMachineStateChange,
+            this, &UIChooser::sigCloudMachineStateChange);
     connect(model(), &UIChooserModel::sigCloudUpdateStateChanged,
             this, &UIChooser::sigCloudUpdateStateChanged);
 
@@ -314,10 +328,12 @@ void UIChooser::cleanupConnections()
     AssertPtrReturnVoid(view());
 
     /* Abstract Chooser-model connections: */
-    disconnect(model(), &UIChooserModel::sigCloudMachineStateChange,
-               this, &UIChooser::sigCloudMachineStateChange);
     disconnect(model(), &UIChooserModel::sigGroupSavingStateChanged,
                this, &UIChooser::sigGroupSavingStateChanged);
+    disconnect(model(), &UIChooserModel::sigCloudProfileStateChange,
+               this, &UIChooser::sigCloudProfileStateChange);
+    disconnect(model(), &UIChooserModel::sigCloudMachineStateChange,
+               this, &UIChooser::sigCloudMachineStateChange);
     disconnect(model(), &UIChooserModel::sigCloudUpdateStateChanged,
                this, &UIChooser::sigCloudUpdateStateChanged);
 

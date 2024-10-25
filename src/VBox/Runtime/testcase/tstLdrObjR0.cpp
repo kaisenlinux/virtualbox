@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -48,7 +48,6 @@
 # error "not IN_RING0!"
 #endif
 #include <VBox/dis.h>
-#include <VBox/disopcode.h>
 #include <iprt/string.h>
 
 
@@ -81,7 +80,7 @@ extern "C" DECLEXPORT(int) Entrypoint(void)
 extern "C" DECLEXPORT(uint32_t) SomeExportFunction1(void *pvBuf)
 {
     NOREF(pvBuf);
-    return achBss[0] + achBss[16384];
+    return achBss[0] + achBss[RT_ELEMENTS(achBss) - 1];
 }
 
 
@@ -102,11 +101,11 @@ extern "C" DECLEXPORT(char *) SomeExportFunction3(void *pvBuf)
 extern "C" DECLEXPORT(void *) SomeExportFunction4(void)
 {
     static unsigned cb;
-    DISCPUSTATE Cpu;
+    DISSTATE Dis;
 
-    memset(&Cpu, 0, sizeof(Cpu));
+    memset(&Dis, 0, sizeof(Dis));
 
-    DISInstr((void *)(uintptr_t)SomeExportFunction3, DISCPUMODE_32BIT, &Cpu, &cb);
+    DISInstr((void *)(uintptr_t)SomeExportFunction3, DISCPUMODE_32BIT, &Dis, &cb);
     return (void *)(uintptr_t)&SomeExportFunction1;
 }
 

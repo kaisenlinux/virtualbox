@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
-<TS version="2.1" language="ru">
+<TS version="2.1" language="ru_RU">
 <context>
     <name>Appliance</name>
     <message>
@@ -42,7 +42,7 @@
     <message>
         <location filename="../src-server/ApplianceImpl.cpp" line="1041"/>
         <source>RTManifestEntryAddPassthruIoStream failed with vrc=%Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>RTManifestEntryAddPassthruIoStream вернул ошибку vrc=%Rrc</translation>
     </message>
     <message>
         <source>RTManifestEntryAddPassthruIoStream failed with rc=%Rrc</source>
@@ -84,213 +84,213 @@
         <translation>Сертификат, используемый для подписи &apos;%s&apos;, недействителен</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="776"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="807"/>
         <source>Invalid format &quot;%s&quot; specified</source>
         <translation>Указан недопустимый формат &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="783"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="814"/>
         <source>OPC appliance file must have .tar.gz extension</source>
         <translation>Файл конфигурации OPC должен иметь расширение .tar.gz</translation>
     </message>
     <message>
         <location filename="../src-server/ApplianceImplImport.cpp" line="121"/>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="787"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="818"/>
         <source>Appliance file must have .ovf or .ova extension</source>
         <translation>Файл конфигурации должен иметь расширение .ovf или .ova</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="799"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="830"/>
         <source>Appliance export failed because not all passwords were provided for all encrypted media</source>
         <translation>Экспорт конфигурации завершился с ошибкой, потому что пароли указаны не для всех носителей с шифрованием</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="865"/>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="995"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="896"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="1026"/>
         <source>Export appliance &apos;%s&apos;</source>
         <translation>Экспорт конфигурации &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="928"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="959"/>
         <source>There are no images to export to Cloud after preparation steps</source>
         <translation>После подготовительных шагов не осталось ни одно образа для экспорта в облако</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="936"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="967"/>
         <source>Cloud: More than one profile name was found.</source>
         <translation>Облако: Найдено больше одного имени профиля.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="938"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="969"/>
         <source>Cloud: Profile name wasn&apos;t specified.</source>
         <translation>Облако: Имя профиля не указано.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="941"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="972"/>
         <source>Cloud: Cloud user profile name is empty</source>
         <translation>Облако: Пользовательское имя профиля облака пусто</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="952"/>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="956"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="983"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="987"/>
         <source>Exporting VM to Cloud...</source>
         <translation>Экспорт ВМ в Облако...</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3667"/>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="960"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3704"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="991"/>
         <source>Only &quot;OCI&quot; cloud provider is supported for now. &quot;%s&quot; isn&apos;t supported.</source>
         <translation>Сейчас поддерживается только провайдер облака &apos;OCI&apos;.&apos;%s&apos; не поддерживается.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="1132"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="1163"/>
         <source>Cannot export more than one virtual system with OVF 0.9, use OVF 1.0</source>
         <translation>Невозможно экспортировать больше одной виртуальной системы с OVF 0.9, используйте OVF 1.0</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="6038"/>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="1352"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="6105"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="1383"/>
         <source>Missing VM name</source>
         <translation>Отсутствует имя ВМ</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="1448"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="1479"/>
         <source>Missing OS type</source>
         <translation>Отсутствует тип ОС</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="1691"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="1726"/>
         <source>Invalid config string &quot;%s&quot; in SATA controller</source>
         <translation>Недопустимая строка конфигурации &apos;%s&apos; у SATA контроллера</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="1731"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="1766"/>
         <source>Invalid config string &quot;%s&quot; in SCSI/SAS controller</source>
         <translation>Недопустимая строка конфигурации &apos;%s&apos; у SCSI/SAS  контроллера</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="1815"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="1876"/>
         <source>Missing or bad extra config string in hard disk image: &quot;%s&quot;</source>
         <translation>Отсутствует или неправильная строка конфигурации у образа жесткого диска: &quot;%s&quot;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="1892"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="1954"/>
         <source>Missing or bad extra config string in DVD drive medium: &quot;%s&quot;</source>
-        <translation>Отсутствует или неправильная строка конфигурации у носителя DVD: &quot;%s&quot;</translation>
+        <translation>Отсутствует или неправильная строка конфигурации у носителя оптического диска: &quot;%s&quot;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2275"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2337"/>
         <source>Failed to open directory &apos;%s&apos; (%Rrc)</source>
         <translation>Не удалось открыть директорию &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2333"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2395"/>
         <source>Failed create TAR creator for &apos;%s&apos; (%Rrc)</source>
         <translation>Не удалось создать создатель TAR для &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2340"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2402"/>
         <source>Failed to open &apos;%s&apos; for writing (%Rrc)</source>
         <translation>Не удалось открыть &apos;%s&apos; для записи (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1349"/>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2359"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1375"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2421"/>
         <source>%s: Cloud provider manager object wasn&apos;t found</source>
         <translation>%s: Объект менеджера провайдера облака не найден</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1357"/>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2367"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1383"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2429"/>
         <source>%s: Cloud provider object wasn&apos;t found</source>
         <translation>%s: Объект провайдера облака не найден</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1400"/>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2388"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1426"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2450"/>
         <source>%s: Cloud user profile name wasn&apos;t found</source>
         <translation>%s: Имя пользовательского профиля облака не найдено</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1408"/>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2392"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1434"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2454"/>
         <source>%s: Cloud profile object wasn&apos;t found</source>
         <translation>%s: Объект профиля облака не найден</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1413"/>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2397"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1439"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2459"/>
         <source>%s: Cloud client object wasn&apos;t found</source>
         <translation>%s: Объект клиента облака не найден</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2405"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2467"/>
         <source>Export to Cloud isn&apos;t supported for more than one VM instance.</source>
         <translation>Экспорт в облако для более чем одного экземпляра ВМ не поддерживается.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2550"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2612"/>
         <source>Exporting to disk image &apos;%Rbn&apos;</source>
         <translation>Экспорт в образ диска &apos;%Rbn&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2578"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2640"/>
         <source>Error completing TAR file &apos;%s&apos; (%Rrc)</source>
         <translation>Ошибка завершения файла TAR &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2582"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2644"/>
         <source>Failed to TAR creator instance for &apos;%s&apos; (%Rrc)</source>
         <translation>Не удалось создать экземпляр создателя TAR для &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2588"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2650"/>
         <source>Failed to create &apos;%s&apos; (%Rrc)</source>
         <translation>Не удалось создать &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2637"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2699"/>
         <source>Could not create OVF file &apos;%s&apos;</source>
         <translation>Невозможно создать OVF файл &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2659"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2721"/>
         <source>Invalid medium storage format</source>
         <translation>Недопустимый формат образа носителя</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2724"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2786"/>
         <source>Exporting to disk image &apos;%s&apos;</source>
         <translation>Экспорт в образ диска &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2740"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2802"/>
         <source>RTVfsFsStrmPushFile failed for &apos;%s&apos; (%Rrc)</source>
         <translation>RTVfsFsStrmPushFile завершился с ошибкой для &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2781"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2843"/>
         <source>Creating manifest file &apos;%s&apos;</source>
         <translation>Создание файла манифеста &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2788"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2850"/>
         <source>RTVfsMemIoStrmCreate failed (%Rrc)</source>
         <translation>RTVfsMemIoStrmCreate завершился с ошибкой (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2803"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2865"/>
         <source>RTVfsFsStrmAdd failed for the manifest (%Rrc)</source>
         <translation>RTVfsFsStrmAdd завершился с ошибкой при добавлении манифеста (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2806"/>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2809"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2868"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2871"/>
         <source>RTManifestWriteStandard failed (%Rrc)</source>
         <translation>RTManifestWriteStandard завершился с ошибкой (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2866"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2928"/>
         <source>RTVfsFsStrmAdd failed for &apos;%s&apos; (%Rrc)</source>
         <translation>RTVfsFsStrmAdd завершился с ошибкой при добавлении &apos;%s&apos; (%Rrc)</translation>
     </message>
@@ -332,369 +332,369 @@
         <translation type="vanished">Виртуальная система &quot;%s&quot; запрашивает поддержку для более чем одного VirtioSCSI контроллера, но VirtualBox поддерживает только один</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="759"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="785"/>
         <source>Unsupported format for virtual disk image %s in OVF: &quot;%s&quot;</source>
         <translation>Неподдерживаемый формат для образа виртуального диска %s в OVF: &quot;%s&quot;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="776"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="802"/>
         <source>Cannot find storage controller with OVF instance ID &quot;%s&quot; to which medium &quot;%s&quot; should be attached</source>
         <translation>Невозможно найти контроллер с ID экземпляра OVF &quot;%s&quot; куда носитель &quot;%s&quot; должен быть подключен</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="849"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="875"/>
         <source>Cannot import machines without reading it first (call read() before i_importMachines())</source>
         <translation>Невозможно импортировать машины без предварительного чтения (вызовите read() перед i_importMachines())</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="892"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="918"/>
         <source>Malformed OVA. &apos;%s&apos; is not a regular file (%d).</source>
         <translation>OVA поврежден. &apos;%s&apos; не является обычным файлом (%d).</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="897"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="923"/>
         <source>RTVfsFsStrmNext failed (%Rrc)</source>
         <translation>RTVfsFsStrmNext завершился с ошибкой (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="906"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="932"/>
         <source>Unexpected end of OVA package</source>
         <translation>Неожиданный конец пакета OVA</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="936"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="962"/>
         <source>Unexpected end of OVA / internal error - missing &apos;%s&apos; (skipped %u)</source>
         <translation>Неожиданный конец OVA / внутренняя ошибка - отсутствует &apos;%s&apos; (пропущено %u)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="950"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="976"/>
         <source>Error opening &apos;%s&apos; for reading (%Rrc)</source>
         <translation>Ошибка при открытии &apos;%s&apos; на чтение (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1002"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1028"/>
         <source>Error occured decompressing &apos;%s&apos; to &apos;%s&apos; (%Rrc)</source>
         <translation>Ошибка при распаковке &apos;%s&apos; в &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1010"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1036"/>
         <source>Error opening destionation image &apos;%s&apos; for writing (%Rrc)</source>
         <translation>Ошибка открытия образа назначения &apos;%s&apos; на запись (%Rc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1040"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1092"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4301"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1066"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1118"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4338"/>
         <source>Error initializing read ahead thread for &apos;%s&apos; (%Rrc)</source>
         <translation>Ошибка инициализации потока упреждающего чтения для &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1057"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1120"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1083"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1146"/>
         <source>RTManifestPtIosAddEntryNow failed with %Rrc</source>
         <translation>RTManifestPtIosAddEntryNow вернул ошибку c %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1104"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1130"/>
         <source>Error initializing gzip decompression for &apos;%s&apos; (%Rrc)</source>
         <translation>Ошибка инциализации распаковки gzip для &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1169"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1195"/>
         <source>Getting cloud instance information</source>
         <translation>Получение информации об экземпляре облака</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1180"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1206"/>
         <source>Reading appliance &apos;%s&apos;</source>
         <translation>Чтение конфигурации &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1189"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1215"/>
         <source>Download appliance &apos;%s&apos;</source>
         <translation>Загрузка конфигурации &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1224"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1250"/>
         <source>Failed to create thread for reading appliance data</source>
         <translation>Не удалось создать поток для чтения данных конфигурации</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1245"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1271"/>
         <source>%s: The profile name or instance id are absent or contain unsupported characters: %s</source>
         <translation>%s: Имя профиля или идентификатор экземпляра отсутствуют или содержат неподдерживаемые символы: %s</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1252"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1278"/>
         <source>%s: Cloud provider manager object wasn&apos;t found (%Rhrc)</source>
         <translation>%s: Объект менеджера провайдера облака не найден (%Rhrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1260"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1286"/>
         <source>%s: Cloud provider object wasn&apos;t found (%Rhrc)</source>
         <translation>%s: Объект провайдера облака не найден (%Rhrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1264"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1290"/>
         <source>%s: Cloud user profile name wasn&apos;t found (%Rhrc)</source>
         <translation>%s: Пользовательское имя профиля облака не найдено (%Rhrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1268"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1294"/>
         <source>%s: Cloud profile object wasn&apos;t found (%Rhrc)</source>
         <translation>%s: Объект профиля облака не найден (%Rhrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1273"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1299"/>
         <source>%s: Cloud client object wasn&apos;t found (%Rhrc)</source>
         <translation>%s: Объект клиента облака не найден (%Rhrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1282"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1308"/>
         <source>%s: Requested (%d) and created (%d) numbers of VSD are differ .</source>
         <translation>%s: Запрошенное (%d) и созданное (%d) количество VSD отличаются.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1404"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1430"/>
         <source>%s: Cloud user profile name is empty</source>
         <translation>%s: Пользовательское имя профиля облака пусто</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1580"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1607"/>
         <source>Can&apos;t open folder %s</source>
         <translation>Невозможно открыть папку %s</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1584"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1611"/>
         <source>The target folder %s has already contained some files (%d items). Clear the folder from the files or choose another folder</source>
         <translation>Папка назначения %s уже содержит файлы (%d шт.). Удалите все файлы оттуда или выберите другую папку</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1606"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1633"/>
         <source>%s: Cloud import (cloud phase) failed. Used cloud instance is &apos;%s&apos;
 </source>
         <translation>%s: Не удалось произвести импорт из облака (фаза загрузки из облака). Пользовательский облачный экземпляр &apos;%s&apos;
 </translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1615"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1642"/>
         <source>Import from Cloud isn&apos;t supported for more than one VM instance.</source>
         <translation>Импорт из облака не поддерживается для более чем одного экземпляра ВМ.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1629"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1656"/>
         <source>%s: Cloud cleanup action - the instance wasn&apos;t found</source>
         <translation>%s: Действие очистки облака - экземпляр не найден</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1666"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1693"/>
         <source>Rollback action for Import Cloud operation failed. Some leavings may exist on the local disk or in the Cloud.</source>
         <translation>Не удалось завершить действие отката для операции импорта из облака. Локальный диск или облако может содержать некоторые остатки.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1773"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1800"/>
         <source>Error opening &apos;%s&apos; for reading (%Rrc)
 </source>
         <translation>Ошибка при открытии &apos;%s&apos; на чтение (%Rrc)
 </translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1778"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1805"/>
         <source>Error reading the downloaded file &apos;%s&apos; (%Rrc)</source>
         <translation>Ошибка чтения загруженного файла &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1909"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1938"/>
         <source>%s: Error reading &apos;%s&apos; (%Rrc)</source>
         <translation>%s: Ошибка чтения &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1943"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1972"/>
         <source>Could not read the file &apos;%s&apos; (%Rrc)</source>
         <translation>Невозможно прочитать файл &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1957"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1986"/>
         <source>Could not create the directory &apos;%s&apos; (%Rrc)</source>
         <translation>Невозможно создать директорию &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1961"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1990"/>
         <source>Error during getting info about the directory &apos;%s&apos; (%Rrc)</source>
         <translation>Ошибка во время получения информации о директории &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1970"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1999"/>
         <source>Could not create the file &apos;%s&apos; (%Rrc)</source>
         <translation>Невозможно создать файл &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1975"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2004"/>
         <source>Could not write into the file &apos;%s&apos; (%Rrc)</source>
         <translation>Невозможно записать в файл&apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2015"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2044"/>
         <source>The hard disk &apos;%s&apos; already exists.</source>
         <translation>Жесткий диск &apos;%s&apos; уже существует.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2028"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4221"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4331"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2057"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4258"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4368"/>
         <source>Importing virtual disk image &apos;%s&apos;</source>
         <translation>Импортирование образа виртуального диска &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2039"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4311"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2068"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4348"/>
         <source>Importing medium &apos;%s&apos;</source>
         <translation>Импортрирование носителя &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2120"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2149"/>
         <source>Creating new VM &apos;%s&apos;</source>
         <translation>Создание новой ВМ &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2381"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2410"/>
         <source>Failed to open OVF file &apos;%s&apos; (%Rrc)</source>
         <translation>Не удалось открыть OVF файл &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2413"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2442"/>
         <source>Failed to open the signature file &apos;%s&apos; (%Rrc)</source>
         <translation>Не удалось открыть файл подписи &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2422"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2451"/>
         <source>Failed to open the manifest file &apos;%s&apos; (%Rrc)</source>
         <translation>Не удалось открыть файл манифеста &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2444"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3775"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2473"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3812"/>
         <source>Error opening the OVA file &apos;%s&apos; (%Rrc)</source>
         <translation>Ошибка при открытии OVA файла &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2450"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3781"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2479"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3818"/>
         <source>Error reading the OVA file &apos;%s&apos; (%Rrc)</source>
         <translation>Ошибка при чтении OVA файла &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2474"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2503"/>
         <source>Error reading OVA &apos;%s&apos; (%Rrc)</source>
         <translation>Ошибка чтения OVA &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2563"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2592"/>
         <source>OVA &apos;%s&apos; does not contain an .ovf-file</source>
         <translation>OVA &apos;%s&apos; не содержит .ovf файл</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2613"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2650"/>
         <source>Could not read the OVF file for &apos;%s&apos; (%Rrc)</source>
         <translation>Невозможно прочитать OVF файл для &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2671"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2708"/>
         <source>Error reading the manifest file &apos;%s&apos; for &apos;%s&apos; (%Rrc)</source>
         <translation>Ошибка чтения файла манифеста &apos;%s&apos; для &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2686"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2723"/>
         <source>Failed to parse manifest file &apos;%s&apos; for &apos;%s&apos; (%Rrc): %s</source>
         <translation>Не удалось разобрать файл манифеста &apos;%s&apos; для &apos;%s&apos; (%Rrc): %s</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2742"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2779"/>
         <source>Error reading the signature file &apos;%s&apos; for &apos;%s&apos; (%Rrc)</source>
         <translation>Ошибка чтения файла подписи &apos;%s&apos; для &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2833"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2870"/>
         <source>Unsupported signed digest type (%#x)</source>
         <translation>Неподдерживаемый тип подписанного дайджеста (%#x)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2836"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2873"/>
         <source>Error reading signed manifest digest: %Rrc</source>
         <translation>Ошибка чтения дайджеста подписанного манифеста: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2839"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2876"/>
         <source>Could not locate signed digest for &apos;%s&apos; in the cert-file for &apos;%s&apos;</source>
         <translation>Невозможно определить местоположение подписанного дайджеста для &apos;%s&apos; в файле сертификата для &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2842"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2879"/>
         <source>RTManifestEntryQueryAttr failed unexpectedly: %Rrc</source>
         <translation>RTManifestEntryQueryAttr неожиданно завершился с ошибкой: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2845"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2882"/>
         <source>Error parsing the .cert-file for &apos;%s&apos;: %s</source>
         <translation>Ошибка интерпретации файла .cert для &apos;%s&apos;: %s</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2867"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2904"/>
         <source>Error reading the PKCS#7/CMS signature from &apos;%s&apos; for &apos;%s&apos; (%Rrc): %s</source>
         <translation>Ошибка чтения подписи PKCS#7/CMS из &apos;%s&apos; для &apos;%s&apos; (%Rrc): %s</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2872"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2909"/>
         <source>Malformed .cert-file for &apos;%s&apos;: Signer&apos;s certificate not found (%Rrc)</source>
         <translation>Поврежденный файл .cert для &apos;%s&apos;: Сертификат подписывающего лица не найден (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2875"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2912"/>
         <source>Error reading the signer&apos;s certificate from &apos;%s&apos; for &apos;%s&apos; (%Rrc): %s</source>
         <translation>Ошибка чтения сертификата подписывающего лица из &apos;%s&apos; для &apos;%s&apos; (%Rrc): %s</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2913"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2950"/>
         <source>Found .cert-file but no .mf-file for &apos;%s&apos;</source>
         <translation>Найден файл .cert, но не найден .mf файл для &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2944"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2981"/>
         <source>The manifest signature does not match</source>
         <translation>Подпись манифеста не соответствует</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2947"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2984"/>
         <source>Error validating the manifest signature (%Rrc, %s)</source>
         <translation>Ошибка при проверке подписи манифеста (%Rrc, %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2950"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2987"/>
         <source>RTCrDigestUpdateFromVfsFile failed: %Rrc</source>
         <translation>RTCrDigestUpdateFromVfsFile завершился с ошибкой: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2954"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2991"/>
         <source>RTCrDigestCreateByType failed: %Rrc</source>
         <translation>RTCrDigestCreateByType завершился с ошибкой: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3032"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3069"/>
         <source>Failed to query trusted CAs and Certificates from the system and for the current user (%Rrc%RTeim)</source>
         <translation>Не удалось запросить доверенные УЦ и сертификаты у системы для текущего пользователя (%Rrc%RTeim)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3112"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3149"/>
         <source>Invalid PKCS#7/CMS type: %s, expected %s (signedData)</source>
         <translation>Недопустимый тип PKCS#7/CMS: %s, ожидается %s (signedData)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3115"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3152"/>
         <source>Invalid PKCS#7/CMS inner type: %s, expected %s (data)</source>
         <translation>Недопустимый внутренний тип PKCS#7/CMS: %s, ожидается %s (data)</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3118"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3155"/>
         <source>Invalid PKCS#7/CMS data: embedded (%u bytes), expected external</source>
         <translation>
             <numerusform>Недопустимые данные PKCS#7/CMS: внедрено (%u байт), ожидается external</numerusform>
@@ -703,7 +703,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3551"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3588"/>
         <source>%u out of %u PKCS#7/CMS signatures verfified okay</source>
         <translation>
             <numerusform>%u из of %u PKCS#7/CMS успешно проверенной подписи</numerusform>
@@ -712,252 +712,257 @@
         </translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3122"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3159"/>
         <source>Invalid PKCS#7/CMS: No signers</source>
         <translation>Недопустимый PKCS#7/CMS: Нет подписывающих лиц</translation>
     </message>
     <message>
         <location filename="../src-server/ApplianceImplImport.cpp" line="327"/>
         <source>Virtual appliance &quot;%s&quot; was configured with %u CPUs however VirtualBox supports a maximum of %u CPUs. Setting the CPU count to %u.</source>
-        <translation type="unfinished"></translation>
+        <translation>Виртуальная конфигурация &quot;%s&quot; была настроена на %u ЦПУ, однако VirtualBox поддерживает максимум %u ЦПУ. Задаём количество ЦПУ равным %u.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="354"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="355"/>
         <source>Virtual appliance &quot;%s&quot; was configured with %RU64 MB of memory (RAM) however VirtualBox supports a minimum of %u MB and a maximum of %u MB of memory.</source>
-        <translation type="unfinished"></translation>
+        <translation>Виртуальная конфигурация &quot;%s&quot; была настроена на %RU64 МБ памяти (ОЗУ), однако VirtualBox поддерживает минимум %u МБ и максимум %u МБ памяти.</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/ApplianceImplImport.cpp" line="420"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="450"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="423"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="453"/>
         <source>Virtual appliance &quot;%s&quot; was configured with %zu network adapters however VirtualBox supports a maximum of %u network adapters.</source>
-        <translation type="unfinished">
-            <numerusform></numerusform>
-            <numerusform></numerusform>
-            <numerusform></numerusform>
+        <translation>
+            <numerusform>Виртуальная конфигурация &quot;%s&quot; была настроена на %zu сетевой адаптер, однако VirtualBox поддерживает максимум %u сетевых адаптера.</numerusform>
+            <numerusform>Виртуальная конфигурация &quot;%s&quot; была настроена на %zu сетевых адаптера, однако VirtualBox поддерживает максимум %u сетевых адаптера.</numerusform>
+            <numerusform>Виртуальная конфигурация &quot;%s&quot; была настроена на %zu сетевых адаптеров, однако VirtualBox поддерживает максимум %u сетевых адаптера.</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="611"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="615"/>
         <source>Virtual appliance &quot;%s&quot; was configured with more than two IDE controllers however VirtualBox supports a maximum of two IDE controllers.</source>
-        <translation type="unfinished"></translation>
+        <translation>Виртуальная конфигурация &quot;%s&quot; была настроена на более, чем два контроллера IDE, однако VirtualBox поддерживает масимум два контроллера IDE.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="634"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="638"/>
         <source>Virtual appliance &quot;%s&quot; was configured with more than one SATA controller however VirtualBox supports a maximum of one SATA controller.</source>
-        <translation type="unfinished"></translation>
+        <translation>Виртуальная конфигурация &quot;%s&quot; была настроена на более, чем один контроллер SATA, однако VirtualBox поддерживает масимум один контроллер SATA.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="663"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="667"/>
         <source>Virtual appliance &quot;%s&quot; was configured with more than one SCSI controller of type &quot;%s&quot; with ID %s however VirtualBox supports a maximum of one SCSI controller for each type.</source>
-        <translation type="unfinished"></translation>
+        <translation>Виртуальная конфигурация &quot;%s&quot; была настроена на более, чем один контроллер SCSI типа &quot;%s&quot; с ИД равным %s, однако VirtualBox поддерживает масимум один контроллер SATA каждого типа.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="685"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="689"/>
         <source>Virtual appliance &quot;%s&quot; was configured with more than one VirtioSCSI controller however VirtualBox supports a maximum of one VirtioSCSI controller.</source>
-        <translation type="unfinished"></translation>
+        <translation>Виртуальная конфигурация &quot;%s&quot; была настроена на более, чем один контроллер VirtioSCSI, однако VirtualBox поддерживает масимум один контроллер VirtioSCSI.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3136"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="711"/>
+        <source>Virtual appliance &quot;%s&quot; was configured with more than one NVMe controller however VirtualBox supports a maximum of one NVMe controller.</source>
+        <translation>Виртуальная конфигурация &quot;%s&quot; была настроена на более, чем один контроллер NVMe, однако VirtualBox поддерживает масимум один контроллер NVMe.</translation>
+    </message>
+    <message>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3173"/>
         <source>Invalid PKCS#7/CMS: Using a different certificate</source>
         <translation>Недопустимый PKCS#7/CMS: Использование другого сертификата</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3144"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3181"/>
         <source>RTCrStoreCreateInMem failed: %Rrc</source>
         <translation>RTCrStoreCreateInMem завершился с ошибкой: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3162"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3199"/>
         <source>Failed to validate PKCS#7/CMS signature: %Rrc%RTeim</source>
         <translation>Не удалось проверить подпись PKCS#7/CMS: %Rrc%RTeim</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3167"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3204"/>
         <source>RTCrStoreCertAddX509 failed: %Rrc%RTeim</source>
         <translation>RTCrStoreCertAddX509 завершился с ошибкой: %Rrc%RTeim</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3207"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3244"/>
         <source>A self signed certificate was used to sign &apos;%s&apos;</source>
         <translation>Самоподписанный сертификат используется для подписи &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3210"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3247"/>
         <source>Self signed certificate used to sign &apos;%s&apos; is not currently valid</source>
         <translation>Самоподписанный сертификат, используемый для подписи &apos;%s&apos;, недействителен в настоящий момент</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3215"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3252"/>
         <source>Verification of the self signed certificate failed (%Rrc%#RTeim)</source>
         <translation>Не удалось проверить самоподписанный сертификат (%Rrc%#RTeim)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3217"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3254"/>
         <source>Verification of the self signed certificate used to sign &apos;%s&apos; failed (%Rrc)%RTeim</source>
         <translation>Не удалось проверить самоподписанный сертификат, используемый для подписи &apos;%s&apos;, (%Rrc)%RTeim</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3225"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3262"/>
         <source>Self signed certificate used to sign &apos;%s&apos; is not marked as certificate authority (CA)</source>
         <translation>Самоподписанный сертификат, используемый для подписи &apos;%s&apos;, не отмечен как сертификат удостоверяющего центра (УЦ)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3250"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3287"/>
         <source>RTCrX509CertPathsSetTrustedStore failed (%Rrc)</source>
         <translation>RTCrX509CertPathsSetTrustedStore завершился с ошибкой (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3289"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3326"/>
         <source>The certificate used to sign &apos;%s&apos; (or a certificate in the path) is not currently valid (%Rrc)</source>
         <translation>Сертификат, используемый для подписи &apos;%s&apos;, (или сертификат указанный в пути) недействителен в настоящее время (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3293"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3330"/>
         <source>RTCrX509CertPathsSetValidTimeSpec failed: %Rrc</source>
         <translation>RTCrX509CertPathsSetValidTimeSpec завершился с ошибкой: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3298"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3335"/>
         <source>No trusted certificate paths</source>
         <translation>Нет путей к доверенным сертификатам</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3305"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3342"/>
         <source>The certificate used to sign &apos;%s&apos; is not currently valid</source>
         <translation>Сертификат, используемый для подписи &apos;%s&apos;, недействителен в настоящее время</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3309"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3346"/>
         <source>Certificate path validation failed (%Rrc%RTeim)</source>
         <translation>Не удалось проверить путь сертификата (%Rrc%RTeim)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3312"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3349"/>
         <source>Certificate path building failed (%Rrc%RTeim)</source>
         <translation>Не удалось построить путь сертификата (%Rrc%RTeim)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3317"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3354"/>
         <source>RTCrX509CertPathsCreate failed: %Rrc</source>
         <translation>RTCrX509CertPathsCreate завершился с ошибкой: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3329"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3331"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3366"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3368"/>
         <source>%s verification failed: %Rrc%RTeim</source>
         <translation>Не удалось проверить %s: %Rrc%RTeim</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3363"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3400"/>
         <source>OVF &amp; PKCS#7/CMS signature</source>
         <translation>Подпись OVF и PKCS#7/CMS</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3365"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3402"/>
         <source>PKCS#7/CMS signature</source>
         <translation>Подпись PKCS#7/CMS</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3391"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3393"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3428"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3430"/>
         <source>PKCS#7/CMS signature #%u does not include the signing certificate</source>
         <translation>PKCS#7/CMS подпись #%u не включает сертификат для подписывания</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3405"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3442"/>
         <source>%s: Untrusted self-signed certificate</source>
         <translation>%s: Недоверенный самоподписанный сертификат</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3430"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3485"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3467"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3522"/>
         <source>%s: Untrusted timestamp (%s)</source>
         <translation>%s: Недоверенный временной отпечаток (%s)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3432"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3487"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3469"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3524"/>
         <source>%s: Not valid at current time, but validates fine for untrusted signing time (%s)</source>
         <translation>%s: Недействителен в настоящее время, но проходит проверку для недоверенного времени подписывания (%s)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3589"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3626"/>
         <source>Importing appliance &apos;%s&apos;</source>
         <translation>Импорт конфигурации &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3592"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3664"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3629"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3701"/>
         <source>Failed to create task for importing appliance into VirtualBox</source>
         <translation>Не удалось создать задачу для импорта конфигурации в VirtualBox</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3648"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3685"/>
         <source>Importing VM from Cloud...</source>
         <translation>Импорт ВМ из облака...</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3652"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3689"/>
         <source>Start import VM from the Cloud...</source>
         <translation>Старт импорта ВМ из облака...</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3678"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3715"/>
         <source>Failed to start thread for importing appliance into VirtualBox</source>
         <translation>Не удалось запустить поток для импорта конфигурации в VirtualBox</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3914"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3951"/>
         <source>Error fudging missing OVF digest in manifest: %Rrc</source>
         <translation>Ошибка подделки потерянного дайджеста OVF в манифесте: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3935"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3972"/>
         <source>Digest mismatch (%Rrc): %s</source>
         <translation>Дайджест не соответствует (%Rrc): %s</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4017"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4054"/>
         <source>Invalid channel %RU32 specified; IDE controllers support only 0, 1 or 2</source>
         <translation>Указан недопустимый канал %RU32; IDE контроллеры поддерживают только 0, 1 или 2</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4150"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4187"/>
         <source>Unsupported medium format for disk image &apos;%s&apos;</source>
         <translation>Неподдерживаемый формат носителя для образа диска &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4182"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4219"/>
         <source>Could not find a valid medium format for the target disk &apos;%s&apos;</source>
         <translation>Невозможно найти правильный формат носителя для диска назначения &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4188"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4225"/>
         <source>The target disk &apos;%s&apos; has no extension </source>
         <translation>Отсутствует расширение у диска назначения &apos;%s&apos; </translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4252"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4289"/>
         <source>Creating disk image &apos;%s&apos;</source>
         <translation>Создание образа диска &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4264"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4301"/>
         <source>Could not find a valid medium format for the source disk &apos;%s&apos; Check correctness of the image format URL in the OVF description file or extension of the image</source>
         <translation>Невозможно найти правильный формат носителя для диска источника &apos;%s&apos; Проверьте правильность URL формата образа в файле описания OVF или расширение файла образа</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4288"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4325"/>
         <source>Error opening decompressed image file &apos;%s&apos; (%Rrc)</source>
         <translation>Ошибка при открытии распакованного файла образа &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4366"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4403"/>
         <source>Failed to delete the temporary file &apos;%s&apos; (%Rrc)</source>
         <translation>Не удалось удалить временный файл &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4592"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4636"/>
         <source>Too many network adapters: OVF requests %d network adapters, but VirtualBox only supports %d</source>
         <translation>
             <numerusform>Слишком много сетевых адаптеров: OVF запрашивает %d сетевой адаптер, но VirtualBox поддерживает только до %d</numerusform>
@@ -966,142 +971,153 @@
         </translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4732"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4776"/>
         <source>Too many IDE controllers in OVF; import facility only supports two</source>
         <translation>Слишком много IDE контроллеров в OVF; Средство импорта поддерживает только два</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4749"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4793"/>
         <source>Invalid IDE controller type &quot;%s&quot;</source>
         <translation>Недопустимый тип IDE контроллера &quot;%s&quot;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4759"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4803"/>
         <source>Too many SATA controllers in OVF; import facility only supports one</source>
         <translation>Слишком много SATA контроллеров в OVF; Средство импорта поддерживает только один</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4770"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4814"/>
         <source>Invalid SATA controller type &quot;%s&quot;</source>
         <translation>Недопустимый тип SATA контроллера &quot;%s&quot;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4778"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4822"/>
         <source>Too many SCSI controllers in OVF; import facility only supports one</source>
         <translation>Слишком много SCSI контроллеров в OVF; Средство импорта поддерживает только один</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4798"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4842"/>
         <source>Invalid SCSI controller type &quot;%s&quot;</source>
         <translation>Недопустимый тип SCSI контроллера &quot;%s&quot;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4811"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4855"/>
         <source>Too many SAS controllers in OVF; import facility only supports one</source>
         <translation>Слишком много SAS контроллеров в OVF; Средство импорта поддерживает только один</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4827"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4871"/>
         <source>Too many VirtioSCSI controllers in OVF; import facility only supports one</source>
         <translation>Слишком много VirtioSCSI контроллеров в OVF; Средство импорта поддерживает только один</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4842"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4886"/>
         <source>Invalid VirtioSCSI controller type &quot;%s&quot;</source>
         <translation>Недопустимый тип VirtioSCSI контроллера &quot;%s&quot;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4860"/>
-        <source>Too many floppy controllers in OVF; import facility only supports one</source>
-        <translation>Слишком много флоппи контроллеров в  OVF; Средство импорта поддерживает только один</translation>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4894"/>
+        <source>Too many NVMe controllers in OVF; import facility only supports one</source>
+        <translation>Слишком много NVMe контроллеров в OVF; Средство импорта поддерживает только один</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4928"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5279"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4909"/>
+        <source>Invalid NVMe controller type &quot;%s&quot;</source>
+        <translation>Недопустимый тип NVMe контроллера &quot;%s&quot;</translation>
+    </message>
+    <message>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4927"/>
+        <source>Too many floppy controllers in OVF; import facility only supports one</source>
+        <translation>Слишком много контроллеров гибких дисков в OVF; Средство импорта поддерживает только один</translation>
+    </message>
+    <message>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4995"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5346"/>
         <source>Unknown error during OVF import</source>
         <translation>Неизвестная ошибка во время импорта OVF</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5008"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5074"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5080"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5637"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5075"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5141"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5147"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5704"/>
         <source>Internal inconsistency looking up disk image &apos;%s&apos;</source>
         <translation>Внутренняя несогласованность при поиске образа диска &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5155"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5699"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5222"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5766"/>
         <source>Target controller value invalid or missing: &apos;%s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>Значение целевого контроллера задано неверно или отсутствует: &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5163"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5714"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5230"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5781"/>
         <source>Target controller port (&apos;channel=&apos;) invalid or missing: &apos;%s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>Порт целевого контроллера (&apos;канал=&apos;) задан неверно или отсутствует: &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5170"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5727"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5734"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5237"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5794"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5801"/>
         <source>Failed to find storage controller &apos;%u&apos; in the System Description list</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось найти контроллер %u&apos; в описании системы</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5197"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5264"/>
         <source>Invalid hard disk contoller type: &apos;%d&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>Неверный тип контроллера жёстких дисков: &apos;%d&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5210"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5796"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5277"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5863"/>
         <source>Illegal channel: &apos;%u&apos;.  For %s controllers the valid values are 0 to %lu (inclusive).
 </source>
-        <translation type="unfinished"></translation>
+        <translation>Неверное значение канала: &apos;%u&apos;.  Для %s контроллеров верные значения должны быть в диапазоне от 0 до %lu (включительно).
+</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5692"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5759"/>
         <source>Original controller value invalid or missing: &apos;%s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>Значение исходного контроллера задано неверно или отсутствует: &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5707"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5774"/>
         <source>Original controller port (&apos;channel=&apos;) invalid or missing: &apos;%s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>Порт исходного контроллера (&apos;канал=&apos;) задан неверно или отсутствует: &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5745"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5812"/>
         <source>Failed to find virtual disk &apos;%s&apos; in DiskImagesMap</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось найти виртуальный диск &apos;%s&apos; в DiskImagesMap</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5848"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5915"/>
         <source>Device of type &apos;%s&apos; already attached to the %s controller at this port/channel (%d).</source>
-        <translation type="unfinished"></translation>
+        <translation>Устройство типа &apos;%s&apos; уже подключено к %s контроллеру на данном порту/канале (%d).</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5864"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5931"/>
         <source>Failed to add disk &apos;%s&apos; (uuid=%RTuuid) to the %s storage controller.</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось добавить диск &apos;%s&apos; (uuid=%RTuuid) к контроллеру %s.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5952"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="6019"/>
         <source>&lt;vbox:Machine&gt; element in OVF contains a medium attachment for the disk image %s but the OVF describes no such image</source>
         <translation>Элемент &lt;vbox:Machine&gt; в OVF содержит прикрепление носителя для образа диска %s, но OVF не описывает этот образ</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="6089"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="6156"/>
         <source>Missing guest OS type</source>
         <translation>Отсутствует тип гостевой ОС</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="6102"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="6169"/>
         <source>CPU count missing</source>
         <translation>Отсутствует количество ЦПУ</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="6115"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="6182"/>
         <source>RAM size missing</source>
         <translation>Отсутствует размер RAM</translation>
     </message>
@@ -1109,7 +1125,7 @@
 <context>
     <name>AudioAdapter</name>
     <message>
-        <location filename="../src-server/AudioAdapterImpl.cpp" line="477"/>
+        <location filename="../src-server/AudioAdapterImpl.cpp" line="510"/>
         <source>Invalid audio codec type %d</source>
         <translation>Недопустимый тип аудио кодека %d</translation>
     </message>
@@ -1142,22 +1158,22 @@
     <message>
         <location filename="../src-server/BandwidthControlImpl.cpp" line="417"/>
         <source>Bandwidth name is too long: %zu, max %u</source>
-        <translation type="unfinished"></translation>
+        <translation>Имя полосы пропускания слишком длинное: %zu, максимум %u</translation>
     </message>
     <message>
         <location filename="../src-server/BandwidthControlImpl.cpp" line="421"/>
         <source>Invalid group type: %d</source>
-        <translation type="unfinished"></translation>
+        <translation>Недопустимый тип группы: %d</translation>
     </message>
     <message>
         <location filename="../src-server/BandwidthControlImpl.cpp" line="424"/>
         <source>Bandwidth group name must not be empty</source>
-        <translation type="unfinished"></translation>
+        <translation>Имя группы полосы пропускания не должно быть пустым</translation>
     </message>
     <message>
         <location filename="../src-server/BandwidthControlImpl.cpp" line="474"/>
         <source>Too many network bandwidth groups (max %u)</source>
-        <translation type="unfinished"></translation>
+        <translation>Слишком много групп сетевых полос пропускания (максимум %u)</translation>
     </message>
     <message>
         <location filename="../src-server/BandwidthControlImpl.cpp" line="477"/>
@@ -1167,7 +1183,7 @@
     <message>
         <location filename="../src-server/BandwidthControlImpl.cpp" line="496"/>
         <source>The bandwidth group &apos;%s&apos; is still in use</source>
-        <translation>Группа полосы пропускания &apos;%s&apos; все еще используется</translation>
+        <translation>Группа полосы пропускания &apos;%s&apos; всё ещё используется</translation>
     </message>
 </context>
 <context>
@@ -1277,75 +1293,80 @@
 <context>
     <name>Console</name>
     <message>
-        <location filename="../include/ConsoleImpl.h" line="120"/>
+        <location filename="../include/ConsoleImpl.h" line="128"/>
         <source>The console is not powered up (%Rfn)</source>
         <translation>Консоль не запущена (%Rfn)</translation>
+    </message>
+    <message>
+        <location filename="../include/ConsoleImpl.h" line="1295"/>
+        <source>%s failed: vrc=%Rrc, pcszName=%s</source>
+        <translation>Ошибка %s: vrc=%Rrc, pcszName=%s</translation>
     </message>
     <message>
         <source>The saved state file &apos;%ls&apos; is invalid (%Rrc). Delete the saved state and try again</source>
         <translation type="vanished">Некорректный файл сохраненного состояния &apos;%ls&apos; (%Rrc). Удалите сохраненное состояние и попытайтесь снова</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="1966"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2043"/>
         <source>Internal application error</source>
         <translation>Внутренняя ошибка приложения</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="1970"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2047"/>
         <source>Temporary failure due to guest activity, please retry</source>
-        <translation>Временная неисправность из-за активности гостевой системы, пожалуйста, попробуйте снова</translation>
+        <translation>Временная неисправность из-за активности гостевой ОС, пожалуйста, попробуйте снова</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2243"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2320"/>
         <source>Cannot power down at this point during a save state</source>
         <translation>Невозможно выключить питание на этом этапе во время сохранения состояния</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2254"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2331"/>
         <source>Cannot power down at this point in a teleportation</source>
         <translation>Невозможно выключить питание на этом этапе во время портирования</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2264"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2341"/>
         <source>Cannot power down at this point in an online snapshot</source>
         <translation>Невозможно выключить питание на этом этапе во время создания рабочего снимка</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2274"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2351"/>
         <source>Cannot power down at this point in a live snapshot</source>
         <translation>Невозможно выключить питание на этом этапе во время создания живого снимка</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2279"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2356"/>
         <source>Cannot power down a saved virtual machine</source>
         <translation>Невозможно выключить питание у сохраненной виртуальной машины</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2281"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7908"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7970"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2358"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8220"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8282"/>
         <source>The virtual machine is being powered down</source>
         <translation>Виртуальная машина выключается</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2284"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2361"/>
         <source>Invalid machine state: %s (must be Running, Paused or Stuck)</source>
         <translation>Недопустимое состояние машины: %s (должная быть Работает, Приостановлена или Зависла)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2322"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2399"/>
         <source>Could not create VMPowerDownTask object
 </source>
         <translation>Невозможно создать объект VMPowerDownTask
 </translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2379"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2456"/>
         <source>Could not reset the machine (%Rrc)</source>
         <translation>Невозможно сбросить состояние машины (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2427"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2504"/>
         <source>CPU %d is not attached</source>
         <translation>ЦПУ %d не подключен</translation>
     </message>
@@ -1354,462 +1375,462 @@
         <translation type="vanished">Горячее удаление не удалось (rc=%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="1698"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="578"/>
+        <source>Cannot run the machine because its platform architecture %s is not supported on %s</source>
+        <translation>Невозможно запустить машину поскольку архитектура её платформы %s не поддерживается на %s</translation>
+    </message>
+    <message>
+        <location filename="../src-client/ConsoleImpl.cpp" line="1775"/>
         <source>The saved state file &apos;%s&apos; is invalid (%Rrc). Delete the saved state and try again</source>
-        <translation type="unfinished"></translation>
+        <translation>Некорректный файл сохраненного состояния &apos;%s&apos; (%Rrc). Удалите сохраненное состояние и попытайтесь снова</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2493"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2569"/>
         <source>Hot-Remove failed (vrc=%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Горячее удаление не удалось (vrc=%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2497"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2573"/>
         <source>Hot-Remove was aborted because the CPU may still be used by the guest</source>
-        <translation>Горячее удаление прервано, потому что ЦПУ все еще может использоваться гостевой системой</translation>
+        <translation>Горячее удаление прервано, потому что ЦПУ всё ещё может использоваться гостевой ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2572"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2648"/>
         <source>CPU %d is already attached</source>
         <translation>ЦПУ %d уже подключен</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2604"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2679"/>
         <source>Could not add CPU to the machine (%Rrc)</source>
         <translation>Невозможно добавить ЦПУ в машину (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2630"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2705"/>
         <source>Cannot resume the machine as it is not paused (machine state: %s)</source>
         <translation>Невозможно возобновить выполнение машины, потому что она не приостановлена (состояние машины: %s)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2672"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2750"/>
         <source>Controlled power off failed (%Rrc)</source>
         <translation>Не удалось управляемо выключить питание (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2721"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2799"/>
         <source>Checking if the ACPI Power Button event was handled by the guest OS failed (%Rrc)</source>
-        <translation>Не удалось проверить, что событие нажатия ACPI кнопки питания обрабатывается гостевой системой (%Rrc)</translation>
+        <translation>Не удалось проверить, что событие нажатия ACPI кнопки питания обрабатывается гостевой ОС (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2742"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2820"/>
         <source>Invalid machine state %s when checking if the guest entered the ACPI mode</source>
         <translation>Недопустимое состояние машины %s при проверке перешел ли гость в режим ACPI</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2806"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2909"/>
         <source>Sending sleep button event failed (%Rrc)</source>
         <translation>Не удалось отправить событие нажатия кнопки &quot;Сон&quot; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2907"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3010"/>
         <source>Invalid DeviceType for getDeviceActivity in entry #%u: %d</source>
-        <translation type="unfinished"></translation>
+        <translation>Недопустимый DeviceType для getDeviceActivity в записи #%u: %d</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2975"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3078"/>
         <source>Cannot attach a USB device to the machine which is not running or paused (machine state: %s)</source>
         <translation>Невозможно подключить USB устройство к машине, которая не запущена или приостановлена (состояние машины: %s)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2994"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3000"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3047"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3097"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3103"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3152"/>
         <source>The virtual machine does not have a USB controller</source>
         <translation>У виртуальной машины нет USB контроллера</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3043"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3148"/>
         <source>USB device with UUID {%RTuuid} is not attached to this machine</source>
         <translation>USB устройство с UUID {%RTuuid} не подключено к виртуальной машине</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3077"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3182"/>
         <source>Could not find a USB device with address &apos;%s&apos;</source>
         <translation>Невозможно найти USB устройство с адресом &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3112"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3217"/>
         <source>Could not find a USB device with uuid {%RTuuid}</source>
         <translation>Невозможно найти USB устройство с UUID {%RTuuid}</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3130"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3235"/>
         <source>Cannot create a transient shared folder on a machine in a saved state (machine state: %s)</source>
         <translation>Невозможно создать временную общую папку для машины в сохраненном состоянии (состояние машины: %s)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3139"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3244"/>
         <source>Cannot create a transient shared folder on the machine while it is changing the state (machine state: %s)</source>
         <translation>Невозможно создать временную общую папку для машины во время изменения состояния (состояние машины: %s)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3145"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3250"/>
         <source>Shared folder named &apos;%s&apos; already exists</source>
         <translation>Общая папка с именем &apos;%s&apos; уже существует</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3201"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3306"/>
         <source>Cannot remove a transient shared folder from a machine in a saved state (machine state: %s)</source>
         <translation>Невозможно удалить временную общую папку у машины в сохраненном состоянии (состояние машины: %s)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3210"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3315"/>
         <source>Cannot remove a transient shared folder from the machine while it is changing the state (machine state: %s)</source>
         <translation>Невозможно удалить временную общую папку у машины во время изменения состояния (состояние машины: %s)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3258"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3363"/>
         <source>The ID and password must be both valid</source>
         <translation>ID и пароль должны быть верны</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3314"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7132"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3419"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7425"/>
         <source>Could not resume the machine execution (%Rrc)</source>
         <translation>Невозможно возобновить выполнение машины (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3320"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3355"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3425"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3460"/>
         <source>A password with the given ID already exists</source>
         <translation>Пароль с указанным ID уже существует</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3323"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3428"/>
         <source>Failed to allocate enough secure memory for the key</source>
         <translation>Невозможно выделить достаточного количества защищенной памяти для ключа</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3325"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3430"/>
         <source>Unknown error happened while adding a password (%Rrc)</source>
         <translation>Произошла неизвестная ошибка во время добавления пароля (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3337"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3442"/>
         <source>IDs and passwords must not be empty</source>
         <translation>ID и пароли не должны быть пустыми</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3340"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3445"/>
         <source>The number of entries in the id and password arguments must match</source>
         <translation>Количество элементов у массивов ID и паролей должно совпадать</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3392"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3497"/>
         <source>The ID must be valid</source>
         <translation>ID должен быть правильным</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3411"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3516"/>
         <source>A password with the ID &quot;%s&quot; does not exist</source>
         <translation>Пароль с ID &quot;%s&quot; не существует</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3413"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3518"/>
         <source>Failed to remove password with ID &quot;%s&quot; (%Rrc)</source>
         <translation>Не удалось удалить пароль с ID &quot;%s&quot; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3429"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3534"/>
         <source>A password is still in use by the VM</source>
-        <translation>Пароль все еще используется ВМ</translation>
+        <translation>Пароль всё ещё используется ВМ</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3431"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3536"/>
         <source>Deleting all passwords failed (%Rrc)</source>
         <translation>Не удалось удалить все пароли (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3474"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3579"/>
         <source>Invalid machine state: %s</source>
         <translation>Недопустимое состояние машины: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3587"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3692"/>
         <source>Could suspend VM for medium change (%Rrc)</source>
         <translation>Невозможно приостановить ВМ для изменения носителя (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3600"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3705"/>
         <source>Invalid state &apos;%s&apos; for changing medium</source>
         <translation>Недопустимое состояние &apos;%s&apos; для изменения носителя</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3685"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3864"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="4043"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6724"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3790"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3968"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="4146"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="6991"/>
         <source>Could not find storage controller &apos;%ls&apos;</source>
         <translation>Невозможно найти контроллер &apos;%ls&apos;</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3743"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3922"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="4097"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3847"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="4025"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="4199"/>
         <source>Could not mount the media/drive &apos;%ls&apos; (%Rrc)</source>
         <translation>Невозможно подключить носитель/диск &apos;%ls&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3744"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3923"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="4098"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3848"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="4026"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="4200"/>
         <source>Could not unmount the currently mounted media/drive (%Rrc)</source>
         <translation>Невозможно отключить подключенный носитель/диск (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="4293"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="4395"/>
         <source>The network adapter #%u is not enabled</source>
         <translation>Сетевой адартер #%u не включен</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="4920"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6788"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="5119"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7065"/>
         <source>could not query medium interface of controller</source>
         <translation>Невозможно запросить интерфейс носителей у контроллера</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="4925"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="5124"/>
         <source>The provided password for ID &quot;%s&quot; is not correct for at least one disk using this ID</source>
         <translation>Некорректный указанный пароль для ID &quot;%s&quot; для как минимум одно диска, использующего этот ID</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="4931"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="5130"/>
         <source>Failed to set the encryption key (%Rrc)</source>
         <translation>Не удалось установить ключ шифрования (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="4939"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6791"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="5138"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7068"/>
         <source>could not query base interface of controller</source>
         <translation>Невозможно запросить базовый интерфейс контроллера</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="5039"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="5238"/>
         <source>Failed to decode the key (%Rrc)</source>
         <translation>Не удалось декодировать ключ (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="5044"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="5243"/>
         <source>Failed to allocate secure memory for the key (%Rrc)</source>
         <translation>Невозможно выделить защищенную память для ключа (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="5047"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="5246"/>
         <source>The base64 encoding of the passed key is incorrect</source>
         <translation>Кодировка Base64 переданного ключа не корректна</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="5050"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="5249"/>
         <source>The encryption configuration is incomplete</source>
         <translation>Конфигурация шифрования не полная</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="5133"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="5331"/>
         <source>Could not change the network adaptor attachement type (%Rrc)</source>
         <translation>Невозможно изменить тип подключения сетевого адаптера (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="5482"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="5693"/>
         <source>Failed to change the serial port attachment (%Rrc)</source>
         <translation>Не удалось изменить подключение последовательного порта (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="5771"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="5826"/>
+        <source>Failed to change the CPU execution limit (%Rrc)</source>
+        <translation>Не удалось изменить предел загрузки ЦПУ (%Rrc)</translation>
+    </message>
+    <message>
+        <location filename="../src-client/ConsoleImpl.cpp" line="6025"/>
         <source>VirtualBox Remote Desktop Extension server can&apos;t bind to the port(s): %s</source>
         <translation>Сервер удаленного рабочего стола VirtualBox (VRDE сервер) не может привязаться к порту: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="5780"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="6034"/>
         <source>VirtualBox Remote Desktop Extension is not available</source>
         <translation>Сервер удаленного рабочего стола VirtualBox (VRDE сервер) не доступен</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="5788"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="6042"/>
         <source>Could not find the VirtualBox Remote Desktop Extension library</source>
         <translation>Невозможно найти библиотеку сервера удаленного рабочего стола VirtualBox</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="5791"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="6045"/>
         <source>Failed to launch the Remote Desktop Extension server (%Rrc)</source>
         <translation>Не удалсь запустить сервер удаленного рабочего стола (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="5937"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="6191"/>
         <source>Sending monitor hot-plug event failed (%Rrc)</source>
         <translation>Не удалось отправить событие горячего подключения монитора (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="5986"/>
-        <source>Attaching to audio recording driver failed (%Rrc) -- please consult log file for details</source>
-        <translation type="unfinished"></translation>
+        <location filename="../src-client/ConsoleImpl.cpp" line="6242"/>
+        <source>Attaching audio recording driver failed (%Rrc)</source>
+        <translation>Ошибка подключения драйвера аудио записи (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="5997"/>
-        <source>Recording start failed (%Rrc) -- please consult log file for details</source>
-        <translation type="unfinished"></translation>
+        <location filename="../src-client/ConsoleImpl.cpp" line="6265"/>
+        <source>Detaching audio recording driver failed (%Rrc) -- please consult log file for details</source>
+        <translation>Ошибка отключения драйвера аудио записи (%Rrc) -- для получения деталей пожалуйста изучите файл журнала</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6002"/>
-        <source>Recording initialization failed (%Rrc) -- please consult log file for details</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6019"/>
-        <source>Recording stop failed (%Rrc) -- please consult log file for details</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6031"/>
-        <source>Recording already %s</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6031"/>
-        <source>enabled</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6031"/>
-        <source>disabled</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6513"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6570"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6601"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="6780"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="6837"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="6868"/>
         <source>The VBoxGuestPropSvc service call failed with the error %Rrc</source>
         <translation>Вызов к сервису VBoxGuestPropSvc завершился с ошибкой %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6797"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7074"/>
         <source>Failed to perform an online medium merge (%Rrc)</source>
         <translation>Не удалось сделать онлайн объединение носителя (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6939"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7232"/>
         <source>Unsupported priority type (%d)</source>
         <translation>Неподдерживаемый тип приоритета (%d)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6944"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7237"/>
         <source>Could not set the priority of the process (%Rrc). Try to set it when VM is not started.</source>
         <translation>Невозможно установить приоритет процесса (%Rrc). Попытайтесь сделать это когда ВМ не запущена.</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7005"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7298"/>
         <source>Already paused</source>
         <translation>Уже приостановлена</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7033"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7218"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7326"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7511"/>
         <source>Could not suspend the machine execution (%Rrc)</source>
         <translation>Невозможно приостановить выполение машины (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7116"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7409"/>
         <source>VM is paused due to host power management</source>
-        <translation>ВМ приостановлена из-за управления питанием хоста</translation>
+        <translation>ВМ приостановлена средствами управления питанием ПК</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7171"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7464"/>
         <source>Cannot save the execution state as the machine is not running or paused (machine state: %s)</source>
         <translation>Невозможно сохранить состояние выполнения так как машина не запущена или приостановлена (состояние машины: %s)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7179"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7472"/>
         <source>Saving the execution state is disabled for this VM</source>
         <translation>Сохранение состояния машины выключено для этой ВМ</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7192"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7485"/>
         <source>Could not create a directory &apos;%s&apos; to save the state to (%Rrc)</source>
         <translation>Невозможно создать директорию &apos;%s&apos; для сохранения состояния (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7231"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7524"/>
         <source>Could not get key store for state file(%Rhrc (0x%08X))</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось получить хранилище ключа файла состояний (%Rhrc (0x%08X))</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7234"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7527"/>
         <source>Could not get key id for state file(%Rhrc (0x%08X))</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось получить идентификатур ключа файла состояний (%Rhrc (0x%08X))</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7310"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7603"/>
         <source>Failed to save the machine state to &apos;%s&apos; (%Rrc)</source>
         <translation>Не удалось сохранить состояние машиы в &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7916"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7762"/>
+        <source>Recording initialization failed (%Rrc) -- please consult log file for details</source>
+        <translation>Ошибка инициализации записи (%Rrc) -- для получения деталей пожалуйста изучите файл журнала</translation>
+    </message>
+    <message>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7793"/>
+        <source>Recording start failed (%Rrc)</source>
+        <translation>Не удалось запустить запись (%Rrc)</translation>
+    </message>
+    <message>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7815"/>
+        <source>Recording stop failed (%Rrc)</source>
+        <translation>Не удалось остановить запись (%Rrc)</translation>
+    </message>
+    <message>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8228"/>
         <source>The virtual machine is not powered up</source>
         <translation>Виртуальная машина не запущена</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7975"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7989"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8287"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8301"/>
         <source>The virtual machine is powered off</source>
         <translation>Виртуальная машина выключена</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7980"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8292"/>
         <source>No VMM loaded!</source>
-        <translation type="unfinished"></translation>
+        <translation>VMM не загружен!</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8202"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8534"/>
         <source>Failed to set encryption for release log (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось задать шифрование для релизного журнала (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8217"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8549"/>
         <source>Failed to open release log (%s, %Rrc)</source>
         <translation>Не удалось открыть релизный журнал  (%s, %Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8254"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8586"/>
         <source>The virtual machine is already running or busy (machine state: %s)</source>
         <translation>Виртуальная машина уже запущена или занята (состояние машины: %s)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8302"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8634"/>
         <source>Restoring virtual machine</source>
         <translation>Восстановление состояния виртуальной машины</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8304"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8574"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8636"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8906"/>
         <source>Teleporting virtual machine</source>
         <translation>Портирование виртуальной машины</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8306"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8638"/>
         <source>Starting virtual machine</source>
         <translation>Запуск виртуальной машины</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8352"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8684"/>
         <source>VM failed to start because the saved state file &apos;%s&apos; does not exist.</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось запустить ВМ, потому что файл сохраненного состояния &apos;%s&apos; не существует.</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8356"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8688"/>
         <source>VM failed to start because the saved state file &apos;%s&apos; is invalid (%Rrc). Delete the saved state prior to starting the VM.</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось запустить ВМ, потому что некорректен файл сохраненного состояния &apos;%s&apos; (%Rrc). Удалите сохраненное состояние перед запуском ВМ.</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8532"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8864"/>
         <source>Failed to setup CoreDumper. Couldn&apos;t create dump directory &apos;%s&apos; (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось настроить CoreDumper. Невозможно создать директорию &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8538"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8870"/>
         <source>Failed to setup CoreDumper (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось настроить CoreDumper.(%Rrc)</translation>
     </message>
     <message>
         <source>VM failed to start because the saved state file &apos;%ls&apos; does not exist.</source>
@@ -1820,52 +1841,52 @@
         <translation type="vanished">Не удалось запустить ВМ, потому что некорректен файл сохраненного состояния &apos;%ls&apos; (%Rrc). Удалите сохраненное состояние перед запуском ВМ.</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8558"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8890"/>
         <source>Starting Hard Disk operations</source>
         <translation>Запуск операций по жесткому диску</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8600"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8932"/>
         <source>Powerup was canceled</source>
         <translation>Запуск отменен</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8636"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8968"/>
         <source>VM cannot start because host interface networking requires a host interface name to be set</source>
-        <translation>ВМ не может запуститься, потому что сетевая подсистема хоста требует задания имени интерфейсу хоста</translation>
+        <translation>ВМ не может запуститься, потому что сетевая подсистема ПК требует задания имени интерфейса</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8645"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8977"/>
         <source>VM cannot start because the host interface &apos;%ls&apos; does not exist</source>
         <translation>ВМ не может запуститься, потому что интерфейс хоста &apos;%ls&apos; не существует</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8993"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9331"/>
         <source>Could not destroy the machine. (Error: %Rrc)</source>
         <translation>Невозможно удалить машину (Ошибка: %Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9009"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9347"/>
         <source>Could not power off the machine. (Error: %Rrc)</source>
         <translation>Невозможно выключить машину (Ошибка: %Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9108"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9446"/>
         <source>Could not find a shared folder named &apos;%s&apos;.</source>
         <translation>Невозможно найти общую папку с именем &apos;%s&apos;.</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9322"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9660"/>
         <source>Invalid shared folder path: &apos;%s&apos; (%Rrc)</source>
         <translation>Недопустимый путь к общей папке: &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9327"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9665"/>
         <source>Shared folder path &apos;%s&apos; is not absolute</source>
         <translation>Путь к общей папке &apos;%s&apos; не абсолютный</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-client/ConsoleImpl.cpp" line="9335"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9673"/>
         <source>Shared folder name is too long: %zu bytes</source>
         <translation>
             <numerusform>Имя общей папки слишком длинное: %zu байт</numerusform>
@@ -1874,7 +1895,7 @@
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-client/ConsoleImpl.cpp" line="9337"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9675"/>
         <source>Shared folder mount point too long: %zu bytes</source>
         <translation>
             <numerusform>Точка подключения общей папки слишком длинная: %zu байт</numerusform>
@@ -1883,119 +1904,124 @@
         </translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9362"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9701"/>
         <source>Could not create a shared folder &apos;%s&apos; mapped to &apos;%s&apos; (%Rrc)</source>
         <translation>Невозможно создать общую папку &apos;%s&apos; отображенную на &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9366"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9705"/>
         <source>Shared folder path &apos;%s&apos; does not exist on the host</source>
         <translation>Путь к общей папке &apos;%s&apos; не существует у хоста</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9403"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9742"/>
         <source>The name is too long</source>
         <translation>Имя слишком длинное</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9418"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9757"/>
         <source>Could not remove the shared folder &apos;%s&apos; (%Rrc)</source>
         <translation>Невозможно удалить общую папку &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9461"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9796"/>
+        <source>Failed to query default extension pack name for the cryptographic module</source>
+        <translation>Не удалось запросить имя пакета расширения по умолчанию для криптографического модуля</translation>
+    </message>
+    <message>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9804"/>
         <source>Ńo extension pack providing a cryptographic support module could be found</source>
-        <translation type="unfinished"></translation>
+        <translation>Не обнаружен пакет расширения, предоставляющий модуль криптографической поддержки</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9481"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9824"/>
         <source>Failed to query the interface callback table from the cryptographic support module &apos;%s&apos; from extension pack &apos;%s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось запросить таблицу интерфейсов модуля криптографической поддержки &apos;%s&apos; пакета расширения &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9486"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9829"/>
         <source>Failed to resolve the entry point for the cryptographic support module &apos;%s&apos; from extension pack &apos;%s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось установить точку входа модуля криптографической поддержки &apos;%s&apos; пакета расширения &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9497"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9840"/>
         <source>Couldn&apos;t load the cryptographic support module &apos;%s&apos; from extension pack &apos;%s&apos; (error: &apos;%s&apos;)</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось загрузить модуль криптографической поддержки &apos;%s&apos; пакета расширения &apos;%s&apos; (error: &apos;%s&apos;)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9502"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9845"/>
         <source>Couldn&apos;t resolve the library path of the crpytographic support module for extension pack &apos;%s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось найти путь к библиотеке модуля криптографической поддержки пакета расширения &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9506"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9849"/>
         <source>The cryptographic support module is not supported in this build because extension packs are not supported</source>
-        <translation type="unfinished"></translation>
+        <translation>Модуль криптографической поддержки не поддерживается в этой сборке поскольку не поддерживаются пакеты расширений</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9552"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9895"/>
         <source>The cryptographic support module is in use and can&apos;t be unloaded</source>
-        <translation type="unfinished"></translation>
+        <translation>Модуль криптографической поддержки используется и не может быть выгружен</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="10126"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="10469"/>
         <source>Failed to create configuration for USB device.</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось создать конфигурацию USB устройства.</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="10130"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="10473"/>
         <source>Failed to allocate config tree for USB device.</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось создать дерево настроек USB устройства.</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="10164"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="10508"/>
         <source>Failed to attach the USB device. (No available ports on the USB controller).</source>
         <translation>Не удалось подключить USB устройство (Нет доступных портов у USB контроллера).</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="10167"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="10511"/>
         <source>Not permitted to open the USB device, check usbfs options</source>
         <translation>Не разрешено открывать USB устройство, проверьте параметры usbfs</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="10170"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="10514"/>
         <source>Failed to create a proxy device for the USB device. (Error: %Rrc)</source>
         <translation>Не удалось создать прокси устройство к USB устройству (Ошибка: %Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="10354"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="10424"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="10697"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="10767"/>
         <source>No TAP device name was supplied for the host networking interface</source>
         <translation>Не предоставлено ни одного имени TAP устройства для интерфейса сетевой подсистемы хоста</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="10367"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="10448"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="10710"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="10791"/>
         <source>Failed to open the host network interface %ls</source>
         <translation>Не удалось открыть сетевой интерфейс хоста %ls</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="10392"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="10735"/>
         <source>could not set up the host networking device for non blocking access: %s</source>
         <translation>Невозможно установить сетевое устройство хоста в неблокирующий режим: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="10407"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="10750"/>
         <source>Could not set up the host networking device: %Rrc</source>
         <translation>Невозможно сконфигурировать сетевое устройство хоста: %Rc</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="10459"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="10802"/>
         <source>General failure attaching to host interface</source>
         <translation>Общая ошибка во время подключения к интерфейсу хоста</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="11014"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="11368"/>
         <source>Disk Image Reset Operation - Immutable Image</source>
         <translation>Операция сброса образа диска - Неизменяемый образ</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="11347"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="11712"/>
         <source>Failed to start VM execution (%Rrc)</source>
         <translation>Не удалось запустить ВМ (%Rrc)</translation>
     </message>
@@ -2104,44 +2130,39 @@
         <source>Teleporting VM</source>
         <translation>Портирование ВМ</translation>
     </message>
-    <message>
-        <location filename="../src-client/ConsoleImpl2.cpp" line="294"/>
-        <source>%s failed: vrc=%Rrc, pcszName=%s</source>
-        <translation type="unfinished"></translation>
-    </message>
 </context>
 <context>
     <name>ConsoleSharedFolder</name>
     <message>
-        <location filename="../src-all/ConsoleSharedFolderImpl.cpp" line="173"/>
+        <location filename="../src-all/ConsoleSharedFolderImpl.cpp" line="175"/>
         <source>Invalid shared folder path: &apos;%s&apos; (%Rrc)</source>
-        <translation type="unfinished">Недопустимый путь к общей папке: &apos;%s&apos; (%Rrc)</translation>
+        <translation>Недопустимый путь к общей папке: &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-all/ConsoleSharedFolderImpl.cpp" line="176"/>
+        <location filename="../src-all/ConsoleSharedFolderImpl.cpp" line="178"/>
         <source>Shared folder path &apos;%s&apos; is not absolute</source>
-        <translation type="unfinished">Путь к общей папке &apos;%s&apos; не абсолютный</translation>
+        <translation>Путь к общей папке &apos;%s&apos; не абсолютный</translation>
     </message>
     <message>
-        <location filename="../src-all/ConsoleSharedFolderImpl.cpp" line="181"/>
+        <location filename="../src-all/ConsoleSharedFolderImpl.cpp" line="183"/>
         <source>RTPathQueryInfo failed on shared folder path &apos;%s&apos;: %Rrc</source>
-        <translation type="unfinished">RTPathQueryInfo завершился с ошибкой на пути к общей папке &apos;%s&apos;: %Rrc</translation>
+        <translation>RTPathQueryInfo завершился с ошибкой на пути к общей папке &apos;%s&apos;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-all/ConsoleSharedFolderImpl.cpp" line="184"/>
+        <location filename="../src-all/ConsoleSharedFolderImpl.cpp" line="186"/>
         <source>Shared folder path &apos;%s&apos; is not a directory</source>
-        <translation type="unfinished">Путь к общей папке &apos;%s&apos; не указывает на директорию</translation>
+        <translation>Путь к общей папке &apos;%s&apos; не указывает на директорию</translation>
     </message>
     <message>
-        <location filename="../src-all/ConsoleSharedFolderImpl.cpp" line="250"/>
+        <location filename="../src-all/ConsoleSharedFolderImpl.cpp" line="252"/>
         <source>&apos;%s&apos; is not accessible (%Rrc)</source>
-        <translation type="unfinished">&apos;%s&apos; не доступно (%Rrc)</translation>
+        <translation>&apos;%s&apos; не доступно (%Rrc)</translation>
     </message>
 </context>
 <context>
     <name>ConsoleVRDPServer</name>
     <message>
-        <location filename="../src-client/ConsoleVRDPServer.cpp" line="3213"/>
+        <location filename="../src-client/ConsoleVRDPServer.cpp" line="3215"/>
         <source>Could not load the external authentication library &apos;%s&apos; (%Rrc)</source>
         <translation>Невозможно загрузить внешнюю библиотку аутентификации &apos;%s&apos; (%Rrc)</translation>
     </message>
@@ -2172,7 +2193,7 @@
     <message>
         <location filename="../src-server/DHCPConfigImpl.cpp" line="431"/>
         <source>Malformed option %d value &apos;%s&apos; (encoding %d, vrc=%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Поврежденный параметр %d значение &apos;%s&apos; (кодировка %d, vrc=%Rrc)</translation>
     </message>
     <message>
         <source>Malformed option %d value &apos;%s&apos; (encoding %d, rc=%Rrc)</source>
@@ -2443,72 +2464,81 @@
 <context>
     <name>Display</name>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="1563"/>
+        <location filename="../src-client/DisplayImpl.cpp" line="1562"/>
         <source>AttachFramebuffer: Invalid screen %d (total %d)</source>
         <translation>AttachFramebuffer: недопустимый экран %d (всего %d)</translation>
     </message>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="1568"/>
+        <location filename="../src-client/DisplayImpl.cpp" line="1567"/>
         <source>AttachFramebuffer: Framebuffer already attached to %d</source>
         <translation>AttachFramebuffer: Фреймбуфер уже подключен к %d</translation>
     </message>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="1612"/>
+        <location filename="../src-client/DisplayImpl.cpp" line="1611"/>
         <source>DetachFramebuffer: Invalid screen %d (total %d)</source>
         <translation>DetachFramebuffer: недопустимый экран %d (всего %d)</translation>
     </message>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="1620"/>
+        <location filename="../src-client/DisplayImpl.cpp" line="1619"/>
         <source>DetachFramebuffer: Invalid framebuffer object</source>
         <translation>DetachFramebuffer: недопустимый объект фреймбуфера</translation>
     </message>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="1637"/>
+        <location filename="../src-client/DisplayImpl.cpp" line="1636"/>
         <source>QueryFramebuffer: Invalid screen %d (total %d)</source>
         <translation>QueryFramebuffer: Недопустимый экран %d (всего %d)</translation>
     </message>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="1979"/>
+        <location filename="../src-client/DisplayImpl.cpp" line="1978"/>
         <source>Unsupported screenshot format 0x%08X</source>
         <translation>Неподдерживаемый формат снимка экрана 0x%08X</translation>
     </message>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="2035"/>
+        <location filename="../src-client/DisplayImpl.cpp" line="2034"/>
         <source>PNG is larger than 32bpp bitmap</source>
         <translation>PNG больше чем 32bpp bitmap</translation>
     </message>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="2038"/>
+        <location filename="../src-client/DisplayImpl.cpp" line="2037"/>
         <source>Could not convert screenshot to PNG (%Rrc)</source>
         <translation>Невозможно преобразовать снимок экрана в PNG (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="2043"/>
-        <source>Screenshot is not available at this time</source>
-        <translation>Сейчас снимок экрана недоступен</translation>
+        <location filename="../src-client/DisplayImpl.cpp" line="2042"/>
+        <source>Screenshot is not possible at this time, invalid size</source>
+        <translation>Снимок экрана невозможен в данный момент, неверный размер</translation>
     </message>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="2045"/>
+        <location filename="../src-client/DisplayImpl.cpp" line="2044"/>
+        <source>Screenshot is not possible at this time</source>
+        <translation>Снимок экрана невозможен в данный момент</translation>
+    </message>
+    <message>
+        <source>Screenshot is not available at this time</source>
+        <translation type="vanished">Сейчас снимок экрана недоступен</translation>
+    </message>
+    <message>
+        <location filename="../src-client/DisplayImpl.cpp" line="2046"/>
         <source>Could not take a screenshot (%Rrc)</source>
         <translation>Невозможно сделать снимок экрана (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="2307"/>
+        <location filename="../src-client/DisplayImpl.cpp" line="2558"/>
         <source>Could not draw to the screen (%Rrc)</source>
         <translation>Невозможно рисовать на экране (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="2435"/>
+        <location filename="../src-client/DisplayImpl.cpp" line="2686"/>
         <source>Could not invalidate and update the screen (%Rrc)</source>
         <translation>Невозможно аннулировать и обновить содержимое экрана (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="2453"/>
+        <location filename="../src-client/DisplayImpl.cpp" line="2704"/>
         <source>Could not invalidate and update the screen %d (%Rrc)</source>
         <translation>Невозможно аннулировать и обновить содержимое экрана %d (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="2499"/>
+        <location filename="../src-client/DisplayImpl.cpp" line="2751"/>
         <source>QuerySourceBitmap: Invalid screen %d (total %d)</source>
         <translation>QuerySourceBitmap: Недопустимый экран  %d (всего %d)</translation>
     </message>
@@ -2522,15 +2552,15 @@
     <message>
         <location filename="../src-client/EmulatedUSBImpl.cpp" line="195"/>
         <source>Init emulated USB webcam (RTUuidCreate -&gt; %Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Инициализация эмулированной USB вебкамеры (RTUuidCreate -&gt; %Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/EmulatedUSBImpl.cpp" line="296"/>
+        <location filename="../src-client/EmulatedUSBImpl.cpp" line="295"/>
         <source>Attach emulated USB webcam (%Rrc)</source>
         <translation>Подключение эмулированной USB вебкамеры (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/EmulatedUSBImpl.cpp" line="307"/>
+        <location filename="../src-client/EmulatedUSBImpl.cpp" line="305"/>
         <source>Detach emulated USB webcam (%Rrc)</source>
         <translation>Отключение эмулированной USB вебкамеры (%Rrc)</translation>
     </message>
@@ -2632,7 +2662,7 @@
     <message>
         <location filename="../src-all/ExtPackManagerImpl.cpp" line="1193"/>
         <source>The extension pack &apos;%s&apos; does not include a cryptographic module</source>
-        <translation type="unfinished"></translation>
+        <translation>Пакет расширения  &apos;%s&apos; не включает криптографический модуль</translation>
     </message>
     <message>
         <location filename="../src-all/ExtPackManagerImpl.cpp" line="1218"/>
@@ -2642,7 +2672,7 @@
     <message>
         <location filename="../src-all/ExtPackManagerImpl.cpp" line="1242"/>
         <source>Failed to locate the cryptographic module &apos;%s&apos; in extension pack &apos;%s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось обнаружить криптографический модуль &apos;%s&apos; в пакете расширения &apos;%s&apos;</translation>
     </message>
     <message>
         <location filename="../src-all/ExtPackManagerImpl.cpp" line="1265"/>
@@ -2715,37 +2745,37 @@
         <translation>Не удалось разрешить экспортируемый символ &apos;%s&apos; в главном модуле: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2231"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2258"/>
         <source>The preferred locale is a two character string or empty.</source>
         <translation>Предпочтительная локаль - это строка из 2 символов или пустая.</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2234"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2261"/>
         <source>The preferred language is a two character string or empty.</source>
         <translation>Предпочтительный язык - это строка из 2 символов или пустая.</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2239"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2266"/>
         <source>The license format can only have the values &apos;html&apos;, &apos;rtf&apos; and &apos;txt&apos;.</source>
         <translation>Формат лицензии может иметь значения только &apos;html&apos;, &apos;rtf&apos; и &apos;txt&apos;.</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2283"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2310"/>
         <source>The license file &apos;%s&apos; is empty or contains invalid UTF-8 encoding</source>
         <translation>Файл лицензии &apos;%s&apos; пуст или содержит некорректную кодировку UTF-8</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2288"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2315"/>
         <source>The license file &apos;%s&apos; was not found in extension pack &apos;%s&apos;</source>
         <translation>Файл лицензии &apos;%s&apos; не найден в пакете расширения &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2291"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2318"/>
         <source>Failed to open the license file &apos;%s&apos;: %Rrc</source>
         <translation>Не удалось открыть файл лицензии &apos;%s&apos;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2294"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2321"/>
         <source>RTPathJoin failed: %Rrc</source>
         <translation>RTPathJoin завершено с ошибкой: %Rrc</translation>
     </message>
@@ -2863,107 +2893,108 @@
 <context>
     <name>ExtPackManager</name>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2557"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2584"/>
         <source>Starting thread for an extension pack uninstallation failed with %Rrc</source>
         <translation>Не удалось запустить поток для удаления пакета расширения %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2560"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2587"/>
         <source>Looks like creating a progress object for ExtraPackUninstallTask object failed</source>
         <translation>Выглядит так, как будто не удалось создать объект прогресса для объекта ExtraPackUninstallTask</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2824"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2853"/>
         <source>The installer failed with exit code %d: %s</source>
         <translation>Установщик завершился с ошибкой %d: %s</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2828"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2857"/>
         <source>The installer was killed by signal #d (stderr: %s)</source>
         <translation>Установщик был принудительно завершен по сигналу #d (stderr: %s)</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2831"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2860"/>
         <source>The installer aborted abnormally (stderr: %s)</source>
         <translation>Установщик завершился ненормально (stderr: %s)</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2834"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2863"/>
         <source>internal error: enmReason=%d iStatus=%d stderr=&apos;%s&apos;</source>
         <translation>внутренняя ошибка: enmReason=%d iStatus=%d stderr=&apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2840"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2869"/>
         <source>Failed to launch the helper application &apos;%s&apos; (%Rrc)</source>
         <translation>Не удалось запустить приложение-помощник &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3117"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3146"/>
         <source>Upgrading extension pack &apos;%s&apos; failed because at least one VM is still running</source>
-        <translation>Не удалось произвести обновление пакета расширения &apos;%s&apos;, потому что как минимум одна ВМ все еще работает</translation>
+        <translation>Не удалось произвести обновление пакета расширения &apos;%s&apos;, потому что как минимум одна ВМ всё ещё работает</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3123"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3152"/>
         <source>Upgrading extension pack &apos;%s&apos; failed because at least one Cloud Provider is still busy</source>
-        <translation>Не удалось произвести обновление пакета расширения &apos;%s&apos;, потому что как минимум один провайдер облака все еще занят</translation>
+        <translation>Не удалось произвести обновление пакета расширения &apos;%s&apos;, потому что как минимум один провайдер облака всё ещё занят</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3129"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3158"/>
         <source>Upgrading extension pack &apos;%s&apos; failed because the cryptographic support module is still in use</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось произвести обновление пакета расширения &apos;%s&apos;, потому что криптографический модуль всё ещё занят</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3137"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3166"/>
         <source>Extension pack &apos;%s&apos; is already installed. In case of a reinstallation, please uninstall it first</source>
         <translation>Пакет расширения &apos;%s&apos; уже установлен. Если надо переустановить, пожалуйста, сначала удалите его</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3182"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3214"/>
         <source>The installation hook failed: %Rrc - %s</source>
         <translation>Выполнение &quot;ловушки&quot; после инсталляции завершено с ошибкой: %Rrc - %s</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3187"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3219"/>
         <source>Installing extension pack &apos;%s&apos; failed under mysterious circumstances</source>
         <translation>Не удалось установить пакет расширения &apos;%s&apos; при загадочных обстоятельствах</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3289"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3324"/>
         <source>Uninstall extension pack &apos;%s&apos; failed under mysterious circumstances</source>
         <translation>Не удалось удалить пакет расширения &apos;%s&apos; при загадочных обстоятельствах</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3307"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3342"/>
         <source>Uninstall extension pack &apos;%s&apos; failed because at least one VM is still running</source>
-        <translation>Не удалось удалить пакет расширения &apos;%s&apos;, потому что как минимум одна ВМ все еще работает</translation>
+        <translation>Не удалось удалить пакет расширения &apos;%s&apos;, потому что как минимум одна ВМ всё ещё работает</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3313"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3348"/>
         <source>Uninstall extension pack &apos;%s&apos; failed because at least one Cloud Provider is still busy</source>
-        <translation>Не удалось удалить пакет расширения &apos;%s&apos;, потому что как минимум один провайдер облака все еще занят</translation>
+        <translation>Не удалось удалить пакет расширения &apos;%s&apos;, потому что как минимум один провайдер облака всё ещё занят</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3319"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3354"/>
         <source>Uninstall extension pack &apos;%s&apos; failed because the cryptographic support module is still in use</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось удалить пакет расширения &apos;%s&apos;, потому что криптографический модуль всё ещё занят</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3325"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3360"/>
         <source>Uninstall extension pack &apos;%s&apos; failed for an unknown reason</source>
         <translation>Не удалось удалить пакет расширения &apos;%s&apos; из-за неизвестной причины</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3333"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3368"/>
         <source>Extension pack &apos;%s&apos; is not installed.
 </source>
-        <translation type="unfinished"></translation>
+        <translation>Пакет расширения &apos;%s&apos; не установлен.
+</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3577"/>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3606"/>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3632"/>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3661"/>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3690"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3612"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3641"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3667"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3696"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3725"/>
         <source>No extension pack by the name &apos;%s&apos; was found</source>
         <translation>Не найдено пакетов расширения с именем &apos;%s&apos;</translation>
     </message>
@@ -3066,7 +3097,7 @@
     <message>
         <location filename="../src-all/ExtPackUtil.cpp" line="233"/>
         <source>Invalid cryptographic module string: </source>
-        <translation type="unfinished"></translation>
+        <translation>Недопустимая строка криптографического модуля: </translation>
     </message>
     <message>
         <location filename="../src-all/ExtPackUtil.cpp" line="293"/>
@@ -3278,7 +3309,7 @@
     <message>
         <location filename="../src-all/TextScript.cpp" line="206"/>
         <source>parse called more than once</source>
-        <translation type="unfinished"></translation>
+        <translation>parse вызвана более одного раза</translation>
     </message>
     <message>
         <location filename="../src-all/TextScript.cpp" line="227"/>
@@ -3324,154 +3355,322 @@
     <message>
         <location filename="../src-all/TextScript.cpp" line="377"/>
         <source>appendLine() called before parse()</source>
-        <translation type="unfinished"></translation>
+        <translation>appendLine() вызвана перед parse()</translation>
     </message>
 </context>
 <context>
     <name>GlobalCtx</name>
     <message>
-        <location filename="../src-all/Global.cpp" line="671"/>
-        <location filename="../src-all/Global.cpp" line="705"/>
-        <location filename="../src-all/Global.cpp" line="720"/>
-        <location filename="../src-all/Global.cpp" line="742"/>
-        <location filename="../src-all/Global.cpp" line="761"/>
+        <location filename="../src-all/Global.cpp" line="731"/>
+        <location filename="../src-all/Global.cpp" line="765"/>
+        <location filename="../src-all/Global.cpp" line="780"/>
+        <location filename="../src-all/Global.cpp" line="802"/>
+        <location filename="../src-all/Global.cpp" line="931"/>
         <source>Null</source>
         <translation>Null</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="672"/>
+        <location filename="../src-all/Global.cpp" line="732"/>
         <source>PoweredOff</source>
         <translation>Выключена</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="673"/>
+        <location filename="../src-all/Global.cpp" line="733"/>
         <source>Saved</source>
         <translation>Сохранена</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="674"/>
+        <location filename="../src-all/Global.cpp" line="734"/>
         <source>Teleported</source>
         <translation>Портирована</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="675"/>
+        <location filename="../src-all/Global.cpp" line="735"/>
         <source>Aborted</source>
         <translation>Прервана</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="676"/>
+        <location filename="../src-all/Global.cpp" line="736"/>
         <source>Aborted-Saved</source>
         <translation>Прервана-Сохранена</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="677"/>
+        <location filename="../src-all/Global.cpp" line="737"/>
         <source>Running</source>
         <translation>Работает</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="678"/>
+        <location filename="../src-all/Global.cpp" line="738"/>
         <source>Paused</source>
         <translation>Приостановлена</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="679"/>
+        <location filename="../src-all/Global.cpp" line="739"/>
         <source>GuruMeditation</source>
-        <translation>Гуру Медитация</translation>
+        <translation>ГуруМедитация</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="680"/>
+        <location filename="../src-all/Global.cpp" line="740"/>
         <source>Teleporting</source>
         <translation>Портирование</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="681"/>
+        <location filename="../src-all/Global.cpp" line="741"/>
         <source>LiveSnapshotting</source>
-        <translation>Создание Живого Снимка</translation>
+        <translation>СозданиеЖивогоСнимка</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="682"/>
+        <location filename="../src-all/Global.cpp" line="742"/>
         <source>Starting</source>
         <translation>Запуск</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="683"/>
+        <location filename="../src-all/Global.cpp" line="743"/>
         <source>Stopping</source>
         <translation>Выключение</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="684"/>
+        <location filename="../src-all/Global.cpp" line="744"/>
         <source>Saving</source>
         <translation>Сохранение</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="685"/>
+        <location filename="../src-all/Global.cpp" line="745"/>
         <source>Restoring</source>
         <translation>Восстановление</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="686"/>
+        <location filename="../src-all/Global.cpp" line="746"/>
         <source>TeleportingPausedVM</source>
-        <translation>Портирование Приостановленной ВМ</translation>
+        <translation>ПортированиеПриостановленнойВМ</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="687"/>
+        <location filename="../src-all/Global.cpp" line="747"/>
         <source>TeleportingIn</source>
-        <translation>Портирование (Извне)</translation>
+        <translation>ПортированиеИзвне</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="688"/>
+        <location filename="../src-all/Global.cpp" line="748"/>
         <source>DeletingSnapshotOnline</source>
-        <translation>Удаление Снимка Работающей ВМ</translation>
+        <translation>УдалениеСнимкаРаботающейВМ</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="689"/>
+        <location filename="../src-all/Global.cpp" line="749"/>
         <source>DeletingSnapshotPaused</source>
-        <translation>Удаление Снимка Приостановленной ВМ</translation>
+        <translation>УдалениеСнимкаПриостановленнойВМ</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="690"/>
+        <location filename="../src-all/Global.cpp" line="750"/>
         <source>OnlineSnapshotting</source>
-        <translation>Создание Онлайн Снимка</translation>
+        <translation>СозданиеОнлайнСнимка</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="691"/>
+        <location filename="../src-all/Global.cpp" line="751"/>
         <source>RestoringSnapshot</source>
-        <translation>Восстановление Снимка</translation>
+        <translation>ВосстановлениеСнимка</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="692"/>
+        <location filename="../src-all/Global.cpp" line="752"/>
         <source>DeletingSnapshot</source>
-        <translation>Удаление Снимка</translation>
+        <translation>УдалениеСнимка</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="693"/>
+        <location filename="../src-all/Global.cpp" line="753"/>
         <source>SettingUp</source>
         <translation>Установка</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="694"/>
+        <location filename="../src-all/Global.cpp" line="754"/>
         <source>Snapshotting</source>
         <translation>Создание Снимка</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="762"/>
+        <location filename="../src-all/Global.cpp" line="808"/>
+        <source>SharedFolder</source>
+        <translation>ОбщаяПапка</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="819"/>
+        <location filename="../src-all/Global.cpp" line="837"/>
+        <source>starting</source>
+        <translation>запускается</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="820"/>
+        <location filename="../src-all/Global.cpp" line="838"/>
+        <location filename="../src-all/Global.cpp" line="858"/>
+        <source>started</source>
+        <translation>запущено</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="821"/>
+        <location filename="../src-all/Global.cpp" line="840"/>
+        <source>terminating</source>
+        <translation>завершается</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="822"/>
+        <location filename="../src-all/Global.cpp" line="859"/>
+        <source>terminated</source>
+        <translation>завершено</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="823"/>
+        <location filename="../src-all/Global.cpp" line="844"/>
+        <location filename="../src-all/Global.cpp" line="862"/>
+        <source>timed out</source>
+        <translation>просрочено</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="824"/>
+        <location filename="../src-all/Global.cpp" line="845"/>
+        <source>timed out, hanging</source>
+        <translation>просрочено, висит</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="825"/>
+        <location filename="../src-all/Global.cpp" line="846"/>
+        <location filename="../src-all/Global.cpp" line="881"/>
+        <source>killed</source>
+        <translation>убито</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="826"/>
+        <location filename="../src-all/Global.cpp" line="847"/>
+        <location filename="../src-all/Global.cpp" line="861"/>
+        <location filename="../src-all/Global.cpp" line="882"/>
+        <source>error</source>
+        <translation>ошибка</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="839"/>
+        <source>paused</source>
+        <translation>приостановлен</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="841"/>
+        <source>successfully terminated</source>
+        <translation>успешно завершён</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="842"/>
+        <source>terminated by signal</source>
+        <translation>завершён по сигналу</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="843"/>
+        <source>abnormally aborted</source>
+        <translation>внезапно завершён</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="860"/>
+        <source>status changed</source>
+        <translation>статус изменён</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="863"/>
+        <source>stdin ready</source>
+        <translation>stdin готов</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="864"/>
+        <source>data on stdout</source>
+        <translation>данные в stdout</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="865"/>
+        <source>data on stderr</source>
+        <translation>данные в stderr</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="866"/>
+        <source>waiting flag not supported</source>
+        <translation>флаг ожидания не поддерживается</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="877"/>
+        <source>opening</source>
+        <translation>открывается</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="878"/>
+        <source>open</source>
+        <translation>открыт</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="879"/>
+        <source>closing</source>
+        <translation>закрывается</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="880"/>
+        <source>closed</source>
+        <translation>закрыт</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="893"/>
+        <source>unknown</source>
+        <translation>неизвестно</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="894"/>
+        <source>fifo</source>
+        <translation>fifo</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="895"/>
+        <source>char-device</source>
+        <translation>символьное-устройство</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="896"/>
+        <source>directory</source>
+        <translation>директория</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="897"/>
+        <source>block-device</source>
+        <translation>блочное-устройство</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="898"/>
+        <source>file</source>
+        <translation>файл</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="899"/>
+        <source>symlink</source>
+        <translation>ссылка</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="900"/>
+        <source>socket</source>
+        <translation>сокет</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="901"/>
+        <source>white-out</source>
+        <translation>файл-заглушка</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="932"/>
         <source>IDE</source>
-        <translation type="unfinished"></translation>
+        <translation>IDE</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="763"/>
+        <location filename="../src-all/Global.cpp" line="933"/>
         <source>SATA</source>
-        <translation type="unfinished"></translation>
+        <translation>SATA</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="765"/>
+        <location filename="../src-all/Global.cpp" line="935"/>
         <source>SAS</source>
-        <translation type="unfinished"></translation>
+        <translation>SAS</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="767"/>
+        <location filename="../src-all/Global.cpp" line="937"/>
         <source>PCIe</source>
-        <translation type="unfinished"></translation>
+        <translation>PCIe</translation>
     </message>
     <message>
         <source>InvalidState-0x%08x
@@ -3480,108 +3679,107 @@
 </translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="706"/>
+        <location filename="../src-all/Global.cpp" line="766"/>
         <source>Unlocked</source>
         <translation>Разблокирована</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="707"/>
+        <location filename="../src-all/Global.cpp" line="767"/>
         <source>Locked</source>
         <translation>Заблокирована</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="708"/>
+        <location filename="../src-all/Global.cpp" line="768"/>
         <source>Spawning</source>
         <translation>Открывается</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="709"/>
+        <location filename="../src-all/Global.cpp" line="769"/>
         <source>Unlocking</source>
         <translation>Разблокируется</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="721"/>
+        <location filename="../src-all/Global.cpp" line="781"/>
         <source>LsiLogic</source>
-        <translation type="unfinished"></translation>
+        <translation>LsiLogic</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="722"/>
+        <location filename="../src-all/Global.cpp" line="782"/>
         <source>BusLogic</source>
-        <translation type="unfinished"></translation>
+        <translation>BusLogic</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="723"/>
+        <location filename="../src-all/Global.cpp" line="783"/>
         <source>AHCI</source>
-        <translation type="unfinished"></translation>
+        <translation>AHCI</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="724"/>
+        <location filename="../src-all/Global.cpp" line="784"/>
         <source>PIIX3</source>
-        <translation type="unfinished"></translation>
+        <translation>PIIX3</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="725"/>
+        <location filename="../src-all/Global.cpp" line="785"/>
         <source>PIIX4</source>
-        <translation type="unfinished"></translation>
+        <translation>PIIX4</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="726"/>
+        <location filename="../src-all/Global.cpp" line="786"/>
         <source>ICH6</source>
-        <translation type="unfinished"></translation>
+        <translation>ICH6</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="727"/>
+        <location filename="../src-all/Global.cpp" line="787"/>
         <source>I82078</source>
-        <translation type="unfinished"></translation>
+        <translation>I82078</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="728"/>
+        <location filename="../src-all/Global.cpp" line="788"/>
         <source>LsiLogicSas</source>
-        <translation type="unfinished"></translation>
+        <translation>LsiLogicSas</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="730"/>
+        <location filename="../src-all/Global.cpp" line="790"/>
         <source>NVMe</source>
-        <translation type="unfinished"></translation>
+        <translation>NVMe</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="731"/>
-        <location filename="../src-all/Global.cpp" line="768"/>
+        <location filename="../src-all/Global.cpp" line="791"/>
+        <location filename="../src-all/Global.cpp" line="938"/>
         <source>VirtioSCSI</source>
-        <translation type="unfinished"></translation>
+        <translation>VirtioSCSI</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="743"/>
-        <location filename="../src-all/Global.cpp" line="764"/>
+        <location filename="../src-all/Global.cpp" line="803"/>
+        <location filename="../src-all/Global.cpp" line="934"/>
         <source>Floppy</source>
-        <translation>Флоппи</translation>
+        <translation>ГибкийДиск</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="744"/>
+        <location filename="../src-all/Global.cpp" line="804"/>
         <source>DVD</source>
         <translation>DVD</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="745"/>
+        <location filename="../src-all/Global.cpp" line="805"/>
         <source>HardDisk</source>
-        <translation>Жесткий Диск</translation>
+        <translation>ЖёсткийДиск</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="746"/>
+        <location filename="../src-all/Global.cpp" line="806"/>
         <source>Network</source>
         <translation>Сеть</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="729"/>
-        <location filename="../src-all/Global.cpp" line="747"/>
-        <location filename="../src-all/Global.cpp" line="766"/>
+        <location filename="../src-all/Global.cpp" line="789"/>
+        <location filename="../src-all/Global.cpp" line="807"/>
+        <location filename="../src-all/Global.cpp" line="936"/>
         <source>USB</source>
         <translation>USB</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="748"/>
         <source>ShardFolder</source>
-        <translation>Общая папка</translation>
+        <translation type="vanished">Общая папка</translation>
     </message>
     <message>
         <source>InvalidType-0x%08x
@@ -3590,27 +3788,27 @@
 </translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="779"/>
+        <location filename="../src-all/Global.cpp" line="949"/>
         <source>unspecified</source>
         <translation>не указано</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="780"/>
+        <location filename="../src-all/Global.cpp" line="950"/>
         <source>host suspend</source>
         <translation>приостановка хоста</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="781"/>
+        <location filename="../src-all/Global.cpp" line="951"/>
         <source>host resume</source>
         <translation>восстановление хоста</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="782"/>
+        <location filename="../src-all/Global.cpp" line="952"/>
         <source>host battery low</source>
         <translation>низкий заряд батареи хоста</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="783"/>
+        <location filename="../src-all/Global.cpp" line="953"/>
         <source>snapshot</source>
         <translation>снимок</translation>
     </message>
@@ -3624,17 +3822,32 @@
 <context>
     <name>GraphicsAdapter</name>
     <message>
-        <location filename="../src-server/GraphicsAdapterImpl.cpp" line="203"/>
+        <location filename="../src-server/GraphicsAdapterImpl.cpp" line="204"/>
         <source>The graphics controller type (%d) is invalid</source>
         <translation>Недопустимый тип графического контроллера (%d)</translation>
     </message>
     <message>
-        <location filename="../src-server/GraphicsAdapterImpl.cpp" line="233"/>
+        <location filename="../src-server/GraphicsAdapterImpl.cpp" line="240"/>
+        <source>Error getting VRAM range for selected graphics controller</source>
+        <translation>Ошибка получения диапазона видеопамяти выбранного графического контроллера</translation>
+    </message>
+    <message>
+        <location filename="../src-server/GraphicsAdapterImpl.cpp" line="246"/>
         <source>Invalid VRAM size: %lu MB (must be in range [%lu, %lu] MB)</source>
         <translation>Недопустимый размер VRAM: %lu MB (должен быть в диапазоне [%lu, %lu] MB)</translation>
     </message>
     <message>
-        <location filename="../src-server/GraphicsAdapterImpl.cpp" line="317"/>
+        <location filename="../src-server/GraphicsAdapterImpl.cpp" line="268"/>
+        <source>The graphics controller does not support the given feature</source>
+        <translation>Графический контроллер не поддерживает выбранную функцию</translation>
+    </message>
+    <message>
+        <location filename="../src-server/GraphicsAdapterImpl.cpp" line="286"/>
+        <source>The given feature is not implemented</source>
+        <translation>Данная функция не реализована</translation>
+    </message>
+    <message>
+        <location filename="../src-server/GraphicsAdapterImpl.cpp" line="340"/>
         <source>Invalid monitor count: %lu (must be in range [%lu, %lu])</source>
         <translation>Недопустимое количество мониторов: %lu (должен быть в диапазоне [%lu, %lu])</translation>
     </message>
@@ -3642,127 +3855,132 @@
 <context>
     <name>Guest</name>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="418"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="427"/>
         <source>No user name specified</source>
         <translation>Имя пользователя не указано</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="451"/>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="585"/>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="709"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="460"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="596"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="720"/>
         <source>Maximum number of concurrent guest sessions (%d) reached</source>
         <translation>Достигнуто максимальное количество одновременных гостевых сессий (%d)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="458"/>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="592"/>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="716"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="465"/>
+        <source>Guest Additions are not installed or not ready (yet)</source>
+        <translation>Дополнения Гостевой ОС не установлены или не готовы (пока)</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="469"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="603"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="727"/>
         <source>Could not create guest session: %Rrc</source>
         <translation>Невозможно создать гостевую сессию: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="504"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="515"/>
         <source>Could not find sessions with name &apos;%s&apos;</source>
         <translation>Невозможно найти сессию с именем &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="524"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="535"/>
         <source>Unknown flags: flags value %#x, invalid: %#x</source>
         <translation>Неизвестные флаги: Значения флагов %#x, недопустимые: %#x</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="528"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="539"/>
         <source>Invalid combination of flags (%#x)</source>
         <translation>Недопустимая комбинация флагов (%#x)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="530"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="541"/>
         <source>Rebooting</source>
         <translation>Перезагрузка</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="530"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="541"/>
         <source>Shutting down</source>
         <translation>Выключение</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="537"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="548"/>
         <source>Rebooting guest</source>
-        <translation>Перезагрузка гостевой системы</translation>
+        <translation>Перезагрузка гостевой ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="537"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="548"/>
         <source>Shutting down guest</source>
-        <translation>Выключение гостевой системы</translation>
+        <translation>Выключение гостевой ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="560"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="571"/>
         <source>%s not supported by installed Guest Additions</source>
         <translation>%s не поддерживается установленными Дополнениями Гостевой ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="567"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="578"/>
         <source>Error %s guest: %Rrc</source>
-        <translation>Ошибка гостевой системы во время %s: %Rrc</translation>
+        <translation>Ошибка гостевой ОС во время %s: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="577"/>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="701"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="588"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="712"/>
         <source>Could not open guest session: %Rrc</source>
         <translation>Невозможно открыть гостевую сессию: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="616"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="627"/>
         <source>Unknown flags (%#x)</source>
         <translation>Неизвестные флаги (%#x)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="664"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="675"/>
         <source>Failed to create SessionTaskUpdateAdditions object</source>
         <translation>Не удалось создать объект SessionTaskUpdateAdditions</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="670"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="681"/>
         <source>Updating Guest Additions</source>
         <translation>Обновление Дополнений Гостевой ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="688"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="699"/>
         <source>Starting thread for updating Guest Additions on the guest failed</source>
         <translation>Не удалось запустить поток для обновления Дополнений Гостевой ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="692"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="703"/>
         <source>Failed to initialize SessionTaskUpdateAdditions object</source>
         <translation>Не удалось инициализировать объект SessionTaskUpdateAdditions</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestImpl.cpp" line="648"/>
+        <location filename="../src-client/GuestImpl.cpp" line="643"/>
         <source>Failed to create guest statistics update timer (%Rrc)</source>
-        <translation>Не удалось создать таймер обновления статистики гостевой системы(%Rrc)</translation>
+        <translation>Не удалось создать таймер обновления статистики гостевой ОС (%Rrc)</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestImpl.cpp" line="648"/>
+        <source>Failed to change guest statistics update timer interval from %u to %u failed (%Rrc)</source>
+        <translation>Не удалось изменить интервал таймера обновления статистики гостевой ОС из %u в %u (%Rrc)</translation>
     </message>
     <message>
         <location filename="../src-client/GuestImpl.cpp" line="653"/>
-        <source>Failed to change guest statistics update timer interval from %u to %u failed (%Rrc)</source>
-        <translation>Не удалось изменить интервал таймера обновления статистики гостевой системы из %u в %u (%Rrc)</translation>
-    </message>
-    <message>
-        <location filename="../src-client/GuestImpl.cpp" line="658"/>
         <source>Failed to start the guest statistics update timer (%Rrc)</source>
-        <translation>Не удалось запустить таймер обновления статистики гостевой системы (%Rrc)</translation>
+        <translation>Не удалось запустить таймер обновления статистики гостевой ОС (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestImpl.cpp" line="666"/>
+        <location filename="../src-client/GuestImpl.cpp" line="661"/>
         <source>Failed to stop the guest statistics update timer (%Rrc)</source>
-        <translation>Не удалось остановить таймер обновления статистики гостевой системы (%Rrc)</translation>
+        <translation>Не удалось остановить таймер обновления статистики гостевой ОС (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestImpl.cpp" line="842"/>
+        <location filename="../src-client/GuestImpl.cpp" line="837"/>
         <source>Invalid status level defined: %u</source>
         <translation>Недопустимый указанный уровень статуса: %u</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestImpl.cpp" line="881"/>
+        <location filename="../src-client/GuestImpl.cpp" line="876"/>
         <source>VMM device is not available (is the VM running?)</source>
         <translation>VMM устройство недоступно (ВМ работает?)</translation>
     </message>
@@ -3770,62 +3988,105 @@
 <context>
     <name>GuestDirectory</name>
     <message>
-        <location filename="../src-client/GuestDirectoryImpl.cpp" line="95"/>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="398"/>
         <source>Opening directory &quot;%s&quot;</source>
         <translation>Открывается директория &quot;%s&quot;</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestDirectoryImpl.cpp" line="259"/>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="725"/>
         <source>Access to guest directory &quot;%s&quot; is denied</source>
         <translation>Доступ к гостевой директории &quot;%s&quot; запрещен</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestDirectoryImpl.cpp" line="260"/>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="726"/>
+        <source>Guest directory &quot;%s&quot; already exists</source>
+        <translation>Директория гостевой ОС &quot;%s&quot; уже существует</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="727"/>
+        <source>Guest directory &quot;%s&quot; cannot be created</source>
+        <translation>Гостевая директория  &quot;%s&quot; не может быть создана</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="728"/>
         <source>Guest directory &quot;%s&quot; is not empty</source>
         <translation>Гостевая директория  &quot;%s&quot; не пустая</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestDirectoryImpl.cpp" line="262"/>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="729"/>
+        <source>Guest directory &quot;%s&quot; has no more entries</source>
+        <translation>Гостевая директория  &quot;%s&quot; более не содержит записей</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="730"/>
+        <source>Path of guest directory &quot;%s&quot; not found</source>
+        <translation>Путь гостевой директории &quot;%s&quot; не найден</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="732"/>
         <source>Error %Rrc for guest directory &quot;%s&quot; occurred
 </source>
         <translation>Произошла ошибка %Rrc в гостевой директории &quot;%s&quot;
 </translation>
     </message>
     <message>
-        <location filename="../src-client/GuestDirectoryImpl.cpp" line="428"/>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="1424"/>
         <source>Closing guest directory failed: %s</source>
         <translation>Не удалось закрыть гостевую директорию: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestDirectoryImpl.cpp" line="439"/>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="1435"/>
         <source>Closing guest directory &quot;%s&quot; failed: %Rrc</source>
         <translation>Не удалось закрыть гостевую директорию &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestDirectoryImpl.cpp" line="471"/>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="1487"/>
+        <source>Listing guest directory failed: %s</source>
+        <translation>Не удалось прочесть гостевую директорию: %s</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="1501"/>
+        <source>Listing guest directory &quot;%s&quot; returned unhandled error: %Rrc
+</source>
+        <translation>Чтение гостевой директории &quot;%s&quot; возвратило ошибку: %Rrc
+</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="1541"/>
         <source>Reading guest directory failed: %s</source>
         <translation>Не удалось прочесть гостевую директорию: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestDirectoryImpl.cpp" line="476"/>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="1552"/>
         <source>Reading guest directory &quot;%s&quot; failed: %Rrc</source>
         <translation>Не удалось прочесть гостевую директорию &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestDirectoryImpl.cpp" line="481"/>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="1557"/>
         <source>Reading guest directory &quot;%s&quot; failed: Path not found</source>
         <translation>Не удалось прочесть гостевую директорию &quot;%s&quot;: Путь не найден</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestDirectoryImpl.cpp" line="487"/>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="1563"/>
         <source>Reading guest directory &quot;%s&quot; failed: No more entries</source>
         <translation>Не удалось прочесть гостевую директорию &quot;%s&quot;: Нет больше элементов</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestDirectoryImpl.cpp" line="492"/>
-        <source>Reading guest directory &quot;%s&quot; returned error: %Rrc
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="1568"/>
+        <source>Reading guest directory &quot;%s&quot; returned unhandled error: %Rrc
 </source>
         <translation>Чтение гостевой директории &quot;%s&quot; возвратило ошибку: %Rrc
+</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="1589"/>
+        <source>Rewinding guest directory failed: %s</source>
+        <translation>Не удалось перемотать гостевую директорию: %s</translation>
+    </message>
+    <message>
+        <source>Reading guest directory &quot;%s&quot; returned error: %Rrc
+</source>
+        <translation type="vanished">Чтение гостевой директории &quot;%s&quot; возвратило ошибку: %Rrc
 </translation>
     </message>
 </context>
@@ -3838,27 +4099,31 @@
 Host offers: %s
 
 Guest offers: %s</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось сопоставить форматы между гостевой и основной ОС!
+
+Основная ОС предлагает: %s
+
+Гостевая ОС предлагает: %s</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDSourceImpl.cpp" line="366"/>
         <source>Requesting pending data from guest failed</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось запросить данные из гостевой ОС</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDSourceImpl.cpp" line="374"/>
         <source>Dragging from guest to host not allowed -- make sure that the correct drag&apos;n drop mode is set</source>
-        <translation type="unfinished"></translation>
+        <translation>Перенос из гостевой ОС в основную запрещён - убедитесь, что выбран нужный режим drag&apos;n drop</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDSourceImpl.cpp" line="380"/>
         <source>Dragging from guest to host not supported by guest -- make sure that the Guest Additions are properly installed and running</source>
-        <translation type="unfinished"></translation>
+        <translation>Перенос из гостевой ОС в основную не поддерживается гостевой ОС - убедитесь, что Дополнения Гостевой ОС установлены и запущены</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDSourceImpl.cpp" line="386"/>
         <source>Sending drag pending event to guest failed</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось отправить событие перетаскивания в гостевую ОС</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDSourceImpl.cpp" line="412"/>
@@ -3874,7 +4139,7 @@ Guest offers: %s</source>
         <location filename="../src-client/GuestDnDSourceImpl.cpp" line="427"/>
         <location filename="../src-client/GuestDnDSourceImpl.cpp" line="510"/>
         <source>Current drop operation to host still in progress</source>
-        <translation>Текущая операция перетаскивания в хост еще в процессе</translation>
+        <translation>Текущая операция перетаскивания в хост ещё в процессе</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDSourceImpl.cpp" line="434"/>
@@ -3884,7 +4149,7 @@ Guest offers: %s</source>
     <message>
         <location filename="../src-client/GuestDnDSourceImpl.cpp" line="439"/>
         <source>Dropping data to host</source>
-        <translation type="unfinished"></translation>
+        <translation>Перетаскивание данных в основную ОС</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDSourceImpl.cpp" line="490"/>
@@ -3894,12 +4159,12 @@ Guest offers: %s</source>
     <message>
         <location filename="../src-client/GuestDnDSourceImpl.cpp" line="583"/>
         <source>For one or more guest files or directories selected for transferring to the host your guest user does not have the appropriate access rights for. Please make sure that all selected elements can be accessed and that your guest user has the appropriate rights</source>
-        <translation>У пользователя гостевой системы нет соответствующих прав доступа для, по крайней мере, одного или нескольких файлов или директорий гостевой системы, выбранных для передачи на хост. Пожалуйста, убедитесь что все выбранные элементы доступны и пользователь имеет соответствующие права доступа</translation>
+        <translation>У пользователя гостевой ОС нет соответствующих прав доступа для, по крайней мере, одного или нескольких файлов или директорий гостевой ОС, выбранных для передачи на хост. Пожалуйста, убедитесь что все выбранные элементы доступны и пользователь имеет соответствующие права доступа</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDSourceImpl.cpp" line="590"/>
         <source>One or more guest files or directories selected for transferring to the host were notfound on the guest anymore. This can be the case if the guest files were moved and/oraltered while the drag and drop operation was in progress</source>
-        <translation>Один или несколько файлов или директорий, выбранных для передачи на хост, не найдены в гостевой системе. Возможно, это из-за того, что файлы в гостевой системе были перемещены или удалены во время операции перетаскивания</translation>
+        <translation>Один или несколько файлов или директорий, выбранных для передачи на хост, не найдены в гостевой ОС. Возможно, это из-за того, что файлы в гостевой ОС были перемещены или удалены во время операции перетаскивания</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDSourceImpl.cpp" line="596"/>
@@ -3909,17 +4174,17 @@ Guest offers: %s</source>
     <message>
         <location filename="../src-client/GuestDnDSourceImpl.cpp" line="602"/>
         <source>The guest was not able to retrieve the drag and drop data within time</source>
-        <translation>Гостевая система не смогла получить данные перетаскивания в установленное время</translation>
+        <translation>Гостевая ОС не смогла получить данные перетаскивания в установленное время</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDSourceImpl.cpp" line="606"/>
         <source>Drag and drop error from guest (%Rrc)</source>
-        <translation>Ошибка перетаскивания из гостевой системы (%Rrc)</translation>
+        <translation>Ошибка перетаскивания из гостевой ОС (%Rrc)</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDSourceImpl.cpp" line="627"/>
         <source>For one or more host files or directories selected for transferring to the guest your host user does not have the appropriate access rights for. Please make sure that all selected elements can be accessed and that your host user has the appropriate rights.</source>
-        <translation>У пользователя хоста нет соответствующих прав доступа для, по крайней мере, одного или нескольких файлов или директорий, выбранных для передачи в гостевую систему. Пожалуйста, убедитесь что все выбранные элементы доступны и пользователь имеет соответствующие права доступа.</translation>
+        <translation>У пользователя хоста нет соответствующих прав доступа для, по крайней мере, одного или нескольких файлов или директорий, выбранных для передачи в гостевую ОС. Пожалуйста, убедитесь что все выбранные элементы доступны и пользователь имеет соответствующие права доступа.</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDSourceImpl.cpp" line="633"/>
@@ -3929,12 +4194,12 @@ Guest offers: %s</source>
     <message>
         <location filename="../src-client/GuestDnDSourceImpl.cpp" line="638"/>
         <source>One or more host files or directories selected for transferring to the host were notfound on the host anymore. This can be the case if the host files were moved and/oraltered while the drag and drop operation was in progress.</source>
-        <translation>Один или несколько файлов или директорий, выбранных для передачи в гостевую систему, не найдены у хоста. Возможно, это из-за того, что файлы у хоста были перемещены или удалены во время операции перетаскивания.</translation>
+        <translation>Один или несколько файлов или директорий, выбранных для передачи в гостевую ОС, не найдены у хоста. Возможно, это из-за того, что файлы у хоста были перемещены или удалены во время операции перетаскивания.</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDSourceImpl.cpp" line="644"/>
         <source>One or more host files or directories selected for transferring to the guest were locked. Please make sure that all selected elements can be accessed and that your host user has the appropriate rights.</source>
-        <translation>Один или несколько файлов или директорий, выбранных для передачи в гостевую систему, заблокированы. Пожалуйста, убедитесь что все выбранные элементы доступны и пользователь имеет соответствующие права доступа.</translation>
+        <translation>Один или несколько файлов или директорий, выбранных для передачи в гостевую ОС, заблокированы. Пожалуйста, убедитесь что все выбранные элементы доступны и пользователь имеет соответствующие права доступа.</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDSourceImpl.cpp" line="650"/>
@@ -3977,58 +4242,58 @@ Guest offers: %s</source>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="348"/>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="368"/>
         <source>Entering VM window failed</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось войти в окно ВМ</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="356"/>
         <source>Drag and drop to guest not allowed. Select the right mode first</source>
-        <translation type="unfinished"></translation>
+        <translation>Перетаскивание объектов в гостевую ОС запрещёно. Для начала выберите правильный режим</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="362"/>
         <source>Drag and drop to guest not possible -- either the guest OS does not support this, or the Guest Additions are not installed</source>
-        <translation type="unfinished"></translation>
+        <translation>Перетаскивание объектов в гостевую ОС невозможно - или гостевая ОС это не поддерживает, или Дополнения Гостевой ОС не установлены</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="456"/>
         <source>Moving to %RU32,%RU32 (screen %u) failed</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось перемещение в %RU32, %RU32 (экран %u)</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="464"/>
         <source>Moving in guest not allowed. Select the right mode first</source>
-        <translation type="unfinished"></translation>
+        <translation>Перемещение объектов в гостевую ОС запрещёно. Для начала выберите правильный режим</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="470"/>
         <source>Moving in guest not possible -- either the guest OS does not support this, or the Guest Additions are not installed</source>
-        <translation type="unfinished"></translation>
+        <translation>Перемещение объектов в гостевой ОС невозможно - или гостевая ОС это не поддерживает, или Дополнения Гостевой ОС не установлены</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="476"/>
         <source>Moving in VM window failed</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось переместить в окно ВМ</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="482"/>
         <source>Retrieving move coordinates failed</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось получить координаты перемещения</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="529"/>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="549"/>
         <source>Leaving VM window failed</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось покинуть окно ВМ</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="537"/>
         <source>Leaving guest not allowed. Select the right mode first</source>
-        <translation type="unfinished"></translation>
+        <translation>Покидать гостевую ОС запрещёно. Для начала выберите правильный режим</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="543"/>
         <source>Leaving guest not possible -- either the guest OS does not support this, or the Guest Additions are not installed</source>
-        <translation type="unfinished"></translation>
+        <translation>Покинуть гостевую ОС невозможно - или гостевая ОС это не поддерживает, или Дополнения Гостевой ОС не установлены</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="571"/>
@@ -4048,22 +4313,22 @@ Guest offers: %s</source>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="654"/>
         <source>Guest accepted drop, but did not specify the format</source>
-        <translation type="unfinished"></translation>
+        <translation>Гостевая ОС приняла перетаскивание, но не указала формат</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="656"/>
         <source>Guest accepted drop, but returned more than one drop format (%zu formats)</source>
-        <translation type="unfinished"></translation>
+        <translation>Гостевая ОС приняла перетаскивание, но вернула более одного формата (%zu)</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="662"/>
         <source>Dropping into VM failed</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось перетащить в ВМ</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="665"/>
         <source>Sending dropped event to guest failed</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось отправить событие перетаскивания в гостевую ОС</translation>
     </message>
     <message numerus="yes">
         <source>Guest returned invalid drop formats (%zu formats)</source>
@@ -4100,17 +4365,17 @@ Guest offers: %s</source>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="712"/>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="892"/>
         <source>Current drop operation to guest still in progress</source>
-        <translation>Текущая операция перетаскивания в гостевую систему все еще в процессе</translation>
+        <translation>Текущая операция перетаскивания в гостевую ОС всё ещё в процессе</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="716"/>
         <source>Another drag and drop operation to the guest already is in progress</source>
-        <translation>Уже производится другая операция перетаскивания в гостевую систему в настоящее время</translation>
+        <translation>Уже производится другая операция перетаскивания в гостевую ОС в настоящее время</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="721"/>
         <source>Dropping data to guest</source>
-        <translation type="unfinished"></translation>
+        <translation>Перетаскивание данных в гостевую ОС</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="773"/>
@@ -4120,12 +4385,12 @@ Guest offers: %s</source>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="794"/>
         <source>For one or more guest files or directories selected for transferring to the host your guest user does not have the appropriate access rights for. Please make sure that all selected elements can be accessed and that your guest user has the appropriate rights</source>
-        <translation>У пользователя гостевой системы нет соответствующих прав доступа для, по крайней мере, одного или нескольких файлов или директорий гостевой системы, выбранных для передачи на хост. Пожалуйста, убедитесь что все выбранные элементы доступны и пользователь имеет соответствующие права доступа</translation>
+        <translation>У пользователя гостевой ОС нет соответствующих прав доступа для, по крайней мере, одного или нескольких файлов или директорий гостевой ОС, выбранных для передачи на хост. Пожалуйста, убедитесь что все выбранные элементы доступны и пользователь имеет соответствующие права доступа</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="801"/>
         <source>One or more guest files or directories selected for transferring to the host were notfound on the guest anymore. This can be the case if the guest files were moved and/oraltered while the drag and drop operation was in progress</source>
-        <translation>Один или несколько файлов или директорий, выбранных для передачи на хост, не найдены в гостевой системе. Возможно, это из-за того, что файлы в гостевой системе были перемещены или удалены во время операции перетаскивания</translation>
+        <translation>Один или несколько файлов или директорий, выбранных для передачи на хост, не найдены в гостевой ОС. Возможно, это из-за того, что файлы в гостевой ОС были перемещены или удалены во время операции перетаскивания</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="807"/>
@@ -4135,27 +4400,27 @@ Guest offers: %s</source>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="813"/>
         <source>The guest was not able to process the drag and drop data within time</source>
-        <translation>Гостевая система не смогла обработать данные перетаскивания в установленное время</translation>
+        <translation>Гостевая ОС не смогла обработать данные перетаскивания в установленное время</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="817"/>
         <source>Drag and drop error from guest (%Rrc)</source>
-        <translation>Ошибка перетаскивания из гостевой системы (%Rrc)</translation>
+        <translation>Ошибка перетаскивания из гостевой ОС (%Rrc)</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="838"/>
         <source>For one or more host files or directories selected for transferring to the guest your host user does not have the appropriate access rights for. Please make sure that all selected elements can be accessed and that your host user has the appropriate rights.</source>
-        <translation>У пользователя хоста нет соответствующих прав доступа для, по крайней мере, одного или нескольких файлов или директорий, выбранных для передачи в гостевую систему. Пожалуйста, убедитесь что все выбранные элементы доступны и пользователь имеет соответствующие права доступа.</translation>
+        <translation>У пользователя хоста нет соответствующих прав доступа для, по крайней мере, одного или нескольких файлов или директорий, выбранных для передачи в гостевую ОС. Пожалуйста, убедитесь что все выбранные элементы доступны и пользователь имеет соответствующие права доступа.</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="845"/>
         <source>One or more host files or directories selected for transferring to the host were notfound on the host anymore. This can be the case if the host files were moved and/oraltered while the drag and drop operation was in progress.</source>
-        <translation>Один или несколько файлов или директорий, выбранных для передачи в гостевую систему, не найдены у хоста. Возможно это из-за того, что файлы у хоста были перемещены или удалены во время операции перетаскивания.</translation>
+        <translation>Один или несколько файлов или директорий, выбранных для передачи в гостевую ОС, не найдены у хоста. Возможно это из-за того, что файлы у хоста были перемещены или удалены во время операции перетаскивания.</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="851"/>
         <source>One or more host files or directories selected for transferring to the guest were locked. Please make sure that all selected elements can be accessed and that your host user has the appropriate rights.</source>
-        <translation>Один или несколько файлов или директорий, выбранных для передачи в гостевую систему, заблокированы. Пожалуйста, убедитесь что все выбранные элементы доступны и пользователь имеет соответствующие права доступа.</translation>
+        <translation>Один или несколько файлов или директорий, выбранных для передачи в гостевую ОС, заблокированы. Пожалуйста, убедитесь что все выбранные элементы доступны и пользователь имеет соответствующие права доступа.</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="857"/>
@@ -4166,145 +4431,223 @@ Guest offers: %s</source>
 <context>
     <name>GuestFile</name>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="454"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="453"/>
         <source>Access to guest file &quot;%s&quot; denied</source>
-        <translation>Доступ к файлу гостевой системы &quot;%s&quot; запрещен</translation>
+        <translation>Доступ к файлу гостевой ОС &quot;%s&quot; запрещен</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestFileImpl.cpp" line="454"/>
+        <source>Guest file &quot;%s&quot; already exists</source>
+        <translation>Файл гостевой ОС &quot;%s&quot; уже существует</translation>
     </message>
     <message>
         <location filename="../src-client/GuestFileImpl.cpp" line="455"/>
-        <source>Guest file &quot;%s&quot; already exists</source>
-        <translation>Файл гостевой системы &quot;%s&quot; уже существует</translation>
+        <source>Guest file &quot;%s&quot; not found</source>
+        <translation>Файл гостевой ОС &quot;%s&quot; не найден</translation>
     </message>
     <message>
         <location filename="../src-client/GuestFileImpl.cpp" line="456"/>
-        <source>Guest file &quot;%s&quot; not found</source>
-        <translation>Файл гостевой системы &quot;%s&quot; не найден</translation>
-    </message>
-    <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="457"/>
         <source>Host name &quot;%s&quot;, not found</source>
         <translation>Хост с именем &quot;%s&quot; не найден</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="458"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="457"/>
         <source>Sharing violation for guest file &quot;%s&quot;</source>
-        <translation>Нарушение разделяемого доступа к файлу гостевой системы &quot;%s&quot;</translation>
+        <translation>Нарушение разделяемого доступа к файлу гостевой ОС &quot;%s&quot;</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="460"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="459"/>
         <source>Error %Rrc for guest file &quot;%s&quot; occurred
 </source>
-        <translation>Произошла ошибка %Rrc для файла гостевой системы &quot;%s&quot;
+        <translation>Произошла ошибка %Rrc для файла гостевой ОС &quot;%s&quot;
 </translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1536"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1535"/>
         <source>Closing guest file failed: %s</source>
-        <translation>Не удалось закрыть файл гостевой системы: %s</translation>
+        <translation>Не удалось закрыть файл гостевой ОС: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1539"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1538"/>
         <source>Closing guest file &quot;%s&quot; failed with %Rrc
 </source>
-        <translation>Не удалось закрыть файл гостевой системы &quot;%s&quot;: %Rrc
+        <translation>Не удалось закрыть файл гостевой ОС &quot;%s&quot;: %Rrc
 </translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1570"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1569"/>
         <source>Initialization of guest file object for &quot;%s&quot; failed: %Rrc</source>
-        <translation>Не удалось инициализировать объект файла гостевой системы для &quot;%s&quot;: %Rrc</translation>
-    </message>
-    <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1579"/>
-        <source>Querying guest file information failed: %s</source>
-        <translation>Не удалось запросить информацию о файле гостевой системы: %s</translation>
+        <translation>Не удалось инициализировать объект файла гостевой ОС для &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-client/GuestFileImpl.cpp" line="1584"/>
+        <source>Querying guest file information failed: %s</source>
+        <translation>Не удалось запросить информацию о файле гостевой ОС: %s</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1589"/>
         <source>Querying guest file information for &quot;%s&quot; failed: %Rrc</source>
-        <translation>Не удалось запросить информацию о файле гостевой системы для &quot;%s&quot;: %Rrc</translation>
+        <translation>Не удалось запросить информацию о файле гостевой ОС для &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1612"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1623"/>
         <source>Querying guest file size failed: %s</source>
-        <translation>Не удалось запросить размер файла гостевой системы: %s</translation>
+        <translation>Не удалось запросить размер файла гостевой ОС: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1616"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1627"/>
         <source>Querying guest file size for &quot;%s&quot; failed: %Rrc</source>
-        <translation>Не удалось запросить размер файла гостевой системы для &quot;%s&quot;: %Rrc</translation>
+        <translation>Не удалось запросить размер файла гостевой ОС для &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1629"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1640"/>
         <source>The size to read is zero</source>
         <translation>Размер читаемых данных равен 0</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1664"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1675"/>
         <source>Reading from file &quot;%s&quot; failed: %Rrc</source>
         <translation>Не удалось прочитать из файла &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1677"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1688"/>
         <source>The size to read for guest file &quot;%s&quot; is zero</source>
-        <translation>Размер читаемых данных из файла гостевой системы &quot;%s&quot; равен 0</translation>
+        <translation>Размер читаемых данных из файла гостевой ОС &quot;%s&quot; равен 0</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1711"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1722"/>
         <source>Reading from file &quot;%s&quot; (at offset %RU64) failed: %Rrc</source>
         <translation>Не удалось прочитать из файла &quot;%s&quot; (с позиции %RU64): %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1741"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1752"/>
         <source>Invalid seek type for guest file &quot;%s&quot; specified</source>
-        <translation>Указан недопустимый тип изменения указателя для файла гостевой системы &quot;%s&quot;</translation>
+        <translation>Указан недопустимый тип изменения указателя для файла гостевой ОС &quot;%s&quot;</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1753"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1763"/>
         <source>Seeking file &quot;%s&quot; (to offset %RI64) failed: %Rrc</source>
         <translation>Не удалось изменить указатель для файла &quot;%s&quot; (на позицию %RI64): %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1774"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1784"/>
         <source>The size (%RI64) for guest file &quot;%s&quot; cannot be a negative value</source>
-        <translation>Размер (%RI64) для файла гостевой системы &quot;%s&quot; не может быть отрицательным</translation>
+        <translation>Размер (%RI64) для файла гостевой ОС &quot;%s&quot; не может быть отрицательным</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-client/GuestFileImpl.cpp" line="1838"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1849"/>
         <source>Setting the guest file size of &quot;%s&quot; to %RU64 (%#RX64) bytes failed: %Rrc</source>
         <translation>
-            <numerusform>Не удалось установить размер для файла гостевой системы&quot;%s&quot; в %RU64 (%#RX64) байт: %Rrc</numerusform>
-            <numerusform>Не удалось установить размер для файла гостевой системы&quot;%s&quot; в %RU64 (%#RX64) байта: %Rrc</numerusform>
-            <numerusform>Не удалось установить размер для файла гостевой системы&quot;%s&quot; в %RU64 (%#RX64) байт: %Rrc</numerusform>
+            <numerusform>Не удалось установить размер для файла гостевой ОС &quot;%s&quot; в %RU64 (%#RX64) байт: %Rrc</numerusform>
+            <numerusform>Не удалось установить размер для файла гостевой ОС &quot;%s&quot; в %RU64 (%#RX64) байта: %Rrc</numerusform>
+            <numerusform>Не удалось установить размер для файла гостевой ОС &quot;%s&quot; в %RU64 (%#RX64) байт: %Rrc</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1850"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1861"/>
         <source>No data to write specified</source>
         <translation>Не указаны данные для записи</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-client/GuestFileImpl.cpp" line="1860"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1871"/>
         <source>Writing %zu bytes to guest file &quot;%s&quot; failed: %Rrc</source>
         <translation>
-            <numerusform>Не удалось записать %zu байт в файл гостевой системы &quot;%s&quot;: %Rrc</numerusform>
-            <numerusform>Не удалось записать %zu байта в файл гостевой системы &quot;%s&quot;: %Rrc</numerusform>
-            <numerusform>Не удалось записать %zu байт в файл гостевой системы &quot;%s&quot;: %Rrc</numerusform>
+            <numerusform>Не удалось записать %zu байт в файл гостевой ОС &quot;%s&quot;: %Rrc</numerusform>
+            <numerusform>Не удалось записать %zu байта в файл гостевой ОС &quot;%s&quot;: %Rrc</numerusform>
+            <numerusform>Не удалось записать %zu байт в файл гостевой ОС &quot;%s&quot;: %Rrc</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1873"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1884"/>
         <source>No data to write at for guest file &quot;%s&quot; specified</source>
-        <translation>Не указаны данные для записи в файл гостевой системы &quot;%s&quot;</translation>
+        <translation>Не указаны данные для записи в файл гостевой ОС &quot;%s&quot;</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-client/GuestFileImpl.cpp" line="1884"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1895"/>
         <source>Writing %zu bytes to file &quot;%s&quot; (at offset %RU64) failed: %Rrc</source>
         <translation>
             <numerusform>Не удалось записать %zu байт в файл &quot;%s&quot; (с позиции %RU64): %Rrc</numerusform>
             <numerusform>Не удалось записать %zu байта в файл &quot;%s&quot; (с позиции %RU64): %Rrc</numerusform>
             <numerusform>Не удалось записать %zu байт в файл &quot;%s&quot; (с позиции %RU64): %Rrc</numerusform>
         </translation>
+    </message>
+</context>
+<context>
+    <name>GuestFs</name>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="70"/>
+        <source>Access to &quot;%s&quot; denied</source>
+        <translation>Доступ к &quot;%s&quot; запрещен</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="76"/>
+        <source>No such file or directory &quot;%s&quot;</source>
+        <translation>Файл или директория &quot;%s&quot; не существует</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="80"/>
+        <source>File or directory &quot;%s&quot; can&apos;t be created</source>
+        <translation>Невозможно создать файл или директорию &quot;%s&quot;</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="84"/>
+        <source>Invalid parameter specified</source>
+        <translation>Указан недопустимый параметр</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="88"/>
+        <source>VMM device is not available (is the VM running?)</source>
+        <translation>VMM устройство недоступно (ВМ работает?)</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="92"/>
+        <source>The guest execution service is not available</source>
+        <translation>Гостевая служба выполнения не доступна</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="96"/>
+        <source>The file &quot;%s&quot; is not an executable format</source>
+        <translation>Формат файла &quot;%s&quot; не является исполняемым</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="100"/>
+        <source>The user &quot;%s&quot; was not able to logon</source>
+        <translation>Пользователь &quot;%s&quot; не смог войти систему</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="104"/>
+        <source>The file &quot;%s&quot; is an invalid name</source>
+        <translation>У файла &quot;%s&quot; недопустимое имя</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="108"/>
+        <source>The guest did not respond within time</source>
+        <translation>Гостевая ОС не ответила за отведенное время</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="112"/>
+        <source>The execution operation was canceled</source>
+        <translation>Операция выполнения отменена</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="116"/>
+        <source>Maximum number of concurrent guest processes has been reached</source>
+        <translation>Достигнуто максимальное количество одновременных гостевых процессов</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="120"/>
+        <source>The guest execution service is not ready (yet)</source>
+        <translation>Гостевая служба выполнения (ещё) не готова</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="124"/>
+        <source>Specified mode or flag is not supported on the guest</source>
+        <translation>Указанный режим или флаг не поддерживается гостевой ОС</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="128"/>
+        <source>Unhandled error %Rrc for &quot;%s&quot; occurred on guest -- please file a bug report</source>
+        <translation>Ошибка %Rrc для &quot;%s&quot; произошла в гостевой ОС -- пожалуйста, сообщите об ошибке разработчикам</translation>
     </message>
 </context>
 <context>
@@ -4318,7 +4661,7 @@ Guest offers: %s</source>
         <location filename="../src-client/GuestProcessImpl.cpp" line="557"/>
         <location filename="../src-client/GuestProcessImpl.cpp" line="558"/>
         <source>No such file or directory &quot;%s&quot; on guest</source>
-        <translation>Файл или директория &quot;%s&quot; не существует в гостевой системе</translation>
+        <translation>Файл или директория &quot;%s&quot; не существует в гостевой ОС</translation>
     </message>
     <message>
         <location filename="../src-client/GuestProcessImpl.cpp" line="559"/>
@@ -4333,12 +4676,12 @@ Guest offers: %s</source>
     <message>
         <location filename="../src-client/GuestProcessImpl.cpp" line="561"/>
         <source>The file &quot;%s&quot; is not an executable format on guest</source>
-        <translation>Формат файла &quot;%s&quot; не является исполняемым в гостевой системе</translation>
+        <translation>Формат файла &quot;%s&quot; не является исполняемым в гостевой ОС</translation>
     </message>
     <message>
         <location filename="../src-client/GuestProcessImpl.cpp" line="562"/>
         <source>The user &quot;%s&quot; was not able to logon on guest</source>
-        <translation>Пользователь &quot;%s&quot; не смог войти в гостевую систему</translation>
+        <translation>Пользователь &quot;%s&quot; не смог войти в гостевую ОС</translation>
     </message>
     <message>
         <location filename="../src-client/GuestProcessImpl.cpp" line="563"/>
@@ -4348,7 +4691,7 @@ Guest offers: %s</source>
     <message>
         <location filename="../src-client/GuestProcessImpl.cpp" line="564"/>
         <source>The guest did not respond within time</source>
-        <translation>Гостевая система не ответила за отведенное время</translation>
+        <translation>Гостевая ОС не ответила за отведенное время</translation>
     </message>
     <message>
         <location filename="../src-client/GuestProcessImpl.cpp" line="565"/>
@@ -4373,12 +4716,12 @@ Guest offers: %s</source>
 </translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2024"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="2040"/>
         <source>The size to read is zero</source>
         <translation>Размер читаемых данных равен 0</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2050"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="2066"/>
         <source>Reading %RU32 bytes from guest process handle %RU32 failed: %s</source>
         <translation>
             <numerusform>Не удалось прочитать %RU32 байт с дескриптора гостевого процесса %RU32: %s</numerusform>
@@ -4387,48 +4730,48 @@ Guest offers: %s</source>
         </translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2055"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="2071"/>
         <source>Reading from guest process &quot;%s&quot; (PID %RU32) failed: %Rrc</source>
         <translation>Не удалось прочитать с гостевого процесса &quot;%s&quot; (PID %RU32): %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2088"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="2104"/>
         <source>Guest process is not in &apos;%s&apos; state anymore (current is in &apos;%s&apos;)</source>
-        <translation type="unfinished"></translation>
+        <translation>Гостевой процесс более не в состоянии &apos;%s&apos; (текущее состояние &apos;%s&apos;)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2097"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="2113"/>
         <source>Terminating guest process failed: %s</source>
         <translation>Не удалось завершить гостевой процесс: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2105"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="2121"/>
         <source>Terminating guest process &quot;%s&quot; (PID %RU32) not supported by installed Guest Additions</source>
         <translation>Завершение гостевого процесса &quot;%s&quot; (PID %RU32) неподдерживаемого установленными Дополнениями Гостевой ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2111"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="2127"/>
         <source>Terminating guest process &quot;%s&quot; (PID %RU32) failed: %Rrc</source>
         <translation>Не удалось завершить гостевой процесс &quot;%s&quot; (PID %RU32): %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2143"/>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2199"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="2160"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="2216"/>
         <source>Flags value %#x, invalid: %#x</source>
         <translation>Значения флагов %#x, недопустимые: %#x</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2165"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="2182"/>
         <source>Waiting for guest process (flags %#x) failed: %s</source>
         <translation>Ожидание гостевого процесса (флаги %#x) завершено с ошибкой: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2174"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="2191"/>
         <source>Waiting for guest process &quot;%s&quot; (PID %RU32) failed: %Rrc</source>
         <translation>Ожидание гостевого процесса &quot;%s&quot; (PID %RU32) завершено с ошибкой: %Rr</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2222"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="2239"/>
         <source>Writing %RU32 bytes (flags %#x) to guest process failed: %s</source>
         <translation>
             <numerusform>Не удалсь записать %RU32 байт (флаги %#x) в гостевой процесс: %s</numerusform>
@@ -4437,7 +4780,7 @@ Guest offers: %s</source>
         </translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2227"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="2244"/>
         <source>Writing to guest process &quot;%s&quot; (PID %RU32) failed: %Rrc</source>
         <translation>Не удалось записать в гостевой процесс &quot;%s&quot; (PID %RU32): %Rrc</translation>
     </message>
@@ -4445,630 +4788,724 @@ Guest offers: %s</source>
 <context>
     <name>GuestProcessTool</name>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2957"/>
+        <source>Access to &quot;%s&quot; denied</source>
+        <translation type="vanished">Доступ к &quot;%s&quot; запрещен</translation>
+    </message>
+    <message>
+        <source>No such file or directory &quot;%s&quot;</source>
+        <translation type="vanished">Файл или директория &quot;%s&quot; не существует</translation>
+    </message>
+    <message>
+        <source>VMM device is not available (is the VM running?)</source>
+        <translation type="vanished">VMM устройство недоступно (ВМ работает?)</translation>
+    </message>
+    <message>
+        <source>The guest execution service is not available</source>
+        <translation type="vanished">Гостевой сервис выполнения не доступен</translation>
+    </message>
+    <message>
+        <source>The file &quot;%s&quot; is not an executable format</source>
+        <translation type="vanished">Формат файла &quot;%s&quot; не является исполняемым</translation>
+    </message>
+    <message>
+        <source>The user &quot;%s&quot; was not able to logon</source>
+        <translation type="vanished">Пользователь &quot;%s&quot; не смог войти систему</translation>
+    </message>
+    <message>
+        <source>The file &quot;%s&quot; is an invalid name</source>
+        <translation type="vanished">У файла &quot;%s&quot; недопустимое имя</translation>
+    </message>
+    <message>
+        <source>The guest did not respond within time</source>
+        <translation type="vanished">Гостевая система не ответила за отведенное время</translation>
+    </message>
+    <message>
+        <source>The execution operation was canceled</source>
+        <translation type="vanished">Операция выполнения отменена</translation>
+    </message>
+    <message>
+        <source>Maximum number of concurrent guest processes has been reached</source>
+        <translation type="vanished">Достигнуто максимальное количество одновременных гостевых процессов</translation>
+    </message>
+    <message>
+        <source>The guest execution service is not ready (yet)</source>
+        <translation type="vanished">Гостевая служба выполнения (еще) не готова</translation>
+    </message>
+    <message>
+        <source>Unhandled error %Rrc for &quot;%s&quot; occurred for tool &quot;%s&quot; on guest -- please file a bug report</source>
+        <translation type="vanished">Произошла необработанная ошибка %Rrc для &quot;%s&quot; у инструмента &quot;%s&quot; в гостевой системе -- пожалуйста, сообщите об ошибке разработчикам</translation>
+    </message>
+</context>
+<context>
+    <name>GuestProcessToolbox</name>
+    <message>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="3184"/>
         <source>Access to &quot;%s&quot; denied</source>
         <translation>Доступ к &quot;%s&quot; запрещен</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2963"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="3190"/>
         <source>No such file or directory &quot;%s&quot;</source>
         <translation>Файл или директория &quot;%s&quot; не существует</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2967"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="3194"/>
         <source>VMM device is not available (is the VM running?)</source>
         <translation>VMM устройство недоступно (ВМ работает?)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2971"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="3198"/>
         <source>The guest execution service is not available</source>
-        <translation>Гостевой сервис выполнения не доступен</translation>
+        <translation>Гостевая служба выполнения не доступна</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2975"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="3202"/>
         <source>The file &quot;%s&quot; is not an executable format</source>
         <translation>Формат файла &quot;%s&quot; не является исполняемым</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2979"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="3206"/>
         <source>The user &quot;%s&quot; was not able to logon</source>
         <translation>Пользователь &quot;%s&quot; не смог войти систему</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2983"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="3210"/>
         <source>The file &quot;%s&quot; is an invalid name</source>
         <translation>У файла &quot;%s&quot; недопустимое имя</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2987"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="3214"/>
         <source>The guest did not respond within time</source>
-        <translation>Гостевая система не ответила за отведенное время</translation>
+        <translation>Гостевая ОС не ответила за отведенное время</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2991"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="3218"/>
         <source>The execution operation was canceled</source>
         <translation>Операция выполнения отменена</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2995"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="3222"/>
         <source>Maximum number of concurrent guest processes has been reached</source>
         <translation>Достигнуто максимальное количество одновременных гостевых процессов</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2999"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="3226"/>
         <source>The guest execution service is not ready (yet)</source>
-        <translation>Гостевая служба выполнения (еще) не готова</translation>
+        <translation>Гостевая служба выполнения (ещё) не готова</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="3003"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="3230"/>
         <source>Unhandled error %Rrc for &quot;%s&quot; occurred for tool &quot;%s&quot; on guest -- please file a bug report</source>
-        <translation>Произошла необработанная ошибка %Rrc для &quot;%s&quot; у инструмента &quot;%s&quot; в гостевой системе -- пожалуйста, сообщите об ошибке разработчикам</translation>
+        <translation>Произошла необработанная ошибка %Rrc для &quot;%s&quot; у инструмента &quot;%s&quot; в гостевой ОС -- пожалуйста, сообщите об ошибке разработчикам</translation>
     </message>
 </context>
 <context>
     <name>GuestSession</name>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="483"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="486"/>
         <source>Invalid environment variable name &apos;%s&apos;, index %zu</source>
         <translation>Недопустимое имя переменной окружения &apos;%s&apos;, индекс %zu</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="485"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="488"/>
         <source>Failed to apply &apos;%s&apos;, index %zu (%Rrc)</source>
         <translation>Не удалось применить &apos;%s&apos;, индекс %zu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="501"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4120"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4141"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="504"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4730"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4751"/>
         <source>The base environment feature is not supported by the Guest Additions</source>
         <translation>Функция базового окружения не поддерживается установленными Дополнениями Гостевой ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="503"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4122"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4143"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="506"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4732"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4753"/>
         <source>The base environment has not yet been reported by the guest</source>
-        <translation>Гостевая система еще не сообщила о базовом окружении</translation>
+        <translation>Гостевая ОС ещё не сообщила о базовом окружении</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="564"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="567"/>
         <source>Getting the user&apos;s home path is not supported by installed Guest Additions</source>
         <translation>Получение пути к домашней директории пользователя не поддерживается установленными Дополнениями Гостевой ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="569"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="572"/>
         <source>Getting the user&apos;s home path failed on the guest: %Rrc</source>
-        <translation>Не удалось получить путь к домашней директории пользователя на гостевой системе: %Rrc</translation>
+        <translation>Не удалось получить путь к домашней директории пользователя на гостевой ОС: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="576"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="579"/>
         <source>Getting the user&apos;s home path failed: %Rrc</source>
         <translation>Не удалось получить путь к домашней директории пользователя: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="602"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="605"/>
         <source>Getting the user&apos;s documents path is not supported by installed Guest Additions</source>
         <translation>Получение пути к директории пользователя, с документами не поддерживается установленными Дополнениями Гостевой ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="607"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="610"/>
         <source>Getting the user&apos;s documents path failed on the guest: %Rrc</source>
-        <translation>Не удалось получить путь к директории пользователя c документами на гостевой системе: %Rrc</translation>
+        <translation>Не удалось получить путь к директории пользователя c документами на гостевой ОС: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="614"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="617"/>
         <source>Getting the user&apos;s documents path failed: %Rrc</source>
         <translation>Не удалось получить путь к директории пользователя с документами: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="764"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="643"/>
+        <source>Getting the mount points is not supported by installed Guest Additions</source>
+        <translation>Получение точки подключения не поддерживается установленными Дополнениями Гостевой ОС</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="648"/>
+        <source>Getting the mount points failed on the guest: %Rrc</source>
+        <translation>Ошибка получения точки подключения в гостевой ОС: %Rrc</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="655"/>
+        <source>Getting the mount points failed: %Rrc</source>
+        <translation>Ошибка получения точки подключения: %Rrc</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="805"/>
         <source>No source(s) specified</source>
         <translation>Не указаны пути к источникам</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="766"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3655"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="807"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4265"/>
         <source>No destination specified</source>
         <translation>Не указано путь назначения</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="784"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="825"/>
         <source>Failed to create GuestSessionTaskCopyFrom object</source>
         <translation>Не удалось создать объект GuestSessionTaskCopyFrom</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="789"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="830"/>
         <source>Copying to &quot;%s&quot; on the host</source>
         <translation>Копирование в &quot;%s&quot; хоста</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="805"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="846"/>
         <source>Starting thread for copying from guest to the host failed</source>
-        <translation>Не удалось запустить поток для копирования с гостевой системы в хост</translation>
+        <translation>Не удалось запустить поток для копирования с гостевой ОС в хост</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="809"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="850"/>
         <source>Initializing GuestSessionTaskCopyFrom object failed</source>
         <translation>Не удалось инициализировать объект GuestSessionTaskCopyFrom</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="851"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="892"/>
         <source>Failed to create GuestSessionTaskCopyTo object</source>
         <translation>Не удалось создать объект GuestSessionTaskCopyTo</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="856"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="897"/>
         <source>Copying to &quot;%s&quot; on the guest</source>
-        <translation>Копирование в &quot;%s&quot; гостевой системы</translation>
+        <translation>Копирование в &quot;%s&quot; гостевой ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="872"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="913"/>
         <source>Starting thread for copying from host to the guest failed</source>
-        <translation>Не удалось запустить поток для копирования с хоста в гостевую систему</translation>
+        <translation>Не удалось запустить поток для копирования с хоста в гостевую ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="876"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="917"/>
         <source>Initializing GuestSessionTaskCopyTo object failed</source>
         <translation>Не удалось инициализировать объект GuestSessionTaskCopyTo</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="922"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="963"/>
         <source>Invalid directory copy flag: %.*s</source>
         <translation>Недопустимый флаг копирования директории: %.*s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="1496"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="1700"/>
         <source>Invalid file copy flag: %.*s</source>
         <translation>Недопустимый флаг копирования файла: %.*s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="1904"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="2317"/>
         <source>VMM device is not available (is the VM running?)</source>
         <translation>VMM устройство недоступно (ВМ работает?)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="1908"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="2321"/>
         <source>The guest execution service is not available</source>
         <translation>Гостевой сервис выполнения не доступен</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="1912"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="2325"/>
         <source>The specified user account on the guest is restricted and can&apos;t be used to logon</source>
-        <translation>Указанная учетная запись пользователя гостевой системы ограничена и не может использоваться для входа в систему</translation>
+        <translation>Указанная учетная запись пользователя гостевой ОС ограничена и не может использоваться для входа в систему</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="1916"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="2329"/>
         <source>The specified user was not able to logon on guest</source>
-        <translation>Указанный пользователь не смог войти в гостевую систему</translation>
+        <translation>Указанный пользователь не смог войти в гостевую ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="1920"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="2333"/>
         <source>The guest did not respond within time</source>
-        <translation>Гостевая система не ответила за отведенное время</translation>
+        <translation>Гостевая ОС не ответила за отведенное время</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="1924"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="2337"/>
         <source>The session operation was canceled</source>
         <translation>Сессионная операция отменена</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="1928"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="2341"/>
         <source>Maximum number of concurrent guest processes has been reached</source>
         <translation>Достигнуто максимальное количество одновременных гостевых процессов</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="1932"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="2345"/>
         <source>The guest execution service is not ready (yet)</source>
         <translation>Гостевой сервис выполнения (еще) не готов</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="1965"/>
         <source>Session is not in started state</source>
-        <translation>Сессия не состоянии &quot;запущено&quot;</translation>
+        <translation type="vanished">Сессия не состоянии &quot;запущено&quot;</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3444"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4054"/>
         <source>Closing guest session failed: %s</source>
         <translation>Не удалось закрыть гостевую сессию: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3447"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4057"/>
         <source>Closing guest session &quot;%s&quot; failed with %Rrc</source>
         <translation>Не удалось закрыть гостевую сессию &quot;%s&quot; из-за %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3473"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3502"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3679"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3709"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4083"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4112"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4289"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4319"/>
         <source>Unknown flags: flags value %#x, invalid: %#x</source>
         <translation>Неизвестные флаги: Значения флагов %#x, недопустимые: %#x</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3528"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3599"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4138"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4209"/>
         <source>Parameter array sizes don&apos;t match to the number of sources specified</source>
         <translation>Размеры массивов в параметрах не соответствуют количеству указанных источников</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3551"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4161"/>
         <source>Querying type for guest source failed: %s</source>
-        <translation>Не удалось запросить тип источника в гостевой системе: %s</translation>
+        <translation>Не удалось запросить тип источника в гостевой ОС: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3554"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4164"/>
         <source>Querying type for guest source &quot;%s&quot; failed: %Rrc</source>
-        <translation>Не удалось запросить тип источника гостевой системы &quot;%s&quot;: %Rrc</translation>
+        <translation>Не удалось запросить тип источника гостевой ОС &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
         <source>Source type %#x invalid / not supported</source>
         <translation type="vanished">Тип источника %#x недопустим / не поддерживается</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3617"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="2381"/>
+        <source>Session is not in started state (state is &apos;%s&apos;)</source>
+        <translation>Сессия не в запущенном состоянии (текущее состояние &apos;%s&apos;)</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4227"/>
         <source>Unable to query type for source &apos;%s&apos; (%Rrc)</source>
         <translation>Не удалось запросить тип источника &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3651"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4261"/>
         <source>No sources specified</source>
         <translation>Не указаны пути к источникам</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3653"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4263"/>
         <source>First source entry is empty</source>
         <translation>Первый элемент из списка источников пуст</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3731"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4341"/>
         <source>No directory to create specified</source>
         <translation>Не указана директория для создания</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3740"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4350"/>
         <source>Unknown flags (%#x)</source>
         <translation>Неизвестные флаги (%#x)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3757"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4367"/>
         <source>Guest directory creation failed: %s</source>
-        <translation>Не удалось создать директорию в гостевой системе: %s</translation>
+        <translation>Не удалось создать директорию в гостевой ОС: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3763"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4373"/>
         <source>Guest directory creation failed: Invalid parameters given</source>
-        <translation>Не удалось создать директорию в гостевой системе: Данные параметры недопустимы</translation>
+        <translation>Не удалось создать директорию в гостевой ОС: Данные параметры недопустимы</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3767"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4377"/>
         <source>Guest directory creation failed: Unexpectedly aborted</source>
-        <translation>Не удалось создать директорию в гостевой системе: Неожиданно прерван</translation>
+        <translation>Не удалось создать директорию в гостевой ОС: Неожиданно прерван</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3771"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4381"/>
         <source>Guest directory creation failed: %Rrc</source>
-        <translation>Не удалось создать директорию в гостевой системе: %Rrc</translation>
+        <translation>Не удалось создать директорию в гостевой ОС: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3783"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4393"/>
         <source>No template specified</source>
         <translation>Не указан шаблон</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3785"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4395"/>
         <source>No directory name specified</source>
         <translation>Не указано имя директории</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3788"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4398"/>
         <source>Mode invalid (must be specified in octal mode)</source>
         <translation>Недопустимый режим (должен быть указан в восмеричном формате)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3805"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4415"/>
         <source>Temporary guest directory creation failed: %s</source>
-        <translation>Не удалось создать временную директорию в гостевой системе: %s</translation>
+        <translation>Не удалось создать временную директорию в гостевой ОС: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3810"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4420"/>
         <source>Temporary guest directory creation &quot;%s&quot; with template &quot;%s&quot; failed: %Rrc</source>
-        <translation>Не удалось создать временную директорию &quot;%s&quot; по шаблону &quot;%s&quot; в гостевой системе: %Rrc</translation>
+        <translation>Не удалось создать временную директорию &quot;%s&quot; по шаблону &quot;%s&quot; в гостевой ОС: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3822"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4432"/>
         <source>Empty path</source>
         <translation>Путь пуст</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3850"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4460"/>
         <source>Querying directory existence failed: %s</source>
         <translation>Не удалось запросить существование директории: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3865"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4475"/>
         <source>Querying directory existence &quot;%s&quot; failed: %Rrc</source>
         <translation>Не удалось запросить существование директории &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3878"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4488"/>
         <source>No directory to open specified</source>
         <translation>Не указана директория для открытия</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3880"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4490"/>
         <source>Directory filters are not implemented yet</source>
-        <translation>Фильтры директории еще не реализованы</translation>
+        <translation>Фильтры директории ещё не реализованы</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3889"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4499"/>
         <source>Open flags (%#x) not implemented yet</source>
-        <translation>Флаги открытия (%#x) еще не реализованы</translation>
+        <translation>Флаги открытия (%#x) ещё не реализованы</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3916"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4526"/>
         <source>Opening guest directory &quot;%s&quot; failed; invalid parameters given</source>
         <translation>Не удалось открыть гостевую директорию &quot;%s&quot;; даны недопустимые параметры</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3923"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4533"/>
         <source>Opening guest directory failed: %s</source>
         <translation>Не удалось открыть гостевую директорию: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3928"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4538"/>
         <source>Opening guest directory &quot;%s&quot; failed: %Rrc</source>
         <translation>Не удалось открыть гостевую директорию &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3939"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4549"/>
         <source>No directory to remove specified</source>
         <translation>Не указана директория для удаления</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3958"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4568"/>
         <source>Handling removing guest directories not supported by installed Guest Additions</source>
-        <translation>Обработка удаления директорий гостевой системы не поддерживается установленными Дополнениями Гостевой ОС</translation>
+        <translation>Обработка удаления директорий гостевой ОС не поддерживается установленными Дополнениями Гостевой ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3964"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4574"/>
         <source>Removing guest directory failed: %s</source>
         <translation>Не удалось удалить гостевую директорию: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3969"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4579"/>
         <source>Removing guest directory &quot;%s&quot; failed: %Rrc</source>
         <translation>Не удалось удалить гостевую директорию &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3981"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4591"/>
         <source>No directory to remove recursively specified</source>
         <translation>Не указана директория для рекурсивного удаления</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4003"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4613"/>
         <source>Invalid flags specified</source>
         <translation>Указаны недопустимые флаги</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4018"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4628"/>
         <source>Removing guest directory</source>
-        <translation>Удаление директории гостевой системы</translation>
+        <translation>Удаление директории гостевой ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4039"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4649"/>
         <source>Handling removing guest directories recursively not supported by installed Guest Additions</source>
-        <translation>Обработка рекурсивного удаления директорий гостевой системы не поддерживается установленными Дополнениями Гостевой ОС</translation>
+        <translation>Обработка рекурсивного удаления директорий гостевой ОС не поддерживается установленными Дополнениями Гостевой ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4045"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4655"/>
         <source>Recursively removing guest directory failed: %s</source>
         <translation>Не удалось рекурсивно удалить гостевую директорию: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4050"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4660"/>
         <source>Recursively removing guest directory &quot;%s&quot; failed: %Rrc</source>
         <translation>Не удалось рекурсивно удалить гостевую директорию &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4075"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4095"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4115"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4685"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4705"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4725"/>
         <source>Invalid environment variable name &apos;%s&apos;</source>
         <translation>Недопустимое имя переменной окружения &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4077"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4687"/>
         <source>Failed to schedule setting environment variable &apos;%s&apos; to &apos;%s&apos;</source>
         <translation>Не удалось запланировать установку переменной окружения &apos;%s&apos; в &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4097"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4707"/>
         <source>Failed to schedule unsetting environment variable &apos;%s&apos;</source>
         <translation>Не удалось запланировать сброс переменной окружения &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4193"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4803"/>
         <source>Querying guest file existence failed: %s</source>
-        <translation>Не удалось запросить существование файла гостевой системы: %s</translation>
+        <translation>Не удалось запросить существование файла гостевой ОС: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4206"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4448"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4816"/>
         <source>Querying guest file information for &quot;%s&quot; failed: %Rrc</source>
-        <translation>Не удалось запросить информацию о файле гостевой системы для &quot;%s&quot;: %Rrc</translation>
+        <translation>Не удалось запросить информацию о файле гостевой ОС для &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4228"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4838"/>
         <source>No file to open specified</source>
         <translation>Не указан файл для открытия</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4248"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4858"/>
         <source>Append access modes are not yet implemented</source>
-        <translation>Добавление режимов доступа еще не реализовано</translation>
+        <translation>Добавление режимов доступа ещё не реализовано</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4250"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4860"/>
         <source>Unknown FileAccessMode value %u (%#x)</source>
         <translation>Неизвестное значение FileAccessMode %u (%#x)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4269"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4286"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4879"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4896"/>
         <source>Unknown FileOpenAction value %u (%#x)</source>
         <translation>Неизвестное значение FileOpenAction %u (%#x)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4283"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4893"/>
         <source>Only FileSharingMode_All is currently implemented</source>
         <translation>Сейчас реализован только FileSharingMode_All</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4294"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4904"/>
         <source>Unsupported FileOpenExFlag value(s) in aFlags (%#x)</source>
         <translation>Неподдерживаемое значение FileOpenExFlag в aFlags (%#x)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4308"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4918"/>
         <source>Handling guest files not supported by installed Guest Additions</source>
-        <translation>Обработка файлов гостевой системы не поддерживается установленными Дополнениями Гостевой ОС</translation>
+        <translation>Обработка файлов гостевой ОС не поддерживается установленными Дополнениями Гостевой ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4314"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4924"/>
         <source>Opening guest file failed: %s</source>
-        <translation>Не удалось открыть файл гостевой системы: %s</translation>
+        <translation>Не удалось открыть файл гостевой ОС: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4319"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4929"/>
         <source>Opening guest file &quot;%s&quot; failed: %Rrc</source>
-        <translation>Не удалось открыть файл гостевой системы &quot;%s&quot;: %Rrc</translation>
+        <translation>Не удалось открыть файл гостевой ОС &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4330"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4374"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4415"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4457"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4940"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4980"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5020"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5061"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5103"/>
         <source>No path specified</source>
         <translation>Не указан путь</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4346"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4956"/>
         <source>Querying guest file size failed: %s</source>
-        <translation>Не удалось запросить размер файла гостевой системы: %s</translation>
+        <translation>Не удалось запросить размер файла гостевой ОС: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4350"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4960"/>
         <source>Querying guest file size of &quot;%s&quot; failed: %Rrc</source>
-        <translation>Не удалось запросить размер файла гостевой системы для &quot;%s&quot;: %Rrc</translation>
+        <translation>Не удалось запросить размер файла гостевой ОС для &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4401"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5007"/>
+        <source>Querying guest filesystem information failed: %s</source>
+        <translation>Не удалось опросить гостевую файловую систему: %s</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5011"/>
+        <source>Querying guest filesystem information for &quot;%s&quot; failed: %Rrc</source>
+        <translation>Не удалось опросить гостевую файловую систему по адресу &quot;%s&quot;: %Rrc</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5047"/>
         <source>Querying guest file existence information failed: %s</source>
-        <translation>Не удалось запросить информацию о существовании файла гостевой системы для: %s</translation>
+        <translation>Не удалось запросить информацию о существовании файла гостевой ОС для: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4406"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5052"/>
         <source>Querying guest file existence information for &quot;%s&quot; failed: %Rrc</source>
-        <translation>Не удалось запросить информацию о существовании файла гостевой системы для &quot;%s&quot;: %Rrc</translation>
+        <translation>Не удалось запросить информацию о существовании файла гостевой ОС для &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4444"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5090"/>
+        <source>Querying guest filesystem object information failed: %s</source>
+        <translation>Не удалось опросить объект гостевой файловой системы: %s</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5094"/>
+        <source>Querying guest filesystem object information for &quot;%s&quot; failed: %Rrc</source>
+        <translation>Не удалось опросить объект гостевой файловой системы по адресу &quot;%s&quot;: %Rrc</translation>
+    </message>
+    <message>
         <source>Querying guest file information failed: %s</source>
-        <translation>Не удалось запросить информацию о файле гостевой системы: %s</translation>
+        <translation type="vanished">Не удалось запросить информацию о файле гостевой системы: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4472"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5118"/>
         <source>Removing guest file failed: %s</source>
-        <translation>Не удалось удалить файл гостевой системы: %s</translation>
+        <translation>Не удалось удалить файл гостевой ОС: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4476"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5122"/>
         <source>Removing guest file &quot;%s&quot; failed: %Rrc</source>
-        <translation>Не удалось удалить файл гостевой системы &quot;%s&quot;: %Rrc</translation>
+        <translation>Не удалось удалить файл гостевой ОС &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4493"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5139"/>
         <source>No source path specified</source>
         <translation>Не указаны пути к источникам</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4496"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5142"/>
         <source>No destination path specified</source>
         <translation>Не указано путь назначения</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4507"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5153"/>
         <source>Unknown rename flag: %#x</source>
         <translation>Неизвестный флаг переименования (%#x)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4528"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5174"/>
         <source>Handling renaming guest paths not supported by installed Guest Additions</source>
-        <translation>Обработка переименования путей гостевой системы не поддерживается установленными Дополнениями Гостевой ОС</translation>
+        <translation>Обработка переименования путей гостевой ОС не поддерживается установленными Дополнениями Гостевой ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4534"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5180"/>
         <source>Renaming guest path failed: %s</source>
-        <translation>Не удалось переименовать путь гостевой системы: %s</translation>
+        <translation>Не удалось переименовать путь гостевой ОС: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4539"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5185"/>
         <source>Renaming guest path &quot;%s&quot; failed: %Rrc</source>
-        <translation>Не удалось переименовать путь гостевой системы &quot;%s&quot;: %Rrc</translation>
+        <translation>Не удалось переименовать путь гостевой ОС &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4612"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5260"/>
         <source>No command to execute specified</source>
         <translation>Не указана команда для выполнения</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4682"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5272"/>
+        <source>Setting the current working directory is not supported by the installed Guest Addtions!</source>
+        <translation>Изменение текущего рабочего каталога не поддерживается установленными Дополнениями Гостевой ОС!</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5344"/>
         <source>Failed to start guest process: %Rrc</source>
         <translation>Не удалось запустить гостевой процесс: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4686"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5348"/>
         <source>Maximum number of concurrent guest processes per session (%u) reached</source>
         <translation>Достигнуто максимальное количество одновременных гостевых процессов на сессию (%u)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4689"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5351"/>
         <source>Failed to create guest process object: %Rrc</source>
-        <translation>Не удалось создать объект процесса гостевой системы: %Rrc</translation>
+        <translation>Не удалось создать объект процесса гостевой ОС: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4693"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5355"/>
         <source>Failed to apply environment variable &apos;%s&apos;, index %u (%Rrc)&apos;</source>
         <translation>Не удалось применить переменную окружения &apos;%s&apos;, индекс %u (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4697"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5359"/>
         <source>Failed to set up the environment: %Rrc</source>
         <translation>Не удалось установить окружение: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4707"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5369"/>
         <source>No valid process ID (PID) specified</source>
         <translation>Не указан допустимый ID процесса (PID)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4718"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5380"/>
         <source>No process with PID %RU32 found</source>
         <translation>Процесс с PID %RU32 не найден</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4771"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5434"/>
         <source>Waiting for guest process failed: %s</source>
         <translation>Не удалось подождать гостевой процесс: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4783"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5446"/>
         <source>Waiting for guest session &quot;%s&quot; failed: %Rrc</source>
         <translation>Не удалось подождать гостевую сессию &quot;%s&quot; из-за %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4784"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5447"/>
         <source>Unnamed</source>
         <translation>Безымянный</translation>
     </message>
@@ -5078,12 +5515,12 @@ Guest offers: %s</source>
     <message>
         <location filename="../src-client/GuestSessionImplTasks.cpp" line="300"/>
         <source>Guest directory &quot;%s&quot; already exists</source>
-        <translation>Директория гостевой системы &quot;%s&quot; уже существует</translation>
+        <translation>Директория гостевой ОС &quot;%s&quot; уже существует</translation>
     </message>
     <message>
         <location filename="../src-client/GuestSessionImplTasks.cpp" line="325"/>
         <source>Guest error creating directory &quot;%s&quot; on the guest: %Rrc</source>
-        <translation>Ошибка гостевой системы во время создания гостевой директории &quot;%s&quot;: %Rrc</translation>
+        <translation>Ошибка гостевой ОС во время создания гостевой директории &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-client/GuestSessionImplTasks.cpp" line="332"/>
@@ -5101,21 +5538,21 @@ Guest offers: %s</source>
         <translation>Невозможно создать директорию у хоста &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="416"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="414"/>
         <source>Seeking to offset %RU64 of guest file &quot;%s&quot; failed: %Rrc</source>
-        <translation>Не удалось изменить указатель в позицию %RI64 для файла гостевой системы &quot;%s&quot;: %Rrc</translation>
+        <translation>Не удалось изменить указатель в позицию %RI64 для файла гостевой ОС &quot;%s&quot;: %Rrc</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="431"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="429"/>
         <source>Reading %RU32 bytes @ %RU64 from guest &quot;%s&quot; failed: %Rrc</source>
         <translation>
-            <numerusform>Не удалось прочитать %RU32 байт @ %RU64 с гостевой системы &quot;%s&quot;: %Rrc</numerusform>
-            <numerusform>Не удалось прочитать %RU32 байта @ %RU64 с гостевой системы &quot;%s&quot;: %Rrc</numerusform>
-            <numerusform>Не удалось прочитать %RU32 байт @ %RU64 с гостевой системы &quot;%s&quot;: %Rrc</numerusform>
+            <numerusform>Не удалось прочитать %RU32 байт @ %RU64 с гостевой ОС &quot;%s&quot;: %Rrc</numerusform>
+            <numerusform>Не удалось прочитать %RU32 байта @ %RU64 с гостевой ОС &quot;%s&quot;: %Rrc</numerusform>
+            <numerusform>Не удалось прочитать %RU32 байт @ %RU64 с гостевой ОС &quot;%s&quot;: %Rrc</numerusform>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="440"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="438"/>
         <source>Writing %RU32 bytes to host file &quot;%s&quot; failed: %Rrc</source>
         <translation>
             <numerusform>Не удалось записать %RU32 байт @ %RU64 в файл хоста &quot;%s&quot;: %Rrc</numerusform>
@@ -5124,86 +5561,86 @@ Guest offers: %s</source>
         </translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="479"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="477"/>
         <source>Writing guest file &quot;%s&quot; to host file &quot;%s&quot; failed: Access denied</source>
-        <translation>Не удалось записать файл гостевой системы &quot;%s&quot; в файл хоста &quot;%s&quot;: Доступ запрещен</translation>
+        <translation>Не удалось записать файл гостевой ОС &quot;%s&quot; в файл хоста &quot;%s&quot;: Доступ запрещен</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="487"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="485"/>
         <source>Copying guest file &quot;%s&quot; to host file &quot;%s&quot; failed (%RU64/%RU64 bytes transferred)</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось скопировать файл гостевой ОС &quot;%s&quot; в файл основной ОС &quot;%s&quot; (%RU64/%RU64 байт передано)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="513"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="511"/>
         <source>Error closing guest file &quot;%s&quot;: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Ошибка закрытия файла гостевой ОС &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="661"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="659"/>
         <source>Host destination &quot;%s&quot; is a directory</source>
-        <translation type="unfinished"></translation>
+        <translation>Объект назначения в основной ОС &quot;%s&quot; является директорией</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="668"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="666"/>
         <source>Host destination &quot;%s&quot; is a symbolic link</source>
-        <translation type="unfinished"></translation>
+        <translation>Объект назначения в основной ОС &quot;%s&quot; является ссылкой</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="816"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="812"/>
         <source>Copying to guest file &quot;%s&quot; failed (%RU64/%RU64 bytes transferred)</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось скопировать в файл гостевой ОС &quot;%s&quot; (%RU64/%RU64 байт передано)</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="852"/>
+        <source>Guest file &quot;%s&quot; could not be created or replaced</source>
+        <translation>Файл гостевой ОС &quot;%s&quot; не может быть создан или заменён</translation>
     </message>
     <message>
         <location filename="../src-client/GuestSessionImplTasks.cpp" line="856"/>
-        <source>Guest file &quot;%s&quot; could not be created or replaced</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="860"/>
         <source>Guest file &quot;%s&quot; could not be created or replaced: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Файл гостевой ОС &quot;%s&quot; не может быть создан или заменён: %Rrc</translation>
     </message>
     <message>
         <source>Copying guest file &quot;%s&quot; to host file &quot;%s&quot; failed (%RU64/%RU64 bytes transfered)</source>
         <translation type="vanished">Не удалось скопировать файл гостевой системы &quot;%s&quot; в файл хоста &quot;%s&quot; (%RU64/%RU64 байт передано)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="551"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="549"/>
         <source>Guest file lookup failed</source>
-        <translation>Не удалось найти файл гостевой системы</translation>
+        <translation>Не удалось найти файл гостевой ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="555"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="553"/>
         <source>Guest file lookup for &quot;%s&quot; failed: %Rrc</source>
-        <translation>Не удалось найти файл гостевой системы &quot;%s&quot;: %Rrc</translation>
+        <translation>Не удалось найти файл гостевой ОС &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="568"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="566"/>
         <source>Guest file &quot;%s&quot; is a symbolic link</source>
-        <translation>Файл гостевой системы &quot;%s&quot; является символической ссылкой</translation>
+        <translation>Файл гостевой ОС &quot;%s&quot; является символической ссылкой</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="576"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="574"/>
         <source>Guest object &quot;%s&quot; is not a file (is type %#x)</source>
-        <translation>Объект гостевой системы &quot;%s&quot; не является файлом (тип %#x)</translation>
+        <translation>Объект гостевой ОС &quot;%s&quot; не является файлом (тип %#x)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="590"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="588"/>
         <source>Guest file could not be opened</source>
-        <translation>Не удалось открыть файл гостевой системы</translation>
+        <translation>Не удалось открыть файл гостевой ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="594"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="592"/>
         <source>Guest file &quot;%s&quot; could not be opened: %Rrc</source>
-        <translation>Не удалось открыть файл гостевой системы &quot;%s&quot;: %Rrc</translation>
+        <translation>Не удалось открыть файл гостевой ОС &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="655"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="653"/>
         <source>Host file &quot;%s&quot; already exists</source>
         <translation>Файл хоста &quot;%s&quot; уже существует</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="636"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="634"/>
         <source>Host file lookup for &quot;%s&quot; failed: %Rrc</source>
         <translation>Не удалось найти файл хоста &quot;%s&quot;: %Rrc</translation>
     </message>
@@ -5216,56 +5653,56 @@ Guest offers: %s</source>
         <translation type="vanished">Не хватает памяти чтобы выделить буфер под путь к файлу хоста</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="702"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="700"/>
         <source>Opening/creating host file &quot;%s&quot; failed: %Rrc</source>
         <translation>Не удалось открыть/создать файл хоста &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="749"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="745"/>
         <source>Seeking to offset %RU64 of host file &quot;%s&quot; failed: %Rrc</source>
         <translation>Не удалось изменить указатель в позицию %RI64 для файла хоста &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="764"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="760"/>
         <source>Reading %RU32 bytes @ %RU64 from host file &quot;%s&quot; failed: %Rrc</source>
-        <translation type="unfinished">Не удалось прочитать %RU32 байт @ %RU64 с файла хоста &quot;%s&quot;: %Rrc</translation>
+        <translation>Не удалось прочитать %RU32 байт @ %RU64 из файла основной ОС &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="773"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="769"/>
         <source>Writing %zu bytes to guest file &quot;%s&quot; failed: %Rrc</source>
-        <translation type="unfinished">Не удалось записать %zu байт в файл гостевой системы &quot;%s&quot;: %Rrc</translation>
+        <translation>Не удалось записать %zu байт в файл гостевой ОС &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="808"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="804"/>
         <source>Writing to guest file &quot;%s&quot; failed: Access denied</source>
-        <translation>Не удалось записать в файл гостевой системы &quot;%s&quot;: Доступ запрещен</translation>
+        <translation>Не удалось записать в файл гостевой ОС &quot;%s&quot;: Доступ запрещен</translation>
     </message>
     <message>
         <source>Copying to guest file &quot;%s&quot; failed (%RU64/%RU64 bytes transfered)</source>
         <translation type="vanished">Не удалось скопировать в файл гостевой системы &quot;%s&quot; (%RU64/%RU64 байт передано)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="877"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="873"/>
         <source>Host path lookup for file &quot;%s&quot; failed: %Rrc</source>
         <translation>Не удалось найти путь к файлу хоста &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="927"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="923"/>
         <source>Guest error while determining object data for guest file &quot;%s&quot;: %Rrc</source>
-        <translation>Ошибка гостевой системы во времы определения данных объекта для файла гостевой системы &quot;%s&quot;: %Rrc</translation>
+        <translation>Ошибка гостевой ОС во времы определения данных объекта для файла гостевой ОС &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="934"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="930"/>
         <source>Host error while determining object data for guest file &quot;%s&quot;: %Rrc</source>
-        <translation>Ошибка хоста во времы определения данных объекта для файла гостевой системы &quot;%s&quot;: %Rrc</translation>
+        <translation>Ошибка хоста во времы определения данных объекта для файла гостевой ОС &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="942"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="938"/>
         <source>Host source file lookup for &quot;%s&quot; failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось найти оригинальный файл основной ОС &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="976"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="972"/>
         <source>Opening host file &quot;%s&quot; failed: %Rrc</source>
         <translation>Не удалось открыть файл хоста &quot;%s&quot;: %Rrc</translation>
     </message>
@@ -5273,107 +5710,108 @@ Guest offers: %s</source>
         <location filename="../include/GuestSessionImplTasks.h" line="201"/>
         <source>Task &apos;%s&apos; failed with %Rrc, but progress is still pending. Please report this bug!
 </source>
-        <translation type="unfinished"></translation>
+        <translation>Задача &apos;%s&apos; провалена с ошибкой %Rrc, но прогресс всё ещё продолжается. Пожалуйста, сообщите об ошибке разработчикам!
+</translation>
     </message>
 </context>
 <context>
     <name>GuestSessionTaskCopyFrom</name>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1502"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1499"/>
         <source>No guest sources specified</source>
-        <translation type="unfinished"></translation>
+        <translation>Не указаны источники гостевой ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1507"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1504"/>
         <source>Host destination must not be empty</source>
         <translation>Путь назначения у хоста не должен быть пустым</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1522"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1519"/>
         <source>Guest source entry must not be empty</source>
-        <translation>Путь источника в гостевой системе не должен быть пустым</translation>
+        <translation>Путь источника в гостевой ОС не должен быть пустым</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1542"/>
+        <source>Guest source lookup failed</source>
+        <translation>Не удалось найти источник гостевой ОС</translation>
     </message>
     <message>
         <location filename="../src-client/GuestSessionImplTasks.cpp" line="1545"/>
-        <source>Guest source lookup failed</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1548"/>
         <source>Guest source lookup for &quot;%s&quot; failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось найти источник гостевой ОС &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1601"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1598"/>
         <source>Error adding guest source &quot;%s&quot; to list: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Ошибка добавления источника в гостевой ОС &apos;&quot;%s&quot; в список: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1634"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1631"/>
         <source>Copying &quot;%s&quot; [and %zu %s] from guest to &quot;%s&quot; on the host ...</source>
-        <translation type="unfinished"></translation>
+        <translation>Копирование &quot;%s&quot; [и %zu %s] из гостевой ОС в &quot;%s&quot; в основной ОС ...</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1635"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1632"/>
         <source>others</source>
-        <translation type="unfinished"></translation>
+        <translation>прочих</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1632"/>
+        <source>other</source>
+        <translation>прочий</translation>
     </message>
     <message>
         <location filename="../src-client/GuestSessionImplTasks.cpp" line="1635"/>
-        <source>other</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1638"/>
         <source>Copying &quot;%s&quot; from guest to &quot;%s&quot; on the host ...</source>
-        <translation type="unfinished"></translation>
+        <translation>Копирование &quot;%s&quot; из гостевой ОС в &quot;%s&quot; в основной ОС ...</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1687"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1684"/>
         <source>Building host destination root path &quot;%s&quot; failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось составить корневой путь источника &quot;%s&quot; в основной ОС (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1744"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1741"/>
         <source>Host path lookup for &quot;%s&quot; failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось найти путь &quot;%s&quot; в основной ОС: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1765"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1762"/>
         <source>Host root directory &quot;%s&quot; already exists</source>
-        <translation type="unfinished"></translation>
+        <translation>Корневая директория &quot;%s&quot; в основной ОС уже существует</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1775"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1772"/>
         <source>Destination &quot;%s&quot; on the host already exists and is a file</source>
-        <translation type="unfinished"></translation>
+        <translation>Путь назначения &quot;%s&quot; в основной ОС уже сущесвует и является файлом</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1783"/>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1902"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1780"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1899"/>
         <source>Unknown object type (%#x) on host for &quot;%s&quot;</source>
-        <translation type="unfinished"></translation>
+        <translation>Неизвестный тип объекта (%#x) в основной ОС для &quot;%s&quot;</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1826"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1823"/>
         <source>Translating guest source path &quot;%s&quot; failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось проверить путь источника гостевой ОС &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1836"/>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1918"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1833"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1915"/>
         <source>Translating host destination path &quot;%s&quot; failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось проверить путь назначения основной ОС &quot;%s&quot;: (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1881"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1878"/>
         <source>Destination &quot;%s&quot; on the host already exists and is a directory</source>
-        <translation type="unfinished"></translation>
+        <translation>Путь назначения &quot;%s&quot; в основной ОС уже сущесвует и является директорией</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1892"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1889"/>
         <source>Host file &quot;%s&quot; already exists</source>
-        <translation type="unfinished">Файл хоста &quot;%s&quot; уже существует</translation>
+        <translation>Файл основной ОС &quot;%s&quot; уже существует</translation>
     </message>
     <message>
         <source>Guest file lookup failed</source>
@@ -5384,21 +5822,21 @@ Guest offers: %s</source>
         <translation type="vanished">Не удалось найти файл гостевой системы &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1557"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1554"/>
         <source>Guest source is not a file: %s</source>
-        <translation>Источник в гостевой системе не является файлом: %s</translation>
+        <translation>Источник в гостевой ОС не является файлом: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1566"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1563"/>
         <source>Guest source is not a directory: %s</source>
-        <translation>Источник в гостевой системе не является директорией: %s</translation>
+        <translation>Источник в гостевой ОС не является директорией: %s</translation>
     </message>
     <message>
         <source>Error adding guest source &apos;%s&apos; to list: %Rrc</source>
         <translation type="vanished">Ошибка во время добавления источника в гостевой системе &apos;%s&apos; в список: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1653"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1650"/>
         <source>Failed with %Rrc</source>
         <translation>Ошибка %Rrc</translation>
     </message>
@@ -5406,100 +5844,100 @@ Guest offers: %s</source>
 <context>
     <name>GuestSessionTaskCopyTo</name>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1991"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1988"/>
         <source>No host sources specified</source>
-        <translation type="unfinished"></translation>
+        <translation>Не указаны источники основной ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1996"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1993"/>
         <source>Guest destination must not be empty</source>
-        <translation>Путь назначения в гостевой системе не должен быть пустым</translation>
+        <translation>Путь назначения в гостевой ОС не должен быть пустым</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2011"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2008"/>
         <source>Host source entry must not be empty</source>
         <translation>Путь источника у хоста не должен быть пустым</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2032"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2029"/>
         <source>No such host file/directory: %s</source>
         <translation>Файл или директория хоста не существует: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2042"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2039"/>
         <source>Host source &quot;%s&quot; is not a file (is a directory)</source>
-        <translation type="unfinished"></translation>
+        <translation>Источник &quot;%s&quot; основной ОС не является файлом (директория)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2052"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2049"/>
         <source>Host source &quot;%s&quot; is not a directory (is a file)</source>
-        <translation type="unfinished"></translation>
+        <translation>Источник &quot;%s&quot; основной ОС не является директорией (файл)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2062"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2059"/>
         <source>Host source &quot;%s&quot; is a symbolic link</source>
-        <translation type="unfinished"></translation>
+        <translation>Источник &quot;%s&quot; основной ОС является ссылкой</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2084"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2081"/>
         <source>Querying symbolic link info for host source &quot;%s&quot; failed</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось запросить информацию по ссылке &quot;%s&quot; в основной ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2090"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2087"/>
         <source>Resolving symbolic link for host source &quot;%s&quot; failed</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось проверить ссылку &quot;%s&quot; в основной ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2141"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2138"/>
         <source>Error adding host source &quot;%s&quot; to list: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Ошибка добавления источника &quot;%s&quot; основной ОС в список: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2174"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2171"/>
         <source>Copying &quot;%s&quot; [and %zu %s] from host to &quot;%s&quot; on the guest ...</source>
-        <translation type="unfinished"></translation>
+        <translation>Копирование &quot;%s&quot; [и %zu %s] из основной ОС в &quot;%s&quot; в гостевой ОС ...</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2175"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2172"/>
         <source>others</source>
-        <translation type="unfinished"></translation>
+        <translation>прочих</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2172"/>
+        <source>other</source>
+        <translation>прочий</translation>
     </message>
     <message>
         <location filename="../src-client/GuestSessionImplTasks.cpp" line="2175"/>
-        <source>other</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2178"/>
         <source>Copying &quot;%s&quot; from host to &quot;%s&quot; on the guest ...</source>
-        <translation type="unfinished"></translation>
+        <translation>Копирование &quot;%s&quot; из основной ОС в &quot;%s&quot; в гостевой ОС ...</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2364"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2362"/>
         <source>Translating host source path&quot;%s&quot; failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось проверить путь источника основной ОС &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2375"/>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2462"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2373"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2460"/>
         <source>Translating guest destination path &quot;%s&quot; failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось проверить путь назначения гостевой ОС &quot;%s&quot;: (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2426"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2424"/>
         <source>Destination &quot;%s&quot; on the guest already exists and is a directory</source>
-        <translation type="unfinished"></translation>
+        <translation>Путь назначения &quot;%s&quot; в гостевой ОС уже сущесвует и является директорией</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2437"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2435"/>
         <source>Guest file &quot;%s&quot; already exists</source>
-        <translation type="unfinished">Файл гостевой системы &quot;%s&quot; уже существует</translation>
+        <translation>Файл гостевой ОС &quot;%s&quot; уже существует</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2446"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2444"/>
         <source>Unsupported guest file system type (%#x) for &quot;%s&quot;</source>
-        <translation type="unfinished"></translation>
+        <translation>Неподдерживаемое значение типа файловой системы (%#x) в гостевой ОС для &quot;%s&quot;</translation>
     </message>
     <message>
         <source>Host source is not a file: %s</source>
@@ -5514,33 +5952,33 @@ Guest offers: %s</source>
         <translation type="vanished">Ошибка во время добавления источника у хоста &apos;%s&apos; в список: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2194"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2191"/>
         <source>Failed with %Rrc</source>
         <translation>Ошибка %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2228"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2225"/>
         <source>Building guest destination root path &quot;%s&quot; failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось составить корневой путь назначения &quot;%s&quot; в гостевой ОС (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2272"/>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2280"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2269"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2277"/>
         <source>Querying information on guest for &quot;%s&quot; failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось запросить информацию о &quot;%s&quot; у гостевой ОС: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2301"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2298"/>
         <source>Guest root directory &quot;%s&quot; already exists</source>
-        <translation type="unfinished"></translation>
+        <translation>Корневая директория &quot;%s&quot; в гостевой ОС уже существует</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2311"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2308"/>
         <source>Destination &quot;%s&quot; on guest already exists and is a file</source>
-        <translation type="unfinished"></translation>
+        <translation>Путь назначения &quot;%s&quot; в гостевой ОС уже сущесвует и является файлом</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2322"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2320"/>
         <source>Unknown object type (%#x) on guest for &quot;%s&quot;</source>
         <translation>Неизвестный тип гостевого объекта (%#x) на &quot;%s&quot;</translation>
     </message>
@@ -5564,257 +6002,271 @@ Guest offers: %s</source>
 <context>
     <name>GuestSessionTaskUpdateAdditions</name>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2596"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2670"/>
         <source>Guest file &quot;%s&quot; could not be opened: %Rrc</source>
-        <translation>Не удалось открыть файл гостевой системы &quot;%s&quot;: %Rrc</translation>
+        <translation>Не удалось открыть файл гостевой ОС &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2651"/>
         <source>Running update file &quot;%s&quot; on guest failed: %Rrc</source>
-        <translation>Не удалось обновить файл гостевой системы &quot;%s&quot;: %Rrc</translation>
+        <translation type="vanished">Не удалось обновить файл гостевой системы &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2656"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2761"/>
+        <source>Running update file &quot;%s&quot; on guest failed with exit code %d</source>
+        <translation>Не удалось выполнить файл &quot;%s&quot; в гостевой ОС, ошибка: %d</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2767"/>
         <source>Running update file on guest failed</source>
-        <translation>Не удалось обновить файл гостевой системы</translation>
+        <translation>Не удалось обновить файл гостевой ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2662"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2773"/>
         <source>Update file &quot;%s&quot; reported invalid running state</source>
         <translation>Файл обновления &quot;%s&quot; сообщил о недопустимом рабочем состоянии</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2668"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2779"/>
         <source>Error while running update file &quot;%s&quot; on guest: %Rrc</source>
-        <translation>Ошибка во время запуска файла обновления &quot;%s&quot; в гостевой системе: %Rrc</translation>
+        <translation>Ошибка во время запуска файла обновления &quot;%s&quot; в гостевой ОС: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2712"/>
-        <source>Automatic update of Guest Additions has failed: files were installed, but user services were not reloaded automatically. Please consider rebooting the guest</source>
-        <translation type="unfinished"></translation>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2824"/>
+        <source>Files were installed, but user services were not reloaded automatically. Please consider rebooting the guest</source>
+        <translation>Файлы были установлены, но сервисы пользователя не были автоматически перезапущены. Пожалуйста, перезагрузите гостевую ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2718"/>
-        <source>Automatic update of Guest Additions has failed: files were installed, but kernel modules were not reloaded automatically. Please consider rebooting the guest</source>
-        <translation type="unfinished"></translation>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2829"/>
+        <source>Files were installed, but kernel modules were not reloaded automatically. Please consider rebooting the guest</source>
+        <translation>Файлы были установлены, но корневые модули не были автоматически перезапущены. Пожалуйста, перезагрузите гостевую ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2833"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2943"/>
         <source>Guest Additions were not ready within time, giving up</source>
-        <translation>Дополнения Гостевой ОС не стали готовы за отведенное время, сдаюсь</translation>
+        <translation>Дополнения Гостевой ОС не подготовлены за отведенное время, отмена</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2846"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2956"/>
         <source>Guest Additions are installed but not fully loaded yet, aborting automatic update</source>
-        <translation>Дополнения Гостевой ОС установлены, но еще не полностью загружены, прерывание автоматического обновления</translation>
+        <translation>Дополнения Гостевой ОС установлены, но ещё не полностью загружены, прерывание автоматического обновления</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2849"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2959"/>
         <source>Guest Additions not installed or ready, aborting automatic update</source>
         <translation>Дополнения Гостевой ОС не установлены или не готовы, прерывание автоматического обновления</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2866"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2976"/>
         <source>Guest has too old Guest Additions (%s) installed for automatic updating, please update manually</source>
-        <translation>В гостевой системе установлена слишком старая версия Дополнений Гостевой ОС (%s). Автоматическое обновление невозможно. Пожалуйста, обновите вручную</translation>
+        <translation>В гостевой ОС установлена слишком старая версия Дополнений Гостевой ОС (%s). Автоматическое обновление невозможно. Пожалуйста, обновите вручную</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2895"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3010"/>
         <source>Unable to detected guest OS version, please update manually</source>
         <translation>Невозможно определить версию гостевой ОС. Пожалуйста, обновите вручную</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2915"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3030"/>
         <source>Windows 2000 and XP are not supported for automatic updating due to WHQL interaction, please update manually</source>
         <translation>Автоматическое обновление не поддерживается в Windows 2000 и XP из-за WHQL взаимодействия. Пожалуйста, обновите вручную</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2923"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3038"/>
         <source>%s (%s) not supported for automatic updating, please update manually</source>
         <translation>Автоматическое обновление не поддерживается в %s (%s). Пожалуйста, обновите вручную</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2941"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3056"/>
         <source>Detected guest OS (%s) does not support automatic Guest Additions updating, please update manually</source>
         <translation>Автоматическое обновление не поддерживается в обнаруженной гостевой OC (%s). Пожалуйста, обновите вручную</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2958"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3073"/>
         <source>Unable to open Guest Additions .ISO file &quot;%s&quot;: %Rrc</source>
         <translation>Невозможно открыть .ISO файл Дополнений Гостевой ОС &quot;%s&quot;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2968"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3083"/>
         <source>Unable to open file as ISO 9660 file system volume: %Rrc</source>
         <translation>Невозможнр открыть файл как том с файловой системой ISO 9660: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3036"/>
-        <source>Creating installation directory on guest failed</source>
-        <translation>Не удалось создать установочную директорию в гостевой системе: %s</translation>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3115"/>
+        <source>Creating update directory on guest failed</source>
+        <translation>Не удалось создать директорию обновления в гостевой ОС</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3042"/>
-        <source>Creating installation directory &quot;%s&quot; on guest failed: %Rrc</source>
-        <translation>Не удалось создать установочную директорию &quot;%s&quot; в гостевой системе: %Rrc</translation>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3121"/>
+        <source>Creating update directory &quot;%s&quot; on guest failed: %Rrc</source>
+        <translation>Не удалось создать директорию обновления &quot;%s&quot; в гостевой ОС: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3229"/>
-        <source>Error while copying file &quot;%s&quot; to &quot;%s&quot; on the guest: %Rrc</source>
-        <translation>Ошибка во время копирования файла &quot;%s&quot; в &quot;%s&quot; в гостевой системе: %Rrc</translation>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3371"/>
+        <source>Guest services were not restarted, please reinstall Guest Additions manually</source>
+        <translation>Сервисы гостевой ОС не были перезапущены, пожалуйста, переустановите Дополнения Гостевой ОС вручную</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3292"/>
-        <source>Automatic update of Guest Additions has failed: guest services were not restarted, please reinstall Guest Additions manually</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3299"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3377"/>
         <source>Old guest session is still active, guest services were not restarted after installation, please reinstall Guest Additions manually</source>
-        <translation type="unfinished"></translation>
+        <translation>Старая сессия гостевой ОС всё ещё активна, сервисы гостевой ОС не были перезапущены после установки, пожалуйста, переустановите Дополнения Гостевой ОС вручную</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3323"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3401"/>
+        <source>Operation was canceled</source>
+        <translation>Операция отменена</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3408"/>
+        <source>Operation has timed out</source>
+        <translation>Срок выполнения операция истёк</translation>
+    </message>
+    <message>
+        <source>Creating installation directory on guest failed</source>
+        <translation type="vanished">Не удалось создать установочную директорию в гостевой системе: %s</translation>
+    </message>
+    <message>
+        <source>Creating installation directory &quot;%s&quot; on guest failed: %Rrc</source>
+        <translation type="vanished">Не удалось создать установочную директорию &quot;%s&quot; в гостевой системе: %Rrc</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3308"/>
+        <source>Error while copying file &quot;%s&quot; to &quot;%s&quot; on the guest: %Rrc</source>
+        <translation>Ошибка во время копирования файла &quot;%s&quot; в &quot;%s&quot; в гостевой ОС: %Rrc</translation>
+    </message>
+    <message>
         <source>Installation was canceled</source>
-        <translation>Установка отменена</translation>
-    </message>
-    <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3330"/>
-        <source>Installation has timed out</source>
-        <translation type="unfinished"></translation>
+        <translation type="vanished">Установка отменена</translation>
     </message>
 </context>
 <context>
     <name>Host</name>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1268"/>
+        <location filename="../src-server/HostImpl.cpp" line="1310"/>
         <source>The aFeature value %d (%#x) is out of range.</source>
         <translation>Значение aFeature %d (%#x) выходит за границы диапазона.</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1349"/>
         <source>CPU no.%u is not present</source>
-        <translation>ЦПУ #%u отсутствует</translation>
+        <translation type="vanished">ЦПУ #%u отсутствует</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1350"/>
         <source>CPU no.%u is not online</source>
-        <translation>ЦПУ #%u не подключен</translation>
+        <translation type="vanished">ЦПУ #%u не подключен</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1517"/>
+        <location filename="../src-server/HostImpl.cpp" line="1518"/>
         <source>Unable to create a host network interface</source>
         <translation>Невозможно создать сетевой хост-интерфейс</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1584"/>
+        <location filename="../src-server/HostImpl.cpp" line="1585"/>
         <source>Host network interface with UUID {%RTuuid} does not exist</source>
         <translation>Сетевой хост-интерфейс с UUID {%RTuuid} не существует</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1663"/>
+        <location filename="../src-server/HostImpl.cpp" line="1664"/>
         <source>The given USB device filter is not created within this VirtualBox instance</source>
         <translation>Данный фильтр USB устройства не создан в этом экземпляре VirtualBox</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1667"/>
+        <location filename="../src-server/HostImpl.cpp" line="1668"/>
         <source>The given USB device filter is already in the list</source>
         <translation>Данный фильтр USB устройства уже в списке</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1711"/>
+        <location filename="../src-server/HostImpl.cpp" line="1712"/>
         <source>The USB device filter list is empty</source>
         <translation>Список фильтров USB устройств пуст</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1715"/>
+        <location filename="../src-server/HostImpl.cpp" line="1716"/>
         <source>Invalid position: %lu (must be in range [0, %lu])</source>
         <translation>Недопустимая позиция: %lu (должна быть в диапазоне [0, %lu])</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1759"/>
+        <location filename="../src-server/HostImpl.cpp" line="1760"/>
         <source>The host DVD drive named &apos;%s&apos; could not be found</source>
-        <translation>DVD дисковод хоста с именем &apos;%s&apos; не найден</translation>
+        <translation>Привод оптических дисков ПК с именем &apos;%s&apos; не найден</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1772"/>
+        <location filename="../src-server/HostImpl.cpp" line="1773"/>
         <source>The host floppy drive named &apos;%s&apos; could not be found</source>
-        <translation>Флоппи дисковод хоста с именем &apos;%s&apos; не найден</translation>
+        <translation>Привод гибких дисков ПК с именем &apos;%s&apos; не найден</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1813"/>
+        <location filename="../src-server/HostImpl.cpp" line="1814"/>
         <source>The host network interface named &apos;%s&apos; could not be found</source>
         <translation>Сетевой хост-интерфейс с именем &apos;%s&apos; не найден</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1857"/>
+        <location filename="../src-server/HostImpl.cpp" line="1858"/>
         <source>The host network interface with the given GUID could not be found</source>
         <translation>Сетевой хост-интерфейс с данным GUID не найден</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1933"/>
+        <location filename="../src-server/HostImpl.cpp" line="1934"/>
         <source>Could not find a USB device with address &apos;%s&apos;</source>
         <translation>Невозможно найти USB устройство с адресом &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1967"/>
+        <location filename="../src-server/HostImpl.cpp" line="1968"/>
         <source>Could not find a USB device with uuid {%RTuuid}</source>
         <translation>Невозможно найти USB устройство с UUID {%RTuuid}</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="3618"/>
+        <location filename="../src-server/HostImpl.cpp" line="3701"/>
         <source>Could not load the Host USB Proxy Service (VERR_FILE_NOT_FOUND).  The service might not be installed on the host computer</source>
         <translation>Невозможно запустить службу USB прокси хоста (VERR_FILE_NOT_FOUND). Служба может быть не установлена на хосте</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="3621"/>
+        <location filename="../src-server/HostImpl.cpp" line="3704"/>
         <source>VirtualBox is not currently allowed to access USB devices.  You can change this by adding your user to the &apos;vboxusers&apos; group.  Please see the user manual for a more detailed explanation</source>
         <translation>В настоящее время VirtualBox не имеет доступа к USB устройствам. Вы можете изменить это путем добавления пользователя в группу &apos;vboxusers&apos;. Пожалуйста, обратитесь к руководству пользователя за более подробными объяснениями</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="3624"/>
+        <location filename="../src-server/HostImpl.cpp" line="3707"/>
         <source>VirtualBox is not currently allowed to access USB devices.  You can change this by allowing your user to access the &apos;usbfs&apos; folder and files.  Please see the user manual for a more detailed explanation</source>
         <translation>В настоящее время VirtualBox не имеет доступа к USB устройствам. Вы можете изменить это путем разрешения доступа к &apos;usbfs&apos; папке и файлам. Пожалуйста, обратитесь к руководству пользователя за более подробными объяснениями</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="3627"/>
+        <location filename="../src-server/HostImpl.cpp" line="3710"/>
         <source>The USB Proxy Service has not yet been ported to this host</source>
-        <translation>Служба USB прокси еще не портирована под этот хост</translation>
+        <translation>Служба USB прокси ещё не портирована под этот хост</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="3630"/>
+        <location filename="../src-server/HostImpl.cpp" line="3713"/>
         <source>Could not load the Host USB Proxy service</source>
         <translation>Невозможно запустить Службу USB прокси хоста</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="3977"/>
+        <location filename="../src-server/HostImpl.cpp" line="4078"/>
         <source>Failed to open NT\GLOBAL?? (error %Rrc)</source>
         <translation>Не удалось открыть NT\GLOBAL?? (ошибка %Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="3988"/>
-        <location filename="../src-server/HostImpl.cpp" line="4005"/>
+        <location filename="../src-server/HostImpl.cpp" line="4089"/>
+        <location filename="../src-server/HostImpl.cpp" line="4106"/>
         <source>Out of memory! (direntry buffer)</source>
         <translation>Не хватает памяти! (буфер direntry)</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="4008"/>
+        <location filename="../src-server/HostImpl.cpp" line="4109"/>
         <source>RTVfsDirReadEx failed: %Rrc</source>
         <translation>RTVfsDirReadEx завершено с ошибкой: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="4022"/>
+        <location filename="../src-server/HostImpl.cpp" line="4123"/>
         <source>Unknown (Access denied)</source>
         <translation>Неизвестно (Доступ запрещен)</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="4026"/>
-        <location filename="../src-server/HostImpl.cpp" line="4071"/>
+        <location filename="../src-server/HostImpl.cpp" line="4127"/>
+        <location filename="../src-server/HostImpl.cpp" line="4172"/>
         <source>Out of memory</source>
         <translation>Не хватает памяти</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="4129"/>
+        <location filename="../src-server/HostImpl.cpp" line="4230"/>
         <source>Failed to update fixed drive list (%Rrc)</source>
         <translation>Не удалось обновить список жестких дисков (%Rrc)</translation>
     </message>
@@ -5850,7 +6302,7 @@ Guest offers: %s</source>
     <message>
         <location filename="../src-server/HostUSBDeviceImpl.cpp" line="437"/>
         <source>USB device &apos;%s&apos; with UUID {%RTuuid} cannot be accessed by guest computers</source>
-        <translation>USB устройство &apos;%s&apos; с UUID {%RTuuid} не имеет доступа из гостевой системы</translation>
+        <translation>USB устройство &apos;%s&apos; с UUID {%RTuuid} не имеет доступа из гостевой ОС</translation>
     </message>
     <message>
         <location filename="../src-server/HostUSBDeviceImpl.cpp" line="441"/>
@@ -5875,7 +6327,7 @@ Guest offers: %s</source>
     <message>
         <location filename="../src-server/HostUSBDeviceImpl.cpp" line="505"/>
         <source>USB device &apos;%s&apos; with UUID {%RTuuid} is in use by someone else</source>
-        <translation>USB устройство &apos;%s&apos; с UUID {%RTuuid} используется кем-то еще</translation>
+        <translation>USB устройство &apos;%s&apos; с UUID {%RTuuid} используется кем-то ещё</translation>
     </message>
     <message>
         <location filename="../src-server/HostUSBDeviceImpl.cpp" line="682"/>
@@ -5975,32 +6427,32 @@ Guest offers: %s</source>
     <message>
         <location filename="../src-server/UpdateAgentImpl.cpp" line="930"/>
         <source>Checking for update for %s ...</source>
-        <translation type="unfinished"></translation>
+        <translation>Проверка обновлений %s ...</translation>
     </message>
     <message>
         <location filename="../src-server/UpdateAgentImpl.cpp" line="1053"/>
         <source>RTHttpCreate() failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>RTHttpCreate() завершился с ошибкой: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UpdateAgentImpl.cpp" line="1078"/>
         <source>RTHttpAddHeader() failed: %Rrc (user agent)</source>
-        <translation type="unfinished"></translation>
+        <translation>RTHttpAddHeader() завершился с ошибкой: %Rrc (user agent)</translation>
     </message>
     <message>
         <location filename="../src-server/UpdateAgentImpl.cpp" line="1087"/>
         <source>RTHttpGetBinary() failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>RTHttpGetBinary() завершился с ошибкой: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UpdateAgentImpl.cpp" line="1160"/>
         <source>Invalid server response [1]: %Rhrc (%.*Rhxs -- %.*Rhxs)</source>
-        <translation type="unfinished"></translation>
+        <translation>Недопустимый ответ сервера [1]: %Rhrc (%.*Rhxs -- %.*Rhxs)</translation>
     </message>
     <message>
         <location filename="../src-server/UpdateAgentImpl.cpp" line="1167"/>
         <source>Invalid server response [2]: %Rrc (%.*Rhxs -- %.*Rhxs)</source>
-        <translation type="unfinished"></translation>
+        <translation>Недопустимый ответ сервера [2]: %Rrc (%.*Rhxs -- %.*Rhxs)</translation>
     </message>
 </context>
 <context>
@@ -6009,6 +6461,19 @@ Guest offers: %s</source>
         <location filename="../src-server/HostVideoInputDeviceImpl.cpp" line="233"/>
         <source>Failed to get webcam list: %Rrc</source>
         <translation>Не удалось получить список вебкамер: %Rrc</translation>
+    </message>
+</context>
+<context>
+    <name>HostX86</name>
+    <message>
+        <location filename="../src-server/HostX86Impl.cpp" line="97"/>
+        <source>CPU no.%u is not present</source>
+        <translation>ЦПУ #%u отсутствует</translation>
+    </message>
+    <message>
+        <location filename="../src-server/HostX86Impl.cpp" line="98"/>
+        <source>CPU no.%u is not online</source>
+        <translation>ЦПУ #%u не подключен</translation>
     </message>
 </context>
 <context>
@@ -6027,43 +6492,43 @@ Guest offers: %s</source>
 <context>
     <name>Machine</name>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="422"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="443"/>
         <source>Cannot attach disk &apos;%s&apos; -- file name too long</source>
         <translation>Невозможно подключить диск &apos;%s&apos; -- имя файла слишком длинное</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="465"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="486"/>
         <source>Internal error adding a medium UUID to the map</source>
         <translation>Внутренняя ошибка во время добавления UUID носителя в карту носителей</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="513"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="534"/>
         <source>Cannot attach image &apos;%s&apos; -- file name too long</source>
         <translation>Невозможно подключить образ &apos;%s&apos; -- имя файла слишком длинное</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="553"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="574"/>
         <source>Cannot handle medium attachment: channel is %d, device is %d</source>
         <translation>Невозможно обработать подключение носителя: канал %d, устройство %d</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="579"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="605"/>
         <source>Cannot handle medium attachment: storageBus is %d, channel is %d, device is %d</source>
         <translation>Невозможно обработать подключение носителя: шина %d, канал %d, устройство %d</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="664"/>
+        <location filename="../src-server/MachineImpl.cpp" line="636"/>
         <source>Trying to open a VM config &apos;%s&apos; which has the same UUID as an existing virtual machine</source>
         <translation>Попытка открыть конфигурацию ВМ &apos;%s&apos; у которой тот же UUID что и у существующей виртуальной машины</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="870"/>
-        <location filename="../src-server/MachineImpl.cpp" line="917"/>
+        <location filename="../src-server/MachineImpl.cpp" line="843"/>
+        <location filename="../src-server/MachineImpl.cpp" line="890"/>
         <source>Invalid machine settings file name &apos;%s&apos; (%Rrc)</source>
         <translation>Недопустимое имя файла настроек машины &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="906"/>
+        <location filename="../src-server/MachineImpl.cpp" line="879"/>
         <source>Machine settings file &apos;%s&apos; already exists</source>
         <translation>Файл настроек машины &apos;%s&apos; уже существует</translation>
     </message>
@@ -6072,198 +6537,194 @@ Guest offers: %s</source>
         <translation type="vanished">Невозможно удалить существующий файл настроек &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="983"/>
+        <location filename="../src-server/MachineImpl.cpp" line="956"/>
         <source>Machine UUID {%RTuuid} in &apos;%s&apos; doesn&apos;t match its UUID {%s} in the registry file &apos;%s&apos;</source>
         <translation>UUID машины {%RTuuid} в &apos;%s&apos; не соответствует его UUID {%s} в файле реестра &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="1280"/>
+        <location filename="../src-server/MachineImpl.cpp" line="1261"/>
         <source>A machine cannot have a UUID as its name</source>
         <translation>Машина не может иметь UUID в качестве имени</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="1699"/>
+        <location filename="../src-server/MachineImpl.cpp" line="1575"/>
         <source>Invalid hardware version: %s
 </source>
         <translation>Недопустимая версия аппаратного обеспечения: %s
 </translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="1761"/>
+        <location filename="../src-server/MachineImpl.cpp" line="1637"/>
         <source>Invalid RAM size: %lu MB (must be in range [%lu, %lu] MB)</source>
         <translation>Недопустимый размер RAM: %lu MB (должен быть в диапазоне [%lu, %lu] MB)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="1792"/>
+        <location filename="../src-server/MachineImpl.cpp" line="1668"/>
         <source>Invalid virtual CPU count: %lu (must be in range [%lu, %lu])</source>
         <translation>Недопустимое количество ЦПУ: %lu (должен быть в диапазоне [%lu, %lu])</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="1804"/>
+        <location filename="../src-server/MachineImpl.cpp" line="1680"/>
         <source>There is still a CPU attached to socket %lu.Detach the CPU before removing the socket</source>
-        <translation>Все еще существует ЦПУ подключенный к сокету %lu. Отключите ЦПУ перед удалением сокета</translation>
+        <translation>Всё ещё существует ЦПУ подключенный к сокету %lu. Отключите ЦПУ перед удалением сокета</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="1836"/>
+        <location filename="../src-server/MachineImpl.cpp" line="1712"/>
         <source>Invalid CPU execution cap value: %lu (must be in range [%lu, %lu])</source>
         <translation>Недопустимое значение предельной загрузки ЦПУ: %lu (должно быть в диапазоне [%lu, %lu])</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="1910"/>
+        <location filename="../src-server/MachineImpl.cpp" line="1786"/>
         <source>CPU hotplugging can&apos;t be disabled because the maximum number of CPUs is not equal to the amount of CPUs attached</source>
         <translation>Горячее подключение ЦПУ не может быть выключено, потому что максимальное количество ЦПУ не равно количеству подключенных ЦПУ</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="2049"/>
+        <location filename="../src-server/MachineImpl.cpp" line="1901"/>
         <source>Invalid memory balloon size: %lu MB (must be in range [%lu, %lu] MB)</source>
         <translation>Недопустимый размер memory balloon: %lu MB (должен быть в диапазоне [%lu, %lu] MB)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="2064"/>
+        <location filename="../src-server/MachineImpl.cpp" line="1916"/>
         <source>Memory ballooning is only supported on 64-bit hosts</source>
         <translation>Memory ballooning поддерживается только на 64 битных хостах</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="2091"/>
+        <location filename="../src-server/MachineImpl.cpp" line="1943"/>
         <source>Page fusion is only supported on 64-bit hosts</source>
         <translation>Page fusion поддерживается только на 64 битных хостах</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="2395"/>
         <source>Currently only aSubIdx values 0 and 0xffffffff are supported: %#x</source>
-        <translation>В настоящее время поддерживаются только aSubIdx значения 0 и 0xffffffff: %#x</translation>
+        <translation type="vanished">В настоящее время поддерживаются только aSubIdx значения 0 и 0xffffffff: %#x</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="2399"/>
         <source>CpuId override leaf %#x is out of range</source>
-        <translation>Лист переопределения CpuId %#x вышел за границы диапазона</translation>
+        <translation type="vanished">Лист переопределения CpuId %#x вышел за границы диапазона</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="2409"/>
         <source>Max of 256 CPUID override leaves reached</source>
-        <translation>Достигнут максимум 256 листов переопределения CPUID</translation>
+        <translation type="vanished">Достигнут максимум 256 листов переопределения CPUID</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="2629"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2015"/>
         <source>The snapshot folder of a machine with snapshots cannot be changed (please delete all snapshots first)</source>
         <translation>Папка для снимков машины не может быть изменена пока там есть сники. (пожалуйста, сначала удалите все снимки)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="2638"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2024"/>
         <source>Invalid snapshot folder &apos;%s&apos; (%Rrc)</source>
         <translation>Недопустимая папка для снимков &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3023"/>
-        <location filename="../src-server/MachineImpl.cpp" line="3144"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2409"/>
         <source>The machine is not powered off (state is %s)</source>
         <translation>Машина не выключена (состояние %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3045"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2431"/>
         <source>Invalid port number %d</source>
         <translation>Недопустимый номер порта %d</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3100"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2486"/>
         <source>Cannot set an already hashed password, only plain text password please</source>
         <translation>Невозможно установить уже прохешированный пароль, пожалуйста, используйте только простой текст</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3273"/>
-        <location filename="../src-server/MachineImpl.cpp" line="3702"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2624"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3053"/>
         <source>The given session is busy</source>
         <translation>Данная сессия занята</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3277"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2628"/>
         <source>No IInternalSessionControl interface</source>
         <translation>Нет интерфейса IInternalSessionControl</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3287"/>
-        <location filename="../src-server/MachineImpl.cpp" line="7808"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2638"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7192"/>
         <source>The machine &apos;%s&apos; is not registered</source>
         <translation>Машина &apos;%s&apos; не зарегистрирована</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3341"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2692"/>
         <source>Failed to get a console object from the direct session (%Rhrc)</source>
         <translation>Не удалось получить объект консоли из прямой сессии (%Rhrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3352"/>
-        <location filename="../src-server/MachineImpl.cpp" line="3492"/>
-        <location filename="../src-server/MachineImpl.cpp" line="8084"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2703"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2843"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7468"/>
         <source>Failed to assign the machine to the session (%Rhrc)</source>
         <translation>Не удалось назначить машину сессии (%Rhrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3360"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2711"/>
         <source>The machine &apos;%s&apos; was unlocked unexpectedly while attempting to share its session</source>
         <translation>Машина &apos;%s&apos; была неожиданно разблокирована во время попытки поделиться своей сессией</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3373"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2724"/>
         <source>The machine &apos;%s&apos; is already locked for a session (or being unlocked)</source>
         <translation>Машина &apos;%s&apos; уже заблокирована для сессии (или разблокируется)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3400"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2751"/>
         <source>The machine &apos;%s&apos; already has a lock request pending</source>
         <translation>У машины &apos;%s&apos; уже есть ожидающий запрос на блокировку</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3428"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2779"/>
         <source>An unexpected process (PID=0x%08X) has tried to lock the machine &apos;%s&apos;, while only the process started by LaunchVMProcess (PID=0x%08X) is allowed</source>
         <translation>Неожиданных процесс (PID=0x%08X) попытался заблокировать машину &apos;%s&apos;, в то время как допускается только один процесс, запущенный LaunchVMProcess (PID=0x%08X)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3534"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2885"/>
         <source>Failed to assign the machine to the remote session (%Rhrc)</source>
         <translation>Не удалось назначить машину удаленной сессии (%Rhrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3721"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3072"/>
         <source>Starting VM</source>
         <translation>Запуск ВМ</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3724"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3075"/>
         <source>Creating process for virtual machine &quot;%s&quot; (%s)</source>
         <translation>Создание процесса для виртуальной машины &quot;%s&quot; (%s)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3752"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3103"/>
         <source>The machine &apos;%s&apos; is not locked by a session</source>
         <translation>Машина &apos;%s&apos; не заблокирована сессией</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3759"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3110"/>
         <source>The machine &apos;%s&apos; does not have a VM process</source>
         <translation>У машины &apos;%s&apos; нет процесса ВМ</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3778"/>
-        <location filename="../src-server/MachineImpl.cpp" line="3801"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3129"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3152"/>
         <source>Invalid boot position: %lu (must be in range [1, %lu])</source>
         <translation>Недопустимая загрузочная позиция: %lu (должна быть в диапазоне [1, %lu])</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3783"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3134"/>
         <source>Booting from USB device is currently not supported</source>
         <translation>Загрузка из USB устройства в настоящее время не поддерживается</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3832"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3183"/>
         <source>Cannot attach storage devices to an unregistered machine</source>
         <translation>Невозможно подключить устройство хранения к незарегистрированной машине</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3844"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4423"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4508"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4721"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3195"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3774"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3859"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4072"/>
         <source>Could not get type of controller &apos;%s&apos;</source>
         <translation>Невозможно получить тип контроллера &apos;%s&apos;</translation>
     </message>
@@ -6272,46 +6733,46 @@ Guest offers: %s</source>
         <translation type="vanished">Контроллер &apos;%s&apos; не поддерживает горячее подключение</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3880"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3231"/>
         <source>Medium &apos;%s&apos; is already attached to port %d, device %d of controller &apos;%s&apos; of this virtual machine</source>
         <translation>Носитель &apos;%s&apos; уже поключен на порт %d, устройство %d контроллера &apos;%s&apos; этой виртуальной машины</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3888"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3239"/>
         <source>Device is already attached to port %d, device %d of controller &apos;%s&apos; of this virtual machine</source>
         <translation>Устройство уже поключено на порт %d, устройство %d контроллера &apos;%s&apos; этой виртуальной машины</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3894"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4871"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3245"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4222"/>
         <source>The given medium pointer is invalid</source>
         <translation>Данный указатель на носитель недействительный</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3908"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3259"/>
         <source>Medium &apos;%s&apos; is already attached to this virtual machine</source>
         <translation>Носитель &apos;%s&apos; уже поключен к этой виртуальной машине</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3935"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3286"/>
         <source>Cannot attach medium &apos;%s&apos;: the media type &apos;MultiAttach&apos; can only be attached to machines that were created with VirtualBox 4.0 or later</source>
         <translation>Невозможно подключить носитель &apos;%s&apos;: носитель с типом &apos;Множественное подключение&apos; может быть подключен к машинам, созданным в VirtualBox 4.0 или позже</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4266"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3617"/>
         <source>Could not lock medium when creating diff &apos;%s&apos;</source>
         <translation>Невозможно заблокировать носитель во время создания разностного носителя &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4450"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4536"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4581"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4624"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4667"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4709"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4778"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4980"/>
-        <location filename="../src-server/MachineImpl.cpp" line="6200"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3801"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3887"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3932"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3975"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4018"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4060"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4129"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4331"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5553"/>
         <source>No storage device attached to device slot %d on port %d of controller &apos;%s&apos;</source>
         <translation>Устройства хранения не подключены к слоту устройств %d на порту %d контроллера &apos;%s&apos;</translation>
     </message>
@@ -6324,70 +6785,70 @@ Guest offers: %s</source>
         <translation type="vanished">Контроллер &apos;%s&apos; не поддерживает горячее подключение, которое требуется для изменения настроек &quot;прямого доступа&quot; в то время как ВМ работает</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4547"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3898"/>
         <source>Setting passthrough rejected as the device attached to device slot %d on port %d of controller &apos;%s&apos; is not a DVD</source>
-        <translation>Установка &quot;прямого доступа&quot; отклонена, так как устройство, подключенное к слоту устройств %d на порту %d контроллера &apos;%s&apos; не является DVD</translation>
+        <translation>Установка &quot;прямого доступа&quot; отклонена, так как устройство, подключенное к слоту устройств %d на порту %d контроллера &apos;%s&apos; не является оптическим диском</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4592"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3943"/>
         <source>Setting temporary eject flag rejected as the device attached to device slot %d on port %d of controller &apos;%s&apos; is not a DVD</source>
-        <translation>Установка флага временного изьятия отклонена, так как устройство, подключенное к слоту устройств %d на порту %d контроллера &apos;%s&apos; не является DVD</translation>
+        <translation>Установка флага временного изьятия отклонена, так как устройство, подключенное к слоту устройств %d на порту %d контроллера &apos;%s&apos; не является оптическим диском</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4615"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4658"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4700"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4769"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3966"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4009"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4051"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4120"/>
         <source>Invalid machine state: %s</source>
         <translation>Недопустимое состояние машины: %s</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4635"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3986"/>
         <source>Setting the non-rotational medium flag rejected as the device attached to device slot %d on port %d of controller &apos;%s&apos; is not a hard disk</source>
         <translation>Установка флага &quot;твердотельный носитель&quot; отклонена, так как устройство, подключенное к слоту устройств %d на порту %d контроллера &apos;%s&apos; не является жестким диском</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4678"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4029"/>
         <source>Setting the discard medium flag rejected as the device attached to device slot %d on port %d of controller &apos;%s&apos; is not a hard disk</source>
         <translation>Установка флага &quot;сбросить (удалить) носитель&quot; отклонена, так как устройство, подключенное к слоту устройств %d на порту %d контроллера &apos;%s&apos; не является жестким диском</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4726"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4077"/>
         <source>Controller &apos;%s&apos; does not support changing the hot-pluggable device flag</source>
         <translation>Контроллер &apos;%s&apos; не поддерживает изменения флага &quot;возможность горячего подключения&quot;</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4740"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4091"/>
         <source>Setting the hot-pluggable device flag rejected as the device attached to device slot %d on port %d of controller &apos;%s&apos; is a floppy drive</source>
-        <translation>Установка флага &quot;возможность горячего подключения&quot; отклонена, так как устройство, подключенное к слоту устройств %d на порту %d контроллера &apos;%s&apos; является флоппи диском</translation>
+        <translation>Установка флага &quot;возможность горячего подключения&quot; отклонена, так как устройство, подключенное к слоту устройств %d на порту %d контроллера &apos;%s&apos; является приводом гибких дисков</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4788"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4139"/>
         <source>The given bandwidth group pointer is invalid</source>
         <translation>Данный указатель на группу полосы пропускания недействителен</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4860"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4211"/>
         <source>No drive attached to device slot %d on port %d of controller &apos;%s&apos;</source>
         <translation>Диски не подключены к слоту устройства %d на порту %d контроллера &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4892"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4243"/>
         <source>The device at port %d, device %d of controller &apos;%s&apos; of this virtual machine is not removeable</source>
         <translation>Устройство на порту %d, устройство %d контроллера &apos;%s&apos; этой виртуальной машины не сьемное</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4996"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4347"/>
         <source>Serial port slot %RU32 is out of bounds (max %zu)</source>
         <translation>Слот последовательного порта %RU32 выходит за границы (макимально %zu)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5007"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4358"/>
         <source>Parallel port slot %RU32 is out of bounds (max %zu)</source>
         <translation>Слот параллельного порта %RU32 выходит за границы (макимально %zu)</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/MachineImpl.cpp" line="5017"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4368"/>
         <source>No network adapter in slot %RU32 (total %RU32 adapters)</source>
         <translation>
             <numerusform>Нет сетевых адаптеров в слоте %RU32 (всего %RU32 адаптер)</numerusform>
@@ -6396,34 +6857,34 @@ Guest offers: %s</source>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5096"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4447"/>
         <source>Cannot set extradata for a snapshot</source>
         <translation>Невозможно установить экстра данные для снимка</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5101"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4452"/>
         <source>Cannot set extradata for an immutable machine</source>
         <translation>Невозможно установить экстра данные для неизменяемой машины</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5120"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4471"/>
         <source>Could not set extra data because someone refused the requested change of &apos;%s&apos; to &apos;%s&apos;%s%ls</source>
         <translation>Невозможно установить экстра данные, потому что кто-то отклонил запрошенное изменение &apos;%s&apos; в &apos;%s&apos;%s%ls</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5266"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4617"/>
         <source>Cannot unregister the machine &apos;%s&apos; while it is locked</source>
         <translation>Невозможно отменить регистрацию машины &apos;%s&apos; пока она заблокирована</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5428"/>
-        <location filename="../src-server/MachineImpl.cpp" line="16476"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4779"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15837"/>
         <source>The session has been accidentally closed</source>
         <translation>Сессия была случайно закрыта</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5461"/>
-        <location filename="../src-server/MachineImpl.cpp" line="5496"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4812"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4847"/>
         <source>Deleting &apos;%s&apos;</source>
         <translation>Удаление &apos;%s&apos;</translation>
     </message>
@@ -6432,724 +6893,724 @@ Guest offers: %s</source>
         <translation type="vanished">Невозможно удалить файл &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="380"/>
-        <location filename="../src-server/MachineImpl.cpp" line="613"/>
-        <location filename="../src-server/MachineImpl.cpp" line="16678"/>
-        <location filename="../src-server/MachineImpl.cpp" line="16810"/>
-        <location filename="../src-server/MachineImpl.cpp" line="16850"/>
-        <location filename="../src-server/MachineImpl.cpp" line="16891"/>
-        <location filename="../src-server/MachineImpl.cpp" line="16954"/>
-        <location filename="../src-server/MachineImpl.cpp" line="16971"/>
-        <location filename="../src-server/MachineImpl.cpp" line="17009"/>
+        <location filename="../src-server/MachineImpl.cpp" line="353"/>
+        <location filename="../src-server/MachineImpl.cpp" line="585"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16039"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16171"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16211"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16252"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16315"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16332"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16370"/>
         <source>Full VM encryption is not available with this build</source>
-        <translation type="unfinished"></translation>
+        <translation>Полное шифрование ВМ недоступно в этой сборке</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="413"/>
+        <location filename="../src-server/MachineImpl.cpp" line="386"/>
         <source>The cipher &apos;%s&apos; is not supported</source>
-        <translation type="unfinished"></translation>
+        <translation>Тип шифрования &apos;%s&apos; не поддерживается</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="421"/>
-        <location filename="../src-server/MachineImpl.cpp" line="16546"/>
+        <location filename="../src-server/MachineImpl.cpp" line="394"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15907"/>
         <source>New key store creation failed, (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось создать новое хранилище ключей, (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="432"/>
-        <location filename="../src-server/MachineImpl.cpp" line="16564"/>
+        <location filename="../src-server/MachineImpl.cpp" line="405"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15925"/>
         <source>Saving the key store failed, (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось сохранить хранилище ключей, (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="688"/>
+        <location filename="../src-server/MachineImpl.cpp" line="660"/>
         <source>Decryption of the machine {%RTuuid} failed. Incorrect or unknown password</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось расшифровать машину {%RTuuid}. Неверный или неизвестный пароль</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="911"/>
+        <location filename="../src-server/MachineImpl.cpp" line="884"/>
         <source>existing settings file</source>
-        <translation type="unfinished"></translation>
+        <translation>файл настроек уже существует</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="965"/>
+        <location filename="../src-server/MachineImpl.cpp" line="938"/>
         <source>Failed to retain key for key ID &apos;%s&apos; with %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось получить ключ с ИД &apos;%s&apos; с ошибкой %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="997"/>
+        <location filename="../src-server/MachineImpl.cpp" line="970"/>
         <source>Config decryption of the machine {%RTuuid} failed. Incorrect or unknown password</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось расшифровать конфигурацию машины {%RTuuid}. Неверный или неизвестный пароль</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3861"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4441"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3212"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3792"/>
         <source>Controller &apos;%s&apos; does not support hot-plugging</source>
-        <translation type="unfinished"></translation>
+        <translation>Контроллер &apos;%s&apos; не поддерживает горячее подключение</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4455"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3806"/>
         <source>The device slot %d on port %d of controller &apos;%s&apos; does not support hot-plugging</source>
-        <translation type="unfinished"></translation>
+        <translation>Слот устройства %d на порту %d контроллера &apos;%s&apos; не поддерживает горячее подключение</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4527"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3878"/>
         <source>Controller &apos;%s&apos; does not support hot-plugging which is required to change the passthrough setting while the VM is running</source>
-        <translation type="unfinished"></translation>
+        <translation>Контроллер &apos;%s&apos; не поддерживает горячее подключение, которое требуется для изменения настроек &quot;прямого доступа&quot; во время работы ВМ</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5501"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4852"/>
         <source>Cleaning up machine directory</source>
         <translation>Очистка директории машины</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5589"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4940"/>
         <source>Cannot delete settings of a registered machine</source>
         <translation>Невозможно удалить настройки зарегистрированной машины</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5608"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4959"/>
         <source>The given medium pointer with index %d is invalid</source>
         <translation>Данный указатель на носитель с индексом %d недействителен</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5623"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4974"/>
         <source>Deleting files</source>
         <translation>Удаление файлов</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5626"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4977"/>
         <source>Collecting file inventory</source>
         <translation>Сбор информации о файлах</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5680"/>
-        <location filename="../src-server/MachineImpl.cpp" line="9432"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5031"/>
+        <location filename="../src-server/MachineImpl.cpp" line="8810"/>
         <source>Shared folder named &apos;%s&apos; already exists</source>
         <translation>Общая папка с именем &apos;%s&apos; уже существует</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5737"/>
-        <location filename="../src-server/MachineImpl.cpp" line="5760"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5090"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5113"/>
         <source>Machine is not locked for session (session state: %s)</source>
         <translation>Машина &apos;%s&apos; не заблокирована для сессии (состояние сессии: %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5883"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5236"/>
         <source>Invalid guest property flag values: &apos;%s&apos;</source>
-        <translation>Недопустимые значения флага свойства гостевой системы: &apos;%s&apos;</translation>
+        <translation>Недопустимые значения флага свойства гостевой ОС: &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5886"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5239"/>
         <source>Properties with TRANSIENT or TRANSRESET flag cannot be set or modified if VM is not running</source>
-        <translation type="unfinished"></translation>
+        <translation>Невозможно задать или изменить параметры с флагом TRANSIENT или TRANSRESET пока ВМ не запущена</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5908"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5261"/>
         <source>The property &apos;%s&apos; cannot be changed by the host</source>
         <translation>Свойство &apos;%s&apos; не может быть изменено хостом</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6216"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5569"/>
         <source>Invalid connection type: %d</source>
         <translation>Недопустимый тип соединения: %d</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6230"/>
-        <location filename="../src-server/MachineImpl.cpp" line="9582"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5583"/>
+        <location filename="../src-server/MachineImpl.cpp" line="8961"/>
         <source>Storage controller named &apos;%s&apos; already exists</source>
         <translation>Контроллер с именем &apos;%s&apos; уже существует</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6306"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5659"/>
         <source>Could not find a storage controller with instance number &apos;%lu&apos;</source>
         <translation>Невозможно найти контроллер с номером экземпляра &apos;%lu&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6429"/>
-        <location filename="../src-server/MachineImpl.cpp" line="6494"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5782"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5852"/>
         <source>Invalid USB controller type: %d</source>
         <translation>Недопустимый тип USB контроллера %d</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6443"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5796"/>
         <source>USB controller named &apos;%s&apos; already exists</source>
         <translation>USB контроллер с именем &apos;%s&apos; уже существует</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6455"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5813"/>
         <source>Too many USB controllers of this type</source>
         <translation>Слишком много USB контроллеров этого типа</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6564"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5922"/>
         <source>Saved guest size is not available (%Rrc)</source>
-        <translation>Размер сохраненной гостевой системы недоступен (%Rrc)</translation>
+        <translation>Размер сохраненной гостевой ОС недоступен (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6588"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5946"/>
         <source>Unsupported saved thumbnail format 0x%08X</source>
         <translation>Неподдерживаемый формат сохраненной миниатюры 0x%08X</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6606"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5964"/>
         <source>Saved thumbnail data is not available (%Rrc)</source>
         <translation>Данные сохраненной миниатюры недоступны (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6663"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6021"/>
         <source>Could not convert saved thumbnail to PNG (%Rrc)</source>
         <translation>Невозможно преобразовать сохраненную миниатюру в PNG (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6699"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6057"/>
         <source>Saved screenshot data is not available (%Rrc)</source>
         <translation>Данные сохраненного снимка экрана недоступны (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6741"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6099"/>
         <source>Saved screenshot thumbnail data is not available (%Rrc)</source>
         <translation>Данные миниатюры сохраненного снимка экрана недоступны (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6761"/>
-        <location filename="../src-server/MachineImpl.cpp" line="6793"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6119"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6151"/>
         <source>CPU hotplug is not enabled</source>
         <translation>Горячее подключение ЦПУ не включено</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6764"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6122"/>
         <source>CPU id exceeds number of possible CPUs [0:%lu]</source>
         <translation>ID ЦПУ превысил количество возможных ЦПУ [0:%lu]</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6767"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6125"/>
         <source>CPU %lu is already attached</source>
         <translation>ЦПУ %lu уже подключен</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6797"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6155"/>
         <source>CPU index exceeds maximum CPU count (must be in range [0:%lu])</source>
         <translation>Индекс ЦПУ превысил максимальное количество ЦПУ (должен быть в диапазоне [0:%lu])</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6801"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6159"/>
         <source>CPU %lu is not attached</source>
         <translation>ЦПУ %lu не подключен</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6805"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6163"/>
         <source>It is not possible to detach CPU 0</source>
         <translation>Невозможно отключить ЦПУ 0</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6862"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6220"/>
         <source>The size argument (%lld) is negative</source>
         <translation>Параметр size (%lld) отрицательный</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6930"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6288"/>
         <source>Could not read log file &apos;%s&apos; (%Rrc)</source>
         <translation>Невозможно прочитать файл журнала &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6935"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6293"/>
         <source>Could not open log file &apos;%s&apos; (%Rrc)</source>
         <translation>Невозможно открыть файл журнала &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6963"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6322"/>
         <source>Host PCI attachment only supported with ICH9 chipset</source>
         <translation>PCI подключение к хосту поддерживается только с чипсетом ICH9</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6978"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6337"/>
         <source>Device with host PCI address already attached to this VM</source>
         <translation>Устройство с PCI адресом хоста уже подключено к этой ВМ</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7047"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6406"/>
         <source>No host PCI device %08x attached</source>
         <translation>PCI устройство хоста %08x не подключено</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7184"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6543"/>
         <source>The VM autostart feature is not supported on this platform</source>
         <translation>Функция автостарта ВМ не поддерживается на этой платформе</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7187"/>
-        <location filename="../src-server/MachineImpl.cpp" line="7261"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6546"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6620"/>
         <source>The path to the autostart database is not set</source>
         <translation>Путь к базе данных для автостарта не задан</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7191"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6550"/>
         <source>Adding machine &apos;%s&apos; to the autostart database failed with %Rrc</source>
         <translation>Не удалось добавить машину &apos;%s&apos; в базу данных автостарта %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7192"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6551"/>
         <source>Removing machine &apos;%s&apos; from the autostart database failed with %Rrc</source>
         <translation>Не удалось удалить машину &apos;%s&apos; из базы данных автостарта %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7258"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6617"/>
         <source>The VM autostop feature is not supported on this platform</source>
         <translation>Функция автостопа ВМ не поддерживается на этой платформе</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7265"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6624"/>
         <source>Adding machine &apos;%s&apos; to the autostop database failed with %Rrc</source>
         <translation>Не удалось добавить машину &apos;%s&apos; в базу данных автостопа %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7266"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6625"/>
         <source>Removing machine &apos;%s&apos; from the autostop database failed with %Rrc</source>
         <translation>Не удалось удалить машину &apos;%s&apos; из базы данных автостопа %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7382"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6766"/>
         <source>Linked clone can only be created from a snapshot</source>
         <translation>Связанная копия может быть создана только из снимка</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7385"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6769"/>
         <source>Linked clone can only be created for a single machine state</source>
         <translation>Связанная копия может быть создана только для конкретного состояния (снимка)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7434"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6818"/>
         <source>Failed to create a worker thread for the MachineMoveVM task</source>
         <translation>Не удалось создать поток исполнителя для задачи MachineMoveVM</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7821"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7205"/>
         <source>The machine &apos;%s&apos; is in a state which is incompatible with launching a separate UI process</source>
         <translation>Машина &apos;%s&apos; в состянии, несовместимым с запускаемым отдельным UI процессом</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7830"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7214"/>
         <source>The machine &apos;%s&apos; is already locked by a session (or being locked or unlocked)</source>
         <translation>Машина &apos;%s&apos; уже заблокирована сессией  (или блокируется или разблокируется)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7843"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7227"/>
         <source>hardening log file</source>
-        <translation type="unfinished"></translation>
+        <translation>hardening файл журнала</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7902"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7286"/>
         <source>Invalid frontend name: &apos;%s&apos;</source>
         <translation>Недопустимое имя пользовательского интерфейса: &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8012"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7396"/>
         <source>Failed to start the machine &apos;%s&apos;. A connection to VBoxSDS cannot be established</source>
         <translation>Не удалось запустить машину &apos;%s&apos;. Невозможно установить соединение с VBoxSDS</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8028"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7412"/>
         <source>Failed to start the machine &apos;%s&apos;. CoSetProxyBlanket failed</source>
         <translation>Не удалось запустить машину &apos;%s&apos;. CoSetProxyBlanket вернул ошибку</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8040"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7424"/>
         <source>Failed to start the machine &apos;%s&apos;. Process creation failed</source>
         <translation>Не удалось запустить машину &apos;%s&apos;. Не удалось создать процесс</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8050"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7434"/>
         <source>Could not launch the VM process for the machine &apos;%s&apos; (%Rrc)</source>
         <translation>Невозможно запустить ВМ процесс для машины &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8232"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7616"/>
         <source>.  More details may be available in &apos;%s&apos;</source>
         <translation>.  Больше деталей может быть в &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8237"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7621"/>
         <source>The virtual machine &apos;%s&apos; has terminated unexpectedly during startup with exit code %d (%#x)%s</source>
         <translation>Виртуальная машина &apos;%s&apos; неожиданно завершилась во время запуска с ошибкой %d (%#x)%s</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8241"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7625"/>
         <source>The virtual machine &apos;%s&apos; has terminated unexpectedly during startup because of signal %d%s</source>
         <translation>Виртуальная машина &apos;%s&apos; неожиданно завершилась во время запуска из-за сигнала %d%s</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8245"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7629"/>
         <source>The virtual machine &apos;%s&apos; has terminated abnormally (iStatus=%#x)%s</source>
         <translation>Виртуальная машина &apos;%s&apos; ненормально завершилась (iStatus=%#x)%s</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8249"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7633"/>
         <source>The virtual machine &apos;%s&apos; has terminated unexpectedly during startup (%Rrc)%s</source>
         <translation>Виртуальная машина &apos;%s&apos; неожиданно завершилась во время запуска (%Rrc)%s</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8306"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7690"/>
         <source>The machine &apos;%s&apos; with UUID {%s} is inaccessible and cannot be registered</source>
         <translation>Машина &apos;%s&apos; c UUID {%s} недоступна и не может быть зарегистрирована</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8314"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7698"/>
         <source>The machine &apos;%s&apos; with UUID {%s} is already registered</source>
         <translation>Машина &apos;%s&apos; с UUID {%s} уже зарегистрирована</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8393"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7777"/>
         <source>Machine state change is in progress. Please retry the operation later.</source>
         <translation>Изменение состояния машины в процессе. Пожалуйста, попробуйте позже.</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8512"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7901"/>
         <source>The machine is not mutable (state is %s)</source>
         <translation>Машина не находится в изменяемом состоянии (состояние %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8529"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7918"/>
         <source>The machine is not mutable or saved (state is %s)</source>
         <translation>Машина не находится ни в изменяемом ни в сохраненном состояниях (состояние %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8545"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7934"/>
         <source>The machine is not mutable or running (state is %s)</source>
         <translation>Машина не находится ни в изменяемом ни в работающем состояниях (состояние %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8563"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7952"/>
         <source>The machine is not mutable, saved or running (state is %s)</source>
         <translation>Машина не находится ни в изменяемом ни в сохраненном ни в работающем состояниях (состояние %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8956"/>
+        <location filename="../src-server/MachineImpl.cpp" line="8368"/>
         <source>Could not find a shared folder named &apos;%s&apos;</source>
         <translation>Невозможно найти общую папку с именем &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9014"/>
-        <location filename="../src-server/MachineImpl.cpp" line="9138"/>
+        <location filename="../src-server/MachineImpl.cpp" line="8426"/>
+        <location filename="../src-server/MachineImpl.cpp" line="8550"/>
         <source>Invalid saved state file path &apos;%s&apos; (%Rrc)</source>
         <translation>Недопустимый путь к файлу сохраненного состояния &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9646"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9025"/>
         <source>Duplicate attachments for storage controller &apos;%s&apos;, port %d, device %d of the virtual machine &apos;%s&apos;</source>
         <translation>Двойное подключение к контроллеру &apos;%s&apos;, порт %d, устройство %d виртуальной машины &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9694"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9073"/>
         <source>A differencing image of snapshot {%RTuuid} could not be found. %ls</source>
         <translation>Не найден разностный образ снимка {%RTuuid}. %ls</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9707"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9086"/>
         <source>Immutable hard disk &apos;%s&apos; with UUID {%RTuuid} cannot be directly attached to snapshot with UUID {%RTuuid} of the virtual machine &apos;%s&apos; (&apos;%s&apos;)</source>
         <translation>Неизменяемый жесткий диск &apos;%s&apos; с UUID {%RTuuid} не может быть подключен прямо к снимку с UUID {%RTuuid} виртуальной машины &apos;%s&apos; (&apos;%s&apos;)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9716"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9095"/>
         <source>Immutable hard disk &apos;%s&apos; with UUID {%RTuuid} cannot be directly attached to the virtual machine &apos;%s&apos; (&apos;%s&apos;)</source>
         <translation>Неизменяемый жесткий диск &apos;%s&apos; с UUID {%RTuuid} не может быть подключен прямо к виртуальной машине &apos;%s&apos; (&apos;%s&apos;)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9727"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9106"/>
         <source>Multi-attach hard disk &apos;%s&apos; with UUID {%RTuuid} cannot be directly attached to snapshot with UUID {%RTuuid} of the virtual machine &apos;%s&apos; (&apos;%s&apos;)</source>
         <translation>Жесткий диск с множественным подключением&apos;%s&apos; с UUID {%RTuuid} не может быть подключен прямо к снимку с UUID {%RTuuid} виртуальной машины &apos;%s&apos; (&apos;%s&apos;)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9736"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9115"/>
         <source>Multi-attach hard disk &apos;%s&apos; with UUID {%RTuuid} cannot be directly attached to the virtual machine &apos;%s&apos; (&apos;%s&apos;)</source>
         <translation>Жесткий диск с множественным подключением &apos;%s&apos; с UUID {%RTuuid} не может быть подключен прямо к виртуальной машине &apos;%s&apos; (&apos;%s&apos;)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9747"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9126"/>
         <source>Hard disk &apos;%s&apos; with UUID {%RTuuid} cannot be directly attached to the virtual machine &apos;%s&apos; (&apos;%s&apos;) because it has %d differencing child hard disks</source>
         <translation>Жесткий диск &apos;%s&apos; с UUID {%RTuuid} не может быть подключен прямо к виртуальной машине &apos;%s&apos; (&apos;%s&apos;) из-за наличия дочерних разностных жестких дисков</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9758"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9137"/>
         <source>Hard disk &apos;%s&apos; with UUID {%RTuuid} is already attached to the virtual machine &apos;%s&apos; (&apos;%s&apos;)</source>
         <translation>Жесткий диск &apos;%s&apos; с UUID {%RTuuid} уже подключен к виртуальной машине &apos;%s&apos; (&apos;%s&apos;)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9769"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9148"/>
         <source>Controller &apos;%s&apos; port %u unit %u has device with unknown type (%d) - virtual machine &apos;%s&apos; (&apos;%s&apos;)</source>
-        <translation type="unfinished"></translation>
+        <translation>На контроллере &apos;%s&apos;, порту %u, устройстве %u обнаружено устройство неизвестного типа (%d) - виртуальная машина &apos;%s&apos; (&apos;%s&apos;)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16326"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15687"/>
         <source>Obtain cipher for &apos;%s&apos; files failed (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось получить шифр для файлов &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16338"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15699"/>
         <source>Loading old key store for &apos;%s&apos; files failed, (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось загрузить старое хранилище ключей для файлов &apos;%s&apos;, (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16342"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15703"/>
         <source>Changing the password for &apos;%s&apos; files failed, (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось сменить пароль для файлов &apos;%s&apos;, (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16349"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15710"/>
         <source>Saving the key store for &apos;%s&apos; files failed, (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось сохранить хранилище ключей для файлов &apos;%s&apos;, (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16366"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15727"/>
         <source>Getting file list for &apos;%s&apos; files failed, (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось получить список файлов для файлов &apos;%s&apos;, (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16376"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15737"/>
         <source>Create new key store for &apos;%s&apos; files failed, (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось создать новое хранилище ключей для файлов &apos;%s&apos;, (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16383"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15744"/>
         <source>Saving the new key store for &apos;%s&apos; files failed, (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось сохранить новое хранилище ключей для файлов &apos;%s&apos;, (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16412"/>
-        <location filename="../src-server/MachineImpl.cpp" line="16416"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15773"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15777"/>
         <source>Opening file &apos;%s&apos; failed, (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось открыть файл &apos;%s&apos;, (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16422"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15783"/>
         <source>Changing encryption of the file &apos;%s&apos; failed with %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось сменить шифр файла &apos;%s&apos; с ошибкой %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16442"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15803"/>
         <source>Renaming the file &apos;%s&apos; failed, (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось переименовать файл &apos;%s&apos;, (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16497"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15858"/>
         <source>The password given for the encrypted VM is incorrect</source>
-        <translation type="unfinished"></translation>
+        <translation>Пароль для шифрованной ВМ неправильный</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16503"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15864"/>
         <source>The VM is not configured for encryption</source>
-        <translation type="unfinished"></translation>
+        <translation>ВМ не сконфигурирована для шифрования</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16507"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15868"/>
         <source>The password to decrypt the VM is incorrect</source>
-        <translation type="unfinished"></translation>
+        <translation>Пароль для расшифровки ВМ неправильный</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16521"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15882"/>
         <source>A password must be given for the VM encryption</source>
-        <translation type="unfinished"></translation>
+        <translation>Должен быть предоставлен пароль для шифрования ВМ</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16524"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15885"/>
         <source>A valid identifier for the password must be given</source>
-        <translation type="unfinished">Должен быть предоставлен действительный идентификатор пароля</translation>
+        <translation>Должен быть предоставлен действительный идентификатор пароля</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16528"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15889"/>
         <source>The password and password identifier must be empty if the output should be unencrypted</source>
-        <translation type="unfinished">Пароль и идентификатор пароля должны быть пусты если нужно расшифровать образ</translation>
+        <translation>Пароль и идентификатор пароля должны быть пусты если нужно расшифровать образ</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16554"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15915"/>
         <source>Loading old key store failed, (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось загрузить старое хранилище ключей, (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16557"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15918"/>
         <source>Changing the password failed, (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось сменить пароль, (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16606"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15967"/>
         <source>Change encryption of the SAV files</source>
-        <translation type="unfinished"></translation>
+        <translation>Смена шифрования SAV файлов</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16618"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15979"/>
         <source>Change encryption of the NVRAM files</source>
-        <translation type="unfinished"></translation>
+        <translation>Смена шифрования NVRAM файлов</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16625"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15986"/>
         <source>Getting NVRAM encryption settings failed (%Rhrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось получить настройки шифрования NVRAM (%Rhrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16637"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15998"/>
         <source>Setting NVRAM encryption settings failed (%Rhrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось задать настройки шифрования NVRAM (%Rhrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16639"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16000"/>
         <source>Change encryption of log files</source>
-        <translation type="unfinished"></translation>
+        <translation>Смена шифрования файлов журналов</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16650"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16011"/>
         <source>Change encryption of the config file</source>
-        <translation type="unfinished"></translation>
+        <translation>Смена шифрования файлов конфигурации</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16685"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16046"/>
         <source>Machine is inaccessible</source>
-        <translation type="unfinished"></translation>
+        <translation>Машина недоступна</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/MachineImpl.cpp" line="16737"/>
-        <location filename="../src-server/MachineImpl.cpp" line="16760"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16098"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16121"/>
         <source>Cannot encrypt medium &apos;%s&apos; because it is attached to %d virtual machines</source>
-        <translation type="unfinished">
+        <translation>
             <numerusform>Невозможно зашифровать носитель &apos;%s&apos;, потому что он подключен к %d виртуальной машине</numerusform>
             <numerusform>Невозможно зашифровать носитель &apos;%s&apos;, потому что он подключен к %d виртуальным машинам</numerusform>
             <numerusform>Невозможно зашифровать носитель &apos;%s&apos;, потому что он подключен к %d виртуальным машинам</numerusform>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/MachineImpl.cpp" line="16743"/>
-        <location filename="../src-server/MachineImpl.cpp" line="16766"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16104"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16127"/>
         <source>Cannot encrypt medium &apos;%s&apos; because it has %d children</source>
-        <translation type="unfinished">
+        <translation>
             <numerusform>Невозможно зашифровать носитель &apos;%s&apos;, потому что у него %d дочерний носитель</numerusform>
             <numerusform>Невозможно зашифровать носитель &apos;%s&apos;, потому что у него %d дочерних носителя</numerusform>
             <numerusform>Невозможно зашифровать носитель &apos;%s&apos;, потому что у него %d дочерних носителей</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16780"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16141"/>
         <source>Change encryption</source>
-        <translation type="unfinished"></translation>
+        <translation>Смена шифрования</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16783"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16144"/>
         <source>Change encryption of the mediuma</source>
-        <translation type="unfinished"></translation>
+        <translation>Смена шифрования носителей</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16834"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16195"/>
         <source>Failed to query the encryption settings with %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось запросить настройки шифрования с ошибкой %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16838"/>
-        <location filename="../src-server/MachineImpl.cpp" line="16878"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16199"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16239"/>
         <source>This VM is not encrypted</source>
-        <translation type="unfinished"></translation>
+        <translation>Данная ВМ не зашифрована</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16875"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16236"/>
         <source>The password supplied for the encrypted machine is incorrect</source>
-        <translation type="unfinished"></translation>
+        <translation>Пароль для шифрованной машины неправильный</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16957"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16318"/>
         <source>Id and passwords arrays must have the same size</source>
-        <translation type="unfinished"></translation>
+        <translation>Массивы ИД и паролей должны совпадать в размерах</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16991"/>
-        <location filename="../src-server/MachineImpl.cpp" line="17016"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16352"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16377"/>
         <source>The machine is in online or transient state</source>
-        <translation type="unfinished"></translation>
+        <translation>Машина в онлайн или временном состоянии</translation>
     </message>
     <message>
         <source>Device &apos;%s&apos; with unknown type is attached to the virtual machine &apos;%s&apos; (&apos;%s&apos;)</source>
         <translation type="vanished">Устройство &apos;%s&apos; неизвестного типа подключено к виртуальной машине &apos;%s&apos; (&apos;%s&apos;)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9785"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9164"/>
         <source>Device &apos;%s&apos; with unknown bandwidth group &apos;%s&apos; is attached to the virtual machine &apos;%s&apos; (&apos;%s&apos;)</source>
         <translation>Устройство &apos;%s&apos; с неизвестной группой полосы пропускания подключено к виртуальной машине &apos;%s&apos; (&apos;%s&apos;)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9859"/>
-        <location filename="../src-server/MachineImpl.cpp" line="9899"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9238"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9278"/>
         <source>This machine does not have any snapshots</source>
         <translation>У этой машины нет снимков</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9872"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9251"/>
         <source>Could not find a snapshot with UUID {%s}</source>
         <translation>Невозможно найти снимок с UUID {%s}</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9909"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9288"/>
         <source>Could not find a snapshot named &apos;%s&apos;</source>
         <translation>Невозможно найти снимок с именем &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9943"/>
-        <location filename="../src-server/MachineImpl.cpp" line="9975"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9322"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9354"/>
         <source>Could not find a storage controller named &apos;%s&apos;</source>
         <translation>Невозможно найти контроллер с именем &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="10122"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9501"/>
         <source>Could not rename the directory &apos;%s&apos; to &apos;%s&apos; to save the settings file (%Rrc)</source>
         <translation>Невозможно переименовать директорию &apos;%s&apos; в &apos;%s&apos; для сохранения файла настроек (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="10160"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9539"/>
         <source>Could not rename the settings file &apos;%s&apos; to &apos;%s&apos; (%Rrc)</source>
         <translation>Невозможно переименовать файл настроек &apos;%s&apos; в &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="10256"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9635"/>
         <source>Could not create a directory &apos;%s&apos; to save the settings file (%Rrc)</source>
         <translation>Невозможно создать директорию &apos;%s&apos; для сохранения файла настроек (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="10269"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9648"/>
         <source>Could not create the settings file &apos;%s&apos; (%Rrc)</source>
         <translation>Невозможно создать файл настроек &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="10323"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9702"/>
         <source>The machine is not accessible, so cannot save settings</source>
         <translation>Машина недоступна, поэтому невозможно сохранить настройки</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="10346"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9725"/>
         <source>Failed to retain VM encryption password using ID &apos;%s&apos; with %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось получить пароль шифрования ВМ с ИД равным &apos;%s&apos; с ошибкой %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="11185"/>
+        <location filename="../src-server/MachineImpl.cpp" line="10532"/>
         <source>file</source>
-        <translation type="unfinished"></translation>
+        <translation>файл</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="11290"/>
+        <location filename="../src-server/MachineImpl.cpp" line="10637"/>
         <source>Collecting locking information for all attached media failed</source>
         <translation>Не удалось собрать информациию о блокировках для всех подключенных носителей</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="11299"/>
+        <location filename="../src-server/MachineImpl.cpp" line="10646"/>
         <source>Locking of attached media failed</source>
         <translation>Не удалось заблокировать подключенный носитель</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="11333"/>
+        <location filename="../src-server/MachineImpl.cpp" line="10680"/>
         <source>Skipping attachment without medium</source>
         <translation>Пропуск подключения без носителя</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="11336"/>
+        <location filename="../src-server/MachineImpl.cpp" line="10683"/>
         <source>Skipping medium &apos;%s&apos;</source>
         <translation>Пропуск носителя &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="11346"/>
+        <location filename="../src-server/MachineImpl.cpp" line="10693"/>
         <source>Creating differencing hard disk for &apos;%s&apos;</source>
         <translation>Создание разностного жесткого диска для &apos;%s&apos;</translation>
     </message>
@@ -7280,13 +7741,13 @@ Guest offers: %s</source>
         <translation>%s возвращает слишком много данных</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="521"/>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="543"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="530"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="552"/>
         <source>DBGFR3OSQueryNameAndVersion failed with %Rrc</source>
         <translation>DBGFR3OSQueryNameAndVersion завершено с ошибкой %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="600"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="609"/>
         <source>%u is out of range [2..20000]</source>
         <translation>%u вышел за границы диапазона [2..20000]</translation>
     </message>
@@ -7295,136 +7756,136 @@ Guest offers: %s</source>
         <translation type="vanished">TMR3SetWarpDrive(, %u) завершился с ошибкой rc=%Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="613"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="622"/>
         <source>TMR3SetWarpDrive(, %u) failed with vrc=%Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>TMR3SetWarpDrive(, %u) завершился с ошибкой vrc=%Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="644"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="653"/>
         <source>The compression parameter must be empty</source>
         <translation>Параметр сжатия должен быть пустым</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="655"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="664"/>
         <source>DBGFR3CoreWrite failed with %Rrc</source>
         <translation>DBGFR3CoreWrite завершился с ошибкой %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="810"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="819"/>
         <source>DBGFR3Info failed with %Rrc</source>
         <translation>DBGFR3Info завершено с ошибкой %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="830"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="839"/>
         <source>DBGFR3InjectNMI failed with %Rrc</source>
         <translation>DBGFR3InjectNMI завершился с ошибкой %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="847"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="856"/>
         <source>DBGFR3LogModifyFlags failed with %Rrc</source>
         <translation>DBGFR3LogModifyFlags завершился с ошибкой %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="864"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="873"/>
         <source>DBGFR3LogModifyGroups failed with %Rrc</source>
         <translation>DBGFR3LogModifyGroups завершился с ошибкой %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="881"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="890"/>
         <source>DBGFR3LogModifyDestinations failed with %Rrc</source>
         <translation>DBGFR3LogModifyDestinations завершился с ошибкой %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="967"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="976"/>
         <source>Plug-in &apos;%s&apos; was not found</source>
         <translation>Плагин &apos;%s&apos; не найден</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="969"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="978"/>
         <source>Error unloading &apos;%s&apos;: %Rrc</source>
         <translation>Ошибка при выгрузке &apos;%s&apos;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="996"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1005"/>
         <source>DBGFR3OSDetect failed with %Rrc</source>
         <translation>DBGFR3OSDetect завершился с ошибкой %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1035"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1044"/>
         <source>Too much log available, must use the maxMessages parameter to restrict.</source>
         <translation>Доступно слишком много журналов. Нужно использовать параметр maxMessages для ограничения.</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1043"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1052"/>
         <source>The dmesg interface isn&apos;t implemented by guest OS digger, or detectOS() has not been called.</source>
         <translation>Интерфейс dmesg не реализован отладчиком гостевой ОС или не вызван detectOS().</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1075"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1084"/>
         <source>Register &apos;%s&apos; was not found</source>
         <translation>Регистр &apos;%s&apos; не найден</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1077"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1086"/>
         <source>Invalid CPU ID: %u</source>
         <translation>Недопустимое ID ЦПУ: %u</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1080"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1089"/>
         <source>DBGFR3RegNmQuery failed with vrc=%Rrc querying register &apos;%s&apos; with default cpu set to %u</source>
-        <translation type="unfinished"></translation>
+        <translation>DBGFR3RegNmQuery завершился с ошибкой vrc=%Rrc запрашивая регистр &apos;%s&apos; с ЦПУ по умолчанию установленным в %u</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1492"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1511"/>
         <source>Incompatible VMM function table: %RX64 vs %RX64 (caller)</source>
-        <translation type="unfinished"></translation>
+        <translation>Несовместимая таблица VMM функций: %RX64 против %RX64 (caller)</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1499"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1518"/>
         <source>The method getUVMAndVMMFunctionTable is only for local calls</source>
-        <translation type="unfinished"></translation>
+        <translation>Метод getUVMAndVMMFunctionTable предназначен лишь для локальных вызовов</translation>
     </message>
     <message>
         <source>DBGFR3RegNmQuery failed with rc=%Rrc querying register &apos;%s&apos; with default cpu set to %u</source>
         <translation type="vanished">DBGFR3RegNmQuery завершился с ошибкой rc=%Rrc запрашивая регистр &apos;%s&apos; с ЦПУ по умолчанию установленному в %u</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1134"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1153"/>
         <source>DBGFR3RegNmQueryAll failed with %Rrc</source>
         <translation>DBGFR3RegNmQueryAll завершился с ошибкой %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1142"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1161"/>
         <source>DBGFR3RegNmQueryAllCount failed with %Rrc</source>
         <translation>DBGFR3RegNmQueryAllCount завершился с ошибкой %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1284"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1303"/>
         <source>DBGFR3StackWalkBegin failed with %Rrc</source>
         <translation>DBGFR3StackWalkBegin завершился с ошибкой %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1296"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1315"/>
         <source>Suspending the VM failed with %Rrc
 </source>
         <translation>Не удалось приостановить ВМ %Rrc
 </translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1312"/>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1329"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1331"/>
         <location filename="../src-client/MachineDebuggerImpl.cpp" line="1348"/>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1391"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1367"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1410"/>
         <source>Machine is not running</source>
         <translation>Машина не запущена</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1419"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1438"/>
         <source>Creating guest sample report...</source>
-        <translation>Создание образца отчета гостевой системы...</translation>
+        <translation>Создание образца отчета гостевой ОС...</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1442"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1461"/>
         <source>A sample report is already in progress</source>
         <translation>Образец отчета уже в процессе</translation>
     </message>
@@ -7587,29 +8048,29 @@ Guest offers: %s</source>
         <location filename="../src-server/MediumImpl.cpp" line="1177"/>
         <location filename="../src-server/MediumImpl.cpp" line="1272"/>
         <source>Accessibility check was not yet performed</source>
-        <translation>Проверка на доступность еще не проведена</translation>
+        <translation>Проверка на доступность ещё не проведена</translation>
     </message>
     <message>
         <location filename="../src-server/MediumImpl.cpp" line="1778"/>
-        <location filename="../src-server/MediumImpl.cpp" line="3641"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3509"/>
         <source>Failed to create medium lock list for &apos;%s&apos;</source>
         <translation>Не удалось создать список блокировок носителей &apos;%s&apos;</translation>
     </message>
     <message>
         <location filename="../src-server/MediumImpl.cpp" line="1783"/>
-        <location filename="../src-server/MediumImpl.cpp" line="3654"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3522"/>
         <source>Failed to lock media &apos;%s&apos;</source>
         <translation>Не удалось заблокировать носитель &apos;%s&apos;</translation>
     </message>
     <message>
         <location filename="../src-server/MediumImpl.cpp" line="1962"/>
         <source>Cannot change the type of DVD medium &apos;%s&apos;</source>
-        <translation>Невозможно изменить тип носителя DVD &apos;%s&apos;</translation>
+        <translation>Невозможно изменить тип носителя оптических дисков &apos;%s&apos;</translation>
     </message>
     <message>
         <location filename="../src-server/MediumImpl.cpp" line="1969"/>
         <source>Cannot change the type of floppy medium &apos;%s&apos;</source>
-        <translation>Невозможно изменить тип носителя флоппи &apos;%s&apos;</translation>
+        <translation>Невозможно изменить тип носителя гибких дисков &apos;%s&apos;</translation>
     </message>
     <message>
         <location filename="../src-server/MediumImpl.cpp" line="1975"/>
@@ -7704,10 +8165,9 @@ Guest offers: %s</source>
     <message>
         <location filename="../src-server/MediumImpl.cpp" line="2799"/>
         <location filename="../src-server/MediumImpl.cpp" line="2964"/>
-        <location filename="../src-server/MediumImpl.cpp" line="3137"/>
-        <location filename="../src-server/MediumImpl.cpp" line="3386"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3254"/>
         <source>Medium variant &apos;formatted&apos; applies to floppy images only</source>
-        <translation>Вариант носителя &apos;форматирован&apos; применимо только к образам флоппи-дисков</translation>
+        <translation>Вариант носителя &apos;форматирован&apos; применимо только к образам гибких дисков</translation>
     </message>
     <message>
         <location filename="../src-server/MediumImpl.cpp" line="2808"/>
@@ -7740,137 +8200,134 @@ Guest offers: %s</source>
         <translation>Невозможно заблокировать носитель во время создания разностного носителя &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3097"/>
-        <location filename="../src-server/MediumImpl.cpp" line="3358"/>
-        <location filename="../src-server/MediumImpl.cpp" line="7290"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3226"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7159"/>
         <source>Failed to lock source media &apos;%s&apos;</source>
         <translation>Не удалось заблокировать исходный носитель &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3108"/>
-        <location filename="../src-server/MediumImpl.cpp" line="3369"/>
-        <location filename="../src-server/MediumImpl.cpp" line="7167"/>
-        <location filename="../src-server/MediumImpl.cpp" line="7301"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3237"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7036"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7170"/>
         <source>Failed to lock target media &apos;%s&apos;</source>
         <translation>Не удалось заблокировать целевой носитель &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3115"/>
-        <location filename="../src-server/MediumImpl.cpp" line="7308"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7177"/>
         <source>Creating clone medium &apos;%s&apos;</source>
         <translation>Создание клонированного носителя &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3226"/>
-        <source>Resizing medium and cloning into it</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3229"/>
-        <source>Resizing medium before clone</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3469"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3337"/>
         <source>Medium &apos;%s&apos; can&apos;t be moved. Destination path is empty.</source>
         <translation>Невозможно переместить носитель &apos;%s&apos;. Путь назначения пуст.</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3536"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3077"/>
+        <source>Resizing medium and cloning into it</source>
+        <translation>Изменение размера носителя и клонирование в него</translation>
+    </message>
+    <message>
+        <location filename="../src-server/MediumImpl.cpp" line="3080"/>
+        <source>Resizing medium before clone</source>
+        <translation>Изменение размера носителя перед клонированием</translation>
+    </message>
+    <message>
+        <location filename="../src-server/MediumImpl.cpp" line="3404"/>
         <source>Medium &apos;%s&apos; has RAW type. &quot;Move&quot; operation isn&apos;t supported for this type.</source>
         <translation>Носитель &apos;%s&apos; RAW типа. Операция &quot;перемещение&quot; не поддерживается для этого типа.</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3557"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3425"/>
         <source>The given path &apos;%s&apos; is an existing file. Delete or rename this file.</source>
         <translation>Данный путь &apos;%s&apos; указывает на существующий файл. Удалите или переименуйте файл.</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3562"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3430"/>
         <source>Medium &apos;%s&apos; isn&apos;t a file object. &quot;Move&quot; operation isn&apos;t supported.</source>
         <translation>Носитель &apos;%s&apos; не является объектом файла. Операция &quot;перемещение&quot; не поддерживается.</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3567"/>
-        <location filename="../src-server/MediumImpl.cpp" line="3719"/>
-        <location filename="../src-server/MediumImpl.cpp" line="8200"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3435"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3587"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8069"/>
         <source>The given path &apos;%s&apos; is not fully qualified</source>
         <translation>Данный путь &apos;%s&apos; не полностью определен</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3578"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3446"/>
         <source>Medium &apos;%s&apos; is already in the correct location</source>
         <translation>Носитель &apos;%s&apos; уже в правильном месте</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3618"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3486"/>
         <source>At least the VM &apos;%s&apos; to whom this medium &apos;%s&apos; attached has currently an opened session. Stop all VMs before relocating this medium</source>
         <translation>Как минимум у ВМ &apos;%s&apos;, к которой подключен носитель &apos;%s&apos;, открыта сессия в настоящее время. Остановите все ВМ перед перемещением носителя</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3660"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3528"/>
         <source>Moving medium &apos;%s&apos;</source>
         <translation>Перемещение носителя &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3724"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3592"/>
         <source>The given path &apos;%s&apos; is not an existing file. New location is invalid.</source>
         <translation>Данный путь &apos;%s&apos; не указывает на существующий файл. Новое местоположение недействительно.</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3761"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3629"/>
         <source>At least the VM &apos;%s&apos; to whom this medium &apos;%s&apos; attached has currently an opened session. Stop all VMs before set location for this medium</source>
         <translation>Как минимум у ВМ &apos;%s&apos;, к которой подключен носитель &apos;%s&apos;, открыта сессия в настоящее время. Остановите все ВМ перед устновкой нового местоположения носителя</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3826"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3694"/>
         <source>Failed to lock media when compacting &apos;%s&apos;</source>
         <translation>Не удалось заблокировать носитель во время сжатия &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3833"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3701"/>
         <source>Compacting medium &apos;%s&apos;</source>
         <translation>Сжатие носителя &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3883"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3751"/>
         <source>Failed to create medium lock list when resizing &apos;%s&apos;</source>
         <translation>Не удалось создать список блокировок носителя во время изменения размера &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3888"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3756"/>
         <source>Failed to lock media when resizing &apos;%s&apos;</source>
         <translation>Не удалось заблокировать носитель во время изменения размера &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3902"/>
-        <location filename="../src-server/MediumImpl.cpp" line="6780"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3770"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6649"/>
         <source>Resizing medium &apos;%s&apos;</source>
         <translation>Изменение размера носителя &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3948"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3816"/>
         <source>Medium type of &apos;%s&apos; is not differencing</source>
         <translation>Тип носителя &apos;%s&apos; не разностный</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3977"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3845"/>
         <source>Failed to lock media when resetting &apos;%s&apos;</source>
         <translation>Не удалось заблокировать носитель во время сброса &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3984"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3852"/>
         <source>Resetting differencing medium &apos;%s&apos;</source>
         <translation>Сброс разностного носителя &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4030"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3898"/>
         <source>Cannot encrypt DVD or Floppy medium &apos;%s&apos;</source>
-        <translation>Невозможно зашифровать носитель DVD или флоппи &apos;%s&apos;</translation>
+        <translation>Невозможно зашифровать носитель оптических или гибких дисков &apos;%s&apos;</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/MediumImpl.cpp" line="4036"/>
-        <location filename="../src-server/MediumImpl.cpp" line="4089"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3904"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3957"/>
         <source>Cannot encrypt medium &apos;%s&apos; because it is attached to %d virtual machines</source>
         <translation>
             <numerusform>Невозможно зашифровать носитель &apos;%s&apos;, потому что он подключен к %d виртуальной машине</numerusform>
@@ -7879,8 +8336,8 @@ Guest offers: %s</source>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/MediumImpl.cpp" line="4041"/>
-        <location filename="../src-server/MediumImpl.cpp" line="4097"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3909"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3965"/>
         <source>Cannot encrypt medium &apos;%s&apos; because it has %d children</source>
         <translation>
             <numerusform>Невозможно зашифровать носитель &apos;%s&apos;, потому что у него %d дочерний носитель</numerusform>
@@ -7889,96 +8346,96 @@ Guest offers: %s</source>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4066"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3934"/>
         <source>Failed to lock media for encryption &apos;%s&apos;</source>
         <translation>Не удалось заблокировать носитель для шифрования &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4109"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3977"/>
         <source>Encrypting medium</source>
         <translation>Шифрование носителя</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4112"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3980"/>
         <source>Decrypting medium</source>
         <translation>Расшифровка носителя</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4181"/>
-        <location filename="../src-server/MediumImpl.cpp" line="4257"/>
-        <location filename="../src-server/MediumImpl.cpp" line="8777"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4049"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4125"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8646"/>
         <source>Retrieving encryption settings of the image failed because the encryption plugin could not be loaded (%s)</source>
         <translation>Не удалось получить настройки шифрования, потому что невозможно загрузить плагин шифрования (%s)</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4186"/>
-        <location filename="../src-server/MediumImpl.cpp" line="4262"/>
-        <location filename="../src-server/MediumImpl.cpp" line="8782"/>
-        <location filename="../src-server/MediumImpl.cpp" line="11005"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4054"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4130"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8651"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10951"/>
         <source>Encryption is not supported because the extension pack &apos;%s&apos; is missing the encryption plugin (old extension pack installed?)</source>
         <translation>Шифрование не поддерживается, потому что плагин шифрования отсутствует в пакете расширений &apos;%s&apos; (установлен старый пакет расширений?)</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4191"/>
-        <location filename="../src-server/MediumImpl.cpp" line="4267"/>
-        <location filename="../src-server/MediumImpl.cpp" line="8787"/>
-        <location filename="../src-server/MediumImpl.cpp" line="11010"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4059"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4135"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8656"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10956"/>
         <source>Encryption is not supported because the extension pack &apos;%s&apos; is missing</source>
         <translation>Шифрование не поддерживается, потому что отсутствует пакет расширения &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4204"/>
-        <location filename="../src-server/MediumImpl.cpp" line="4284"/>
-        <location filename="../src-server/MediumImpl.cpp" line="11078"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4072"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4152"/>
+        <location filename="../src-server/MediumImpl.cpp" line="11024"/>
         <source>Failed to load the encryption filter: %s</source>
         <translation>Не удалось загрузить фильтр шифрования: &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4210"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4078"/>
         <source>Image is configured for encryption but doesn&apos;t has a KeyId set</source>
         <translation>Образ сконфигурирован для шифрования, но у него не установлен KeyId</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4219"/>
-        <location filename="../src-server/MediumImpl.cpp" line="4290"/>
-        <location filename="../src-server/MediumImpl.cpp" line="8820"/>
-        <location filename="../src-server/MediumImpl.cpp" line="11171"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4087"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4158"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8689"/>
+        <location filename="../src-server/MediumImpl.cpp" line="11117"/>
         <source>Encryption is not supported because extension pack support is not built in</source>
         <translation>Шифрование не поддерживается, потому что поддержка пакетов расширений не встроена</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4239"/>
-        <location filename="../src-server/MediumImpl.cpp" line="11041"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4107"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10987"/>
         <source>The image is not configured for encryption</source>
         <translation>Образ не сконфигурирован для шифрования</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4243"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4111"/>
         <source>The given password must not be empty</source>
         <translation>Данный пароль не должен быть пустым</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4281"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4149"/>
         <source>The given password is incorrect</source>
         <translation>Данный пароль неправильный</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4304"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4172"/>
         <source>Write access denied: read-only</source>
         <translation>Доступ на запись запрещен: только для чтения</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4308"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4176"/>
         <source>Password given for unencrypted medium</source>
         <translation>Пароль дан для нешифрованного носителя</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4310"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4178"/>
         <source>Password needed for encrypted medium</source>
         <translation>Требуется пароль для шифрованного носителя</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/MediumImpl.cpp" line="4772"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4640"/>
         <source>Cannot attach medium &apos;%s&apos; {%RTuuid}: %u differencing child media are being created</source>
         <translation>
             <numerusform>Невозможно подключить носитель &apos;%s&apos; {%RTuuid}: создается %u разностный дочерний носитель</numerusform>
@@ -7987,79 +8444,79 @@ Guest offers: %s</source>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4815"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4683"/>
         <source>Cannot attach medium &apos;%s&apos; {%RTuuid}: medium is already associated with the current state of machine uuid {%RTuuid}!</source>
         <translation>Невозможно подключить носитель &apos;%s&apos; {%RTuuid}: носитель уже связан с текущим состоянием машины с uuid {%RTuuid}!</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4844"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4712"/>
         <source>Cannot attach medium &apos;%s&apos; {%RTuuid} from snapshot &apos;%RTuuid&apos;: medium is already in use by this snapshot!</source>
         <translation>Невозможно подключить носитель &apos;%s&apos; {%RTuuid} из снимка &apos;%RTuuid&apos;: носитель уже используется этим снимком!</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="5512"/>
+        <location filename="../src-server/MediumImpl.cpp" line="5380"/>
         <source>Medium &apos;%s&apos; is attached to a virtual machine with UUID {%RTuuid}. No differencing media based on it may be created until it is detached</source>
         <translation>Носитель &apos;%s&apos; подключен к виртуальной машине с UUID {%RTuuid}. Невозможно создать разностные носители на основе этого пока он не отключен</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="5530"/>
+        <location filename="../src-server/MediumImpl.cpp" line="5398"/>
         <source>Creating differencing medium storage unit &apos;%s&apos;</source>
         <translation>Создание разностного носителя &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="5677"/>
+        <location filename="../src-server/MediumImpl.cpp" line="5545"/>
         <source>Medium &apos;%s&apos; cannot be closed because it is already in the process of being closed</source>
-        <translation type="unfinished"></translation>
+        <translation>Носитель &apos;%s&apos; не может быть закрыт поскольку он уже в процессе закрытия</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/MediumImpl.cpp" line="5682"/>
+        <location filename="../src-server/MediumImpl.cpp" line="5550"/>
         <source>Medium &apos;%s&apos; cannot be closed because it is still attached to %d virtual machines</source>
         <translation>
-            <numerusform>Носитель &apos;%s&apos; не может быть закрыт, потому что он еще подключен к %d виртуальной машине</numerusform>
-            <numerusform>Носитель &apos;%s&apos; не может быть закрыт, потому что он еще подключен к %d виртуальным машинам</numerusform>
-            <numerusform>Носитель &apos;%s&apos; не может быть закрыт, потому что он еще подключен к %d виртуальным машинам</numerusform>
+            <numerusform>Носитель &apos;%s&apos; не может быть закрыт, потому что он ещё подключен к %d виртуальной машине</numerusform>
+            <numerusform>Носитель &apos;%s&apos; не может быть закрыт, потому что он ещё подключен к %d виртуальным машинам</numerusform>
+            <numerusform>Носитель &apos;%s&apos; не может быть закрыт, потому что он ещё подключен к %d виртуальным машинам</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="5773"/>
+        <location filename="../src-server/MediumImpl.cpp" line="5642"/>
         <source>Medium format &apos;%s&apos; does not support storage deletion</source>
         <translation>Формат носителя &apos;%s&apos; не поддерживает удаление диска</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/MediumImpl.cpp" line="5832"/>
+        <location filename="../src-server/MediumImpl.cpp" line="5701"/>
         <source>Cannot delete storage: medium &apos;%s&apos; is still attached to the following %d virtual machine(s): %s</source>
         <translation>
-            <numerusform>Невозможно удалить файл носителя: носитель &apos;%s&apos; все еще подключен к %d виртуальной машине: %s</numerusform>
-            <numerusform>Невозможно удалить файл носителя: носитель &apos;%s&apos; все еще подключен к %d виртуальным машинам: %s</numerusform>
-            <numerusform>Невозможно удалить файл носителя: носитель &apos;%s&apos; все еще подключен к %d виртуальным машинам: %s</numerusform>
+            <numerusform>Невозможно удалить файл носителя: носитель &apos;%s&apos; всё ещё подключен к %d виртуальной машине: %s</numerusform>
+            <numerusform>Невозможно удалить файл носителя: носитель &apos;%s&apos; всё ещё подключен к %d виртуальным машинам: %s</numerusform>
+            <numerusform>Невозможно удалить файл носителя: носитель &apos;%s&apos; всё ещё подключен к %d виртуальным машинам: %s</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="5883"/>
+        <location filename="../src-server/MediumImpl.cpp" line="5752"/>
         <source>Failed to lock media when deleting &apos;%s&apos;</source>
         <translation>Невозможно заблокировать носитель во время удаления &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="5911"/>
+        <location filename="../src-server/MediumImpl.cpp" line="5780"/>
         <source>Deleting medium storage unit &apos;%s&apos;</source>
         <translation>Удаление файла носителя &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="6092"/>
-        <location filename="../src-server/MediumImpl.cpp" line="6231"/>
+        <location filename="../src-server/MediumImpl.cpp" line="5961"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6100"/>
         <source>Media &apos;%s&apos; and &apos;%s&apos; are unrelated</source>
         <translation>Носители &apos;%s&apos; и &apos;%s&apos; не связаны</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="6287"/>
-        <location filename="../src-server/MediumImpl.cpp" line="6318"/>
-        <location filename="../src-server/MediumImpl.cpp" line="6341"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6156"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6187"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6210"/>
         <source>Medium &apos;%s&apos; involved in the merge operation has more than one child medium (%d)</source>
         <translation>У носителя &apos;%s&apos;, используемого в операции объединения, есть более одного дочернего носителя (%d)</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/MediumImpl.cpp" line="6301"/>
-        <location filename="../src-server/MediumImpl.cpp" line="6347"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6170"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6216"/>
         <source>Medium &apos;%s&apos; is attached to %d virtual machines</source>
         <translation>
             <numerusform>Носитель &apos;%s&apos; подключен к  %d виртуальной машине</numerusform>
@@ -8068,105 +8525,105 @@ Guest offers: %s</source>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="6305"/>
-        <location filename="../src-server/MediumImpl.cpp" line="6324"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6174"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6193"/>
         <source>Medium &apos;%s&apos; is immutable</source>
         <translation>Носитель &apos;%s&apos; неизменяемый</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="6309"/>
-        <location filename="../src-server/MediumImpl.cpp" line="6328"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6178"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6197"/>
         <source>Medium &apos;%s&apos; is multi-attach</source>
         <translation>Носитель &apos;%s&apos; множественного подключения</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="6466"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6335"/>
         <source>Failed to lock media when merging to &apos;%s&apos;</source>
         <translation>Не удалось заблокировать носитель во время объединения с &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="6612"/>
-        <location filename="../src-server/MediumImpl.cpp" line="9381"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6481"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9250"/>
         <source>Merging medium &apos;%s&apos; to &apos;%s&apos;</source>
         <translation>Объединение носителя &apos;%s&apos; в &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="6617"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6486"/>
         <source>Resizing medium &apos;%s&apos; before merge</source>
         <translation>Изменение размера носителя &apos;%s&apos; перед объединением</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="6899"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6768"/>
         <source>Could not update medium UUID references to parent &apos;%s&apos; (%s)</source>
         <translation>Невозможно обновить UUID ссылки на родителей &apos;%s&apos; (%s)</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="6954"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6823"/>
         <source>Failed to add &apos;%s&apos; to output (%Rrc)</source>
         <translation>Невозможно добавить &apos;%s&apos; на выход (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="6958"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6827"/>
         <source>RTVfsCreateProgressForFile failed when processing &apos;%s&apos; (%Rrc)</source>
         <translation>RTVfsCreateProgressForFile завершился с ошибкой во время обработки &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="6961"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6830"/>
         <source>VDCreateVfsFileFromDisk failed for &apos;%s&apos; (%Rrc)</source>
         <translation>VDCreateVfsFileFromDisk завершился с ошибкой для &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="7066"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6935"/>
         <source>Could not create the exported medium &apos;%s&apos;%s</source>
         <translation>Невозможно создать экспортированный носитель &apos;%s&apos;%s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="7613"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7482"/>
         <source>Could not open the medium &apos;%s&apos;%s</source>
         <translation>Невозможно открыть носитель &apos;%s&apos;%s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="7629"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7498"/>
         <source>Could not update the UUID of medium &apos;%s&apos;%s</source>
         <translation>Невозможно обновить UUID носителя &apos;%s&apos;%s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="7642"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7511"/>
         <source>Could not update the parent UUID of medium &apos;%s&apos;%s</source>
         <translation>Невозможно обновить родительский UUID носителя &apos;%s&apos;%s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="7674"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7543"/>
         <source>UUID {%RTuuid} of the medium &apos;%s&apos; does not match the value {%RTuuid} stored in the media registry (&apos;%s&apos;)</source>
         <translation>UUID {%RTuuid} носителя &apos;%s&apos; не сответствует значению {%RTuuid} сохраненному в реестре носителей (&apos;%s&apos;)</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="7764"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7633"/>
         <source>Parent medium with UUID {%RTuuid} of the medium &apos;%s&apos; is not found in the media registry (&apos;%s&apos;)</source>
         <translation>Родительский носитель с UUID {%RTuuid} носителя &apos;%s&apos; не найден в реестре носителей (&apos;%s&apos;)</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="7787"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7656"/>
         <source>Cannot open differencing image for medium &apos;%s&apos;, because it exceeds the medium tree depth limit. Please merge some images which you no longer need</source>
         <translation>Невозможно открыть разностный образ носителя &apos;%s&apos;, потому что превышено ограничение на глубину дерева носителей. Пожалуйста, сделайте объединение некоторых ненужных образов</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="7822"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7691"/>
         <source>Medium type of &apos;%s&apos; is differencing but it is not associated with any parent medium in the media registry (&apos;%s&apos;)</source>
         <translation>Тип носителя &apos;%s&apos; - разностный, но он не связан с каким-либо родительским носителем в реестре носителей (&apos;%s&apos;)</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="7843"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7712"/>
         <source>Parent UUID {%RTuuid} of the medium &apos;%s&apos; does not match UUID {%RTuuid} of its parent medium stored in the media registry (&apos;%s&apos;)</source>
         <translation>Родительский UUID {%RTuuid} носителя &apos;%s&apos; не соответствует UUID {%RTuuid} родительского носителя, сохраненного в реестре носителей (&apos;%s&apos;)</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="7874"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7743"/>
         <source>Could not update and close the medium &apos;%s&apos;%s</source>
         <translation>Невозможно обновить и закрыть носитель &apos;%s&apos;%s</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/MediumImpl.cpp" line="7998"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7867"/>
         <source>Cannot close medium &apos;%s&apos; because it has %d child media</source>
         <translation>
             <numerusform>Невозможно закрыть носитель &apos;%s&apos;, потому что у него есть %d дочерний носитель</numerusform>
@@ -8175,294 +8632,296 @@ Guest offers: %s</source>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8072"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7941"/>
         <source>Storage for the medium &apos;%s&apos; is not created</source>
         <translation>Файл для носителя &apos;%s&apos; не создан</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8077"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7946"/>
         <source>Storage for the medium &apos;%s&apos; is already created</source>
         <translation>Файл для носителя &apos;%s&apos; уже создан</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8082"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7951"/>
         <source>Medium &apos;%s&apos; is locked for reading by another task</source>
         <translation>Носитель &apos;%s&apos; заблокирован для чтения другой задачей</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8087"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7956"/>
         <source>Medium &apos;%s&apos; is locked for writing by another task</source>
         <translation>Носитель &apos;%s&apos; заблокирован для записи другой задачей</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8094"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7963"/>
         <source>Medium &apos;%s&apos; is not accessible. %s</source>
         <translation>Носитель &apos;%s&apos; недоступен. %s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8098"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7967"/>
         <source>Medium &apos;%s&apos; is not accessible</source>
         <translation>Носитель &apos;%s&apos; недоступен</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8103"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7972"/>
         <source>Storage for the medium &apos;%s&apos; is being created</source>
         <translation>Файл для носителя &apos;%s&apos; создается</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8108"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7977"/>
         <source>Storage for the medium &apos;%s&apos; is being deleted</source>
         <translation>Файл для носителя &apos;%s&apos; удаляется</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8180"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8049"/>
         <source>Must be at least one extension if it is MediumFormatCapabilities_File
 </source>
         <translation>Должно быть хотя бы одно расширение если у носителя устнановлен MediumFormatCapabilities_File
 </translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8185"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8054"/>
         <source>Default extension must not be empty
 </source>
         <translation>Расширение по умолчанию не может быть пустым
 </translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8234"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8103"/>
         <source>Permission problem accessing the file for the medium &apos;%s&apos; (%Rrc)</source>
         <translation>Проблемы с разрешениями доступа к файлу для носителя &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8238"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8107"/>
         <source>Could not find file for the medium &apos;%s&apos; (%Rrc)</source>
         <translation>Невозможно найти файл для носителя &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8242"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8111"/>
         <source>Could not get the storage format of the medium &apos;%s&apos; (%Rrc)</source>
-        <translation>Невозможно получить форма хранения для носителя &apos;%s&apos; (%Rrc)</translation>
+        <translation>Невозможно получить формат хранения для носителя &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8258"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8127"/>
         <source>The medium &apos;%s&apos; can&apos;t be used as the requested device type (%s, detected %s)</source>
         <translation>Носитель &apos;%s&apos; не может использоваться как носитель запрошенного типа устройства (%s, обнаружено %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8311"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8180"/>
         <source>Invalid medium storage format &apos;%s&apos;</source>
         <translation>Недопустимый формат образа носителя &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8792"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8661"/>
         <source>Image &apos;%s&apos; is configured for encryption but doesn&apos;t has a key identifier set</source>
         <translation>Образ &apos;%s&apos; сконфигурирован для шифрования, но у него не установлен KeyId</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8798"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8667"/>
         <source>Image &apos;%s&apos; is configured for encryption but there is no key store to retrieve the password from</source>
         <translation>Образ &apos;%s&apos; сконфигурирован для шифрования, но нет хранилища ключен, откуда можно получить пароль</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8805"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8674"/>
         <source>Failed to retrieve the secret key with ID &quot;%s&quot; from the store (%Rrc)</source>
         <translation>Не удалось получить ключ с ID &quot;%s&quot; из хранилища (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8813"/>
-        <location filename="../src-server/MediumImpl.cpp" line="11048"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8682"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10994"/>
         <source>The password to decrypt the image is incorrect</source>
-        <translation>Пароль для расшифровки неправильный</translation>
+        <translation>Пароль для расшифровки образа неправильный</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8815"/>
-        <location filename="../src-server/MediumImpl.cpp" line="11051"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8684"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10997"/>
         <source>Failed to load the decryption filter: %s</source>
         <translation>Не удалось загрузить фильтр для расшифровки: %s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8849"/>
-        <location filename="../src-server/MediumImpl.cpp" line="9143"/>
-        <location filename="../src-server/MediumImpl.cpp" line="9785"/>
-        <location filename="../src-server/MediumImpl.cpp" line="9855"/>
-        <location filename="../src-server/MediumImpl.cpp" line="10111"/>
-        <location filename="../src-server/MediumImpl.cpp" line="10356"/>
-        <location filename="../src-server/MediumImpl.cpp" line="10380"/>
-        <location filename="../src-server/MediumImpl.cpp" line="10489"/>
-        <location filename="../src-server/MediumImpl.cpp" line="10595"/>
-        <location filename="../src-server/MediumImpl.cpp" line="10724"/>
-        <location filename="../src-server/MediumImpl.cpp" line="10792"/>
-        <location filename="../src-server/MediumImpl.cpp" line="11113"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8718"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9012"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9661"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9679"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9747"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10057"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10302"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10326"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10435"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10541"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10670"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10738"/>
+        <location filename="../src-server/MediumImpl.cpp" line="11059"/>
         <source>Could not open the medium storage unit &apos;%s&apos;%s</source>
         <translation>Невозможно открыть файл носителя &apos;%s&apos;: %s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8952"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8821"/>
         <source>Parameters for creating the medium storage unit &apos;%s&apos; are invalid%s</source>
         <translation>Недействительный параметр для создания файла носителя&apos;%s:&apos; %s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8956"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8825"/>
         <source>Could not create the medium storage unit &apos;%s&apos;%s</source>
         <translation>Невозможно создать файл носителя &apos;%s&apos;:%s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8965"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8834"/>
         <source>Opening medium storage unit &apos;%s&apos; failed%s</source>
         <translation>Не удалось открыть файл носителя &apos;%s&apos;: %s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8975"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8844"/>
         <source>Formatting medium storage unit &apos;%s&apos; failed: %s</source>
         <translation>Не удалось отформатировать файл носителя &apos;%s:&apos; %s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8978"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8847"/>
         <source>Formatting medium storage unit &apos;%s&apos; failed%s</source>
         <translation>Не удалось отформатировать файл носителя &apos;%s&apos;: %s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="9075"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8944"/>
         <source>Cannot create differencing image for medium &apos;%s&apos;, because it exceeds the medium tree depth limit. Please merge some images which you no longer need</source>
         <translation>Невозможно создать разностный образ носителя &apos;%s&apos;, потому что превышено ограничение на глубину дерева носителей. Пожалуйста, сделайте объединение некоторых ненужных образов</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="9172"/>
-        <location filename="../src-server/MediumImpl.cpp" line="10398"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9041"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10344"/>
         <source>Parameters for creating the differencing medium storage unit &apos;%s&apos; are invalid%s</source>
         <translation>Недействительный параметр для создания разностного файла носителя&apos;%s:&apos; %s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="9176"/>
-        <location filename="../src-server/MediumImpl.cpp" line="10402"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9045"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10348"/>
         <source>Could not create the differencing medium storage unit &apos;%s&apos;%s</source>
         <translation>Невозможно создать разностный файл носителя &apos;%s&apos;:%s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="9302"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9171"/>
         <source>Cannot merge image for medium &apos;%s&apos;, because it exceeds the medium tree depth limit. Please merge some images which you no longer need</source>
         <translation>Невозможно сделать объединение образа носителя &apos;%s&apos;, потому что превышено ограничение на глубину дерева носителей. Пожалуйста, сделайте объединение некоторых ненужных образов</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3269"/>
-        <location filename="../src-server/MediumImpl.cpp" line="9356"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3121"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9225"/>
         <source>Failed to lock the medium &apos;%s&apos; to resize before merge</source>
         <translation>Не удалось заблокировать носитель &apos;%s&apos;, чтобы изменить размер перед объединением&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="9367"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9236"/>
         <source>Failed to set size of &apos;%s&apos; to size of &apos;%s&apos;</source>
         <translation>Не удалось установить размер &apos;%s&apos; в &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3241"/>
-        <location filename="../src-server/MediumImpl.cpp" line="9376"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3093"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9245"/>
         <source>Sizes of &apos;%s&apos; and &apos;%s&apos; are different and medium format does not support resing</source>
         <translation>Размеры &apos;%s&apos; и &apos;%s&apos; отличаются и формат носителя не поддерживает изменение размера</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="9511"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9380"/>
         <source>Could not merge the medium &apos;%s&apos; to &apos;%s&apos;%s</source>
         <translation>Невозможно объединить носитель &apos;%s&apos; с &apos;%s&apos;%s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="9731"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9602"/>
         <source>Cannot clone image for medium &apos;%s&apos;, because it exceeds the medium tree depth limit. Please merge some images which you no longer need</source>
         <translation>Невозможно склонировать образ носителя &apos;%s&apos;, потому что превышено ограничение на глубину дерева носителей. Пожалуйста, сделайте объединение некоторых ненужных образов</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="9897"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9789"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9841"/>
         <source>Could not create the clone medium &apos;%s&apos;%s</source>
         <translation>Невозможно создать клон носителя &apos;%s&apos; %s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="10070"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10016"/>
         <source>Wrong preconditions for moving the medium %s</source>
         <translation>Неверные условия для перемещения носителя %s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="10157"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10103"/>
         <source>Could not move medium &apos;%s&apos;%s</source>
         <translation>Невозможно переместить носитель &apos;%s&apos; %s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="10253"/>
-        <location filename="../src-server/MediumImpl.cpp" line="10369"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10199"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10315"/>
         <source>Could not delete the medium storage unit &apos;%s&apos;%s</source>
         <translation>Невозможно удалить файл носителя &apos;%s&apos; %s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="10506"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10452"/>
         <source>Compacting is not yet supported for medium &apos;%s&apos;</source>
-        <translation>Уплотнение еще не поддерживается для носителя &apos;%s&apos;</translation>
+        <translation>Уплотнение ещё не поддерживается для носителя &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="10510"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10456"/>
         <source>Compacting is not implemented, medium &apos;%s&apos;</source>
         <translation>Уплотнение не реализовано, носитель &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="10514"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10460"/>
         <source>Could not compact medium &apos;%s&apos;%s</source>
         <translation>Невозможно уплотнить носитель &apos;%s&apos; %s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="10613"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10559"/>
         <source>Shrinking is not yet supported for medium &apos;%s&apos;</source>
         <translation>Уменьшение размера не поддерживается для носителя &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="10617"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10563"/>
         <source>Resizing to new size %llu is not yet supported for medium &apos;%s&apos;</source>
-        <translation>Изменение размера к %llu еще не поддерживается для носителя &apos;%s&apos;</translation>
+        <translation>Изменение размера к %llu ещё не поддерживается для носителя &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="10621"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10567"/>
         <source>Resizing is not implemented, medium &apos;%s&apos;</source>
         <translation>Изменение размера не реализовано, носитель &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="10625"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10571"/>
         <source>Could not resize medium &apos;%s&apos;%s</source>
         <translation>Невозможно изменить размер носителя &apos;%s&apos; %s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="10686"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10632"/>
         <source>Cannot import image for medium &apos;%s&apos;, because it exceeds the medium tree depth limit. Please merge some images which you no longer need</source>
         <translation>Невозможно импортировать образ носителя &apos;%s&apos;, потому что превышено ограничение на глубину дерева носителей. Пожалуйста, сделайте объединение некоторых ненужных образов</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="10812"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10758"/>
         <source>Could not create the imported medium &apos;%s&apos;%s</source>
         <translation>Невозможно создать импортированный носитель &apos;%s&apos;%s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="11000"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10946"/>
         <source>Encrypting the image failed because the encryption plugin could not be loaded (%s)</source>
         <translation>Не удалось зашифровать образ, потому что невозможно загрузить плагин шифрования (%s)</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="11034"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10980"/>
         <source>The password given for the encrypted image is incorrect</source>
         <translation>Пароль для шифрованного образа неправильный</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="11066"/>
+        <location filename="../src-server/MediumImpl.cpp" line="11012"/>
         <source>A password must be given for the image encryption</source>
         <translation>Должен быть предоставлен пароль для шифрования образа</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="11069"/>
+        <location filename="../src-server/MediumImpl.cpp" line="11015"/>
         <source>A valid identifier for the password must be given</source>
         <translation>Должен быть предоставлен действительный идентификатор пароля</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="11083"/>
+        <location filename="../src-server/MediumImpl.cpp" line="11029"/>
         <source>The password and password identifier must be empty if the output should be unencrypted</source>
         <translation>Пароль и идентификатор пароля должны быть пусты если нужно расшифровать образ</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="11128"/>
+        <location filename="../src-server/MediumImpl.cpp" line="11074"/>
         <source>Could not prepare disk images for encryption (%Rrc): %s</source>
         <translation>Невозможно подготовить дисковые образы для шифрования (%Rrc): %s</translation>
     </message>
@@ -8542,7 +9001,7 @@ Guest offers: %s</source>
     <message>
         <location filename="../src-server/MediumIOImpl.cpp" line="772"/>
         <source>whole-disk-in-one-entry is not implemented yet, sorry.</source>
-        <translation>&quot;весь диск в одном элементе таблицы разделов&quot; еще не реализован, извините.</translation>
+        <translation>&quot;весь диск в одном элементе таблицы разделов&quot; ещё не реализован, извините.</translation>
     </message>
     <message>
         <location filename="../src-server/MediumIOImpl.cpp" line="794"/>
@@ -8576,14 +9035,14 @@ Guest offers: %s</source>
 <context>
     <name>Mouse</name>
     <message>
-        <location filename="../src-client/MouseImpl.cpp" line="535"/>
-        <location filename="../src-client/MouseImpl.cpp" line="578"/>
-        <location filename="../src-client/MouseImpl.cpp" line="645"/>
+        <location filename="../src-client/MouseImpl.cpp" line="538"/>
+        <location filename="../src-client/MouseImpl.cpp" line="581"/>
+        <location filename="../src-client/MouseImpl.cpp" line="648"/>
         <source>Could not send the mouse event to the virtual mouse (%Rrc)</source>
         <translation>Невозможно отправить событие мыши  в виртуальную мышь (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/MouseImpl.cpp" line="615"/>
+        <location filename="../src-client/MouseImpl.cpp" line="618"/>
         <source>Could not send the multi-touch event to the virtual device (%Rrc)</source>
         <translation>Невозможно отправить событие мультитач в виртуальное устройство (%Rrc)</translation>
     </message>
@@ -8636,7 +9095,7 @@ Guest offers: %s</source>
     <message>
         <location filename="../src-server/NATNetworkImpl.cpp" line="313"/>
         <source>%s: internal error: failed to convert prefix %d to netmask: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>%s: внутренняя ошибка: не удалось преобразовать префикс %d в сетевую маску: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/NATNetworkImpl.cpp" line="317"/>
@@ -8687,49 +9146,49 @@ Guest offers: %s</source>
 <context>
     <name>NetworkAdapter</name>
     <message>
-        <location filename="../src-server/NetworkAdapterImpl.cpp" line="267"/>
+        <location filename="../src-server/NetworkAdapterImpl.cpp" line="273"/>
         <source>Invalid network adapter type &apos;%d&apos;</source>
         <translation>Недопустимый тип сетевого адаптера %d</translation>
     </message>
     <message>
-        <location filename="../src-server/NetworkAdapterImpl.cpp" line="383"/>
-        <location filename="../src-server/NetworkAdapterImpl.cpp" line="387"/>
-        <location filename="../src-server/NetworkAdapterImpl.cpp" line="394"/>
+        <location filename="../src-server/NetworkAdapterImpl.cpp" line="389"/>
+        <location filename="../src-server/NetworkAdapterImpl.cpp" line="393"/>
+        <location filename="../src-server/NetworkAdapterImpl.cpp" line="400"/>
         <source>Invalid MAC address format</source>
         <translation>Недопустимый формат MAC адреса</translation>
     </message>
     <message>
-        <location filename="../src-server/NetworkAdapterImpl.cpp" line="538"/>
+        <location filename="../src-server/NetworkAdapterImpl.cpp" line="544"/>
         <source>Empty or null bridged interface name is not valid</source>
         <translation>Пустое или нулевое имя интерфейса сетевого моста недопустимо</translation>
     </message>
     <message>
-        <location filename="../src-server/NetworkAdapterImpl.cpp" line="586"/>
+        <location filename="../src-server/NetworkAdapterImpl.cpp" line="592"/>
         <source>Empty or null host only interface name is not valid</source>
         <translation>Пустое или нулевое имя виртуального адаптера хоста недопустимо</translation>
     </message>
     <message>
-        <location filename="../src-server/NetworkAdapterImpl.cpp" line="641"/>
+        <location filename="../src-server/NetworkAdapterImpl.cpp" line="647"/>
         <source>Empty or null host only Network name is not valid</source>
         <translation>Пустое или нулевое имя сети виртуального адаптера хоста недопустимо</translation>
     </message>
     <message>
-        <location filename="../src-server/NetworkAdapterImpl.cpp" line="694"/>
+        <location filename="../src-server/NetworkAdapterImpl.cpp" line="700"/>
         <source>Empty or null internal network name is not valid</source>
         <translation>Пустое или нулевое имя внутренней сети недопустимо</translation>
     </message>
     <message>
-        <location filename="../src-server/NetworkAdapterImpl.cpp" line="741"/>
+        <location filename="../src-server/NetworkAdapterImpl.cpp" line="747"/>
         <source>Empty or null NAT network name is not valid</source>
         <translation>Пустое или нулевое имя сети NAT недопустимо</translation>
     </message>
     <message>
-        <location filename="../src-server/NetworkAdapterImpl.cpp" line="834"/>
+        <location filename="../src-server/NetworkAdapterImpl.cpp" line="840"/>
         <source>Empty or null Cloud network name is not valid</source>
         <translation>Пустое или нулевое имя облачной сети недопустимо</translation>
     </message>
     <message>
-        <location filename="../src-server/NetworkAdapterImpl.cpp" line="960"/>
+        <location filename="../src-server/NetworkAdapterImpl.cpp" line="966"/>
         <source>Invalid promiscuous mode policy (%d)</source>
         <translation>Недопустимая политика неразборчивого режима (%d)</translation>
     </message>
@@ -8737,42 +9196,60 @@ Guest offers: %s</source>
 <context>
     <name>NvramStore</name>
     <message>
-        <location filename="../src-all/NvramStoreImpl.cpp" line="401"/>
-        <location filename="../src-all/NvramStoreImpl.cpp" line="487"/>
+        <location filename="../src-all/NvramStoreImpl.cpp" line="387"/>
+        <location filename="../src-all/NvramStoreImpl.cpp" line="470"/>
         <source>Loading the NVRAM store failed (%Rrc)
 </source>
         <translation>Не удалось загрузкить NVRAM хранилище (%Rrc)
 </translation>
     </message>
     <message>
-        <location filename="../src-all/NvramStoreImpl.cpp" line="1090"/>
         <source>Opening the UEFI variable store failed (%Rrc).</source>
-        <translation>Не удалось открыть хранилище UEFI переменных (%Rrc).</translation>
+        <translation type="vanished">Не удалось открыть хранилище UEFI переменных (%Rrc).</translation>
     </message>
     <message>
-        <location filename="../src-all/NvramStoreImpl.cpp" line="413"/>
-        <location filename="../src-all/NvramStoreImpl.cpp" line="1093"/>
         <source>The UEFI NVRAM file is not existing for this machine.</source>
-        <translation>Нет UEFI NVRAM файла для этой машины.</translation>
+        <translation type="vanished">Нет UEFI NVRAM файла для этой машины.</translation>
     </message>
     <message>
-        <location filename="../src-all/NvramStoreImpl.cpp" line="465"/>
+        <location filename="../src-all/NvramStoreImpl.cpp" line="361"/>
+        <source>This machine does not have an NVRAM store file</source>
+        <translation>У этой машины нет файла хранения NVRAM</translation>
+    </message>
+    <message>
+        <location filename="../src-all/NvramStoreImpl.cpp" line="373"/>
+        <source>No NVRAM store file found</source>
+        <translation>Файл хранения NVRAM не найден</translation>
+    </message>
+    <message>
+        <location filename="../src-all/NvramStoreImpl.cpp" line="399"/>
+        <location filename="../src-all/NvramStoreImpl.cpp" line="1387"/>
+        <source>The UEFI NVRAM file is not existing for this machine</source>
+        <translation>Нет UEFI NVRAM файла для этой машины</translation>
+    </message>
+    <message>
+        <location filename="../src-all/NvramStoreImpl.cpp" line="449"/>
         <source>Supporting another NVRAM size apart from the default one is not supported right now</source>
         <translation>Поддержка другого размера NVRAM, кроме стандартного, сейчас не поддерживается</translation>
     </message>
     <message>
-        <location filename="../src-all/NvramStoreImpl.cpp" line="479"/>
+        <location filename="../src-all/NvramStoreImpl.cpp" line="462"/>
         <source>The selected firmware type doesn&apos;t support a UEFI variable store</source>
         <translation>Выбранный тип прошивки не поддерживает хранилище UEFI переменных</translation>
     </message>
     <message>
-        <location filename="../src-all/NvramStoreImpl.cpp" line="517"/>
-        <location filename="../src-all/NvramStoreImpl.cpp" line="520"/>
+        <location filename="../src-all/NvramStoreImpl.cpp" line="500"/>
+        <location filename="../src-all/NvramStoreImpl.cpp" line="503"/>
         <source>Failed to initialize the UEFI variable store (%Rrc)</source>
         <translation>Не удалось инициализировать хранилище UEFI переменных (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-all/NvramStoreImpl.cpp" line="1160"/>
+        <location filename="../src-all/NvramStoreImpl.cpp" line="1384"/>
+        <source>Opening the UEFI variable store failed (%Rrc)</source>
+        <translation>Не удалось открыть хранилище UEFI переменных (%Rrc)</translation>
+    </message>
+    <message>
+        <location filename="../src-all/NvramStoreImpl.cpp" line="1457"/>
         <source>Failed to save the NVRAM content to disk (%Rrc)</source>
         <translation>Не удалось сохранить содержимое NVRAM на диск (%Rrc)</translation>
     </message>
@@ -8817,16 +9294,62 @@ Guest offers: %s</source>
     </message>
 </context>
 <context>
+    <name>PlatformProperties</name>
+    <message>
+        <location filename="../src-all/PlatformPropertiesImpl.cpp" line="515"/>
+        <source>Invalid storage controller type %d
+</source>
+        <translation>Недопустимый тип контроллера %d
+</translation>
+    </message>
+    <message>
+        <location filename="../src-all/PlatformPropertiesImpl.cpp" line="565"/>
+        <source>Invalid storage bus %d
+</source>
+        <translation>Недопустимая шина %d
+</translation>
+    </message>
+    <message>
+        <location filename="../src-all/PlatformPropertiesImpl.cpp" line="977"/>
+        <source>Selected graphics controller not supported in this version</source>
+        <translation>Выбранный тип графического контроллера не поддерживается в этой версии</translation>
+    </message>
+    <message>
+        <location filename="../src-all/PlatformPropertiesImpl.cpp" line="980"/>
+        <location filename="../src-all/PlatformPropertiesImpl.cpp" line="994"/>
+        <source>The graphics controller type (%d) is invalid</source>
+        <translation>Недопустимый тип графического контроллера (%d)</translation>
+    </message>
+</context>
+<context>
+    <name>PlatformX86</name>
+    <message>
+        <location filename="../src-server/PlatformX86Impl.cpp" line="548"/>
+        <source>Currently only aSubIdx values 0 and 0xffffffff are supported: %#x</source>
+        <translation>В настоящее время поддерживаются только aSubIdx значения 0 и 0xffffffff: %#x</translation>
+    </message>
+    <message>
+        <location filename="../src-server/PlatformX86Impl.cpp" line="552"/>
+        <source>CpuId override leaf %#x is out of range</source>
+        <translation>Лист переопределения CpuId %#x вышел за границы диапазона</translation>
+    </message>
+    <message>
+        <location filename="../src-server/PlatformX86Impl.cpp" line="564"/>
+        <source>Max of 256 CPUID override leaves reached</source>
+        <translation>Достигнут максимум 256 листов переопределения CPUID</translation>
+    </message>
+</context>
+<context>
     <name>Progress</name>
     <message>
         <location filename="../src-all/ProgressImpl.cpp" line="666"/>
         <source>Result code is not available, operation is still in progress</source>
-        <translation>Результирующий код недоступен, операция еще в процессе</translation>
+        <translation>Результирующий код недоступен, операция ещё в процессе</translation>
     </message>
     <message>
         <location filename="../src-all/ProgressImpl.cpp" line="678"/>
         <source>Error info is not available, operation is still in progress</source>
-        <translation>Информация об ошибке недоступна, операция еще в процессе</translation>
+        <translation>Информация об ошибке недоступна, операция ещё в процессе</translation>
     </message>
     <message>
         <location filename="../src-all/ProgressImpl.cpp" line="747"/>
@@ -8856,57 +9379,57 @@ Guest offers: %s</source>
 <context>
     <name>RecordingScreenSettings</name>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="299"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="300"/>
         <source>Cannot change enabled state of screen while recording is enabled</source>
         <translation>Невозможно изменить состояние экрана на &quot;включено&quot; пока включена запись</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="343"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="344"/>
         <source>Cannot change features while recording is enabled</source>
         <translation>Невозможно изменить функции пока включена запись</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="397"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="398"/>
         <source>Cannot change destination type while recording is enabled</source>
         <translation>Невозможно изменить тип назначения пока включена запись</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="400"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="401"/>
         <source>Destination type invalid / not supported</source>
-        <translation type="unfinished"></translation>
+        <translation>Конечный тип задан неверно / не поддерживается</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="428"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="429"/>
         <source>Error retrieving default file name</source>
         <translation>Ошибка при получении имени файла по умолчанию</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="445"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="446"/>
         <source>Cannot change file name while recording is enabled</source>
         <translation>Невозможно изменить имя файла пока включена запись</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="450"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="451"/>
         <source>Recording file name &apos;%s&apos; is not absolute</source>
         <translation>Имя файла для записи &apos;%s&apos; не абсолютно</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="472"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="473"/>
         <source>Could not set file name for recording screen</source>
-        <translation type="unfinished"></translation>
+        <translation>Невозможно задать имя файла для экрана записи</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="496"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="497"/>
         <source>Cannot change maximum time while recording is enabled</source>
         <translation>Невозможно изменить максимальное время пока включена запись</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="531"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="532"/>
         <source>Cannot change maximum file size while recording is enabled</source>
         <translation>Невозможно изменить максимальный размер файла пока включена запись</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="566"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="567"/>
         <source>Cannot change options while recording is enabled</source>
         <translation>Невозможно изменить параметры пока включена запись</translation>
     </message>
@@ -8915,84 +9438,84 @@ Guest offers: %s</source>
         <translation type="vanished">Указан недопустимый параметр</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="600"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="601"/>
         <source>Cannot change audio codec while recording is enabled</source>
         <translation>Невозможно изменить аудио кодек пока включена запись</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="603"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="604"/>
         <source>Audio codec not supported</source>
-        <translation type="unfinished"></translation>
+        <translation>Аудио кодек не поддерживается</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="638"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="639"/>
         <source>Cannot change audio deadline while recording is enabled</source>
-        <translation type="unfinished"></translation>
+        <translation>Невозможно изменить время отсечки аудио пока включена запись</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="673"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="674"/>
         <source>Cannot change audio rate control mode while recording is enabled</source>
-        <translation type="unfinished"></translation>
+        <translation>Невозможно изменить режим управления битрейтом пока включена запись</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="701"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="702"/>
         <source>Cannot change audio Hertz rate while recording is enabled</source>
         <translation>Невозможно изменить частоту оцифровки аудио пока включена запись</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="736"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="737"/>
         <source>Cannot change audio bits while recording is enabled</source>
         <translation>Невозможно изменить битность аудио пока включена запись</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="771"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="772"/>
         <source>Cannot change audio channels while recording is enabled</source>
         <translation>Невозможно изменить аудио каналы пока включена запись</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="806"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="807"/>
         <source>Cannot change video codec while recording is enabled</source>
         <translation>Невозможно изменить видео кодек пока включена запись</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="809"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="810"/>
         <source>Video codec not supported</source>
-        <translation type="unfinished"></translation>
+        <translation>Видео кодек не поддерживается</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="844"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="845"/>
         <source>Cannot change video deadline while recording is enabled</source>
-        <translation type="unfinished"></translation>
+        <translation>Невозможно изменить время отсечки видео пока включена запись</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="879"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="880"/>
         <source>Cannot change video width while recording is enabled</source>
         <translation>Невозможно изменить ширину видео пока включена запись</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="914"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="915"/>
         <source>Cannot change video height while recording is enabled</source>
         <translation>Невозможно изменить высоту видео пока включена запись</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="949"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="950"/>
         <source>Cannot change video rate while recording is enabled</source>
         <translation>Невозможно изменить видео битрейт пока включена запись</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="984"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="985"/>
         <source>Cannot change video rate control mode while recording is enabled</source>
         <translation>Невозможно изменить режим управления битрейтом пока включена запись</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="1012"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="1013"/>
         <source>Cannot change video FPS while recording is enabled</source>
         <translation>Невозможно изменить частоту кадров видео пока включена запись</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="1047"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="1048"/>
         <source>Cannot change video scaling mode while recording is enabled</source>
-        <translation type="unfinished"></translation>
+        <translation>Невозможно изменить метод масштабирования видео пока включена запись</translation>
     </message>
     <message>
         <source>Cannot change video rate scaling method while recording is enabled</source>
@@ -9002,9 +9525,19 @@ Guest offers: %s</source>
 <context>
     <name>RecordingSettings</name>
     <message>
-        <location filename="../src-server/RecordingSettingsImpl.cpp" line="372"/>
+        <location filename="../src-server/RecordingSettingsImpl.cpp" line="335"/>
+        <source>Recording not started</source>
+        <translation>Запись не запущена</translation>
+    </message>
+    <message>
+        <location filename="../src-server/RecordingSettingsImpl.cpp" line="357"/>
         <source>Invalid screen ID specified</source>
         <translation>Указан недопустимый ID экрана</translation>
+    </message>
+    <message>
+        <location filename="../src-server/RecordingSettingsImpl.cpp" line="401"/>
+        <source>Recording already started</source>
+        <translation>Запись уже запущена</translation>
     </message>
 </context>
 <context>
@@ -9084,10 +9617,10 @@ Guest offers: %s</source>
         <translation>Не удалось запросить удаленную консоль</translation>
     </message>
     <message>
-        <location filename="../src-client/SessionImpl.cpp" line="999"/>
-        <location filename="../src-client/SessionImpl.cpp" line="1045"/>
-        <location filename="../src-client/SessionImpl.cpp" line="1067"/>
-        <location filename="../src-client/SessionImpl.cpp" line="1087"/>
+        <location filename="../src-client/SessionImpl.cpp" line="1016"/>
+        <location filename="../src-client/SessionImpl.cpp" line="1062"/>
+        <location filename="../src-client/SessionImpl.cpp" line="1084"/>
+        <location filename="../src-client/SessionImpl.cpp" line="1104"/>
         <source>Machine is not locked by session (session state: %s).</source>
         <translation>Машина не заблокирована сессией (состояние сессии: %s)</translation>
     </message>
@@ -9095,81 +9628,81 @@ Guest offers: %s</source>
 <context>
     <name>SessionMachine</name>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="13388"/>
-        <location filename="../src-server/MachineImpl.cpp" line="13398"/>
+        <location filename="../src-server/MachineImpl.cpp" line="12797"/>
+        <location filename="../src-server/MachineImpl.cpp" line="12807"/>
         <source>The VM session was aborted</source>
         <translation>Сессия ВМ прервана</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="13548"/>
-        <location filename="../src-server/SnapshotImpl.cpp" line="1755"/>
-        <location filename="../src-server/SnapshotImpl.cpp" line="2326"/>
-        <location filename="../src-server/SnapshotImpl.cpp" line="2969"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="1770"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="2341"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="2984"/>
+        <location filename="../src-server/MachineImpl.cpp" line="12957"/>
         <source>The session has been accidentally closed</source>
         <translation>Сессия была случайно закрыта</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="13565"/>
+        <location filename="../src-server/MachineImpl.cpp" line="12974"/>
         <source>Trying to save state without a running VM</source>
         <translation>Попытка сохранить состояние без запущенной ВМ</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="13626"/>
+        <location filename="../src-server/MachineImpl.cpp" line="13035"/>
         <source>Cannot save the execution state as the machine is not running or paused (machine state: %s)</source>
         <translation>Невозможно сохранить состояние выполнения так как машина не запущена или приостановлена (состояние машины: %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="13633"/>
+        <location filename="../src-server/MachineImpl.cpp" line="13042"/>
         <source>Saving the execution state of the virtual machine</source>
         <translation>Сохранение состояния выполнения виртуальной машины</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="13672"/>
+        <location filename="../src-server/MachineImpl.cpp" line="13081"/>
         <source>Cannot adopt the saved machine state as the machine is not in Powered Off, Teleported or Aborted state (machine state: %s)</source>
         <translation>Невозможно принять сохраненное состояние машины, так как машина не находится в состояниях &quot;Выключена&quot;, &quot;Портирована&quot; или &quot;Прервана&quot; (состояние машины: %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="13679"/>
+        <location filename="../src-server/MachineImpl.cpp" line="13088"/>
         <source>Invalid saved state file path &apos;%s&apos; (%Rrc)</source>
         <translation>Недопустимый путь к файлу сохраненного сосотояния &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="13704"/>
+        <location filename="../src-server/MachineImpl.cpp" line="13113"/>
         <source>Cannot discard the saved state as the machine is not in the Saved or Aborted-Saved state (machine state: %s)</source>
         <translation>Невозможно убрать сохраненное состояние, так как машина не находится в состояниях &quot;Сохранена&quot;, &quot;Прервана с сохранением&quot; (состояние машины: %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="13832"/>
+        <location filename="../src-server/MachineImpl.cpp" line="13241"/>
         <source>Stopping the virtual machine</source>
         <translation>Остановка виртуальной машины</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="14058"/>
+        <location filename="../src-server/MachineImpl.cpp" line="13467"/>
         <source>The VM session was closed before any attempt to power it on</source>
         <translation>Сессия ВМ закрыта перед какой-либо попыткой включить машину</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="14072"/>
+        <location filename="../src-server/MachineImpl.cpp" line="13481"/>
         <source>Closing session</source>
         <translation>Закрытие сессии</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="14096"/>
+        <location filename="../src-server/MachineImpl.cpp" line="13505"/>
         <source>The session is not found in the session list!</source>
         <translation>Сессия не найдена в списке сессий!</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="14337"/>
+        <location filename="../src-server/MachineImpl.cpp" line="13746"/>
         <source>Could not load the external authentication library &apos;%s&apos; (%Rrc)</source>
         <translation>Невозможно загрузить внешнюю библиотку аутентификации &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="15225"/>
+        <location filename="../src-server/MachineImpl.cpp" line="14657"/>
         <source>Collecting locking information for all attached media failed</source>
         <translation>Не удалось собрать информациию о блокировках для всех подключенных носителей</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="15238"/>
+        <location filename="../src-server/MachineImpl.cpp" line="14670"/>
         <source>Locking of attached media failed. A possible reason is that one of the media is attached to a running VM</source>
         <translation>Не удалось заблокировать поключенный носитель. Возможная причина - один из носителей подключен к запущенной ВМ</translation>
     </message>
@@ -9178,87 +9711,87 @@ Guest offers: %s</source>
         <translation type="vanished">Невозможно сделать снимок машины пока она меняет состояние (состояние машины: %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="1630"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="1645"/>
         <source>Cannot take a snapshot of the virtual machine while it is changing state (machine state: %s)</source>
-        <translation type="unfinished"></translation>
+        <translation>Невозможно сделать снимок машины пока она меняет состояние (состояние машины: %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="1635"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="1650"/>
         <source>Cannot take a live snapshot of a virtual machine unless it is running.</source>
-        <translation type="unfinished"></translation>
+        <translation>Невозможно сделать живой снимок машины пока она не запущена.</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="1677"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="1692"/>
         <source>Taking a snapshot of the virtual machine</source>
         <translation>Получение снимка виртуальной машины</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="1681"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="1696"/>
         <source>Setting up snapshot operation</source>
         <translation>Настройка операции создания снимка</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="1784"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="1799"/>
         <source>Cannot take another snapshot for machine &apos;%s&apos;, because it exceeds the maximum snapshot depth limit. Please delete some earlier snapshot which you no longer need</source>
-        <translation>Невозможно получить еще один снимок для машины &apos;%s&apos;, потому что превышено ограничение на максимальную глубину снимков. Пожалуйста, удалите какой-нибудь старый ненужный снимок</translation>
+        <translation>Невозможно сделать очередной снимок для машины &apos;%s&apos;, потому что превышено ограничение на максимальную глубину снимков. Пожалуйста, удалите какой-нибудь старый ненужный снимок</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="1864"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="1879"/>
         <source>Saving the machine state</source>
         <translation>Сохранение состояния машины</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="1887"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="1902"/>
         <source>Canceled</source>
         <translation>Отменено</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="1892"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="1907"/>
         <source>Reconfiguring medium attachments</source>
         <translation>Переконфигурация подключений носителей</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="1920"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="1935"/>
         <source>Could not copy NVRAM file &apos;%s&apos; to &apos;%s&apos; (%Rrc)</source>
         <translation>Невозможно скопировать NVRAM файл &apos;%s&apos; в &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="2224"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="2239"/>
         <source>Cannot delete the current state of the running machine (machine state: %s)</source>
         <translation>Невозможно удалить текущее состояние запущенной машины (состояние машины: %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="2236"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="2251"/>
         <source>This VM does not have any current snapshot</source>
-        <translation type="unfinished"></translation>
+        <translation>У этой машины нет текущего снимка</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="2238"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="2253"/>
         <source>The given snapshot is invalid</source>
-        <translation type="unfinished"></translation>
+        <translation>Данный снимок неисправен</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="2271"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="2286"/>
         <source>Restoring snapshot &apos;%s&apos;</source>
         <translation>Восстановление из снимка &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="2275"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="2290"/>
         <source>Restoring machine settings</source>
         <translation>Восстановление настроек машины</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="2709"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="2724"/>
         <source>Cannot delete a snapshot of the machine while it is changing the state (machine state: %s)</source>
         <translation>Невозможно удалить снимок машины во время изменения состояния (состояние машины: %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="2722"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="2737"/>
         <source>Invalid machine state: %s</source>
         <translation>Недопустимое состояние машины: %s</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/SnapshotImpl.cpp" line="2740"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="2755"/>
         <source>Snapshot &apos;%s&apos; of the machine &apos;%s&apos; cannot be deleted, because it has %d child snapshots, which is more than the one snapshot allowed for deletion</source>
         <translation>
             <numerusform>Снимок &apos;%s&apos; машины &apos;%s&apos; не может быть удален, потому что у него есть %d дочерний снимок, что больше одного, доступного для удаления</numerusform>
@@ -9267,22 +9800,22 @@ Guest offers: %s</source>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="2748"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="2763"/>
         <source>Snapshot &apos;%s&apos; of the machine &apos;%s&apos; cannot be deleted, because it is the current snapshot and has one child snapshot</source>
         <translation>Снимок &apos;%s&apos; машины &apos;%s&apos; не может быть удален, потому что это текущий снимок и у него есть один дочерний снимок</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="2821"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="2836"/>
         <source>Deleting snapshot &apos;%s&apos;</source>
         <translation>Удаление снимка &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="2825"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="2840"/>
         <source>Setting up</source>
         <translation>Настройка</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/SnapshotImpl.cpp" line="3101"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="3116"/>
         <source>Unable to merge storage &apos;%s&apos;, because it is smaller than the source image. If you resize it to have a capacity of at least %lld bytes you can retry</source>
         <translation>
             <numerusform>Невозможно объединить носитель &apos;%s&apos;, потому что он меньше чем исходный образ. Измените размер чтобы иметь хотя бы %lld байт и попытайтесь снова</numerusform>
@@ -9291,62 +9824,62 @@ Guest offers: %s</source>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="3197"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="3212"/>
         <source>Unable to merge storage &apos;%s&apos;. Can&apos;t get storage UID</source>
         <translation>Невозможно объединить носитель &apos;%s&apos;. Невозможно получить UID носителя</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="3237"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="3252"/>
         <source>Unable to merge storage &apos;%s&apos;. Path to the storage wasn&apos;t found</source>
         <translation>Невозможно объединить носитель &apos;%s&apos;. Путь к носителю не найден</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="3245"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="3260"/>
         <source>Unable to merge storage &apos;%s&apos;. Can&apos;t get the storage size</source>
         <translation>Невозможно объединить носитель &apos;%s&apos;. Невозможно получить размер носителя</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="3254"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="3269"/>
         <source>Unable to merge storage &apos;%s&apos;. Not enough free storage space</source>
         <translation>Невозможно объединить носитель &apos;%s&apos;. Недостаточно свободного места</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="3286"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="3301"/>
         <source>Deleting the execution state</source>
         <translation>Удаление состояния выполнения</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="3315"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="3330"/>
         <source>Merging differencing image &apos;%s&apos;</source>
         <translation>Объединение разностных образов &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="3316"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="3331"/>
         <source>Resizing before merge differencing image &apos;%s&apos;</source>
         <translation>Изменение размера перед объединением разностных образов &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="3712"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="3727"/>
         <source>Hard disk &apos;%s&apos; has more than one child hard disk (%d)</source>
         <translation>У жесткого диска &apos;%s&apos; более одного дочернего жесткого диска (%d)</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="3881"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="3896"/>
         <source>Cannot lock hard disk &apos;%s&apos; for a live merge</source>
         <translation>Невозможно заблокировать жесткий диск &apos;%s&apos; для живого объединения</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="3895"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="3910"/>
         <source>Failed to construct lock list for a live merge of hard disk &apos;%s&apos;</source>
         <translation>Не удалось создать список блокировок для живого объединения жестких дисков &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="3928"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="3943"/>
         <source>Cannot lock hard disk &apos;%s&apos; when deleting a snapshot</source>
         <translation>Невозможно заблокировать жесткий диск &apos;%s&apos; во время удаления снимка</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="4110"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="4125"/>
         <source>Machine is not locked by a session (session state: %s)</source>
         <translation>Машина не заблокирована сессией (состояние сессии: %s)</translation>
     </message>
@@ -9354,29 +9887,34 @@ Guest offers: %s</source>
 <context>
     <name>SharedFolder</name>
     <message>
-        <location filename="../src-all/SharedFolderImpl.cpp" line="252"/>
+        <location filename="../src-all/SharedFolderImpl.cpp" line="259"/>
         <source>Invalid shared folder path: &apos;%s&apos; (%Rrc)</source>
         <translation>Недопустимый путь к общей папке: &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-all/SharedFolderImpl.cpp" line="255"/>
+        <location filename="../src-all/SharedFolderImpl.cpp" line="262"/>
         <source>Shared folder path &apos;%s&apos; is not absolute</source>
         <translation>Путь к общей папке &apos;%s&apos; не абсолютный</translation>
     </message>
     <message>
-        <location filename="../src-all/SharedFolderImpl.cpp" line="260"/>
+        <location filename="../src-all/SharedFolderImpl.cpp" line="267"/>
         <source>RTPathQueryInfo failed on shared folder path &apos;%s&apos;: %Rrc</source>
         <translation>RTPathQueryInfo завершился с ошибкой на пути к общей папке &apos;%s&apos;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-all/SharedFolderImpl.cpp" line="263"/>
+        <location filename="../src-all/SharedFolderImpl.cpp" line="270"/>
         <source>Shared folder path &apos;%s&apos; is not a directory</source>
         <translation>Путь к общей папке &apos;%s&apos; не указывает на директорию</translation>
     </message>
     <message>
-        <location filename="../src-all/SharedFolderImpl.cpp" line="330"/>
+        <location filename="../src-all/SharedFolderImpl.cpp" line="338"/>
         <source>&apos;%s&apos; is not accessible (%Rrc)</source>
         <translation>&apos;%s&apos; не доступно (%Rrc)</translation>
+    </message>
+    <message>
+        <location filename="../src-all/SharedFolderImpl.cpp" line="415"/>
+        <source>The symbolic link policy specified (%d) is invalid.</source>
+        <translation>Выбранная политика символьных ссылок (%d) недопустима.</translation>
     </message>
 </context>
 <context>
@@ -9395,34 +9933,34 @@ Guest offers: %s</source>
         <translation>Недопустимый тип соединения носителей</translation>
     </message>
     <message>
-        <location filename="../src-server/StorageControllerImpl.cpp" line="123"/>
+        <location filename="../src-server/StorageControllerImpl.cpp" line="122"/>
         <source>Too many storage controllers of this type</source>
         <translation>Слишком много контроллеров этого типа</translation>
     </message>
     <message>
-        <location filename="../src-server/StorageControllerImpl.cpp" line="327"/>
+        <location filename="../src-server/StorageControllerImpl.cpp" line="326"/>
         <source>Storage controller named &apos;%s&apos; already exists</source>
         <translation>Контроллер с именем &apos;%s&apos; уже существует</translation>
     </message>
     <message>
-        <location filename="../src-server/StorageControllerImpl.cpp" line="427"/>
+        <location filename="../src-server/StorageControllerImpl.cpp" line="426"/>
         <source>Invalid controller type %d</source>
         <translation>Недопустимый тип контроллера %d</translation>
     </message>
     <message>
-        <location filename="../src-server/StorageControllerImpl.cpp" line="487"/>
-        <location filename="../src-server/StorageControllerImpl.cpp" line="501"/>
-        <location filename="../src-server/StorageControllerImpl.cpp" line="512"/>
-        <location filename="../src-server/StorageControllerImpl.cpp" line="523"/>
-        <location filename="../src-server/StorageControllerImpl.cpp" line="532"/>
-        <location filename="../src-server/StorageControllerImpl.cpp" line="543"/>
-        <location filename="../src-server/StorageControllerImpl.cpp" line="555"/>
-        <location filename="../src-server/StorageControllerImpl.cpp" line="566"/>
+        <location filename="../src-server/StorageControllerImpl.cpp" line="486"/>
+        <location filename="../src-server/StorageControllerImpl.cpp" line="500"/>
+        <location filename="../src-server/StorageControllerImpl.cpp" line="511"/>
+        <location filename="../src-server/StorageControllerImpl.cpp" line="522"/>
+        <location filename="../src-server/StorageControllerImpl.cpp" line="531"/>
+        <location filename="../src-server/StorageControllerImpl.cpp" line="542"/>
+        <location filename="../src-server/StorageControllerImpl.cpp" line="554"/>
+        <location filename="../src-server/StorageControllerImpl.cpp" line="565"/>
         <source>Invalid port count: %lu (must be in range [%lu, %lu])</source>
         <translation>Недопустимое количество портов: %lu (должно быть в диапазоне [%lu, %lu])</translation>
     </message>
     <message>
-        <location filename="../src-server/StorageControllerImpl.cpp" line="718"/>
+        <location filename="../src-server/StorageControllerImpl.cpp" line="717"/>
         <source>The port and/or device parameter are out of range: port=%d (must be in range [0, %d]), device=%d (must be in range [0, %d])</source>
         <translation>Параметр порта и/или устройства вышел за границы диапазона: порт=%d (должен быть в диапазоне [0, %d]), устройство=%d (должно быть в диапазоне [0, %d])</translation>
     </message>
@@ -9430,109 +9968,112 @@ Guest offers: %s</source>
 <context>
     <name>SystemProperties</name>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="591"/>
         <source>Invalid storage controller type %d
 </source>
-        <translation>Недопустимый тип контроллера %d
+        <translation type="vanished">Недопустимый тип контроллера %d
 </translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="641"/>
         <source>Invalid storage bus %d
 </source>
-        <translation>Недопустимая шина %d
+        <translation type="vanished">Недопустимая шина %d
 </translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="748"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="315"/>
         <source>Invalid or unsupported architecture value: %d</source>
         <translation>Недопустимое или неподдерживаемое значение архитектуры: %d</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="858"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="425"/>
         <source>&apos;%s&apos; is missing symbols: CPUMR3DbGetEntries, CPUMR3DbGetEntryByIndex</source>
         <translation>Отсутствуют символы в &apos;%s&apos;: CPUMR3DbGetEntries, CPUMR3DbGetEntryByIndex</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="862"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="429"/>
         <source>Failed to construct load &apos;%s&apos;: %Rrc</source>
         <translation>Не удалось загрузить &apos;%s&apos;: %Rc</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="865"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="432"/>
         <source>Failed to construct path to the VMM DLL/Dylib/SharedObject: %Rrc</source>
         <translation>Не удалось собрать путь к VMM DLL/Dylib/SharedObject: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1102"/>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1148"/>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1181"/>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1227"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="669"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="715"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="748"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="794"/>
         <source>The extension pack &apos;%s&apos; does not exist</source>
         <translation>Пакет расширения &apos;%s&apos; не существует</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1381"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="955"/>
         <source>Invalid ProxyMode value: %d</source>
         <translation>Недопустимое значение ProxyMode: %d</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1421"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="995"/>
         <source>Failed to parse proxy URL: %Rrc</source>
         <translation>Не удалось разобрать URL прокси: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1424"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="998"/>
         <source>Proxy URL must include a hostname</source>
         <translation>URL прокси должен включать имя хоста</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1426"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1000"/>
         <source>Proxy URL must not include a path component (%.*s)</source>
         <translation>URL прокси не должен включать компонент пути (%.*s)</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1429"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1003"/>
         <source>Proxy URL must not include a query component (?%.*s)</source>
         <translation>URL прокси не должен включать компонент запроса (%.*s)</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1432"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1006"/>
         <source>Proxy URL must not include a fragment component (#%.*s)</source>
         <translation>URL прокси не должен включать компонент фрагмента (%.*s)</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="2148"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1630"/>
         <source>Cannot determine user home directory (%Rrc)</source>
         <translation>Невозможно определить домашнюю директорию пользователя (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="2179"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1661"/>
         <source>Given default machine folder &apos;%s&apos; is not fully qualified</source>
         <translation>Данная папка машины по умолчанию &apos;%s&apos; не полностью определена</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="2270"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1682"/>
+        <source>RTLogGroupSettings failed: %Rrc (input: %s)</source>
+        <translation>RTLogGroupSettings завершился с ошибкой: %Rrc (input: %s)</translation>
+    </message>
+    <message>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1760"/>
         <source>Cannot set the autostart database path (%Rrc)</source>
         <translation>Невозможно установить путь к базе данных автостарта (%Rc)</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="2278"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1768"/>
         <source>Deleting the autostart database path failed (%Rrc)</source>
         <translation>Не удалось удалить путь к базе данных автостарта (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="2311"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1801"/>
         <source>Cannot determine default Guest Additions ISO location. Most likely they are not available</source>
         <translation>Невозможно определить стандартное расположение Дополнений Гостевой ОС. Наиболее вероятно, они недоступны</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="2316"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1806"/>
         <source>Given default machine Guest Additions ISO file &apos;%s&apos; is not fully qualified</source>
         <translation>Данный файл Дополнений Гостевой ОС &apos;%s&apos; машины не полностью определен</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="2321"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1811"/>
         <source>Given default machine Guest Additions ISO file &apos;%s&apos; does not exist</source>
         <translation>Данный файл Дополнений Гостевой ОС &apos;%s&apos; машины не существует</translation>
     </message>
@@ -9670,128 +10211,128 @@ Guest offers: %s</source>
 <context>
     <name>UefiVariableStore</name>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="181"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="177"/>
         <source>The &apos;SecureBootEnable&apos; variable size is bogus (expected 1, got %llu)</source>
         <translation>Размер переменной &apos;SecureBootEnable&apos;  неправильный (ожидается 1, получено %llu)</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="184"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="180"/>
         <source>Failed to query the &apos;SecureBootEnable&apos; variable size: %Rrc</source>
         <translation>Не удалось запросить размер переменной &apos;SecureBootEnable&apos;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="189"/>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="222"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="185"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="218"/>
         <source>Failed to query the platform key variable size: %Rrc</source>
         <translation>Не удалось запросить размер переменной ключ платформы: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="220"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="216"/>
         <source>Secure boot is not available because the platform key (PK) is not enrolled</source>
         <translation>Secure boot недоступен, потому что ключ платформы (PK) не зарегистрирован</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="276"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="272"/>
         <source>Failed to remove variable &apos;%s&apos; (%Rrc)</source>
         <translation>Не удалось удалить переменную &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="279"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="275"/>
         <source>Failed to open the variable store root (%Rrc)</source>
         <translation>Не удалось открыть корень хранилища переменных (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="282"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="278"/>
         <source>The variable name is too long</source>
         <translation>Имя переменной слишком длинное</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="309"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="305"/>
         <source>Failed to data for variable &apos;%s&apos; (%Rrc)</source>
         <translation>Не удалось записать данные переменной &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="312"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="308"/>
         <source>Failed to allocate space for the variable &apos;%s&apos; (%Rrc)</source>
         <translation>Невозможно выделить пространство для переменной &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="356"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="348"/>
         <source>Failed to query the size of variable &apos;%s&apos;: %Rrc</source>
         <translation>Не удалось запросить размер переменной &apos;%s&apos;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="359"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="351"/>
         <source>Failed to query the owner UUID of variable &apos;%s&apos;: %Rrc</source>
         <translation>Не удалось запросить UUID владельца переменной &apos;%s&apos;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="362"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="354"/>
         <source>Failed to query the attributes of variable &apos;%s&apos;: %Rrc</source>
         <translation>Не удалось запросить аттрибуты переменной &apos;%s&apos;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="412"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="400"/>
         <source>Failed to query the variables: %Rrc</source>
         <translation>Не удалось запросить переменные: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="812"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="816"/>
         <source>Opening variable storage root directory failed: %Rrc</source>
         <translation>Не удалось открыть корневую директорию хранилища переменных: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="824"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="828"/>
         <source>Creating the variable &apos;%s&apos; failed: %Rrc</source>
         <translation>Не удалось создать переменную &apos;%s&apos;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="850"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="854"/>
         <source>The variable &apos;%s&apos; could not be found</source>
         <translation>Невозможно найти переменную &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="852"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="856"/>
         <source>Couldn&apos;t open variable &apos;%s&apos; (%Rrc)</source>
         <translation>Невозможно открыть переменную &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="867"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="871"/>
         <source>Setting the variable &apos;%s&apos; failed: %Rrc</source>
         <translation>Не удалось установить переменную &apos;%s&apos;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="892"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="896"/>
         <source>Failed to read data of variable &apos;%s&apos;: %Rrc</source>
         <translation>Не удалось прочитать данные переменной &apos;%s&apos;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="897"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="901"/>
         <source>Failed to open variable &apos;%s&apos; for reading: %Rrc</source>
         <translation>Не удалось открыть переменную &apos;%s&apos; для чтения: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="916"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="920"/>
         <source>The given signature type is not supported</source>
         <translation>Данный тип подписи не поддерживается</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="923"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="927"/>
         <source>Failed to add signature to the database (%Rrc)</source>
         <translation>Не удалось добавить подпись в базу данных (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="956"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="960"/>
         <source>Writing updated signature database failed: %Rrc</source>
         <translation>Не удалось записать обновленную подпись в базу данных: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="960"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="964"/>
         <source>Loading signature database failed: %Rrc</source>
         <translation>Не удалось загрузить базу данных подписей: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="965"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="969"/>
         <source>Creating signature database failed: %Rrc</source>
         <translation>Не удалось создать базу данных подписей: %Rrc</translation>
     </message>
@@ -9799,155 +10340,167 @@ Guest offers: %s</source>
 <context>
     <name>Unattended</name>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="362"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="382"/>
         <source>Failed to open &apos;%s&apos; (%Rrc)</source>
         <translation>Не удалось открыть &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="379"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="435"/>
         <source>Failed to open &apos;%s&apos; as ISO FS (%Rrc) - %s</source>
         <translation>Не удалось открыть &apos;%s&apos; как файловую систему ISO (%Rrc) - %s</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="382"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="438"/>
         <source>Failed to open &apos;%s&apos; as ISO FS (%Rrc)</source>
         <translation>Не удалось открыть &apos;%s&apos; как файловую систему ISO (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="2478"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="1004"/>
+        <source>Out of memory</source>
+        <translation>Не хватает памяти</translation>
+    </message>
+    <message>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2571"/>
         <source>No machine associated with this IUnatteded instance</source>
         <translation>С этим экземпляром IUnatteded не связана ни одна машина</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="2535"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2636"/>
         <source>The prepare method has been called (must call done to restart)</source>
         <translation>Вызван метод prepare (для перезагрузки нужно вызвать done)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="2537"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2638"/>
         <source>The &apos;machine&apos; while we were using it - please don&apos;t do that</source>
         <translation>Машина изменилась пока мы ее использовали - пожалуйста, не делайте так</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="2543"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2644"/>
         <source>Could not locate the installation ISO file &apos;%s&apos;</source>
         <translation>Невозможно определить местоположение установочного ISO файла &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="2546"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2647"/>
         <source>Could not locate the Guest Additions ISO file &apos;%s&apos;</source>
         <translation>Невозможно определить местоположение ISO файла Дополнений Гостевой ОС &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="2549"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2650"/>
         <source>Could not locate the validation kit ISO file &apos;%s&apos;</source>
         <translation>Невозможно определить местоположение ISO файла комплекта для проверки &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="2552"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2653"/>
+        <source>Could not locate the User Payload ISO file &apos;%s&apos;</source>
+        <translation>Невозможно определить местоположение ISO файла User Payload &apos;%s&apos;</translation>
+    </message>
+    <message>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2656"/>
         <source>Could not locate unattended installation script template &apos;%s&apos;</source>
         <translation>Невозможно определить местоположение шаблона скрипта unattended установки &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="2727"/>
-        <source>Unattended installation is not supported for guest type &apos;%s&apos;</source>
-        <translation>Unattended установка не поддерживается для типа гостевой системы &apos;%s&apos;</translation>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2685"/>
+        <source>imageIndex value %u not found in detectedImageIndices</source>
+        <translation>значение imageIndex %u не найдено в detectedImageIndices</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="2864"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2695"/>
+        <source>The supplied ISO file does not contain an OS currently supported for unattended installation</source>
+        <translation>Выбранный ISO файл не содержит ОС, поддерживаемую для unattended установки</translation>
+    </message>
+    <message>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2718"/>
+        <source>The supplied ISO file is incompatible with the guest OS type of the VM: CPU architecture mismatch</source>
+        <translation>Выбранный ISO файл не совместим с типом ОС данной ВМ: несовместимая архитектура ЦПУ</translation>
+    </message>
+    <message>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2727"/>
+        <source>The machine is configured with EFI which is currently not supported by unatteded installation</source>
+        <translation>Машина настроена на использование EFI, который в данный момент не поддерживается unatteded установкой</translation>
+    </message>
+    <message>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2845"/>
+        <source>Unattended installation is not supported for guest type &apos;%s&apos;</source>
+        <translation>Unattended установка не поддерживается для типа гостевой ОС &apos;%s&apos;</translation>
+    </message>
+    <message>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2982"/>
         <source>reconfigureVM running on other thread</source>
         <translation>reconfigureVM запущена на другом потоке</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="2760"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="2873"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2878"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2991"/>
         <source>prepare() not yet called</source>
-        <translation>prepare() еще не вызван</translation>
+        <translation>prepare() ещё не вызван</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="926"/>
-        <source>Out of memory</source>
-        <translation type="unfinished">Не хватает памяти</translation>
-    </message>
-    <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="2581"/>
-        <source>imageIndex value %u not found in detectedImageIndices</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="2591"/>
-        <source>The supplied ISO file does not contain an OS currently supported for unattended installation</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="2610"/>
-        <source>The supplied ISO file is incompatible with the guest OS type of the VM: CPU architecture mismatch</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3028"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3146"/>
         <source>Found non-floppy device attached to port 0 device 0 on the floppy controller &apos;%ls&apos;</source>
-        <translation>Не найдено флоппи устройств подключенных к порту 0 устройства 0 флоппи контроллера &apos;%ls&apos;</translation>
+        <translation>Найдено устройство, не являющееся гибким диском, подключенное к порту 0 устройства 0 контроллера гибких дисков &apos;%ls&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3175"/>
         <source>Support for recommended storage bus %d not implemented</source>
-        <translation>Поддержка рекомендованной шины %d не реализована</translation>
+        <translation type="vanished">Поддержка рекомендованной шины %d не реализована</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/UnattendedImpl.cpp" line="3194"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3302"/>
         <source>Not enough free slots on controller &apos;%s&apos; to add %u DVD drive(s)</source>
         <translation>
-            <numerusform>Нет достаточно свободных слотов на контроллере &apos;%s&apos; для добавления %u DVD диска</numerusform>
-            <numerusform>Нет достаточно свободных слотов на контроллере &apos;%s&apos; для добавления %u DVD дисков</numerusform>
-            <numerusform>Нет достаточно свободных слотов на контроллере &apos;%s&apos; для добавления %u DVD дисков</numerusform>
+            <numerusform>Нет достаточно свободных слотов на контроллере &apos;%s&apos; для добавления %u оптического диска</numerusform>
+            <numerusform>Нет достаточно свободных слотов на контроллере &apos;%s&apos; для добавления %u оптических дисков</numerusform>
+            <numerusform>Нет достаточно свободных слотов на контроллере &apos;%s&apos; для добавления %u оптических дисков</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3382"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3399"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3414"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3429"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3444"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3459"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3474"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3489"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3504"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3519"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3534"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3559"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3574"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3596"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3490"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3507"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3522"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3537"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3552"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3567"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3582"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3597"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3612"/>
         <location filename="../src-server/UnattendedImpl.cpp" line="3627"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3709"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3729"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3745"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3788"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3813"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3832"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3847"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3866"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="4014"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3642"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3657"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3672"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3711"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3736"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3751"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3773"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3804"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3886"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3906"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3922"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3965"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3990"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="4009"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="4024"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="4043"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="4193"/>
         <source>Cannot change after prepare() has been called</source>
         <translation>Невозможно изменить после того, как prepare() вызван</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3546"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3723"/>
         <source>Expected two lower cased letters, an underscore, and two upper cased letters</source>
         <translation>Ожидается две буквы в нижнем регистре, символ подчеркивания, и две буквы в верхнем регистре</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3583"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3760"/>
         <source>Expected two upper cased letters</source>
         <translation>Ожидается две букве в верхнем регистре</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3638"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3815"/>
         <source>Unknown keyword: %s</source>
         <translation>Неизвестный символ: %s</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/UnattendedImpl.cpp" line="3659"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3836"/>
         <source>Hostname &apos;%s&apos; is %zu bytes long, max is 253 (excluding trailing dot)</source>
         <translation>
             <numerusform>Имя хоста &apos;%s&apos; имеет длину %zu байт, максимально допустимо 253 (исключая завершающую точку)</numerusform>
@@ -9956,42 +10509,42 @@ Guest offers: %s</source>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3678"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3855"/>
         <source>Invalid hostname &apos;%s&apos; - label %u is too long, max is 63.</source>
         <translation>Недопустимое имя хоста &apos;%s&apos; - метка %u слишком длинная, максимально допустимо 63.</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3683"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3860"/>
         <source>Invalid hostname &apos;%s&apos; - illegal char &apos;%c&apos; at position %zu</source>
         <translation>Недопустимое имя хоста &apos;%s&apos; - недопустимый символ &apos;%c&apos; в позиции %zu</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3688"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3865"/>
         <source>Invalid hostname &apos;%s&apos; - the name part must be at least two characters long</source>
         <translation>Недопустимое имя хоста &apos;%s&apos; - часть с именем должна иметь длину хотя бы два символа</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3695"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3872"/>
         <source>Invalid hostname &apos;%s&apos; - illegal lead char &apos;%c&apos; at position %zu</source>
         <translation>Недопустимое имя хоста &apos;%s&apos; - недопустимый ведущий символ &apos;%c&apos; в позиции %zu</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3699"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3876"/>
         <source>Invalid hostname &apos;%s&apos; - trailing dot not permitted</source>
         <translation>Недопустимое имя хоста &apos;%s&apos; - завершающая точка не допускается</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3703"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3880"/>
         <source>Incomplete hostname &apos;%s&apos; - must include both a name and a domain</source>
         <translation>Недопустимое имя хоста &apos;%s&apos; - должно включать как имя так домен</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3724"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3901"/>
         <source>Empty base path is not allowed</source>
         <translation>Пустой базовый путь не допускается</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3726"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3903"/>
         <source>Base path must be absolute</source>
         <translation>Базовый путь должен быть абсолютным</translation>
     </message>
@@ -9999,25 +10552,24 @@ Guest offers: %s</source>
 <context>
     <name>UnattendedInstaller</name>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="181"/>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="199"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="206"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="224"/>
         <source>Failed to construct path to the unattended installer script templates (%Rrc)</source>
         <translation>Не удалось собрать путь к шаблонам скриптов unattended установщика (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="224"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="249"/>
         <source>Cannot proceed with an empty installation ISO path</source>
         <translation>Невозможно продолжать с пустым путем к ISO дистрибутива</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="226"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="251"/>
         <source>Empty user name is not allowed</source>
         <translation>Пустое имя пользователя не допускается</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="228"/>
         <source>Empty password is not allowed</source>
-        <translation>Пустой пароль не допускается</translation>
+        <translation type="vanished">Пустой пароль не допускается</translation>
     </message>
     <message>
         <source>Failed to open newly created floppy image &apos;%s&apos;: %Rrc: %s</source>
@@ -10028,81 +10580,86 @@ Guest offers: %s</source>
         <translation type="vanished">Не удалось открыть только что созданный образ флоппи &apos;%s&apos;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="357"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="253"/>
+        <source>Empty user password is not allowed</source>
+        <translation>Пустой пароль пользователя не допускается</translation>
+    </message>
+    <message>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="384"/>
         <source>Failed to open FAT file system on newly created floppy image &apos;%s&apos;: %Rrc: %s</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось открыть файловую систему FAT на вновь созданном образе гибкого диска &apos;%s&apos;: %Rrc: %s</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="361"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="388"/>
         <source>Failed to open FAT file system onnewly created floppy image &apos;%s&apos;: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось открыть файловую систему FAT на вновь созданном образе гибкого диска &apos;%s&apos;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="395"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="422"/>
         <source>Failed to format floppy image &apos;%s&apos;: %Rrc</source>
-        <translation>Не удалось отформатировать образ флоппи &apos;%s&apos;: %Rrc</translation>
+        <translation>Не удалось отформатировать образ гибкого диска &apos;%s&apos;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="400"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="427"/>
         <source>Failed to create floppy image &apos;%s&apos;: %Rrc</source>
-        <translation>Не удалось создать образ флоппи &apos;%s&apos;: %Rrc</translation>
+        <translation>Не удалось создать образ гибкого диска &apos;%s&apos;: %Rrc</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/UnattendedInstaller.cpp" line="440"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="467"/>
         <source>Error writing %zu bytes to &apos;%s&apos; in floppy image &apos;%s&apos;: %Rrc</source>
         <translation>
-            <numerusform>Ощибка записи %zu байт в &apos;%s&apos; в образе флоппи &apos;%s&apos;: %Rrc</numerusform>
-            <numerusform>Ощибка записи %zu байта в &apos;%s&apos; в образе флоппи &apos;%s&apos;: %Rrc</numerusform>
-            <numerusform>Ощибка записи %zu байт в &apos;%s&apos; в образе флоппи &apos;%s&apos;: %Rrc</numerusform>
+            <numerusform>Ошибка записи %zu байта в &apos;%s&apos; в образ гибкого диска &apos;%s&apos;: %Rrc</numerusform>
+            <numerusform>Ошибка записи %zu байт в &apos;%s&apos; в образ гибкого диска &apos;%s&apos;: %Rrc</numerusform>
+            <numerusform>Ошибка записи %zu байт в &apos;%s&apos; в образ гибкого диска &apos;%s&apos;: %Rrc</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="449"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="476"/>
         <source>Error creating &apos;%s&apos; in floppy image &apos;%s&apos;: %Rrc</source>
-        <translation>Ошибка создания  &apos;%s&apos; в образе флоппи &apos;%s&apos;: %Rrc</translation>
+        <translation>Ошибка создания &apos;%s&apos; в образе гибкого диска &apos;%s&apos;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="482"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="509"/>
         <source>Error writing copying &apos;%s&apos; to floppy image &apos;%s&apos;: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Ошибка записи копирования &apos;%s&apos; в образ гибкого диска &apos;%s&apos;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="488"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="515"/>
         <source>Error opening &apos;%s&apos; on floppy image &apos;%s&apos; for writing: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Ошибка открытия &apos;%s&apos; в образе гибкого диска &apos;%s&apos; для записи: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="494"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="521"/>
         <source>Error opening &apos;%s&apos; for copying onto floppy image &apos;%s&apos;: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Ошибка открытия &apos;%s&apos; для копирования в образ гибкого диска &apos;%s&apos;: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="565"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="592"/>
         <source>Failed to open ISO image &apos;%s&apos; (%Rrc)</source>
         <translation>Не удалось открыть ISO образ &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="574"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="601"/>
         <source>ISO reader fail to open &apos;%s&apos; (%Rrc): %s</source>
         <translation>Считывателю ISO не удалось открыть &apos;%s&apos; (%Rrc): %s</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="576"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="603"/>
         <source>ISO reader fail to open &apos;%s&apos; (%Rrc)</source>
         <translation>Считывателю ISO не удалось открыть &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="584"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="611"/>
         <source>RTFsIsoMakerCreate failed (%Rrc)</source>
         <translation>RTFsIsoMakerCreate завершился с ошибкой (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="643"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="670"/>
         <source>RTFsIsoMakerAddFileWithVfsFile failed on the script &apos;%s&apos; (%Rrc)</source>
         <translation>RTFsIsoMakerAddFileWithVfsFile завершился с ошибкой при обработке скрипта &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/UnattendedInstaller.cpp" line="648"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="675"/>
         <source>RTVfsFileFromBuffer failed on the %zu byte script &apos;%s&apos; (%Rrc)</source>
         <translation>
             <numerusform>RTVfsFileFromBuffer завершился с ошибкой при обработке %zu байт скрипта &apos;%s&apos; (%Rrc)</numerusform>
@@ -10111,52 +10668,52 @@ Guest offers: %s</source>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="661"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="688"/>
         <source>RTFsIsoMakerFinalize failed (%Rrc)</source>
         <translation>RTFsIsoMakerFinalize завершился с ошибкой (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="676"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="703"/>
         <source>The auxiliary ISO image file &apos;%s&apos; already exists</source>
         <translation>Вспомогательный файл образа ISO &apos;%s&apos; уже существует</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="678"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="705"/>
         <source>Failed to open the auxiliary ISO image file &apos;%s&apos; for writing (%Rrc)</source>
         <translation>Не удалось открыть вспомогательный файл образа ISO &apos;%s&apos; на запись (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="699"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="726"/>
         <source>Error writing auxiliary ISO image &apos;%s&apos; (%Rrc)</source>
         <translation>Ошибка записи вспомогательного образа ISO &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="704"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="731"/>
         <source>Internal Error: Failed to case VFS file to VFS I/O stream</source>
         <translation>Внутренняя ошибка: Не удалось привести VFS файл к VFS I/O потоку</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="709"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="736"/>
         <source>RTFsIsoMakerCreateVfsOutputFile failed (%Rrc)</source>
         <translation>RTFsIsoMakerCreateVfsOutputFile завершился с ошибкой (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="817"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="854"/>
         <source>RTGetOptArgvToString failed (%Rrc)</source>
         <translation>RTGetOptArgvToString завершился с ошибкой (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="840"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="877"/>
         <source>Error writing &apos;%s&apos; (%Rrc)</source>
         <translation>Ошибка записи &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="843"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="880"/>
         <source>Failed to create &apos;%s&apos; (%Rrc)</source>
         <translation>Не удалось создать &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="862"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="899"/>
         <source>Failed to open &apos;%s&apos; on the ISO &apos;%s&apos; (%Rrc)</source>
         <translation>Не удалось открыть &apos;%s&apos; в ISO &apos;%s&apos; (%Rrc)</translation>
     </message>
@@ -10166,150 +10723,150 @@ Guest offers: %s</source>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="189"/>
         <source>Failed to write bootsector: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось записать загрузочный сектор: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="192"/>
         <source>Failed to read bootsector: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось считать загрузочный сектор: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="195"/>
         <source>Error reading SYSINSTX.COM: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось прочесть SYSINSTX.COM: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="198"/>
         <source>Unable to locate bootsector template in SYSINSTX.COM</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось обнаружить шаблон загрузочного сектора в SYSINSTX.COM</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="202"/>
         <source>Failed to open SYSINSTX.COM: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось открыть SYSINSTX.COM: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="205"/>
         <source>Failed to construct SYSINSTX.COM path</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось составить путь к SYSINSTX.COM</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="245"/>
         <source>Failed to format floppy image &apos;%s&apos;: %Rrc</source>
-        <translation type="unfinished">Не удалось отформатировать образ флоппи &apos;%s&apos;: %Rrc</translation>
+        <translation>Не удалось отформатировать образ гибкого диска &apos;%s&apos;: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="250"/>
         <source>Failed to create floppy image &apos;%s&apos;: %Rrc</source>
-        <translation type="unfinished">Не удалось создать образ флоппи &apos;%s&apos;: %Rrc</translation>
+        <translation>Не удалось создать образ гибкого диска &apos;%s&apos;: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="835"/>
         <source>RTPathJoin/Append failed for %s: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>RTPathJoin/Append завершился с ошибкой на %s: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="859"/>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="884"/>
         <source>Failed to write %s to the floppy: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось записать %s на гибкий диск: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="888"/>
         <source>Patcher failed for &apos;%s&apos;: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Ошибка патчера на &apos;%s&apos;: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="893"/>
         <source>Error reading &apos;%s&apos; into memory for patching: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Ошибка чтения &apos;%s&apos; в память для патчинга: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="898"/>
         <source>Failed to allocate %zu bytes for &apos;%s&apos;</source>
-        <translation type="unfinished">Не удалось выделить %zu байт для &apos;%s&apos;</translation>
+        <translation>Не удалось выделить %zu байт для &apos;%s&apos;</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="903"/>
         <source>Failed to query the size of &apos;%s&apos;: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось запросить размер &apos;%s&apos;: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="906"/>
         <source>File too big to patch: &apos;%s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>Файл слишком большой для патчинга: &apos;%s&apos;</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="912"/>
         <source>Failed to open %s on floppy: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось открыть %s на гибком диске: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="927"/>
         <source>Failed to locate &apos;%s&apos; needed for the install floppy</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось обнаружить &apos;%s&apos;, необходимый для установочного гибкого диска</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="969"/>
         <source>Failed to create &apos;ALTF2ON.$$$&apos; on the install floppy</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось создать &apos;ALTF2ON.$$$&apos; на установочном гибком диске</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="1087"/>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="1135"/>
         <source>Unexpected splitter tag in &apos;%s&apos; at offset %p: @@VBOX_SPLITTER_%.64s</source>
-        <translation type="unfinished"></translation>
+        <translation>Неожиданный тэг разделителя в &apos;%s&apos; с отступом %p: @@VBOX_SPLITTER_%.64s</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="1099"/>
         <source>Malformed splitter tag in &apos;%s&apos; at offset %p: @@VBOX_SPLITTER_START[%.64s</source>
-        <translation type="unfinished"></translation>
+        <translation>Недопустимый тэг разделителя в &apos;%s&apos; с отступом %p: @@VBOX_SPLITTER_START[%.64s</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="1104"/>
         <source>Malformed splitter tag in &apos;%s&apos; at offset %p: @@VBOX_SPLITTER_START[%.*Rhxs</source>
-        <translation type="unfinished"></translation>
+        <translation>Недопустимый тэг разделителя в &apos;%s&apos; с отступом %p: @@VBOX_SPLITTER_START[%.*Rhxs</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="1132"/>
         <source>No END splitter tag for &apos;%s&apos; in &apos;%s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>Не обнаружен конечный тэг разделителя для &apos;%s&apos; в &apos;%s&apos;</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="1143"/>
         <source>Mismatching splitter tag for &apos;%s&apos; in &apos;%s&apos; at offset %p: @@VBOX_SPLITTER_END[%.64Rhxs</source>
-        <translation type="unfinished"></translation>
+        <translation>Несовпадающий тэг разделителя для &apos;%s&apos; в &apos;%s&apos; с отступом %p: @@VBOX_SPLITTER_END[%.64Rhxs</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="1169"/>
         <source>Error writing &apos;%s&apos; (split out from &apos;%s&apos;): %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Ошибка записи &apos;%s&apos; (отдельно от &apos;%s&apos;): %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="1174"/>
         <source>File splitter failed to open output file &apos;%s&apos; in &apos;%s&apos;: %Rrc (%s)</source>
-        <translation type="unfinished"></translation>
+        <translation>Делитель файлов не смог открыть выходной файл &apos;%s&apos; в &apos;%s&apos;: %Rrc (%s)</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="1179"/>
         <source>File splitter failed to construct path for &apos;%s&apos; in &apos;%s&apos;: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Делитель файлов не смог составить путь для &apos;%s&apos; в &apos;%s&apos;: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="1207"/>
         <source>Failed to read &apos;%s&apos; for splitting up: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось считать &apos;%s&apos; для деления: %Rrc</translation>
     </message>
 </context>
 <context>
     <name>UnattendedSUSEXMLScript</name>
     <message>
-        <location filename="../src-server/UnattendedScript.cpp" line="848"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="890"/>
         <source>XML document root element is &apos;%s&apos; instead of &apos;profile&apos;</source>
         <translation>Корневым элементом документа XML является &apos;%s&apos; вместо &apos;profile&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedScript.cpp" line="851"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="893"/>
         <source>Missing XML root element</source>
         <translation>Отсутствует корневой элемент XML</translation>
     </message>
@@ -10321,64 +10878,69 @@ Guest offers: %s</source>
         <translation type="vanished">Неправильная шаблонная подстановка &apos;%.*s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedScript.cpp" line="152"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="157"/>
         <source>Malformed or too long template placeholder &apos;%.*s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>Неправильная или слишком длинная шаблонная подстановка &apos;%.*s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedScript.cpp" line="232"/>
-        <location filename="../src-server/UnattendedScript.cpp" line="247"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="237"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="252"/>
         <source>%s without @@VBOX_COND_XXX@@ at offset %zu (%#zx)</source>
         <translation>%s без @@VBOX_COND_XXX@@ в позиции %zu (%#zx)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedScript.cpp" line="272"/>
-        <location filename="../src-server/UnattendedScript.cpp" line="297"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="277"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="302"/>
         <source>Too deep conditional nesting at offset %zu (%#zx)</source>
         <translation>Слишком глубокая вложенность по условию в позиции %zu (%#zx)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedScript.cpp" line="334"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="339"/>
         <source>Missing @@VBOX_COND_END@@</source>
         <translation>Отсутствует @@VBOX_COND_END@@</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedScript.cpp" line="336"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="341"/>
         <source>Missing %u @@VBOX_COND_END@@</source>
         <translation>Отсутствует %u @@VBOX_COND_END@@</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedScript.cpp" line="506"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="511"/>
         <source>Malformed @@VBOX_INSERT[expr]@@: Missing &apos;]&apos; (%.*s)</source>
-        <translation type="unfinished"></translation>
+        <translation>Неправильный @@VBOX_INSERT[expr]@@: Пропущено &apos;]&apos; (%.*s)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedScript.cpp" line="572"/>
-        <location filename="../src-server/UnattendedScript.cpp" line="599"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="577"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="604"/>
         <source>Expression evaluation error for &apos;%.*s&apos;: %#RTeic</source>
-        <translation type="unfinished"></translation>
+        <translation>Ошибка вычисления выражения для &apos;%.*s&apos;: %#RTeic</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedScript.cpp" line="585"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="590"/>
         <source>Malformed @@VBOX_COND[expr]@@: Missing &apos;]&apos; (%.*s)</source>
-        <translation type="unfinished"></translation>
+        <translation>Неправильный @@VBOX_COND[expr]@@: Пропущено &apos;]&apos; (%.*s)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedScript.cpp" line="677"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="660"/>
+        <source>RTCrShaCryptGenerateSalt failed: %Rrc</source>
+        <translation>RTCrShaCryptGenerateSalt завершился с ошибкой: %Rrc</translation>
+    </message>
+    <message>
+        <location filename="../src-server/UnattendedScript.cpp" line="717"/>
         <source>Unknown guest OS major version &apos;%s&apos;</source>
         <translation>Неизвестная мажорная версия гостевой ОС &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedScript.cpp" line="749"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="791"/>
         <source>Unknown variable &apos;%.*s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>Неизвестная переменная &apos;%.*s&apos;</translation>
     </message>
     <message>
         <source>Unknown template placeholder &apos;%.*s&apos;</source>
         <translation type="vanished">Неизвестная шаблонная подстановка &apos;%.*s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedScript.cpp" line="808"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="850"/>
         <source>Unknown conditional placeholder &apos;%.*s&apos;</source>
         <translation>Неизвестная условная подстановка &apos;%.*s&apos;</translation>
     </message>
@@ -10388,28 +10950,28 @@ Guest offers: %s</source>
     <message>
         <location filename="../src-server/UpdateAgentImpl.cpp" line="510"/>
         <source>Frequency too small; one day is the minimum</source>
-        <translation type="unfinished"></translation>
+        <translation>Частота проверки слишком низкая; один день - минимальная</translation>
     </message>
     <message>
         <location filename="../src-server/UpdateAgentImpl.cpp" line="558"/>
         <location filename="../src-server/UpdateAgentImpl.cpp" line="673"/>
         <source>Invalid URL scheme specified!</source>
-        <translation type="unfinished"></translation>
+        <translation>Указана недопустимая схема URL!</translation>
     </message>
     <message>
         <location filename="../src-server/UpdateAgentImpl.cpp" line="806"/>
         <source>RTHttpSetProxyByUrl() failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>RTHttpSetProxyByUrl() завершился с ошибкой: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UpdateAgentImpl.cpp" line="812"/>
         <source>RTHttpUseSystemProxySettings() failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>RTHttpUseSystemProxySettings() завершился с ошибкой: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UpdateAgentImpl.cpp" line="843"/>
         <source>Failed to format update agent error string (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось отформатировать строку ошибки агента обновления (%Rrc)</translation>
     </message>
 </context>
 <context>
@@ -10451,15 +11013,32 @@ Guest offers: %s</source>
 <context>
     <name>VRDEServer</name>
     <message>
-        <location filename="../src-server/VRDEServerImpl.cpp" line="705"/>
+        <location filename="../src-server/VRDEServerImpl.cpp" line="330"/>
+        <source>Failed to read server certificate &apos;%s&apos;: %Rrc%#RTeim
+</source>
+        <translation>Не удалось прочесть сертификат сервера &apos;%s&apos;: %Rrc%#RTeim
+</translation>
+    </message>
+    <message>
+        <location filename="../src-server/VRDEServerImpl.cpp" line="372"/>
+        <location filename="../src-server/VRDEServerImpl.cpp" line="389"/>
+        <location filename="../src-server/VRDEServerImpl.cpp" line="402"/>
+        <location filename="../src-server/VRDEServerImpl.cpp" line="422"/>
+        <source>Failed to auto generate server key and certificate: (%Rrc)
+</source>
+        <translation>Не удалось автоматически сгенерировать ключ сервера: (%Rrc)
+</translation>
+    </message>
+    <message>
+        <location filename="../src-server/VRDEServerImpl.cpp" line="929"/>
         <source>failed to query the library setting
 </source>
         <translation>не удалось запросить настройки библиотеки
 </translation>
     </message>
     <message>
-        <location filename="../src-server/VRDEServerImpl.cpp" line="827"/>
-        <location filename="../src-server/VRDEServerImpl.cpp" line="872"/>
+        <location filename="../src-server/VRDEServerImpl.cpp" line="1051"/>
+        <location filename="../src-server/VRDEServerImpl.cpp" line="1096"/>
         <source>Extension pack &apos;%s&apos; does not exist</source>
         <translation>Пакет расширения &apos;%s&apos; не существует</translation>
     </message>
@@ -10467,240 +11046,260 @@ Guest offers: %s</source>
 <context>
     <name>VirtualBox</name>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="575"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="589"/>
         <source>Could not create the VirtualBox home directory &apos;%s&apos; (%Rrc)</source>
         <translation>Невозможно создать домашнюю директорию VirtualBox &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="590"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="604"/>
         <source>Could not create the cryptographic module critical section (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Невозможно создать критическую секцию криптографического модуля (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="1375"/>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="2576"/>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="2582"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="1447"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="2727"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="2733"/>
         <source>Not yet implemented</source>
-        <translation>Еще не реализован</translation>
+        <translation>Ещё не реализован</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="1909"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="2048"/>
         <source>Machine name is invalid, must not be empty</source>
         <translation>Недопустимое имя машины, не должно быть пустым</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="1938"/>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="2154"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="2077"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="2304"/>
         <source>&apos;%s&apos; is not a valid Guid</source>
         <translation>%s - это недопустимый Guid</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="2437"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="2239"/>
+        <source>&apos;Must specify a valid platform architecture</source>
+        <translation>&apos;Нужно указать правильную архитектуру платформы</translation>
+    </message>
+    <message>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="2247"/>
+        <source>&apos;Creating VMs for platform architecture %s not supported on %s</source>
+        <translation>&apos;Создание машин для архитектуры платформы %s не поддерживается на %s</translation>
+    </message>
+    <message>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="2588"/>
         <source>Format must be Valid Type%s</source>
         <translation>Формат должен быть допустимым типом %s</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="2453"/>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="2506"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="2604"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="2657"/>
         <source>Device type must be HardDisk, DVD or Floppy %d</source>
-        <translation>Тип устройства должен быть Жесткий диск, DVD или Флоппи %d</translation>
+        <translation>Тип устройства должен быть Жёсткий, Оптический или Гибкий диск %d</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="2670"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="2821"/>
         <source>Could not set extra data because someone refused the requested change of &apos;%s&apos; to &apos;%s&apos;%s%ls</source>
         <translation>Невозможно установить экстра данные, потому что кто-то отклонил запрошенное изменение &apos;%s&apos; в &apos;%s&apos;%s%ls</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="3234"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="3385"/>
         <source>Could not create the communication channel (%Rrc)</source>
         <translation>Невозможно создать коммуникационный канал (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="3243"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="3394"/>
         <source>Cannot get executable name</source>
         <translation>Невозможно получить имя выполняемого файла</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="3279"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="3430"/>
         <source>Operation canceled by the user</source>
         <translation>Операция отменена пользователем</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="3281"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="3432"/>
         <source>Could not launch a privileged process &apos;%s&apos; (%Rrc)</source>
         <translation>Невозможно запустить привелегированный процесс &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="3291"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="3442"/>
         <source>Could not launch a process &apos;%s&apos; (%Rrc)</source>
         <translation>Невозможно запустить процесс &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="3314"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="3465"/>
         <source>Could not operate the communication channel (%Rrc)</source>
         <translation>Невозможно работать по коммуникационному каналу (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="3911"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4074"/>
         <source>Could not find a registered machine with UUID {%RTuuid}</source>
         <translation>Невозможно найти зарегистрированную машину с UUID {%RTuuid}</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="3959"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4122"/>
         <source>Could not find a registered machine named &apos;%s&apos;</source>
         <translation>Невозможно найти зарегистрированную машину с именем &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4035"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4198"/>
         <source>Machine group &apos;%s&apos; conflicts with a virtual machine name</source>
         <translation>Группа машин &apos;%s&apos; конфликтует с именем виртуальной машины</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4037"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4200"/>
         <source>Invalid machine group &apos;%s&apos;</source>
         <translation>Недопустимая группа машин &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4112"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4275"/>
         <source>Could not find an open hard disk with UUID {%RTuuid}</source>
         <translation>Невозможно найти открытый жесткий диск с UUID {%RTuuid}</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4164"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4327"/>
         <source>Could not find an open hard disk with location &apos;%s&apos;</source>
         <translation>Невозможно найти открытый жесткий диск с местоположением &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4201"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4364"/>
         <source>Invalid image file location &apos;%s&apos; (%Rrc)</source>
         <translation>Недопустимое местоположение файла образа &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4246"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4409"/>
         <source>Cannot mount DVD medium &apos;%s&apos; as floppy</source>
-        <translation>Невозможно подключить DVD носитель &apos;%s&apos; как флоппи</translation>
+        <translation>Невозможно подключить носитель оптического диска &apos;%s&apos; как гибкий диск</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4249"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4412"/>
         <source>Cannot mount floppy medium &apos;%s&apos; as DVD</source>
-        <translation>Невозможно подключить флоппи носитель &apos;%s&apos; как DVD</translation>
+        <translation>Невозможно подключить носитель гибкого диска &apos;%s&apos; как оптический диск</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4264"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4427"/>
         <source>Could not find an image file with UUID {%RTuuid} in the media registry (&apos;%s&apos;)</source>
         <translation>Невозможно найти файл образа с UUID {%RTuuid} в реестре носителей (&apos;%s&apos;)</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4269"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4432"/>
         <source>Could not find an image file with location &apos;%s&apos; in the media registry (&apos;%s&apos;)</source>
         <translation>Невозможно найти файл образа с местоположением &apos;%s&apos; в реестре носителей (&apos;%s&apos;)</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4314"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4477"/>
         <source>Guid &apos;%s&apos; is invalid</source>
         <translation>Guid &apos;%s&apos; недопустим</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4351"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4514"/>
         <source>&apos;%s&apos; is not a valid Guest OS type</source>
         <translation>&apos;%s&apos; не является допустимым типом гостевой ОС</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4536"/>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="5088"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4549"/>
+        <source>&apos;%s&apos; is not a valid guest OS family identifier.</source>
+        <translation>&apos;%s&apos; не является допустимым семейством гостевых ОС.</translation>
+    </message>
+    <message>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4609"/>
+        <source>&apos;%s&apos; is not a valid guest OS subtype.</source>
+        <translation>&apos;%s&apos; не является допустимым подтипом гостевых ОС.</translation>
+    </message>
+    <message>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4814"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="5366"/>
         <source>hard disk</source>
         <translation>жесткий диск</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4542"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4820"/>
         <source>CD/DVD image</source>
         <translation>Образ CD/DVD</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4549"/>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="5095"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4827"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="5373"/>
         <source>floppy image</source>
-        <translation>образ флоппи</translation>
+        <translation>образ гибкого диска</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4565"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4843"/>
         <source>%s &apos;%s&apos; with UUID {%RTuuid}</source>
         <translation>%s &apos;%s&apos; с UUID {%RTuuid}</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="5015"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="5293"/>
         <source>Registered machine with UUID {%RTuuid} (&apos;%s&apos;) already exists</source>
         <translation>Зарегистрированная машина с UUID {%RTuuid} (&apos;%s&apos;) уже существует</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="5091"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="5369"/>
         <source>DVD image</source>
-        <translation>Образ DVD</translation>
+        <translation>образ оптического диска</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="5134"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="5412"/>
         <source>Cannot register %s &apos;%s&apos; {%RTuuid} because it is in the process of being closed</source>
-        <translation type="unfinished"></translation>
+        <translation>Невозможно зарегистрировать %s &apos;%s&apos; {%RTuuid}, потому что он в процессе закрытия</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="5155"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="5433"/>
         <source>Cannot register the %s &apos;%s&apos; {%RTuuid} because a %s already exists</source>
         <translation>Невозможно зарегистрировать %s &apos;%s&apos; {%RTuuid}, потому что %s уже существует</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="5602"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="5880"/>
         <source>Could not create the directory &apos;%s&apos; (%Rrc)</source>
         <translation>Невозможно создать директорию &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="5608"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="5886"/>
         <source>Directory &apos;%s&apos; does not exist</source>
         <translation>Директория &apos;%s&apos; не существует</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="6119"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="6397"/>
         <source>The provided progress object GUID is invalid</source>
         <translation>Недопустимый предоставленный GUID объекта прогресса</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="6131"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="6409"/>
         <source>The progress object with the given GUID could not be found</source>
         <translation>Объект прогресса с данным GUID не найден</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="6177"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="6455"/>
         <source>Ńo extension pack providing a cryptographic support module could be found</source>
-        <translation type="unfinished"></translation>
+        <translation>Не обнаружен пакет расширения, предоставляющий модуль криптографической поддержки</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="6196"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="6474"/>
         <source>Failed to query the interface callback table from the cryptographic support module &apos;%s&apos; from extension pack &apos;%s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось запросить таблицу интерфейсов модуля криптографической поддержки &apos;%s&apos; пакета расширения &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="6201"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="6479"/>
         <source>Failed to resolve the entry point for the cryptographic support module &apos;%s&apos; from extension pack &apos;%s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось установить точку входа модуля криптографической поддержки &apos;%s&apos; пакета расширения &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="6206"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="6484"/>
         <source>Couldn&apos;t load the cryptographic support module &apos;%s&apos; from extension pack &apos;%s&apos; (error: &apos;%s&apos;)</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось загрузить модуль криптографической поддержки &apos;%s&apos; пакета расширения &apos;%s&apos; (error: &apos;%s&apos;)</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="6211"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="6489"/>
         <source>Couldn&apos;t resolve the library path of the crpytographic support module for extension pack &apos;%s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось найти путь к библиотеке модуля криптографической поддержки пакета расширения &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="6215"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="6493"/>
         <source>The cryptographic support module is not supported in this build because extension packs are not supported</source>
-        <translation type="unfinished"></translation>
+        <translation>Модуль криптографической поддержки не поддерживается в этой сборке поскольку не поддерживаются пакеты расширений</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="6267"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="6545"/>
         <source>The cryptographic support module is in use and can&apos;t be unloaded</source>
-        <translation type="unfinished"></translation>
+        <translation>Модуль криптографической поддержки используется и не может быть выгружен</translation>
     </message>
 </context>
 <context>
@@ -10775,9 +11374,9 @@ Please contact the product vendor!</source>
         <translation>Аргумент %s %s</translation>
     </message>
     <message>
+        <location filename="../include/Wrapper.h" line="52"/>
         <location filename="../include/VirtualBoxBase.h" line="516"/>
         <location filename="../include/VirtualBoxBase.h" line="531"/>
-        <location filename="../include/Wrapper.h" line="52"/>
         <source>Output argument %s points to invalid memory location (%p)</source>
         <translation>Выходной аргумент %s указывает на недопустимый адрес в памяти (%p)</translation>
     </message>
@@ -10929,12 +11528,12 @@ Please contact the product vendor!</source>
     <message>
         <location filename="../src-client/VirtualBoxClientImpl.cpp" line="257"/>
         <source>Failed to create semaphore (vrc=%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось создать семафор (vrc=%Rrc)</translation>
     </message>
     <message>
         <location filename="../src-client/VirtualBoxClientImpl.cpp" line="266"/>
         <source>Failed to create watcher thread (vrc=%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Не удалось создать поток наблюдения (vrc=%Rrc)</translation>
     </message>
     <message>
         <location filename="../src-client/VirtualBoxClientImpl.cpp" line="317"/>

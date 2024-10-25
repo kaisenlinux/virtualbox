@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -847,8 +847,8 @@ extern "C" DECLEXPORT(int) TrustedMain(int argc, char **argv, char **envp)
         if (FileRawMem != NIL_RTFILE)
             rc = VMR3ReqCallWaitU(pUVM, VMCPUID_ANY, (PFNRT)loadMem, 3, pVM, FileRawMem, &offRawMem);
         else
-            rc = VMR3ReqCallWaitU(pUVM, VMCPUID_ANY, (PFNRT)SSMR3Load,
-                                  7, pVM, pszSavedState, (uintptr_t)NULL /*pStreamOps*/, (uintptr_t)NULL /*pvUser*/,
+            rc = VMR3ReqCallWaitU(pUVM, VMCPUID_ANY, (PFNRT)SSMR3Load, 7,
+                                  pVM, pszSavedState, (uintptr_t)NULL /*pStreamOps*/, (uintptr_t)NULL /*pvUser*/,
                                   SSMAFTER_DEBUG_IT, (uintptr_t)NULL /*pfnProgress*/, (uintptr_t)NULL /*pvProgressUser*/);
         if (RT_SUCCESS(rc))
         {
@@ -880,8 +880,7 @@ extern "C" DECLEXPORT(int) TrustedMain(int argc, char **argv, char **envp)
                     rc = VERR_NOT_IMPLEMENTED; /** @todo need some EM single-step indicator (was REMR3DisasEnableStepping) */
                     if (RT_SUCCESS(rc))
                     {
-                        rc = EMR3SetExecutionPolicy(pUVM, EMEXECPOLICY_RECOMPILE_RING0, true); AssertReleaseRC(rc);
-                        rc = EMR3SetExecutionPolicy(pUVM, EMEXECPOLICY_RECOMPILE_RING3, true); AssertReleaseRC(rc);
+                        rc = EMR3SetExecutionPolicy(pUVM, EMEXECPOLICY_IEM_ALL, true); AssertReleaseRC(rc);
                         DBGFR3Info(pUVM, "cpumguest", "verbose", NULL);
                         if (fPowerOn)
                             rc = VMR3PowerOn(pUVM);

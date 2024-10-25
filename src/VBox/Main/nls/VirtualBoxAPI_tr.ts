@@ -42,7 +42,7 @@
     <message>
         <location filename="../src-server/ApplianceImpl.cpp" line="1041"/>
         <source>RTManifestEntryAddPassthruIoStream failed with vrc=%Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>RTManifestEntryAddPassthruIoStream, vrc=%Rrc ile başarısız oldu</translation>
     </message>
     <message>
         <source>RTManifestEntryAddPassthruIoStream failed with rc=%Rrc</source>
@@ -84,213 +84,213 @@
         <translation>&apos;%s&apos; imzalamak için kullanılan sertifika geçerli değil</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="776"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="807"/>
         <source>Invalid format &quot;%s&quot; specified</source>
         <translation>&quot;%s&quot; geçersiz biçimi belirtildi</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="783"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="814"/>
         <source>OPC appliance file must have .tar.gz extension</source>
         <translation>OPC cihaz dosyası .tar.gz uzantısına sahip olmak zorundadır</translation>
     </message>
     <message>
         <location filename="../src-server/ApplianceImplImport.cpp" line="121"/>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="787"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="818"/>
         <source>Appliance file must have .ovf or .ova extension</source>
         <translation>Cihaz dosyası .ovf veya .ova uzantısına sahip olmak zorundadır</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="799"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="830"/>
         <source>Appliance export failed because not all passwords were provided for all encrypted media</source>
         <translation>Tüm şifrelenmiş ortamlar için tüm parolalar sağlanmadığından cihazı dışa aktarma başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="865"/>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="995"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="896"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="1026"/>
         <source>Export appliance &apos;%s&apos;</source>
         <translation>&apos;%s&apos; cihazını dışa aktar</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="928"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="959"/>
         <source>There are no images to export to Cloud after preparation steps</source>
         <translation>Hazırlık adımlarından sonra Bulut&apos;a aktarılacak kalıplar yok</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="936"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="967"/>
         <source>Cloud: More than one profile name was found.</source>
         <translation>Bulut: Birden fazla profil adı bulundu.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="938"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="969"/>
         <source>Cloud: Profile name wasn&apos;t specified.</source>
         <translation>Bulut: Profil adı belirtilmedi.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="941"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="972"/>
         <source>Cloud: Cloud user profile name is empty</source>
         <translation>Bulut: Bulut kullanıcı profili adı boş</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="952"/>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="956"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="983"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="987"/>
         <source>Exporting VM to Cloud...</source>
         <translation>VM, Bulut&apos;a aktarılıyor...</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3667"/>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="960"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3704"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="991"/>
         <source>Only &quot;OCI&quot; cloud provider is supported for now. &quot;%s&quot; isn&apos;t supported.</source>
         <translation>Şimdilik yalnızca &quot;OCI&quot; bulut sağlayıcısı desteklenmektedir. &quot;%s&quot; desteklenmiyor.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="1132"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="1163"/>
         <source>Cannot export more than one virtual system with OVF 0.9, use OVF 1.0</source>
         <translation>OVF 0.9 ile birden fazla sanal sistem dışa aktarılamaz, OVF 1.0 kullanın</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="6038"/>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="1352"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="6105"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="1383"/>
         <source>Missing VM name</source>
         <translation>VM adı eksik</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="1448"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="1479"/>
         <source>Missing OS type</source>
         <translation>İS türü eksik</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="1691"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="1726"/>
         <source>Invalid config string &quot;%s&quot; in SATA controller</source>
         <translation>SATA denetleyicisinde geçersiz yapılandırma dizgisi &quot;%s&quot;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="1731"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="1766"/>
         <source>Invalid config string &quot;%s&quot; in SCSI/SAS controller</source>
         <translation>SCSI/SAS denetleyicisinde geçersiz yapılandırma dizgisi &quot;%s&quot;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="1815"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="1876"/>
         <source>Missing or bad extra config string in hard disk image: &quot;%s&quot;</source>
         <translation>Sabit disk kalıbında eksik veya hatalı fazladan yapılandırma dizgisi: &quot;%s&quot;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="1892"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="1954"/>
         <source>Missing or bad extra config string in DVD drive medium: &quot;%s&quot;</source>
         <translation>DVD sürücü ortamında eksik veya hatalı ekstra yapılandırma dizgisi: &quot;%s&quot;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2275"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2337"/>
         <source>Failed to open directory &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; dizinini açma başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2333"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2395"/>
         <source>Failed create TAR creator for &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; için TAR oluşturucu oluşturma başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2340"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2402"/>
         <source>Failed to open &apos;%s&apos; for writing (%Rrc)</source>
         <translation>Yazmak için &apos;%s&apos; açma başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1349"/>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2359"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1375"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2421"/>
         <source>%s: Cloud provider manager object wasn&apos;t found</source>
         <translation>%s: Bulut sağlayıcı yöneticisi nesnesi bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1357"/>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2367"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1383"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2429"/>
         <source>%s: Cloud provider object wasn&apos;t found</source>
         <translation>%s: Bulut sağlayıcı nesnesi bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1400"/>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2388"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1426"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2450"/>
         <source>%s: Cloud user profile name wasn&apos;t found</source>
         <translation>%s: Bulut kullanıcı profili adı bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1408"/>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2392"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1434"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2454"/>
         <source>%s: Cloud profile object wasn&apos;t found</source>
         <translation>%s: Bulut profili nesnesi bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1413"/>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2397"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1439"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2459"/>
         <source>%s: Cloud client object wasn&apos;t found</source>
         <translation>%s: Bulut istemci nesnesi bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2405"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2467"/>
         <source>Export to Cloud isn&apos;t supported for more than one VM instance.</source>
         <translation>Bulut&apos;a aktarma, birden fazla VM örneği için desteklenmiyor.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2550"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2612"/>
         <source>Exporting to disk image &apos;%Rbn&apos;</source>
         <translation>&apos;%Rbn&apos; disk kalıbı dışa aktarılıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2578"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2640"/>
         <source>Error completing TAR file &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; TAR dosyası tamamlanırken hata oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2582"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2644"/>
         <source>Failed to TAR creator instance for &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; için TAR oluşturucu örneği başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2588"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2650"/>
         <source>Failed to create &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; oluşturma başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2637"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2699"/>
         <source>Could not create OVF file &apos;%s&apos;</source>
         <translation>&apos;%s&apos; OVF dosyası oluşturulamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2659"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2721"/>
         <source>Invalid medium storage format</source>
         <translation>Geçersiz ortam depolama biçimi</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2724"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2786"/>
         <source>Exporting to disk image &apos;%s&apos;</source>
         <translation>&apos;%s&apos; disk kalıbı dışa aktarılıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2740"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2802"/>
         <source>RTVfsFsStrmPushFile failed for &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; için RTVfsFsStrmPushFile başarısız oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2781"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2843"/>
         <source>Creating manifest file &apos;%s&apos;</source>
         <translation>&apos;%s&apos; bildiri dosyası oluşturuluyor</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2788"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2850"/>
         <source>RTVfsMemIoStrmCreate failed (%Rrc)</source>
         <translation>RTVfsMemIoStrmCreate başarısız oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2803"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2865"/>
         <source>RTVfsFsStrmAdd failed for the manifest (%Rrc)</source>
         <translation>Bildiri için RTVfsFsStrmAdd başarısız oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2806"/>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2809"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2868"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2871"/>
         <source>RTManifestWriteStandard failed (%Rrc)</source>
         <translation>RTManifestWriteStandard başarısız oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="2866"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="2928"/>
         <source>RTVfsFsStrmAdd failed for &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; için RTVfsFsStrmAdd başarısız oldu (%Rrc)</translation>
     </message>
@@ -332,766 +332,782 @@
     <message>
         <location filename="../src-server/ApplianceImplImport.cpp" line="327"/>
         <source>Virtual appliance &quot;%s&quot; was configured with %u CPUs however VirtualBox supports a maximum of %u CPUs. Setting the CPU count to %u.</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; sanal cihazı %u işlemci ile yapılandırılmış ancak VirtualBox en fazla %u işlemci destekliyor. İşlemci sayısı %u olarak ayarlanıyor.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="354"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="355"/>
         <source>Virtual appliance &quot;%s&quot; was configured with %RU64 MB of memory (RAM) however VirtualBox supports a minimum of %u MB and a maximum of %u MB of memory.</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; sanal cihazı %RU64 MB bellek (RAM) ile yapılandırılmış ancak VirtualBox en az %u MB ve en fazla %u MB belleği destekliyor.</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/ApplianceImplImport.cpp" line="420"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="450"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="423"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="453"/>
         <source>Virtual appliance &quot;%s&quot; was configured with %zu network adapters however VirtualBox supports a maximum of %u network adapters.</source>
-        <translation type="unfinished">
-            <numerusform></numerusform>
+        <translation>
+            <numerusform>&quot;%s&quot; sanal cihazı %zu ağ bağdaştırıcısıyla yapılandırılmış ancak VirtualBox en fazla %u ağ bağdaştırıcısını destekliyor.</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="611"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="615"/>
         <source>Virtual appliance &quot;%s&quot; was configured with more than two IDE controllers however VirtualBox supports a maximum of two IDE controllers.</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; sanal cihazı ikiden fazla IDE denetleyicisiyle yapılandırılmış ancak VirtualBox en fazla iki IDE denetleyicisini destekliyor.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="634"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="638"/>
         <source>Virtual appliance &quot;%s&quot; was configured with more than one SATA controller however VirtualBox supports a maximum of one SATA controller.</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; sanal cihazı birden fazla SATA denetleyicisiyle yapılandırılmış ancak VirtualBox en fazla bir SATA denetleyicisini destekliyor.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="663"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="667"/>
         <source>Virtual appliance &quot;%s&quot; was configured with more than one SCSI controller of type &quot;%s&quot; with ID %s however VirtualBox supports a maximum of one SCSI controller for each type.</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; sanal cihazı &quot;%s&quot; türünde %s kimliğine sahip birden fazla SCSI denetleyicisi ile yapılandırılmış ancak VirtualBox her tür için en fazla bir SCSI denetleyicisi destekliyor.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="685"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="689"/>
         <source>Virtual appliance &quot;%s&quot; was configured with more than one VirtioSCSI controller however VirtualBox supports a maximum of one VirtioSCSI controller.</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; sanal cihazı birden fazla VirtioSCSI denetleyicisi ile yapılandırılmış ancak VirtualBox en fazla bir VirtioSCSI denetleyicisi destekliyor.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="759"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="711"/>
+        <source>Virtual appliance &quot;%s&quot; was configured with more than one NVMe controller however VirtualBox supports a maximum of one NVMe controller.</source>
+        <translation>&quot;%s&quot; sanal cihazı birden fazla NVMe denetleyicisiyle yapılandırılmış ancak VirtualBox en fazla bir NVMe denetleyicisini destekliyor.</translation>
+    </message>
+    <message>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="785"/>
         <source>Unsupported format for virtual disk image %s in OVF: &quot;%s&quot;</source>
         <translation>OVF&apos;de %s sanal disk kalıbı için desteklenmeyen biçim: &quot;%s&quot;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="776"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="802"/>
         <source>Cannot find storage controller with OVF instance ID &quot;%s&quot; to which medium &quot;%s&quot; should be attached</source>
         <translation>&quot;%s&quot; OVF örnek kimliğine sahip, &quot;%s&quot; ortamına takılı olması gereken depolama denetleyicisi bulunamıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="849"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="875"/>
         <source>Cannot import machines without reading it first (call read() before i_importMachines())</source>
         <translation>Makineler önce okunmadan içe aktarılamaz (i_importMachines() öncesi read() çağırılır)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="892"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="918"/>
         <source>Malformed OVA. &apos;%s&apos; is not a regular file (%d).</source>
         <translation>Hatalı biçimlendirilmiş OVA. &apos;%s&apos; normal bir dosya değil (%d).</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="897"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="923"/>
         <source>RTVfsFsStrmNext failed (%Rrc)</source>
         <translation>RTVfsFsStrmNext başarısız oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="906"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="932"/>
         <source>Unexpected end of OVA package</source>
         <translation>Beklenmeyen OVA paketi sonu</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="936"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="962"/>
         <source>Unexpected end of OVA / internal error - missing &apos;%s&apos; (skipped %u)</source>
         <translation>Beklenmeyen OVA sonu / iç hata - &apos;%s&apos; eksik (%u atlandı)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="950"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="976"/>
         <source>Error opening &apos;%s&apos; for reading (%Rrc)</source>
         <translation>Okumak için &apos;%s&apos; açılırken hata oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1002"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1028"/>
         <source>Error occured decompressing &apos;%s&apos; to &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; öğesinden &apos;%s&apos; öğesine sıkıştırma açılırken hata oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1010"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1036"/>
         <source>Error opening destionation image &apos;%s&apos; for writing (%Rrc)</source>
         <translation>Yazma için &apos;%s&apos; hedef kalıbı açılırken hata oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1040"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1092"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4301"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1066"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1118"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4338"/>
         <source>Error initializing read ahead thread for &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; için başta okuma iş parçacığı başlatılırken hata oldu.(%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1057"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1120"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1083"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1146"/>
         <source>RTManifestPtIosAddEntryNow failed with %Rrc</source>
         <translation>RTManifestPtIosAddEntryNow, %Rrc ile başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1104"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1130"/>
         <source>Error initializing gzip decompression for &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; için gzip sıkıştırmasını açma işlemi başlatılırken hata oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1169"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1195"/>
         <source>Getting cloud instance information</source>
         <translation>Bulut örneği bilgileri alınıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1180"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1206"/>
         <source>Reading appliance &apos;%s&apos;</source>
         <translation>&apos;%s&apos; cihazı okunuyor</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1189"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1215"/>
         <source>Download appliance &apos;%s&apos;</source>
         <translation>&apos;%s&apos; cihazını indir</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1224"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1250"/>
         <source>Failed to create thread for reading appliance data</source>
         <translation>Cihaz verilerini okumak için iş parçacığı oluşturma başarısız</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1245"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1271"/>
         <source>%s: The profile name or instance id are absent or contain unsupported characters: %s</source>
         <translation>%s: Profil adı veya örnek kimliği yok veya desteklenmeyen karakterler içeriyor: %s</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1252"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1278"/>
         <source>%s: Cloud provider manager object wasn&apos;t found (%Rhrc)</source>
         <translation>%s: Bulut sağlayıcı yöneticisi nesnesi bulunamadı (%Rhrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1260"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1286"/>
         <source>%s: Cloud provider object wasn&apos;t found (%Rhrc)</source>
         <translation>%s: Bulut sağlayıcı nesnesi bulunamadı (%Rhrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1264"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1290"/>
         <source>%s: Cloud user profile name wasn&apos;t found (%Rhrc)</source>
         <translation>%s: Bulut kullanıcı profili adı bulunamadı (%Rhrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1268"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1294"/>
         <source>%s: Cloud profile object wasn&apos;t found (%Rhrc)</source>
         <translation>%s: Bulut profili nesnesi bulunamadı (%Rhrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1273"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1299"/>
         <source>%s: Cloud client object wasn&apos;t found (%Rhrc)</source>
         <translation>%s: Bulut istemci nesnesi bulunamadı (%Rhrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1282"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1308"/>
         <source>%s: Requested (%d) and created (%d) numbers of VSD are differ .</source>
         <translation>%s: İstenen (%d) ve oluşturulan (%d) VSD sayıları farklı .</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1404"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1430"/>
         <source>%s: Cloud user profile name is empty</source>
         <translation>%s: Bulut kullanıcı profili adı boş</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1580"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1607"/>
         <source>Can&apos;t open folder %s</source>
         <translation>%s klasörü açılamıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1584"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1611"/>
         <source>The target folder %s has already contained some files (%d items). Clear the folder from the files or choose another folder</source>
         <translation>%s hedef klasörü zaten bazı dosyaları (%d öğe) içeriyor. Klasörü dosyalardan temizleyin veya başka bir klasör seçin</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1606"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1633"/>
         <source>%s: Cloud import (cloud phase) failed. Used cloud instance is &apos;%s&apos;
 </source>
         <translation>%s: Bulut içe aktarma (bulut aşaması) başarısız oldu. Kullanılan bulut örneği &apos;%s&apos;
 </translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1615"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1642"/>
         <source>Import from Cloud isn&apos;t supported for more than one VM instance.</source>
         <translation>Birden fazla VM örneği için Bulut&apos;tan içe aktarma desteklenmiyor.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1629"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1656"/>
         <source>%s: Cloud cleanup action - the instance wasn&apos;t found</source>
         <translation>%s: Bulut temizleme eylemi - örnek bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1666"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1693"/>
         <source>Rollback action for Import Cloud operation failed. Some leavings may exist on the local disk or in the Cloud.</source>
         <translation>Bulut İçe Aktarma işlemi için geri alma işlemi başarısız oldu. Yerel diskte veya Bulut&apos;ta bazı ayrılmalar olabilir.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1773"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1800"/>
         <source>Error opening &apos;%s&apos; for reading (%Rrc)
 </source>
         <translation>Okumak için &apos;%s&apos; açılırken hata oldu (%Rrc)
 </translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1778"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1805"/>
         <source>Error reading the downloaded file &apos;%s&apos; (%Rrc)</source>
         <translation>İndirilen &apos;%s&apos; dosyası okunurken hata oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1909"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1938"/>
         <source>%s: Error reading &apos;%s&apos; (%Rrc)</source>
         <translation>%s: &apos;%s&apos; okunurken hata oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1943"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1972"/>
         <source>Could not read the file &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; dosyası okunamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1957"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1986"/>
         <source>Could not create the directory &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; dizini oluşturulamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1961"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1990"/>
         <source>Error during getting info about the directory &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; dizini hakkında bilgi alınması sırasında hata oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1970"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="1999"/>
         <source>Could not create the file &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; dosyası oluşturulamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="1975"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2004"/>
         <source>Could not write into the file &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; dosyasına yazılamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2015"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2044"/>
         <source>The hard disk &apos;%s&apos; already exists.</source>
         <translation>&apos;%s&apos; sabit diski zaten var.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2028"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4221"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4331"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2057"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4258"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4368"/>
         <source>Importing virtual disk image &apos;%s&apos;</source>
         <translation>&apos;%s&apos; sanal disk kalıbı içe aktarılıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2039"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4311"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2068"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4348"/>
         <source>Importing medium &apos;%s&apos;</source>
         <translation>&apos;%s&apos; ortamı içe aktarılıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2120"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2149"/>
         <source>Creating new VM &apos;%s&apos;</source>
         <translation>Yeni &apos;%s&apos; VM&apos;i oluşturuluyor</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2381"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2410"/>
         <source>Failed to open OVF file &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; OVF dosyasını açma başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2413"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2442"/>
         <source>Failed to open the signature file &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; imza dosyasını açma başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2422"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2451"/>
         <source>Failed to open the manifest file &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; bildiri dosyasını açma başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2444"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3775"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2473"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3812"/>
         <source>Error opening the OVA file &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; OVA dosyası açılırken hata oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2450"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3781"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2479"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3818"/>
         <source>Error reading the OVA file &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; OVA dosyası okunurken hata oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2474"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2503"/>
         <source>Error reading OVA &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; OVA okunurken hata oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2563"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2592"/>
         <source>OVA &apos;%s&apos; does not contain an .ovf-file</source>
         <translation>&apos;%s&apos; OVA bir .ovf dosyası içermiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2613"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2650"/>
         <source>Could not read the OVF file for &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; için OVF dosyası okunamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2671"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2708"/>
         <source>Error reading the manifest file &apos;%s&apos; for &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; bildiri dosyası &apos;%s&apos; için okunurken hata oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2686"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2723"/>
         <source>Failed to parse manifest file &apos;%s&apos; for &apos;%s&apos; (%Rrc): %s</source>
         <translation>&apos;%s&apos; bildiri dosyasını &apos;%s&apos; için ayrıştırma başarısız (%Rrc): %s</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2742"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2779"/>
         <source>Error reading the signature file &apos;%s&apos; for &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; imza dosyası &apos;%s&apos; için okunurken hata oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2833"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2870"/>
         <source>Unsupported signed digest type (%#x)</source>
         <translation>Desteklenmeyen imzalı özet türü (%#x)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2836"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2873"/>
         <source>Error reading signed manifest digest: %Rrc</source>
         <translation>İmzalı bildiri özeti okunurken hata oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2839"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2876"/>
         <source>Could not locate signed digest for &apos;%s&apos; in the cert-file for &apos;%s&apos;</source>
         <translation>&apos;%s&apos; için imzalı özet, &apos;%s&apos; için sertifika dosyasında bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2842"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2879"/>
         <source>RTManifestEntryQueryAttr failed unexpectedly: %Rrc</source>
         <translation>RTManifestEntryQueryAttr beklenmedik şekilde başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2845"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2882"/>
         <source>Error parsing the .cert-file for &apos;%s&apos;: %s</source>
         <translation>&apos;%s&apos; için .cert dosyası ayrıştırılırken hata oldu: %s</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2867"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2904"/>
         <source>Error reading the PKCS#7/CMS signature from &apos;%s&apos; for &apos;%s&apos; (%Rrc): %s</source>
         <translation>&apos;%s&apos; dosyasından gelen PKCS#7/CMS imzası, &apos;%s&apos; için okunurken hata oldu (%Rrc): %s</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2872"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2909"/>
         <source>Malformed .cert-file for &apos;%s&apos;: Signer&apos;s certificate not found (%Rrc)</source>
         <translation>&apos;%s&apos; için hatalı biçimlendirilmiş .cert dosyası: İmzalayanın sertifikası bulunamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2875"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2912"/>
         <source>Error reading the signer&apos;s certificate from &apos;%s&apos; for &apos;%s&apos; (%Rrc): %s</source>
         <translation>&apos;%s&apos; dosyasından gelen imzalayanın sertifikası, &apos;%s&apos; için okunurken hata oldu (%Rrc): %s</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2913"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2950"/>
         <source>Found .cert-file but no .mf-file for &apos;%s&apos;</source>
         <translation>.cert dosyası bulundu ancak &apos;%s&apos; için .mf dosyası bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2944"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2981"/>
         <source>The manifest signature does not match</source>
         <translation>Bildiri imzası eşleşmiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2947"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2984"/>
         <source>Error validating the manifest signature (%Rrc, %s)</source>
         <translation>Bildiri imzası doğrulanırken hata oludu (%Rrc, %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2950"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2987"/>
         <source>RTCrDigestUpdateFromVfsFile failed: %Rrc</source>
         <translation>RTCrDigestUpdateFromVfsFile başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="2954"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="2991"/>
         <source>RTCrDigestCreateByType failed: %Rrc</source>
         <translation>RTCrDigestCreateByType başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3032"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3069"/>
         <source>Failed to query trusted CAs and Certificates from the system and for the current user (%Rrc%RTeim)</source>
         <translation>Güvenilir CA&apos;lar ve Sertifikalar sistemden ve şu anki kullanıcı için sorgulanması başarısız (%Rrc%RTeim)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3112"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3149"/>
         <source>Invalid PKCS#7/CMS type: %s, expected %s (signedData)</source>
         <translation>Geçersiz PKCS#7/CMS türü: %s, beklenen %s (imzalıVeri)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3115"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3152"/>
         <source>Invalid PKCS#7/CMS inner type: %s, expected %s (data)</source>
         <translation>Geçersiz PKCS#7/CMS iç türü: %s, beklenen %s (veri)</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3118"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3155"/>
         <source>Invalid PKCS#7/CMS data: embedded (%u bytes), expected external</source>
         <translation>
             <numerusform>Geçersiz PKCS#7/CMS verileri: gömülü (%u bayt), beklenen harici</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3122"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3159"/>
         <source>Invalid PKCS#7/CMS: No signers</source>
         <translation>Geçersiz PKCS#7/CMS: İmzalayanlar yok</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3136"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3173"/>
         <source>Invalid PKCS#7/CMS: Using a different certificate</source>
         <translation>Geçersiz PKCS#7/CMS: Farklı bir sertifika kullanılıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3144"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3181"/>
         <source>RTCrStoreCreateInMem failed: %Rrc</source>
         <translation>RTCrStoreCreateInMem başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3162"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3199"/>
         <source>Failed to validate PKCS#7/CMS signature: %Rrc%RTeim</source>
         <translation>PKCS#7/CMS imzasının doğrulanması başarısız: %Rrc%RTeim</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3167"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3204"/>
         <source>RTCrStoreCertAddX509 failed: %Rrc%RTeim</source>
         <translation>RTCrStoreCertAddX509 başarısız oldu: %Rrc%RTeim</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3207"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3244"/>
         <source>A self signed certificate was used to sign &apos;%s&apos;</source>
         <translation>&apos;%s&apos; imzalamak için kendinden imzalı bir sertifika kullanıldı</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3210"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3247"/>
         <source>Self signed certificate used to sign &apos;%s&apos; is not currently valid</source>
         <translation>&apos;%s&apos; imzalamak için kullanılan kendinden imzalı sertifika şu anda geçerli değil</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3215"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3252"/>
         <source>Verification of the self signed certificate failed (%Rrc%#RTeim)</source>
         <translation>Kendinden imzalı sertifikanın doğrulanması başarısız oldu (%Rrc%#RTeim)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3217"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3254"/>
         <source>Verification of the self signed certificate used to sign &apos;%s&apos; failed (%Rrc)%RTeim</source>
         <translation>&apos;%s&apos; imzalamak için kullanılan kendinden imzalı sertifikanın doğrulanması başarısız oldu (%Rrc)%RTeim</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3225"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3262"/>
         <source>Self signed certificate used to sign &apos;%s&apos; is not marked as certificate authority (CA)</source>
         <translation>&apos;%s&apos; imzalamak için kullanılan kendinden imzalı sertifika, sertifika yetkilisi (CA) olarak işaretlenmemiş</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3250"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3287"/>
         <source>RTCrX509CertPathsSetTrustedStore failed (%Rrc)</source>
         <translation>RTCrX509CertPathsSetTrustedStore başarısız oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3289"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3326"/>
         <source>The certificate used to sign &apos;%s&apos; (or a certificate in the path) is not currently valid (%Rrc)</source>
         <translation>&apos;%s&apos; imzalamak için kullanılan sertifika (veya yoldaki bir sertifika) şu anda geçerli değil (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3293"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3330"/>
         <source>RTCrX509CertPathsSetValidTimeSpec failed: %Rrc</source>
         <translation>RTCrX509CertPathsSetValidTimeSpec başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3298"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3335"/>
         <source>No trusted certificate paths</source>
         <translation>Güvenilir sertifika yolları yok</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3305"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3342"/>
         <source>The certificate used to sign &apos;%s&apos; is not currently valid</source>
         <translation>&apos;%s&apos; imzalamak için kullanılan sertifika şu anda geçerli değil</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3309"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3346"/>
         <source>Certificate path validation failed (%Rrc%RTeim)</source>
         <translation>Sertifika yolu doğrulaması başarısız oldu (%Rrc%RTeim)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3312"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3349"/>
         <source>Certificate path building failed (%Rrc%RTeim)</source>
         <translation>Sertifika yolu oluşturma başarısız oldu (%Rrc%RTeim)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3317"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3354"/>
         <source>RTCrX509CertPathsCreate failed: %Rrc</source>
         <translation>RTCrX509CertPathsCreate başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3329"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3331"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3366"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3368"/>
         <source>%s verification failed: %Rrc%RTeim</source>
         <translation>%s doğrulama başarısız oldu: %Rrc%RTeim</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3363"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3400"/>
         <source>OVF &amp; PKCS#7/CMS signature</source>
         <translation>OVF ve PKCS#7/CMS imzası</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3365"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3402"/>
         <source>PKCS#7/CMS signature</source>
         <translation>PKCS#7/CMS imzası</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3391"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3393"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3428"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3430"/>
         <source>PKCS#7/CMS signature #%u does not include the signing certificate</source>
         <translation>PKCS#7/CMS imzası #%u, imzalama sertifikasını içermez</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3405"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3442"/>
         <source>%s: Untrusted self-signed certificate</source>
         <translation>%s: Güvenilmeyen kendinden imzalı sertifika</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3430"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3485"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3467"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3522"/>
         <source>%s: Untrusted timestamp (%s)</source>
         <translation>%s: Güvenilmeyen zaman damgası (%s)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3432"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3487"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3469"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3524"/>
         <source>%s: Not valid at current time, but validates fine for untrusted signing time (%s)</source>
         <translation>%s: Şu anda geçerli değil, ancak güvenilmeyen imzalama zamanı (%s) için uygun doğruluyor</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3551"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3588"/>
         <source>%u out of %u PKCS#7/CMS signatures verfified okay</source>
         <translation>
             <numerusform>%u toplam %u PKCS#7/CMS imzasının doğrulanması tamam</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3589"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3626"/>
         <source>Importing appliance &apos;%s&apos;</source>
         <translation>&apos;%s&apos; cihazı içe aktarılıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3592"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3664"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3629"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3701"/>
         <source>Failed to create task for importing appliance into VirtualBox</source>
         <translation>Cihazı VirtualBox&apos;a aktarmak için görev oluşturma başarısız</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3648"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3685"/>
         <source>Importing VM from Cloud...</source>
         <translation>VM, Bulut&apos;tan aktarılıyor...</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3652"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3689"/>
         <source>Start import VM from the Cloud...</source>
         <translation>VM&apos;yi, Bulut&apos;tan aktarmayı başlat...</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3678"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3715"/>
         <source>Failed to start thread for importing appliance into VirtualBox</source>
         <translation>Cihazı VirtualBox&apos;a aktarmak için iş parçacığı başlatma başarısız</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3914"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3951"/>
         <source>Error fudging missing OVF digest in manifest: %Rrc</source>
         <translation>Bildiride eksik OVF özetini geçiştirirken hata oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="3935"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="3972"/>
         <source>Digest mismatch (%Rrc): %s</source>
         <translation>Özet uyuşmazlığı (%Rrc): %s</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4017"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4054"/>
         <source>Invalid channel %RU32 specified; IDE controllers support only 0, 1 or 2</source>
         <translation>Geçersiz kanal %RU32 belirtildi; IDE denetleyicileri yalnızca 0, 1 veya 2&apos;yi destekler</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4150"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4187"/>
         <source>Unsupported medium format for disk image &apos;%s&apos;</source>
         <translation>&apos;%s&apos; disk kalıbı için desteklenmeyen ortam biçimi</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4182"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4219"/>
         <source>Could not find a valid medium format for the target disk &apos;%s&apos;</source>
         <translation>&apos;%s&apos; hedef diski için geçerli bir ortam biçimi bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4188"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4225"/>
         <source>The target disk &apos;%s&apos; has no extension </source>
         <translation>&apos;%s&apos; hedef diskinin uzantısı yok </translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4252"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4289"/>
         <source>Creating disk image &apos;%s&apos;</source>
         <translation>&apos;%s&apos; disk kalıbı oluşturuluyor</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4264"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4301"/>
         <source>Could not find a valid medium format for the source disk &apos;%s&apos; Check correctness of the image format URL in the OVF description file or extension of the image</source>
         <translation>&apos;%s&apos; kaynak diski için geçerli bir ortam biçimi bulunamadı. OVF açıklama dosyasındaki veya kalıbın uzantısındaki kalıp biçimi URL&apos;sinin doğruluğunu denetleyin</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4288"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4325"/>
         <source>Error opening decompressed image file &apos;%s&apos; (%Rrc)</source>
         <translation>Sıkıştırılmış kalıp dosyası &apos;%s&apos; açılırken hata oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4366"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4403"/>
         <source>Failed to delete the temporary file &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; geçici dosyasını silme başarısız oldu (%Rrc)</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4592"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4636"/>
         <source>Too many network adapters: OVF requests %d network adapters, but VirtualBox only supports %d</source>
         <translation>
             <numerusform>Çok fazla ağ bağdaştırıcısı: OVF, %d ağ bağdaştırıcısı istiyor, ancak VirtualBox yalnızca %d tane destekler</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4732"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4776"/>
         <source>Too many IDE controllers in OVF; import facility only supports two</source>
         <translation>OVF&apos;de çok fazla IDE denetleyicisi; içe aktarma kolaylığı yalnızca iki tane destekler</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4749"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4793"/>
         <source>Invalid IDE controller type &quot;%s&quot;</source>
         <translation>Geçersiz IDE denetleyicisi türü &quot;%s&quot;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4759"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4803"/>
         <source>Too many SATA controllers in OVF; import facility only supports one</source>
         <translation>OVF&apos;de çok fazla SATA denetleyicisi; içe aktarma kolaylığı yalnızca bir tane destekler</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4770"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4814"/>
         <source>Invalid SATA controller type &quot;%s&quot;</source>
         <translation>Geçersiz SATA denetleyicisi türü &quot;%s&quot;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4778"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4822"/>
         <source>Too many SCSI controllers in OVF; import facility only supports one</source>
         <translation>OVF&apos;de çok fazla SCSI denetleyicisi; içe aktarma kolaylığı yalnızca bir tane destekler</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4798"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4842"/>
         <source>Invalid SCSI controller type &quot;%s&quot;</source>
         <translation>Geçersiz SCSI denetleyicisi türü &quot;%s&quot;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4811"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4855"/>
         <source>Too many SAS controllers in OVF; import facility only supports one</source>
         <translation>OVF&apos;de çok fazla SAS denetleyicisi; içe aktarma kolaylığı yalnızca bir tane destekler</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4827"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4871"/>
         <source>Too many VirtioSCSI controllers in OVF; import facility only supports one</source>
         <translation>OVF&apos;de çok fazla VirtioSCSI denetleyicisi; içe aktarma kolaylığı yalnızca bir tane destekler</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4842"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4886"/>
         <source>Invalid VirtioSCSI controller type &quot;%s&quot;</source>
         <translation>Geçersiz VirtioSCSI denetleyicisi türü &quot;%s&quot;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4860"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4894"/>
+        <source>Too many NVMe controllers in OVF; import facility only supports one</source>
+        <translation>OVF&apos;de çok fazla NVMe denetleyicisi; içe aktarma kolaylığı yalnızca bir tane destekler</translation>
+    </message>
+    <message>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4909"/>
+        <source>Invalid NVMe controller type &quot;%s&quot;</source>
+        <translation>Geçersiz NVMe denetleyicisi türü &quot;%s&quot;</translation>
+    </message>
+    <message>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4927"/>
         <source>Too many floppy controllers in OVF; import facility only supports one</source>
         <translation>OVF&apos;de çok fazla disket sürücü denetleyicisi; içe aktarma kolaylığı yalnızca bir tane destekler</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="4928"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5279"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="4995"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5346"/>
         <source>Unknown error during OVF import</source>
         <translation>OVF içe aktarma sırasında bilinmeyen hata</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5008"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5074"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5080"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5637"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5075"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5141"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5147"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5704"/>
         <source>Internal inconsistency looking up disk image &apos;%s&apos;</source>
         <translation>&apos;%s&apos; disk kalıbını ararken dahili tutarsızlık</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5155"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5699"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5222"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5766"/>
         <source>Target controller value invalid or missing: &apos;%s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>Hedef denetleyici değeri geçersiz veya eksik: &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5163"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5714"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5230"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5781"/>
         <source>Target controller port (&apos;channel=&apos;) invalid or missing: &apos;%s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>Hedef denetleyici bağlantı noktası (&apos;kanal=&apos;) geçersiz veya eksik: &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5170"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5727"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5734"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5237"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5794"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5801"/>
         <source>Failed to find storage controller &apos;%u&apos; in the System Description list</source>
-        <translation type="unfinished"></translation>
+        <translation>Sistem Açıklaması listesinde &apos;%u&apos; depolama denetleyicisini bulma başarısız</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5197"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5264"/>
         <source>Invalid hard disk contoller type: &apos;%d&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>Geçersiz sabit disk denetleyicisi türü: %d</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5210"/>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5796"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5277"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5863"/>
         <source>Illegal channel: &apos;%u&apos;.  For %s controllers the valid values are 0 to %lu (inclusive).
 </source>
-        <translation type="unfinished"></translation>
+        <translation>Geçersiz kanal: &apos;%u&apos;.  %s denetleyicileri için geçerli değerler 0 ile %lu (dahil) arasıdır.
+</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5692"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5759"/>
         <source>Original controller value invalid or missing: &apos;%s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>Orijinal denetleyici değeri geçersiz veya eksik: &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5707"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5774"/>
         <source>Original controller port (&apos;channel=&apos;) invalid or missing: &apos;%s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>Orijinal denetleyici bağlantı noktası (&apos;kanal=&apos;) geçersiz veya eksik: &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5745"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5812"/>
         <source>Failed to find virtual disk &apos;%s&apos; in DiskImagesMap</source>
-        <translation type="unfinished"></translation>
+        <translation>DiskImagesMap&apos;te &apos;%s&apos; sanal diskini bulma başarısız</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5848"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5915"/>
         <source>Device of type &apos;%s&apos; already attached to the %s controller at this port/channel (%d).</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; türündeki aygıt zaten bu bağlantı noktasında/kanalda (%d) %s denetleyicisine bağlı.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5864"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="5931"/>
         <source>Failed to add disk &apos;%s&apos; (uuid=%RTuuid) to the %s storage controller.</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; diskini (uuid=%RTuuid) %s depolama denetleyicisine ekleme başarısız.</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="5952"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="6019"/>
         <source>&lt;vbox:Machine&gt; element in OVF contains a medium attachment for the disk image %s but the OVF describes no such image</source>
         <translation>OVF&apos;deki &lt;vbox:makine&gt; öğesi, %s disk kalıbı için bir ortam takmayı içeriyor, ancak OVF böyle bir kalıbı açıklamaz</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="6089"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="6156"/>
         <source>Missing guest OS type</source>
         <translation>Eksik misafir İS türü</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="6102"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="6169"/>
         <source>CPU count missing</source>
         <translation>İşlemci sayısı eksik</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplImport.cpp" line="6115"/>
+        <location filename="../src-server/ApplianceImplImport.cpp" line="6182"/>
         <source>RAM size missing</source>
         <translation>Bellek boyutu eksik</translation>
     </message>
@@ -1099,7 +1115,7 @@
 <context>
     <name>AudioAdapter</name>
     <message>
-        <location filename="../src-server/AudioAdapterImpl.cpp" line="477"/>
+        <location filename="../src-server/AudioAdapterImpl.cpp" line="510"/>
         <source>Invalid audio codec type %d</source>
         <translation>Geçersiz ses kodek türü %d</translation>
     </message>
@@ -1127,27 +1143,27 @@
     <message>
         <location filename="../src-server/BandwidthControlImpl.cpp" line="409"/>
         <source>Bandwidth group limit cannot be negative</source>
-        <translation>Bant genişliği grup sınırı negatif olamaz</translation>
+        <translation>Bant genişliği grubu sınırı negatif olamaz</translation>
     </message>
     <message>
         <location filename="../src-server/BandwidthControlImpl.cpp" line="417"/>
         <source>Bandwidth name is too long: %zu, max %u</source>
-        <translation type="unfinished"></translation>
+        <translation>Bant genişliği adı çok uzun: %zu en fazla %u</translation>
     </message>
     <message>
         <location filename="../src-server/BandwidthControlImpl.cpp" line="421"/>
         <source>Invalid group type: %d</source>
-        <translation type="unfinished"></translation>
+        <translation>Geçersiz grup türü: %d</translation>
     </message>
     <message>
         <location filename="../src-server/BandwidthControlImpl.cpp" line="424"/>
         <source>Bandwidth group name must not be empty</source>
-        <translation type="unfinished"></translation>
+        <translation>Bant genişliği grubu adı boş olmamak zorundadır</translation>
     </message>
     <message>
         <location filename="../src-server/BandwidthControlImpl.cpp" line="474"/>
         <source>Too many network bandwidth groups (max %u)</source>
-        <translation type="unfinished"></translation>
+        <translation>Çok fazla ağ bant genişliği grubu (en fazla %u)</translation>
     </message>
     <message>
         <location filename="../src-server/BandwidthControlImpl.cpp" line="477"/>
@@ -1265,7 +1281,7 @@
 <context>
     <name>Console</name>
     <message>
-        <location filename="../include/ConsoleImpl.h" line="120"/>
+        <location filename="../include/ConsoleImpl.h" line="128"/>
         <source>The console is not powered up (%Rfn)</source>
         <translation>Konsol açık değil (%Rfn)</translation>
     </message>
@@ -1274,66 +1290,66 @@
         <translation type="vanished">Kaydedildi durumu dosyası &apos;%ls&apos; geçersiz (%Rrc). Kaydedildi durumunu silin ve tekrar deneyin</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="1966"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2043"/>
         <source>Internal application error</source>
         <translation>Dahili uygulama hatası</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="1970"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2047"/>
         <source>Temporary failure due to guest activity, please retry</source>
         <translation>Misafir etkinliğinden dolayı geçici hata, lütfen yeniden deneyin</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2243"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2320"/>
         <source>Cannot power down at this point during a save state</source>
         <translation>Kaydetme durumu sırasında bu noktada güç kapatılamaz</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2254"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2331"/>
         <source>Cannot power down at this point in a teleportation</source>
         <translation>Bir ışınlanmada bu noktada güç kapatılamaz</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2264"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2341"/>
         <source>Cannot power down at this point in an online snapshot</source>
         <translation>Çevrimiçi anlık görüntüde bu noktada güç kapatılamaz</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2274"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2351"/>
         <source>Cannot power down at this point in a live snapshot</source>
         <translation>Canlı anlık görüntüde bu noktada güç kapatılamaz</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2279"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2356"/>
         <source>Cannot power down a saved virtual machine</source>
         <translation>Kayıtlı sanal makine gücü kapatılamaz</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2281"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7908"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7970"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2358"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8220"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8282"/>
         <source>The virtual machine is being powered down</source>
         <translation>Sanal makine gücü kapatılıyor</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2284"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2361"/>
         <source>Invalid machine state: %s (must be Running, Paused or Stuck)</source>
         <translation>Geçersiz makine durumu: %s (Çalışıyor, Duraklatıldı veya Takıldı olmak zorundadır)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2322"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2399"/>
         <source>Could not create VMPowerDownTask object
 </source>
         <translation>VMPowerDownTask nesnesi oluşturulamadı
 </translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2379"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2456"/>
         <source>Could not reset the machine (%Rrc)</source>
         <translation>Makine sıfırlanamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2427"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2504"/>
         <source>CPU %d is not attached</source>
         <translation>İşlemci %d takılı değil</translation>
     </message>
@@ -1342,462 +1358,486 @@
         <translation type="vanished">Çalışırken-Kaldırma başarısız oldu (rc=%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="1698"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="578"/>
+        <source>Cannot run the machine because its platform architecture %s is not supported on %s</source>
+        <translation>Makinenin platform mimarisi %s, %s üzerinde desteklenmediğinden makine çalıştırılamıyor</translation>
+    </message>
+    <message>
+        <location filename="../src-client/ConsoleImpl.cpp" line="1775"/>
         <source>The saved state file &apos;%s&apos; is invalid (%Rrc). Delete the saved state and try again</source>
-        <translation type="unfinished"></translation>
+        <translation>Kaydedildi durumu dosyası &apos;%s&apos; geçersiz (%Rrc). Kaydedildi durumunu silin ve tekrar deneyin</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2493"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2569"/>
         <source>Hot-Remove failed (vrc=%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Çalışırken-Kaldırma başarısız oldu (vrc=%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2497"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2573"/>
         <source>Hot-Remove was aborted because the CPU may still be used by the guest</source>
         <translation>İşlemci hala misafir tarafından kullanılıyor olabileceğinden Çalışırken-Kaldırma iptal edildi</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2572"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2648"/>
         <source>CPU %d is already attached</source>
         <translation>İşlemci %d zaten takılı</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2604"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2679"/>
         <source>Could not add CPU to the machine (%Rrc)</source>
         <translation>Makineye işlemci eklenemedi (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2630"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2705"/>
         <source>Cannot resume the machine as it is not paused (machine state: %s)</source>
         <translation>Makine duraklatılmadığından devam ettirilemez (makine durumu: %s)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2672"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2750"/>
         <source>Controlled power off failed (%Rrc)</source>
         <translation>Denetimli güç kapatma başarısız oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2721"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2799"/>
         <source>Checking if the ACPI Power Button event was handled by the guest OS failed (%Rrc)</source>
         <translation>ACPI Güç Düğmesi olayının misaift İS tarafından işlenip işlenmediğini denetleme başarısız oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2742"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2820"/>
         <source>Invalid machine state %s when checking if the guest entered the ACPI mode</source>
         <translation>Misafirin ACPI kipine girip girmediği denetlenirken geçersiz makine durumu %s</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2806"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="2909"/>
         <source>Sending sleep button event failed (%Rrc)</source>
         <translation>Uyku düğmesi olayı gönderilirken başarısız oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2907"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3010"/>
         <source>Invalid DeviceType for getDeviceActivity in entry #%u: %d</source>
-        <translation type="unfinished"></translation>
+        <translation>#%u girişindeki getDeviceActivity için geçersiz DeviceType: %d</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2975"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3078"/>
         <source>Cannot attach a USB device to the machine which is not running or paused (machine state: %s)</source>
         <translation>Çalışmayan veya duraklatılan makineye bir USB aygıt takılamaz (makine durumu: %s)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="2994"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3000"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3047"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3097"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3103"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3152"/>
         <source>The virtual machine does not have a USB controller</source>
         <translation>Sanal makinenin bir USB denetleyicisi yok</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3043"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3148"/>
         <source>USB device with UUID {%RTuuid} is not attached to this machine</source>
         <translation>{%RTuuid} UUID&apos;sine sahip USB aygıtı bu makineye takılı değil</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3077"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3182"/>
         <source>Could not find a USB device with address &apos;%s&apos;</source>
         <translation>&apos;%s&apos; adresine sahip bir USB aygıt bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3112"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3217"/>
         <source>Could not find a USB device with uuid {%RTuuid}</source>
         <translation>{%RTuuid} UUID&apos;sine sahip bir USB aygıt bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3130"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3235"/>
         <source>Cannot create a transient shared folder on a machine in a saved state (machine state: %s)</source>
         <translation>Kaydedildi durumundaki bir makinede geçici paylaşılan klasör oluşturulamaz (makine durumu: %s)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3139"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3244"/>
         <source>Cannot create a transient shared folder on the machine while it is changing the state (machine state: %s)</source>
         <translation>Durumunu değiştirirken makinede geçici bir paylaşılan klasör oluşturulamaz (makine durumu: %s)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3145"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3250"/>
         <source>Shared folder named &apos;%s&apos; already exists</source>
         <translation>&apos;%s&apos; adlı paylaşılan klasör zaten var</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3201"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3306"/>
         <source>Cannot remove a transient shared folder from a machine in a saved state (machine state: %s)</source>
         <translation>Kaydedildi durumundaki bir makineden geçici bir paylaşılan klasör kaldırılamaz (makine durumu: %s)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3210"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3315"/>
         <source>Cannot remove a transient shared folder from the machine while it is changing the state (machine state: %s)</source>
         <translation>Durumunu değiştirirken makinede geçici bir paylaşılan klasör kaldırılamaz (makine durumu: %s)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3258"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3363"/>
         <source>The ID and password must be both valid</source>
         <translation>Kimlik ve parolanın her ikisi de geçerli olmak zorundadır</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3314"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7132"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3419"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7425"/>
         <source>Could not resume the machine execution (%Rrc)</source>
         <translation>Makinenin çalıştırılmasına devam edilemedi (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3320"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3355"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3425"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3460"/>
         <source>A password with the given ID already exists</source>
         <translation>Belirtilen kimliğe sahip bir parola zaten var</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3323"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3428"/>
         <source>Failed to allocate enough secure memory for the key</source>
         <translation>Anahtar için yeterli güvenli bellek ayırma başarısız</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3325"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3430"/>
         <source>Unknown error happened while adding a password (%Rrc)</source>
         <translation>Bir parola eklenirken bilinmeyen bir hata oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3337"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3442"/>
         <source>IDs and passwords must not be empty</source>
         <translation>Kimlikler ve parolalar boş olmamak zorundadır</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3340"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3445"/>
         <source>The number of entries in the id and password arguments must match</source>
         <translation>Kimlik ve parola bağımsız değişkenlerindeki giriş sayısı eşleşmek zorundadır</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3392"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3497"/>
         <source>The ID must be valid</source>
         <translation>Kimlik geçerli olmak zorundadır</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3411"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3516"/>
         <source>A password with the ID &quot;%s&quot; does not exist</source>
         <translation>&quot;%s&quot; kimliğine sahip bir parola mevcut değil</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3413"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3518"/>
         <source>Failed to remove password with ID &quot;%s&quot; (%Rrc)</source>
         <translation>&quot;%s&quot; kimliğine sahip parolayı kaldırma başarısız oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3429"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3534"/>
         <source>A password is still in use by the VM</source>
         <translation>VM tarafından hala bir parola kullanımda</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3431"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3536"/>
         <source>Deleting all passwords failed (%Rrc)</source>
         <translation>Tüm parolaları silme başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3474"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3579"/>
         <source>Invalid machine state: %s</source>
         <translation>Geçersiz makine durumu: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3587"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3692"/>
         <source>Could suspend VM for medium change (%Rrc)</source>
         <translation>Ortam değiştirme için VM askıya alınabilir (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3600"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3705"/>
         <source>Invalid state &apos;%s&apos; for changing medium</source>
         <translation>Ortamı değiştirmek için geçersiz durum &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3685"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3864"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="4043"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6724"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3790"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3968"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="4146"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="6991"/>
         <source>Could not find storage controller &apos;%ls&apos;</source>
         <translation>&apos;%ls&apos; depolama denetleyicisi bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3743"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3922"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="4097"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3847"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="4025"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="4199"/>
         <source>Could not mount the media/drive &apos;%ls&apos; (%Rrc)</source>
         <translation>&apos;% ls&apos; ortamı/sürücüsü bağlanamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3744"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="3923"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="4098"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="3848"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="4026"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="4200"/>
         <source>Could not unmount the currently mounted media/drive (%Rrc)</source>
         <translation>Şu anda bağlı olan ortam/sürücü sökülemedi (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="4293"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="4395"/>
         <source>The network adapter #%u is not enabled</source>
         <translation>#%u ağ bağdaştırıcısı etkinleştirilmedi</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="4920"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6788"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="5119"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7065"/>
         <source>could not query medium interface of controller</source>
         <translation>denetleyicinin ortam arayüzünü sorgulayamadı</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="4925"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="5124"/>
         <source>The provided password for ID &quot;%s&quot; is not correct for at least one disk using this ID</source>
         <translation>&quot;%s&quot; kimliği için sağlanan parola, bu kimliği kullanan en az bir disk için doğru değil</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="4931"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="5130"/>
         <source>Failed to set the encryption key (%Rrc)</source>
         <translation>Şifreleme anahtarını ayarlama başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="4939"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6791"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="5138"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7068"/>
         <source>could not query base interface of controller</source>
         <translation>denetleyicinin temel arayüzünü sorgulayamadı</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="5039"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="5238"/>
         <source>Failed to decode the key (%Rrc)</source>
         <translation>Anahtarın kodunu çözme başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="5044"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="5243"/>
         <source>Failed to allocate secure memory for the key (%Rrc)</source>
         <translation>Anahtar için güvenli bellek ayırma başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="5047"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="5246"/>
         <source>The base64 encoding of the passed key is incorrect</source>
         <translation>Geçen anahtarın base64 kodlaması yanlış</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="5050"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="5249"/>
         <source>The encryption configuration is incomplete</source>
         <translation>Şifreleme yapılandırması tamamlanmamış</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="5133"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="5331"/>
         <source>Could not change the network adaptor attachement type (%Rrc)</source>
         <translation>Ağ bağdaştırıcısı ek türü değiştirilemedi (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="5482"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="5693"/>
         <source>Failed to change the serial port attachment (%Rrc)</source>
         <translation>Seri bağlantı noktası takmayı değiştirme başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="5771"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="5826"/>
+        <source>Failed to change the CPU execution limit (%Rrc)</source>
+        <translation>İşlemci çalıştırılma sınırını değiştirme başarısız (%Rrc)</translation>
+    </message>
+    <message>
+        <location filename="../src-client/ConsoleImpl.cpp" line="6025"/>
         <source>VirtualBox Remote Desktop Extension server can&apos;t bind to the port(s): %s</source>
         <translation>VirtualBox Uzak Masaüstü Uzantısı sunucusu bağlantı nokta(larına)sına bağlanamıyor: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="5780"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="6034"/>
         <source>VirtualBox Remote Desktop Extension is not available</source>
         <translation>VirtualBox Uzak Masaüstü Uzantısı mevcut değil</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="5788"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="6042"/>
         <source>Could not find the VirtualBox Remote Desktop Extension library</source>
         <translation>VirtualBox Uzak Masaüstü Uzantısı kütüphanesi bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="5791"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="6045"/>
         <source>Failed to launch the Remote Desktop Extension server (%Rrc)</source>
         <translation>Uzak Masaüstü Uzantısı sunucusunu başlatma başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="5937"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="6191"/>
         <source>Sending monitor hot-plug event failed (%Rrc)</source>
         <translation>Monitör çalışırken-takma olayını gönderme başarısız oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="5986"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="6242"/>
+        <source>Attaching audio recording driver failed (%Rrc)</source>
+        <translation>Ses kayıt sürücüsünün eklenmesi başarısız oldu (%Rrc)</translation>
+    </message>
+    <message>
+        <location filename="../src-client/ConsoleImpl.cpp" line="6265"/>
+        <source>Detaching audio recording driver failed (%Rrc) -- please consult log file for details</source>
+        <translation>Ses kayıt sürücüsünün ayırılması başarısız oldu (%Rrc) -- ayrıntılar için lütfen günlük dosyasına bakın</translation>
+    </message>
+    <message>
         <source>Attaching to audio recording driver failed (%Rrc) -- please consult log file for details</source>
-        <translation type="unfinished"></translation>
+        <translation type="vanished">Ses kayıt sürücüsüne takma başarısız oldu (%Rrc) -- ayrıntılar için lütfen günlük dosyasına bakın</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="5997"/>
         <source>Recording start failed (%Rrc) -- please consult log file for details</source>
-        <translation type="unfinished"></translation>
+        <translation type="vanished">Kayıt başlatma başarısız oldu (%Rrc) -- ayrıntılar için lütfen günlük dosyasına bakın</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6002"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7762"/>
         <source>Recording initialization failed (%Rrc) -- please consult log file for details</source>
-        <translation type="unfinished"></translation>
+        <translation>Kayıt başlatma başarısız oldu (%Rrc) -- ayrıntılar için lütfen günlük dosyasına bakın</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6019"/>
         <source>Recording stop failed (%Rrc) -- please consult log file for details</source>
-        <translation type="unfinished"></translation>
+        <translation type="vanished">Kayıt durdurma başarısız oldu (%Rrc) -- ayrıntılar için lütfen günlük dosyasına bakın</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6031"/>
         <source>Recording already %s</source>
-        <translation type="unfinished"></translation>
+        <translation type="vanished">Zaten %s kaydediliyor</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6031"/>
         <source>enabled</source>
-        <translation type="unfinished"></translation>
+        <translation type="vanished">etkinleştirildi</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6031"/>
         <source>disabled</source>
-        <translation type="unfinished"></translation>
+        <translation type="vanished">etkisizleştirildi</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6513"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6570"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6601"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="6780"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="6837"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="6868"/>
         <source>The VBoxGuestPropSvc service call failed with the error %Rrc</source>
         <translation>VBoxGuestPropSvc hizmet çağrısı %Rrc hatasıyla başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6797"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7074"/>
         <source>Failed to perform an online medium merge (%Rrc)</source>
         <translation>Çevrimiçi ortam birleştirmeyi gerçekleştirme başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6939"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7232"/>
         <source>Unsupported priority type (%d)</source>
         <translation>Desteklenmeyen öncelik türü (%d)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="6944"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7237"/>
         <source>Could not set the priority of the process (%Rrc). Try to set it when VM is not started.</source>
         <translation>İşlemin önceliği ayarlanamadı (%Rrc). VM başlatılmadığında ayarlamayı deneyin.</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7005"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7298"/>
         <source>Already paused</source>
         <translation>Zaten duraklatıldı</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7033"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7218"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7326"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7511"/>
         <source>Could not suspend the machine execution (%Rrc)</source>
         <translation>Makinenin çalıştırılması askıya alınamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7116"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7409"/>
         <source>VM is paused due to host power management</source>
         <translation>VM, anamakine güç yönetiminden dolayı duraklatıldı</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7171"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7464"/>
         <source>Cannot save the execution state as the machine is not running or paused (machine state: %s)</source>
         <translation>Makine çalışmadığından veya duraklatıldığından çalıştırılma durumu kaydedilemez (makine durumu: %s)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7179"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7472"/>
         <source>Saving the execution state is disabled for this VM</source>
         <translation>Bu VM için çalıştırılma durumunun kaydedilmesi etkisizleştirildi</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7192"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7485"/>
         <source>Could not create a directory &apos;%s&apos; to save the state to (%Rrc)</source>
         <translation>Durumun kaydedileceği &apos;%s&apos; dizini oluşturulamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7231"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7524"/>
         <source>Could not get key store for state file(%Rhrc (0x%08X))</source>
-        <translation type="unfinished"></translation>
+        <translation>Durum dosyası için anahtar deposu alınamadı (%Rhrc (0x%08X))</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7234"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7527"/>
         <source>Could not get key id for state file(%Rhrc (0x%08X))</source>
-        <translation type="unfinished"></translation>
+        <translation>Durum dosyası için anahtar kimliği alınamadı (%Rhrc (0x%08X))</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7310"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7603"/>
         <source>Failed to save the machine state to &apos;%s&apos; (%Rrc)</source>
         <translation>Makine durumunu &apos;%s&apos; olarak kaydetme başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7916"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7793"/>
+        <source>Recording start failed (%Rrc)</source>
+        <translation>Kayıt başlatma başarısız oldu (%Rrc)</translation>
+    </message>
+    <message>
+        <location filename="../src-client/ConsoleImpl.cpp" line="7815"/>
+        <source>Recording stop failed (%Rrc)</source>
+        <translation>Kayıt durdurma başarısız oldu (%Rrc)</translation>
+    </message>
+    <message>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8228"/>
         <source>The virtual machine is not powered up</source>
         <translation>Sanal makine gücü açık değil</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7975"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7989"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8287"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8301"/>
         <source>The virtual machine is powered off</source>
         <translation>Sanal makine gücü kapalı</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="7980"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8292"/>
         <source>No VMM loaded!</source>
-        <translation type="unfinished"></translation>
+        <translation>Yüklenmiş VMM yok!</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8202"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8534"/>
         <source>Failed to set encryption for release log (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Yayım günlüğü için şifrelemeyi ayarlama başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8217"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8549"/>
         <source>Failed to open release log (%s, %Rrc)</source>
         <translation>Yayım günlüğünü açma başarısız (%s, %Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8254"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8586"/>
         <source>The virtual machine is already running or busy (machine state: %s)</source>
         <translation>Sanal makine zaten çalışıyor veya meşgul (makine durumu: %s)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8302"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8634"/>
         <source>Restoring virtual machine</source>
         <translation>Sanal makine geri yükleniyor</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8304"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8574"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8636"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8906"/>
         <source>Teleporting virtual machine</source>
         <translation>Sanal makineyi ışınlanıyor</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8306"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8638"/>
         <source>Starting virtual machine</source>
         <translation>Sanal makine başlatılıyor</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8352"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8684"/>
         <source>VM failed to start because the saved state file &apos;%s&apos; does not exist.</source>
-        <translation type="unfinished"></translation>
+        <translation>Kaydedildi durumu dosyası &apos;%s&apos; mevcut olmadığından VM&apos;i başlatma başarısız oldu.</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8356"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8688"/>
         <source>VM failed to start because the saved state file &apos;%s&apos; is invalid (%Rrc). Delete the saved state prior to starting the VM.</source>
-        <translation type="unfinished"></translation>
+        <translation>Kaydedildi durumu dosyası &apos;%s&apos; geçersiz olduğundan VM&apos;i başlatma başarısız oldu.(%Rrc). VM&apos;yi başlatmadan önce kaydedildi durumunu silin.</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8532"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8864"/>
         <source>Failed to setup CoreDumper. Couldn&apos;t create dump directory &apos;%s&apos; (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>CoreDumper kurulumu başarısız. &apos;%s&apos; döküm dizini oluşturulamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8538"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8870"/>
         <source>Failed to setup CoreDumper (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>CoreDumper kurulumu başarısız (%Rrc)</translation>
     </message>
     <message>
         <source>VM failed to start because the saved state file &apos;%ls&apos; does not exist.</source>
@@ -1808,178 +1848,183 @@
         <translation type="vanished">Kaydedildi durumu dosyası &apos;%ls&apos; geçersiz olduğundan VM&apos;i başlatma başarısız oldu.(%Rrc). VM&apos;yi başlatmadan önce kaydedildi durumunu silin.</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8558"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8890"/>
         <source>Starting Hard Disk operations</source>
         <translation>Sabit Disk işlemlerini başlatma</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8600"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8932"/>
         <source>Powerup was canceled</source>
         <translation>Gücü açma iptal edildi</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8636"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8968"/>
         <source>VM cannot start because host interface networking requires a host interface name to be set</source>
         <translation>Anamakine arayüzü ağı, anamakine arayüzü adının ayarlanmasını gerektirdiğinden VM başlatılamıyor</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8645"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="8977"/>
         <source>VM cannot start because the host interface &apos;%ls&apos; does not exist</source>
         <translation>Anamakine arayüzü &apos;%ls&apos; mevcut olmadığından VM başlatılamıyor</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="8993"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9331"/>
         <source>Could not destroy the machine. (Error: %Rrc)</source>
         <translation>Makine yok edilemedi. (Hata: %Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9009"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9347"/>
         <source>Could not power off the machine. (Error: %Rrc)</source>
         <translation>Makine gücü kapatılamadı. (Hata: %Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9108"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9446"/>
         <source>Could not find a shared folder named &apos;%s&apos;.</source>
         <translation>&apos;%s&apos; adlı bir paylaşılan klasör bulunamadı.</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9322"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9660"/>
         <source>Invalid shared folder path: &apos;%s&apos; (%Rrc)</source>
         <translation>Geçersiz paylaşılan klasör yolu: &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9327"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9665"/>
         <source>Shared folder path &apos;%s&apos; is not absolute</source>
         <translation>Paylaşılan klasör yolu &apos;%s&apos; kesin değil</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-client/ConsoleImpl.cpp" line="9335"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9673"/>
         <source>Shared folder name is too long: %zu bytes</source>
         <translation>
             <numerusform>Paylaşılan klasör adı çok uzun: %zu bayt</numerusform>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-client/ConsoleImpl.cpp" line="9337"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9675"/>
         <source>Shared folder mount point too long: %zu bytes</source>
         <translation>
             <numerusform>Paylaşılan klasör bağlama noktası çok uzun: %zu bayt</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9362"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9701"/>
         <source>Could not create a shared folder &apos;%s&apos; mapped to &apos;%s&apos; (%Rrc)</source>
         <translation>Bir &apos;%s&apos; paylaşılan klasörü &apos;%s&apos; ile eşleştirilmiş olarak oluşturulamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9366"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9705"/>
         <source>Shared folder path &apos;%s&apos; does not exist on the host</source>
         <translation>Paylaşılan klasör yolu &apos;%s&apos; anamakinede mevcut değil</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9403"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9742"/>
         <source>The name is too long</source>
         <translation>Ad çok uzun</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9418"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9757"/>
         <source>Could not remove the shared folder &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; paylaşılan klasörü kaldırılamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9461"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9796"/>
+        <source>Failed to query default extension pack name for the cryptographic module</source>
+        <translation>Şifreleme modülü için varsayılan genişletme paketi adını sorgulama başarısız</translation>
+    </message>
+    <message>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9804"/>
         <source>Ńo extension pack providing a cryptographic support module could be found</source>
-        <translation type="unfinished"></translation>
+        <translation>Şifreleme destek modülü sağlayan genişletme paketi bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9481"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9824"/>
         <source>Failed to query the interface callback table from the cryptographic support module &apos;%s&apos; from extension pack &apos;%s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; şifreleme destek modülünden ve &apos;%s&apos; genişletme paketinden gelen arayüz geri çağırma tablosunu sorgulama başarısız</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9486"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9829"/>
         <source>Failed to resolve the entry point for the cryptographic support module &apos;%s&apos; from extension pack &apos;%s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; şifreleme destek modülü için &apos;%s&apos; genişletme paketinden gelen giriş noktasını çözme başarısız</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9497"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9840"/>
         <source>Couldn&apos;t load the cryptographic support module &apos;%s&apos; from extension pack &apos;%s&apos; (error: &apos;%s&apos;)</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; şifreleme destek modülü &apos;%s&apos; genişletme paketinden yüklenemedi (hata: &apos;%s&apos;)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9502"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9845"/>
         <source>Couldn&apos;t resolve the library path of the crpytographic support module for extension pack &apos;%s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; genişletme paketi için şifreleme destek modülünün kütüphane yolu çözülemedi</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9506"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9849"/>
         <source>The cryptographic support module is not supported in this build because extension packs are not supported</source>
-        <translation type="unfinished"></translation>
+        <translation>Genişletme paketleri desteklenmediğinden şifreleme destek modülü bu yapımda desteklenmiyor</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="9552"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="9895"/>
         <source>The cryptographic support module is in use and can&apos;t be unloaded</source>
-        <translation type="unfinished"></translation>
+        <translation>Şifreleme destek modülü kullanımda ve kaldırılamaz</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="10126"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="10469"/>
         <source>Failed to create configuration for USB device.</source>
-        <translation type="unfinished"></translation>
+        <translation>USB aygıtı için yapılandırma oluşturma başarısız.</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="10130"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="10473"/>
         <source>Failed to allocate config tree for USB device.</source>
-        <translation type="unfinished"></translation>
+        <translation>USB aygıtı için yapılandırma ağacı ayırma başarısız.</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="10164"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="10508"/>
         <source>Failed to attach the USB device. (No available ports on the USB controller).</source>
         <translation>USB aygıtını takma başarısız. (USB denetleyicisinde kullanılabilir bağlantı noktaları yok).</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="10167"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="10511"/>
         <source>Not permitted to open the USB device, check usbfs options</source>
         <translation>USB aygıtın açılmasına izin verilmiyor, usbfs seçeneklerini gözden geçirin</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="10170"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="10514"/>
         <source>Failed to create a proxy device for the USB device. (Error: %Rrc)</source>
         <translation>USB aygıtı için bir vekil aygıt oluşturma başarısız. (Hata: %Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="10354"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="10424"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="10697"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="10767"/>
         <source>No TAP device name was supplied for the host networking interface</source>
         <translation>Anamakine ağ arayüzü için hiçbir TAP aygıt adı sağlanmadı</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="10367"/>
-        <location filename="../src-client/ConsoleImpl.cpp" line="10448"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="10710"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="10791"/>
         <source>Failed to open the host network interface %ls</source>
         <translation>%ls anamakine ağ arayüzünü açma başarısız</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="10392"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="10735"/>
         <source>could not set up the host networking device for non blocking access: %s</source>
         <translation>anamakine ağ aygıtını engelsiz erişim için ayarlayamadı: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="10407"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="10750"/>
         <source>Could not set up the host networking device: %Rrc</source>
         <translation>Anamakine ağ aygıtı ayarlanamadı: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="10459"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="10802"/>
         <source>General failure attaching to host interface</source>
         <translation>Anamakine arayüzüne takma genel hatası</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="11014"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="11368"/>
         <source>Disk Image Reset Operation - Immutable Image</source>
         <translation>Disk Kalıbı Sıfırlama İşlemi - Değiştirilemez Kalıp</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl.cpp" line="11347"/>
+        <location filename="../src-client/ConsoleImpl.cpp" line="11712"/>
         <source>Failed to start VM execution (%Rrc)</source>
         <translation>VM çalıştırmayı başlatma başarısız (%Rrc)</translation>
     </message>
@@ -2089,43 +2134,43 @@
         <translation>VM ışınlanıyor</translation>
     </message>
     <message>
-        <location filename="../src-client/ConsoleImpl2.cpp" line="294"/>
+        <location filename="../include/ConsoleImpl.h" line="1295"/>
         <source>%s failed: vrc=%Rrc, pcszName=%s</source>
-        <translation type="unfinished"></translation>
+        <translation>%s başarısız oldu: vrc=%Rrc, pcszName=%s</translation>
     </message>
 </context>
 <context>
     <name>ConsoleSharedFolder</name>
     <message>
-        <location filename="../src-all/ConsoleSharedFolderImpl.cpp" line="173"/>
+        <location filename="../src-all/ConsoleSharedFolderImpl.cpp" line="175"/>
         <source>Invalid shared folder path: &apos;%s&apos; (%Rrc)</source>
-        <translation type="unfinished">Geçersiz paylaşılan klasör yolu: &apos;%s&apos; (%Rrc)</translation>
+        <translation>Geçersiz paylaşılan klasör yolu: &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-all/ConsoleSharedFolderImpl.cpp" line="176"/>
+        <location filename="../src-all/ConsoleSharedFolderImpl.cpp" line="178"/>
         <source>Shared folder path &apos;%s&apos; is not absolute</source>
-        <translation type="unfinished">Paylaşılan klasör yolu &apos;%s&apos; kesin değil</translation>
+        <translation>Paylaşılan klasör yolu &apos;%s&apos; kesin değil</translation>
     </message>
     <message>
-        <location filename="../src-all/ConsoleSharedFolderImpl.cpp" line="181"/>
+        <location filename="../src-all/ConsoleSharedFolderImpl.cpp" line="183"/>
         <source>RTPathQueryInfo failed on shared folder path &apos;%s&apos;: %Rrc</source>
-        <translation type="unfinished">RTPathQueryInfo, &apos;%s&apos; paylaşılan klasör yolunda başarısız oldu: %Rrc</translation>
+        <translation>RTPathQueryInfo, &apos;%s&apos; paylaşılan klasör yolunda başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-all/ConsoleSharedFolderImpl.cpp" line="184"/>
+        <location filename="../src-all/ConsoleSharedFolderImpl.cpp" line="186"/>
         <source>Shared folder path &apos;%s&apos; is not a directory</source>
-        <translation type="unfinished">Paylaşılan klasör yolu &apos;%s&apos; bir dizin değil</translation>
+        <translation>Paylaşılan klasör yolu &apos;%s&apos; bir dizin değil</translation>
     </message>
     <message>
-        <location filename="../src-all/ConsoleSharedFolderImpl.cpp" line="250"/>
+        <location filename="../src-all/ConsoleSharedFolderImpl.cpp" line="252"/>
         <source>&apos;%s&apos; is not accessible (%Rrc)</source>
-        <translation type="unfinished">&apos;%s&apos; erişilebilir değil (%Rrc)</translation>
+        <translation>&apos;%s&apos; erişilebilir değil (%Rrc)</translation>
     </message>
 </context>
 <context>
     <name>ConsoleVRDPServer</name>
     <message>
-        <location filename="../src-client/ConsoleVRDPServer.cpp" line="3213"/>
+        <location filename="../src-client/ConsoleVRDPServer.cpp" line="3215"/>
         <source>Could not load the external authentication library &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; harici kimlik doğrulama kütüphanesi yüklenemedi (%Rrc)</translation>
     </message>
@@ -2156,7 +2201,7 @@
     <message>
         <location filename="../src-server/DHCPConfigImpl.cpp" line="431"/>
         <source>Malformed option %d value &apos;%s&apos; (encoding %d, vrc=%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Hatalı biçimlendirilmiş seçenek %d değer &apos;%s&apos; (kodlama %d, vrc=%Rrc)</translation>
     </message>
     <message>
         <source>Malformed option %d value &apos;%s&apos; (encoding %d, rc=%Rrc)</source>
@@ -2216,7 +2261,7 @@
         <location filename="../src-server/DHCPConfigImpl.cpp" line="876"/>
         <location filename="../src-server/DHCPConfigImpl.cpp" line="883"/>
         <source>Trailing chars in MAC wildcard address: %s (offset %zu)</source>
-        <translation>MAC joker adresinde sondaki karakterler: %s (karşılığı %zu)</translation>
+        <translation>MAC joker adresinde sondaki karakterler: %s (%zu karşılığı)</translation>
     </message>
     <message>
         <location filename="../src-server/DHCPConfigImpl.cpp" line="811"/>
@@ -2224,7 +2269,7 @@
         <location filename="../src-server/DHCPConfigImpl.cpp" line="855"/>
         <location filename="../src-server/DHCPConfigImpl.cpp" line="887"/>
         <source>Malformed MAC wildcard address: %s (offset %zu)</source>
-        <translation>Hatalı MAC joker adresi: %s (karşılığı %zu)</translation>
+        <translation>Hatalı biçimlendirilmiş MAC joker karakter adresi: %s (%zu karşılığı)</translation>
     </message>
     <message>
         <location filename="../src-server/DHCPConfigImpl.cpp" line="898"/>
@@ -2421,72 +2466,81 @@
 <context>
     <name>Display</name>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="1563"/>
+        <location filename="../src-client/DisplayImpl.cpp" line="1562"/>
         <source>AttachFramebuffer: Invalid screen %d (total %d)</source>
         <translation>AttachFramebuffer: Geçersiz ekran %d (toplam %d)</translation>
     </message>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="1568"/>
+        <location filename="../src-client/DisplayImpl.cpp" line="1567"/>
         <source>AttachFramebuffer: Framebuffer already attached to %d</source>
         <translation>AttachFramebuffer: Framebuffer zaten %d için takılı</translation>
     </message>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="1612"/>
+        <location filename="../src-client/DisplayImpl.cpp" line="1611"/>
         <source>DetachFramebuffer: Invalid screen %d (total %d)</source>
         <translation>DetachFramebuffer: Geçersiz ekran %d (toplam %d)</translation>
     </message>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="1620"/>
+        <location filename="../src-client/DisplayImpl.cpp" line="1619"/>
         <source>DetachFramebuffer: Invalid framebuffer object</source>
         <translation>DetachFramebuffer: Geçersiz framebuffer nesnesi</translation>
     </message>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="1637"/>
+        <location filename="../src-client/DisplayImpl.cpp" line="1636"/>
         <source>QueryFramebuffer: Invalid screen %d (total %d)</source>
         <translation>QueryFramebuffer: Geçersiz ekran %d (toplam %d)</translation>
     </message>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="1979"/>
+        <location filename="../src-client/DisplayImpl.cpp" line="1978"/>
         <source>Unsupported screenshot format 0x%08X</source>
         <translation>Desteklenmeyen ekran görüntüsü biçimi 0x%08X</translation>
     </message>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="2035"/>
+        <location filename="../src-client/DisplayImpl.cpp" line="2034"/>
         <source>PNG is larger than 32bpp bitmap</source>
         <translation>PNG, 32bpp bitmap&apos;ten daha büyük</translation>
     </message>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="2038"/>
+        <location filename="../src-client/DisplayImpl.cpp" line="2037"/>
         <source>Could not convert screenshot to PNG (%Rrc)</source>
         <translation>Ekran görüntüsü PNG&apos;ye dönüştürülemedi (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="2043"/>
-        <source>Screenshot is not available at this time</source>
-        <translation>Ekran görüntüsü şu anda mevcut değil</translation>
+        <location filename="../src-client/DisplayImpl.cpp" line="2042"/>
+        <source>Screenshot is not possible at this time, invalid size</source>
+        <translation>Ekran görüntüsü şu anda mümkün değil, geçersiz boyut</translation>
     </message>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="2045"/>
+        <location filename="../src-client/DisplayImpl.cpp" line="2044"/>
+        <source>Screenshot is not possible at this time</source>
+        <translation>Ekran görüntüsü şu anda mümkün değil</translation>
+    </message>
+    <message>
+        <source>Screenshot is not available at this time</source>
+        <translation type="vanished">Ekran görüntüsü şu anda mevcut değil</translation>
+    </message>
+    <message>
+        <location filename="../src-client/DisplayImpl.cpp" line="2046"/>
         <source>Could not take a screenshot (%Rrc)</source>
         <translation>Ekran görüntüsü alınamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="2307"/>
+        <location filename="../src-client/DisplayImpl.cpp" line="2558"/>
         <source>Could not draw to the screen (%Rrc)</source>
         <translation>Ekrana çizim yapılamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="2435"/>
+        <location filename="../src-client/DisplayImpl.cpp" line="2686"/>
         <source>Could not invalidate and update the screen (%Rrc)</source>
         <translation>Ekran geçersiz kılınamadı ve güncellenemedi (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="2453"/>
+        <location filename="../src-client/DisplayImpl.cpp" line="2704"/>
         <source>Could not invalidate and update the screen %d (%Rrc)</source>
         <translation>%d ekran geçersiz kılınamadı ve güncellenemedi (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/DisplayImpl.cpp" line="2499"/>
+        <location filename="../src-client/DisplayImpl.cpp" line="2751"/>
         <source>QuerySourceBitmap: Invalid screen %d (total %d)</source>
         <translation>QuerySourceBitmap: Geçersiz ekran %d (toplam %d)</translation>
     </message>
@@ -2500,15 +2554,15 @@
     <message>
         <location filename="../src-client/EmulatedUSBImpl.cpp" line="195"/>
         <source>Init emulated USB webcam (RTUuidCreate -&gt; %Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Benzetimli USB web kamerasını başlat (RTUuidCreate -&gt; %Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/EmulatedUSBImpl.cpp" line="296"/>
+        <location filename="../src-client/EmulatedUSBImpl.cpp" line="295"/>
         <source>Attach emulated USB webcam (%Rrc)</source>
-        <translation>Benzetimli USB web kamerası tak (%Rrc)</translation>
+        <translation>Benzetimli USB web kamerasını tak (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/EmulatedUSBImpl.cpp" line="307"/>
+        <location filename="../src-client/EmulatedUSBImpl.cpp" line="305"/>
         <source>Detach emulated USB webcam (%Rrc)</source>
         <translation>Benzetimli USB web kamerasını ayır (%Rrc)</translation>
     </message>
@@ -2610,7 +2664,7 @@
     <message>
         <location filename="../src-all/ExtPackManagerImpl.cpp" line="1193"/>
         <source>The extension pack &apos;%s&apos; does not include a cryptographic module</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; genişletme paketi bir şifreleme modülü içermiyor</translation>
     </message>
     <message>
         <location filename="../src-all/ExtPackManagerImpl.cpp" line="1218"/>
@@ -2620,7 +2674,7 @@
     <message>
         <location filename="../src-all/ExtPackManagerImpl.cpp" line="1242"/>
         <source>Failed to locate the cryptographic module &apos;%s&apos; in extension pack &apos;%s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; şifreleme modülünü &apos;%s&apos; genişletme paketinde bulma başarısız</translation>
     </message>
     <message>
         <location filename="../src-all/ExtPackManagerImpl.cpp" line="1265"/>
@@ -2693,37 +2747,37 @@
         <translation>Ana modülde dışa aktarılan &apos;%s&apos; sembolünü çözme başarısız: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2231"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2258"/>
         <source>The preferred locale is a two character string or empty.</source>
         <translation>Tercih edilen yerel ayar, iki karakterli bir dizgi veya boş.</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2234"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2261"/>
         <source>The preferred language is a two character string or empty.</source>
         <translation>Tercih edilen dil, iki karakterli bir dizgi veya boş.</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2239"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2266"/>
         <source>The license format can only have the values &apos;html&apos;, &apos;rtf&apos; and &apos;txt&apos;.</source>
         <translation>Lisans biçimi yalnızca &apos;html&apos;, &apos;rtf&apos; ve &apos;txt&apos; değerlerine sahip olabilir.</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2283"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2310"/>
         <source>The license file &apos;%s&apos; is empty or contains invalid UTF-8 encoding</source>
         <translation>&apos;%s&apos; lisans dosyası boş veya geçersiz UTF-8 kodlaması içeriyor</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2288"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2315"/>
         <source>The license file &apos;%s&apos; was not found in extension pack &apos;%s&apos;</source>
         <translation>&apos;%s&apos; lisans dosyası &apos;%s&apos; genişletme paketinde bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2291"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2318"/>
         <source>Failed to open the license file &apos;%s&apos;: %Rrc</source>
         <translation>&apos;%s&apos; lisans dosyasını açma başarısız: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2294"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2321"/>
         <source>RTPathJoin failed: %Rrc</source>
         <translation>RTPathJoin başarısız oldu: %Rrc</translation>
     </message>
@@ -2839,107 +2893,108 @@
 <context>
     <name>ExtPackManager</name>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2557"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2584"/>
         <source>Starting thread for an extension pack uninstallation failed with %Rrc</source>
         <translation>Genişletme paketinin kaldırılması için iş parçacığını başlatma %Rrc ile başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2560"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2587"/>
         <source>Looks like creating a progress object for ExtraPackUninstallTask object failed</source>
         <translation>Görünüşe göre ExtraPackUninstallTask ​​nesnesi için bir ilerleme nesnesi oluşturma başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2824"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2853"/>
         <source>The installer failed with exit code %d: %s</source>
         <translation>Yükleyici, %d çıkış koduyla başarısız oldu: %s</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2828"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2857"/>
         <source>The installer was killed by signal #d (stderr: %s)</source>
         <translation>Yükleyici #d sinyali ile sonlandırıldı (stderr: %s)</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2831"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2860"/>
         <source>The installer aborted abnormally (stderr: %s)</source>
         <translation>Yükleyici anormal bir şekilde iptal edildi (stderr: %s)</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2834"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2863"/>
         <source>internal error: enmReason=%d iStatus=%d stderr=&apos;%s&apos;</source>
         <translation>iç hata: enmReason=%d iStatus=%d stderr=&apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2840"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="2869"/>
         <source>Failed to launch the helper application &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; yardımcı uygulamasını başlatma başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3117"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3146"/>
         <source>Upgrading extension pack &apos;%s&apos; failed because at least one VM is still running</source>
         <translation>En az bir VM hala çalıştığından &apos;%s&apos; genişletme paketinin yükseltilmesi başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3123"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3152"/>
         <source>Upgrading extension pack &apos;%s&apos; failed because at least one Cloud Provider is still busy</source>
         <translation>En az bir Bulut Sağlayıcı hala meşgul olduğundan &apos;%s&apos; genişletme paketinin yükseltilmesi başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3129"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3158"/>
         <source>Upgrading extension pack &apos;%s&apos; failed because the cryptographic support module is still in use</source>
-        <translation type="unfinished"></translation>
+        <translation>Şifreleme destek modülü hala kullanımda olduğundan &apos;%s&apos; genişletme paketinin yükseltilmesi başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3137"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3166"/>
         <source>Extension pack &apos;%s&apos; is already installed. In case of a reinstallation, please uninstall it first</source>
         <translation>Genişletme paketi &apos;%s&apos; zaten yüklü. Yeniden kurulum durumunda, lütfen önce kaldırın</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3182"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3214"/>
         <source>The installation hook failed: %Rrc - %s</source>
         <translation>Kurulum kancası başarısız oldu: %Rrc - %s</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3187"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3219"/>
         <source>Installing extension pack &apos;%s&apos; failed under mysterious circumstances</source>
         <translation>&apos;%s&apos; genişletme paketinin yüklenmesi bilinmeyen koşullar altında başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3289"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3324"/>
         <source>Uninstall extension pack &apos;%s&apos; failed under mysterious circumstances</source>
         <translation>&apos;%s&apos; genişletme paketini kaldırma bilinmeyen koşullar altında başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3307"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3342"/>
         <source>Uninstall extension pack &apos;%s&apos; failed because at least one VM is still running</source>
         <translation>En az bir VM hala çalıştığından &apos;%s&apos; genişletme paketini kaldırma başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3313"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3348"/>
         <source>Uninstall extension pack &apos;%s&apos; failed because at least one Cloud Provider is still busy</source>
         <translation>En az bir Bulut Sağlayıcı hala meşgul olduğundan &apos;%s&apos; genişletme paketini kaldırma başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3319"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3354"/>
         <source>Uninstall extension pack &apos;%s&apos; failed because the cryptographic support module is still in use</source>
-        <translation type="unfinished"></translation>
+        <translation>Şifreleme destek modülü hala kullanımda olduğundan &apos;%s&apos; genişletme paketini kaldırma başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3325"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3360"/>
         <source>Uninstall extension pack &apos;%s&apos; failed for an unknown reason</source>
         <translation>&apos;%s&apos; genişletme paketini kaldırma bilinmeyen bir nedenden dolayı başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3333"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3368"/>
         <source>Extension pack &apos;%s&apos; is not installed.
 </source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; genişletme paketi yüklü değil.
+</translation>
     </message>
     <message>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3577"/>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3606"/>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3632"/>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3661"/>
-        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3690"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3612"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3641"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3667"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3696"/>
+        <location filename="../src-all/ExtPackManagerImpl.cpp" line="3725"/>
         <source>No extension pack by the name &apos;%s&apos; was found</source>
         <translation>&apos;%s&apos; adında bir genişletme paketi bulunamadı</translation>
     </message>
@@ -3042,7 +3097,7 @@
     <message>
         <location filename="../src-all/ExtPackUtil.cpp" line="233"/>
         <source>Invalid cryptographic module string: </source>
-        <translation type="unfinished"></translation>
+        <translation>Geçersiz şifreleme modülü dizgisi: </translation>
     </message>
     <message>
         <location filename="../src-all/ExtPackUtil.cpp" line="293"/>
@@ -3248,7 +3303,7 @@
     <message>
         <location filename="../src-all/TextScript.cpp" line="206"/>
         <source>parse called more than once</source>
-        <translation type="unfinished"></translation>
+        <translation>ayrıştırma birden fazla çağrıldı</translation>
     </message>
     <message>
         <location filename="../src-all/TextScript.cpp" line="227"/>
@@ -3286,154 +3341,322 @@
     <message>
         <location filename="../src-all/TextScript.cpp" line="377"/>
         <source>appendLine() called before parse()</source>
-        <translation type="unfinished"></translation>
+        <translation>parse() işleminden önce appendLine() çağrılır</translation>
     </message>
 </context>
 <context>
     <name>GlobalCtx</name>
     <message>
-        <location filename="../src-all/Global.cpp" line="671"/>
-        <location filename="../src-all/Global.cpp" line="705"/>
-        <location filename="../src-all/Global.cpp" line="720"/>
-        <location filename="../src-all/Global.cpp" line="742"/>
-        <location filename="../src-all/Global.cpp" line="761"/>
+        <location filename="../src-all/Global.cpp" line="731"/>
+        <location filename="../src-all/Global.cpp" line="765"/>
+        <location filename="../src-all/Global.cpp" line="780"/>
+        <location filename="../src-all/Global.cpp" line="802"/>
+        <location filename="../src-all/Global.cpp" line="931"/>
         <source>Null</source>
         <translation>Boş</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="672"/>
+        <location filename="../src-all/Global.cpp" line="732"/>
         <source>PoweredOff</source>
         <translation>GüçKapalı</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="673"/>
+        <location filename="../src-all/Global.cpp" line="733"/>
         <source>Saved</source>
         <translation>Kaydedildi</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="674"/>
+        <location filename="../src-all/Global.cpp" line="734"/>
         <source>Teleported</source>
         <translation>Işınlandı</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="675"/>
+        <location filename="../src-all/Global.cpp" line="735"/>
         <source>Aborted</source>
         <translation>İptalEdildi</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="676"/>
+        <location filename="../src-all/Global.cpp" line="736"/>
         <source>Aborted-Saved</source>
         <translation>İptalEdildi-Kaydedildi</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="677"/>
+        <location filename="../src-all/Global.cpp" line="737"/>
         <source>Running</source>
         <translation>Çalışıyor</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="678"/>
+        <location filename="../src-all/Global.cpp" line="738"/>
         <source>Paused</source>
         <translation>Duraklatıldı</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="679"/>
+        <location filename="../src-all/Global.cpp" line="739"/>
         <source>GuruMeditation</source>
         <translation>GuruMeditasyonu</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="680"/>
+        <location filename="../src-all/Global.cpp" line="740"/>
         <source>Teleporting</source>
         <translation>Işınlanıyor</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="681"/>
+        <location filename="../src-all/Global.cpp" line="741"/>
         <source>LiveSnapshotting</source>
         <translation>CanlıAnlıkGörüntüAlınıyor</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="682"/>
+        <location filename="../src-all/Global.cpp" line="742"/>
         <source>Starting</source>
         <translation>Başlatılıyor</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="683"/>
+        <location filename="../src-all/Global.cpp" line="743"/>
         <source>Stopping</source>
         <translation>Durduruluyor</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="684"/>
+        <location filename="../src-all/Global.cpp" line="744"/>
         <source>Saving</source>
         <translation>Kaydediliyor</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="685"/>
+        <location filename="../src-all/Global.cpp" line="745"/>
         <source>Restoring</source>
         <translation>GeriYükleniyor</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="686"/>
+        <location filename="../src-all/Global.cpp" line="746"/>
         <source>TeleportingPausedVM</source>
         <translation>IşınlamaVMiDuraklattı</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="687"/>
+        <location filename="../src-all/Global.cpp" line="747"/>
         <source>TeleportingIn</source>
         <translation>IşınlandığıYer</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="688"/>
+        <location filename="../src-all/Global.cpp" line="748"/>
         <source>DeletingSnapshotOnline</source>
         <translation>AnlıkGörüntüÇevrimiçiSiliniyor</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="689"/>
+        <location filename="../src-all/Global.cpp" line="749"/>
         <source>DeletingSnapshotPaused</source>
         <translation>AnlıkGörüntüyüSilmeDuraklatıldı</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="690"/>
+        <location filename="../src-all/Global.cpp" line="750"/>
         <source>OnlineSnapshotting</source>
         <translation>ÇevrimiçiAnlıkGörüntüAlınıyor</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="691"/>
+        <location filename="../src-all/Global.cpp" line="751"/>
         <source>RestoringSnapshot</source>
         <translation>AnlıkGörüntüGeriYükleniyor</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="692"/>
+        <location filename="../src-all/Global.cpp" line="752"/>
         <source>DeletingSnapshot</source>
         <translation>AnlıkGörüntüSiliniyor</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="693"/>
+        <location filename="../src-all/Global.cpp" line="753"/>
         <source>SettingUp</source>
         <translation>Ayarlanıyor</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="694"/>
+        <location filename="../src-all/Global.cpp" line="754"/>
         <source>Snapshotting</source>
         <translation>AnlıkGörüntüAlınıyor</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="762"/>
+        <location filename="../src-all/Global.cpp" line="808"/>
+        <source>SharedFolder</source>
+        <translation>PaylaşılanKlasör</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="819"/>
+        <location filename="../src-all/Global.cpp" line="837"/>
+        <source>starting</source>
+        <translation>başlatılıyor</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="820"/>
+        <location filename="../src-all/Global.cpp" line="838"/>
+        <location filename="../src-all/Global.cpp" line="858"/>
+        <source>started</source>
+        <translation>başlatıldı</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="821"/>
+        <location filename="../src-all/Global.cpp" line="840"/>
+        <source>terminating</source>
+        <translation>sonlandırılıyor</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="822"/>
+        <location filename="../src-all/Global.cpp" line="859"/>
+        <source>terminated</source>
+        <translation>sonlandırıldı</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="823"/>
+        <location filename="../src-all/Global.cpp" line="844"/>
+        <location filename="../src-all/Global.cpp" line="862"/>
+        <source>timed out</source>
+        <translation>zaman aşımına uğradı</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="824"/>
+        <location filename="../src-all/Global.cpp" line="845"/>
+        <source>timed out, hanging</source>
+        <translation>zaman aşımına uğradı, dayanıyor</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="825"/>
+        <location filename="../src-all/Global.cpp" line="846"/>
+        <location filename="../src-all/Global.cpp" line="881"/>
+        <source>killed</source>
+        <translation>sonlandırıldı</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="826"/>
+        <location filename="../src-all/Global.cpp" line="847"/>
+        <location filename="../src-all/Global.cpp" line="861"/>
+        <location filename="../src-all/Global.cpp" line="882"/>
+        <source>error</source>
+        <translation>hata</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="839"/>
+        <source>paused</source>
+        <translation>duraklatıldı</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="841"/>
+        <source>successfully terminated</source>
+        <translation>başarılı olarak sonlandırıldı</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="842"/>
+        <source>terminated by signal</source>
+        <translation>sinyal ile sonlandırıldı</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="843"/>
+        <source>abnormally aborted</source>
+        <translation>anormal şekilde iptal edildi</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="860"/>
+        <source>status changed</source>
+        <translation>durum değişti</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="863"/>
+        <source>stdin ready</source>
+        <translation>stdin hazır</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="864"/>
+        <source>data on stdout</source>
+        <translation>stdout üzerinde veri</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="865"/>
+        <source>data on stderr</source>
+        <translation>stderr üzerinde veri</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="866"/>
+        <source>waiting flag not supported</source>
+        <translation>bekleme işareti desteklenmiyor</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="877"/>
+        <source>opening</source>
+        <translation>açılıyor</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="878"/>
+        <source>open</source>
+        <translation>açık</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="879"/>
+        <source>closing</source>
+        <translation>kapanıyor</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="880"/>
+        <source>closed</source>
+        <translation>kapalı</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="893"/>
+        <source>unknown</source>
+        <translation>bilinmiyor</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="894"/>
+        <source>fifo</source>
+        <translation>fifo</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="895"/>
+        <source>char-device</source>
+        <translation>char-device</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="896"/>
+        <source>directory</source>
+        <translation>dizin</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="897"/>
+        <source>block-device</source>
+        <translation>block-device</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="898"/>
+        <source>file</source>
+        <translation>dosya</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="899"/>
+        <source>symlink</source>
+        <translation>symlink</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="900"/>
+        <source>socket</source>
+        <translation>yuva</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="901"/>
+        <source>white-out</source>
+        <translation>white-out</translation>
+    </message>
+    <message>
+        <location filename="../src-all/Global.cpp" line="932"/>
         <source>IDE</source>
-        <translation type="unfinished"></translation>
+        <translation>IDE</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="763"/>
+        <location filename="../src-all/Global.cpp" line="933"/>
         <source>SATA</source>
-        <translation type="unfinished"></translation>
+        <translation>SATA</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="765"/>
+        <location filename="../src-all/Global.cpp" line="935"/>
         <source>SAS</source>
-        <translation type="unfinished"></translation>
+        <translation>SAS</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="767"/>
+        <location filename="../src-all/Global.cpp" line="937"/>
         <source>PCIe</source>
-        <translation type="unfinished"></translation>
+        <translation>PCIe</translation>
     </message>
     <message>
         <source>InvalidState-0x%08x
@@ -3442,108 +3665,107 @@
 </translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="706"/>
+        <location filename="../src-all/Global.cpp" line="766"/>
         <source>Unlocked</source>
         <translation>KilitAçıldı</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="707"/>
+        <location filename="../src-all/Global.cpp" line="767"/>
         <source>Locked</source>
         <translation>Kilitli</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="708"/>
+        <location filename="../src-all/Global.cpp" line="768"/>
         <source>Spawning</source>
         <translation>Üretiliyor</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="709"/>
+        <location filename="../src-all/Global.cpp" line="769"/>
         <source>Unlocking</source>
         <translation>KilitAçılıyor</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="721"/>
+        <location filename="../src-all/Global.cpp" line="781"/>
         <source>LsiLogic</source>
-        <translation type="unfinished"></translation>
+        <translation>LsiLogic</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="722"/>
+        <location filename="../src-all/Global.cpp" line="782"/>
         <source>BusLogic</source>
-        <translation type="unfinished"></translation>
+        <translation>BusLogic</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="723"/>
+        <location filename="../src-all/Global.cpp" line="783"/>
         <source>AHCI</source>
-        <translation type="unfinished"></translation>
+        <translation>AHCI</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="724"/>
+        <location filename="../src-all/Global.cpp" line="784"/>
         <source>PIIX3</source>
-        <translation type="unfinished"></translation>
+        <translation>PIIX3</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="725"/>
+        <location filename="../src-all/Global.cpp" line="785"/>
         <source>PIIX4</source>
-        <translation type="unfinished"></translation>
+        <translation>PIIX4</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="726"/>
+        <location filename="../src-all/Global.cpp" line="786"/>
         <source>ICH6</source>
-        <translation type="unfinished"></translation>
+        <translation>ICH6</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="727"/>
+        <location filename="../src-all/Global.cpp" line="787"/>
         <source>I82078</source>
-        <translation type="unfinished"></translation>
+        <translation>I82078</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="728"/>
+        <location filename="../src-all/Global.cpp" line="788"/>
         <source>LsiLogicSas</source>
-        <translation type="unfinished"></translation>
+        <translation>LsiLogicSas</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="730"/>
+        <location filename="../src-all/Global.cpp" line="790"/>
         <source>NVMe</source>
-        <translation type="unfinished"></translation>
+        <translation>NVMe</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="731"/>
-        <location filename="../src-all/Global.cpp" line="768"/>
+        <location filename="../src-all/Global.cpp" line="791"/>
+        <location filename="../src-all/Global.cpp" line="938"/>
         <source>VirtioSCSI</source>
-        <translation type="unfinished"></translation>
+        <translation>VirtioSCSI</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="743"/>
-        <location filename="../src-all/Global.cpp" line="764"/>
+        <location filename="../src-all/Global.cpp" line="803"/>
+        <location filename="../src-all/Global.cpp" line="934"/>
         <source>Floppy</source>
         <translation>Disket</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="744"/>
+        <location filename="../src-all/Global.cpp" line="804"/>
         <source>DVD</source>
         <translation>DVD</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="745"/>
+        <location filename="../src-all/Global.cpp" line="805"/>
         <source>HardDisk</source>
         <translation>SabitDisk</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="746"/>
+        <location filename="../src-all/Global.cpp" line="806"/>
         <source>Network</source>
         <translation>Ağ</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="729"/>
-        <location filename="../src-all/Global.cpp" line="747"/>
-        <location filename="../src-all/Global.cpp" line="766"/>
+        <location filename="../src-all/Global.cpp" line="789"/>
+        <location filename="../src-all/Global.cpp" line="807"/>
+        <location filename="../src-all/Global.cpp" line="936"/>
         <source>USB</source>
         <translation>USB</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="748"/>
         <source>ShardFolder</source>
-        <translation>PaylaşılanKlasör</translation>
+        <translation type="vanished">PaylaşılanKlasör</translation>
     </message>
     <message>
         <source>InvalidType-0x%08x
@@ -3552,27 +3774,27 @@
 </translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="779"/>
+        <location filename="../src-all/Global.cpp" line="949"/>
         <source>unspecified</source>
         <translation>belirtilmemiş</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="780"/>
+        <location filename="../src-all/Global.cpp" line="950"/>
         <source>host suspend</source>
         <translation>anamakine askıya alındı</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="781"/>
+        <location filename="../src-all/Global.cpp" line="951"/>
         <source>host resume</source>
         <translation>anamakine devam etti</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="782"/>
+        <location filename="../src-all/Global.cpp" line="952"/>
         <source>host battery low</source>
         <translation>anamakine pili düşük</translation>
     </message>
     <message>
-        <location filename="../src-all/Global.cpp" line="783"/>
+        <location filename="../src-all/Global.cpp" line="953"/>
         <source>snapshot</source>
         <translation>anlık görüntü</translation>
     </message>
@@ -3586,17 +3808,32 @@
 <context>
     <name>GraphicsAdapter</name>
     <message>
-        <location filename="../src-server/GraphicsAdapterImpl.cpp" line="203"/>
+        <location filename="../src-server/GraphicsAdapterImpl.cpp" line="204"/>
         <source>The graphics controller type (%d) is invalid</source>
         <translation>Grafik denetleyicisi türü (%d) geçersiz</translation>
     </message>
     <message>
-        <location filename="../src-server/GraphicsAdapterImpl.cpp" line="233"/>
+        <location filename="../src-server/GraphicsAdapterImpl.cpp" line="240"/>
+        <source>Error getting VRAM range for selected graphics controller</source>
+        <translation>Seçilen grafik denetleyicisi için VRAM aralığı alınırken hata oldu</translation>
+    </message>
+    <message>
+        <location filename="../src-server/GraphicsAdapterImpl.cpp" line="246"/>
         <source>Invalid VRAM size: %lu MB (must be in range [%lu, %lu] MB)</source>
         <translation>Geçersiz VRAM boyutu: %lu MB ([%lu, %lu] MB aralığında olmak zorundadır)</translation>
     </message>
     <message>
-        <location filename="../src-server/GraphicsAdapterImpl.cpp" line="317"/>
+        <location filename="../src-server/GraphicsAdapterImpl.cpp" line="268"/>
+        <source>The graphics controller does not support the given feature</source>
+        <translation>Grafik denetleyicisi verilen özelliği desteklemiyor</translation>
+    </message>
+    <message>
+        <location filename="../src-server/GraphicsAdapterImpl.cpp" line="286"/>
+        <source>The given feature is not implemented</source>
+        <translation>Verilen özellik uygulanmadı</translation>
+    </message>
+    <message>
+        <location filename="../src-server/GraphicsAdapterImpl.cpp" line="340"/>
         <source>Invalid monitor count: %lu (must be in range [%lu, %lu])</source>
         <translation>Geçersiz monitör sayısı: %lu MB ([%lu, %lu] MB aralığında olmak zorundadır)</translation>
     </message>
@@ -3604,127 +3841,132 @@
 <context>
     <name>Guest</name>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="418"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="427"/>
         <source>No user name specified</source>
         <translation>Belirtilen kullanıcı adı yok</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="451"/>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="585"/>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="709"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="460"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="596"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="720"/>
         <source>Maximum number of concurrent guest sessions (%d) reached</source>
         <translation>En fazla eşzamanlı misafir oturumu sayısına (%d) ulaşıldı</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="458"/>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="592"/>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="716"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="465"/>
+        <source>Guest Additions are not installed or not ready (yet)</source>
+        <translation>Misafir Eklentileri yüklü değil veya hazır değil (henüz)</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="469"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="603"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="727"/>
         <source>Could not create guest session: %Rrc</source>
         <translation>Misafir oturumu oluşturulamadı: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="504"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="515"/>
         <source>Could not find sessions with name &apos;%s&apos;</source>
         <translation>Adı &apos;%s&apos; olan oturumlar bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="524"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="535"/>
         <source>Unknown flags: flags value %#x, invalid: %#x</source>
         <translation>Bilinmeyen işaretler: işaretler değeri %#x, geçersiz: %#x</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="528"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="539"/>
         <source>Invalid combination of flags (%#x)</source>
         <translation>Geçersiz işaretler birleşimi (%#x)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="530"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="541"/>
         <source>Rebooting</source>
         <translation>Yeniden başlatılıyor</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="530"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="541"/>
         <source>Shutting down</source>
         <translation>Kapatılıyor</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="537"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="548"/>
         <source>Rebooting guest</source>
         <translation>Misafir yeniden başlatılıyor</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="537"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="548"/>
         <source>Shutting down guest</source>
         <translation>Misafir kapatılıyor</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="560"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="571"/>
         <source>%s not supported by installed Guest Additions</source>
         <translation>%s, yüklü Misafir Eklentileri tarafından desteklenmiyor</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="567"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="578"/>
         <source>Error %s guest: %Rrc</source>
         <translation>%s misafiri hatası oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="577"/>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="701"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="588"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="712"/>
         <source>Could not open guest session: %Rrc</source>
         <translation>Misafir oturumu açılamadı: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="616"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="627"/>
         <source>Unknown flags (%#x)</source>
         <translation>Bilinmeyen işaretler (%#x)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="664"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="675"/>
         <source>Failed to create SessionTaskUpdateAdditions object</source>
         <translation>SessionTaskUpdateAdditions nesnesi oluşturma başarısız</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="670"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="681"/>
         <source>Updating Guest Additions</source>
         <translation>Misafir Eklentileri güncelleniyor</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="688"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="699"/>
         <source>Starting thread for updating Guest Additions on the guest failed</source>
         <translation>Misafirde Misafir Eklentileri güncellemek için iş parçacığını başlatma başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestCtrlImpl.cpp" line="692"/>
+        <location filename="../src-client/GuestCtrlImpl.cpp" line="703"/>
         <source>Failed to initialize SessionTaskUpdateAdditions object</source>
         <translation>SessionTaskUpdateAdditions nesnesini başlatma başarısız</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestImpl.cpp" line="648"/>
+        <location filename="../src-client/GuestImpl.cpp" line="643"/>
         <source>Failed to create guest statistics update timer (%Rrc)</source>
         <translation>Misafir istatistikleri güncelleme zamanlayıcısı oluşturma başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestImpl.cpp" line="653"/>
+        <location filename="../src-client/GuestImpl.cpp" line="648"/>
         <source>Failed to change guest statistics update timer interval from %u to %u failed (%Rrc)</source>
         <translation>Misafir istatistikleri güncelleme zamanlayıcısı aralığının %u değerinden %u değerine değiştirilmesi başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestImpl.cpp" line="658"/>
+        <location filename="../src-client/GuestImpl.cpp" line="653"/>
         <source>Failed to start the guest statistics update timer (%Rrc)</source>
         <translation>Misafir istatistikleri güncelleme zamanlayıcısını başlatma başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestImpl.cpp" line="666"/>
+        <location filename="../src-client/GuestImpl.cpp" line="661"/>
         <source>Failed to stop the guest statistics update timer (%Rrc)</source>
         <translation>Misafir istatistikleri güncelleme zamanlayıcısını durdurma başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestImpl.cpp" line="842"/>
+        <location filename="../src-client/GuestImpl.cpp" line="837"/>
         <source>Invalid status level defined: %u</source>
         <translation>Geçersiz durum seviyesi tanımlandı: %u</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestImpl.cpp" line="881"/>
+        <location filename="../src-client/GuestImpl.cpp" line="876"/>
         <source>VMM device is not available (is the VM running?)</source>
         <translation>VMM aygıtı mevcut değil (VM çalışıyor mu?)</translation>
     </message>
@@ -3732,62 +3974,105 @@
 <context>
     <name>GuestDirectory</name>
     <message>
-        <location filename="../src-client/GuestDirectoryImpl.cpp" line="95"/>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="398"/>
         <source>Opening directory &quot;%s&quot;</source>
         <translation>&quot;%s&quot; dizini açılıyor</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestDirectoryImpl.cpp" line="259"/>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="725"/>
         <source>Access to guest directory &quot;%s&quot; is denied</source>
         <translation>&quot;%s&quot; misafir dizinine erişim reddedildi</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestDirectoryImpl.cpp" line="260"/>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="726"/>
+        <source>Guest directory &quot;%s&quot; already exists</source>
+        <translation>&quot;%s&quot; misafir dizini zaten var</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="727"/>
+        <source>Guest directory &quot;%s&quot; cannot be created</source>
+        <translation>&quot;%s&quot; misafir dizini oluşturulamıyor</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="728"/>
         <source>Guest directory &quot;%s&quot; is not empty</source>
         <translation>&quot;%s&quot; misafir dizini boş değil</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestDirectoryImpl.cpp" line="262"/>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="729"/>
+        <source>Guest directory &quot;%s&quot; has no more entries</source>
+        <translation>&quot;%s&quot; misafir dizininde başka giriş yok</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="730"/>
+        <source>Path of guest directory &quot;%s&quot; not found</source>
+        <translation>&quot;%s&quot; misafir dizininin yolu bulunamadı</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="732"/>
         <source>Error %Rrc for guest directory &quot;%s&quot; occurred
 </source>
         <translation>&quot;%s&quot; misafir dizini için %Rrc hatası meydana geldi
 </translation>
     </message>
     <message>
-        <location filename="../src-client/GuestDirectoryImpl.cpp" line="428"/>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="1424"/>
         <source>Closing guest directory failed: %s</source>
         <translation>Misafir dizinini kapatma başarısız oldu: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestDirectoryImpl.cpp" line="439"/>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="1435"/>
         <source>Closing guest directory &quot;%s&quot; failed: %Rrc</source>
         <translation>&quot;%s&quot; misafir dizinini kapatma başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestDirectoryImpl.cpp" line="471"/>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="1487"/>
+        <source>Listing guest directory failed: %s</source>
+        <translation>Misafir dizini listeleme başarısız oldu: %s</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="1501"/>
+        <source>Listing guest directory &quot;%s&quot; returned unhandled error: %Rrc
+</source>
+        <translation>&quot;%s&quot; misafir dizinini listeleme işlenemeyen hata döndürdü: %Rrc
+</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="1541"/>
         <source>Reading guest directory failed: %s</source>
         <translation>Misafir dizinini okuma başarısız oldu: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestDirectoryImpl.cpp" line="476"/>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="1552"/>
         <source>Reading guest directory &quot;%s&quot; failed: %Rrc</source>
         <translation>&quot;%s&quot; misafir dizinini okuma başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestDirectoryImpl.cpp" line="481"/>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="1557"/>
         <source>Reading guest directory &quot;%s&quot; failed: Path not found</source>
         <translation>%s misafir dizinini okuma başarısız oldu: Yol bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestDirectoryImpl.cpp" line="487"/>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="1563"/>
         <source>Reading guest directory &quot;%s&quot; failed: No more entries</source>
         <translation>%s misafir dizinini okuma başarısız oldu: Başka giriş yok</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestDirectoryImpl.cpp" line="492"/>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="1568"/>
+        <source>Reading guest directory &quot;%s&quot; returned unhandled error: %Rrc
+</source>
+        <translation>&quot;%s&quot; misafir dizinini okuma işlenemeyen hata döndürdü: %Rrc
+</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestDirectoryImpl.cpp" line="1589"/>
+        <source>Rewinding guest directory failed: %s</source>
+        <translation>Misafir dizini geri sarma başarısız oldu: %s</translation>
+    </message>
+    <message>
         <source>Reading guest directory &quot;%s&quot; returned error: %Rrc
 </source>
-        <translation>&quot;%s&quot; misafir dizini okunurken hata döndürüldü: %Rrc
+        <translation type="vanished">&quot;%s&quot; misafir dizini okunurken hata döndürüldü: %Rrc
 </translation>
     </message>
 </context>
@@ -3800,27 +4085,31 @@
 Host offers: %s
 
 Guest offers: %s</source>
-        <translation type="unfinished"></translation>
+        <translation>Misafir ve anamakine arasındaki biçimlerin anlaşması başarısız oldu!
+
+Anamakinenin sunduğu: %s
+
+Misafirin sunduğu: %s</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDSourceImpl.cpp" line="366"/>
         <source>Requesting pending data from guest failed</source>
-        <translation type="unfinished"></translation>
+        <translation>Misafirden beklemedeki verilerin istenmesi başarısız oldu</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDSourceImpl.cpp" line="374"/>
         <source>Dragging from guest to host not allowed -- make sure that the correct drag&apos;n drop mode is set</source>
-        <translation type="unfinished"></translation>
+        <translation>Misafirden anamakineye sürüklemeye izin verilmiyor -- doğru sürükle ve bırak kipinin ayarlandığından emin olun</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDSourceImpl.cpp" line="380"/>
         <source>Dragging from guest to host not supported by guest -- make sure that the Guest Additions are properly installed and running</source>
-        <translation type="unfinished"></translation>
+        <translation>Misafirden anamakineye sürükleme misafir tarafından desteklenmiyor -- Misafir Eklentilerinin düzgün olarak yüklendiğinden ve çalıştığından emin olun</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDSourceImpl.cpp" line="386"/>
         <source>Sending drag pending event to guest failed</source>
-        <translation type="unfinished"></translation>
+        <translation>Sürükleme beklemede olayını misafire gönderme başarısız oldu</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDSourceImpl.cpp" line="412"/>
@@ -3846,7 +4135,7 @@ Guest offers: %s</source>
     <message>
         <location filename="../src-client/GuestDnDSourceImpl.cpp" line="439"/>
         <source>Dropping data to host</source>
-        <translation type="unfinished"></translation>
+        <translation>Veriler anamakineye bırakılıyor</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDSourceImpl.cpp" line="490"/>
@@ -3939,58 +4228,58 @@ Guest offers: %s</source>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="348"/>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="368"/>
         <source>Entering VM window failed</source>
-        <translation type="unfinished"></translation>
+        <translation>VM penceresine girme başarısız oldu</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="356"/>
         <source>Drag and drop to guest not allowed. Select the right mode first</source>
-        <translation type="unfinished"></translation>
+        <translation>Misafire sürükleme ve bırakmaya izin verilmiyor. Önce doğru kipi seçin</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="362"/>
         <source>Drag and drop to guest not possible -- either the guest OS does not support this, or the Guest Additions are not installed</source>
-        <translation type="unfinished"></translation>
+        <translation>Misafire sürüklemek ve bırakmak mümkün değil -- ya misafir İS bunu desteklemiyor ya da Misafir Eklentileri yüklü değil</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="456"/>
         <source>Moving to %RU32,%RU32 (screen %u) failed</source>
-        <translation type="unfinished"></translation>
+        <translation>%RU32,%RU32 (%u ekranı) için taşıma başarısız oldu</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="464"/>
         <source>Moving in guest not allowed. Select the right mode first</source>
-        <translation type="unfinished"></translation>
+        <translation>Misafirin taşınmasına izin verilmiyor. Önce doğru kipi seçin</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="470"/>
         <source>Moving in guest not possible -- either the guest OS does not support this, or the Guest Additions are not installed</source>
-        <translation type="unfinished"></translation>
+        <translation>Misafirin taşınması mümkün değil -- ya misafir İS bunu desteklemiyor ya da Misafir Eklentileri yüklü değil</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="476"/>
         <source>Moving in VM window failed</source>
-        <translation type="unfinished"></translation>
+        <translation>VM penceresinde taşıma başarısız oldu</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="482"/>
         <source>Retrieving move coordinates failed</source>
-        <translation type="unfinished"></translation>
+        <translation>Taşıma koordinatlarını alma başarısız oldu</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="529"/>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="549"/>
         <source>Leaving VM window failed</source>
-        <translation type="unfinished"></translation>
+        <translation>VM penceresinden ayrılma başarısız oldu</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="537"/>
         <source>Leaving guest not allowed. Select the right mode first</source>
-        <translation type="unfinished"></translation>
+        <translation>Misafirden ayrılmaya izin verilmiyor. Önce doğru kipi seçin</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="543"/>
         <source>Leaving guest not possible -- either the guest OS does not support this, or the Guest Additions are not installed</source>
-        <translation type="unfinished"></translation>
+        <translation>Misafirden ayrılmak mümkün değil -- ya misafir İS bunu desteklemiyor ya da Misafir Eklentileri yüklü değil</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="571"/>
@@ -4010,22 +4299,22 @@ Guest offers: %s</source>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="654"/>
         <source>Guest accepted drop, but did not specify the format</source>
-        <translation type="unfinished"></translation>
+        <translation>Misafir bırakmayı kabul etti, ancak biçimi belirtmedi</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="656"/>
         <source>Guest accepted drop, but returned more than one drop format (%zu formats)</source>
-        <translation type="unfinished"></translation>
+        <translation>Misafir bırakmayı kabul etti, ancak birden fazla bırakma biçimi (%zu biçim) döndürdü</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="662"/>
         <source>Dropping into VM failed</source>
-        <translation type="unfinished"></translation>
+        <translation>VM içine bırakma başarısız oldu</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="665"/>
         <source>Sending dropped event to guest failed</source>
-        <translation type="unfinished"></translation>
+        <translation>Bırakıldı olayını misafire gönderme başarısız oldu</translation>
     </message>
     <message numerus="yes">
         <source>Guest returned invalid drop formats (%zu formats)</source>
@@ -4070,7 +4359,7 @@ Guest offers: %s</source>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="721"/>
         <source>Dropping data to guest</source>
-        <translation type="unfinished"></translation>
+        <translation>Veriler misafire bırakılıyor</translation>
     </message>
     <message>
         <location filename="../src-client/GuestDnDTargetImpl.cpp" line="773"/>
@@ -4126,139 +4415,217 @@ Guest offers: %s</source>
 <context>
     <name>GuestFile</name>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="454"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="453"/>
         <source>Access to guest file &quot;%s&quot; denied</source>
         <translation>&quot;%s&quot; misafir dosyasına erişim reddedildi</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="455"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="454"/>
         <source>Guest file &quot;%s&quot; already exists</source>
         <translation>&quot;%s&quot; misafir dosyası zaten var</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="456"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="455"/>
         <source>Guest file &quot;%s&quot; not found</source>
         <translation>&quot;%s&quot; misafir dosyası bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="457"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="456"/>
         <source>Host name &quot;%s&quot;, not found</source>
         <translation>&quot;%s&quot; anamakine adı bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="458"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="457"/>
         <source>Sharing violation for guest file &quot;%s&quot;</source>
         <translation>&quot;%s&quot; misafir dosyası için paylaşım ihlali</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="460"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="459"/>
         <source>Error %Rrc for guest file &quot;%s&quot; occurred
 </source>
         <translation>&quot;%s&quot; misafir dosyası için %Rrc hatası meydana geldi
 </translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1536"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1535"/>
         <source>Closing guest file failed: %s</source>
         <translation>Misafir dosyasını kapatma başarısız oldu: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1539"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1538"/>
         <source>Closing guest file &quot;%s&quot; failed with %Rrc
 </source>
         <translation>&quot;%s&quot; misafir dosyasını kapatma, %Rrc ile başarısız oldu
 </translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1570"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1569"/>
         <source>Initialization of guest file object for &quot;%s&quot; failed: %Rrc</source>
         <translation>&quot;%s&quot; için misafir dosyası nesnesinin başlatılması başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1579"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1584"/>
         <source>Querying guest file information failed: %s</source>
         <translation>Misafir dosyası bilgilerini sorgulama başarısız oldu: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1584"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1589"/>
         <source>Querying guest file information for &quot;%s&quot; failed: %Rrc</source>
         <translation>&quot;%s&quot; için misafir dosyası bilgilerini sorgulama başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1612"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1623"/>
         <source>Querying guest file size failed: %s</source>
         <translation>Misafir dosyası boyutunu sorgulama başarısız oldu: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1616"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1627"/>
         <source>Querying guest file size for &quot;%s&quot; failed: %Rrc</source>
         <translation>&quot;%s&quot; için misafir dosyası boyutunu sorgulama başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1629"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1640"/>
         <source>The size to read is zero</source>
         <translation>Okunacak boyut sıfır</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1664"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1675"/>
         <source>Reading from file &quot;%s&quot; failed: %Rrc</source>
         <translation>&quot;%s&quot; dosyasından okuma başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1677"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1688"/>
         <source>The size to read for guest file &quot;%s&quot; is zero</source>
         <translation>&quot;%s&quot; misafir dosyası için okunacak boyut sıfır</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1711"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1722"/>
         <source>Reading from file &quot;%s&quot; (at offset %RU64) failed: %Rrc</source>
         <translation>&quot;%s&quot; (%RU64 karşılığında) dosyasından okuma başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1741"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1752"/>
         <source>Invalid seek type for guest file &quot;%s&quot; specified</source>
         <translation>&quot;%s&quot; misafir dosyası için geçersiz arama türü belirtildi</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1753"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1763"/>
         <source>Seeking file &quot;%s&quot; (to offset %RI64) failed: %Rrc</source>
         <translation>&quot;%s&quot; (%RU64 karşılığı için) dosyasını arama başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1774"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1784"/>
         <source>The size (%RI64) for guest file &quot;%s&quot; cannot be a negative value</source>
         <translation>&quot;%s&quot; misafir dosyası için boyut (%RI64) negatif bir değer olamaz</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-client/GuestFileImpl.cpp" line="1838"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1849"/>
         <source>Setting the guest file size of &quot;%s&quot; to %RU64 (%#RX64) bytes failed: %Rrc</source>
         <translation>
             <numerusform>&quot;%s&quot; misafir dosyası boyutunun %RU64 (%#RX64) bayt olarak ayarlanması başarısız oldu: %Rrc</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1850"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1861"/>
         <source>No data to write specified</source>
         <translation>Yazmak için belirtilen veri yok</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-client/GuestFileImpl.cpp" line="1860"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1871"/>
         <source>Writing %zu bytes to guest file &quot;%s&quot; failed: %Rrc</source>
         <translation>
-            <numerusform>%zu baytı &quot;%s&quot; misafir dosyasına yazmak başarısız oldu: %Rrc</numerusform>
+            <numerusform>%zu baytı &quot;%s&quot; misafir dosyasına yazma başarısız oldu: %Rrc</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-client/GuestFileImpl.cpp" line="1873"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1884"/>
         <source>No data to write at for guest file &quot;%s&quot; specified</source>
         <translation>&quot;%s&quot; misafir dosyası için yazılacak belirtilen veri yok</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-client/GuestFileImpl.cpp" line="1884"/>
+        <location filename="../src-client/GuestFileImpl.cpp" line="1895"/>
         <source>Writing %zu bytes to file &quot;%s&quot; (at offset %RU64) failed: %Rrc</source>
         <translation>
-            <numerusform>&quot;%s&quot; dosyasına (%RU64 karşılığında) %zu bayt yazmak başarısız oldu: %Rrc</numerusform>
+            <numerusform>&quot;%s&quot; dosyasına (%RU64 karşılığında) %zu bayt yazma başarısız oldu: %Rrc</numerusform>
         </translation>
+    </message>
+</context>
+<context>
+    <name>GuestFs</name>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="70"/>
+        <source>Access to &quot;%s&quot; denied</source>
+        <translation>&quot;%s&quot; erişimi reddedildi</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="76"/>
+        <source>No such file or directory &quot;%s&quot;</source>
+        <translation>Böyle bir &quot;%s&quot; dosyası veya dizini yok</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="80"/>
+        <source>File or directory &quot;%s&quot; can&apos;t be created</source>
+        <translation>&quot;%s&quot; dosyası veya dizini oluşturulamıyor</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="84"/>
+        <source>Invalid parameter specified</source>
+        <translation>Geçersiz parametre belirtildi</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="88"/>
+        <source>VMM device is not available (is the VM running?)</source>
+        <translation>VMM aygıtı mevcut değil (VM çalışıyor mu?)</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="92"/>
+        <source>The guest execution service is not available</source>
+        <translation>Misafir çalıştırma hizmeti kullanılabilir değil</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="96"/>
+        <source>The file &quot;%s&quot; is not an executable format</source>
+        <translation>&quot;%s&quot; dosyası çalıştırılabilir bir biçim değil</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="100"/>
+        <source>The user &quot;%s&quot; was not able to logon</source>
+        <translation>&quot;%s&quot; kullanıcısı oturum açamadı</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="104"/>
+        <source>The file &quot;%s&quot; is an invalid name</source>
+        <translation>&quot;%s&quot; dosyası geçersiz bir ad</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="108"/>
+        <source>The guest did not respond within time</source>
+        <translation>Misafir zamanında yanıt vermedi</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="112"/>
+        <source>The execution operation was canceled</source>
+        <translation>Çalıştırma işlemi iptal edildi</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="116"/>
+        <source>Maximum number of concurrent guest processes has been reached</source>
+        <translation>En fazla eşzamanlı misafir işlemi sayısına ulaşıldı</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="120"/>
+        <source>The guest execution service is not ready (yet)</source>
+        <translation>Misafir çalıştırma hizmeti hazır değil (henüz)</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="124"/>
+        <source>Specified mode or flag is not supported on the guest</source>
+        <translation>Belirtilen kip veya işaret misafirde desteklenmiyor</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestCtrlPrivate.cpp" line="128"/>
+        <source>Unhandled error %Rrc for &quot;%s&quot; occurred on guest -- please file a bug report</source>
+        <translation>Misafirde &quot;%s&quot; için işlenmemiş %Rrc hatası meydana geldi -- lütfen bir hata raporu gönderin</translation>
     </message>
 </context>
 <context>
@@ -4327,67 +4694,67 @@ Guest offers: %s</source>
 </translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2024"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="2040"/>
         <source>The size to read is zero</source>
         <translation>Okunacak boyut sıfır</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2050"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="2066"/>
         <source>Reading %RU32 bytes from guest process handle %RU32 failed: %s</source>
         <translation>
             <numerusform>%RU32 bayt, %RU32 misafir işlem tanıtıcısından okunurken başarısız oldu: %s</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2055"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="2071"/>
         <source>Reading from guest process &quot;%s&quot; (PID %RU32) failed: %Rrc</source>
         <translation>&quot;%s&quot; (PID %RU32) misafir işleminden okuma başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2088"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="2104"/>
         <source>Guest process is not in &apos;%s&apos; state anymore (current is in &apos;%s&apos;)</source>
-        <translation type="unfinished"></translation>
+        <translation>Misafir işlemi artık &apos;%s&apos; durumunda değil (şu an &apos;%s&apos; durumunda)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2097"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="2113"/>
         <source>Terminating guest process failed: %s</source>
         <translation>Misafir işlemini sonlandırma başarısız oldu: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2105"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="2121"/>
         <source>Terminating guest process &quot;%s&quot; (PID %RU32) not supported by installed Guest Additions</source>
         <translation>&quot;%s&quot; (PID %RU32) misafir işlemini sonlandırma, yüklü Misafir Eklentileri tarafından desteklenmiyor</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2111"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="2127"/>
         <source>Terminating guest process &quot;%s&quot; (PID %RU32) failed: %Rrc</source>
         <translation>&quot;%s&quot; (PID %RU32) misafir işlemini sonlandırma başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2143"/>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2199"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="2160"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="2216"/>
         <source>Flags value %#x, invalid: %#x</source>
         <translation>İşaret değeri %#x, geçersiz: %#x</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2165"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="2182"/>
         <source>Waiting for guest process (flags %#x) failed: %s</source>
         <translation>Misafir işlemi (%#x işaretleri) için bekleme başarısız oldu: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2174"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="2191"/>
         <source>Waiting for guest process &quot;%s&quot; (PID %RU32) failed: %Rrc</source>
         <translation>&quot;%s&quot; (PID %RU32) misafir işlemi için bekleme başarısız oldu: %Rrc</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2222"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="2239"/>
         <source>Writing %RU32 bytes (flags %#x) to guest process failed: %s</source>
         <translation>
             <numerusform>Misafir işlemine %RU32 bayt (%#x işaretleri) yazma başarısız oldu: %s</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2227"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="2244"/>
         <source>Writing to guest process &quot;%s&quot; (PID %RU32) failed: %Rrc</source>
         <translation>&quot;%s&quot; (PID %RU32) misafir işlemine yazma başarısız oldu: %Rrc</translation>
     </message>
@@ -4395,62 +4762,113 @@ Guest offers: %s</source>
 <context>
     <name>GuestProcessTool</name>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2957"/>
+        <source>Access to &quot;%s&quot; denied</source>
+        <translation type="vanished">&quot;%s&quot; erişimi reddedildi</translation>
+    </message>
+    <message>
+        <source>No such file or directory &quot;%s&quot;</source>
+        <translation type="vanished">Böyle bir &quot;%s&quot; dosyası veya dizini yok</translation>
+    </message>
+    <message>
+        <source>VMM device is not available (is the VM running?)</source>
+        <translation type="vanished">VMM aygıtı mevcut değil (VM çalışıyor mu?)</translation>
+    </message>
+    <message>
+        <source>The guest execution service is not available</source>
+        <translation type="vanished">Misafir çalıştırma hizmeti kullanılabilir değil</translation>
+    </message>
+    <message>
+        <source>The file &quot;%s&quot; is not an executable format</source>
+        <translation type="vanished">&quot;%s&quot; dosyası çalıştırılabilir bir biçim değil</translation>
+    </message>
+    <message>
+        <source>The user &quot;%s&quot; was not able to logon</source>
+        <translation type="vanished">&quot;%s&quot; kullanıcısı oturum açamadı</translation>
+    </message>
+    <message>
+        <source>The file &quot;%s&quot; is an invalid name</source>
+        <translation type="vanished">&quot;%s&quot; dosyası geçersiz bir ad</translation>
+    </message>
+    <message>
+        <source>The guest did not respond within time</source>
+        <translation type="vanished">Misafir zamanında yanıt vermedi</translation>
+    </message>
+    <message>
+        <source>The execution operation was canceled</source>
+        <translation type="vanished">Çalıştırma işlemi iptal edildi</translation>
+    </message>
+    <message>
+        <source>Maximum number of concurrent guest processes has been reached</source>
+        <translation type="vanished">En fazla eşzamanlı misafir işlemi sayısına ulaşıldı</translation>
+    </message>
+    <message>
+        <source>The guest execution service is not ready (yet)</source>
+        <translation type="vanished">Misafir çalıştırma hizmeti hazır değil (henüz)</translation>
+    </message>
+    <message>
+        <source>Unhandled error %Rrc for &quot;%s&quot; occurred for tool &quot;%s&quot; on guest -- please file a bug report</source>
+        <translation type="vanished">Misafirde &quot;%s&quot; için işlenmemiş %Rrc hatası, &quot;%s&quot; aracı için meydana geldi -- lütfen bir hata raporu gönderin</translation>
+    </message>
+</context>
+<context>
+    <name>GuestProcessToolbox</name>
+    <message>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="3184"/>
         <source>Access to &quot;%s&quot; denied</source>
         <translation>&quot;%s&quot; erişimi reddedildi</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2963"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="3190"/>
         <source>No such file or directory &quot;%s&quot;</source>
         <translation>Böyle bir &quot;%s&quot; dosyası veya dizini yok</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2967"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="3194"/>
         <source>VMM device is not available (is the VM running?)</source>
         <translation>VMM aygıtı mevcut değil (VM çalışıyor mu?)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2971"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="3198"/>
         <source>The guest execution service is not available</source>
         <translation>Misafir çalıştırma hizmeti kullanılabilir değil</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2975"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="3202"/>
         <source>The file &quot;%s&quot; is not an executable format</source>
         <translation>&quot;%s&quot; dosyası çalıştırılabilir bir biçim değil</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2979"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="3206"/>
         <source>The user &quot;%s&quot; was not able to logon</source>
         <translation>&quot;%s&quot; kullanıcısı oturum açamadı</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2983"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="3210"/>
         <source>The file &quot;%s&quot; is an invalid name</source>
         <translation>&quot;%s&quot; dosyası geçersiz bir ad</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2987"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="3214"/>
         <source>The guest did not respond within time</source>
         <translation>Misafir zamanında yanıt vermedi</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2991"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="3218"/>
         <source>The execution operation was canceled</source>
         <translation>Çalıştırma işlemi iptal edildi</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2995"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="3222"/>
         <source>Maximum number of concurrent guest processes has been reached</source>
         <translation>En fazla eşzamanlı misafir işlemi sayısına ulaşıldı</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="2999"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="3226"/>
         <source>The guest execution service is not ready (yet)</source>
         <translation>Misafir çalıştırma hizmeti hazır değil (henüz)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestProcessImpl.cpp" line="3003"/>
+        <location filename="../src-client/GuestProcessImpl.cpp" line="3230"/>
         <source>Unhandled error %Rrc for &quot;%s&quot; occurred for tool &quot;%s&quot; on guest -- please file a bug report</source>
         <translation>Misafirde &quot;%s&quot; için işlenmemiş %Rrc hatası, &quot;%s&quot; aracı için meydana geldi -- lütfen bir hata raporu gönderin</translation>
     </message>
@@ -4458,196 +4876,210 @@ Guest offers: %s</source>
 <context>
     <name>GuestSession</name>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="483"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="486"/>
         <source>Invalid environment variable name &apos;%s&apos;, index %zu</source>
         <translation>Geçersiz ortam değişkeni adı &apos;%s&apos;, indeks %zu</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="485"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="488"/>
         <source>Failed to apply &apos;%s&apos;, index %zu (%Rrc)</source>
         <translation>&apos;%s&apos; uygulama başarısız, indeks %zu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="501"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4120"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4141"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="504"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4730"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4751"/>
         <source>The base environment feature is not supported by the Guest Additions</source>
         <translation>Temel ortam özelliği, Misafir Eklentileri tarafından desteklenmiyor</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="503"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4122"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4143"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="506"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4732"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4753"/>
         <source>The base environment has not yet been reported by the guest</source>
         <translation>Temel ortam, misafir tarafından henüz bildirilmedi</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="564"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="567"/>
         <source>Getting the user&apos;s home path is not supported by installed Guest Additions</source>
         <translation>Kullanıcının ana klasör yolunun alınması, yüklü Misafir Eklentileri tarafından desteklenmiyor</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="569"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="572"/>
         <source>Getting the user&apos;s home path failed on the guest: %Rrc</source>
         <translation>Misafirde kullanıcının ana klasör yolunun alınması başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="576"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="579"/>
         <source>Getting the user&apos;s home path failed: %Rrc</source>
         <translation>Kullanıcının ana klasör yolunun alınması başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="602"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="605"/>
         <source>Getting the user&apos;s documents path is not supported by installed Guest Additions</source>
         <translation>Kullanıcının belgeler klasörü yolunun alınması, yüklü Misafir Eklentileri tarafından desteklenmiyor</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="607"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="610"/>
         <source>Getting the user&apos;s documents path failed on the guest: %Rrc</source>
         <translation>Misafirde kullanıcının belgeler klasörü yolunun alınması başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="614"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="617"/>
         <source>Getting the user&apos;s documents path failed: %Rrc</source>
         <translation>Kullanıcının belgeler klasörü yolunun alınması başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="764"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="643"/>
+        <source>Getting the mount points is not supported by installed Guest Additions</source>
+        <translation>Bağlama noktalarının alınması, yüklü Misafir Eklentileri tarafından desteklenmiyor</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="648"/>
+        <source>Getting the mount points failed on the guest: %Rrc</source>
+        <translation>Misafirde bağlama noktalarının alınması başarısız oldu: %Rrc</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="655"/>
+        <source>Getting the mount points failed: %Rrc</source>
+        <translation>Bağlama noktalarının alınması başarısız oldu: %Rrc</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="805"/>
         <source>No source(s) specified</source>
         <translation>Belirtilen kaynak(lar) yok</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="766"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3655"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="807"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4265"/>
         <source>No destination specified</source>
         <translation>Belirtilen hedef yok</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="784"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="825"/>
         <source>Failed to create GuestSessionTaskCopyFrom object</source>
         <translation>GuestSessionTaskCopyFrom nesnesi oluşturma başarısız</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="789"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="830"/>
         <source>Copying to &quot;%s&quot; on the host</source>
         <translation>Anamakinede &quot;%s&quot; konumuna kopyalanıyor</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="805"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="846"/>
         <source>Starting thread for copying from guest to the host failed</source>
         <translation>Misafirden anamakineye kopyalamak için iş parçacığını başlatma başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="809"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="850"/>
         <source>Initializing GuestSessionTaskCopyFrom object failed</source>
         <translation>GuestSessionTaskCopyFrom nesnesi başlatılırken başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="851"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="892"/>
         <source>Failed to create GuestSessionTaskCopyTo object</source>
         <translation>GuestSessionTaskCopyTo nesnesi oluşturma başarısız</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="856"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="897"/>
         <source>Copying to &quot;%s&quot; on the guest</source>
         <translation>Misafirde &quot;%s&quot; konumuna kopyalanıyor</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="872"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="913"/>
         <source>Starting thread for copying from host to the guest failed</source>
         <translation>Anamakineden misafire kopyalamak için iş parçacığını başlatma başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="876"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="917"/>
         <source>Initializing GuestSessionTaskCopyTo object failed</source>
         <translation>GuestSessionTaskCopyTo nesnesi başlatılırken başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="922"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="963"/>
         <source>Invalid directory copy flag: %.*s</source>
         <translation>Geçersiz dizin kopyalama işareti: %.*s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="1496"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="1700"/>
         <source>Invalid file copy flag: %.*s</source>
         <translation>Geçersiz dosya kopyalama işareti: %.*s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="1904"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="2317"/>
         <source>VMM device is not available (is the VM running?)</source>
         <translation>VMM aygıtı mevcut değil (VM çalışıyor mu?)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="1908"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="2321"/>
         <source>The guest execution service is not available</source>
         <translation>Misafir çalıştırma hizmeti kullanılabilir değil</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="1912"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="2325"/>
         <source>The specified user account on the guest is restricted and can&apos;t be used to logon</source>
         <translation>Misafirde belirtilen kullanıcı hesabı kısıtlı ve oturum açmak için kullanılamaz</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="1916"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="2329"/>
         <source>The specified user was not able to logon on guest</source>
         <translation>Belirtilen kullanıcısı misafirde oturum açamadı</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="1920"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="2333"/>
         <source>The guest did not respond within time</source>
         <translation>Misafir zamanında yanıt vermedi</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="1924"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="2337"/>
         <source>The session operation was canceled</source>
         <translation>Oturum işlemi iptal edildi</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="1928"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="2341"/>
         <source>Maximum number of concurrent guest processes has been reached</source>
         <translation>En fazla eşzamanlı misafir işlemi sayısına ulaşıldı</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="1932"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="2345"/>
         <source>The guest execution service is not ready (yet)</source>
         <translation>Misafir çalıştırma hizmeti hazır değil (henüz)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="1965"/>
         <source>Session is not in started state</source>
-        <translation>Oturum başlatıldı durumda değil</translation>
+        <translation type="vanished">Oturum başlatıldı durumda değil</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3444"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4054"/>
         <source>Closing guest session failed: %s</source>
         <translation>Misafir oturumunu kapatma başarısız oldu: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3447"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4057"/>
         <source>Closing guest session &quot;%s&quot; failed with %Rrc</source>
         <translation>&quot;%s&quot; misafir oturumunu kapatma, %Rrc ile başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3473"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3502"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3679"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3709"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4083"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4112"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4289"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4319"/>
         <source>Unknown flags: flags value %#x, invalid: %#x</source>
         <translation>Bilinmeyen işaretler: işaretler değeri %#x, geçersiz: %#x</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3528"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3599"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4138"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4209"/>
         <source>Parameter array sizes don&apos;t match to the number of sources specified</source>
         <translation>Parametre dizilimi boyutları, belirtilen kaynak sayısıyla eşleşmiyor</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3551"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4161"/>
         <source>Querying type for guest source failed: %s</source>
         <translation>Misafir kaynağı için sorgulama türü başarısız oldu: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3554"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4164"/>
         <source>Querying type for guest source &quot;%s&quot; failed: %Rrc</source>
         <translation>&quot;%s&quot; misafir kaynağı için sorgulama türü başarısız oldu: %Rrc</translation>
     </message>
@@ -4656,369 +5088,398 @@ Guest offers: %s</source>
         <translation type="vanished">%#x kaynak türü geçersiz / desteklenmiyor</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3617"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="2381"/>
+        <source>Session is not in started state (state is &apos;%s&apos;)</source>
+        <translation>Oturum başlatıldı durumunda değil (durum &apos;%s&apos;)</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4227"/>
         <source>Unable to query type for source &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; kaynağı için tür sorgulanamıyor (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3651"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4261"/>
         <source>No sources specified</source>
         <translation>Belirtilen kaynaklar yok</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3653"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4263"/>
         <source>First source entry is empty</source>
         <translation>İlk kaynak girişi boş</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3731"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4341"/>
         <source>No directory to create specified</source>
         <translation>Oluşturmak için belirtilen dizin yok</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3740"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4350"/>
         <source>Unknown flags (%#x)</source>
         <translation>Bilinmeyen işaretler (%#x)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3757"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4367"/>
         <source>Guest directory creation failed: %s</source>
         <translation>Misafir dizini oluşturma başarısız oldu: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3763"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4373"/>
         <source>Guest directory creation failed: Invalid parameters given</source>
         <translation>Misafir dizini oluşturma başarısız oldu: Geçersiz parametreler verildi</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3767"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4377"/>
         <source>Guest directory creation failed: Unexpectedly aborted</source>
         <translation>Misafir dizini oluşturma başarısız oldu: Beklenmedik bir şekilde iptal edildi</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3771"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4381"/>
         <source>Guest directory creation failed: %Rrc</source>
         <translation>Misafir dizini oluşturma başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3783"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4393"/>
         <source>No template specified</source>
         <translation>Belirtilen şablon yok</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3785"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4395"/>
         <source>No directory name specified</source>
         <translation>Belirtilen dizin adı yok</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3788"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4398"/>
         <source>Mode invalid (must be specified in octal mode)</source>
         <translation>Kip geçersiz (sekizli kipte belirtilmek zorundadır)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3805"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4415"/>
         <source>Temporary guest directory creation failed: %s</source>
         <translation>Geçici misafir dizini oluşturma başarısız oldu: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3810"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4420"/>
         <source>Temporary guest directory creation &quot;%s&quot; with template &quot;%s&quot; failed: %Rrc</source>
         <translation>&quot;%s&quot; geçici misafir dizini oluşturma, &quot;%s&quot; şablonu ile başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3822"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4432"/>
         <source>Empty path</source>
         <translation>Boş yol</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3850"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4460"/>
         <source>Querying directory existence failed: %s</source>
         <translation>Dizinin var olduğunu sorgulama başarısız oldu: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3865"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4475"/>
         <source>Querying directory existence &quot;%s&quot; failed: %Rrc</source>
         <translation>&quot;%s&quot; dizin varlığını sorgulama başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3878"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4488"/>
         <source>No directory to open specified</source>
         <translation>Açmak için belirtilen dizin yok</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3880"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4490"/>
         <source>Directory filters are not implemented yet</source>
         <translation>Dizin süzgeçleri henüz uygulanmadı</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3889"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4499"/>
         <source>Open flags (%#x) not implemented yet</source>
         <translation>İşaretleri açma (%#x) henüz uygulanmadı</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3916"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4526"/>
         <source>Opening guest directory &quot;%s&quot; failed; invalid parameters given</source>
         <translation>&quot;%s&quot; misafir dizinini açma başarısız oldu; geçersiz parametreler verildi</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3923"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4533"/>
         <source>Opening guest directory failed: %s</source>
         <translation>Misafir dizinini açma başarısız oldu: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3928"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4538"/>
         <source>Opening guest directory &quot;%s&quot; failed: %Rrc</source>
         <translation>&quot;%s&quot; misafir dizinini açma başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3939"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4549"/>
         <source>No directory to remove specified</source>
         <translation>Kaldırmak için belirtilen dizin yok</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3958"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4568"/>
         <source>Handling removing guest directories not supported by installed Guest Additions</source>
         <translation>Yüklü Misafir Eklentileri tarafından desteklenmeyen misafir dizinlerini kaldırmayı işleme</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3964"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4574"/>
         <source>Removing guest directory failed: %s</source>
         <translation>Misafir dizinini kaldırma başarısız oldu: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3969"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4579"/>
         <source>Removing guest directory &quot;%s&quot; failed: %Rrc</source>
         <translation>&quot;%s&quot; misafir dizinini kaldırma başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="3981"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4591"/>
         <source>No directory to remove recursively specified</source>
         <translation>Tekrarlı kaldırmak için belirtilen dizin yok</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4003"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4613"/>
         <source>Invalid flags specified</source>
         <translation>Geçersiz işaretler belirtildi</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4018"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4628"/>
         <source>Removing guest directory</source>
         <translation>Misafir dizini kaldırılıyor</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4039"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4649"/>
         <source>Handling removing guest directories recursively not supported by installed Guest Additions</source>
         <translation>Yüklü Misafir Eklentileri tarafından desteklenmeyen misafir dizinlerini tekrarlı kaldırmayı işleme</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4045"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4655"/>
         <source>Recursively removing guest directory failed: %s</source>
         <translation>Misafir dizinini tekrarlı kaldırma başarısız oldu: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4050"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4660"/>
         <source>Recursively removing guest directory &quot;%s&quot; failed: %Rrc</source>
         <translation>%s misafir dizinini tekrarlı kaldırma başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4075"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4095"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4115"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4685"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4705"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4725"/>
         <source>Invalid environment variable name &apos;%s&apos;</source>
         <translation>Geçersiz ortam değişkeni adı &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4077"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4687"/>
         <source>Failed to schedule setting environment variable &apos;%s&apos; to &apos;%s&apos;</source>
         <translation>&apos;%s&apos; ortam değişkeninin &apos;%s&apos; olarak ayarlanmasını zamanlama başarısız</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4097"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4707"/>
         <source>Failed to schedule unsetting environment variable &apos;%s&apos;</source>
         <translation>&apos;%s&apos; ortam değişkeninin ayarının kaldırılmasını zamanlama başarısız</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4193"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4803"/>
         <source>Querying guest file existence failed: %s</source>
         <translation>Misafir dosyasının var olduğunu sorgulama başarısız oldu: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4206"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4448"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4816"/>
         <source>Querying guest file information for &quot;%s&quot; failed: %Rrc</source>
         <translation>&quot;%s&quot; için misafir dosyası bilgilerini sorgulama başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4228"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4838"/>
         <source>No file to open specified</source>
         <translation>Açmak için belirtilen dosya yok</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4248"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4858"/>
         <source>Append access modes are not yet implemented</source>
         <translation>Erişim ekleme kipleri henüz uygulanmadı</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4250"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4860"/>
         <source>Unknown FileAccessMode value %u (%#x)</source>
         <translation>Bilinmeyen FileAccessMode değeri %u (%#x)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4269"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4286"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4879"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4896"/>
         <source>Unknown FileOpenAction value %u (%#x)</source>
         <translation>Bilinmeyen FileOpenAction değeri %u (%#x)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4283"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4893"/>
         <source>Only FileSharingMode_All is currently implemented</source>
         <translation>Şu anda yalnızca FileSharingMode_All uygulandı</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4294"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4904"/>
         <source>Unsupported FileOpenExFlag value(s) in aFlags (%#x)</source>
         <translation>aFlag&apos;larda desteklenmeyen FileOpenExFlag değer(leri)i (%#x)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4308"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4918"/>
         <source>Handling guest files not supported by installed Guest Additions</source>
         <translation>Yüklü Misafir Eklentileri tarafından desteklenmeyen misafir dosyalarının işlenmesi</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4314"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4924"/>
         <source>Opening guest file failed: %s</source>
         <translation>Misafir dosyasını açma başarısız oldu: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4319"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4929"/>
         <source>Opening guest file &quot;%s&quot; failed: %Rrc</source>
         <translation>&quot;%s&quot; misafir dosyasını açma başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4330"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4374"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4415"/>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4457"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4940"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4980"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5020"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5061"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5103"/>
         <source>No path specified</source>
         <translation>Belirtilen yol yok</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4346"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4956"/>
         <source>Querying guest file size failed: %s</source>
         <translation>Misafir dosyası boyutunu sorgulama başarısız oldu: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4350"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="4960"/>
         <source>Querying guest file size of &quot;%s&quot; failed: %Rrc</source>
         <translation>&quot;%s&quot; için misafir dosyası boyutunu sorgulama başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4401"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5007"/>
+        <source>Querying guest filesystem information failed: %s</source>
+        <translation>Misafir dosya sistemi bilgilerini sorgulama başarısız oldu: %s</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5011"/>
+        <source>Querying guest filesystem information for &quot;%s&quot; failed: %Rrc</source>
+        <translation>&quot;%s&quot; için misafir dosya sistemi bilgilerini sorgulama başarısız oldu: %Rrc</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5047"/>
         <source>Querying guest file existence information failed: %s</source>
         <translation>Misafir dosyası var olma bilgilerini sorgulama başarısız oldu: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4406"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5052"/>
         <source>Querying guest file existence information for &quot;%s&quot; failed: %Rrc</source>
         <translation>&quot;%s&quot; için misafir dosyası var olma bilgilerini sorgulama başarısız oldu: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4444"/>
-        <source>Querying guest file information failed: %s</source>
-        <translation>Misafir dosyası bilgilerini sorgulama başarısız oldu: %s</translation>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5090"/>
+        <source>Querying guest filesystem object information failed: %s</source>
+        <translation>Misafir dosya sistemi nesnesi bilgilerini sorgulama başarısız oldu: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4472"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5094"/>
+        <source>Querying guest filesystem object information for &quot;%s&quot; failed: %Rrc</source>
+        <translation>&quot;%s&quot; için misafir dosya sistemi nesnesi bilgilerini sorgulama başarısız oldu: %Rrc</translation>
+    </message>
+    <message>
+        <source>Querying guest file information failed: %s</source>
+        <translation type="vanished">Misafir dosyası bilgilerini sorgulama başarısız oldu: %s</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5118"/>
         <source>Removing guest file failed: %s</source>
         <translation>Misafir dosyasını kaldırma başarısız oldu: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4476"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5122"/>
         <source>Removing guest file &quot;%s&quot; failed: %Rrc</source>
         <translation>&quot;%s&quot; misafir dosyasını kaldırma başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4493"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5139"/>
         <source>No source path specified</source>
         <translation>Belirtilen kaynak yolu yok</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4496"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5142"/>
         <source>No destination path specified</source>
         <translation>Belirtilen hedef yolu yok</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4507"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5153"/>
         <source>Unknown rename flag: %#x</source>
         <translation>Bilinmeyen yeniden adlandırma işareti (%#x)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4528"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5174"/>
         <source>Handling renaming guest paths not supported by installed Guest Additions</source>
         <translation>Yüklü Misafir Eklentileri tarafından desteklenmeyen misafir yollarını yeniden adlandırmayı işleme</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4534"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5180"/>
         <source>Renaming guest path failed: %s</source>
         <translation>Misafir yolunu yeniden adlandırma başarısız oldu: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4539"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5185"/>
         <source>Renaming guest path &quot;%s&quot; failed: %Rrc</source>
         <translation>&quot;%s&quot; misafir dizinini okuma başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4612"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5260"/>
         <source>No command to execute specified</source>
         <translation>Çalıştırmak için belirtilen komut yok</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4682"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5272"/>
+        <source>Setting the current working directory is not supported by the installed Guest Addtions!</source>
+        <translation>Şu anki çalışma dizininin ayarlanması, yüklü Misafir Eklentileri tarafından desteklenmiyor!</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5344"/>
         <source>Failed to start guest process: %Rrc</source>
         <translation>Misafir işlemini başlatma başarısız: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4686"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5348"/>
         <source>Maximum number of concurrent guest processes per session (%u) reached</source>
         <translation>Oturum (%u) başına en fazla eşzamanlı misafir işlemi sayısına ulaşıldı</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4689"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5351"/>
         <source>Failed to create guest process object: %Rrc</source>
         <translation>Misafir işlemi nesnesi oluşturma başarısız: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4693"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5355"/>
         <source>Failed to apply environment variable &apos;%s&apos;, index %u (%Rrc)&apos;</source>
         <translation>&apos;%s&apos; ortam değişkenini uygulama başarısız, indeks %u (%Rrc)&apos;</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4697"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5359"/>
         <source>Failed to set up the environment: %Rrc</source>
         <translation>Ortamı ayarlama başarısız: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4707"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5369"/>
         <source>No valid process ID (PID) specified</source>
         <translation>Belirtilen geçerli işlem kimliği (PID) yok</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4718"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5380"/>
         <source>No process with PID %RU32 found</source>
         <translation>Bulunan PID %RU32 ile işlem yok</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4771"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5434"/>
         <source>Waiting for guest process failed: %s</source>
         <translation>Misafir işlemini bekleme başarısız oldu: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4783"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5446"/>
         <source>Waiting for guest session &quot;%s&quot; failed: %Rrc</source>
         <translation>&quot;%s&quot; misafir oturumunu bekleme başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImpl.cpp" line="4784"/>
+        <location filename="../src-client/GuestSessionImpl.cpp" line="5447"/>
         <source>Unnamed</source>
         <translation>Adsız</translation>
     </message>
@@ -5051,105 +5512,105 @@ Guest offers: %s</source>
         <translation>&quot;%s&quot; anamakine dizini oluşturulamadı: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="416"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="414"/>
         <source>Seeking to offset %RU64 of guest file &quot;%s&quot; failed: %Rrc</source>
         <translation>&quot;%s&quot; misafir dosyasının %RU64 karşılığını arama başarısız oldu: %Rrc</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="431"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="429"/>
         <source>Reading %RU32 bytes @ %RU64 from guest &quot;%s&quot; failed: %Rrc</source>
         <translation>
             <numerusform>&quot;%s&quot; misafir dosyasından %RU32 bayt @ %RU64 okuma başarısız oldu: %Rrc</numerusform>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="440"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="438"/>
         <source>Writing %RU32 bytes to host file &quot;%s&quot; failed: %Rrc</source>
         <translation>
             <numerusform>&quot;%s&quot; anamakine dosyasına %RU32 bayt yazma başarısız oldu: %Rrc</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="479"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="477"/>
         <source>Writing guest file &quot;%s&quot; to host file &quot;%s&quot; failed: Access denied</source>
         <translation>&quot;%s&quot; misafir dosyasını &quot;%s&quot; anamakine dosyasına yazma başarısız oldu: Erişim reddedildi</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="487"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="485"/>
         <source>Copying guest file &quot;%s&quot; to host file &quot;%s&quot; failed (%RU64/%RU64 bytes transferred)</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; misafir dosyasını &quot;%s&quot; anamakine dosyasına kopyalama başarısız oldu (%RU64/%RU64 bayt aktarıldı)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="513"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="511"/>
         <source>Error closing guest file &quot;%s&quot;: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; misafir dosyası kapatılırken hata oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="661"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="659"/>
         <source>Host destination &quot;%s&quot; is a directory</source>
-        <translation type="unfinished"></translation>
+        <translation>Anamakine hedefi &quot;%s&quot; bir dizindir</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="668"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="666"/>
         <source>Host destination &quot;%s&quot; is a symbolic link</source>
-        <translation type="unfinished"></translation>
+        <translation>Anamakine hedefi &quot;%s&quot; sembolik bir bağlantıdır</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="816"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="812"/>
         <source>Copying to guest file &quot;%s&quot; failed (%RU64/%RU64 bytes transferred)</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; misafir dosyasına kopyalama başarısız oldu (%RU64/%RU64 bayt aktarıldı)</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="852"/>
+        <source>Guest file &quot;%s&quot; could not be created or replaced</source>
+        <translation>&quot;%s&quot; misafir dosyası oluşturulamadı veya değiştirilemedi</translation>
     </message>
     <message>
         <location filename="../src-client/GuestSessionImplTasks.cpp" line="856"/>
-        <source>Guest file &quot;%s&quot; could not be created or replaced</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="860"/>
         <source>Guest file &quot;%s&quot; could not be created or replaced: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; misafir dosyası oluşturulamadı veya değiştirilemedi: %Rrc</translation>
     </message>
     <message>
         <source>Copying guest file &quot;%s&quot; to host file &quot;%s&quot; failed (%RU64/%RU64 bytes transfered)</source>
         <translation type="vanished">&quot;%s&quot; misafir dosyasını &quot;%s&quot; anamakine dosyasına kopyalama başarısız oldu (%RU64/%RU64 bayt aktarıldı)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="551"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="549"/>
         <source>Guest file lookup failed</source>
         <translation>Misafir dosyası araması başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="555"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="553"/>
         <source>Guest file lookup for &quot;%s&quot; failed: %Rrc</source>
         <translation>&quot;%s&quot; için misafir dosyası araması başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="568"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="566"/>
         <source>Guest file &quot;%s&quot; is a symbolic link</source>
         <translation>&quot;%s&quot; misafir dosyası sembolik bir bağlantıdır</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="576"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="574"/>
         <source>Guest object &quot;%s&quot; is not a file (is type %#x)</source>
         <translation>&quot;%s&quot; misafir nesnesi bir dosya değil (%#x türünde)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="590"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="588"/>
         <source>Guest file could not be opened</source>
         <translation>Misafir dosyası açılamadı</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="594"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="592"/>
         <source>Guest file &quot;%s&quot; could not be opened: %Rrc</source>
         <translation>&quot;%s&quot; misafir dosyası açılamadı: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="655"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="653"/>
         <source>Host file &quot;%s&quot; already exists</source>
         <translation>&quot;%s&quot; anamakine dosyası zaten var</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="636"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="634"/>
         <source>Host file lookup for &quot;%s&quot; failed: %Rrc</source>
         <translation>&quot;%s&quot; için anamakine dosyası araması başarısız oldu: %Rrc</translation>
     </message>
@@ -5162,27 +5623,27 @@ Guest offers: %s</source>
         <translation type="vanished">Anamakine dosya yolunu ayırmak için bellek yok</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="702"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="700"/>
         <source>Opening/creating host file &quot;%s&quot; failed: %Rrc</source>
         <translation>&quot;%s&quot; anamakine dosyasını açma/oluşturma başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="749"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="745"/>
         <source>Seeking to offset %RU64 of host file &quot;%s&quot; failed: %Rrc</source>
         <translation>&quot;%s&quot; anamakine dosyasının %RU64 karşılığını arama başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="764"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="760"/>
         <source>Reading %RU32 bytes @ %RU64 from host file &quot;%s&quot; failed: %Rrc</source>
-        <translation type="unfinished">&quot;%s&quot; anamakine dosyasından %RU32 bayt @ %RU64 okuma başarısız oldu: %Rrc</translation>
+        <translation>&quot;%s&quot; anamakine dosyasından %RU32 bayt @ %RU64 okuma başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="773"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="769"/>
         <source>Writing %zu bytes to guest file &quot;%s&quot; failed: %Rrc</source>
-        <translation type="unfinished">%zu baytı &quot;%s&quot; misafir dosyasına yazmak başarısız oldu: %Rrc</translation>
+        <translation>%zu baytı &quot;%s&quot; misafir dosyasına yazma başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="808"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="804"/>
         <source>Writing to guest file &quot;%s&quot; failed: Access denied</source>
         <translation>&quot;%s&quot; misafir dosyasına yazma başarısız oldu: Erişim reddedildi</translation>
     </message>
@@ -5191,27 +5652,27 @@ Guest offers: %s</source>
         <translation type="vanished">&quot;%s&quot; misafir dosyasına kopyalama başarısız oldu (%RU64/%RU64 bayt aktarıldı)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="877"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="873"/>
         <source>Host path lookup for file &quot;%s&quot; failed: %Rrc</source>
         <translation>&quot;%s&quot; dosyası için anamakine yolu araması başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="927"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="923"/>
         <source>Guest error while determining object data for guest file &quot;%s&quot;: %Rrc</source>
         <translation>&quot;%s&quot; misafir dosyası için nesne verileri belirlenirken misafir hatası: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="934"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="930"/>
         <source>Host error while determining object data for guest file &quot;%s&quot;: %Rrc</source>
         <translation>&quot;%s&quot; misafir dosyası için nesne verileri belirlenirken anamakine hatası: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="942"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="938"/>
         <source>Host source file lookup for &quot;%s&quot; failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; için anamakine kaynak dosyası araması başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="976"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="972"/>
         <source>Opening host file &quot;%s&quot; failed: %Rrc</source>
         <translation>&quot;%s&quot; anamakine dosyasını açma başarısız oldu: %Rrc</translation>
     </message>
@@ -5219,107 +5680,108 @@ Guest offers: %s</source>
         <location filename="../include/GuestSessionImplTasks.h" line="201"/>
         <source>Task &apos;%s&apos; failed with %Rrc, but progress is still pending. Please report this bug!
 </source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; görevi %Rrc ile başarısız oldu, ancak ilerleme hala beklemede. Lütfen bu hatayı bildirin!
+</translation>
     </message>
 </context>
 <context>
     <name>GuestSessionTaskCopyFrom</name>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1502"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1499"/>
         <source>No guest sources specified</source>
-        <translation type="unfinished"></translation>
+        <translation>Belirtilen misafir kaynakları yok</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1507"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1504"/>
         <source>Host destination must not be empty</source>
         <translation>Anamakine hedefi boş olmamak zorundadır</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1522"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1519"/>
         <source>Guest source entry must not be empty</source>
         <translation>Misafir kaynak girişi boş olmamak zorundadır</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1545"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1542"/>
         <source>Guest source lookup failed</source>
-        <translation type="unfinished"></translation>
+        <translation>Misafir kaynağı araması başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1548"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1545"/>
         <source>Guest source lookup for &quot;%s&quot; failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; için misafir kaynağı araması başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1601"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1598"/>
         <source>Error adding guest source &quot;%s&quot; to list: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; misafir kaynağı listeye eklenirken hata oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1634"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1631"/>
         <source>Copying &quot;%s&quot; [and %zu %s] from guest to &quot;%s&quot; on the host ...</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; [ve %zu %s] misafirden anamakinedeki &quot;%s&quot; dizinine kopyalanıyor...</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1635"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1632"/>
         <source>others</source>
-        <translation type="unfinished"></translation>
+        <translation>diğer</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1632"/>
+        <source>other</source>
+        <translation>diğer</translation>
     </message>
     <message>
         <location filename="../src-client/GuestSessionImplTasks.cpp" line="1635"/>
-        <source>other</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1638"/>
         <source>Copying &quot;%s&quot; from guest to &quot;%s&quot; on the host ...</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; misafirden anamakinedeki &quot;%s&quot; dizinine kopyalanıyor...</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1687"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1684"/>
         <source>Building host destination root path &quot;%s&quot; failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; anamakine hedefi kök yolunu oluşturma başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1744"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1741"/>
         <source>Host path lookup for &quot;%s&quot; failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; için anamakine yolu araması başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1765"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1762"/>
         <source>Host root directory &quot;%s&quot; already exists</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; anamakine kök dizini zaten var</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1775"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1772"/>
         <source>Destination &quot;%s&quot; on the host already exists and is a file</source>
-        <translation type="unfinished"></translation>
+        <translation>Anamakinede &quot;%s&quot; hedefi zaten mevcut ve bir dosya</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1783"/>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1902"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1780"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1899"/>
         <source>Unknown object type (%#x) on host for &quot;%s&quot;</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; için anamakinede bilinmeyen nesne türü (%#x)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1826"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1823"/>
         <source>Translating guest source path &quot;%s&quot; failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; misafir kaynağı yolunu çevirme başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1836"/>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1918"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1833"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1915"/>
         <source>Translating host destination path &quot;%s&quot; failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; anamakine kaynağı yolunu çevirme başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1881"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1878"/>
         <source>Destination &quot;%s&quot; on the host already exists and is a directory</source>
-        <translation type="unfinished"></translation>
+        <translation>Anamakinede &quot;%s&quot; hedefi zaten mevcut ve bir dizin</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1892"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1889"/>
         <source>Host file &quot;%s&quot; already exists</source>
-        <translation type="unfinished">&quot;%s&quot; anamakine dosyası zaten var</translation>
+        <translation>&quot;%s&quot; anamakine dosyası zaten var</translation>
     </message>
     <message>
         <source>Guest file lookup failed</source>
@@ -5330,12 +5792,12 @@ Guest offers: %s</source>
         <translation type="vanished">&quot;%s&quot; için misafir dosyası araması başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1557"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1554"/>
         <source>Guest source is not a file: %s</source>
         <translation>Misafir kaynağı bir dosya değil: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1566"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1563"/>
         <source>Guest source is not a directory: %s</source>
         <translation>Misafir kaynağı bir dizin değil: %s</translation>
     </message>
@@ -5344,7 +5806,7 @@ Guest offers: %s</source>
         <translation type="vanished">&apos;%s&apos; misafir kaynağı listeye eklenirken hata oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1653"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1650"/>
         <source>Failed with %Rrc</source>
         <translation>%Rrc ile başarısız oldu</translation>
     </message>
@@ -5352,121 +5814,121 @@ Guest offers: %s</source>
 <context>
     <name>GuestSessionTaskCopyTo</name>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1991"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1988"/>
         <source>No host sources specified</source>
-        <translation type="unfinished"></translation>
+        <translation>Belirtilen anamakine kaynakları yok</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1996"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="1993"/>
         <source>Guest destination must not be empty</source>
         <translation>Misafir hedefi boş olmamak zorundadır</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2011"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2008"/>
         <source>Host source entry must not be empty</source>
         <translation>Anamakine kaynak girişi boş olmamak zorundadır</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2032"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2029"/>
         <source>No such host file/directory: %s</source>
         <translation>Böyle bir anamakine dosyası/dizini yok: %s</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2042"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2039"/>
         <source>Host source &quot;%s&quot; is not a file (is a directory)</source>
-        <translation type="unfinished"></translation>
+        <translation>Anamakine kaynağı &quot;%s&quot; bir dosya değil (bir dizindir)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2052"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2049"/>
         <source>Host source &quot;%s&quot; is not a directory (is a file)</source>
-        <translation type="unfinished"></translation>
+        <translation>Anamakine kaynağı &quot;%s&quot; bir dizin değil (bir dosyadır)</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2062"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2059"/>
         <source>Host source &quot;%s&quot; is a symbolic link</source>
-        <translation type="unfinished"></translation>
+        <translation>Anamakine kaynağı &quot;%s&quot; sembolik bir bağlantıdır</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2084"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2081"/>
         <source>Querying symbolic link info for host source &quot;%s&quot; failed</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; anamakine kaynağı için sembolik bağlantı bilgilerini sorgulama başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2090"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2087"/>
         <source>Resolving symbolic link for host source &quot;%s&quot; failed</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; anamakine kaynağı için sembolik bağlantıyı çözme başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2141"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2138"/>
         <source>Error adding host source &quot;%s&quot; to list: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; anamakine kaynağı listeye eklenirken hata oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2174"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2171"/>
         <source>Copying &quot;%s&quot; [and %zu %s] from host to &quot;%s&quot; on the guest ...</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; [ve %zu %s] anamakineden misafirdeki &quot;%s&quot; dizinine kopyalanıyor...</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2175"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2172"/>
         <source>others</source>
-        <translation type="unfinished"></translation>
+        <translation>diğer</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2172"/>
+        <source>other</source>
+        <translation>diğer</translation>
     </message>
     <message>
         <location filename="../src-client/GuestSessionImplTasks.cpp" line="2175"/>
-        <source>other</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2178"/>
         <source>Copying &quot;%s&quot; from host to &quot;%s&quot; on the guest ...</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; anamakineden misafirdeki &quot;%s&quot; dizinine kopyalanıyor...</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2228"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2225"/>
         <source>Building guest destination root path &quot;%s&quot; failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; misafir hedefi kök yolunu oluşturma başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2272"/>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2280"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2269"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2277"/>
         <source>Querying information on guest for &quot;%s&quot; failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; için misafirde bilgileri sorgulama başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2301"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2298"/>
         <source>Guest root directory &quot;%s&quot; already exists</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; misafir kök dizini zaten var</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2311"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2308"/>
         <source>Destination &quot;%s&quot; on guest already exists and is a file</source>
-        <translation type="unfinished"></translation>
+        <translation>Misafirde &quot;%s&quot; hedefi zaten mevcut ve bir dosya</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2364"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2362"/>
         <source>Translating host source path&quot;%s&quot; failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; anamakine kaynağı yolunu çevirme başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2375"/>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2462"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2373"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2460"/>
         <source>Translating guest destination path &quot;%s&quot; failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; misafir hedefi yolunu çevirme başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2426"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2424"/>
         <source>Destination &quot;%s&quot; on the guest already exists and is a directory</source>
-        <translation type="unfinished"></translation>
+        <translation>Misafirde &quot;%s&quot; hedefi zaten mevcut ve bir dizin</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2437"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2435"/>
         <source>Guest file &quot;%s&quot; already exists</source>
-        <translation type="unfinished">&quot;%s&quot; misafir dosyası zaten var</translation>
+        <translation>&quot;%s&quot; misafir dosyası zaten var</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2446"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2444"/>
         <source>Unsupported guest file system type (%#x) for &quot;%s&quot;</source>
-        <translation type="unfinished"></translation>
+        <translation>&quot;%s&quot; için desteklenmeyen misafir dosya sistemi türü (%#x)</translation>
     </message>
     <message>
         <source>Host source is not a file: %s</source>
@@ -5481,7 +5943,7 @@ Guest offers: %s</source>
         <translation type="vanished">&apos;%s&apos; anamakine kaynağı listeye eklenirken hata oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2194"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2191"/>
         <source>Failed with %Rrc</source>
         <translation>%Rrc ile başarısız oldu</translation>
     </message>
@@ -5494,7 +5956,7 @@ Guest offers: %s</source>
         <translation type="vanished">&quot;%s&quot; misafir dizini zaten var</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2322"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2320"/>
         <source>Unknown object type (%#x) on guest for &quot;%s&quot;</source>
         <translation>&quot;%s&quot; için misafirde bilinmeyen nesne türü (%#x)</translation>
     </message>
@@ -5510,257 +5972,287 @@ Guest offers: %s</source>
 <context>
     <name>GuestSessionTaskUpdateAdditions</name>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2596"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2670"/>
         <source>Guest file &quot;%s&quot; could not be opened: %Rrc</source>
         <translation>&quot;%s&quot; misafir dosyası açılamadı: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2651"/>
         <source>Running update file &quot;%s&quot; on guest failed: %Rrc</source>
-        <translation>Misafirde &quot;%s&quot; güncelleme dosyasını çalıştırma başarısız oldu: %Rrc</translation>
+        <translation type="vanished">Misafirde &quot;%s&quot; güncelleme dosyasını çalıştırma başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2656"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2767"/>
         <source>Running update file on guest failed</source>
         <translation>Misafirde güncelleme dosyasını çalıştırma başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2662"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2773"/>
         <source>Update file &quot;%s&quot; reported invalid running state</source>
         <translation>&quot;%s&quot; güncelleme dosyası, geçersiz çalışıyor durumu bildirdi</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2668"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2779"/>
         <source>Error while running update file &quot;%s&quot; on guest: %Rrc</source>
         <translation>Misafirde &quot;%s&quot; güncelleme dosyası çalışırken hata oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2712"/>
         <source>Automatic update of Guest Additions has failed: files were installed, but user services were not reloaded automatically. Please consider rebooting the guest</source>
-        <translation type="unfinished"></translation>
+        <translation type="vanished">Misafir Eklentilerinin otomatik güncellenmesi başarısız oldu: dosyalar yüklendi ancak kullanıcı hizmetleri otomatik olarak yeniden yüklenmedi. Lütfen misafiri yeniden başlatmayı düşünün</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2718"/>
         <source>Automatic update of Guest Additions has failed: files were installed, but kernel modules were not reloaded automatically. Please consider rebooting the guest</source>
-        <translation type="unfinished"></translation>
+        <translation type="vanished">Misafir Eklentilerinin otomatik güncellenmesi başarısız oldu: dosyalar yüklendi ancak çekirdek modülleri otomatik olarak yeniden yüklenmedi. Lütfen misafiri yeniden başlatmayı düşünün</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2833"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2761"/>
+        <source>Running update file &quot;%s&quot; on guest failed with exit code %d</source>
+        <translation>&quot;%s&quot; güncelleme dosyasını misafir üzerinde çalıştırma %d çıkış koduyla başarısız oldu</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2824"/>
+        <source>Files were installed, but user services were not reloaded automatically. Please consider rebooting the guest</source>
+        <translation>Dosyalar yüklendi ancak kullanıcı hizmetleri otomatik olarak yeniden yüklenemedi. Lütfen misafiri yeniden başlatmayı düşünün</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2829"/>
+        <source>Files were installed, but kernel modules were not reloaded automatically. Please consider rebooting the guest</source>
+        <translation>Dosyalar yüklendi ancak çekirdek modüller otomatik olarak yeniden yüklenemedi. Lütfen misafiri yeniden başlatmayı düşünün</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2943"/>
         <source>Guest Additions were not ready within time, giving up</source>
-        <translation>Misafir Eklentileri zamanında hazır olmadı, vazgeçiliyor</translation>
+        <translation>Misafir Eklentileri zamanında hazır olamadı, vazgeçiliyor</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2846"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2956"/>
         <source>Guest Additions are installed but not fully loaded yet, aborting automatic update</source>
         <translation>Misafir Eklentileri yüklendi ancak henüz tam olarak yüklenmedi, otomatik güncelleme iptal ediliyor</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2849"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2959"/>
         <source>Guest Additions not installed or ready, aborting automatic update</source>
         <translation>Misafir Eklentileri yüklü değil veya hazır değil, otomatik güncelleme iptal ediliyor</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2866"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2976"/>
         <source>Guest has too old Guest Additions (%s) installed for automatic updating, please update manually</source>
         <translation>Misafir, otomatik güncelleme için çok eski Misafir Eklentilerini (%s) yükledi, lütfen el ile güncelleyin</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2895"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3010"/>
         <source>Unable to detected guest OS version, please update manually</source>
         <translation>Misafir İS sürümü algılanamıyor, lütfen el ile güncelleyin</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2915"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3030"/>
         <source>Windows 2000 and XP are not supported for automatic updating due to WHQL interaction, please update manually</source>
         <translation>Windows 2000 ve XP, WHQL etkileşiminden dolayı otomatik güncelleme için desteklenmiyor, lütfen el ile güncelleyin</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2923"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3038"/>
         <source>%s (%s) not supported for automatic updating, please update manually</source>
         <translation>%s (%s) otomatik güncelleme için desteklenmiyor, lütfen el ile güncelleyin</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2941"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3056"/>
         <source>Detected guest OS (%s) does not support automatic Guest Additions updating, please update manually</source>
         <translation>Algılanan misafir İS (%s), otomatik Misafir Eklentileri güncellemesini desteklemiyor, lütfen el ile güncelleyin</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2958"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3073"/>
         <source>Unable to open Guest Additions .ISO file &quot;%s&quot;: %Rrc</source>
         <translation>Misafir Eklentileri ISO dosyası &quot;%s&quot; açılamıyor: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="2968"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3083"/>
         <source>Unable to open file as ISO 9660 file system volume: %Rrc</source>
         <translation>Dosya, ISO 9660 dosya sistemi birimi olarak açılamıyor: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3036"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3115"/>
+        <source>Creating update directory on guest failed</source>
+        <translation>Misafirde güncelleme dizini oluşturma başarısız oldu</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3121"/>
+        <source>Creating update directory &quot;%s&quot; on guest failed: %Rrc</source>
+        <translation>Misafirde &quot;%s&quot; güncelleme dizinini oluşturma başarısız oldu: %Rrc</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3371"/>
+        <source>Guest services were not restarted, please reinstall Guest Additions manually</source>
+        <translation>Misafir hizmetleri yeniden başlatılamadı, lütfen Misafir Eklentilerini el ile yeniden yükleyin</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3401"/>
+        <source>Operation was canceled</source>
+        <translation>İşlem iptal edildi</translation>
+    </message>
+    <message>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3408"/>
+        <source>Operation has timed out</source>
+        <translation>İşlem zaman aşımına uğradı</translation>
+    </message>
+    <message>
         <source>Creating installation directory on guest failed</source>
-        <translation>Misafirde kurulum dizini oluşturma başarısız oldu</translation>
+        <translation type="vanished">Misafirde kurulum dizini oluşturma başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3042"/>
         <source>Creating installation directory &quot;%s&quot; on guest failed: %Rrc</source>
-        <translation>Misafirde &quot;%s&quot; kurulum dizinini oluşturma başarısız oldu: %Rrc</translation>
+        <translation type="vanished">Misafirde &quot;%s&quot; kurulum dizinini oluşturma başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3229"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3308"/>
         <source>Error while copying file &quot;%s&quot; to &quot;%s&quot; on the guest: %Rrc</source>
-        <translation>Misafirde &quot;%s&quot; dosyası &quot;%s&quot; dosyasına kopyalanırken hata oldu: %Rrc</translation>
+        <translation>Misafirdeki &quot;%s&quot; dosyası &quot;%s&quot; dosyasına kopyalanırken hata oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3292"/>
         <source>Automatic update of Guest Additions has failed: guest services were not restarted, please reinstall Guest Additions manually</source>
-        <translation type="unfinished"></translation>
+        <translation type="vanished">Misafir Eklentilerinin otomatik güncellenmesi başarısız oldu: misafir hizmetleri yeniden başlatılmadı, lütfen Misafir Eklentilerini el ile yeniden yükleyin</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3299"/>
+        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3377"/>
         <source>Old guest session is still active, guest services were not restarted after installation, please reinstall Guest Additions manually</source>
-        <translation type="unfinished"></translation>
+        <translation>Eski misafir oturumu hala etkin, misafir hizmetleri kurulumdan sonra yeniden başlatılamadı, lütfen Misafir Eklentilerini el ile yeniden yükleyin</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3323"/>
         <source>Installation was canceled</source>
-        <translation>Kurulum iptal edildi</translation>
+        <translation type="vanished">Kurulum iptal edildi</translation>
     </message>
     <message>
-        <location filename="../src-client/GuestSessionImplTasks.cpp" line="3330"/>
         <source>Installation has timed out</source>
-        <translation type="unfinished"></translation>
+        <translation type="vanished">Kurulum zaman aşımına uğradı</translation>
     </message>
 </context>
 <context>
     <name>Host</name>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1268"/>
+        <location filename="../src-server/HostImpl.cpp" line="1310"/>
         <source>The aFeature value %d (%#x) is out of range.</source>
         <translation>aFeature değeri %d (%#x) aralığın dışında.</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1349"/>
         <source>CPU no.%u is not present</source>
-        <translation>İşlemci no.%u mevcut değil</translation>
+        <translation type="vanished">İşlemci no.%u mevcut değil</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1350"/>
         <source>CPU no.%u is not online</source>
-        <translation>İşlemci no.%u çevrimiçi değil</translation>
+        <translation type="vanished">İşlemci no.%u çevrimiçi değil</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1517"/>
+        <location filename="../src-server/HostImpl.cpp" line="1518"/>
         <source>Unable to create a host network interface</source>
         <translation>Bir anamakine ağ arayüzü oluşturulamıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1584"/>
+        <location filename="../src-server/HostImpl.cpp" line="1585"/>
         <source>Host network interface with UUID {%RTuuid} does not exist</source>
         <translation>{%RTuuid} UUID&apos;sine sahip anamakine ağ arayüzü mevcut değil</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1663"/>
+        <location filename="../src-server/HostImpl.cpp" line="1664"/>
         <source>The given USB device filter is not created within this VirtualBox instance</source>
         <translation>Belirtilen USB aygıtı süzgeci, bu VirtualBox örneğinde oluşturulmadı</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1667"/>
+        <location filename="../src-server/HostImpl.cpp" line="1668"/>
         <source>The given USB device filter is already in the list</source>
         <translation>Belirtilen USB aygıtı süzgeci zaten listede var</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1711"/>
+        <location filename="../src-server/HostImpl.cpp" line="1712"/>
         <source>The USB device filter list is empty</source>
         <translation>USB aygıtı süzgeci listesi boş</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1715"/>
+        <location filename="../src-server/HostImpl.cpp" line="1716"/>
         <source>Invalid position: %lu (must be in range [0, %lu])</source>
         <translation>Geçersiz konum: %lu ([0, %lu] aralığında olmak zorundadır)</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1759"/>
+        <location filename="../src-server/HostImpl.cpp" line="1760"/>
         <source>The host DVD drive named &apos;%s&apos; could not be found</source>
         <translation>&apos;%s&apos; adlı anamakine DVD sürücüsü bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1772"/>
+        <location filename="../src-server/HostImpl.cpp" line="1773"/>
         <source>The host floppy drive named &apos;%s&apos; could not be found</source>
         <translation>&apos;%s&apos; adlı anamakine disket sürücüsü bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1813"/>
+        <location filename="../src-server/HostImpl.cpp" line="1814"/>
         <source>The host network interface named &apos;%s&apos; could not be found</source>
         <translation>&apos;%s&apos; adlı anamakine ağ arayüzü bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1857"/>
+        <location filename="../src-server/HostImpl.cpp" line="1858"/>
         <source>The host network interface with the given GUID could not be found</source>
         <translation>Belirtilen GUID&apos;ye sahip anamakine ağ arayüzü bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1933"/>
+        <location filename="../src-server/HostImpl.cpp" line="1934"/>
         <source>Could not find a USB device with address &apos;%s&apos;</source>
         <translation>&apos;%s&apos; adresine sahip bir USB aygıt bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="1967"/>
+        <location filename="../src-server/HostImpl.cpp" line="1968"/>
         <source>Could not find a USB device with uuid {%RTuuid}</source>
         <translation>{%RTuuid} UUID&apos;sine sahip bir USB aygıt bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="3618"/>
+        <location filename="../src-server/HostImpl.cpp" line="3701"/>
         <source>Could not load the Host USB Proxy Service (VERR_FILE_NOT_FOUND).  The service might not be installed on the host computer</source>
         <translation>Anamakine USB Vekil Hizmeti yüklenemedi (VERR_FILE_NOT_FOUND). Hizmet, anamakinede yüklü olmayabilir</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="3621"/>
+        <location filename="../src-server/HostImpl.cpp" line="3704"/>
         <source>VirtualBox is not currently allowed to access USB devices.  You can change this by adding your user to the &apos;vboxusers&apos; group.  Please see the user manual for a more detailed explanation</source>
         <translation>VirtualBox&apos;ın şu anda USB aygıtlara erişmesine izin verilmiyor. Kullanıcınızı &apos;vboxusers&apos; grubuna ekleyerek bunu değiştirebilirsiniz. Daha ayrıntılı bir açıklama için lütfen kullanım kılavuzuna bakın</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="3624"/>
+        <location filename="../src-server/HostImpl.cpp" line="3707"/>
         <source>VirtualBox is not currently allowed to access USB devices.  You can change this by allowing your user to access the &apos;usbfs&apos; folder and files.  Please see the user manual for a more detailed explanation</source>
         <translation>VirtualBox&apos;ın şu anda USB aygıtlara erişmesine izin verilmiyor. Kullanıcınızın &apos;usbfs&apos; klasörüne ve dosyalarına erişmesine izin vererek bunu değiştirebilirsiniz. Daha ayrıntılı bir açıklama için lütfen kullanım kılavuzuna bakın</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="3627"/>
+        <location filename="../src-server/HostImpl.cpp" line="3710"/>
         <source>The USB Proxy Service has not yet been ported to this host</source>
         <translation>USB Vekil Hizmeti henüz bu anamakineye bağlantılanmadı</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="3630"/>
+        <location filename="../src-server/HostImpl.cpp" line="3713"/>
         <source>Could not load the Host USB Proxy service</source>
         <translation>Anamakine USB Vekil hizmeti yüklenemedi</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="3977"/>
+        <location filename="../src-server/HostImpl.cpp" line="4078"/>
         <source>Failed to open NT\GLOBAL?? (error %Rrc)</source>
         <translation>NT\GLOBAL?? açılması başarısız (hata %Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="3988"/>
-        <location filename="../src-server/HostImpl.cpp" line="4005"/>
+        <location filename="../src-server/HostImpl.cpp" line="4089"/>
+        <location filename="../src-server/HostImpl.cpp" line="4106"/>
         <source>Out of memory! (direntry buffer)</source>
         <translation>Bellek yetersiz! (dizin girişi arabelleği)</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="4008"/>
+        <location filename="../src-server/HostImpl.cpp" line="4109"/>
         <source>RTVfsDirReadEx failed: %Rrc</source>
         <translation>RTVfsDirReadEx başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="4022"/>
+        <location filename="../src-server/HostImpl.cpp" line="4123"/>
         <source>Unknown (Access denied)</source>
         <translation>Bilinmiyor (Erişim reddedildi)</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="4026"/>
-        <location filename="../src-server/HostImpl.cpp" line="4071"/>
+        <location filename="../src-server/HostImpl.cpp" line="4127"/>
+        <location filename="../src-server/HostImpl.cpp" line="4172"/>
         <source>Out of memory</source>
         <translation>Bellek yetersiz</translation>
     </message>
     <message>
-        <location filename="../src-server/HostImpl.cpp" line="4129"/>
+        <location filename="../src-server/HostImpl.cpp" line="4230"/>
         <source>Failed to update fixed drive list (%Rrc)</source>
         <translation>Sabit sürücü listesini güncelleme başarısız (%Rrc)</translation>
     </message>
@@ -5921,32 +6413,32 @@ Guest offers: %s</source>
     <message>
         <location filename="../src-server/UpdateAgentImpl.cpp" line="930"/>
         <source>Checking for update for %s ...</source>
-        <translation type="unfinished"></translation>
+        <translation>%s için güncelleme denetleniyor...</translation>
     </message>
     <message>
         <location filename="../src-server/UpdateAgentImpl.cpp" line="1053"/>
         <source>RTHttpCreate() failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>RTHttpCreate() başarısız oldu: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UpdateAgentImpl.cpp" line="1078"/>
         <source>RTHttpAddHeader() failed: %Rrc (user agent)</source>
-        <translation type="unfinished"></translation>
+        <translation>RTHttpAddHeader() başarısız oldu: %Rrc (kullanıcı tanıtıcı)</translation>
     </message>
     <message>
         <location filename="../src-server/UpdateAgentImpl.cpp" line="1087"/>
         <source>RTHttpGetBinary() failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>RTHttpGetBinary() başarısız oldu: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UpdateAgentImpl.cpp" line="1160"/>
         <source>Invalid server response [1]: %Rhrc (%.*Rhxs -- %.*Rhxs)</source>
-        <translation type="unfinished"></translation>
+        <translation>Geçersiz sunucu yanıtı [1]: %Rhrc (%.*Rhxs -- %.*Rhxs)</translation>
     </message>
     <message>
         <location filename="../src-server/UpdateAgentImpl.cpp" line="1167"/>
         <source>Invalid server response [2]: %Rrc (%.*Rhxs -- %.*Rhxs)</source>
-        <translation type="unfinished"></translation>
+        <translation>Geçersiz sunucu yanıtı: [2]: %Rrc (%.*Rhxs -- %.*Rhxs)</translation>
     </message>
 </context>
 <context>
@@ -5955,6 +6447,19 @@ Guest offers: %s</source>
         <location filename="../src-server/HostVideoInputDeviceImpl.cpp" line="233"/>
         <source>Failed to get webcam list: %Rrc</source>
         <translation>Web kamera listesi alma başarısız: %Rrc</translation>
+    </message>
+</context>
+<context>
+    <name>HostX86</name>
+    <message>
+        <location filename="../src-server/HostX86Impl.cpp" line="97"/>
+        <source>CPU no.%u is not present</source>
+        <translation>İşlemci no.%u mevcut değil</translation>
+    </message>
+    <message>
+        <location filename="../src-server/HostX86Impl.cpp" line="98"/>
+        <source>CPU no.%u is not online</source>
+        <translation>İşlemci no.%u çevrimiçi değil</translation>
     </message>
 </context>
 <context>
@@ -5973,43 +6478,43 @@ Guest offers: %s</source>
 <context>
     <name>Machine</name>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="422"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="443"/>
         <source>Cannot attach disk &apos;%s&apos; -- file name too long</source>
         <translation>&apos;%s&apos; diski takılamıyor -- dosya adı çok uzun</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="465"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="486"/>
         <source>Internal error adding a medium UUID to the map</source>
         <translation>Eşlemeye bir ortam UUID&apos;si eklerken dahili hata oldu</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="513"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="534"/>
         <source>Cannot attach image &apos;%s&apos; -- file name too long</source>
         <translation>&apos;%s&apos; kalıbı takılamıyor -- dosya adı çok uzun</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="553"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="574"/>
         <source>Cannot handle medium attachment: channel is %d, device is %d</source>
         <translation>Ortam takma işlenemiyor: kanal %d, aygıt %d</translation>
     </message>
     <message>
-        <location filename="../src-server/ApplianceImplExport.cpp" line="579"/>
+        <location filename="../src-server/ApplianceImplExport.cpp" line="605"/>
         <source>Cannot handle medium attachment: storageBus is %d, channel is %d, device is %d</source>
         <translation>Ortam takma işlenemiyor: storageBus %d, kanal %d, aygıt %d</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="664"/>
+        <location filename="../src-server/MachineImpl.cpp" line="636"/>
         <source>Trying to open a VM config &apos;%s&apos; which has the same UUID as an existing virtual machine</source>
         <translation>Varolan bir sanal makine ile aynı UUID&apos;ye sahip bir &apos;%s&apos; VM yapılandırması açılmaya çalışılıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="870"/>
-        <location filename="../src-server/MachineImpl.cpp" line="917"/>
+        <location filename="../src-server/MachineImpl.cpp" line="843"/>
+        <location filename="../src-server/MachineImpl.cpp" line="890"/>
         <source>Invalid machine settings file name &apos;%s&apos; (%Rrc)</source>
         <translation>Geçersiz makine ayarları dosya adı &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="906"/>
+        <location filename="../src-server/MachineImpl.cpp" line="879"/>
         <source>Machine settings file &apos;%s&apos; already exists</source>
         <translation>Makine ayarları dosyası &apos;%s&apos; zaten var</translation>
     </message>
@@ -6018,198 +6523,194 @@ Guest offers: %s</source>
         <translation type="vanished">Varolan &apos;%s&apos; ayarlar dosyası silinemedi (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="983"/>
+        <location filename="../src-server/MachineImpl.cpp" line="956"/>
         <source>Machine UUID {%RTuuid} in &apos;%s&apos; doesn&apos;t match its UUID {%s} in the registry file &apos;%s&apos;</source>
         <translation>&apos;%s&apos; içindeki makine {%RTuuid} UUID&apos;si, kendi {%s} UUID&apos;si ile &apos;%s&apos; kayıt defteri dosyasında eşleşmiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="1280"/>
+        <location filename="../src-server/MachineImpl.cpp" line="1261"/>
         <source>A machine cannot have a UUID as its name</source>
         <translation>Bir makinenin adı UUID olamaz</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="1699"/>
+        <location filename="../src-server/MachineImpl.cpp" line="1575"/>
         <source>Invalid hardware version: %s
 </source>
         <translation>Geçersiz donanım sürümü: %s
 </translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="1761"/>
+        <location filename="../src-server/MachineImpl.cpp" line="1637"/>
         <source>Invalid RAM size: %lu MB (must be in range [%lu, %lu] MB)</source>
         <translation>Geçersiz bellek boyutu: %lu MB ([%lu, %lu] MB aralığında olmak zorundadır)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="1792"/>
+        <location filename="../src-server/MachineImpl.cpp" line="1668"/>
         <source>Invalid virtual CPU count: %lu (must be in range [%lu, %lu])</source>
         <translation>Geçersiz sanal işlemci sayısı: %lu ([%lu, %lu] aralığında olmak zorundadır)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="1804"/>
+        <location filename="../src-server/MachineImpl.cpp" line="1680"/>
         <source>There is still a CPU attached to socket %lu.Detach the CPU before removing the socket</source>
         <translation>Hala %lu soketine takılı bir işlemci var. Soketi kaldırmadan önce işlemciyi sökün</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="1836"/>
+        <location filename="../src-server/MachineImpl.cpp" line="1712"/>
         <source>Invalid CPU execution cap value: %lu (must be in range [%lu, %lu])</source>
         <translation>Geçersiz işlemci çalıştırma sınır değeri: %lu ([%lu, %lu] aralığında olmak zorundadır)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="1910"/>
+        <location filename="../src-server/MachineImpl.cpp" line="1786"/>
         <source>CPU hotplugging can&apos;t be disabled because the maximum number of CPUs is not equal to the amount of CPUs attached</source>
         <translation>En fazla işlemci sayısı, takılı işlemci miktarına eşit olmadığından işlemciyi çalışırken takma etkisizleştirilemez</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="2049"/>
+        <location filename="../src-server/MachineImpl.cpp" line="1901"/>
         <source>Invalid memory balloon size: %lu MB (must be in range [%lu, %lu] MB)</source>
         <translation>Geçersiz bellek şişirme boyutu: %lu MB ([%lu, %lu] MB aralığında olmak zorundadır)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="2064"/>
+        <location filename="../src-server/MachineImpl.cpp" line="1916"/>
         <source>Memory ballooning is only supported on 64-bit hosts</source>
         <translation>Bellek şişirme yalnızca 64-bit anamakinelerde desteklenir</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="2091"/>
+        <location filename="../src-server/MachineImpl.cpp" line="1943"/>
         <source>Page fusion is only supported on 64-bit hosts</source>
         <translation>Sayfa birleştirme yalnızca 64-bit anamakinelerde desteklenir</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="2395"/>
         <source>Currently only aSubIdx values 0 and 0xffffffff are supported: %#x</source>
-        <translation>Şu anda yalnızca aSubIdx değerleri 0 ve 0xffffffff destekleniyor: %#x</translation>
+        <translation type="vanished">Şu anda yalnızca aSubIdx değerleri 0 ve 0xffffffff destekleniyor: %#x</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="2399"/>
         <source>CpuId override leaf %#x is out of range</source>
-        <translation>CpuId geçersiz kılma yaprağı %#x aralığın dışında</translation>
+        <translation type="vanished">CpuId geçersiz kılma yaprağı %#x aralığın dışında</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="2409"/>
         <source>Max of 256 CPUID override leaves reached</source>
-        <translation>En fazla 256 CPUID geçersiz kılma yaprağına ulaşıldı</translation>
+        <translation type="vanished">En fazla 256 CPUID geçersiz kılma yaprağına ulaşıldı</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="2629"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2015"/>
         <source>The snapshot folder of a machine with snapshots cannot be changed (please delete all snapshots first)</source>
         <translation>Anlık görüntüler içeren bir makinenin anlık görüntü klasörü değiştirilemez (lütfen önce tüm anlık görüntüleri silin)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="2638"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2024"/>
         <source>Invalid snapshot folder &apos;%s&apos; (%Rrc)</source>
         <translation>Geçersiz anlık görüntü klasörü &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3023"/>
-        <location filename="../src-server/MachineImpl.cpp" line="3144"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2409"/>
         <source>The machine is not powered off (state is %s)</source>
         <translation>Makine gücü kapalı değil (durumu %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3045"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2431"/>
         <source>Invalid port number %d</source>
         <translation>Geçersiz bağlantı noktası numarası %d</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3100"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2486"/>
         <source>Cannot set an already hashed password, only plain text password please</source>
         <translation>Zaten adreslenmiş bir parola ayarlanamıyor, lütfen yalnızca düz metin parolası</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3273"/>
-        <location filename="../src-server/MachineImpl.cpp" line="3702"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2624"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3053"/>
         <source>The given session is busy</source>
         <translation>Belirtilen oturum meşgul</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3277"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2628"/>
         <source>No IInternalSessionControl interface</source>
         <translation>IIInternalSessionControl arayüzü yok</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3287"/>
-        <location filename="../src-server/MachineImpl.cpp" line="7808"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2638"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7192"/>
         <source>The machine &apos;%s&apos; is not registered</source>
         <translation>&apos;%s&apos; makinesi kayıtlı değil</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3341"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2692"/>
         <source>Failed to get a console object from the direct session (%Rhrc)</source>
         <translation>Doğrudan oturumdan bir konsol nesnesi alma başarısız (%Rhrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3352"/>
-        <location filename="../src-server/MachineImpl.cpp" line="3492"/>
-        <location filename="../src-server/MachineImpl.cpp" line="8084"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2703"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2843"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7468"/>
         <source>Failed to assign the machine to the session (%Rhrc)</source>
         <translation>Makineyi oturuma atama başarısız (%Rhrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3360"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2711"/>
         <source>The machine &apos;%s&apos; was unlocked unexpectedly while attempting to share its session</source>
         <translation>Oturumunu paylaşmaya çalışırken &apos;%s&apos; makinesinin kilidi beklenmedik bir şekilde açıldı</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3373"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2724"/>
         <source>The machine &apos;%s&apos; is already locked for a session (or being unlocked)</source>
         <translation>&apos;%s&apos; makinesi zaten bir oturum için kilitlendi (veya kilidi açılıyor)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3400"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2751"/>
         <source>The machine &apos;%s&apos; already has a lock request pending</source>
         <translation>&apos;%s&apos; makinesinin zaten beklemede olan bir kilitleme isteği var</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3428"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2779"/>
         <source>An unexpected process (PID=0x%08X) has tried to lock the machine &apos;%s&apos;, while only the process started by LaunchVMProcess (PID=0x%08X) is allowed</source>
         <translation>Yalnızca LaunchVMProcess (PID=0x%08X) tarafından başlatılan işleme izin verilirken beklenmeyen bir işlem (PID=0x%08X) &apos;%s&apos; makinesini kilitlemeye çalıştı</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3534"/>
+        <location filename="../src-server/MachineImpl.cpp" line="2885"/>
         <source>Failed to assign the machine to the remote session (%Rhrc)</source>
         <translation>Makinenin uzak oturuma atanması başarısız (%Rhrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3721"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3072"/>
         <source>Starting VM</source>
         <translation>VM başlatılıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3724"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3075"/>
         <source>Creating process for virtual machine &quot;%s&quot; (%s)</source>
         <translation>&quot;%s&quot; (%s) sanal makinesi için işlem oluşturuluyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3752"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3103"/>
         <source>The machine &apos;%s&apos; is not locked by a session</source>
         <translation>&apos;%s&apos; makinesi bir oturum tarafından kilitlenmedi</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3759"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3110"/>
         <source>The machine &apos;%s&apos; does not have a VM process</source>
         <translation>&apos;%s&apos; makinesinde VM işlemi yok</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3778"/>
-        <location filename="../src-server/MachineImpl.cpp" line="3801"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3129"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3152"/>
         <source>Invalid boot position: %lu (must be in range [1, %lu])</source>
         <translation>Geçersiz önyükleme konumu: %lu ([1, %lu] aralığında olmak zorundadır)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3783"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3134"/>
         <source>Booting from USB device is currently not supported</source>
         <translation>USB aygıtından önyükleme şu anda desteklenmiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3832"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3183"/>
         <source>Cannot attach storage devices to an unregistered machine</source>
         <translation>Kayıtlı olmayan bir makineye depolama aygıtları takılamaz</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3844"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4423"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4508"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4721"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3195"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3774"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3859"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4072"/>
         <source>Could not get type of controller &apos;%s&apos;</source>
         <translation>&apos;%s&apos; denetleyici türü alınamadı</translation>
     </message>
@@ -6218,46 +6719,46 @@ Guest offers: %s</source>
         <translation type="vanished">&apos;%s&apos; denetleyicisi çalışırken takmayı desteklemiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3880"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3231"/>
         <source>Medium &apos;%s&apos; is already attached to port %d, device %d of controller &apos;%s&apos; of this virtual machine</source>
         <translation>&apos;%s&apos; ortamı, bu sanal makinenin %d nolu bağlantı noktasına, &apos;%s&apos; denetleyicisinin %d nolu aygıtına, zaten eklenmiş</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3888"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3239"/>
         <source>Device is already attached to port %d, device %d of controller &apos;%s&apos; of this virtual machine</source>
         <translation>Aygıt, bu sanal makinenin %d nolu bağlantı noktasına, &apos;%s&apos; denetleyicisinin %d nolu aygıtına, zaten eklenmiş</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3894"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4871"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3245"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4222"/>
         <source>The given medium pointer is invalid</source>
         <translation>Verilen ortam işaretçisi geçersiz</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3908"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3259"/>
         <source>Medium &apos;%s&apos; is already attached to this virtual machine</source>
         <translation>&apos;%s&apos; ortamı bu sanal makineye zaten eklenmiş</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3935"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3286"/>
         <source>Cannot attach medium &apos;%s&apos;: the media type &apos;MultiAttach&apos; can only be attached to machines that were created with VirtualBox 4.0 or later</source>
         <translation>&apos;%s&apos; ortamı takılamıyor: &apos;MultiAttach&apos; ortam türü yalnızca VirtualBox 4.0 veya sonrası ile oluşturulmuş makinelere takılabilir</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4266"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3617"/>
         <source>Could not lock medium when creating diff &apos;%s&apos;</source>
         <translation>&apos;%s&apos; ayrımlaması oluşturulurken ortam kilitlenemedi</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4450"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4536"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4581"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4624"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4667"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4709"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4778"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4980"/>
-        <location filename="../src-server/MachineImpl.cpp" line="6200"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3801"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3887"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3932"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3975"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4018"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4060"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4129"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4331"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5553"/>
         <source>No storage device attached to device slot %d on port %d of controller &apos;%s&apos;</source>
         <translation>%d nolu aygıt yuvasına, &apos;%s&apos; denetleyicisinin %d nolu bağlantı noktasında takılı depolama aygıtı yok</translation>
     </message>
@@ -6270,104 +6771,104 @@ Guest offers: %s</source>
         <translation type="vanished">&apos;%s&apos; denetleyicisi, VM çalışırken içinden geçiş ayarını değiştirmek için gerekli olan çalışırken takmayı desteklemiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4547"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3898"/>
         <source>Setting passthrough rejected as the device attached to device slot %d on port %d of controller &apos;%s&apos; is not a DVD</source>
         <translation>%d nolu aygıt yuvasına, &apos;%s&apos; denetleyicisinin %d nolu bağlantı noktasında takılı aygıt bir DVD olmadığı için içinden geçişi ayarlama reddedildi</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4592"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3943"/>
         <source>Setting temporary eject flag rejected as the device attached to device slot %d on port %d of controller &apos;%s&apos; is not a DVD</source>
         <translation>%d nolu aygıt yuvasına, &apos;%s&apos; denetleyicisinin %d nolu bağlantı noktasında takılı aygıt bir DVD olmadığı için geçici çıkarma işaretini ayarlama reddedildi</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4615"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4658"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4700"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4769"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3966"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4009"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4051"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4120"/>
         <source>Invalid machine state: %s</source>
         <translation>Geçersiz makine durumu: %s</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4635"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3986"/>
         <source>Setting the non-rotational medium flag rejected as the device attached to device slot %d on port %d of controller &apos;%s&apos; is not a hard disk</source>
         <translation>%d nolu aygıt yuvasına, &apos;%s&apos; denetleyicisinin %d nolu bağlantı noktasında takılı aygıt bir sabit disk olmadığından dönmeyen ortam işaretini ayarlama reddedildi</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4678"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4029"/>
         <source>Setting the discard medium flag rejected as the device attached to device slot %d on port %d of controller &apos;%s&apos; is not a hard disk</source>
         <translation>%d nolu aygıt yuvasına, &apos;%s&apos; denetleyicisinin %d nolu bağlantı noktasında takılı aygıt bir sabit disk olmadığından ortam yoksayma işaretini ayarlama reddedildi</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4726"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4077"/>
         <source>Controller &apos;%s&apos; does not support changing the hot-pluggable device flag</source>
         <translation>&apos;%s&apos; denetleyicisi, çalışırken takılabilir aygıt işaretini değiştirmeyi desteklemiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4740"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4091"/>
         <source>Setting the hot-pluggable device flag rejected as the device attached to device slot %d on port %d of controller &apos;%s&apos; is a floppy drive</source>
         <translation>%d nolu aygıt yuvasına, &apos;%s&apos; denetleyicisinin %d nolu bağlantı noktasında takılı aygıt bir disket sürücüsü olduğundan, çalışırken takılabilir aygıt işaretini ayarlama reddedildi</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4788"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4139"/>
         <source>The given bandwidth group pointer is invalid</source>
         <translation>Verilen bant genişliği grubu işaretçisi geçersiz</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4860"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4211"/>
         <source>No drive attached to device slot %d on port %d of controller &apos;%s&apos;</source>
         <translation>%d nolu aygıt yuvasına, &apos;%s&apos; denetleyicisinin %d nolu bağlantı noktasında takılı sürücü yok</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4892"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4243"/>
         <source>The device at port %d, device %d of controller &apos;%s&apos; of this virtual machine is not removeable</source>
         <translation>Bu sanal makinenin %d nolu bağlantı noktasında, &apos;%s&apos; denetleyicisinin %d nolu aygıtındaki cihaz kaldırılabilir değil</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4996"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4347"/>
         <source>Serial port slot %RU32 is out of bounds (max %zu)</source>
         <translation>Seri bağlantı noktası yuvası %RU32 sınırların dışında (en fazla %zu)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5007"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4358"/>
         <source>Parallel port slot %RU32 is out of bounds (max %zu)</source>
         <translation>Paralel bağlantı noktası yuvası %RU32 sınırların dışında (en fazla %zu)</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/MachineImpl.cpp" line="5017"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4368"/>
         <source>No network adapter in slot %RU32 (total %RU32 adapters)</source>
         <translation>
             <numerusform>%RU32 yuvasında ağ bağdaştırıcısı yok (toplam %RU32 bağdaştırıcı)</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5096"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4447"/>
         <source>Cannot set extradata for a snapshot</source>
         <translation>Bir anlık görüntü için fazladan veri ayarlanamaz</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5101"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4452"/>
         <source>Cannot set extradata for an immutable machine</source>
         <translation>Değiştirilemez bir makine için fazladan veri ayarlanamaz</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5120"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4471"/>
         <source>Could not set extra data because someone refused the requested change of &apos;%s&apos; to &apos;%s&apos;%s%ls</source>
         <translation>Birisi istenen &apos;%s&apos; değişikliğini &apos;%s&apos;%s%ls olarak reddettiğinden fazladan veri ayarlanamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5266"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4617"/>
         <source>Cannot unregister the machine &apos;%s&apos; while it is locked</source>
         <translation>&apos;%s&apos; makinesi kilitliyken kaydı kaldırılamaz</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5428"/>
-        <location filename="../src-server/MachineImpl.cpp" line="16476"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4779"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15837"/>
         <source>The session has been accidentally closed</source>
         <translation>Oturum yanlışlıkla kapatıldı</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5461"/>
-        <location filename="../src-server/MachineImpl.cpp" line="5496"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4812"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4847"/>
         <source>Deleting &apos;%s&apos;</source>
         <translation>&apos;%s&apos; siliniyor</translation>
     </message>
@@ -6376,720 +6877,720 @@ Guest offers: %s</source>
         <translation type="vanished">&apos;%s&apos; dosyası silinemedi (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="380"/>
-        <location filename="../src-server/MachineImpl.cpp" line="613"/>
-        <location filename="../src-server/MachineImpl.cpp" line="16678"/>
-        <location filename="../src-server/MachineImpl.cpp" line="16810"/>
-        <location filename="../src-server/MachineImpl.cpp" line="16850"/>
-        <location filename="../src-server/MachineImpl.cpp" line="16891"/>
-        <location filename="../src-server/MachineImpl.cpp" line="16954"/>
-        <location filename="../src-server/MachineImpl.cpp" line="16971"/>
-        <location filename="../src-server/MachineImpl.cpp" line="17009"/>
+        <location filename="../src-server/MachineImpl.cpp" line="353"/>
+        <location filename="../src-server/MachineImpl.cpp" line="585"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16039"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16171"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16211"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16252"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16315"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16332"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16370"/>
         <source>Full VM encryption is not available with this build</source>
-        <translation type="unfinished"></translation>
+        <translation>Bu yapımda tam VM şifrelemesi mevcut değildir</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="413"/>
+        <location filename="../src-server/MachineImpl.cpp" line="386"/>
         <source>The cipher &apos;%s&apos; is not supported</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; şifresi desteklenmiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="421"/>
-        <location filename="../src-server/MachineImpl.cpp" line="16546"/>
+        <location filename="../src-server/MachineImpl.cpp" line="394"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15907"/>
         <source>New key store creation failed, (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Yeni anahtar deposu oluşturma başarısız oldu, (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="432"/>
-        <location filename="../src-server/MachineImpl.cpp" line="16564"/>
+        <location filename="../src-server/MachineImpl.cpp" line="405"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15925"/>
         <source>Saving the key store failed, (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Anahtar deposunu kaydetme başarısız oldu, (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="688"/>
+        <location filename="../src-server/MachineImpl.cpp" line="660"/>
         <source>Decryption of the machine {%RTuuid} failed. Incorrect or unknown password</source>
-        <translation type="unfinished"></translation>
+        <translation>{%RTuuid} makinesinin şifresinin çözülmesi başarısız oldu. Yanlış veya bilinmeyen parola</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="911"/>
+        <location filename="../src-server/MachineImpl.cpp" line="884"/>
         <source>existing settings file</source>
-        <translation type="unfinished"></translation>
+        <translation>varolan ayarlar dosyası</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="965"/>
+        <location filename="../src-server/MachineImpl.cpp" line="938"/>
         <source>Failed to retain key for key ID &apos;%s&apos; with %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>%Rrc ile &apos;%s&apos; anahtar kimliğine ait anahtarı saklamak başarısız</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="997"/>
+        <location filename="../src-server/MachineImpl.cpp" line="970"/>
         <source>Config decryption of the machine {%RTuuid} failed. Incorrect or unknown password</source>
-        <translation type="unfinished"></translation>
+        <translation>{%RTuuid} makinesinin yapılandırma şifresinin çözülmesi başarısız oldu. Yanlış veya bilinmeyen parola</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="3861"/>
-        <location filename="../src-server/MachineImpl.cpp" line="4441"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3212"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3792"/>
         <source>Controller &apos;%s&apos; does not support hot-plugging</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; denetleyicisi çalışırken takmayı desteklemiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4455"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3806"/>
         <source>The device slot %d on port %d of controller &apos;%s&apos; does not support hot-plugging</source>
-        <translation type="unfinished"></translation>
+        <translation>%d nolu aygıt yuvası, &apos;%s&apos; denetleyicisinin %d nolu bağlantı noktasında çalışırken takmayı desteklemiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="4527"/>
+        <location filename="../src-server/MachineImpl.cpp" line="3878"/>
         <source>Controller &apos;%s&apos; does not support hot-plugging which is required to change the passthrough setting while the VM is running</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; denetleyicisi, VM çalışırken içinden geçiş ayarını değiştirmek için gerekli olan çalışırken takmayı desteklemiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5501"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4852"/>
         <source>Cleaning up machine directory</source>
         <translation>Makine dizini temizleniyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5589"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4940"/>
         <source>Cannot delete settings of a registered machine</source>
         <translation>Kayıtlı bir makinenin ayarları silinemez</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5608"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4959"/>
         <source>The given medium pointer with index %d is invalid</source>
         <translation>%d indekse sahip verilen ortam işaretçisi geçersiz</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5623"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4974"/>
         <source>Deleting files</source>
         <translation>Dosyalar siliniyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5626"/>
+        <location filename="../src-server/MachineImpl.cpp" line="4977"/>
         <source>Collecting file inventory</source>
         <translation>Dosya envanteri toplanıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5680"/>
-        <location filename="../src-server/MachineImpl.cpp" line="9432"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5031"/>
+        <location filename="../src-server/MachineImpl.cpp" line="8810"/>
         <source>Shared folder named &apos;%s&apos; already exists</source>
         <translation>&apos;%s&apos; adlı paylaşılan klasör zaten var</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5737"/>
-        <location filename="../src-server/MachineImpl.cpp" line="5760"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5090"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5113"/>
         <source>Machine is not locked for session (session state: %s)</source>
         <translation>Makine oturum için kilitli değil (oturum durumu: %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5883"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5236"/>
         <source>Invalid guest property flag values: &apos;%s&apos;</source>
         <translation>Geçersiz misafir özelliği işareti değerleri: &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5886"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5239"/>
         <source>Properties with TRANSIENT or TRANSRESET flag cannot be set or modified if VM is not running</source>
-        <translation type="unfinished"></translation>
+        <translation>TRANSIENT veya TRANSRESET işaretine sahip özellikler, VM çalışmıyorsa ayarlanamaz veya değiştirilemez</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="5908"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5261"/>
         <source>The property &apos;%s&apos; cannot be changed by the host</source>
         <translation>&apos;%s&apos; özelliği anamakine tarafından değiştirilemez</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6216"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5569"/>
         <source>Invalid connection type: %d</source>
         <translation>Geçersiz bağlantı türü: %d</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6230"/>
-        <location filename="../src-server/MachineImpl.cpp" line="9582"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5583"/>
+        <location filename="../src-server/MachineImpl.cpp" line="8961"/>
         <source>Storage controller named &apos;%s&apos; already exists</source>
         <translation>&apos;%s&apos; adlı depolama denetleyicisi zaten var</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6306"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5659"/>
         <source>Could not find a storage controller with instance number &apos;%lu&apos;</source>
         <translation>Örnek numarası &apos;%lu&apos; olan bir depolama denetleyicisi bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6429"/>
-        <location filename="../src-server/MachineImpl.cpp" line="6494"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5782"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5852"/>
         <source>Invalid USB controller type: %d</source>
         <translation>Geçersiz USB denetleyicisi türü: %d</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6443"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5796"/>
         <source>USB controller named &apos;%s&apos; already exists</source>
         <translation>&apos;%s&apos; adlı USB denetleyicisi zaten var</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6455"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5813"/>
         <source>Too many USB controllers of this type</source>
         <translation>Bu türden çok fazla USB denetleyicisi</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6564"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5922"/>
         <source>Saved guest size is not available (%Rrc)</source>
         <translation>Kaydedilmiş misafir boyutu mevcut değil (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6588"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5946"/>
         <source>Unsupported saved thumbnail format 0x%08X</source>
         <translation>Desteklenmeyen kaydedilmiş küçük resim biçimi 0x%08X</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6606"/>
+        <location filename="../src-server/MachineImpl.cpp" line="5964"/>
         <source>Saved thumbnail data is not available (%Rrc)</source>
         <translation>Kaydedilmiş küçük resim verisi mevcut değil (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6663"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6021"/>
         <source>Could not convert saved thumbnail to PNG (%Rrc)</source>
         <translation>Kaydedilmiş küçük resim PNG&apos;ye dönüştürülemedi (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6699"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6057"/>
         <source>Saved screenshot data is not available (%Rrc)</source>
         <translation>Kaydedilmiş ekran görüntüsü verisi mevcut değil (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6741"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6099"/>
         <source>Saved screenshot thumbnail data is not available (%Rrc)</source>
         <translation>Kaydedilmiş ekran görüntüsü küçük resim verisi mevcut değil (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6761"/>
-        <location filename="../src-server/MachineImpl.cpp" line="6793"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6119"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6151"/>
         <source>CPU hotplug is not enabled</source>
         <translation>İşlemci çalışırken takma etkinleştirilmedi</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6764"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6122"/>
         <source>CPU id exceeds number of possible CPUs [0:%lu]</source>
         <translation>İşlemci kimliği olası işlemci sayısını aşıyor [0:%lu]</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6767"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6125"/>
         <source>CPU %lu is already attached</source>
         <translation>İşlemci %lu zaten takılı</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6797"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6155"/>
         <source>CPU index exceeds maximum CPU count (must be in range [0:%lu])</source>
         <translation>İşlemci indeksi en fazla işlemci sayısını aşıyor ([0:%lu] aralığında olmak zorundadır)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6801"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6159"/>
         <source>CPU %lu is not attached</source>
         <translation>İşlemci %lu takılı değil</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6805"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6163"/>
         <source>It is not possible to detach CPU 0</source>
         <translation>İşlemci 0&apos;ı sökmek mümkün değil</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6862"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6220"/>
         <source>The size argument (%lld) is negative</source>
         <translation>Boyut bağımsız değişkeni (%lld) negatif</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6930"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6288"/>
         <source>Could not read log file &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; günlük dosyası okunamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6935"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6293"/>
         <source>Could not open log file &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; günlük dosyası açılamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6963"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6322"/>
         <source>Host PCI attachment only supported with ICH9 chipset</source>
         <translation>Anamakine PCI takma yalnızca ICH9 yonga seti ile desteklenir</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="6978"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6337"/>
         <source>Device with host PCI address already attached to this VM</source>
         <translation>Anamakine PCI adresine sahip aygıt zaten bu VM&apos;ye takılı</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7047"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6406"/>
         <source>No host PCI device %08x attached</source>
         <translation>Takılı anamakine PCI aygıtı %08x yok</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7184"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6543"/>
         <source>The VM autostart feature is not supported on this platform</source>
         <translation>VM otomatik başlatma özelliği bu platformda desteklenmiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7187"/>
-        <location filename="../src-server/MachineImpl.cpp" line="7261"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6546"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6620"/>
         <source>The path to the autostart database is not set</source>
         <translation>Otomatik başlatma veritabanına giden yol ayarlı değil</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7191"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6550"/>
         <source>Adding machine &apos;%s&apos; to the autostart database failed with %Rrc</source>
         <translation>&apos;%s&apos; makinesinin otomatik başlatma veritabanına eklenmesi %Rrc ile başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7192"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6551"/>
         <source>Removing machine &apos;%s&apos; from the autostart database failed with %Rrc</source>
         <translation>&apos;%s&apos; makinesinin otomatik başlatma veritabanından kaldırılması %Rrc ile başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7258"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6617"/>
         <source>The VM autostop feature is not supported on this platform</source>
         <translation>VM otomatik durdurma özelliği bu platformda desteklenmiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7265"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6624"/>
         <source>Adding machine &apos;%s&apos; to the autostop database failed with %Rrc</source>
         <translation>&apos;%s&apos; makinesinin otomatik durdurma veritabanına eklenmesi %Rrc ile başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7266"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6625"/>
         <source>Removing machine &apos;%s&apos; from the autostop database failed with %Rrc</source>
         <translation>&apos;%s&apos; makinesinin otomatik durdurma veritabanından kaldırılması %Rrc ile başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7382"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6766"/>
         <source>Linked clone can only be created from a snapshot</source>
         <translation>Bağlantılı kopya yalnızca bir anlık görüntüden oluşturulabilir</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7385"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6769"/>
         <source>Linked clone can only be created for a single machine state</source>
         <translation>Bağlantılı kopya yalnızca tek bir makine durumu için oluşturulabilir</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7434"/>
+        <location filename="../src-server/MachineImpl.cpp" line="6818"/>
         <source>Failed to create a worker thread for the MachineMoveVM task</source>
         <translation>MachineMoveVM görevi için bir çalışan iş parçacığı oluşturma başarısız</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7821"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7205"/>
         <source>The machine &apos;%s&apos; is in a state which is incompatible with launching a separate UI process</source>
         <translation>&apos;%s&apos; makinesi, ayrı bir KA işlemi başlatmakla uyumlu olmayan bir durumda</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7830"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7214"/>
         <source>The machine &apos;%s&apos; is already locked by a session (or being locked or unlocked)</source>
         <translation>&apos;%s&apos; makinesi zaten bir oturum tarafından kilitlendi (veya kilitleniyor ya da kilidi açılıyor)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7843"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7227"/>
         <source>hardening log file</source>
-        <translation type="unfinished"></translation>
+        <translation>sağlamlaştırma günlük dosyası</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="7902"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7286"/>
         <source>Invalid frontend name: &apos;%s&apos;</source>
         <translation>Geçersiz ön uç adı: &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8012"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7396"/>
         <source>Failed to start the machine &apos;%s&apos;. A connection to VBoxSDS cannot be established</source>
         <translation>&apos;%s&apos; makinesini başlatma başarısız. VBoxSDS ile bağlantı kurulamıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8028"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7412"/>
         <source>Failed to start the machine &apos;%s&apos;. CoSetProxyBlanket failed</source>
         <translation>&apos;%s&apos; makinesini başlatma başarısız. CoSetProxyBlanket başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8040"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7424"/>
         <source>Failed to start the machine &apos;%s&apos;. Process creation failed</source>
         <translation>&apos;%s&apos; makinesini başlatma başarısız. İşlem oluşturma başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8050"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7434"/>
         <source>Could not launch the VM process for the machine &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; makinesi için VM işlemi başlatılamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8232"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7616"/>
         <source>.  More details may be available in &apos;%s&apos;</source>
         <translation>.  Daha fazla ayrıntı &apos;%s&apos; içinde mevcut olabilir</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8237"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7621"/>
         <source>The virtual machine &apos;%s&apos; has terminated unexpectedly during startup with exit code %d (%#x)%s</source>
         <translation>&apos;%s&apos; sanal makinesi başlatma sırasında %d (%#x)%s çıkış koduyla beklenmedik bir şekilde sonlandırıldı</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8241"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7625"/>
         <source>The virtual machine &apos;%s&apos; has terminated unexpectedly during startup because of signal %d%s</source>
         <translation>&apos;%s&apos; sanal makinesi, başlatma sırasında %d%s sinyali nedeniyle beklenmedik bir şekilde sonlandırıldı</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8245"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7629"/>
         <source>The virtual machine &apos;%s&apos; has terminated abnormally (iStatus=%#x)%s</source>
         <translation>&apos;%s&apos; sanal makinesi anormal bir şekilde sonlandırıldı (iStatus=%#x)%s</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8249"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7633"/>
         <source>The virtual machine &apos;%s&apos; has terminated unexpectedly during startup (%Rrc)%s</source>
         <translation>&apos;%s&apos; sanal makinesi başlatma sırasında (%Rrc)%s beklenmedik bir şekilde sonlandırıldı</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8306"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7690"/>
         <source>The machine &apos;%s&apos; with UUID {%s} is inaccessible and cannot be registered</source>
         <translation>&apos;%s&apos; makinesine ({%s} UUID&apos;sine sahip) erişilemez ve kaydettirilemez</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8314"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7698"/>
         <source>The machine &apos;%s&apos; with UUID {%s} is already registered</source>
         <translation>&apos;%s&apos; makinesi ({%s} UUID&apos;sine sahip) zaten kayıtlı</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8393"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7777"/>
         <source>Machine state change is in progress. Please retry the operation later.</source>
         <translation>Makine durumu değişikliği devam ediyor. Lütfen işlemi daha sonra yeniden deneyin.</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8512"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7901"/>
         <source>The machine is not mutable (state is %s)</source>
         <translation>Makine değiştirilebilir değil (durum %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8529"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7918"/>
         <source>The machine is not mutable or saved (state is %s)</source>
         <translation>Makine değiştirilebilir değil veya kaydedildi (durum %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8545"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7934"/>
         <source>The machine is not mutable or running (state is %s)</source>
         <translation>Makine değiştirilebilir değil veya çalışıyor (durum %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8563"/>
+        <location filename="../src-server/MachineImpl.cpp" line="7952"/>
         <source>The machine is not mutable, saved or running (state is %s)</source>
         <translation>Makine değiştirilebilir değil, kaydedildi veya çalışıyor (durum %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="8956"/>
+        <location filename="../src-server/MachineImpl.cpp" line="8368"/>
         <source>Could not find a shared folder named &apos;%s&apos;</source>
         <translation>&apos;%s&apos; adlı bir paylaşılan klasör bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9014"/>
-        <location filename="../src-server/MachineImpl.cpp" line="9138"/>
+        <location filename="../src-server/MachineImpl.cpp" line="8426"/>
+        <location filename="../src-server/MachineImpl.cpp" line="8550"/>
         <source>Invalid saved state file path &apos;%s&apos; (%Rrc)</source>
         <translation>Geçersiz kaydedildi durumu dosyası yolu &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9646"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9025"/>
         <source>Duplicate attachments for storage controller &apos;%s&apos;, port %d, device %d of the virtual machine &apos;%s&apos;</source>
         <translation>&apos;%s&apos; depolama denetleyicisi, %d nolu bağlantı noktası, %d nolu aygıtı için &apos;%s&apos; sanal makinesine ait kopya takmalar</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9694"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9073"/>
         <source>A differencing image of snapshot {%RTuuid} could not be found. %ls</source>
         <translation>{%RTuuid} anlık görüntüsünün bir ayrımlama kalıbı bulunamadı. %ls</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9707"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9086"/>
         <source>Immutable hard disk &apos;%s&apos; with UUID {%RTuuid} cannot be directly attached to snapshot with UUID {%RTuuid} of the virtual machine &apos;%s&apos; (&apos;%s&apos;)</source>
         <translation>{%RTuuid} UUID&apos;sine sahip &apos;%s&apos; değiştirilemez sabit disk, &apos;%s&apos; (&apos;%s&apos;) sanal makinesinin {%RTuuid} UUID&apos;sine sahip anlık görüntüsüne doğrudan takılamaz</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9716"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9095"/>
         <source>Immutable hard disk &apos;%s&apos; with UUID {%RTuuid} cannot be directly attached to the virtual machine &apos;%s&apos; (&apos;%s&apos;)</source>
         <translation>{%RTuuid} UUID&apos;sine sahip &apos;%s&apos; değiştirilemez sabit disk, &apos;%s&apos; (&apos;%s&apos;) sanal makinesine doğrudan takılamaz</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9727"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9106"/>
         <source>Multi-attach hard disk &apos;%s&apos; with UUID {%RTuuid} cannot be directly attached to snapshot with UUID {%RTuuid} of the virtual machine &apos;%s&apos; (&apos;%s&apos;)</source>
         <translation>{%RTuuid} UUID&apos;sine sahip &apos;%s&apos; çoklu takma sabit disk, &apos;%s&apos; (&apos;%s&apos;) sanal makinesinin {%RTuuid} UUID&apos;sine sahip anlık görüntüsüne doğrudan takılamaz</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9736"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9115"/>
         <source>Multi-attach hard disk &apos;%s&apos; with UUID {%RTuuid} cannot be directly attached to the virtual machine &apos;%s&apos; (&apos;%s&apos;)</source>
         <translation>{%RTuuid} UUID&apos;sine sahip &apos;%s&apos; çoklu takma sabit disk, &apos;%s&apos; (&apos;%s&apos;) sanal makinesine doğrudan takılamaz</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9747"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9126"/>
         <source>Hard disk &apos;%s&apos; with UUID {%RTuuid} cannot be directly attached to the virtual machine &apos;%s&apos; (&apos;%s&apos;) because it has %d differencing child hard disks</source>
         <translation>{%RTuuid} UUID&apos;sine sahip &apos;%s&apos; sabit diski, &apos;%s&apos; (&apos;%s&apos;) sanal makinesi %d ayrımlama alt sabit diskine sahip olduğundan buna doğrudan takılamaz</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9758"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9137"/>
         <source>Hard disk &apos;%s&apos; with UUID {%RTuuid} is already attached to the virtual machine &apos;%s&apos; (&apos;%s&apos;)</source>
         <translation>{%RTuuid} UUID&apos;sine sahip &apos;%s&apos; sabit diski, &apos;%s&apos; (&apos;%s&apos;) sanal makinesine zaten takılı</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9769"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9148"/>
         <source>Controller &apos;%s&apos; port %u unit %u has device with unknown type (%d) - virtual machine &apos;%s&apos; (&apos;%s&apos;)</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; denetleyicisi %u bağlantı noktası %u birimi, bilinmeyen türde (%d) aygıta sahip - sanal makine &apos;%s&apos; (&apos;%s&apos;)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16326"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15687"/>
         <source>Obtain cipher for &apos;%s&apos; files failed (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; dosya için şifre elde etme başarısız oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16338"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15699"/>
         <source>Loading old key store for &apos;%s&apos; files failed, (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; dosya için eski anahtar deposunu yükleme başarısız oldu, (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16342"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15703"/>
         <source>Changing the password for &apos;%s&apos; files failed, (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; dosya için parolayı değiştirme başarısız oldu, (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16349"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15710"/>
         <source>Saving the key store for &apos;%s&apos; files failed, (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; dosya için anahtar deposunu kaydetme başarısız oldu, (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16366"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15727"/>
         <source>Getting file list for &apos;%s&apos; files failed, (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; dosya için dosya listesini alma başarısız oldu, (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16376"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15737"/>
         <source>Create new key store for &apos;%s&apos; files failed, (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; dosya için yeni anahtar deposu oluşturma başarısız oldu, (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16383"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15744"/>
         <source>Saving the new key store for &apos;%s&apos; files failed, (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; dosya için yeni anahtar deposunu kaydetme başarısız oldu, (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16412"/>
-        <location filename="../src-server/MachineImpl.cpp" line="16416"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15773"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15777"/>
         <source>Opening file &apos;%s&apos; failed, (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; dosyasını açma başarısız oldu, (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16422"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15783"/>
         <source>Changing encryption of the file &apos;%s&apos; failed with %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; dosyasının şifrelemesini değiştirme %Rrc ile başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16442"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15803"/>
         <source>Renaming the file &apos;%s&apos; failed, (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; dosyasını yeniden adlandırma başarısız oldu, (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16497"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15858"/>
         <source>The password given for the encrypted VM is incorrect</source>
-        <translation type="unfinished"></translation>
+        <translation>Şifrelenmiş VM için verilen parola yanlış</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16503"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15864"/>
         <source>The VM is not configured for encryption</source>
-        <translation type="unfinished"></translation>
+        <translation>VM şifreleme için yapılandırılmamış</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16507"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15868"/>
         <source>The password to decrypt the VM is incorrect</source>
-        <translation type="unfinished"></translation>
+        <translation>VM&apos;in şifresini çözmek için kullanılan parola yanlış</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16521"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15882"/>
         <source>A password must be given for the VM encryption</source>
-        <translation type="unfinished"></translation>
+        <translation>VM şifrelemesi için bir parola verilmek zorundadır</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16524"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15885"/>
         <source>A valid identifier for the password must be given</source>
-        <translation type="unfinished">Parola için geçerli bir tanımlayıcı verilmek zorundadır</translation>
+        <translation>Parola için geçerli bir tanımlayıcı verilmek zorundadır</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16528"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15889"/>
         <source>The password and password identifier must be empty if the output should be unencrypted</source>
-        <translation type="unfinished">Çıktının şifrelenmemiş olması gerekiyorsa parola ve parola tanımlayıcısı boş olmak zorundadır</translation>
+        <translation>Çıktının şifrelenmemiş olması gerekiyorsa parola ve parola tanımlayıcısı boş olmak zorundadır</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16554"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15915"/>
         <source>Loading old key store failed, (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Eski anahtar deposunu yükleme başarısız oldu, (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16557"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15918"/>
         <source>Changing the password failed, (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Parolayı değiştirme başarısız oldu, (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16606"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15967"/>
         <source>Change encryption of the SAV files</source>
-        <translation type="unfinished"></translation>
+        <translation>SAV dosyalarının şifrelemesini değiştir</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16618"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15979"/>
         <source>Change encryption of the NVRAM files</source>
-        <translation type="unfinished"></translation>
+        <translation>NVRAM dosyalarının şifrelemesini değiştir</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16625"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15986"/>
         <source>Getting NVRAM encryption settings failed (%Rhrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>NVRAM şifreleme ayarlarını alma başarısız oldu (%Rhrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16637"/>
+        <location filename="../src-server/MachineImpl.cpp" line="15998"/>
         <source>Setting NVRAM encryption settings failed (%Rhrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>NVRAM şifreleme ayarlarını ayarlama başarısız oldu (%Rhrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16639"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16000"/>
         <source>Change encryption of log files</source>
-        <translation type="unfinished"></translation>
+        <translation>Günlük dosyalarının şifrelemesini değiştir</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16650"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16011"/>
         <source>Change encryption of the config file</source>
-        <translation type="unfinished"></translation>
+        <translation>Yapılandırma dosyasının şifrelemesini değiştir</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16685"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16046"/>
         <source>Machine is inaccessible</source>
-        <translation type="unfinished"></translation>
+        <translation>Makineye erişilemez</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/MachineImpl.cpp" line="16737"/>
-        <location filename="../src-server/MachineImpl.cpp" line="16760"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16098"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16121"/>
         <source>Cannot encrypt medium &apos;%s&apos; because it is attached to %d virtual machines</source>
-        <translation type="unfinished">
+        <translation>
             <numerusform>&apos;%s&apos; ortamı, %d sanal makineye takılı olduğundan şifrelenemez</numerusform>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/MachineImpl.cpp" line="16743"/>
-        <location filename="../src-server/MachineImpl.cpp" line="16766"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16104"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16127"/>
         <source>Cannot encrypt medium &apos;%s&apos; because it has %d children</source>
-        <translation type="unfinished">
+        <translation>
             <numerusform>&apos;%s&apos; ortamı, %d alt ortama sahip olduğundan şifrelenemez</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16780"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16141"/>
         <source>Change encryption</source>
-        <translation type="unfinished"></translation>
+        <translation>Şifrelemeyi değiştir</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16783"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16144"/>
         <source>Change encryption of the mediuma</source>
-        <translation type="unfinished"></translation>
+        <translation>Ortamın şifrelemesini değiştir</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16834"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16195"/>
         <source>Failed to query the encryption settings with %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>%Rrc ile şifreleme ayarlarını sorgulama başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16838"/>
-        <location filename="../src-server/MachineImpl.cpp" line="16878"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16199"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16239"/>
         <source>This VM is not encrypted</source>
-        <translation type="unfinished"></translation>
+        <translation>Bu VM şifrelenmemiş</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16875"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16236"/>
         <source>The password supplied for the encrypted machine is incorrect</source>
-        <translation type="unfinished"></translation>
+        <translation>Şifrelenmiş makine için sağlanan parola yanlış</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16957"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16318"/>
         <source>Id and passwords arrays must have the same size</source>
-        <translation type="unfinished"></translation>
+        <translation>Kimlik ve parolaların dizilimleri aynı boyutta olmak zorundadır</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="16991"/>
-        <location filename="../src-server/MachineImpl.cpp" line="17016"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16352"/>
+        <location filename="../src-server/MachineImpl.cpp" line="16377"/>
         <source>The machine is in online or transient state</source>
-        <translation type="unfinished"></translation>
+        <translation>Makine çevrimiçi veya geçici durumda</translation>
     </message>
     <message>
         <source>Device &apos;%s&apos; with unknown type is attached to the virtual machine &apos;%s&apos; (&apos;%s&apos;)</source>
         <translation type="vanished">Türü bilinmeyen &apos;%s&apos; aygıtı, &apos;%s&apos; (&apos;%s&apos;) sanal makinesine takıldı</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9785"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9164"/>
         <source>Device &apos;%s&apos; with unknown bandwidth group &apos;%s&apos; is attached to the virtual machine &apos;%s&apos; (&apos;%s&apos;)</source>
         <translation>&apos;%s&apos; aygıtı (bilinmeyen &apos;%s&apos; bant genişliği grubuna sahip), &apos;%s&apos; (&apos;%s&apos;) sanal makinesine takıldı</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9859"/>
-        <location filename="../src-server/MachineImpl.cpp" line="9899"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9238"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9278"/>
         <source>This machine does not have any snapshots</source>
         <translation>Bu makine herhangi bir anlık görüntüye sahip değil</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9872"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9251"/>
         <source>Could not find a snapshot with UUID {%s}</source>
         <translation>{%s} UUID&apos;sine sahip anlık görüntü bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9909"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9288"/>
         <source>Could not find a snapshot named &apos;%s&apos;</source>
         <translation>&apos;%s&apos; adlı anlık görüntü bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="9943"/>
-        <location filename="../src-server/MachineImpl.cpp" line="9975"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9322"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9354"/>
         <source>Could not find a storage controller named &apos;%s&apos;</source>
         <translation>&apos;%s&apos; adlı bir depolama denetleyicisi bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="10122"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9501"/>
         <source>Could not rename the directory &apos;%s&apos; to &apos;%s&apos; to save the settings file (%Rrc)</source>
         <translation>Ayarlar dosyasını kaydetmek için &apos;%s&apos; dizini &apos;%s&apos; olarak yeniden adlandırılamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="10160"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9539"/>
         <source>Could not rename the settings file &apos;%s&apos; to &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; ayar dosyası &apos;%s&apos; olarak yeniden adlandırılamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="10256"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9635"/>
         <source>Could not create a directory &apos;%s&apos; to save the settings file (%Rrc)</source>
         <translation>Ayarlar dosyasını kaydetmek için &apos;%s&apos; dizini oluşturulamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="10269"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9648"/>
         <source>Could not create the settings file &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; ayarlar dosyası oluşturulamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="10323"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9702"/>
         <source>The machine is not accessible, so cannot save settings</source>
         <translation>Makine erişilebilir değil, bu yüzden ayarlar kaydedilemiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="10346"/>
+        <location filename="../src-server/MachineImpl.cpp" line="9725"/>
         <source>Failed to retain VM encryption password using ID &apos;%s&apos; with %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; kimliğini kullanarak %Rrc ile VM şifreleme parolasını saklama başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="11185"/>
+        <location filename="../src-server/MachineImpl.cpp" line="10532"/>
         <source>file</source>
-        <translation type="unfinished"></translation>
+        <translation>dosya</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="11290"/>
+        <location filename="../src-server/MachineImpl.cpp" line="10637"/>
         <source>Collecting locking information for all attached media failed</source>
         <translation>Takılan tüm ortamlar için kilitleme bilgilerinin toplanması başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="11299"/>
+        <location filename="../src-server/MachineImpl.cpp" line="10646"/>
         <source>Locking of attached media failed</source>
         <translation>Takılan ortamın kilitlenmesi başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="11333"/>
+        <location filename="../src-server/MachineImpl.cpp" line="10680"/>
         <source>Skipping attachment without medium</source>
         <translation>Ortam olmadan takma atlanıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="11336"/>
+        <location filename="../src-server/MachineImpl.cpp" line="10683"/>
         <source>Skipping medium &apos;%s&apos;</source>
         <translation>&apos;%s&apos; ortamı atlanıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="11346"/>
+        <location filename="../src-server/MachineImpl.cpp" line="10693"/>
         <source>Creating differencing hard disk for &apos;%s&apos;</source>
         <translation>&apos;%s&apos; için ayrımlama sabit diski oluşturuluyor</translation>
     </message>
@@ -7194,7 +7695,7 @@ Guest offers: %s</source>
     <message>
         <location filename="../src-client/MachineDebuggerImpl.cpp" line="151"/>
         <source>Writing the sample report to &apos;%s&apos; failed with %Rrc</source>
-        <translation>Örnek raporu &apos;%s&apos; için yazmak %Rrc ile başarısız oldu</translation>
+        <translation>Örnek raporu &apos;%s&apos; için yazma %Rrc ile başarısız oldu</translation>
     </message>
     <message>
         <location filename="../src-client/MachineDebuggerImpl.cpp" line="259"/>
@@ -7220,13 +7721,13 @@ Guest offers: %s</source>
         <translation>%s çok fazla veri döndürüyor</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="521"/>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="543"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="530"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="552"/>
         <source>DBGFR3OSQueryNameAndVersion failed with %Rrc</source>
         <translation>DBGFR3OSQueryNameAndVersion, %Rrc ile başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="600"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="609"/>
         <source>%u is out of range [2..20000]</source>
         <translation>%u aralığın dışında [2..20000]</translation>
     </message>
@@ -7235,136 +7736,136 @@ Guest offers: %s</source>
         <translation type="vanished">TMR3SetWarpDrive(, %u), rc=%Rrc ile başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="613"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="622"/>
         <source>TMR3SetWarpDrive(, %u) failed with vrc=%Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>TMR3SetWarpDrive(, %u), vrc=%Rrc ile başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="644"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="653"/>
         <source>The compression parameter must be empty</source>
         <translation>Sıkıştırma parametresi boş olmak zorundadır</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="655"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="664"/>
         <source>DBGFR3CoreWrite failed with %Rrc</source>
         <translation>DBGFR3CoreWrite, %Rrc ile başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="810"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="819"/>
         <source>DBGFR3Info failed with %Rrc</source>
         <translation>DBGFR3Info, %Rrc ile başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="830"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="839"/>
         <source>DBGFR3InjectNMI failed with %Rrc</source>
         <translation>DBGFR3InjectNMI, %Rrc ile başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="847"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="856"/>
         <source>DBGFR3LogModifyFlags failed with %Rrc</source>
         <translation>DBGFR3LogModifyFlags, %Rrc ile başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="864"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="873"/>
         <source>DBGFR3LogModifyGroups failed with %Rrc</source>
         <translation>DBGFR3LogModifyGroups, %Rrc ile başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="881"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="890"/>
         <source>DBGFR3LogModifyDestinations failed with %Rrc</source>
         <translation>DBGFR3LogModifyDestinations, %Rrc ile başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="967"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="976"/>
         <source>Plug-in &apos;%s&apos; was not found</source>
         <translation>&apos;%s&apos; eklentisi bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="969"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="978"/>
         <source>Error unloading &apos;%s&apos;: %Rrc</source>
         <translation>&apos;%s&apos; kaldırılırken hata oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="996"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1005"/>
         <source>DBGFR3OSDetect failed with %Rrc</source>
         <translation>DBGFR3OSDetect, %Rrc ile başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1035"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1044"/>
         <source>Too much log available, must use the maxMessages parameter to restrict.</source>
         <translation>Çok fazla günlük mevcut, kısıtlamak için maxMessages parametresini kullanmak zorundasınız.</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1043"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1052"/>
         <source>The dmesg interface isn&apos;t implemented by guest OS digger, or detectOS() has not been called.</source>
         <translation>Dmesg arayüsü, misafir İS kazıcısı tarafından uygulanmadı veya detectOS() çağrılmadı.</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1075"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1084"/>
         <source>Register &apos;%s&apos; was not found</source>
         <translation>&apos;%s&apos; kaydı bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1077"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1086"/>
         <source>Invalid CPU ID: %u</source>
         <translation>Geçersiz işlemci kimliği: %u</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1080"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1089"/>
         <source>DBGFR3RegNmQuery failed with vrc=%Rrc querying register &apos;%s&apos; with default cpu set to %u</source>
-        <translation type="unfinished"></translation>
+        <translation>DBGFR3RegNmQuery, vrc=%Rrc ile varsayılan işlemci %u olarak ayarlanmış &apos;%s&apos; kaydını sorgularken başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1492"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1511"/>
         <source>Incompatible VMM function table: %RX64 vs %RX64 (caller)</source>
-        <translation type="unfinished"></translation>
+        <translation>Uyumsuz VMM işlev tablosu: %RX64 vs %RX64 (çağıran)</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1499"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1518"/>
         <source>The method getUVMAndVMMFunctionTable is only for local calls</source>
-        <translation type="unfinished"></translation>
+        <translation>getUVMAndVMMFunctionTable yöntemi yalnızca yerel çağrılar içindir</translation>
     </message>
     <message>
         <source>DBGFR3RegNmQuery failed with rc=%Rrc querying register &apos;%s&apos; with default cpu set to %u</source>
         <translation type="vanished">DBGFR3RegNmQuery, rc=%Rrc ile varsayılan işlemci %u olarak ayarlanmış &apos;%s&apos; kaydını sorgularken başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1134"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1153"/>
         <source>DBGFR3RegNmQueryAll failed with %Rrc</source>
         <translation>DBGFR3RegNmQueryAll, %Rrc ile başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1142"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1161"/>
         <source>DBGFR3RegNmQueryAllCount failed with %Rrc</source>
         <translation>DBGFR3RegNmQueryAllCount, %Rrc ile başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1284"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1303"/>
         <source>DBGFR3StackWalkBegin failed with %Rrc</source>
         <translation>DBGFR3StackWalkBegin, %Rrc ile başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1296"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1315"/>
         <source>Suspending the VM failed with %Rrc
 </source>
         <translation>VM&apos;in askıya alınması, %Rrc ile başarısız oldu
 </translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1312"/>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1329"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1331"/>
         <location filename="../src-client/MachineDebuggerImpl.cpp" line="1348"/>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1391"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1367"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1410"/>
         <source>Machine is not running</source>
         <translation>Makine çalışmıyor</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1419"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1438"/>
         <source>Creating guest sample report...</source>
         <translation>Misafir örnek raporu oluşturuluyor...</translation>
     </message>
     <message>
-        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1442"/>
+        <location filename="../src-client/MachineDebuggerImpl.cpp" line="1461"/>
         <source>A sample report is already in progress</source>
         <translation>Örnek bir rapor zaten devam ediyor</translation>
     </message>
@@ -7527,17 +8028,17 @@ Guest offers: %s</source>
         <location filename="../src-server/MediumImpl.cpp" line="1177"/>
         <location filename="../src-server/MediumImpl.cpp" line="1272"/>
         <source>Accessibility check was not yet performed</source>
-        <translation>Erişilebilirlik denetimi henüz yapılmadı</translation>
+        <translation>Erişilebilirlik denetimi henüz yapılamadı</translation>
     </message>
     <message>
         <location filename="../src-server/MediumImpl.cpp" line="1778"/>
-        <location filename="../src-server/MediumImpl.cpp" line="3641"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3509"/>
         <source>Failed to create medium lock list for &apos;%s&apos;</source>
         <translation>&apos;%s&apos; için ortam kilit listesi oluşturma başarısız</translation>
     </message>
     <message>
         <location filename="../src-server/MediumImpl.cpp" line="1783"/>
-        <location filename="../src-server/MediumImpl.cpp" line="3654"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3522"/>
         <source>Failed to lock media &apos;%s&apos;</source>
         <translation>&apos;%s&apos; ortamını kilitleme başarısız</translation>
     </message>
@@ -7640,8 +8141,7 @@ Guest offers: %s</source>
     <message>
         <location filename="../src-server/MediumImpl.cpp" line="2799"/>
         <location filename="../src-server/MediumImpl.cpp" line="2964"/>
-        <location filename="../src-server/MediumImpl.cpp" line="3137"/>
-        <location filename="../src-server/MediumImpl.cpp" line="3386"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3254"/>
         <source>Medium variant &apos;formatted&apos; applies to floppy images only</source>
         <translation>Ortam çeşidi &apos;biçimlendirilmiş&apos; yalnızca disket kalıplarına uygulanır</translation>
     </message>
@@ -7676,716 +8176,715 @@ Guest offers: %s</source>
         <translation>&apos;%s&apos; ayrımlaması oluşturulurken ortam kilitlenemedi</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3097"/>
-        <location filename="../src-server/MediumImpl.cpp" line="3358"/>
-        <location filename="../src-server/MediumImpl.cpp" line="7290"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3226"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7159"/>
         <source>Failed to lock source media &apos;%s&apos;</source>
         <translation>&apos;%s&apos; kaynak ortamını kilitleme başarısız</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3108"/>
-        <location filename="../src-server/MediumImpl.cpp" line="3369"/>
-        <location filename="../src-server/MediumImpl.cpp" line="7167"/>
-        <location filename="../src-server/MediumImpl.cpp" line="7301"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3237"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7036"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7170"/>
         <source>Failed to lock target media &apos;%s&apos;</source>
         <translation>&apos;%s&apos; hedef ortamını kilitleme başarısız</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3115"/>
-        <location filename="../src-server/MediumImpl.cpp" line="7308"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7177"/>
         <source>Creating clone medium &apos;%s&apos;</source>
         <translation>&apos;%s&apos; kopya ortamı oluşturuluyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3226"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3077"/>
         <source>Resizing medium and cloning into it</source>
-        <translation type="unfinished"></translation>
+        <translation>Ortam yeniden boyutlandırılıyor ve içine çoğaltılıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3229"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3080"/>
         <source>Resizing medium before clone</source>
-        <translation type="unfinished"></translation>
+        <translation>Çoğaltmadan önce ortam yeniden boyutlandırılıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3469"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3337"/>
         <source>Medium &apos;%s&apos; can&apos;t be moved. Destination path is empty.</source>
         <translation>&apos;%s&apos; ortamı taşınamaz. Hedef yolu boş.</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3536"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3404"/>
         <source>Medium &apos;%s&apos; has RAW type. &quot;Move&quot; operation isn&apos;t supported for this type.</source>
         <translation>&apos;%s&apos; ortamı, RAW türüne sahip. Bu tür için &quot;Taşı&quot; işlemi desteklenmiyor.</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3557"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3425"/>
         <source>The given path &apos;%s&apos; is an existing file. Delete or rename this file.</source>
         <translation>Belirtilen &apos;%s&apos; yolu varolan bir dosya. Bu dosyayı silin veya yeniden adlandırın.</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3562"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3430"/>
         <source>Medium &apos;%s&apos; isn&apos;t a file object. &quot;Move&quot; operation isn&apos;t supported.</source>
         <translation>&apos;%s&apos; ortamı, bir dosya nesnesi değil. &quot;Taşı&quot; işlemi desteklenmiyor.</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3567"/>
-        <location filename="../src-server/MediumImpl.cpp" line="3719"/>
-        <location filename="../src-server/MediumImpl.cpp" line="8200"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3435"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3587"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8069"/>
         <source>The given path &apos;%s&apos; is not fully qualified</source>
         <translation>Belirtilen &apos;%s&apos; yolu tam olarak nitelendirilmemiş</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3578"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3446"/>
         <source>Medium &apos;%s&apos; is already in the correct location</source>
         <translation>&apos;%s&apos; ortamı zaten doğru konumda</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3618"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3486"/>
         <source>At least the VM &apos;%s&apos; to whom this medium &apos;%s&apos; attached has currently an opened session. Stop all VMs before relocating this medium</source>
         <translation>En azından bu &apos;%s&apos; ortamının takıldığı &apos;%s&apos; VM&apos;inin şu anda açık bir oturumu var. Bu ortamın yerini değiştirmeden önce tüm VM&apos;leri durdurun</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3660"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3528"/>
         <source>Moving medium &apos;%s&apos;</source>
         <translation>&apos;%s&apos; ortamı taşınıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3724"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3592"/>
         <source>The given path &apos;%s&apos; is not an existing file. New location is invalid.</source>
         <translation>Belirtilen &apos;%s&apos; yolu varolan bir dosya değil. Yeni konum geçersiz.</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3761"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3629"/>
         <source>At least the VM &apos;%s&apos; to whom this medium &apos;%s&apos; attached has currently an opened session. Stop all VMs before set location for this medium</source>
         <translation>En azından bu &apos;%s&apos; ortamının takıldığı &apos;%s&apos; VM&apos;inin şu anda açık bir oturumu var. Bu ortam için yer ayarlamadan önce tüm VM&apos;leri durdurun</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3826"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3694"/>
         <source>Failed to lock media when compacting &apos;%s&apos;</source>
         <translation>&apos;%s&apos; sıkıştırılırken ortamı kilitleme başarısız</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3833"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3701"/>
         <source>Compacting medium &apos;%s&apos;</source>
         <translation>&apos;%s&apos; ortamı sıkıştırılıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3883"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3751"/>
         <source>Failed to create medium lock list when resizing &apos;%s&apos;</source>
         <translation>&apos;%s&apos; yeniden boyutlandırılırken ortam kilitleme listesi oluşturma başarısız</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3888"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3756"/>
         <source>Failed to lock media when resizing &apos;%s&apos;</source>
         <translation>&apos;%s&apos; yeniden boyutlandırılırken ortamı kilitleme başarısız</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3902"/>
-        <location filename="../src-server/MediumImpl.cpp" line="6780"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3770"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6649"/>
         <source>Resizing medium &apos;%s&apos;</source>
         <translation>&apos;%s&apos; ortamı yeniden boyutlandırılıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3948"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3816"/>
         <source>Medium type of &apos;%s&apos; is not differencing</source>
         <translation>&apos;%s&apos; ortam türü ayrımlama değil</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3977"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3845"/>
         <source>Failed to lock media when resetting &apos;%s&apos;</source>
         <translation>&apos;%s&apos; sıfırlanırken ortamı kilitleme başarısız</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3984"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3852"/>
         <source>Resetting differencing medium &apos;%s&apos;</source>
         <translation>&apos;%s&apos; ayrımlama ortamı sıfırlanıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4030"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3898"/>
         <source>Cannot encrypt DVD or Floppy medium &apos;%s&apos;</source>
         <translation>&apos;%s&apos; DVD veya Disket ortamı şifrelenemez</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/MediumImpl.cpp" line="4036"/>
-        <location filename="../src-server/MediumImpl.cpp" line="4089"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3904"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3957"/>
         <source>Cannot encrypt medium &apos;%s&apos; because it is attached to %d virtual machines</source>
         <translation>
             <numerusform>&apos;%s&apos; ortamı, %d sanal makineye takılı olduğundan şifrelenemez</numerusform>
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/MediumImpl.cpp" line="4041"/>
-        <location filename="../src-server/MediumImpl.cpp" line="4097"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3909"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3965"/>
         <source>Cannot encrypt medium &apos;%s&apos; because it has %d children</source>
         <translation>
             <numerusform>&apos;%s&apos; ortamı, %d alt ortama sahip olduğundan şifrelenemez</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4066"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3934"/>
         <source>Failed to lock media for encryption &apos;%s&apos;</source>
         <translation>&apos;%s&apos; şifrelemesi için ortamı kilitleme başarısız</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4109"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3977"/>
         <source>Encrypting medium</source>
         <translation>Ortam şifreleniyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4112"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3980"/>
         <source>Decrypting medium</source>
         <translation>Ortam şifresi çözülüyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4181"/>
-        <location filename="../src-server/MediumImpl.cpp" line="4257"/>
-        <location filename="../src-server/MediumImpl.cpp" line="8777"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4049"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4125"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8646"/>
         <source>Retrieving encryption settings of the image failed because the encryption plugin could not be loaded (%s)</source>
         <translation>Şifreleme eklentisi yüklenemediğinden kalıbın şifreleme ayarlarını alma başarısız oldu (%s)</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4186"/>
-        <location filename="../src-server/MediumImpl.cpp" line="4262"/>
-        <location filename="../src-server/MediumImpl.cpp" line="8782"/>
-        <location filename="../src-server/MediumImpl.cpp" line="11005"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4054"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4130"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8651"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10951"/>
         <source>Encryption is not supported because the extension pack &apos;%s&apos; is missing the encryption plugin (old extension pack installed?)</source>
         <translation>&apos;%s&apos; genişletme paketinde şifreleme eklentisi eksik olduğundan şifreleme desteklenmiyor (eski genişletme paketi mi kurulu?)</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4191"/>
-        <location filename="../src-server/MediumImpl.cpp" line="4267"/>
-        <location filename="../src-server/MediumImpl.cpp" line="8787"/>
-        <location filename="../src-server/MediumImpl.cpp" line="11010"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4059"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4135"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8656"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10956"/>
         <source>Encryption is not supported because the extension pack &apos;%s&apos; is missing</source>
         <translation>&apos;%s&apos; genişletme paketi eksik olduğundan şifreleme desteklenmiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4204"/>
-        <location filename="../src-server/MediumImpl.cpp" line="4284"/>
-        <location filename="../src-server/MediumImpl.cpp" line="11078"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4072"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4152"/>
+        <location filename="../src-server/MediumImpl.cpp" line="11024"/>
         <source>Failed to load the encryption filter: %s</source>
         <translation>Şifreleme süzgecini yükleme başarısız: %s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4210"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4078"/>
         <source>Image is configured for encryption but doesn&apos;t has a KeyId set</source>
         <translation>Kalıp, şifreleme için yapılandırıldı, ancak bir KeyId ayarı yok</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4219"/>
-        <location filename="../src-server/MediumImpl.cpp" line="4290"/>
-        <location filename="../src-server/MediumImpl.cpp" line="8820"/>
-        <location filename="../src-server/MediumImpl.cpp" line="11171"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4087"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4158"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8689"/>
+        <location filename="../src-server/MediumImpl.cpp" line="11117"/>
         <source>Encryption is not supported because extension pack support is not built in</source>
         <translation>Genişletme paketi desteği yerleşik olmadığından şifreleme desteklenmiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4239"/>
-        <location filename="../src-server/MediumImpl.cpp" line="11041"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4107"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10987"/>
         <source>The image is not configured for encryption</source>
         <translation>Kalıp şifreleme için yapılandırılmamış</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4243"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4111"/>
         <source>The given password must not be empty</source>
         <translation>Verilen parola boş olmamak zorundadır</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4281"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4149"/>
         <source>The given password is incorrect</source>
         <translation>Verilen parola yanlış</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4304"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4172"/>
         <source>Write access denied: read-only</source>
         <translation>Yazma erişimi reddedildi: salt okunur</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4308"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4176"/>
         <source>Password given for unencrypted medium</source>
         <translation>Şifrelenmemiş ortam için verilen parola</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4310"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4178"/>
         <source>Password needed for encrypted medium</source>
         <translation>Şifrelenmiş ortam için parola gerekli</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/MediumImpl.cpp" line="4772"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4640"/>
         <source>Cannot attach medium &apos;%s&apos; {%RTuuid}: %u differencing child media are being created</source>
         <translation>
             <numerusform>&apos;%s&apos; {%RTuuid} ortamı takılamıyor: %u ayrımlama alt ortamı oluşturuluyor</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4815"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4683"/>
         <source>Cannot attach medium &apos;%s&apos; {%RTuuid}: medium is already associated with the current state of machine uuid {%RTuuid}!</source>
         <translation>&apos;%s&apos; {%RTuuid} ortamı takılamıyor: ortam zaten makine {%RTuuid} uuid&apos;sinin şu anki durumuyla ilişkilendirilmiş!</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="4844"/>
+        <location filename="../src-server/MediumImpl.cpp" line="4712"/>
         <source>Cannot attach medium &apos;%s&apos; {%RTuuid} from snapshot &apos;%RTuuid&apos;: medium is already in use by this snapshot!</source>
         <translation>&apos;%s&apos; {%RTuuid} ortamı &apos;%RTuuid&apos; anlık görüntüsünden takılamıyor: ortam bu anlık görüntü tarafından zaten kullanılmakta!</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="5512"/>
+        <location filename="../src-server/MediumImpl.cpp" line="5380"/>
         <source>Medium &apos;%s&apos; is attached to a virtual machine with UUID {%RTuuid}. No differencing media based on it may be created until it is detached</source>
         <translation>&apos;%s&apos; ortamı, {%RTuuid} UUID&apos;sine sahip bir sanal makineye takılı. Sökülene kadar buna dayanan hiçbir ayrımlama ortamı oluşturulamayabilir.</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="5530"/>
+        <location filename="../src-server/MediumImpl.cpp" line="5398"/>
         <source>Creating differencing medium storage unit &apos;%s&apos;</source>
         <translation>&apos;%s&apos; ayrımlama ortamı depolama birimi oluşturuluyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="5677"/>
+        <location filename="../src-server/MediumImpl.cpp" line="5545"/>
         <source>Medium &apos;%s&apos; cannot be closed because it is already in the process of being closed</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; ortamı zaten kapatılma sürecinde olduğundan kapatılamıyor</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/MediumImpl.cpp" line="5682"/>
+        <location filename="../src-server/MediumImpl.cpp" line="5550"/>
         <source>Medium &apos;%s&apos; cannot be closed because it is still attached to %d virtual machines</source>
         <translation>
             <numerusform>&apos;%s&apos; ortamı hala %d sanal makineye takılı olduğundan kapatılamıyor</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="5773"/>
+        <location filename="../src-server/MediumImpl.cpp" line="5642"/>
         <source>Medium format &apos;%s&apos; does not support storage deletion</source>
         <translation>&apos;%s&apos; ortam biçimi, depolama silmeyi desteklemiyor</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/MediumImpl.cpp" line="5832"/>
+        <location filename="../src-server/MediumImpl.cpp" line="5701"/>
         <source>Cannot delete storage: medium &apos;%s&apos; is still attached to the following %d virtual machine(s): %s</source>
         <translation>
             <numerusform>Depolama silinemiyor: &apos;%s&apos; ortamı şu %d sanal makineye hala takılı: %s</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="5883"/>
+        <location filename="../src-server/MediumImpl.cpp" line="5752"/>
         <source>Failed to lock media when deleting &apos;%s&apos;</source>
         <translation>&apos;%s&apos; silinirken ortamı kilitleme başarısız</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="5911"/>
+        <location filename="../src-server/MediumImpl.cpp" line="5780"/>
         <source>Deleting medium storage unit &apos;%s&apos;</source>
         <translation>&apos;%s&apos; ortam depolama birimi siliniyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="6092"/>
-        <location filename="../src-server/MediumImpl.cpp" line="6231"/>
+        <location filename="../src-server/MediumImpl.cpp" line="5961"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6100"/>
         <source>Media &apos;%s&apos; and &apos;%s&apos; are unrelated</source>
         <translation>&apos;%s&apos; ve &apos;%s&apos; ortamı alakasız</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="6287"/>
-        <location filename="../src-server/MediumImpl.cpp" line="6318"/>
-        <location filename="../src-server/MediumImpl.cpp" line="6341"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6156"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6187"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6210"/>
         <source>Medium &apos;%s&apos; involved in the merge operation has more than one child medium (%d)</source>
         <translation>Birleştirme işleminde yer alan &apos;%s&apos; ortamının birden fazla alt ortamı (%d) var</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/MediumImpl.cpp" line="6301"/>
-        <location filename="../src-server/MediumImpl.cpp" line="6347"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6170"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6216"/>
         <source>Medium &apos;%s&apos; is attached to %d virtual machines</source>
         <translation>
             <numerusform>&apos;%s&apos; ortamı, %d sanal makineye takılı</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="6305"/>
-        <location filename="../src-server/MediumImpl.cpp" line="6324"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6174"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6193"/>
         <source>Medium &apos;%s&apos; is immutable</source>
         <translation>&apos;%s&apos; ortamı değiştirilemez</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="6309"/>
-        <location filename="../src-server/MediumImpl.cpp" line="6328"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6178"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6197"/>
         <source>Medium &apos;%s&apos; is multi-attach</source>
         <translation>&apos;%s&apos; ortamı çoklu takma</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="6466"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6335"/>
         <source>Failed to lock media when merging to &apos;%s&apos;</source>
         <translation>&apos;%s&apos; ile birleştirirken ortamı kilitleme başarısız</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="6612"/>
-        <location filename="../src-server/MediumImpl.cpp" line="9381"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6481"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9250"/>
         <source>Merging medium &apos;%s&apos; to &apos;%s&apos;</source>
         <translation>&apos;%s&apos; ortamı &apos;%s&apos; ile birleştiriliyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="6617"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6486"/>
         <source>Resizing medium &apos;%s&apos; before merge</source>
         <translation>Birleştirmeden önce &apos;%s&apos; ortamı yeniden boyutlandırılıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="6899"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6768"/>
         <source>Could not update medium UUID references to parent &apos;%s&apos; (%s)</source>
         <translation>Ortam UUID referansları &apos;%s&apos; (%s) üst kalıbına güncellenemedi</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="6954"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6823"/>
         <source>Failed to add &apos;%s&apos; to output (%Rrc)</source>
         <translation>Çıktıya &apos;%s&apos; ekleme başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="6958"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6827"/>
         <source>RTVfsCreateProgressForFile failed when processing &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; işlenirken RTVfsCreateProgressForFile başarısız oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="6961"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6830"/>
         <source>VDCreateVfsFileFromDisk failed for &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; için VDCreateVfsFileFromDisk başarısız oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="7066"/>
+        <location filename="../src-server/MediumImpl.cpp" line="6935"/>
         <source>Could not create the exported medium &apos;%s&apos;%s</source>
         <translation>Dışa aktarılan &apos;%s&apos;%s ortamı oluşturulamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="7613"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7482"/>
         <source>Could not open the medium &apos;%s&apos;%s</source>
         <translation>&apos;%s&apos;%s ortamı açılamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="7629"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7498"/>
         <source>Could not update the UUID of medium &apos;%s&apos;%s</source>
         <translation>&apos;%s&apos;%s ortamının UUID&apos;si güncellenemedi</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="7642"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7511"/>
         <source>Could not update the parent UUID of medium &apos;%s&apos;%s</source>
         <translation>&apos;%s&apos;%s ortamının üst UUID&apos;si güncellenemedi</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="7674"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7543"/>
         <source>UUID {%RTuuid} of the medium &apos;%s&apos; does not match the value {%RTuuid} stored in the media registry (&apos;%s&apos;)</source>
         <translation>&apos;%s&apos; ortamının {%RTuuid} UUID&apos;si, ortam kayıt defterinde (&apos;%s&apos;) depolanan {%RTuuid} değeriyle eşleşmiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="7764"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7633"/>
         <source>Parent medium with UUID {%RTuuid} of the medium &apos;%s&apos; is not found in the media registry (&apos;%s&apos;)</source>
         <translation>&apos;%s&apos; ortamının {%RTuuid} UUID&apos;sine sahip üst ortam, ortam kayıt defterinde (&apos;%s&apos;) bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="7787"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7656"/>
         <source>Cannot open differencing image for medium &apos;%s&apos;, because it exceeds the medium tree depth limit. Please merge some images which you no longer need</source>
         <translation>Kalıp, ortam ağacı derinlik sınırını aştığından &apos;%s&apos; ortamı için ayrımlama kalıbı açılamıyor. Lütfen artık ihtiyacınız olmayan bazı kalıpları birleştirin</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="7822"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7691"/>
         <source>Medium type of &apos;%s&apos; is differencing but it is not associated with any parent medium in the media registry (&apos;%s&apos;)</source>
         <translation>&apos;%s&apos; ortam türü ayrımlanıyor ancak ortam kayıt defterindeki (&apos;%s&apos;) herhangi bir üst ortamla ilişkilendirilmemiş</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="7843"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7712"/>
         <source>Parent UUID {%RTuuid} of the medium &apos;%s&apos; does not match UUID {%RTuuid} of its parent medium stored in the media registry (&apos;%s&apos;)</source>
         <translation>&apos;%s&apos; ortamının üst {%RTuuid} UUID&apos;si, ortam kayıt defterinde (&apos;%s&apos;) depolanan üst ortamının {%RTuuid} UUID&apos;si ile eşleşmiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="7874"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7743"/>
         <source>Could not update and close the medium &apos;%s&apos;%s</source>
         <translation>&apos;%s&apos;%s ortamı güncellenemedi ve kapatılamadı</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/MediumImpl.cpp" line="7998"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7867"/>
         <source>Cannot close medium &apos;%s&apos; because it has %d child media</source>
         <translation>
             <numerusform>&apos;%s&apos; ortamı, %d alt ortama sahip olduğundan kapatılamıyor</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8072"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7941"/>
         <source>Storage for the medium &apos;%s&apos; is not created</source>
         <translation>&apos;%s&apos; ortamı için depolama oluşturulmadı</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8077"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7946"/>
         <source>Storage for the medium &apos;%s&apos; is already created</source>
         <translation>&apos;%s&apos; ortamı için depolama zaten oluşturuldu</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8082"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7951"/>
         <source>Medium &apos;%s&apos; is locked for reading by another task</source>
         <translation>&apos;%s&apos; ortamı başka bir görev tarafından okunması için kilitlendi</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8087"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7956"/>
         <source>Medium &apos;%s&apos; is locked for writing by another task</source>
         <translation>&apos;%s&apos; ortamı başka bir görev tarafından yazılması için kilitlendi</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8094"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7963"/>
         <source>Medium &apos;%s&apos; is not accessible. %s</source>
         <translation>&apos;%s&apos; ortamı erişilebilir değil. %s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8098"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7967"/>
         <source>Medium &apos;%s&apos; is not accessible</source>
         <translation>&apos;%s&apos; ortamı erişilebilir değil</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8103"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7972"/>
         <source>Storage for the medium &apos;%s&apos; is being created</source>
         <translation>&apos;%s&apos; ortamı için depolama oluşturuluyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8108"/>
+        <location filename="../src-server/MediumImpl.cpp" line="7977"/>
         <source>Storage for the medium &apos;%s&apos; is being deleted</source>
         <translation>&apos;%s&apos; ortamı için depolama siliniyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8180"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8049"/>
         <source>Must be at least one extension if it is MediumFormatCapabilities_File
 </source>
         <translation>MediumFormatCapabilities_File ise en az bir uzantı olmak zorundadır
 </translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8185"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8054"/>
         <source>Default extension must not be empty
 </source>
         <translation>Varsayılan uzantı boş olmamak zorundadır
 </translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8234"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8103"/>
         <source>Permission problem accessing the file for the medium &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; ortamı için dosyaya erişirken izin sorunu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8238"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8107"/>
         <source>Could not find file for the medium &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; ortamı için dosya bulunamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8242"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8111"/>
         <source>Could not get the storage format of the medium &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; ortamının depolama biçimi alınamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8258"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8127"/>
         <source>The medium &apos;%s&apos; can&apos;t be used as the requested device type (%s, detected %s)</source>
         <translation>&apos;%s&apos;ortamı istenen aygıt türü (%s, algılanan %s) olarak kullanılamaz</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8311"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8180"/>
         <source>Invalid medium storage format &apos;%s&apos;</source>
         <translation>Geçersiz ortam depolama biçimi &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8792"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8661"/>
         <source>Image &apos;%s&apos; is configured for encryption but doesn&apos;t has a key identifier set</source>
         <translation>&apos;%s&apos; kalıbı şifreleme için yapılandırıldı, ancak ayarlanmış bir anahtar tanımlayıcısı yok</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8798"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8667"/>
         <source>Image &apos;%s&apos; is configured for encryption but there is no key store to retrieve the password from</source>
         <translatorcomment>&apos;%s&apos; kalıbı şifreleme için yapılandırıldı, ancak ayarlanmış bir anahtar tanımlayıcısı yok</translatorcomment>
         <translation>&apos;%s&apos; kalıbı şifreleme için yapılandırıldı, ancak parolayı alacak bir anahtar deposu yok</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8805"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8674"/>
         <source>Failed to retrieve the secret key with ID &quot;%s&quot; from the store (%Rrc)</source>
         <translation>&quot;%s&quot; kimliğine sahip gizli anahtarı depodan alma başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8813"/>
-        <location filename="../src-server/MediumImpl.cpp" line="11048"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8682"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10994"/>
         <source>The password to decrypt the image is incorrect</source>
         <translation>Kalıbın şifresini çözmek için kullanılan parola yanlış</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8815"/>
-        <location filename="../src-server/MediumImpl.cpp" line="11051"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8684"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10997"/>
         <source>Failed to load the decryption filter: %s</source>
         <translation>Şifre çözme süzgecini yükleme başarısız: %s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8849"/>
-        <location filename="../src-server/MediumImpl.cpp" line="9143"/>
-        <location filename="../src-server/MediumImpl.cpp" line="9785"/>
-        <location filename="../src-server/MediumImpl.cpp" line="9855"/>
-        <location filename="../src-server/MediumImpl.cpp" line="10111"/>
-        <location filename="../src-server/MediumImpl.cpp" line="10356"/>
-        <location filename="../src-server/MediumImpl.cpp" line="10380"/>
-        <location filename="../src-server/MediumImpl.cpp" line="10489"/>
-        <location filename="../src-server/MediumImpl.cpp" line="10595"/>
-        <location filename="../src-server/MediumImpl.cpp" line="10724"/>
-        <location filename="../src-server/MediumImpl.cpp" line="10792"/>
-        <location filename="../src-server/MediumImpl.cpp" line="11113"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8718"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9012"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9661"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9679"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9747"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10057"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10302"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10326"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10435"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10541"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10670"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10738"/>
+        <location filename="../src-server/MediumImpl.cpp" line="11059"/>
         <source>Could not open the medium storage unit &apos;%s&apos;%s</source>
         <translation>&apos;%s&apos;%s ortam depolama birimi açılamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8952"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8821"/>
         <source>Parameters for creating the medium storage unit &apos;%s&apos; are invalid%s</source>
         <translation>&apos;%s&apos; ortam depolama birimini oluşturmak için parametreler geçersiz%s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8956"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8825"/>
         <source>Could not create the medium storage unit &apos;%s&apos;%s</source>
         <translation>&apos;%s&apos;%s ortam depolama birimi oluşturulamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8965"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8834"/>
         <source>Opening medium storage unit &apos;%s&apos; failed%s</source>
         <translation>&apos;%s&apos; ortam depolama birimini açma başarısız oldu%s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8975"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8844"/>
         <source>Formatting medium storage unit &apos;%s&apos; failed: %s</source>
         <translation>&apos;%s&apos; ortam depolama birimini biçimlendirme başarısız oldu: %s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="8978"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8847"/>
         <source>Formatting medium storage unit &apos;%s&apos; failed%s</source>
         <translation>&apos;%s&apos; ortam depolama birimini biçimlendirme başarısız oldu%s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="9075"/>
+        <location filename="../src-server/MediumImpl.cpp" line="8944"/>
         <source>Cannot create differencing image for medium &apos;%s&apos;, because it exceeds the medium tree depth limit. Please merge some images which you no longer need</source>
         <translation>Kalıp, ortam ağacı derinlik sınırını aştığından &apos;%s&apos; ortamı için ayrımlama kalıbı oluşturulamıyor. Lütfen artık ihtiyacınız olmayan bazı kalıpları birleştirin</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="9172"/>
-        <location filename="../src-server/MediumImpl.cpp" line="10398"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9041"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10344"/>
         <source>Parameters for creating the differencing medium storage unit &apos;%s&apos; are invalid%s</source>
         <translation>&apos;%s&apos; ayrımlama ortam depolama birimini oluşturmak için parametreler geçersiz%s</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="9176"/>
-        <location filename="../src-server/MediumImpl.cpp" line="10402"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9045"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10348"/>
         <source>Could not create the differencing medium storage unit &apos;%s&apos;%s</source>
         <translation>&apos;%s&apos;%s ayrımlama ortam depolama birimi oluşturulamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="9302"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9171"/>
         <source>Cannot merge image for medium &apos;%s&apos;, because it exceeds the medium tree depth limit. Please merge some images which you no longer need</source>
         <translation>Kalıp, ortam ağacı derinlik sınırını aştığından &apos;%s&apos; ortamı için kalıp birleştirilemiyor. Lütfen artık ihtiyacınız olmayan bazı kalıpları birleştirin</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3269"/>
-        <location filename="../src-server/MediumImpl.cpp" line="9356"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3121"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9225"/>
         <source>Failed to lock the medium &apos;%s&apos; to resize before merge</source>
         <translation>Birleştirmeden önce yeniden boyutlandırmak için &apos;%s&apos; ortamını kilitleme başarısız</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="9367"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9236"/>
         <source>Failed to set size of &apos;%s&apos; to size of &apos;%s&apos;</source>
         <translation>&apos;%s&apos; boyutunu &apos;%s&apos; boyutuna ayarlama başarısız</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="3241"/>
-        <location filename="../src-server/MediumImpl.cpp" line="9376"/>
+        <location filename="../src-server/MediumImpl.cpp" line="3093"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9245"/>
         <source>Sizes of &apos;%s&apos; and &apos;%s&apos; are different and medium format does not support resing</source>
         <translation>&apos;%s&apos; ve &apos;%s&apos; boyutları farklı ve ortam biçimi yeniden boyutlandırmayı desteklemiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="9511"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9380"/>
         <source>Could not merge the medium &apos;%s&apos; to &apos;%s&apos;%s</source>
         <translation>&apos;%s&apos; ortamı &apos;%s&apos;%s ortamına birleştirilemedi</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="9731"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9602"/>
         <source>Cannot clone image for medium &apos;%s&apos;, because it exceeds the medium tree depth limit. Please merge some images which you no longer need</source>
         <translation>Kalıp, ortam ağacı derinlik sınırını aştığından &apos;%s&apos; ortamı için kalıp çoğaltılamıyor. Lütfen artık ihtiyacınız olmayan bazı kalıpları birleştirin</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="9897"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9789"/>
+        <location filename="../src-server/MediumImpl.cpp" line="9841"/>
         <source>Could not create the clone medium &apos;%s&apos;%s</source>
         <translation>&apos;%s&apos;%s kopya ortamı oluşturulamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="10070"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10016"/>
         <source>Wrong preconditions for moving the medium %s</source>
         <translation>%s ortamını taşımak için yanlış ön koşullar</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="10157"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10103"/>
         <source>Could not move medium &apos;%s&apos;%s</source>
         <translation>&apos;%s&apos;%s ortamı taşınamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="10253"/>
-        <location filename="../src-server/MediumImpl.cpp" line="10369"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10199"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10315"/>
         <source>Could not delete the medium storage unit &apos;%s&apos;%s</source>
         <translation>&apos;%s&apos;%s ortam depolama birimi silinemedi</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="10506"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10452"/>
         <source>Compacting is not yet supported for medium &apos;%s&apos;</source>
         <translation>&apos;%s&apos; ortamı için sıkıştırma henüz desteklenmiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="10510"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10456"/>
         <source>Compacting is not implemented, medium &apos;%s&apos;</source>
         <translation>Sıkıştırma uygulanmadı, ortam &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="10514"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10460"/>
         <source>Could not compact medium &apos;%s&apos;%s</source>
         <translation>&apos;%s&apos;%s ortamı sıkıştırılamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="10613"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10559"/>
         <source>Shrinking is not yet supported for medium &apos;%s&apos;</source>
         <translation>&apos;%s&apos; ortamı için küçültme henüz desteklenmiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="10617"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10563"/>
         <source>Resizing to new size %llu is not yet supported for medium &apos;%s&apos;</source>
         <translation>Yeni %llu boyutuna yeniden boyutlandırma, &apos;%s&apos; ortamı için henüz desteklenmiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="10621"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10567"/>
         <source>Resizing is not implemented, medium &apos;%s&apos;</source>
         <translation>Yeniden boyutlandırma uygulanmadı, ortam &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="10625"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10571"/>
         <source>Could not resize medium &apos;%s&apos;%s</source>
         <translation>&apos;%s&apos;%s ortamı yeniden boyutlandırılamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="10686"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10632"/>
         <source>Cannot import image for medium &apos;%s&apos;, because it exceeds the medium tree depth limit. Please merge some images which you no longer need</source>
         <translation>Kalıp, ortam ağacı derinlik sınırını aştığından &apos;%s&apos; ortamı için kalıp içe aktarılamıyor. Lütfen artık ihtiyacınız olmayan bazı kalıpları birleştirin</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="10812"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10758"/>
         <source>Could not create the imported medium &apos;%s&apos;%s</source>
         <translation>İçe aktarılan &apos;%s&apos;%s ortamı oluşturulamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="11000"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10946"/>
         <source>Encrypting the image failed because the encryption plugin could not be loaded (%s)</source>
         <translation>Şifreleme eklentisi yüklenemediğinden kalıbın şifrelenmesi başarısız oldu (%s)</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="11034"/>
+        <location filename="../src-server/MediumImpl.cpp" line="10980"/>
         <source>The password given for the encrypted image is incorrect</source>
         <translation>Şifrelenmiş kalıp için verilen parola yanlış</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="11066"/>
+        <location filename="../src-server/MediumImpl.cpp" line="11012"/>
         <source>A password must be given for the image encryption</source>
-        <translation>Kalıp şifreleme için bir parola verilmek zorundadır</translation>
+        <translation>Kalıp şifrelemesi için bir parola verilmek zorundadır</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="11069"/>
+        <location filename="../src-server/MediumImpl.cpp" line="11015"/>
         <source>A valid identifier for the password must be given</source>
         <translation>Parola için geçerli bir tanımlayıcı verilmek zorundadır</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="11083"/>
+        <location filename="../src-server/MediumImpl.cpp" line="11029"/>
         <source>The password and password identifier must be empty if the output should be unencrypted</source>
         <translation>Çıktının şifrelenmemiş olması gerekiyorsa parola ve parola tanımlayıcısı boş olmak zorundadır</translation>
     </message>
     <message>
-        <location filename="../src-server/MediumImpl.cpp" line="11128"/>
+        <location filename="../src-server/MediumImpl.cpp" line="11074"/>
         <source>Could not prepare disk images for encryption (%Rrc): %s</source>
         <translation>Disk kalıpları şifreleme için hazırlanamadı (%Rrc): %s</translation>
     </message>
@@ -8495,14 +8994,14 @@ Guest offers: %s</source>
 <context>
     <name>Mouse</name>
     <message>
-        <location filename="../src-client/MouseImpl.cpp" line="535"/>
-        <location filename="../src-client/MouseImpl.cpp" line="578"/>
-        <location filename="../src-client/MouseImpl.cpp" line="645"/>
+        <location filename="../src-client/MouseImpl.cpp" line="538"/>
+        <location filename="../src-client/MouseImpl.cpp" line="581"/>
+        <location filename="../src-client/MouseImpl.cpp" line="648"/>
         <source>Could not send the mouse event to the virtual mouse (%Rrc)</source>
         <translation>Fare olayı sanal fareye gönderilemedi (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-client/MouseImpl.cpp" line="615"/>
+        <location filename="../src-client/MouseImpl.cpp" line="618"/>
         <source>Could not send the multi-touch event to the virtual device (%Rrc)</source>
         <translation>Çoklu dokunma olayı sanal aygıta gönderilemedi (%Rrc)</translation>
     </message>
@@ -8555,7 +9054,7 @@ Guest offers: %s</source>
     <message>
         <location filename="../src-server/NATNetworkImpl.cpp" line="313"/>
         <source>%s: internal error: failed to convert prefix %d to netmask: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>%s: iç hata: %d önekini ağ maskesine dönüştürme başarısız oldu: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/NATNetworkImpl.cpp" line="317"/>
@@ -8606,49 +9105,49 @@ Guest offers: %s</source>
 <context>
     <name>NetworkAdapter</name>
     <message>
-        <location filename="../src-server/NetworkAdapterImpl.cpp" line="267"/>
+        <location filename="../src-server/NetworkAdapterImpl.cpp" line="273"/>
         <source>Invalid network adapter type &apos;%d&apos;</source>
         <translation>Geçersiz ağ bağdaştırıcısı türü &apos;%d&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/NetworkAdapterImpl.cpp" line="383"/>
-        <location filename="../src-server/NetworkAdapterImpl.cpp" line="387"/>
-        <location filename="../src-server/NetworkAdapterImpl.cpp" line="394"/>
+        <location filename="../src-server/NetworkAdapterImpl.cpp" line="389"/>
+        <location filename="../src-server/NetworkAdapterImpl.cpp" line="393"/>
+        <location filename="../src-server/NetworkAdapterImpl.cpp" line="400"/>
         <source>Invalid MAC address format</source>
         <translation>Geçersiz MAC adresi biçimi</translation>
     </message>
     <message>
-        <location filename="../src-server/NetworkAdapterImpl.cpp" line="538"/>
+        <location filename="../src-server/NetworkAdapterImpl.cpp" line="544"/>
         <source>Empty or null bridged interface name is not valid</source>
         <translation>Boş veya null köprü arayüz adı geçerli değil</translation>
     </message>
     <message>
-        <location filename="../src-server/NetworkAdapterImpl.cpp" line="586"/>
+        <location filename="../src-server/NetworkAdapterImpl.cpp" line="592"/>
         <source>Empty or null host only interface name is not valid</source>
         <translation>Boş veya null yalnızca anamakine arayüz adı geçerli değil</translation>
     </message>
     <message>
-        <location filename="../src-server/NetworkAdapterImpl.cpp" line="641"/>
+        <location filename="../src-server/NetworkAdapterImpl.cpp" line="647"/>
         <source>Empty or null host only Network name is not valid</source>
         <translation>Boş veya null yalnızca anamakine Ağ adı geçerli değil</translation>
     </message>
     <message>
-        <location filename="../src-server/NetworkAdapterImpl.cpp" line="694"/>
+        <location filename="../src-server/NetworkAdapterImpl.cpp" line="700"/>
         <source>Empty or null internal network name is not valid</source>
         <translation>Boş veya null dahili ağ adı geçerli değil</translation>
     </message>
     <message>
-        <location filename="../src-server/NetworkAdapterImpl.cpp" line="741"/>
+        <location filename="../src-server/NetworkAdapterImpl.cpp" line="747"/>
         <source>Empty or null NAT network name is not valid</source>
         <translation>Boş veya null NAT ağ adı geçerli değil</translation>
     </message>
     <message>
-        <location filename="../src-server/NetworkAdapterImpl.cpp" line="834"/>
+        <location filename="../src-server/NetworkAdapterImpl.cpp" line="840"/>
         <source>Empty or null Cloud network name is not valid</source>
         <translation>Boş veya null Bulut ağ adı geçerli değil</translation>
     </message>
     <message>
-        <location filename="../src-server/NetworkAdapterImpl.cpp" line="960"/>
+        <location filename="../src-server/NetworkAdapterImpl.cpp" line="966"/>
         <source>Invalid promiscuous mode policy (%d)</source>
         <translation>Geçersiz karma kip ilkesi (%d)</translation>
     </message>
@@ -8656,42 +9155,60 @@ Guest offers: %s</source>
 <context>
     <name>NvramStore</name>
     <message>
-        <location filename="../src-all/NvramStoreImpl.cpp" line="401"/>
-        <location filename="../src-all/NvramStoreImpl.cpp" line="487"/>
+        <location filename="../src-all/NvramStoreImpl.cpp" line="387"/>
+        <location filename="../src-all/NvramStoreImpl.cpp" line="470"/>
         <source>Loading the NVRAM store failed (%Rrc)
 </source>
         <translation>NVRAM deposunun yüklenmesi başarısız oldu (%Rrc)
 </translation>
     </message>
     <message>
-        <location filename="../src-all/NvramStoreImpl.cpp" line="413"/>
-        <location filename="../src-all/NvramStoreImpl.cpp" line="1093"/>
         <source>The UEFI NVRAM file is not existing for this machine.</source>
-        <translation>UEFI NVRAM dosyası bu makine için mevcut değil.</translation>
+        <translation type="vanished">UEFI NVRAM dosyası bu makine için mevcut değil.</translation>
     </message>
     <message>
-        <location filename="../src-all/NvramStoreImpl.cpp" line="465"/>
+        <location filename="../src-all/NvramStoreImpl.cpp" line="361"/>
+        <source>This machine does not have an NVRAM store file</source>
+        <translation>Bu makinede bir NVRAM depolama dosyası yok</translation>
+    </message>
+    <message>
+        <location filename="../src-all/NvramStoreImpl.cpp" line="373"/>
+        <source>No NVRAM store file found</source>
+        <translation>Bulunan NVRAM depolama dosyası yok</translation>
+    </message>
+    <message>
+        <location filename="../src-all/NvramStoreImpl.cpp" line="399"/>
+        <location filename="../src-all/NvramStoreImpl.cpp" line="1387"/>
+        <source>The UEFI NVRAM file is not existing for this machine</source>
+        <translation>UEFI NVRAM dosyası bu makine için mevcut değil</translation>
+    </message>
+    <message>
+        <location filename="../src-all/NvramStoreImpl.cpp" line="449"/>
         <source>Supporting another NVRAM size apart from the default one is not supported right now</source>
         <translation>Varsayılan boyut dışında başka bir NVRAM boyutunun desteklenmesi şu anda desteklenmiyor</translation>
     </message>
     <message>
-        <location filename="../src-all/NvramStoreImpl.cpp" line="479"/>
+        <location filename="../src-all/NvramStoreImpl.cpp" line="462"/>
         <source>The selected firmware type doesn&apos;t support a UEFI variable store</source>
         <translation>Seçilen donanım yazılımı türü, bir UEFI değişken deposunu desteklemiyor</translation>
     </message>
     <message>
-        <location filename="../src-all/NvramStoreImpl.cpp" line="517"/>
-        <location filename="../src-all/NvramStoreImpl.cpp" line="520"/>
+        <location filename="../src-all/NvramStoreImpl.cpp" line="500"/>
+        <location filename="../src-all/NvramStoreImpl.cpp" line="503"/>
         <source>Failed to initialize the UEFI variable store (%Rrc)</source>
         <translation>UEFI değişken deposunu başlatma başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-all/NvramStoreImpl.cpp" line="1090"/>
-        <source>Opening the UEFI variable store failed (%Rrc).</source>
-        <translation>UEFI değişken deposunu açma başarısız (%Rrc).</translation>
+        <location filename="../src-all/NvramStoreImpl.cpp" line="1384"/>
+        <source>Opening the UEFI variable store failed (%Rrc)</source>
+        <translation>UEFI değişken deposunu açma başarısız oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-all/NvramStoreImpl.cpp" line="1160"/>
+        <source>Opening the UEFI variable store failed (%Rrc).</source>
+        <translation type="vanished">UEFI değişken deposunu açma başarısız (%Rrc).</translation>
+    </message>
+    <message>
+        <location filename="../src-all/NvramStoreImpl.cpp" line="1457"/>
         <source>Failed to save the NVRAM content to disk (%Rrc)</source>
         <translation>NVRAM içeriğini diske kaydetme başarısız (%Rrc)</translation>
     </message>
@@ -8736,6 +9253,52 @@ Guest offers: %s</source>
     </message>
 </context>
 <context>
+    <name>PlatformProperties</name>
+    <message>
+        <location filename="../src-all/PlatformPropertiesImpl.cpp" line="515"/>
+        <source>Invalid storage controller type %d
+</source>
+        <translation>Geçersiz depolama denetleyicisi türü %d
+</translation>
+    </message>
+    <message>
+        <location filename="../src-all/PlatformPropertiesImpl.cpp" line="565"/>
+        <source>Invalid storage bus %d
+</source>
+        <translation>Geçersiz depolama taşıyıcı %d
+</translation>
+    </message>
+    <message>
+        <location filename="../src-all/PlatformPropertiesImpl.cpp" line="977"/>
+        <source>Selected graphics controller not supported in this version</source>
+        <translation>Seçilen grafik denetleyicisi bu sürümde desteklenmiyor</translation>
+    </message>
+    <message>
+        <location filename="../src-all/PlatformPropertiesImpl.cpp" line="980"/>
+        <location filename="../src-all/PlatformPropertiesImpl.cpp" line="994"/>
+        <source>The graphics controller type (%d) is invalid</source>
+        <translation>Grafik denetleyicisi türü (%d) geçersiz</translation>
+    </message>
+</context>
+<context>
+    <name>PlatformX86</name>
+    <message>
+        <location filename="../src-server/PlatformX86Impl.cpp" line="548"/>
+        <source>Currently only aSubIdx values 0 and 0xffffffff are supported: %#x</source>
+        <translation>Şu anda yalnızca aSubIdx değerleri 0 ve 0xffffffff destekleniyor: %#x</translation>
+    </message>
+    <message>
+        <location filename="../src-server/PlatformX86Impl.cpp" line="552"/>
+        <source>CpuId override leaf %#x is out of range</source>
+        <translation>CpuId geçersiz kılma yaprağı %#x aralığın dışında</translation>
+    </message>
+    <message>
+        <location filename="../src-server/PlatformX86Impl.cpp" line="564"/>
+        <source>Max of 256 CPUID override leaves reached</source>
+        <translation>En fazla 256 CPUID geçersiz kılma yaprağına ulaşıldı</translation>
+    </message>
+</context>
+<context>
     <name>Progress</name>
     <message>
         <location filename="../src-all/ProgressImpl.cpp" line="666"/>
@@ -8775,57 +9338,57 @@ Guest offers: %s</source>
 <context>
     <name>RecordingScreenSettings</name>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="299"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="300"/>
         <source>Cannot change enabled state of screen while recording is enabled</source>
         <translation>Kayıt etkinken ekranın etkinleştirildi durumu değiştirilemez</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="343"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="344"/>
         <source>Cannot change features while recording is enabled</source>
         <translation>Kayıt etkinken özellikler değiştirilemez</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="397"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="398"/>
         <source>Cannot change destination type while recording is enabled</source>
         <translation>Kayıt etkinken hedef türü değiştirilemez</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="400"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="401"/>
         <source>Destination type invalid / not supported</source>
-        <translation type="unfinished"></translation>
+        <translation>Hedef türü geçersiz / desteklenmiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="428"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="429"/>
         <source>Error retrieving default file name</source>
         <translation>Varsayılan dosya adı alınırken hata oldu</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="445"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="446"/>
         <source>Cannot change file name while recording is enabled</source>
         <translation>Kayıt etkinken dosya adı değiştirilemez</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="450"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="451"/>
         <source>Recording file name &apos;%s&apos; is not absolute</source>
         <translation>Kayıt dosyası adı &apos;%s&apos; kesin değil</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="472"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="473"/>
         <source>Could not set file name for recording screen</source>
-        <translation type="unfinished"></translation>
+        <translation>Kayıt ekranı için dosya adı ayarlanamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="496"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="497"/>
         <source>Cannot change maximum time while recording is enabled</source>
         <translation>Kayıt etkinken en fazla süre değiştirilemez</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="531"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="532"/>
         <source>Cannot change maximum file size while recording is enabled</source>
         <translation>Kayıt etkinken en fazla dosya boyutu değiştirilemez</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="566"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="567"/>
         <source>Cannot change options while recording is enabled</source>
         <translation>Kayıt etkinken seçenekler değiştirilemez</translation>
     </message>
@@ -8834,84 +9397,84 @@ Guest offers: %s</source>
         <translation type="vanished">Geçersiz seçenek belirtildi</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="600"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="601"/>
         <source>Cannot change audio codec while recording is enabled</source>
         <translation>Kayıt etkinken ses kodeki değiştirilemez</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="603"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="604"/>
         <source>Audio codec not supported</source>
-        <translation type="unfinished"></translation>
+        <translation>Ses kodeki desteklenmiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="638"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="639"/>
         <source>Cannot change audio deadline while recording is enabled</source>
-        <translation type="unfinished"></translation>
+        <translation>Kayıt etkinken ses zaman sınırı değiştirilemez</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="673"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="674"/>
         <source>Cannot change audio rate control mode while recording is enabled</source>
-        <translation type="unfinished"></translation>
+        <translation>Kayıt etkinken ses hızı denetim kipi değiştirilemez</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="701"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="702"/>
         <source>Cannot change audio Hertz rate while recording is enabled</source>
         <translation>Kayıt etkinken ses Hertz hızı değiştirilemez</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="736"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="737"/>
         <source>Cannot change audio bits while recording is enabled</source>
         <translation>Kayıt etkinken ses bitleri değiştirilemez</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="771"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="772"/>
         <source>Cannot change audio channels while recording is enabled</source>
         <translation>Kayıt etkinken ses kanalları değiştirilemez</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="806"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="807"/>
         <source>Cannot change video codec while recording is enabled</source>
         <translation>Kayıt etkinken görüntü kodeki değiştirilemez</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="809"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="810"/>
         <source>Video codec not supported</source>
-        <translation type="unfinished"></translation>
+        <translation>Görüntü kodeki desteklenmiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="844"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="845"/>
         <source>Cannot change video deadline while recording is enabled</source>
-        <translation type="unfinished"></translation>
+        <translation>Kayıt etkinken görüntü zaman sınırı değiştirilemez</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="879"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="880"/>
         <source>Cannot change video width while recording is enabled</source>
         <translation>Kayıt etkinken görüntü genişliği değiştirilemez</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="914"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="915"/>
         <source>Cannot change video height while recording is enabled</source>
         <translation>Kayıt etkinken görüntü yüksekliği değiştirilemez</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="949"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="950"/>
         <source>Cannot change video rate while recording is enabled</source>
         <translation>Kayıt etkinken görüntü hızı değiştirilemez</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="984"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="985"/>
         <source>Cannot change video rate control mode while recording is enabled</source>
         <translation>Kayıt etkinken görüntü hızı denetim kipi değiştirilemez</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="1012"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="1013"/>
         <source>Cannot change video FPS while recording is enabled</source>
         <translation>Kayıt etkinken görüntü FPS değiştirilemez</translation>
     </message>
     <message>
-        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="1047"/>
+        <location filename="../src-server/RecordingScreenSettingsImpl.cpp" line="1048"/>
         <source>Cannot change video scaling mode while recording is enabled</source>
-        <translation type="unfinished"></translation>
+        <translation>Kayıt etkinken görüntü ölçeklendirme kipi değiştirilemez</translation>
     </message>
     <message>
         <source>Cannot change video rate scaling method while recording is enabled</source>
@@ -8921,9 +9484,19 @@ Guest offers: %s</source>
 <context>
     <name>RecordingSettings</name>
     <message>
-        <location filename="../src-server/RecordingSettingsImpl.cpp" line="372"/>
+        <location filename="../src-server/RecordingSettingsImpl.cpp" line="335"/>
+        <source>Recording not started</source>
+        <translation>Kayıt başlamadı</translation>
+    </message>
+    <message>
+        <location filename="../src-server/RecordingSettingsImpl.cpp" line="357"/>
         <source>Invalid screen ID specified</source>
         <translation>Geçersiz ekran kimliği belirtildi</translation>
+    </message>
+    <message>
+        <location filename="../src-server/RecordingSettingsImpl.cpp" line="401"/>
+        <source>Recording already started</source>
+        <translation>Kayıt zaten başladı</translation>
     </message>
 </context>
 <context>
@@ -9003,10 +9576,10 @@ Guest offers: %s</source>
         <translation>Uzak konsolu sorgulama başarısız</translation>
     </message>
     <message>
-        <location filename="../src-client/SessionImpl.cpp" line="999"/>
-        <location filename="../src-client/SessionImpl.cpp" line="1045"/>
-        <location filename="../src-client/SessionImpl.cpp" line="1067"/>
-        <location filename="../src-client/SessionImpl.cpp" line="1087"/>
+        <location filename="../src-client/SessionImpl.cpp" line="1016"/>
+        <location filename="../src-client/SessionImpl.cpp" line="1062"/>
+        <location filename="../src-client/SessionImpl.cpp" line="1084"/>
+        <location filename="../src-client/SessionImpl.cpp" line="1104"/>
         <source>Machine is not locked by session (session state: %s).</source>
         <translation>Makine oturum tarafından kilitlenmedi (oturum durumu: %s).</translation>
     </message>
@@ -9014,81 +9587,81 @@ Guest offers: %s</source>
 <context>
     <name>SessionMachine</name>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="13388"/>
-        <location filename="../src-server/MachineImpl.cpp" line="13398"/>
+        <location filename="../src-server/MachineImpl.cpp" line="12797"/>
+        <location filename="../src-server/MachineImpl.cpp" line="12807"/>
         <source>The VM session was aborted</source>
         <translation>VM oturumu iptal edildi</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="13548"/>
-        <location filename="../src-server/SnapshotImpl.cpp" line="1755"/>
-        <location filename="../src-server/SnapshotImpl.cpp" line="2326"/>
-        <location filename="../src-server/SnapshotImpl.cpp" line="2969"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="1770"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="2341"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="2984"/>
+        <location filename="../src-server/MachineImpl.cpp" line="12957"/>
         <source>The session has been accidentally closed</source>
         <translation>Oturum yanlışlıkla kapatıldı</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="13565"/>
+        <location filename="../src-server/MachineImpl.cpp" line="12974"/>
         <source>Trying to save state without a running VM</source>
         <translation>Çalışan bir VM olmadan durum kaydedilmeye çalışılıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="13626"/>
+        <location filename="../src-server/MachineImpl.cpp" line="13035"/>
         <source>Cannot save the execution state as the machine is not running or paused (machine state: %s)</source>
         <translation>Makine çalışmadığından veya duraklatıldığından çalıştırılma durumu kaydedilemez (makine durumu: %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="13633"/>
+        <location filename="../src-server/MachineImpl.cpp" line="13042"/>
         <source>Saving the execution state of the virtual machine</source>
         <translation>Sanal makinenin çalıştırılma durumu kaydediliyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="13672"/>
+        <location filename="../src-server/MachineImpl.cpp" line="13081"/>
         <source>Cannot adopt the saved machine state as the machine is not in Powered Off, Teleported or Aborted state (machine state: %s)</source>
         <translation>Makine Güç Kapalı, Işınlandı veya Durduruldu durumunda olmadığı için kaydedildi makine durumu kabul edilemez (makine durumu: %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="13679"/>
+        <location filename="../src-server/MachineImpl.cpp" line="13088"/>
         <source>Invalid saved state file path &apos;%s&apos; (%Rrc)</source>
         <translation>Geçersiz kaydedildi durumu dosyası yolu &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="13704"/>
+        <location filename="../src-server/MachineImpl.cpp" line="13113"/>
         <source>Cannot discard the saved state as the machine is not in the Saved or Aborted-Saved state (machine state: %s)</source>
         <translation>Makine Kaydedildi veya İptal Edildi-Kaydedildi durumunda olmadığından kaydedildi durumundan vazgeçilemez (makine durumu: %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="13832"/>
+        <location filename="../src-server/MachineImpl.cpp" line="13241"/>
         <source>Stopping the virtual machine</source>
         <translation>Sanal makine durduruluyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="14058"/>
+        <location filename="../src-server/MachineImpl.cpp" line="13467"/>
         <source>The VM session was closed before any attempt to power it on</source>
         <translation>VM oturumu, herhangi bir güç açma girişiminden önce kapatıldı</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="14072"/>
+        <location filename="../src-server/MachineImpl.cpp" line="13481"/>
         <source>Closing session</source>
         <translation>Oturum kapatılıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="14096"/>
+        <location filename="../src-server/MachineImpl.cpp" line="13505"/>
         <source>The session is not found in the session list!</source>
         <translation>Oturum, oturum listesinde bulunamadı!</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="14337"/>
+        <location filename="../src-server/MachineImpl.cpp" line="13746"/>
         <source>Could not load the external authentication library &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; harici kimlik doğrulama kütüphanesi yüklenemedi (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="15225"/>
+        <location filename="../src-server/MachineImpl.cpp" line="14657"/>
         <source>Collecting locking information for all attached media failed</source>
         <translation>Takılan tüm ortamlar için kilitleme bilgilerinin toplanması başarısız oldu</translation>
     </message>
     <message>
-        <location filename="../src-server/MachineImpl.cpp" line="15238"/>
+        <location filename="../src-server/MachineImpl.cpp" line="14670"/>
         <source>Locking of attached media failed. A possible reason is that one of the media is attached to a running VM</source>
         <translation>Takılı ortamın kilitlenmesi başarısız oldu. Olası bir sebep, ortamlardan birinin çalışan bir VM&apos;ye takılı olmasıdır</translation>
     </message>
@@ -9097,171 +9670,171 @@ Guest offers: %s</source>
         <translation type="vanished">Durumu değiştirirken makinenin anlık görüntüsü alınamaz (makine durumu: %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="1630"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="1645"/>
         <source>Cannot take a snapshot of the virtual machine while it is changing state (machine state: %s)</source>
-        <translation type="unfinished"></translation>
+        <translation>Durumu değiştirirken sanal makinenin anlık görüntüsü alınamaz (makine durumu: %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="1635"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="1650"/>
         <source>Cannot take a live snapshot of a virtual machine unless it is running.</source>
-        <translation type="unfinished"></translation>
+        <translation>Çalışmıyorsa sanal makinenin canlı anlık görüntüsü alınamaz.</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="1677"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="1692"/>
         <source>Taking a snapshot of the virtual machine</source>
         <translation>Sanal makinenin anlık görüntüsü alınıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="1681"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="1696"/>
         <source>Setting up snapshot operation</source>
         <translation>Anlık görüntü işlemi ayarlanıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="1784"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="1799"/>
         <source>Cannot take another snapshot for machine &apos;%s&apos;, because it exceeds the maximum snapshot depth limit. Please delete some earlier snapshot which you no longer need</source>
         <translation>En fazla anlık görüntü derinliği sınırını aştığından &apos;%s&apos; makinesi için başka bir anlık görüntü alınamıyor. Lütfen artık ihtiyacınız olmayan bazı eski anlık görüntüleri silin</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="1864"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="1879"/>
         <source>Saving the machine state</source>
         <translation>Makine durumu kaydediliyor</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="1887"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="1902"/>
         <source>Canceled</source>
         <translation>İptal edildi</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="1892"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="1907"/>
         <source>Reconfiguring medium attachments</source>
         <translation>Ortam takmaları yeniden yapılandırılıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="1920"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="1935"/>
         <source>Could not copy NVRAM file &apos;%s&apos; to &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; NVRAM dosyası &apos;%s&apos; konumuna kopyalanamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="2224"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="2239"/>
         <source>Cannot delete the current state of the running machine (machine state: %s)</source>
         <translation>Çalışan makinenin şu anki durumu silinemez (makine durumu: %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="2236"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="2251"/>
         <source>This VM does not have any current snapshot</source>
-        <translation type="unfinished"></translation>
+        <translation>Bu VM herhangi bir şu anki anlık görüntüye sahip değil</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="2238"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="2253"/>
         <source>The given snapshot is invalid</source>
-        <translation type="unfinished"></translation>
+        <translation>Verilen anlık görüntü geçersiz</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="2271"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="2286"/>
         <source>Restoring snapshot &apos;%s&apos;</source>
         <translation>&apos;%s&apos; anlık görüntüsü geri yükleniyor</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="2275"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="2290"/>
         <source>Restoring machine settings</source>
         <translation>Makine ayarları geri yükleniyor</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="2709"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="2724"/>
         <source>Cannot delete a snapshot of the machine while it is changing the state (machine state: %s)</source>
         <translation>Durumu değiştirirken makinenin anlık görüntüsü silinemez (makine durumu: %s)</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="2722"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="2737"/>
         <source>Invalid machine state: %s</source>
         <translation>Geçersiz makine durumu: %s</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/SnapshotImpl.cpp" line="2740"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="2755"/>
         <source>Snapshot &apos;%s&apos; of the machine &apos;%s&apos; cannot be deleted, because it has %d child snapshots, which is more than the one snapshot allowed for deletion</source>
         <translation>
             <numerusform>&apos;%s&apos; anlık görüntüsü, ait olduğu &apos;%s&apos; makinesinden silinemez, çünkü silinmesine izin verilen birden fazla anlık görüntü olan %d alt anlık görüntüye sahiptir</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="2748"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="2763"/>
         <source>Snapshot &apos;%s&apos; of the machine &apos;%s&apos; cannot be deleted, because it is the current snapshot and has one child snapshot</source>
         <translation>&apos;%s&apos; anlık görüntüsü, ait olduğu &apos;%s&apos; makinesinden silinemez, çünkü bu şu anki anlık görüntüdür ve bir alt anlık görüntüye sahiptir</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="2821"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="2836"/>
         <source>Deleting snapshot &apos;%s&apos;</source>
         <translation>&apos;%s&apos; anlık görüntüsü siliniyor</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="2825"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="2840"/>
         <source>Setting up</source>
         <translation>Ayarlanıyor</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/SnapshotImpl.cpp" line="3101"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="3116"/>
         <source>Unable to merge storage &apos;%s&apos;, because it is smaller than the source image. If you resize it to have a capacity of at least %lld bytes you can retry</source>
         <translation>
             <numerusform>Kaynak kalıptan daha küçük olduğundan &apos;%s&apos; depolaması birleştirilemiyor. Eğr en az %lld bayt&apos;lık bir kapasiteye sahip olacak şekilde yeniden boyutlandırırsanız yeniden deneyebilirsiniz</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="3197"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="3212"/>
         <source>Unable to merge storage &apos;%s&apos;. Can&apos;t get storage UID</source>
         <translation>&apos;%s&apos; depolaması birleştirilemiyor. Depolama UID&apos;si alınamıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="3237"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="3252"/>
         <source>Unable to merge storage &apos;%s&apos;. Path to the storage wasn&apos;t found</source>
         <translation>&apos;%s&apos; depolaması birleştirilemiyor. Depolama yolu bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="3245"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="3260"/>
         <source>Unable to merge storage &apos;%s&apos;. Can&apos;t get the storage size</source>
         <translation>&apos;%s&apos; depolaması birleştirilemiyor. Depolama boyutu alınamıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="3254"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="3269"/>
         <source>Unable to merge storage &apos;%s&apos;. Not enough free storage space</source>
         <translation>&apos;%s&apos; depolaması birleştirilemiyor. Yeterli boş depolama alanı yok</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="3286"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="3301"/>
         <source>Deleting the execution state</source>
         <translation>Çalıştırma durumu siliniyor</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="3315"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="3330"/>
         <source>Merging differencing image &apos;%s&apos;</source>
         <translation>&apos;%s&apos; ayrımlama kalıbı birleştiriliyor</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="3316"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="3331"/>
         <source>Resizing before merge differencing image &apos;%s&apos;</source>
         <translation>&apos;%s&apos; ayrımlama kalıbı birleştirilmeden önce yeniden boyutlandırılıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="3712"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="3727"/>
         <source>Hard disk &apos;%s&apos; has more than one child hard disk (%d)</source>
         <translation>&apos;%s&apos; sabit diskinde birden fazla alt sabit disk var (%d)</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="3881"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="3896"/>
         <source>Cannot lock hard disk &apos;%s&apos; for a live merge</source>
         <translation>Canlı birleştirme için &apos;%s&apos; sabit diski kilitlenemez</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="3895"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="3910"/>
         <source>Failed to construct lock list for a live merge of hard disk &apos;%s&apos;</source>
         <translation>&apos;%s&apos; sabit diskinin canlı birleştirilmesi için kilit listesi oluşturma başarısız</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="3928"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="3943"/>
         <source>Cannot lock hard disk &apos;%s&apos; when deleting a snapshot</source>
         <translation>Anlık görüntü silinirken &apos;%s&apos; sabit diski kilitlenemez</translation>
     </message>
     <message>
-        <location filename="../src-server/SnapshotImpl.cpp" line="4110"/>
+        <location filename="../src-server/SnapshotImpl.cpp" line="4125"/>
         <source>Machine is not locked by a session (session state: %s)</source>
         <translation>Makine bir oturum tarafından kilitlenmedi (oturum durumu: %s)</translation>
     </message>
@@ -9269,29 +9842,34 @@ Guest offers: %s</source>
 <context>
     <name>SharedFolder</name>
     <message>
-        <location filename="../src-all/SharedFolderImpl.cpp" line="252"/>
+        <location filename="../src-all/SharedFolderImpl.cpp" line="259"/>
         <source>Invalid shared folder path: &apos;%s&apos; (%Rrc)</source>
         <translation>Geçersiz paylaşılan klasör yolu: &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-all/SharedFolderImpl.cpp" line="255"/>
+        <location filename="../src-all/SharedFolderImpl.cpp" line="262"/>
         <source>Shared folder path &apos;%s&apos; is not absolute</source>
         <translation>Paylaşılan klasör yolu &apos;%s&apos; kesin değil</translation>
     </message>
     <message>
-        <location filename="../src-all/SharedFolderImpl.cpp" line="260"/>
+        <location filename="../src-all/SharedFolderImpl.cpp" line="267"/>
         <source>RTPathQueryInfo failed on shared folder path &apos;%s&apos;: %Rrc</source>
         <translation>RTPathQueryInfo, &apos;%s&apos; paylaşılan klasör yolunda başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-all/SharedFolderImpl.cpp" line="263"/>
+        <location filename="../src-all/SharedFolderImpl.cpp" line="270"/>
         <source>Shared folder path &apos;%s&apos; is not a directory</source>
         <translation>Paylaşılan klasör yolu &apos;%s&apos; bir dizin değil</translation>
     </message>
     <message>
-        <location filename="../src-all/SharedFolderImpl.cpp" line="330"/>
+        <location filename="../src-all/SharedFolderImpl.cpp" line="338"/>
         <source>&apos;%s&apos; is not accessible (%Rrc)</source>
         <translation>&apos;%s&apos; erişilebilir değil (%Rrc)</translation>
+    </message>
+    <message>
+        <location filename="../src-all/SharedFolderImpl.cpp" line="415"/>
+        <source>The symbolic link policy specified (%d) is invalid.</source>
+        <translation>Belirtilen sembolik bağlantı ilkesi (%d) geçersiz.</translation>
     </message>
 </context>
 <context>
@@ -9310,34 +9888,34 @@ Guest offers: %s</source>
         <translation>Geçersiz depolama bağlantı türü</translation>
     </message>
     <message>
-        <location filename="../src-server/StorageControllerImpl.cpp" line="123"/>
+        <location filename="../src-server/StorageControllerImpl.cpp" line="122"/>
         <source>Too many storage controllers of this type</source>
         <translation>Bu türden çok fazla depolama denetleyicisi</translation>
     </message>
     <message>
-        <location filename="../src-server/StorageControllerImpl.cpp" line="327"/>
+        <location filename="../src-server/StorageControllerImpl.cpp" line="326"/>
         <source>Storage controller named &apos;%s&apos; already exists</source>
         <translation>&apos;%s&apos; adlı depolama denetleyicisi zaten var</translation>
     </message>
     <message>
-        <location filename="../src-server/StorageControllerImpl.cpp" line="427"/>
+        <location filename="../src-server/StorageControllerImpl.cpp" line="426"/>
         <source>Invalid controller type %d</source>
         <translation>Geçersiz denetleyici türü %d</translation>
     </message>
     <message>
-        <location filename="../src-server/StorageControllerImpl.cpp" line="487"/>
-        <location filename="../src-server/StorageControllerImpl.cpp" line="501"/>
-        <location filename="../src-server/StorageControllerImpl.cpp" line="512"/>
-        <location filename="../src-server/StorageControllerImpl.cpp" line="523"/>
-        <location filename="../src-server/StorageControllerImpl.cpp" line="532"/>
-        <location filename="../src-server/StorageControllerImpl.cpp" line="543"/>
-        <location filename="../src-server/StorageControllerImpl.cpp" line="555"/>
-        <location filename="../src-server/StorageControllerImpl.cpp" line="566"/>
+        <location filename="../src-server/StorageControllerImpl.cpp" line="486"/>
+        <location filename="../src-server/StorageControllerImpl.cpp" line="500"/>
+        <location filename="../src-server/StorageControllerImpl.cpp" line="511"/>
+        <location filename="../src-server/StorageControllerImpl.cpp" line="522"/>
+        <location filename="../src-server/StorageControllerImpl.cpp" line="531"/>
+        <location filename="../src-server/StorageControllerImpl.cpp" line="542"/>
+        <location filename="../src-server/StorageControllerImpl.cpp" line="554"/>
+        <location filename="../src-server/StorageControllerImpl.cpp" line="565"/>
         <source>Invalid port count: %lu (must be in range [%lu, %lu])</source>
         <translation>Geçersiz bağlantı noktası sayısı: %lu ([%lu, %lu] aralığında olmak zorundadır)</translation>
     </message>
     <message>
-        <location filename="../src-server/StorageControllerImpl.cpp" line="718"/>
+        <location filename="../src-server/StorageControllerImpl.cpp" line="717"/>
         <source>The port and/or device parameter are out of range: port=%d (must be in range [0, %d]), device=%d (must be in range [0, %d])</source>
         <translation>Bağlantı noktası ve/veya aygıt parametresi aralığın dışında: bağlantı noktası=%d ([0, %d] aralığında olmak zorundadır), aygıt=%d ([0, %d] aralığında olmak zorundadır)</translation>
     </message>
@@ -9345,109 +9923,112 @@ Guest offers: %s</source>
 <context>
     <name>SystemProperties</name>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="591"/>
         <source>Invalid storage controller type %d
 </source>
-        <translation>Geçersiz depolama denetleyicisi türü %d
+        <translation type="vanished">Geçersiz depolama denetleyicisi türü %d
 </translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="641"/>
         <source>Invalid storage bus %d
 </source>
-        <translation>Geçersiz depolama taşıyıcı %d
+        <translation type="vanished">Geçersiz depolama taşıyıcı %d
 </translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="748"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="315"/>
         <source>Invalid or unsupported architecture value: %d</source>
         <translation>Geçersiz veya desteklenmeyen mimari değer: %d</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="858"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="425"/>
         <source>&apos;%s&apos; is missing symbols: CPUMR3DbGetEntries, CPUMR3DbGetEntryByIndex</source>
         <translation>&apos;%s&apos; eksik semboller: CPUMR3DbGetEntries, CPUMR3DbGetEntryByIndex</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="862"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="429"/>
         <source>Failed to construct load &apos;%s&apos;: %Rrc</source>
         <translation>&apos;%s&apos; yüklemesini oluşturma başarısız: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="865"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="432"/>
         <source>Failed to construct path to the VMM DLL/Dylib/SharedObject: %Rrc</source>
         <translation>VMM DLL/Dylib/SharedObject için yol oluşturma başarısız: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1102"/>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1148"/>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1181"/>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1227"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="669"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="715"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="748"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="794"/>
         <source>The extension pack &apos;%s&apos; does not exist</source>
         <translation>&apos;%s&apos; genişletme paketi mevcut değil</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1381"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="955"/>
         <source>Invalid ProxyMode value: %d</source>
         <translation>Geçersiz ProxyMode değeri: %d</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1421"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="995"/>
         <source>Failed to parse proxy URL: %Rrc</source>
         <translation>Vekil URL&apos;sini ayrıştırma başarısız: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1424"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="998"/>
         <source>Proxy URL must include a hostname</source>
         <translation>Vekil URL&apos;si bir anamakine adı içermek zorundadır</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1426"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1000"/>
         <source>Proxy URL must not include a path component (%.*s)</source>
         <translation>Vekil URL&apos;si bir yol bileşeni içermemek zorunda (%.*s)</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1429"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1003"/>
         <source>Proxy URL must not include a query component (?%.*s)</source>
         <translation>Vekil URL&apos;si bir sorgu bileşeni içermemek zorunda (?%.*s)</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1432"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1006"/>
         <source>Proxy URL must not include a fragment component (#%.*s)</source>
         <translation>Vekil URL&apos;si bir parça bileşeni içermemek zorunda (#%.*s)</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="2148"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1630"/>
         <source>Cannot determine user home directory (%Rrc)</source>
         <translation>Kullanıcı ana dizini belirlenemiyor (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="2179"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1661"/>
         <source>Given default machine folder &apos;%s&apos; is not fully qualified</source>
         <translation>Verilen varsayılan makine klasörü &apos;%s&apos; tam olarak nitelikli değil</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="2270"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1682"/>
+        <source>RTLogGroupSettings failed: %Rrc (input: %s)</source>
+        <translation>RTLogGroupSettings başarısız oldu: %Rrc (giriş: %s)</translation>
+    </message>
+    <message>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1760"/>
         <source>Cannot set the autostart database path (%Rrc)</source>
         <translation>Otomatik başlatma veritabanı yolu ayarlanamıyor (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="2278"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1768"/>
         <source>Deleting the autostart database path failed (%Rrc)</source>
         <translation>Otomatik başlatma veritabanı yolunu silme başarısız oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="2311"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1801"/>
         <source>Cannot determine default Guest Additions ISO location. Most likely they are not available</source>
         <translation>Varsayılan Misafir Eklentileri ISO konumu belirlenemiyor. Büyük olasılıkla mevcut değiller</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="2316"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1806"/>
         <source>Given default machine Guest Additions ISO file &apos;%s&apos; is not fully qualified</source>
         <translation>Verilen varsayılan makine Misafir Eklentileri ISO dosyası &apos;%s&apos; tam olarak nitelikli değil</translation>
     </message>
     <message>
-        <location filename="../src-server/SystemPropertiesImpl.cpp" line="2321"/>
+        <location filename="../src-server/SystemPropertiesImpl.cpp" line="1811"/>
         <source>Given default machine Guest Additions ISO file &apos;%s&apos; does not exist</source>
         <translation>Verilen varsayılan makine Misafir Eklentileri ISO dosyası &apos;%s&apos; mevcut değil</translation>
     </message>
@@ -9585,128 +10166,128 @@ Guest offers: %s</source>
 <context>
     <name>UefiVariableStore</name>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="181"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="177"/>
         <source>The &apos;SecureBootEnable&apos; variable size is bogus (expected 1, got %llu)</source>
         <translation>&apos;SecureBootEnable&apos; değişken boyutu sahte (beklenen 1, %llu alındı)</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="184"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="180"/>
         <source>Failed to query the &apos;SecureBootEnable&apos; variable size: %Rrc</source>
         <translation>&apos;SecureBootEnable&apos; değişken boyutunu sorgulama başarısız: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="189"/>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="222"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="185"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="218"/>
         <source>Failed to query the platform key variable size: %Rrc</source>
         <translation>Platform anahtarı değişken boyutunu sorgulama başarısız: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="220"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="216"/>
         <source>Secure boot is not available because the platform key (PK) is not enrolled</source>
         <translation>Platform anahtarı (PK) kayıtlı olmadığından güvenli önyükleme kullanılamıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="276"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="272"/>
         <source>Failed to remove variable &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; değişkeni kaldırma başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="279"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="275"/>
         <source>Failed to open the variable store root (%Rrc)</source>
         <translation>Değişken depolama kök dizinini açma başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="282"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="278"/>
         <source>The variable name is too long</source>
         <translation>Değişken adı çok uzun</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="309"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="305"/>
         <source>Failed to data for variable &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; değişkeni için veri alma başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="312"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="308"/>
         <source>Failed to allocate space for the variable &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; değişkeni için alan ayırma başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="356"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="348"/>
         <source>Failed to query the size of variable &apos;%s&apos;: %Rrc</source>
         <translation>&apos;%s&apos; değişkeninin boyutunu sorgulama başarısız: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="359"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="351"/>
         <source>Failed to query the owner UUID of variable &apos;%s&apos;: %Rrc</source>
         <translation>&apos;%s&apos; değişkeninin sahibi UUID&apos;sini sorgulama başarısız: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="362"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="354"/>
         <source>Failed to query the attributes of variable &apos;%s&apos;: %Rrc</source>
         <translation>&apos;%s&apos; değişkeninin özniteliklerini sorgulama başarısız: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="412"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="400"/>
         <source>Failed to query the variables: %Rrc</source>
         <translation>Değişkenleri sorgulama başarısız: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="812"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="816"/>
         <source>Opening variable storage root directory failed: %Rrc</source>
         <translation>Değişken depolama kök dizinini açma başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="824"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="828"/>
         <source>Creating the variable &apos;%s&apos; failed: %Rrc</source>
         <translation>&apos;%s&apos; değişkeni oluşturma başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="850"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="854"/>
         <source>The variable &apos;%s&apos; could not be found</source>
         <translation>&apos;%s&apos; değişkeni bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="852"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="856"/>
         <source>Couldn&apos;t open variable &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; değişkeni açılamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="867"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="871"/>
         <source>Setting the variable &apos;%s&apos; failed: %Rrc</source>
         <translation>&apos;%s&apos; değişkenini ayarlama başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="892"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="896"/>
         <source>Failed to read data of variable &apos;%s&apos;: %Rrc</source>
         <translation>&apos;%s&apos; değişkeninin verilerini okuma başarısız: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="897"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="901"/>
         <source>Failed to open variable &apos;%s&apos; for reading: %Rrc</source>
         <translation>&apos;%s&apos; değişkenini okuma için açma başarısız: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="916"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="920"/>
         <source>The given signature type is not supported</source>
         <translation>Belirtilen imza türü desteklenmiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="923"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="927"/>
         <source>Failed to add signature to the database (%Rrc)</source>
         <translation>Veritabanına imza ekleme başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="956"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="960"/>
         <source>Writing updated signature database failed: %Rrc</source>
         <translation>Güncellenmiş imza veritabanını yazma başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="960"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="964"/>
         <source>Loading signature database failed: %Rrc</source>
         <translation>İmza veritabanını yükleme başarısız oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="965"/>
+        <location filename="../src-server/UefiVariableStoreImpl.cpp" line="969"/>
         <source>Creating signature database failed: %Rrc</source>
         <translation>İmza veritabanını oluşturma başarısız oldu: %Rrc</translation>
     </message>
@@ -9714,195 +10295,207 @@ Guest offers: %s</source>
 <context>
     <name>Unattended</name>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="362"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="382"/>
         <source>Failed to open &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; açma başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="379"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="435"/>
         <source>Failed to open &apos;%s&apos; as ISO FS (%Rrc) - %s</source>
         <translation>ISO DS olarak &apos;%s&apos; açma başarısız (%Rrc) - %s</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="382"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="438"/>
         <source>Failed to open &apos;%s&apos; as ISO FS (%Rrc)</source>
         <translation>ISO DS olarak &apos;%s&apos; açma başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="2478"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2571"/>
         <source>No machine associated with this IUnatteded instance</source>
         <translation>Bu IUnatteded örneğiyle ilişkilendirilmiş makine yok</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="2535"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2636"/>
         <source>The prepare method has been called (must call done to restart)</source>
         <translation>Hazırlama yöntemi çağrıldı (yeniden başlatmak için çağrı yapılmak zorunda)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="2537"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2638"/>
         <source>The &apos;machine&apos; while we were using it - please don&apos;t do that</source>
         <translation>Kullandığımız &apos;makine&apos; - lütfen bunu yapmayın</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="2543"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2644"/>
         <source>Could not locate the installation ISO file &apos;%s&apos;</source>
         <translation>Kurulum ISO dosyası &apos;%s&apos; bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="2546"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2647"/>
         <source>Could not locate the Guest Additions ISO file &apos;%s&apos;</source>
         <translation>Misafir Eklentileri ISO dosyası &apos;%s&apos; bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="2549"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2650"/>
         <source>Could not locate the validation kit ISO file &apos;%s&apos;</source>
         <translation>Doğrulama kiti ISO dosyası &apos;%s&apos; bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="2552"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2653"/>
+        <source>Could not locate the User Payload ISO file &apos;%s&apos;</source>
+        <translation>Kullanıcı Yük ISO dosyası &apos;%s&apos; bulunamadı</translation>
+    </message>
+    <message>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2656"/>
         <source>Could not locate unattended installation script template &apos;%s&apos;</source>
         <translation>Katılımsız kurulum komut kodu şablonu &apos;%s&apos; bulunamadı</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedImpl.cpp" line="2727"/>
+        <source>The machine is configured with EFI which is currently not supported by unatteded installation</source>
+        <translation>Makine, şu anda katılımsız kurulum tarafından desteklenmeyen EFI ile yapılandırılmış</translation>
+    </message>
+    <message>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2845"/>
         <source>Unattended installation is not supported for guest type &apos;%s&apos;</source>
         <translation>&apos;%s&apos; misafir türü için katılımsız kurulum desteklenmiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="2864"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2982"/>
         <source>reconfigureVM running on other thread</source>
         <translation>diğer iş parçacığında çalışan VM&apos;yi yeniden yapılandırın</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="2760"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="2873"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2878"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2991"/>
         <source>prepare() not yet called</source>
         <translation>prepare() henüz çağrılmadı</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="926"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="1004"/>
         <source>Out of memory</source>
-        <translation type="unfinished">Bellek yetersiz</translation>
+        <translation>Bellek yetersiz</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="2581"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2685"/>
         <source>imageIndex value %u not found in detectedImageIndices</source>
-        <translation type="unfinished"></translation>
+        <translation>imageIndex değeri %u, detectedImageIndices içinde bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="2591"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2695"/>
         <source>The supplied ISO file does not contain an OS currently supported for unattended installation</source>
-        <translation type="unfinished"></translation>
+        <translation>Sağlanan ISO dosyası, şu anda katılımsız kurulum için desteklenen bir İS içermiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="2610"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="2718"/>
         <source>The supplied ISO file is incompatible with the guest OS type of the VM: CPU architecture mismatch</source>
-        <translation type="unfinished"></translation>
+        <translation>Sağlanan ISO dosyası, VM&apos;in misafir İS türüyle uyumlu değil: İşlemci mimarisi uyuşmazlığı</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3028"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3146"/>
         <source>Found non-floppy device attached to port 0 device 0 on the floppy controller &apos;%ls&apos;</source>
         <translation>&apos;%ls&apos; disket denetleyicisindeki bağlantı noktası 0 aygıt 0&apos;a takılı disket olmayan aygıt bulundu</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3175"/>
         <source>Support for recommended storage bus %d not implemented</source>
-        <translation>Önerilen depolama taşıyıcı %d için destek uygulanmadı</translation>
+        <translation type="vanished">Önerilen depolama taşıyıcı %d için destek uygulanmadı</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/UnattendedImpl.cpp" line="3194"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3302"/>
         <source>Not enough free slots on controller &apos;%s&apos; to add %u DVD drive(s)</source>
         <translation>
             <numerusform>%u DVD sürücüsü eklemek için &apos;%s&apos; denetleyicisinde yeterli boş alan yok</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3382"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3399"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3414"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3429"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3444"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3459"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3474"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3489"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3504"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3519"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3534"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3559"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3574"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3596"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3490"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3507"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3522"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3537"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3552"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3567"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3582"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3597"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3612"/>
         <location filename="../src-server/UnattendedImpl.cpp" line="3627"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3709"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3729"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3745"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3788"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3813"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3832"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3847"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3866"/>
-        <location filename="../src-server/UnattendedImpl.cpp" line="4014"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3642"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3657"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3672"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3711"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3736"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3751"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3773"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3804"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3886"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3906"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3922"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3965"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3990"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="4009"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="4024"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="4043"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="4193"/>
         <source>Cannot change after prepare() has been called</source>
         <translation>prepare() çağrıldıktan sonra değiştirilemez</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3546"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3723"/>
         <source>Expected two lower cased letters, an underscore, and two upper cased letters</source>
         <translation>İki küçük harf, bir alt çizgi ve iki büyük harf beklenmekte</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3583"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3760"/>
         <source>Expected two upper cased letters</source>
         <translation>İki büyük harf beklenmekte</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3638"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3815"/>
         <source>Unknown keyword: %s</source>
         <translation>Bilinmeyen anahtar kelime: %s</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/UnattendedImpl.cpp" line="3659"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3836"/>
         <source>Hostname &apos;%s&apos; is %zu bytes long, max is 253 (excluding trailing dot)</source>
         <translation>
             <numerusform>Anamakine adı &apos;%s&apos;, %zu bayt uzunluğunda, en fazla 253 (sondaki nokta hariç)</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3678"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3855"/>
         <source>Invalid hostname &apos;%s&apos; - label %u is too long, max is 63.</source>
         <translation>Geçersiz anamakine adı &apos;%s&apos; - %u etiketi çok uzun, en fazla 63.</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3683"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3860"/>
         <source>Invalid hostname &apos;%s&apos; - illegal char &apos;%c&apos; at position %zu</source>
         <translation>Geçersiz anamakine adı &apos;%s&apos; - %zu konumunda geçersiz karakter &apos;%c&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3688"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3865"/>
         <source>Invalid hostname &apos;%s&apos; - the name part must be at least two characters long</source>
         <translation>Geçersiz anamakine adı &apos;%s&apos; - ad kısmı en az iki karakter uzunluğunda olmak zorundadır</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3695"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3872"/>
         <source>Invalid hostname &apos;%s&apos; - illegal lead char &apos;%c&apos; at position %zu</source>
         <translation>Geçersiz anamakine adı &apos;%s&apos; - %zu konumunda geçersiz baştaki karakter &apos;%c&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3699"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3876"/>
         <source>Invalid hostname &apos;%s&apos; - trailing dot not permitted</source>
         <translation>Geçersiz anamakine adı &apos;%s&apos; - sondaki noktaya izin verilmez</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3703"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3880"/>
         <source>Incomplete hostname &apos;%s&apos; - must include both a name and a domain</source>
         <translation>Eksik anamakine adı &apos;%s&apos; - hem bir ad hem de etki alanı içermek zorunda</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3724"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3901"/>
         <source>Empty base path is not allowed</source>
         <translation>Boş temel yola izin verilmiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedImpl.cpp" line="3726"/>
+        <location filename="../src-server/UnattendedImpl.cpp" line="3903"/>
         <source>Base path must be absolute</source>
         <translation>Temel yol kesin olmak zorundadır</translation>
     </message>
@@ -9910,25 +10503,24 @@ Guest offers: %s</source>
 <context>
     <name>UnattendedInstaller</name>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="181"/>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="199"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="206"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="224"/>
         <source>Failed to construct path to the unattended installer script templates (%Rrc)</source>
         <translation>Katılımsız yükleyici komut kodu şablonlarına giden yolu oluşturma başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="224"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="249"/>
         <source>Cannot proceed with an empty installation ISO path</source>
         <translation>Boş bir kurulum ISO&apos;su yolu ile devam edilemez</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="226"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="251"/>
         <source>Empty user name is not allowed</source>
         <translation>Boş kullanıcı adına izin verilmiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="228"/>
         <source>Empty password is not allowed</source>
-        <translation>Boş parolaya izin verilmiyor</translation>
+        <translation type="vanished">Boş parolaya izin verilmiyor</translation>
     </message>
     <message>
         <source>Failed to open newly created floppy image &apos;%s&apos;: %Rrc: %s</source>
@@ -9939,131 +10531,136 @@ Guest offers: %s</source>
         <translation type="vanished">Yeni oluşturulan &apos;%s&apos; disket kalıbını açma başarısız: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="357"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="253"/>
+        <source>Empty user password is not allowed</source>
+        <translation>Boş kullanıcı parolasına izin verilmiyor</translation>
+    </message>
+    <message>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="384"/>
         <source>Failed to open FAT file system on newly created floppy image &apos;%s&apos;: %Rrc: %s</source>
-        <translation type="unfinished"></translation>
+        <translation>Yeni oluşturulan &apos;%s&apos; disket kalıbında FAT dosya sistemi açma başarısız: %Rrc: %s</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="361"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="388"/>
         <source>Failed to open FAT file system onnewly created floppy image &apos;%s&apos;: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Yeni oluşturulan &apos;%s&apos; disket kalıbında FAT dosya sistemi açma başarısız: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="395"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="422"/>
         <source>Failed to format floppy image &apos;%s&apos;: %Rrc</source>
         <translation>&apos;%s&apos; disket kalıbını biçimlendirme başarısız: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="400"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="427"/>
         <source>Failed to create floppy image &apos;%s&apos;: %Rrc</source>
         <translation>&apos;%s&apos; disket kalıbını oluşturma başarısız: %Rrc</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/UnattendedInstaller.cpp" line="440"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="467"/>
         <source>Error writing %zu bytes to &apos;%s&apos; in floppy image &apos;%s&apos;: %Rrc</source>
         <translation>
             <numerusform>&apos;%s&apos; üzerine &apos;%s&apos; disket kalıbında %zu bayt yazarken hata oldu: %Rrc</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="449"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="476"/>
         <source>Error creating &apos;%s&apos; in floppy image &apos;%s&apos;: %Rrc</source>
         <translation>&apos;%s&apos; oluşturulurken &apos;%s&apos; disket kalıbında hata oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="482"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="509"/>
         <source>Error writing copying &apos;%s&apos; to floppy image &apos;%s&apos;: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Kopyalanan &apos;%s&apos; dosyasını &apos;%s&apos; disket kalıbına yazarken hata oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="488"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="515"/>
         <source>Error opening &apos;%s&apos; on floppy image &apos;%s&apos; for writing: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; dosyasını &apos;%s&apos; disket kalıbında yazma için açarken hata oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="494"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="521"/>
         <source>Error opening &apos;%s&apos; for copying onto floppy image &apos;%s&apos;: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; dosyasını &apos;%s&apos; disket kalıbına kopyalama için açarken hata oldu: %Rrc</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="565"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="592"/>
         <source>Failed to open ISO image &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; ISO kalıbını açma başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="574"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="601"/>
         <source>ISO reader fail to open &apos;%s&apos; (%Rrc): %s</source>
         <translation>ISO okuyucu, &apos;%s&apos; dosyasını açamada başarısız (%Rrc): %s</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="576"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="603"/>
         <source>ISO reader fail to open &apos;%s&apos; (%Rrc)</source>
         <translation>ISO okuyucu, &apos;%s&apos; dosyasını açamada başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="584"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="611"/>
         <source>RTFsIsoMakerCreate failed (%Rrc)</source>
         <translation>RTFsIsoMakerCreate başarısız oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="643"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="670"/>
         <source>RTFsIsoMakerAddFileWithVfsFile failed on the script &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; komut kodunda RTFsIsoMakerAddFileWithVfsFile başarısız oldu (%Rrc)</translation>
     </message>
     <message numerus="yes">
-        <location filename="../src-server/UnattendedInstaller.cpp" line="648"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="675"/>
         <source>RTVfsFileFromBuffer failed on the %zu byte script &apos;%s&apos; (%Rrc)</source>
         <translation>
             <numerusform>RTVfsFileFromBuffer, %zu bayt &apos;%s&apos; komut kodunda başarısız oldu (%Rrc)</numerusform>
         </translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="661"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="688"/>
         <source>RTFsIsoMakerFinalize failed (%Rrc)</source>
         <translation>RTFsIsoMakerFinalize başarısız oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="676"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="703"/>
         <source>The auxiliary ISO image file &apos;%s&apos; already exists</source>
         <translation>Yardımcı ISO kalıbı dosyası &apos;%s&apos; zaten var</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="678"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="705"/>
         <source>Failed to open the auxiliary ISO image file &apos;%s&apos; for writing (%Rrc)</source>
         <translation>&apos;%s&apos; yardımcı ISO kalıbı dosyasını yazmak için açma başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="699"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="726"/>
         <source>Error writing auxiliary ISO image &apos;%s&apos; (%Rrc)</source>
         <translation>Yardımcı ISO kalıbı &apos;%s&apos; yazılırken hata oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="704"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="731"/>
         <source>Internal Error: Failed to case VFS file to VFS I/O stream</source>
         <translation>Dahili Hata: VFS dosyasını VFS G/Ç akışı yerine koyma başarısız</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="709"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="736"/>
         <source>RTFsIsoMakerCreateVfsOutputFile failed (%Rrc)</source>
         <translation>RTFsIsoMakerCreateVfsOutputFile başarısız oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="817"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="854"/>
         <source>RTGetOptArgvToString failed (%Rrc)</source>
         <translation>RTGetOptArgvToString başarısız oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="840"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="877"/>
         <source>Error writing &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; yazarken hata oldu (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="843"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="880"/>
         <source>Failed to create &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; oluşturma başarısız (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedInstaller.cpp" line="862"/>
+        <location filename="../src-server/UnattendedInstaller.cpp" line="899"/>
         <source>Failed to open &apos;%s&apos; on the ISO &apos;%s&apos; (%Rrc)</source>
         <translation>ISO &apos;%s&apos; üzerinde &apos;%s&apos; açma başarısız (%Rrc)</translation>
     </message>
@@ -10073,150 +10670,150 @@ Guest offers: %s</source>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="189"/>
         <source>Failed to write bootsector: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Önyükleme sektörünü yazma başarısız: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="192"/>
         <source>Failed to read bootsector: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Önyükleme sektörünü okuma başarısız: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="195"/>
         <source>Error reading SYSINSTX.COM: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>SYSINSTX.COM okunurken hata oldu: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="198"/>
         <source>Unable to locate bootsector template in SYSINSTX.COM</source>
-        <translation type="unfinished"></translation>
+        <translation>SYSINSTX.COM içinde önyükleme sektörü şablonu bulunamıyor</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="202"/>
         <source>Failed to open SYSINSTX.COM: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>SYSINSTX.COM açma başarısız: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="205"/>
         <source>Failed to construct SYSINSTX.COM path</source>
-        <translation type="unfinished"></translation>
+        <translation>SYSINSTX.COM yolunu oluşturma başarısız</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="245"/>
         <source>Failed to format floppy image &apos;%s&apos;: %Rrc</source>
-        <translation type="unfinished">&apos;%s&apos; disket kalıbını biçimlendirme başarısız: %Rrc</translation>
+        <translation>&apos;%s&apos; disket kalıbını biçimlendirme başarısız: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="250"/>
         <source>Failed to create floppy image &apos;%s&apos;: %Rrc</source>
-        <translation type="unfinished">&apos;%s&apos; disket kalıbını oluşturma başarısız: %Rrc</translation>
+        <translation>&apos;%s&apos; disket kalıbını oluşturma başarısız: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="835"/>
         <source>RTPathJoin/Append failed for %s: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>%s için RTPathJoin/Append başarısız oldu: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="859"/>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="884"/>
         <source>Failed to write %s to the floppy: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Diskete %s yazma başarısız: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="888"/>
         <source>Patcher failed for &apos;%s&apos;: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; için yamalayıcı başarısız oldu: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="893"/>
         <source>Error reading &apos;%s&apos; into memory for patching: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Yamalama için bellekte &apos;%s&apos; okunurken hata oldu: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="898"/>
         <source>Failed to allocate %zu bytes for &apos;%s&apos;</source>
-        <translation type="unfinished">&apos;%s&apos; için %zu bayt ayırma başarısız</translation>
+        <translation>&apos;%s&apos; için %zu bayt ayırma başarısız</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="903"/>
         <source>Failed to query the size of &apos;%s&apos;: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; boyutunu sorgula başarısız: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="906"/>
         <source>File too big to patch: &apos;%s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>Dosya yama için çok büyük: &apos;%s&apos;</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="912"/>
         <source>Failed to open %s on floppy: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Diskette %s okuma başarısız: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="927"/>
         <source>Failed to locate &apos;%s&apos; needed for the install floppy</source>
-        <translation type="unfinished"></translation>
+        <translation>Yükleme disketi için gereken &apos;%s&apos; dosyasını bulma başarısız</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="969"/>
         <source>Failed to create &apos;ALTF2ON.$$$&apos; on the install floppy</source>
-        <translation type="unfinished"></translation>
+        <translation>Yükleme disketinde &apos;ALTF2ON.$$$&apos; oluşturma başarısız</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="1087"/>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="1135"/>
         <source>Unexpected splitter tag in &apos;%s&apos; at offset %p: @@VBOX_SPLITTER_%.64s</source>
-        <translation type="unfinished"></translation>
+        <translation>%p karşılığında &apos;%s&apos; içinde beklenmeyen ayırıcı etiketi: @@VBOX_SPLITTER_%.64s</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="1099"/>
         <source>Malformed splitter tag in &apos;%s&apos; at offset %p: @@VBOX_SPLITTER_START[%.64s</source>
-        <translation type="unfinished"></translation>
+        <translation>%p karşılığında &apos;%s&apos; içinde hatalı biçimlendirilmiş ayırıcı etiketi: @@VBOX_SPLITTER_START[%.64s</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="1104"/>
         <source>Malformed splitter tag in &apos;%s&apos; at offset %p: @@VBOX_SPLITTER_START[%.*Rhxs</source>
-        <translation type="unfinished"></translation>
+        <translation>%p karşılığında &apos;%s&apos; içinde hatalı biçimlendirilmiş ayırıcı etiketi: @@VBOX_SPLITTER_START[%.*Rhxs</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="1132"/>
         <source>No END splitter tag for &apos;%s&apos; in &apos;%s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; için &apos;%s&apos; içinde END ayırıcı etiketi yok</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="1143"/>
         <source>Mismatching splitter tag for &apos;%s&apos; in &apos;%s&apos; at offset %p: @@VBOX_SPLITTER_END[%.64Rhxs</source>
-        <translation type="unfinished"></translation>
+        <translation>%p karşılığında &apos;%s&apos; için &apos;%s&apos; içinde yanlış biçimlendirilmiş ayırıcı etiketi: @@VBOX_SPLITTER_END[%.64Rhxs</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="1169"/>
         <source>Error writing &apos;%s&apos; (split out from &apos;%s&apos;): %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; yazılırken hata oldu (&apos;%s&apos; dosyasından ayrıldı): %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="1174"/>
         <source>File splitter failed to open output file &apos;%s&apos; in &apos;%s&apos;: %Rrc (%s)</source>
-        <translation type="unfinished"></translation>
+        <translation>Dosya ayırıcı &apos;%s&apos; çıktı dosyasını &apos;%s&apos; içinde açamada başarısız oldu: %Rrc (%s)</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="1179"/>
         <source>File splitter failed to construct path for &apos;%s&apos; in &apos;%s&apos;: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Dosya ayırıcı &apos;%s&apos; için &apos;%s&apos; içindeki yolu oluşturmada başarısız oldu: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UnattendedOs2Installer.cpp" line="1207"/>
         <source>Failed to read &apos;%s&apos; for splitting up: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>Bölünme için &apos;%s&apos; dosyasını okuma başarısız: %Rrc</translation>
     </message>
 </context>
 <context>
     <name>UnattendedSUSEXMLScript</name>
     <message>
-        <location filename="../src-server/UnattendedScript.cpp" line="848"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="890"/>
         <source>XML document root element is &apos;%s&apos; instead of &apos;profile&apos;</source>
         <translation>XML belgesi kök öğesi, &apos;profil&apos; yerine &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedScript.cpp" line="851"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="893"/>
         <source>Missing XML root element</source>
         <translation>Eksik XML kök öğesi</translation>
     </message>
@@ -10228,64 +10825,69 @@ Guest offers: %s</source>
         <translation type="vanished">Hatalı şablon yer tutucu &apos;%.*s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedScript.cpp" line="152"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="157"/>
         <source>Malformed or too long template placeholder &apos;%.*s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>Hatalı biçimlendirilmiş veya çok uzun şablon yer tutucusu &apos;%.*s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedScript.cpp" line="232"/>
-        <location filename="../src-server/UnattendedScript.cpp" line="247"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="237"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="252"/>
         <source>%s without @@VBOX_COND_XXX@@ at offset %zu (%#zx)</source>
         <translation>%zu karşılığında @@VBOX_COND_XXX@@ olmadan %s (%#zx)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedScript.cpp" line="272"/>
-        <location filename="../src-server/UnattendedScript.cpp" line="297"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="277"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="302"/>
         <source>Too deep conditional nesting at offset %zu (%#zx)</source>
         <translation>%zu karşılığında çok derin koşullu iç içe yerleştirme (%#zx)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedScript.cpp" line="334"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="339"/>
         <source>Missing @@VBOX_COND_END@@</source>
         <translation>Eksik @@VBOX_COND_END@@</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedScript.cpp" line="336"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="341"/>
         <source>Missing %u @@VBOX_COND_END@@</source>
         <translation>Eksik %u @@VBOX_COND_END@@</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedScript.cpp" line="506"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="511"/>
         <source>Malformed @@VBOX_INSERT[expr]@@: Missing &apos;]&apos; (%.*s)</source>
-        <translation type="unfinished"></translation>
+        <translation>Hatalı biçimlendirilmiş @@VBOX_INSERT[ifade]@@: Eksik &apos;]&apos; (%.*s)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedScript.cpp" line="572"/>
-        <location filename="../src-server/UnattendedScript.cpp" line="599"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="577"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="604"/>
         <source>Expression evaluation error for &apos;%.*s&apos;: %#RTeic</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%.*s&apos; için ifade değerlendirme hatası: %#RTeic</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedScript.cpp" line="585"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="590"/>
         <source>Malformed @@VBOX_COND[expr]@@: Missing &apos;]&apos; (%.*s)</source>
-        <translation type="unfinished"></translation>
+        <translation>Hatalı biçimlendirilmiş @@VBOX_COND[ifade]@@: Eksik &apos;]&apos; (%.*s)</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedScript.cpp" line="677"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="660"/>
+        <source>RTCrShaCryptGenerateSalt failed: %Rrc</source>
+        <translation>RTCrShaCryptGenerateSalt başarısız oldu: %Rrc</translation>
+    </message>
+    <message>
+        <location filename="../src-server/UnattendedScript.cpp" line="717"/>
         <source>Unknown guest OS major version &apos;%s&apos;</source>
         <translation>Bilinmeyen misafir İS ana sürümü &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedScript.cpp" line="749"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="791"/>
         <source>Unknown variable &apos;%.*s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>Bilinmeyen değişken &apos;%.*s&apos;</translation>
     </message>
     <message>
         <source>Unknown template placeholder &apos;%.*s&apos;</source>
         <translation type="vanished">Bilinmeyen şablon yer tutucu &apos;%.*s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/UnattendedScript.cpp" line="808"/>
+        <location filename="../src-server/UnattendedScript.cpp" line="850"/>
         <source>Unknown conditional placeholder &apos;%.*s&apos;</source>
         <translation>Bilinmeyen koşullu yer tutucu &apos;%.*s&apos;</translation>
     </message>
@@ -10295,28 +10897,28 @@ Guest offers: %s</source>
     <message>
         <location filename="../src-server/UpdateAgentImpl.cpp" line="510"/>
         <source>Frequency too small; one day is the minimum</source>
-        <translation type="unfinished"></translation>
+        <translation>Sıklık çok az; en az bir gün</translation>
     </message>
     <message>
         <location filename="../src-server/UpdateAgentImpl.cpp" line="558"/>
         <location filename="../src-server/UpdateAgentImpl.cpp" line="673"/>
         <source>Invalid URL scheme specified!</source>
-        <translation type="unfinished"></translation>
+        <translation>Geçersiz URL şeması belirtildi!</translation>
     </message>
     <message>
         <location filename="../src-server/UpdateAgentImpl.cpp" line="806"/>
         <source>RTHttpSetProxyByUrl() failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>RTHttpSetProxyByUrl() başarısız oldu: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UpdateAgentImpl.cpp" line="812"/>
         <source>RTHttpUseSystemProxySettings() failed: %Rrc</source>
-        <translation type="unfinished"></translation>
+        <translation>RTHttpUseSystemProxySettings() başarısız oldu: %Rrc</translation>
     </message>
     <message>
         <location filename="../src-server/UpdateAgentImpl.cpp" line="843"/>
         <source>Failed to format update agent error string (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Güncelleme aracı hata dizgisini biçimlendirme başarısız (%Rrc)</translation>
     </message>
 </context>
 <context>
@@ -10358,15 +10960,32 @@ Guest offers: %s</source>
 <context>
     <name>VRDEServer</name>
     <message>
-        <location filename="../src-server/VRDEServerImpl.cpp" line="705"/>
+        <location filename="../src-server/VRDEServerImpl.cpp" line="330"/>
+        <source>Failed to read server certificate &apos;%s&apos;: %Rrc%#RTeim
+</source>
+        <translation>&apos;%s&apos; sunucu sertifikasını okuma başarısız: %Rrc%#RTeim
+</translation>
+    </message>
+    <message>
+        <location filename="../src-server/VRDEServerImpl.cpp" line="372"/>
+        <location filename="../src-server/VRDEServerImpl.cpp" line="389"/>
+        <location filename="../src-server/VRDEServerImpl.cpp" line="402"/>
+        <location filename="../src-server/VRDEServerImpl.cpp" line="422"/>
+        <source>Failed to auto generate server key and certificate: (%Rrc)
+</source>
+        <translation>Sunucu anahtarı ve sertifikasını otomatik oluşturma başarısız: (%Rrc)
+</translation>
+    </message>
+    <message>
+        <location filename="../src-server/VRDEServerImpl.cpp" line="929"/>
         <source>failed to query the library setting
 </source>
         <translation>kütüphane ayarını sorgulama başarısız
 </translation>
     </message>
     <message>
-        <location filename="../src-server/VRDEServerImpl.cpp" line="827"/>
-        <location filename="../src-server/VRDEServerImpl.cpp" line="872"/>
+        <location filename="../src-server/VRDEServerImpl.cpp" line="1051"/>
+        <location filename="../src-server/VRDEServerImpl.cpp" line="1096"/>
         <source>Extension pack &apos;%s&apos; does not exist</source>
         <translation>&apos;%s&apos; genişletme paketi mevcut değil</translation>
     </message>
@@ -10374,240 +10993,260 @@ Guest offers: %s</source>
 <context>
     <name>VirtualBox</name>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="575"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="589"/>
         <source>Could not create the VirtualBox home directory &apos;%s&apos; (%Rrc)</source>
         <translation>VirtualBox ana dizini &apos;%s&apos; oluşturulamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="590"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="604"/>
         <source>Could not create the cryptographic module critical section (%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>Şifreleme modülü önemli bölümü oluşturulamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="1375"/>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="2576"/>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="2582"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="1447"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="2727"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="2733"/>
         <source>Not yet implemented</source>
         <translation>Henüz uygulanmadı</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="1909"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="2048"/>
         <source>Machine name is invalid, must not be empty</source>
         <translation>Makine adı geçersiz, boş olmamak zorundadır</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="1938"/>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="2154"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="2077"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="2304"/>
         <source>&apos;%s&apos; is not a valid Guid</source>
         <translation>&apos;%s&apos; geçerli bir Guid değil</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="2437"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="2239"/>
+        <source>&apos;Must specify a valid platform architecture</source>
+        <translation>Geçerli bir platform mimarisi belirtilmek zorunda</translation>
+    </message>
+    <message>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="2247"/>
+        <source>&apos;Creating VMs for platform architecture %s not supported on %s</source>
+        <translation>%s platform mimarisi için VM&apos;ler oluşturma %s üzerinde desteklenmiyor</translation>
+    </message>
+    <message>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="2588"/>
         <source>Format must be Valid Type%s</source>
         <translation>Biçim Geçerli Tür%s olmak zorundadır</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="2453"/>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="2506"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="2604"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="2657"/>
         <source>Device type must be HardDisk, DVD or Floppy %d</source>
         <translation>Aygıt türü SabitDisk, DVD veya Disket %d olmak zorundadır</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="2670"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="2821"/>
         <source>Could not set extra data because someone refused the requested change of &apos;%s&apos; to &apos;%s&apos;%s%ls</source>
         <translation>Birisi istenen &apos;%s&apos; değişikliğini &apos;%s&apos;%s%ls olarak reddettiğinden fazladan veri ayarlanamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="3234"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="3385"/>
         <source>Could not create the communication channel (%Rrc)</source>
         <translation>İletişim kanalı oluşturulamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="3243"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="3394"/>
         <source>Cannot get executable name</source>
         <translation>Çalıştırılabilir dosya adı alınamıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="3279"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="3430"/>
         <source>Operation canceled by the user</source>
         <translation>İşlem kullanıcı tarafından iptal edildi</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="3281"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="3432"/>
         <source>Could not launch a privileged process &apos;%s&apos; (%Rrc)</source>
         <translation>Yetkili bir &apos;%s&apos; işlemi başlatılamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="3291"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="3442"/>
         <source>Could not launch a process &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; işlemi başlatılamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="3314"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="3465"/>
         <source>Could not operate the communication channel (%Rrc)</source>
         <translation>İletişim kanalı çalıştırılamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="3911"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4074"/>
         <source>Could not find a registered machine with UUID {%RTuuid}</source>
         <translation>{%RTuuid} UUID&apos;sine sahip kayıtlı bir makine bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="3959"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4122"/>
         <source>Could not find a registered machine named &apos;%s&apos;</source>
         <translation>&apos;%s&apos; adlı kayıtlı bir makine bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4035"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4198"/>
         <source>Machine group &apos;%s&apos; conflicts with a virtual machine name</source>
         <translation>&apos;%s&apos; makine grubu bir sanal makine adıyla çakışıyor</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4037"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4200"/>
         <source>Invalid machine group &apos;%s&apos;</source>
         <translation>Geçersiz makine grubu &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4112"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4275"/>
         <source>Could not find an open hard disk with UUID {%RTuuid}</source>
         <translation>{%RTuuid} UUID&apos;sine sahip açık bir sabit disk bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4164"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4327"/>
         <source>Could not find an open hard disk with location &apos;%s&apos;</source>
         <translation>&apos;%s&apos; konumuna sahip açık bir sabit disk bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4201"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4364"/>
         <source>Invalid image file location &apos;%s&apos; (%Rrc)</source>
         <translation>Geçersiz kalıp dosyası konumu &apos;%s&apos; (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4246"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4409"/>
         <source>Cannot mount DVD medium &apos;%s&apos; as floppy</source>
         <translation>&apos;%s&apos; DVD ortamı disket olarak bağlanamaz</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4249"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4412"/>
         <source>Cannot mount floppy medium &apos;%s&apos; as DVD</source>
         <translation>&apos;%s&apos; disket ortamı DVD olarak bağlanamaz</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4264"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4427"/>
         <source>Could not find an image file with UUID {%RTuuid} in the media registry (&apos;%s&apos;)</source>
         <translation>{%RTuuid} UUID&apos;sine sahip bir kalıp dosyası, ortam kayıt defterinde (&apos;%s&apos;) bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4269"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4432"/>
         <source>Could not find an image file with location &apos;%s&apos; in the media registry (&apos;%s&apos;)</source>
         <translation>&apos;%s&apos; konumuna sahip bir kalıp dosyası, ortam kayıt defterinde (&apos;%s&apos;) bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4314"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4477"/>
         <source>Guid &apos;%s&apos; is invalid</source>
         <translation>Guid &apos;%s&apos; geçersiz</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4351"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4514"/>
         <source>&apos;%s&apos; is not a valid Guest OS type</source>
         <translation>&apos;%s&apos; geçerli bir Misafir İS türü değil</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4536"/>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="5088"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4549"/>
+        <source>&apos;%s&apos; is not a valid guest OS family identifier.</source>
+        <translation>&apos;%s&apos; geçerli bir Misafir İS ailesi tanımlayıcı değil.</translation>
+    </message>
+    <message>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4609"/>
+        <source>&apos;%s&apos; is not a valid guest OS subtype.</source>
+        <translation>&apos;%s&apos; geçerli bir Misafir İS alt türü değil.</translation>
+    </message>
+    <message>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4814"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="5366"/>
         <source>hard disk</source>
         <translation>sabit disk</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4542"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4820"/>
         <source>CD/DVD image</source>
         <translation>CD/DVD kalıbı</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4549"/>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="5095"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4827"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="5373"/>
         <source>floppy image</source>
         <translation>disket kalıbı</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="4565"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="4843"/>
         <source>%s &apos;%s&apos; with UUID {%RTuuid}</source>
         <translation>{%RTuuid} UUID&apos;sine sahip %s &apos;%s&apos;</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="5015"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="5293"/>
         <source>Registered machine with UUID {%RTuuid} (&apos;%s&apos;) already exists</source>
         <translation>{%RTuuid} UUID&apos;sine (&apos;%s&apos;) sahip kayıtlı makine zaten var</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="5091"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="5369"/>
         <source>DVD image</source>
         <translation>DVD kalıbı</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="5134"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="5412"/>
         <source>Cannot register %s &apos;%s&apos; {%RTuuid} because it is in the process of being closed</source>
-        <translation type="unfinished"></translation>
+        <translation>Kapatılma sürecinde olduğundan %s &apos;%s&apos; {%RTuuid} kaydedilemiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="5155"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="5433"/>
         <source>Cannot register the %s &apos;%s&apos; {%RTuuid} because a %s already exists</source>
-        <translation>%s &apos;%s&apos; {%RTuuid} kaydedilemiyor çünkü bir %s zaten var</translation>
+        <translation>Zaten bir %s var olduğundan %s &apos;%s&apos; {%RTuuid} kaydedilemiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="5602"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="5880"/>
         <source>Could not create the directory &apos;%s&apos; (%Rrc)</source>
         <translation>&apos;%s&apos; dizini oluşturulamadı (%Rrc)</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="5608"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="5886"/>
         <source>Directory &apos;%s&apos; does not exist</source>
         <translation>&apos;%s&apos; dizini mevcut değil</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="6119"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="6397"/>
         <source>The provided progress object GUID is invalid</source>
         <translation>Sağlanan ilerleme nesnesi GUID&apos;si geçersiz</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="6131"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="6409"/>
         <source>The progress object with the given GUID could not be found</source>
         <translation>Verilen GUID&apos;ye sahip ilerleme nesnesi bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="6177"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="6455"/>
         <source>Ńo extension pack providing a cryptographic support module could be found</source>
-        <translation type="unfinished"></translation>
+        <translation>Şifreleme destek modülü sağlayan genişletme paketi bulunamadı</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="6196"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="6474"/>
         <source>Failed to query the interface callback table from the cryptographic support module &apos;%s&apos; from extension pack &apos;%s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; şifreleme destek modülünden ve &apos;%s&apos; genişletme paketinden gelen arayüz geri çağırma tablosunu sorgulama başarısız</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="6201"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="6479"/>
         <source>Failed to resolve the entry point for the cryptographic support module &apos;%s&apos; from extension pack &apos;%s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; şifreleme destek modülü için &apos;%s&apos; genişletme paketinden gelen giriş noktasını çözme başarısız</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="6206"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="6484"/>
         <source>Couldn&apos;t load the cryptographic support module &apos;%s&apos; from extension pack &apos;%s&apos; (error: &apos;%s&apos;)</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; şifreleme destek modülü &apos;%s&apos; genişletme paketinden yüklenemedi (hata: &apos;%s&apos;)</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="6211"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="6489"/>
         <source>Couldn&apos;t resolve the library path of the crpytographic support module for extension pack &apos;%s&apos;</source>
-        <translation type="unfinished"></translation>
+        <translation>&apos;%s&apos; genişletme paketi için şifreleme destek modülünün kütüphane yolu çözülemedi</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="6215"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="6493"/>
         <source>The cryptographic support module is not supported in this build because extension packs are not supported</source>
-        <translation type="unfinished"></translation>
+        <translation>Genişletme paketleri desteklenmediğinden şifreleme destek modülü bu yapımda desteklenmiyor</translation>
     </message>
     <message>
-        <location filename="../src-server/VirtualBoxImpl.cpp" line="6267"/>
+        <location filename="../src-server/VirtualBoxImpl.cpp" line="6545"/>
         <source>The cryptographic support module is in use and can&apos;t be unloaded</source>
-        <translation type="unfinished"></translation>
+        <translation>Şifreleme destek modülü kullanımda ve kaldırılamaz</translation>
     </message>
 </context>
 <context>
@@ -10682,9 +11321,9 @@ Lütfen ürün satıcısıyla iletişime geçin!</translation>
         <translation>Bağımsız değişken %s %s</translation>
     </message>
     <message>
+        <location filename="../include/Wrapper.h" line="52"/>
         <location filename="../include/VirtualBoxBase.h" line="516"/>
         <location filename="../include/VirtualBoxBase.h" line="531"/>
-        <location filename="../include/Wrapper.h" line="52"/>
         <source>Output argument %s points to invalid memory location (%p)</source>
         <translation>%s çıktı bağımsız değişkeni geçersiz bellek konumunu (%p) işaret ediyor</translation>
     </message>
@@ -10836,12 +11475,12 @@ Lütfen ürün satıcısıyla iletişime geçin!</translation>
     <message>
         <location filename="../src-client/VirtualBoxClientImpl.cpp" line="257"/>
         <source>Failed to create semaphore (vrc=%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>İşaretçi oluşturma başarısız (vrc=%Rrc)</translation>
     </message>
     <message>
         <location filename="../src-client/VirtualBoxClientImpl.cpp" line="266"/>
         <source>Failed to create watcher thread (vrc=%Rrc)</source>
-        <translation type="unfinished"></translation>
+        <translation>İzleyici iş parçacığı oluşturma başarısız (vrc=%Rrc)</translation>
     </message>
     <message>
         <location filename="../src-client/VirtualBoxClientImpl.cpp" line="317"/>

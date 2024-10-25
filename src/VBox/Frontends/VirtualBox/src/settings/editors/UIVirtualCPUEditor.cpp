@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -34,15 +34,14 @@
 
 /* GUI includes: */
 #include "QIAdvancedSlider.h"
-#include "UICommon.h"
+#include "UIGlobalSession.h"
 #include "UIVirtualCPUEditor.h"
 
 /* COM includes */
-#include "COMEnums.h"
 #include "CSystemProperties.h"
 
 UIVirtualCPUEditor::UIVirtualCPUEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent, true /* show in basic mode? */)
     , m_uMinVCPUCount(1)
     , m_uMaxVCPUCount(1)
     , m_pLabelVCPU(0)
@@ -81,7 +80,7 @@ void UIVirtualCPUEditor::setMinimumLayoutIndent(int iIndent)
         m_pLayout->setColumnMinimumWidth(0, iIndent);
 }
 
-void UIVirtualCPUEditor::retranslateUi()
+void UIVirtualCPUEditor::sltRetranslateUI()
 {
     if (m_pLabelVCPU)
         m_pLabelVCPU->setText(tr("&Processors:"));
@@ -136,8 +135,8 @@ void UIVirtualCPUEditor::sltHandleSpinBoxChange()
 void UIVirtualCPUEditor::prepare()
 {
     /* Prepare common variables: */
-    const CSystemProperties comProperties = uiCommon().virtualBox().GetSystemProperties();
-    const uint uHostCPUs = uiCommon().host().GetProcessorOnlineCoreCount();
+    const CSystemProperties comProperties = gpGlobalSession->virtualBox().GetSystemProperties();
+    const uint uHostCPUs = gpGlobalSession->host().GetProcessorOnlineCoreCount();
     m_uMinVCPUCount = comProperties.GetMinGuestCPUCount();
     m_uMaxVCPUCount = qMin(2 * uHostCPUs, (uint)comProperties.GetMaxGuestCPUCount());
 
@@ -214,12 +213,12 @@ void UIVirtualCPUEditor::prepare()
                 m_pLabelVCPU->setBuddy(m_pSpinBox);
             m_pSpinBox->setMinimum(m_uMinVCPUCount);
             m_pSpinBox->setMaximum(m_uMaxVCPUCount);
-            connect(m_pSpinBox, static_cast<void(QSpinBox::*)(int)>(&QSpinBox::valueChanged),
+            connect(m_pSpinBox, &QSpinBox::valueChanged,
                     this, &UIVirtualCPUEditor::sltHandleSpinBoxChange);
             m_pLayout->addWidget(m_pSpinBox, 0, 2);
         }
     }
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -29,6 +29,7 @@
 /*********************************************************************************************************************************
 *   Header Files                                                                                                                 *
 *********************************************************************************************************************************/
+#include <iprt/asm-mem.h>
 #include <iprt/asm.h>
 #include <iprt/buildconfig.h>
 #include <iprt/ctype.h>
@@ -909,23 +910,23 @@ static bool disIsMemoryParameter(PCDISOPPARAM pParam, uint16_t fParam)
 }
 
 
-static bool disAccessesMemory(PCDISCPUSTATE pCpuState)
+static bool disAccessesMemory(PCDISSTATE pDis)
 {
-    PCDISOPCODE pCurInstr = pCpuState->pCurInstr;
-    return disIsMemoryParameter(&pCpuState->Param1, pCurInstr->fParam1)
-        || disIsMemoryParameter(&pCpuState->Param2, pCurInstr->fParam2)
-        || disIsMemoryParameter(&pCpuState->Param3, pCurInstr->fParam3)
-        || disIsMemoryParameter(&pCpuState->Param4, pCurInstr->fParam4);
+    PCDISOPCODE pCurInstr = pDis->pCurInstr;
+    return disIsMemoryParameter(&pDis->aParams[0], pCurInstr->fParam1)
+        || disIsMemoryParameter(&pDis->aParams[1], pCurInstr->fParam2)
+        || disIsMemoryParameter(&pDis->aParams[2], pCurInstr->fParam3)
+        || disIsMemoryParameter(&pDis->aParams[3], pCurInstr->fParam4);
 }
 
 
 /**
  * Deals with instructions that YASM will assemble differently than WASM/WCC.
  */
-static size_t disHandleYasmDifferences(PDISCPUSTATE pCpuState, uint32_t uFlatAddr, uint32_t cbInstr,
+static size_t disHandleYasmDifferences(PDISSTATE pDis, uint32_t uFlatAddr, uint32_t cbInstr,
                                        char *pszBuf, size_t cbBuf, size_t cchUsed)
 {
-    bool fDifferent = DISFormatYasmIsOddEncoding(pCpuState);
+    bool fDifferent = DISFormatYasmIsOddEncoding(pDis);
     uint8_t const  *pb = &g_pbImg[uFlatAddr - g_uBiosFlatBase];
 
     /*
@@ -934,11 +935,11 @@ static size_t disHandleYasmDifferences(PDISCPUSTATE pCpuState, uint32_t uFlatAdd
     /** @todo Group 1a and 11 seems to be disassembled incorrectly when
      *        modrm.reg != 0. Those encodings should be invalid AFAICT. */
 
-    if (   (   pCpuState->bOpCode  == 0x8f            /* group 1a */
-            || pCpuState->bOpCode  == 0xc7            /* group 11 */
-            || pCpuState->bOpCode  == 0xc6            /* group 11 - not verified */
+    if (   (   pDis->x86.bOpCode  == 0x8f       /* group 1a */
+            || pDis->x86.bOpCode  == 0xc7       /* group 11 */
+            || pDis->x86.bOpCode  == 0xc6       /* group 11 - not verified */
            )
-        && pCpuState->ModRM.Bits.Reg != 0)
+        && pDis->x86.ModRM.Bits.Reg != 0)
         fDifferent = true;
     /*
      * Check these out and consider adding them to DISFormatYasmIsOddEncoding.
@@ -985,7 +986,7 @@ static size_t disHandleYasmDifferences(PDISCPUSTATE pCpuState, uint32_t uFlatAdd
  *
  * @remarks @a uSrcAddr is the flat address.
  */
-static DECLCALLBACK(int) disReadOpcodeBytes(PDISCPUSTATE pDis, uint8_t offInstr, uint8_t cbMinRead, uint8_t cbMaxRead)
+static DECLCALLBACK(int) disReadOpcodeBytes(PDISSTATE pDis, uint8_t offInstr, uint8_t cbMinRead, uint8_t cbMaxRead)
 {
     RT_NOREF_PV(cbMinRead);
 
@@ -998,7 +999,7 @@ static DECLCALLBACK(int) disReadOpcodeBytes(PDISCPUSTATE pDis, uint8_t offInstr,
         else
             cbToRead = g_cbImg - offBios;
     }
-    memcpy(&pDis->abInstr[offInstr], &g_pbImg[offBios], cbToRead);
+    memcpy(&pDis->Instr.ab[offInstr], &g_pbImg[offBios], cbToRead);
     pDis->cbCachedInstr = (uint8_t)(offInstr + cbToRead);
     return VINF_SUCCESS;
 }
@@ -1135,25 +1136,25 @@ static bool disCode(uint32_t uFlatAddr, uint32_t cb, bool fIs16Bit)
             return disByteData(uFlatAddr, cb);
         else
         {
-            unsigned    cbInstr;
-            DISCPUSTATE CpuState;
-            CpuState.ModRM.Bits.Mod = 3;
+            unsigned cbInstr;
+            DISSTATE Dis;
+            Dis.x86.ModRM.Bits.Mod = 3;
             int rc = DISInstrWithReader(uFlatAddr, fIs16Bit ? DISCPUMODE_16BIT : DISCPUMODE_32BIT,
-                                        disReadOpcodeBytes, NULL, &CpuState, &cbInstr);
+                                        disReadOpcodeBytes, NULL, &Dis, &cbInstr);
             if (   RT_SUCCESS(rc)
                 && cbInstr <= cb
-                && CpuState.pCurInstr
-                && CpuState.pCurInstr->uOpcode != OP_INVALID
-                && CpuState.pCurInstr->uOpcode != OP_ILLUD2
-                && (   !(CpuState.fPrefix & DISPREFIX_ADDRSIZE)
-                    || disAccessesMemory(&CpuState)))
+                && Dis.pCurInstr
+                && Dis.pCurInstr->uOpcode != OP_INVALID
+                && Dis.pCurInstr->uOpcode != OP_ILLUD2
+                && (   !(Dis.x86.fPrefix & DISPREFIX_ADDRSIZE)
+                    || disAccessesMemory(&Dis)))
             {
                 char szTmp[4096];
-                size_t cch = DISFormatYasmEx(&CpuState, szTmp, sizeof(szTmp),
+                size_t cch = DISFormatYasmEx(&Dis, szTmp, sizeof(szTmp),
                                              DIS_FMT_FLAGS_STRICT
                                              | DIS_FMT_FLAGS_BYTES_RIGHT | DIS_FMT_FLAGS_BYTES_COMMENT | DIS_FMT_FLAGS_BYTES_SPACED,
                                              NULL, NULL);
-                cch = disHandleYasmDifferences(&CpuState, uFlatAddr, cbInstr, szTmp, sizeof(szTmp), cch);
+                cch = disHandleYasmDifferences(&Dis, uFlatAddr, cbInstr, szTmp, sizeof(szTmp), cch);
                 Assert(cch < sizeof(szTmp));
 
                 if (g_cVerbose > 1)
@@ -2157,7 +2158,7 @@ int main(int argc, char **argv)
             case 'V':
             {
                 /* The following is assuming that svn does it's job here. */
-                char szRev[] = "$Revision: 155244 $";
+                char szRev[] = "$Revision: 164827 $";
                 char *psz = szRev;
                 while (*psz && !RT_C_IS_DIGIT(*psz))
                     psz++;

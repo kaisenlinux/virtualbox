@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -124,6 +124,8 @@ typedef enum VBOXLOGGROUP
     LOG_GROUP_DEV_FLASH,
     /** Guest Interface Manager Device group. */
     LOG_GROUP_DEV_GIM,
+    /** General Purpose I/O controller Device group. */
+    LOG_GROUP_DEV_GPIO,
     /** HDA Device group. */
     LOG_GROUP_DEV_HDA,
     /** HDA Codec Device group. */
@@ -166,6 +168,8 @@ typedef enum VBOXLOGGROUP
     LOG_GROUP_DEV_PIC,
     /** PIT Device group. */
     LOG_GROUP_DEV_PIT,
+    /** Generic Platform Device group. */
+    LOG_GROUP_DEV_PLATFORM,
     /** QEMU firmware config Device group. */
     LOG_GROUP_DEV_QEMUFWCFG,
     /** RTC Device group. */
@@ -214,6 +218,8 @@ typedef enum VBOXLOGGROUP
     LOG_GROUP_DRV_DISPLAY,
     /** Floppy media driver group. */
     LOG_GROUP_DRV_FLOPPY,
+    /** General Purpose I/O driver group. */
+    LOG_GROUP_DRV_GPIO,
     /** Host Audio driver group. */
     LOG_GROUP_DRV_HOST_AUDIO,
     /** Host Base block driver group. */
@@ -282,6 +288,8 @@ typedef enum VBOXLOGGROUP
     LOG_GROUP_EM,
     /** FTM group. */
     LOG_GROUP_FTM,
+    /** GCM group. */
+    LOG_GROUP_GCM,
     /** GIM group. */
     LOG_GROUP_GIM,
     /** GMM group. */
@@ -302,8 +310,16 @@ typedef enum VBOXLOGGROUP
     LOG_GROUP_HM,
     /** IEM group. */
     LOG_GROUP_IEM,
+    /** IEM memory access group. */
+    LOG_GROUP_IEM_MEM,
+    /** IEM native recompiler group. */
+    LOG_GROUP_IEM_RE_NATIVE,
+    /** IEM threaded recompiler group. */
+    LOG_GROUP_IEM_RE_THREADED,
     /** IEM AMD-V group. */
     LOG_GROUP_IEM_SVM,
+    /** IEM syscall decoding group (log levels for individual OSes). */
+    LOG_GROUP_IEM_SYSCALL,
     /** IEM VT-x group. */
     LOG_GROUP_IEM_VMX,
     /** I/O buffer management group. */
@@ -390,14 +406,16 @@ typedef enum VBOXLOGGROUP
     LOG_GROUP_MAIN_BANDWIDTHCONTROL,
     /** Main group, IBandwidthGroup. */
     LOG_GROUP_MAIN_BANDWIDTHGROUP,
-    /** Main group, IBIOSSettings. */
-    LOG_GROUP_MAIN_BIOSSETTINGS,
     /** Main group, IBooleanFormValue. */
     LOG_GROUP_MAIN_BOOLEANFORMVALUE,
     /** Main group, ICertificate. */
     LOG_GROUP_MAIN_CERTIFICATE,
     /** Main group, IChoiceFormValue. */
     LOG_GROUP_MAIN_CHOICEFORMVALUE,
+    /** Main group, IClipboardErrorEvent. */
+    LOG_GROUP_MAIN_CLIPBOARDERROREVENT,
+    /** Main group, IClipboardEvent. */
+    LOG_GROUP_MAIN_CLIPBOARDEVENT,
     /** Main group, ICloudClient. */
     LOG_GROUP_MAIN_CLOUDCLIENT,
     /** Main group, ICloudMachine. */
@@ -470,6 +488,8 @@ typedef enum VBOXLOGGROUP
     LOG_GROUP_MAIN_EXTPACKPLUGIN,
     /** Main group, IFile. */
     LOG_GROUP_MAIN_FILE,
+    /** Main group, IFirmwareSettings. */
+    LOG_GROUP_MAIN_FIRMWARESETTINGS,
     /** Main group, IForm. */
     LOG_GROUP_MAIN_FORM,
     /** Main group, IFormValue. */
@@ -490,6 +510,8 @@ typedef enum VBOXLOGGROUP
     LOG_GROUP_MAIN_GUESTDEBUGCONTROL,
     /** Main group, IGuestDirectory. */
     LOG_GROUP_MAIN_GUESTDIRECTORY,
+    /** Main group, IGuestDirectoryEvent. */
+    LOG_GROUP_MAIN_GUESTDIRECTORYEVENT,
     /** Main group, IGuestDnDSource. */
     LOG_GROUP_MAIN_GUESTDNDSOURCE,
     /** Main group, IGuestDnDTarget. */
@@ -542,6 +564,8 @@ typedef enum VBOXLOGGROUP
     LOG_GROUP_MAIN_HOSTUSBDEVICEFILTER,
     /** Main group, IHostVideoInputDevice. */
     LOG_GROUP_MAIN_HOSTVIDEOINPUTDEVICE,
+    /** Main group, IHostX86. */
+    LOG_GROUP_MAIN_HOSTX86,
     /** Main group, IInternalMachineControl. */
     LOG_GROUP_MAIN_INTERNALMACHINECONTROL,
     /** Main group, IInternalSessionControl. */
@@ -584,6 +608,14 @@ typedef enum VBOXLOGGROUP
     LOG_GROUP_MAIN_PERFORMANCECOLLECTOR,
     /** Main group, IPerformanceMetric. */
     LOG_GROUP_MAIN_PERFORMANCEMETRIC,
+    /** Main group, IPlatform. */
+    LOG_GROUP_MAIN_PLATFORM,
+    /** Main group, IPlatformARM. */
+    LOG_GROUP_MAIN_PLATFORMARM,
+    /** Main group, IPlatformProperties. */
+    LOG_GROUP_MAIN_PLATFORMPROPERTIES,
+    /** Main group, IPlatformX86. */
+    LOG_GROUP_MAIN_PLATFORMX86,
     /** Main group, IProcess. */
     LOG_GROUP_MAIN_PROCESS,
     /** Main group, IProgress. */
@@ -600,6 +632,8 @@ typedef enum VBOXLOGGROUP
     LOG_GROUP_MAIN_RECORDINGSCREENSETTINGS,
     /** Main group, IRecordingSettings. */
     LOG_GROUP_MAIN_RECORDINGSETTINGS,
+    /** Main group, IResourceStore. */
+    LOG_GROUP_MAIN_RESOURCESTORE,
     /** Main group, IReusableEvent. */
     LOG_GROUP_MAIN_REUSABLEEVENT,
     /** Main group, ISerialPort. */
@@ -740,20 +774,6 @@ typedef enum VBOXLOGGROUP
     LOG_GROUP_PGM_SHARED,
     /** Audio + video recording. */
     LOG_GROUP_RECORDING,
-    /** REM group. */
-    LOG_GROUP_REM,
-    /** REM disassembly handler group. */
-    LOG_GROUP_REM_DISAS,
-    /** REM access handler group. */
-    LOG_GROUP_REM_HANDLER,
-    /** REM I/O port access group. */
-    LOG_GROUP_REM_IOPORT,
-    /** REM MMIO access group. */
-    LOG_GROUP_REM_MMIO,
-    /** REM Printf. */
-    LOG_GROUP_REM_PRINTF,
-    /** REM running group. */
-    LOG_GROUP_REM_RUN,
     /** SELM group. */
     LOG_GROUP_SELM,
     /** Shared clipboard host service group. */
@@ -881,6 +901,7 @@ typedef enum VBOXLOGGROUP
     "DEV_FDC", \
     "DEV_FLASH", \
     "DEV_GIM", \
+    "DEV_GPIO", \
     "DEV_HDA", \
     "DEV_HDA_CODEC", \
     "DEV_HPET", \
@@ -902,6 +923,7 @@ typedef enum VBOXLOGGROUP
     "DEV_PCNET", \
     "DEV_PIC", \
     "DEV_PIT", \
+    "DEV_PLATFORM", \
     "DEV_QEMUFWCFG", \
     "DEV_RTC", \
     "DEV_SB16", \
@@ -926,6 +948,7 @@ typedef enum VBOXLOGGROUP
     "DRV_DISK_INTEGRITY", \
     "DRV_DISPLAY", \
     "DRV_FLOPPY", \
+    "DRV_GPIO", \
     "DRV_HOST_AUDIO", \
     "DRV_HOST_BASE", \
     "DRV_HOST_DVD", \
@@ -960,6 +983,7 @@ typedef enum VBOXLOGGROUP
     "DRV_VUSB", \
     "EM", \
     "FTM", \
+    "GCM", \
     "GIM", \
     "GMM", \
     "GUEST_CONTROL", \
@@ -970,7 +994,11 @@ typedef enum VBOXLOGGROUP
     "HGSMI", \
     "HM", \
     "IEM", \
+    "IEM_MEM", \
+    "IEM_RE_NATIVE", \
+    "IEM_RE_THREADED", \
     "IEM_SVM", \
+    "IEM_SYSCALL", \
     "IEM_VMX", \
     "IOBUFMGMT", \
     "IOM", \
@@ -1014,10 +1042,11 @@ typedef enum VBOXLOGGROUP
     "MAIN_AUDIOSETTINGS", \
     "MAIN_BANDWIDTHCONTROL", \
     "MAIN_BANDWIDTHGROUP", \
-    "MAIN_BIOSSETTINGS", \
     "MAIN_BOOLEANFORMVALUE", \
     "MAIN_CERTIFICATE", \
     "MAIN_CHOICEFORMVALUE", \
+    "MAIN_CLIPBOARDERROREVENT", \
+    "MAIN_CLIPBOARDEVENT", \
     "MAIN_CLOUDCLIENT", \
     "MAIN_CLOUDMACHINE", \
     "MAIN_CLOUDNETWORK", \
@@ -1054,6 +1083,7 @@ typedef enum VBOXLOGGROUP
     "MAIN_EXTPACKMANAGER", \
     "MAIN_EXTPACKPLUGIN", \
     "MAIN_FILE", \
+    "MAIN_FIRMWARESETTINGS", \
     "MAIN_FORM", \
     "MAIN_FORMVALUE", \
     "MAIN_FRAMEBUFFER", \
@@ -1064,6 +1094,7 @@ typedef enum VBOXLOGGROUP
     "MAIN_GUEST", \
     "MAIN_GUESTDEBUGCONTROL", \
     "MAIN_GUESTDIRECTORY", \
+    "MAIN_GUESTDIRECTORYEVENT", \
     "MAIN_GUESTDNDSOURCE", \
     "MAIN_GUESTDNDTARGET", \
     "MAIN_GUESTERRORINFO", \
@@ -1090,6 +1121,7 @@ typedef enum VBOXLOGGROUP
     "MAIN_HOSTUSBDEVICE", \
     "MAIN_HOSTUSBDEVICEFILTER", \
     "MAIN_HOSTVIDEOINPUTDEVICE", \
+    "MAIN_HOSTX86", \
     "MAIN_INTERNALMACHINECONTROL", \
     "MAIN_INTERNALSESSIONCONTROL", \
     "MAIN_KEYBOARD", \
@@ -1111,6 +1143,10 @@ typedef enum VBOXLOGGROUP
     "MAIN_PCIDEVICEATTACHMENT", \
     "MAIN_PERFORMANCECOLLECTOR", \
     "MAIN_PERFORMANCEMETRIC", \
+    "MAIN_PLATFORM", \
+    "MAIN_PLATFORMARM", \
+    "MAIN_PLATFORMPROPERTIES", \
+    "MAIN_PLATFORMX86", \
     "MAIN_PROCESS", \
     "MAIN_PROGRESS", \
     "MAIN_PROGRESSCREATEDEVENT", \
@@ -1119,6 +1155,7 @@ typedef enum VBOXLOGGROUP
     "MAIN_RANGEDINTEGERFORMVALUE", \
     "MAIN_RECORDINGSCREENSETTINGS", \
     "MAIN_RECORDINGSETTINGS", \
+    "MAIN_RESOURCESTORE", \
     "MAIN_REUSABLEEVENT", \
     "MAIN_SERIALPORT", \
     "MAIN_SESSION", \
@@ -1189,13 +1226,6 @@ typedef enum VBOXLOGGROUP
     "PGM_POOL", \
     "PGM_SHARED", \
     "RECORDING", \
-    "REM", \
-    "REM_DISAS", \
-    "REM_HANDLER", \
-    "REM_IOPORT", \
-    "REM_MMIO", \
-    "REM_PRINTF", \
-    "REM_RUN", \
     "SELM", \
     "SHARED_CLIPBOARD", \
     "SHARED_CROPENGL", \

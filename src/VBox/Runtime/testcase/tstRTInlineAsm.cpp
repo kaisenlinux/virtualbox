@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -38,6 +38,7 @@
 /*********************************************************************************************************************************
 *   Header Files                                                                                                                 *
 *********************************************************************************************************************************/
+#include <iprt/asm-mem.h>
 #include <iprt/asm.h>
 #include <iprt/asm-math.h>
 
@@ -177,6 +178,17 @@
     } while (0)
 
 
+/**
+ * Calls a worker function with different worker variable storage types.
+ */
+#define DO_SIMPLE_TEST_NO_STACK(name, type) \
+    do \
+    { \
+        RTTestISub(#name); \
+        DO_SIMPLE_TEST_NO_SUB_NO_STACK(tst ## name ## Worker, type); \
+    } while (0)
+
+
 /*********************************************************************************************************************************
 *   Global Variables                                                                                                             *
 *********************************************************************************************************************************/
@@ -187,7 +199,7 @@ static RTTEST g_hTest;
 
 #if !defined(GCC44_32BIT_PIC) && (defined(RT_ARCH_AMD64) || defined(RT_ARCH_X86))
 
-const char *getCacheAss(unsigned u)
+static const char *getCacheAss(unsigned u)
 {
     if (u == 0)
         return "res0  ";
@@ -203,7 +215,7 @@ const char *getCacheAss(unsigned u)
 }
 
 
-const char *getL2CacheAss(unsigned u)
+static const char *getL2CacheAss(unsigned u)
 {
     switch (u)
     {
@@ -235,7 +247,7 @@ const char *getL2CacheAss(unsigned u)
  * @remark  Bits shared with the libc cpuid.c program. This all written by me, so no worries.
  * @todo transform the dumping into a generic runtime function. We'll need it for logging!
  */
-void tstASMCpuId(void)
+static void tstASMCpuId(void)
 {
     RTTestISub("ASMCpuId");
 
@@ -1020,6 +1032,46 @@ DECLINLINE(void) tstASMAtomicUoReadU64Worker(uint64_t volatile *pu64)
 #endif
 }
 
+#ifdef RTASM_HAVE_READ_U128
+# define TEST_READ_128_EX(a_pVar, a_szFunction, a_CallExpr, a_u64ValHi, a_u64ValLo) do { \
+        a_pVar->s.Hi = a_u64ValHi; \
+        a_pVar->s.Lo = a_u64ValLo; \
+        RTUINT128U uRet; \
+        a_CallExpr; \
+        if (uRet.s.Lo != a_u64ValLo || uRet.s.Hi != a_u64ValHi) \
+            RTTestFailed(g_hTest, "%s, %d: " a_szFunction ": expected %#RX64'%016RX64 got %#RX64'%016RX64\n", \
+                         __FUNCTION__, __LINE__, a_u64ValHi, a_u64ValLo, uRet.s.Hi, uRet.s.Lo); \
+        CHECKVAL128(a_pVar, a_u64ValHi, a_u64ValLo); \
+    } while (0)
+
+# define TEST_READ_128U(a_pVar, a_Function, a_u64ValHi, a_u64ValLo) \
+    TEST_READ_128_EX(a_pVar, #a_Function, uRet = a_Function(a_pVar), a_u64ValHi, a_u64ValLo)
+# define TEST_READ_128(a_pVar, a_Function, a_u64ValHi, a_u64ValLo) \
+    TEST_READ_128_EX(a_pVar, #a_Function, uRet.u = a_Function(&a_pVar->u), a_u64ValHi, a_u64ValLo)
+
+# define TEST_ATOMIC_READ_U128_TMPL(a_TestMacro, a_fn) \
+    DECLINLINE(void) tst ## a_fn ## Worker(RTUINT128U volatile *pu128) \
+    { \
+        a_TestMacro(pu128, a_fn, 0,                                                       0); \
+        a_TestMacro(pu128, a_fn, 19983,                                               20245); \
+        a_TestMacro(pu128, a_fn, UINT16_MAX,                                      INT16_MAX); \
+        a_TestMacro(pu128, a_fn, INT16_MAX,                                      UINT16_MAX); \
+        a_TestMacro(pu128, a_fn, UINT32_MAX,                                      INT32_MAX); \
+        a_TestMacro(pu128, a_fn, INT32_MAX,                                      UINT32_MAX); \
+        a_TestMacro(pu128, a_fn, UINT64_MAX,                                      INT64_MAX); \
+        a_TestMacro(pu128, a_fn, INT64_MAX,                                      UINT64_MAX); \
+        a_TestMacro(pu128, a_fn, UINT64_C(0xb5a23edcc258ad0a), UINT64_C(0xaf88507eceb58580)); \
+        a_TestMacro(pu128, a_fn, UINT64_C(0x5dc7d02e4e474fdb), UINT64_C(0x132b375f2b60f4b6)); \
+    }
+
+TEST_ATOMIC_READ_U128_TMPL(TEST_READ_128,   ASMAtomicReadU128)
+TEST_ATOMIC_READ_U128_TMPL(TEST_READ_128,   ASMAtomicUoReadU128)
+
+TEST_ATOMIC_READ_U128_TMPL(TEST_READ_128U,  ASMAtomicReadU128U)
+TEST_ATOMIC_READ_U128_TMPL(TEST_READ_128U,  ASMAtomicUoReadU128U)
+
+#endif
+
 
 static void tstASMAtomicRead(void)
 {
@@ -1034,6 +1086,14 @@ static void tstASMAtomicRead(void)
 
     DO_SIMPLE_TEST(ASMAtomicReadU64, uint64_t);
     DO_SIMPLE_TEST(ASMAtomicUoReadU64, uint64_t);
+
+#ifdef RTASM_HAVE_READ_U128
+    DO_SIMPLE_TEST_NO_STACK(ASMAtomicReadU128, RTUINT128U);
+    DO_SIMPLE_TEST_NO_STACK(ASMAtomicReadU128U, RTUINT128U);
+
+    DO_SIMPLE_TEST_NO_STACK(ASMAtomicUoReadU128, RTUINT128U);
+    DO_SIMPLE_TEST_NO_STACK(ASMAtomicUoReadU128U, RTUINT128U);
+#endif
 }
 
 
@@ -1275,6 +1335,49 @@ DECLINLINE(void) tstASMAtomicUoWriteU64Worker(uint64_t volatile *pu64)
 #endif
 }
 
+#ifdef RTASM_HAVE_WRITE_U128
+
+# define TEST_WRITE_128(a_pVar, a_Function, a_HiVal, a_LoVal) do { \
+        RTUINT128U uValTmp; \
+        a_Function(&a_pVar->u, (uValTmp = RTUINT128_INIT(a_HiVal, a_LoVal)).u); \
+        CHECKVAL128(a_pVar, a_HiVal, a_LoVal); \
+    } while (0)
+
+# define TEST_WRITE_128U(a_pVar, a_Function, a_HiVal, a_LoVal) do { \
+        RTUINT128U uValTmp; \
+        a_Function(a_pVar, uValTmp = RTUINT128_INIT(a_HiVal, a_LoVal)); \
+        CHECKVAL128(a_pVar, a_HiVal, a_LoVal); \
+    } while (0)
+
+# define TEST_WRITE_128v2(a_pVar, a_Function, a_HiVal, a_LoVal) \
+    do { a_Function(&a_pVar->u, a_HiVal, a_LoVal); CHECKVAL128(a_pVar, a_HiVal, a_LoVal); } while (0)
+
+#define TEST_ATOMIC_WRITE_U128_TMPL(a_TestMacro, a_fn) \
+    DECLINLINE(void) tst ## a_fn ## Worker(RTUINT128U volatile *pu128) \
+    { \
+        a_TestMacro(pu128, a_fn, 0,                                                       0); \
+        a_TestMacro(pu128, a_fn, 19983,                                               20245); \
+        a_TestMacro(pu128, a_fn, UINT16_MAX,                                      INT16_MAX); \
+        a_TestMacro(pu128, a_fn, INT16_MAX,                                      UINT16_MAX); \
+        a_TestMacro(pu128, a_fn, UINT32_MAX,                                      INT32_MAX); \
+        a_TestMacro(pu128, a_fn, INT32_MAX,                                      UINT32_MAX); \
+        a_TestMacro(pu128, a_fn, UINT64_MAX,                                      INT64_MAX); \
+        a_TestMacro(pu128, a_fn, INT64_MAX,                                      UINT64_MAX); \
+        a_TestMacro(pu128, a_fn, UINT64_C(0xb5a23edcc258ad0a), UINT64_C(0xaf88507eceb58580)); \
+        a_TestMacro(pu128, a_fn, UINT64_C(0x5dc7d02e4e474fdb), UINT64_C(0x132b375f2b60f4b6)); \
+    }
+
+TEST_ATOMIC_WRITE_U128_TMPL(TEST_WRITE_128,   ASMAtomicWriteU128)
+TEST_ATOMIC_WRITE_U128_TMPL(TEST_WRITE_128,   ASMAtomicUoWriteU128)
+
+TEST_ATOMIC_WRITE_U128_TMPL(TEST_WRITE_128U,  ASMAtomicWriteU128U)
+TEST_ATOMIC_WRITE_U128_TMPL(TEST_WRITE_128U,  ASMAtomicUoWriteU128U)
+
+TEST_ATOMIC_WRITE_U128_TMPL(TEST_WRITE_128v2, ASMAtomicWriteU128v2)
+TEST_ATOMIC_WRITE_U128_TMPL(TEST_WRITE_128v2, ASMAtomicUoWriteU128v2)
+
+#endif /* RTASM_HAVE_WRITE_U128 */
+
 static void tstASMAtomicWrite(void)
 {
     DO_SIMPLE_TEST(ASMAtomicWriteU8, uint8_t);
@@ -1288,6 +1391,17 @@ static void tstASMAtomicWrite(void)
 
     DO_SIMPLE_TEST(ASMAtomicWriteU64, uint64_t);
     DO_SIMPLE_TEST(ASMAtomicUoWriteU64, uint64_t);
+
+#ifdef RTASM_HAVE_WRITE_U128
+    /* Not doing stack here, as it won't be necessarily correctly aligned for cmpxchg16b on MSC. */
+    DO_SIMPLE_TEST_NO_STACK(ASMAtomicWriteU128,   RTUINT128U);
+    DO_SIMPLE_TEST_NO_STACK(ASMAtomicWriteU128U,  RTUINT128U);
+    DO_SIMPLE_TEST_NO_STACK(ASMAtomicWriteU128v2, RTUINT128U);
+
+    DO_SIMPLE_TEST_NO_STACK(ASMAtomicUoWriteU128,   RTUINT128U);
+    DO_SIMPLE_TEST_NO_STACK(ASMAtomicUoWriteU128U,  RTUINT128U);
+    DO_SIMPLE_TEST_NO_STACK(ASMAtomicUoWriteU128v2, RTUINT128U);
+#endif
 }
 
 
@@ -2380,72 +2494,7 @@ static void tstASMAtomicAndOrXor(void)
 }
 
 
-typedef struct
-{
-    uint8_t ab[PAGE_SIZE];
-} TSTPAGE;
-
-
-DECLINLINE(void) tstASMMemZeroPageWorker(TSTPAGE *pPage)
-{
-    for (unsigned j = 0; j < 16; j++)
-    {
-        memset(pPage, 0x11 * j, sizeof(*pPage));
-        ASMMemZeroPage(pPage);
-        for (unsigned i = 0; i < sizeof(pPage->ab); i++)
-            if (pPage->ab[i])
-                RTTestFailed(g_hTest, "ASMMemZeroPage didn't clear byte at offset %#x!\n", i);
-        if (ASMMemIsZeroPage(pPage) != true)
-            RTTestFailed(g_hTest, "ASMMemIsZeroPage returns false after ASMMemZeroPage!\n");
-        if (ASMMemFirstMismatchingU32(pPage, sizeof(pPage), 0) != NULL)
-            RTTestFailed(g_hTest, "ASMMemFirstMismatchingU32(,,0) returns non-NULL after ASMMemZeroPage!\n");
-    }
-}
-
-
-static void tstASMMemZeroPage(void)
-{
-    RTTestISub("ASMMemZeroPage");
-    DO_SIMPLE_TEST_NO_SUB_NO_STACK(tstASMMemZeroPageWorker, TSTPAGE);
-}
-
-
-void tstASMMemIsZeroPage(RTTEST hTest)
-{
-    RTTestSub(hTest, "ASMMemIsZeroPage");
-
-    void *pvPage1 = RTTestGuardedAllocHead(hTest, PAGE_SIZE);
-    void *pvPage2 = RTTestGuardedAllocTail(hTest, PAGE_SIZE);
-    RTTESTI_CHECK_RETV(pvPage1 && pvPage2);
-
-    memset(pvPage1, 0, PAGE_SIZE);
-    memset(pvPage2, 0, PAGE_SIZE);
-    RTTESTI_CHECK(ASMMemIsZeroPage(pvPage1));
-    RTTESTI_CHECK(ASMMemIsZeroPage(pvPage2));
-
-    memset(pvPage1, 0xff, PAGE_SIZE);
-    memset(pvPage2, 0xff, PAGE_SIZE);
-    RTTESTI_CHECK(!ASMMemIsZeroPage(pvPage1));
-    RTTESTI_CHECK(!ASMMemIsZeroPage(pvPage2));
-
-    memset(pvPage1, 0, PAGE_SIZE);
-    memset(pvPage2, 0, PAGE_SIZE);
-    for (unsigned off = 0; off < PAGE_SIZE; off++)
-    {
-        ((uint8_t *)pvPage1)[off] = 1;
-        RTTESTI_CHECK(!ASMMemIsZeroPage(pvPage1));
-        ((uint8_t *)pvPage1)[off] = 0;
-
-        ((uint8_t *)pvPage2)[off] = 0x80;
-        RTTESTI_CHECK(!ASMMemIsZeroPage(pvPage2));
-        ((uint8_t *)pvPage2)[off] = 0;
-    }
-
-    RTTestSubDone(hTest);
-}
-
-
-void tstASMMemFirstMismatchingU8(RTTEST hTest)
+static void tstASMMemFirstMismatchingU8(RTTEST hTest)
 {
     RTTestSub(hTest, "ASMMemFirstMismatchingU8");
 
@@ -2516,8 +2565,8 @@ void tstASMMemFirstMismatchingU8(RTTEST hTest)
     size_t const   cbBuf    = 128;
     uint8_t       *pbBuf1   = pbPage1;
     uint8_t       *pbBuf2   = &pbPage2[PAGE_SIZE - cbBuf]; /* Put it up against the tail guard */
-    memset(pbPage1, ~bFiller1, PAGE_SIZE);
-    memset(pbPage2, ~bFiller2, PAGE_SIZE);
+    memset(pbPage1, (uint8_t)~bFiller1, PAGE_SIZE);
+    memset(pbPage2, (uint8_t)~bFiller2, PAGE_SIZE);
     memset(pbBuf1, bFiller1, cbBuf);
     memset(pbBuf2, bFiller2, cbBuf);
     for (size_t offNonZero = 0; offNonZero < cbBuf; offNonZero++)
@@ -2592,7 +2641,7 @@ DECLINLINE(void) tstASMMemZero32Worker(TSTBUF32 *pBuf)
 }
 
 
-void tstASMMemZero32(void)
+static void tstASMMemZero32(void)
 {
     RTTestSub(g_hTest, "ASMMemZero32");
 
@@ -2656,7 +2705,7 @@ DECLINLINE(void) tstASMMemFill32Worker(TSTBUF32 *pBuf)
         RTTestFailed(g_hTest, "ASMMemFirstMismatchingU32(,,UINT32_C(0x12345678)) returns non-NULL after ASMMemFill32!\n");
 }
 
-void tstASMMemFill32(void)
+static void tstASMMemFill32(void)
 {
     RTTestSub(g_hTest, "ASMMemFill32");
 
@@ -2712,13 +2761,12 @@ void tstASMMemFill32(void)
 }
 
 
-void tstASMProbe(RTTEST hTest)
+static void tstASMProbe(RTTEST hTest)
 {
-    RTTestSub(hTest, "ASMProbeReadByte/Buffer");
+    RTTestSub(hTest, "ASMProbeReadByte");
 
     uint8_t b = 42;
     RTTESTI_CHECK(ASMProbeReadByte(&b) == 42);
-    ASMProbeReadBuffer(&b, sizeof(b));
 
     for (uint32_t cPages = 1; cPages < 16; cPages++)
     {
@@ -2733,14 +2781,11 @@ void tstASMProbe(RTTEST hTest)
         RTTESTI_CHECK(ASMProbeReadByte(&pbBuf2[cPages * PAGE_SIZE - 1]) == 0x42);
         RTTESTI_CHECK(ASMProbeReadByte(&pbBuf1[0]) == 0xf6);
         RTTESTI_CHECK(ASMProbeReadByte(&pbBuf2[0]) == 0x42);
-
-        ASMProbeReadBuffer(pbBuf1, cPages * PAGE_SIZE);
-        ASMProbeReadBuffer(pbBuf2, cPages * PAGE_SIZE);
     }
 }
 
 
-void tstASMMisc(void)
+static void tstASMMisc(void)
 {
     RTTestSub(g_hTest, "Misc");
     for (uint32_t i = 0; i < 20; i++)
@@ -2755,7 +2800,7 @@ void tstASMMisc(void)
 }
 
 
-void tstASMBit(void)
+static void tstASMBit(void)
 {
     RTTestSub(g_hTest, "ASMBitFirstSetU16");
     RTTESTI_CHECK(ASMBitFirstSetU16(0x0000) == 0);
@@ -2891,7 +2936,7 @@ void tstASMBit(void)
 }
 
 
-void tstASMMath(void)
+static void tstASMMath(void)
 {
     RTTestSub(g_hTest, "Math");
 
@@ -2983,7 +3028,7 @@ void tstASMMath(void)
 }
 
 
-void tstASMByteSwap(void)
+static void tstASMByteSwap(void)
 {
     RTTestSub(g_hTest, "ASMByteSwap*");
 
@@ -3046,7 +3091,7 @@ void tstASMByteSwap(void)
 }
 
 
-void tstASMBench(void)
+static void tstASMBench(void)
 {
     /*
      * Make this static. We don't want to have this located on the stack.
@@ -3147,6 +3192,13 @@ void tstASMBench(void)
     BENCH(ASMAtomicUoReadS32(&s_i32),            "ASMAtomicUoReadS32");
     BENCH(ASMAtomicUoReadU64(&s_u64),            "ASMAtomicUoReadU64");
     BENCH(ASMAtomicUoReadS64(&s_i64),            "ASMAtomicUoReadS64");
+#ifdef RTASM_HAVE_READ_U128
+    if (fHaveCmpXchg128)
+    {
+        BENCH(ASMAtomicUoReadU128(&s_u128.u),    "ASMAtomicUoReadU128");
+        BENCH(ASMAtomicUoReadU128U(&s_u128),     "ASMAtomicUoReadU128U");
+    }
+#endif
     BENCH(ASMAtomicReadU8(&s_u8),                "ASMAtomicReadU8");
     BENCH(ASMAtomicReadS8(&s_i8),                "ASMAtomicReadS8");
     BENCH(ASMAtomicReadU16(&s_u16),              "ASMAtomicReadU16");
@@ -3155,6 +3207,13 @@ void tstASMBench(void)
     BENCH(ASMAtomicReadS32(&s_i32),              "ASMAtomicReadS32");
     BENCH(ASMAtomicReadU64(&s_u64),              "ASMAtomicReadU64");
     BENCH(ASMAtomicReadS64(&s_i64),              "ASMAtomicReadS64");
+#ifdef RTASM_HAVE_READ_U128
+    if (fHaveCmpXchg128)
+    {
+        BENCH(ASMAtomicReadU128(&s_u128.u),      "ASMAtomicReadU128");
+        BENCH(ASMAtomicReadU128U(&s_u128),       "ASMAtomicReadU128U");
+    }
+#endif
     BENCH(ASMAtomicUoWriteU8(&s_u8, 0),          "ASMAtomicUoWriteU8");
     BENCH(ASMAtomicUoWriteS8(&s_i8, 0),          "ASMAtomicUoWriteS8");
     BENCH(ASMAtomicUoWriteU16(&s_u16, 0),        "ASMAtomicUoWriteU16");
@@ -3163,6 +3222,14 @@ void tstASMBench(void)
     BENCH(ASMAtomicUoWriteS32(&s_i32, 0),        "ASMAtomicUoWriteS32");
     BENCH(ASMAtomicUoWriteU64(&s_u64, 0),        "ASMAtomicUoWriteU64");
     BENCH(ASMAtomicUoWriteS64(&s_i64, 0),        "ASMAtomicUoWriteS64");
+#ifdef RTASM_HAVE_WRITE_U128
+    if (fHaveCmpXchg128)
+    {
+        BENCH(ASMAtomicUoWriteU128(&s_u128.u, (u128Tmp1 = RTUINT128_INIT_C(0, 0)).u),   "ASMAtomicUoWriteU128");
+        BENCH(ASMAtomicUoWriteU128v2(&s_u128.u, 0, 0),                                  "ASMAtomicUoWriteU128v2");
+        BENCH(ASMAtomicUoWriteU128U(&s_u128, u128Tmp1 = RTUINT128_INIT_C(0, 0)),        "ASMAtomicUoWriteU128U");
+    }
+#endif
     BENCH(ASMAtomicWriteU8(&s_u8, 0),            "ASMAtomicWriteU8");
     BENCH(ASMAtomicWriteS8(&s_i8, 0),            "ASMAtomicWriteS8");
     BENCH(ASMAtomicWriteU16(&s_u16, 0),          "ASMAtomicWriteU16");
@@ -3171,6 +3238,14 @@ void tstASMBench(void)
     BENCH(ASMAtomicWriteS32(&s_i32, 0),          "ASMAtomicWriteS32");
     BENCH(ASMAtomicWriteU64(&s_u64, 0),          "ASMAtomicWriteU64");
     BENCH(ASMAtomicWriteS64(&s_i64, 0),          "ASMAtomicWriteS64");
+#ifdef RTASM_HAVE_WRITE_U128
+    if (fHaveCmpXchg128)
+    {
+        BENCH(ASMAtomicWriteU128(&s_u128.u, (u128Tmp1 = RTUINT128_INIT_C(0, 0)).u), "ASMAtomicWriteU128");
+        BENCH(ASMAtomicWriteU128v2(&s_u128.u, 0, 0),                                "ASMAtomicWriteU128v2");
+        BENCH(ASMAtomicWriteU128U(&s_u128, u128Tmp1 = RTUINT128_INIT_C(0, 0)),      "ASMAtomicWriteU128U");
+    }
+#endif
     BENCH(ASMAtomicXchgU8(&s_u8, 0),             "ASMAtomicXchgU8");
     BENCH(ASMAtomicXchgS8(&s_i8, 0),             "ASMAtomicXchgS8");
     BENCH(ASMAtomicXchgU16(&s_u16, 0),           "ASMAtomicXchgU16");
@@ -3329,8 +3404,6 @@ int main(int argc, char **argv)
     tstASMAtomicDecInc();
     tstASMAtomicAndOrXor();
 
-    tstASMMemZeroPage();
-    tstASMMemIsZeroPage(g_hTest);
     tstASMMemFirstMismatchingU8(g_hTest);
     tstASMMemZero32();
     tstASMMemFill32();

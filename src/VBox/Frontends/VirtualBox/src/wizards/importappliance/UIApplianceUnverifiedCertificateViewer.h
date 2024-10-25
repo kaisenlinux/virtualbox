@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -33,7 +33,6 @@
 
 /* GUI includes: */
 #include "QIDialog.h"
-#include "QIWithRetranslateUI.h"
 
 /* Forward declarations: */
 class QLabel;
@@ -42,7 +41,7 @@ class CCertificate;
 
 /** QIDialog extension
   * asking for consent to continue with unverifiable certificate. */
-class UIApplianceUnverifiedCertificateViewer : public QIWithRetranslateUI<QIDialog>
+class UIApplianceUnverifiedCertificateViewer : public QIDialog
 {
     Q_OBJECT;
 
@@ -56,8 +55,10 @@ protected:
     /** Prepares all. */
     void prepare();
 
+private slots:
+
     /** Handles translation event. */
-    virtual void retranslateUi() /* override final */;
+    void sltRetranslateUI();
 
 private:
 

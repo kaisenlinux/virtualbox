@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2016-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2016-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -33,22 +33,22 @@
 #include <QClipboard>
 #include <QHeaderView>
 #include <QMenu>
-#include <QTableWidget>
 #include <QTextDocument>
 #include <QVBoxLayout>
 
 /* GUI includes: */
+#include "QITableWidget.h"
 #include "UIDetailsGenerator.h"
-#include "UICommon.h"
 #include "UIExtraDataManager.h"
 #include "UIIconPool.h"
 #include "UIInformationConfiguration.h"
+#include "UIMachine.h"
+#include "UIMediumEnumerator.h"
+#include "UITranslationEventListener.h"
 #include "UIVirtualBoxEventHandler.h"
 
-UIInformationConfiguration::UIInformationConfiguration(QWidget *pParent, const CMachine &machine, const CConsole &console)
-    : QIWithRetranslateUI<QWidget>(pParent)
-    , m_machine(machine)
-    , m_console(console)
+UIInformationConfiguration::UIInformationConfiguration(QWidget *pParent)
+    : QWidget(pParent)
     , m_pMainLayout(0)
     , m_pTableWidget(0)
     , m_pCopyWholeTableAction(0)
@@ -59,10 +59,12 @@ UIInformationConfiguration::UIInformationConfiguration(QWidget *pParent, const C
     , m_iRowBottomMargin(0.2 * qApp->style()->pixelMetric(QStyle::PM_LayoutBottomMargin))
 {
     prepareObjects();
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIInformationConfiguration::sltRetranslateUI);
     connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigMachineDataChange,
             this, &UIInformationConfiguration::sltMachineDataChanged);
-    connect(&uiCommon(), &UICommon::sigMediumEnumerationFinished,
+    connect(gpMediumEnumerator, &UIMediumEnumerator::sigMediumEnumerationFinished,
             this, &UIInformationConfiguration::sltMachineDataChanged);
 }
 
@@ -89,7 +91,7 @@ void UIInformationConfiguration::sltCopyTableToClipboard()
     pClipboard->setText(tableData(), QClipboard::Clipboard);
 }
 
-void UIInformationConfiguration::retranslateUi()
+void UIInformationConfiguration::sltRetranslateUI()
 {
     m_strGeneralTitle = QApplication::translate("UIVMInformationDialog", "General");
     m_strSystemTitle = QApplication::translate("UIVMInformationDialog", "System");
@@ -102,69 +104,74 @@ void UIInformationConfiguration::retranslateUi()
     m_strSharedFoldersTitle = QApplication::translate("UIVMInformationDialog", "Shared Folders");
     if (m_pCopyWholeTableAction)
         m_pCopyWholeTableAction->setText(QApplication::translate("UIVMInformationDialog", "Copy All"));
+    if (m_pTableWidget)
+        m_pTableWidget->setWhatsThis(QApplication::translate("UIVMInformationDialog", "Displays the configuration details of the guest system"));
     createTableItems();
 }
 
 void UIInformationConfiguration::createTableItems()
 {
-    if (!m_pTableWidget)
+    if (!m_pTableWidget || !gpMachine)
         return;
+
     resetTable();
+    UITextTable infoRows;
+
     QFontMetrics fontMetrics(m_pTableWidget->font());
     int iMaxColumn1Length = 0;
+
     /* General section: */
     insertTitleRow(m_strGeneralTitle, UIIconPool::iconSet(":/machine_16px.png"), fontMetrics);
-    insertInfoRows(UIDetailsGenerator::generateMachineInformationGeneral(m_machine,
-                                                                         UIExtraDataMetaDefs::DetailsElementOptionTypeGeneral_Default),
-                   fontMetrics, iMaxColumn1Length);
+    gpMachine->generateMachineInformationGeneral(UIExtraDataMetaDefs::DetailsElementOptionTypeGeneral_Default, infoRows);
+    insertInfoRows(infoRows, fontMetrics, iMaxColumn1Length);
 
     /* System section: */
     insertTitleRow(m_strSystemTitle, UIIconPool::iconSet(":/chipset_16px.png"), fontMetrics);
-    insertInfoRows(UIDetailsGenerator::generateMachineInformationSystem(m_machine,
-                                                                        UIExtraDataMetaDefs::DetailsElementOptionTypeSystem_Default),
-                   fontMetrics, iMaxColumn1Length);
+    infoRows.clear();
+    gpMachine->generateMachineInformationSystem(UIExtraDataMetaDefs::DetailsElementOptionTypeSystem_Default, infoRows);
+    insertInfoRows(infoRows, fontMetrics, iMaxColumn1Length);
 
     /* Display section: */
     insertTitleRow(m_strDisplayTitle, UIIconPool::iconSet(":/vrdp_16px.png"), fontMetrics);
-    insertInfoRows(UIDetailsGenerator::generateMachineInformationDisplay(m_machine,
-                                                                         UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay_Default),
-                   fontMetrics, iMaxColumn1Length);
+    infoRows.clear();
+    gpMachine->generateMachineInformationDisplay(UIExtraDataMetaDefs::DetailsElementOptionTypeDisplay_Default, infoRows);
+    insertInfoRows(infoRows, fontMetrics, iMaxColumn1Length);
 
     /* Storage section: */
     insertTitleRow(m_strStorageTitle, UIIconPool::iconSet(":/hd_16px.png"), fontMetrics);
-    insertInfoRows(UIDetailsGenerator::generateMachineInformationStorage(m_machine,
-                                                                         UIExtraDataMetaDefs::DetailsElementOptionTypeStorage_Default),
-                   fontMetrics, iMaxColumn1Length);
+    infoRows.clear();
+    gpMachine->generateMachineInformationStorage(UIExtraDataMetaDefs::DetailsElementOptionTypeStorage_Default, infoRows);
+    insertInfoRows(infoRows, fontMetrics, iMaxColumn1Length);
 
     /* Audio section: */
     insertTitleRow(m_strAudioTitle, UIIconPool::iconSet(":/sound_16px.png"), fontMetrics);
-    insertInfoRows(UIDetailsGenerator::generateMachineInformationAudio(m_machine,
-                                                                       UIExtraDataMetaDefs::DetailsElementOptionTypeAudio_Default),
-                   fontMetrics, iMaxColumn1Length);
+    infoRows.clear();
+    gpMachine->generateMachineInformationAudio(UIExtraDataMetaDefs::DetailsElementOptionTypeAudio_Default, infoRows);
+    insertInfoRows(infoRows, fontMetrics, iMaxColumn1Length);
 
     /* Network section: */
     insertTitleRow(m_strNetworkTitle, UIIconPool::iconSet(":/nw_16px.png"), fontMetrics);
-    insertInfoRows(UIDetailsGenerator::generateMachineInformationNetwork(m_machine,
-                                                                         UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork_Default),
-                   fontMetrics, iMaxColumn1Length);
+    infoRows.clear();
+    gpMachine->generateMachineInformationNetwork(UIExtraDataMetaDefs::DetailsElementOptionTypeNetwork_Default, infoRows);
+    insertInfoRows(infoRows, fontMetrics, iMaxColumn1Length);
 
     /* Serial port section: */
     insertTitleRow(m_strSerialPortsTitle, UIIconPool::iconSet(":/serial_port_16px.png"), fontMetrics);
-    insertInfoRows(UIDetailsGenerator::generateMachineInformationSerial(m_machine,
-                                                                        UIExtraDataMetaDefs::DetailsElementOptionTypeSerial_Default),
-                   fontMetrics, iMaxColumn1Length);
+    infoRows.clear();
+    gpMachine->generateMachineInformationSerial(UIExtraDataMetaDefs::DetailsElementOptionTypeSerial_Default, infoRows);
+    insertInfoRows(infoRows, fontMetrics, iMaxColumn1Length);
 
     /* USB section: */
     insertTitleRow(m_strUSBTitle, UIIconPool::iconSet(":/usb_16px.png"), fontMetrics);
-    insertInfoRows(UIDetailsGenerator::generateMachineInformationUSB(m_machine,
-                                                                     UIExtraDataMetaDefs::DetailsElementOptionTypeUsb_Default),
-                   fontMetrics, iMaxColumn1Length);
+    infoRows.clear();
+    gpMachine->generateMachineInformationUSB(UIExtraDataMetaDefs::DetailsElementOptionTypeUsb_Default, infoRows);
+    insertInfoRows(infoRows, fontMetrics, iMaxColumn1Length);
 
-    /* Share folders section: */
+    /* Shared folders section: */
     insertTitleRow(m_strSharedFoldersTitle, UIIconPool::iconSet(":/sf_16px.png"), fontMetrics);
-    insertInfoRows(UIDetailsGenerator::generateMachineInformationSharedFolders(m_machine,
-                                                                               UIExtraDataMetaDefs::DetailsElementOptionTypeSharedFolders_Default),
-                   fontMetrics, iMaxColumn1Length);
+    infoRows.clear();
+    gpMachine->generateMachineInformationSharedFolders(UIExtraDataMetaDefs::DetailsElementOptionTypeSharedFolders_Default, infoRows);
+    insertInfoRows(infoRows, fontMetrics, iMaxColumn1Length);
 
     m_pTableWidget->resizeColumnToContents(0);
     /* Resize the column 1 a bit larger than the max string if contains: */
@@ -181,7 +188,7 @@ void UIInformationConfiguration::prepareObjects()
         return;
     m_pMainLayout->setSpacing(0);
 
-    m_pTableWidget = new QTableWidget;
+    m_pTableWidget = new QITableWidget;
     if (m_pTableWidget)
     {
         /* Configure the table by hiding the headers etc.: */
@@ -194,7 +201,7 @@ void UIInformationConfiguration::prepareObjects()
         m_pTableWidget->setFocusPolicy(Qt::NoFocus);
         m_pTableWidget->setSelectionMode(QAbstractItemView::NoSelection);
         m_pTableWidget->setContextMenuPolicy(Qt::CustomContextMenu);
-        connect(m_pTableWidget, &QTableWidget::customContextMenuRequested,
+        connect(m_pTableWidget, &QITableWidget::customContextMenuRequested,
             this, &UIInformationConfiguration::sltHandleTableContextMenuRequest);
         m_pMainLayout->addWidget(m_pTableWidget);
     }
@@ -221,8 +228,12 @@ void UIInformationConfiguration::insertTitleRow(const QString &strTitle, const Q
     icon.actualSize(iconSize);
     m_pTableWidget->setRowHeight(iRow,
                                  qMax(fontMetrics.height() + m_iRowTopMargin + m_iRowBottomMargin, iconSize.height()));
-    m_pTableWidget->setItem(iRow, 0, new QTableWidgetItem(icon, ""));
-    QTableWidgetItem *pTitleItem = new QTableWidgetItem(strTitle);
+    QITableWidgetItem *pItem = new QITableWidgetItem("");
+    AssertReturnVoid(pItem);
+    pItem->setIcon(icon);
+    m_pTableWidget->setItem(iRow, 0, pItem);
+    QITableWidgetItem *pTitleItem = new QITableWidgetItem(strTitle);
+    AssertReturnVoid(pTitleItem);
     QFont font = pTitleItem->font();
     font.setBold(true);
     pTitleItem->setFont(font);
@@ -232,16 +243,12 @@ void UIInformationConfiguration::insertTitleRow(const QString &strTitle, const Q
 void UIInformationConfiguration::insertInfoRow(const QString strText1, const QString &strText2,
                                                const QFontMetrics &fontMetrics, int &iMaxColumn1Length)
 {
-    int iRow = m_pTableWidget->rowCount();
+    const int iRow = m_pTableWidget->rowCount();
     m_pTableWidget->insertRow(iRow);
     m_pTableWidget->setRowHeight(iRow, fontMetrics.height() + m_iRowTopMargin + m_iRowBottomMargin);
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
     iMaxColumn1Length = qMax(iMaxColumn1Length, fontMetrics.horizontalAdvance(strText1));
-#else
-    iMaxColumn1Length = qMax(iMaxColumn1Length, fontMetrics.width(strText1));
-#endif
-    m_pTableWidget->setItem(iRow, 1, new QTableWidgetItem(strText1));
-    m_pTableWidget->setItem(iRow, 2, new QTableWidgetItem(strText2));
+    m_pTableWidget->setItem(iRow, 1, new QITableWidgetItem(strText1));
+    m_pTableWidget->setItem(iRow, 2, new QITableWidgetItem(strText2));
 }
 
 void UIInformationConfiguration::resetTable()
@@ -269,9 +276,13 @@ QString UIInformationConfiguration::tableData() const
     for (int i = 0; i < m_pTableWidget->rowCount(); ++i)
     {
         /* Skip the first column as it contains only icon and no text: */
-        QTableWidgetItem *pItem = m_pTableWidget->item(i, 1);
+        QITableWidgetItem *pItem = static_cast<QITableWidgetItem*>(m_pTableWidget->item(i, 1));
+        if (!pItem)
+            continue;
         QString strColumn1 = pItem ? pItem->text() : QString();
-        pItem = m_pTableWidget->item(i, 2);
+        pItem = static_cast<QITableWidgetItem*>(m_pTableWidget->item(i, 2));
+        if (!pItem)
+            continue;
         QString strColumn2 = pItem ? pItem->text() : QString();
         if (strColumn2.isEmpty())
             data << strColumn1;

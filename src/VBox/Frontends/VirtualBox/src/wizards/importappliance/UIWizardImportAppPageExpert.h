@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -36,11 +36,11 @@
 
 /* Forward declarations: */
 class QCheckBox;
+class QComboBox;
 class QGridLayout;
 class QLabel;
 class QListWidget;
 class QStackedWidget;
-class QIComboBox;
 class QIToolButton;
 class UIApplianceImportEditorWidget;
 class UIEmptyFilePathSelector;
@@ -67,17 +67,14 @@ protected:
     /** Returns wizard this page belongs to. */
     UIWizardImportApp *wizard() const;
 
-    /** Handles translation event. */
-    virtual void retranslateUi() /* override final */;
-
     /** Performs page initialization. */
-    virtual void initializePage() /* override final */;
+    virtual void initializePage() RT_OVERRIDE RT_FINAL;
 
     /** Returns whether page is complete. */
-    virtual bool isComplete() const /* override final */;
+    virtual bool isComplete() const RT_OVERRIDE RT_FINAL;
 
     /** Performs page validation. */
-    virtual bool validatePage() /* override final */;
+    virtual bool validatePage() RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -102,6 +99,8 @@ private slots:
     void sltHandleMACImportPolicyComboChange();
     /** Handles import HDs as VDI check-box change. */
     void sltHandleImportHDsAsVDICheckBoxChange();
+    /** Handles translation event. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -123,22 +122,28 @@ private:
     /** Holds the source type label instance. */
     QLabel      *m_pSourceLabel;
     /** Holds the source type combo-box instance. */
-    QIComboBox  *m_pSourceComboBox;
+    QComboBox   *m_pSourceComboBox;
 
     /** Holds the settings widget 1 instance. */
     QStackedWidget *m_pSettingsWidget1;
 
     /** Holds the local container layout instance. */
     QGridLayout             *m_pLocalContainerLayout;
+    /** Holds the file label instance. */
+    QLabel                  *m_pFileLabel;
     /** Holds the file selector instance. */
     UIEmptyFilePathSelector *m_pFileSelector;
 
     /** Holds the cloud container layout instance. */
     QGridLayout  *m_pCloudContainerLayout;
+    /** Holds the profile label instance. */
+    QLabel       *m_pProfileLabel;
     /** Holds the profile combo-box instance. */
-    QIComboBox   *m_pProfileComboBox;
+    QComboBox    *m_pProfileComboBox;
     /** Holds the profile management tool-button instance. */
     QIToolButton *m_pProfileToolButton;
+    /** Holds the profile instance label instance. */
+    QLabel       *m_pProfileInstanceLabel;
     /** Holds the profile instance list instance. */
     QListWidget  *m_pProfileInstanceList;
 
@@ -154,7 +159,7 @@ private:
     /** Holds the MAC address label instance. */
     QLabel                        *m_pLabelMACImportPolicy;
     /** Holds the MAC address combo instance. */
-    QIComboBox                    *m_pComboMACImportPolicy;
+    QComboBox                     *m_pComboMACImportPolicy;
     /** Holds the additional options label instance. */
     QLabel                        *m_pLabelAdditionalOptions;
     /** Holds the 'import HDs as VDI' checkbox instance. */

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,26 +35,22 @@
 #include <QVBoxLayout>
 
 /* GUI includes: */
-#include "QIArrowButtonSwitch.h"
 #include "QILineEdit.h"
 #include "QIToolButton.h"
-#include "UICommon.h"
 #include "UIConverter.h"
+#include "UIGlobalSession.h"
 #include "UIIconPool.h"
 #include "UINetworkFeaturesEditor.h"
 
 /* COM includes: */
-#include "CSystemProperties.h"
+#include "CPlatformProperties.h"
 
 
 UINetworkFeaturesEditor::UINetworkFeaturesEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
-    , m_fAdvancedButtonExpanded(false)
+    : UIEditor(pParent)
     , m_enmAdapterType(KNetworkAdapterType_Null)
     , m_enmPromiscuousMode(KNetworkAdapterPromiscModePolicy_Max)
     , m_fCableConnected(false)
-    , m_pButtonAdvanced(0)
-    , m_pWidgetSettings(0)
     , m_pLayoutSettings(0)
     , m_pLabelAdapterType(0)
     , m_pComboAdapterType(0)
@@ -71,30 +67,12 @@ UINetworkFeaturesEditor::UINetworkFeaturesEditor(QWidget *pParent /* = 0 */)
     prepare();
 }
 
-void UINetworkFeaturesEditor::setAdvancedButtonExpanded(bool fExpanded)
-{
-    if (m_fAdvancedButtonExpanded != fExpanded)
-    {
-        m_fAdvancedButtonExpanded = fExpanded;
-        if (m_pButtonAdvanced)
-        {
-            m_pButtonAdvanced->setExpanded(m_fAdvancedButtonExpanded);
-            sltHandleAdvancedButtonStateChange();
-        }
-    }
-}
-
-bool UINetworkFeaturesEditor::advancedButtonExpanded() const
-{
-    return m_pButtonAdvanced ? m_pButtonAdvanced->isExpanded() : m_fAdvancedButtonExpanded;
-}
-
 void UINetworkFeaturesEditor::setAdapterType(const KNetworkAdapterType &enmType)
 {
     if (m_enmAdapterType != enmType)
     {
         m_enmAdapterType = enmType;
-        repopulateAdapterTypeCombo();
+        populateAdapterTypeCombo();
     }
 }
 
@@ -108,7 +86,7 @@ void UINetworkFeaturesEditor::setPromiscuousMode(const KNetworkAdapterPromiscMod
     if (m_enmPromiscuousMode != enmMode)
     {
         m_enmPromiscuousMode = enmMode;
-        repopulatePromiscuousModeCombo();
+        populatePromiscuousModeCombo();
     }
 }
 
@@ -173,11 +151,6 @@ UIPortForwardingDataList UINetworkFeaturesEditor::portForwardingRules() const
     return m_portForwardingRules;
 }
 
-void UINetworkFeaturesEditor::setAdvancedOptionsAvailable(bool fAvailable)
-{
-    m_pButtonAdvanced->setEnabled(fAvailable);
-}
-
 void UINetworkFeaturesEditor::setAdapterOptionsAvailable(bool fAvailable)
 {
     m_pLabelAdapterType->setEnabled(fAvailable);
@@ -235,17 +208,11 @@ void UINetworkFeaturesEditor::setMinimumLayoutIndent(int iIndent)
 
 void UINetworkFeaturesEditor::generateMac()
 {
-    setMACAddress(uiCommon().host().GenerateMACAddress());
+    setMACAddress(gpGlobalSession->host().GenerateMACAddress());
 }
 
-void UINetworkFeaturesEditor::retranslateUi()
+void UINetworkFeaturesEditor::sltRetranslateUI()
 {
-    if (m_pButtonAdvanced)
-    {
-        m_pButtonAdvanced->setText(tr("A&dvanced"));
-        m_pButtonAdvanced->setToolTip(tr("Shows additional network adapter options."));
-    }
-
     if (m_pLabelAdapterType)
         m_pLabelAdapterType->setText(tr("Adapter &Type:"));
     if (m_pComboAdapterType)
@@ -300,14 +267,10 @@ void UINetworkFeaturesEditor::retranslateUi()
     }
 }
 
-void UINetworkFeaturesEditor::sltHandleAdvancedButtonStateChange()
+void UINetworkFeaturesEditor::handleFilterChange()
 {
-    /* What's the state? */
-    const bool fExpanded = m_pButtonAdvanced->isExpanded();
-    /* Update widget visibility: */
-    m_pWidgetSettings->setVisible(fExpanded);
-    /* Notify listeners about the button state change: */
-    emit sigAdvancedButtonStateChange(fExpanded);
+    populateAdapterTypeCombo();
+    populatePromiscuousModeCombo();
 }
 
 void UINetworkFeaturesEditor::sltOpenPortForwardingDlg()
@@ -320,125 +283,94 @@ void UINetworkFeaturesEditor::sltOpenPortForwardingDlg()
 void UINetworkFeaturesEditor::prepare()
 {
     /* Prepare main layout: */
-    QVBoxLayout *pLayout = new QVBoxLayout(this);
-    if (pLayout)
+    m_pLayoutSettings = new QGridLayout(this);
+    if (m_pLayoutSettings)
     {
-        pLayout->setContentsMargins(0, 0, 0, 0);
+        m_pLayoutSettings->setContentsMargins(0, 0, 0, 0);
+        m_pLayoutSettings->setColumnStretch(2, 1);
 
-        /* Prepare advanced arrow button: */
-        m_pButtonAdvanced = new QIArrowButtonSwitch(this);
-        if (m_pButtonAdvanced)
+        /* Prepare adapter type label: */
+        m_pLabelAdapterType = new QLabel(this);
+        if (m_pLabelAdapterType)
         {
-            const QStyle *pStyle = QApplication::style();
-            const int iIconMetric = (int)(pStyle->pixelMetric(QStyle::PM_SmallIconSize) * .625);
-            m_pButtonAdvanced->setIconSize(QSize(iIconMetric, iIconMetric));
-            m_pButtonAdvanced->setIcons(UIIconPool::iconSet(":/arrow_right_10px.png"),
-                                        UIIconPool::iconSet(":/arrow_down_10px.png"));
-
-            pLayout->addWidget(m_pButtonAdvanced);
+            m_pLabelAdapterType->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+            m_pLayoutSettings->addWidget(m_pLabelAdapterType, 0, 0);
+        }
+        /* Prepare adapter type combo: */
+        m_pComboAdapterType = new QComboBox(this);
+        if (m_pComboAdapterType)
+        {
+            if (m_pLabelAdapterType)
+                m_pLabelAdapterType->setBuddy(m_pComboAdapterType);
+            m_pLayoutSettings->addWidget(m_pComboAdapterType, 0, 1, 1, 3);
         }
 
-        /* Prepare advanced settings widget: */
-        m_pWidgetSettings = new QWidget(this);
-        if (m_pWidgetSettings)
+        /* Prepare promiscuous mode label: */
+        m_pLabelPromiscuousMode = new QLabel(this);
+        if (m_pLabelPromiscuousMode)
         {
-            /* Prepare advanced settings layout: */
-            m_pLayoutSettings = new QGridLayout(m_pWidgetSettings);
-            if (m_pLayoutSettings)
-            {
-                m_pLayoutSettings->setContentsMargins(0, 0, 0, 0);
-                m_pLayoutSettings->setColumnStretch(2, 1);
-
-                /* Prepare adapter type label: */
-                m_pLabelAdapterType = new QLabel(m_pWidgetSettings);
-                if (m_pLabelAdapterType)
-                {
-                    m_pLabelAdapterType->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-                    m_pLayoutSettings->addWidget(m_pLabelAdapterType, 0, 0);
-                }
-                /* Prepare adapter type combo: */
-                m_pComboAdapterType = new QComboBox(m_pWidgetSettings);
-                if (m_pComboAdapterType)
-                {
-                    if (m_pLabelAdapterType)
-                        m_pLabelAdapterType->setBuddy(m_pComboAdapterType);
-                    m_pLayoutSettings->addWidget(m_pComboAdapterType, 0, 1, 1, 3);
-                }
-
-                /* Prepare promiscuous mode label: */
-                m_pLabelPromiscuousMode = new QLabel(m_pWidgetSettings);
-                if (m_pLabelPromiscuousMode)
-                {
-                    m_pLabelPromiscuousMode->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-                    m_pLayoutSettings->addWidget(m_pLabelPromiscuousMode, 1, 0);
-                }
-                /* Prepare promiscuous mode combo: */
-                m_pComboPromiscuousMode = new QComboBox(m_pWidgetSettings);
-                if (m_pComboPromiscuousMode)
-                {
-                    if (m_pLabelPromiscuousMode)
-                        m_pLabelPromiscuousMode->setBuddy(m_pComboPromiscuousMode);
-                    m_pLayoutSettings->addWidget(m_pComboPromiscuousMode, 1, 1, 1, 3);
-                }
-
-                /* Prepare MAC label: */
-                m_pLabelMAC = new QLabel(m_pWidgetSettings);
-                if (m_pLabelMAC)
-                {
-                    m_pLabelMAC->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-                    m_pLayoutSettings->addWidget(m_pLabelMAC, 2, 0);
-                }
-                /* Prepare MAC editor: */
-                m_pEditorMAC = new QILineEdit(m_pWidgetSettings);
-                if (m_pEditorMAC)
-                {
-                    if (m_pLabelMAC)
-                        m_pLabelMAC->setBuddy(m_pEditorMAC);
-                    m_pEditorMAC->setAllowToCopyContentsWhenDisabled(true);
-                    m_pEditorMAC->setValidator(new QRegularExpressionValidator(QRegularExpression("[0-9A-Fa-f]{12}"), this));
-                    m_pEditorMAC->setMinimumWidthByText(QString().fill('0', 12));
-
-                    m_pLayoutSettings->addWidget(m_pEditorMAC, 2, 1, 1, 2);
-                }
-                /* Prepare MAC button: */
-                m_pButtonMAC = new QIToolButton(m_pWidgetSettings);
-                if (m_pButtonMAC)
-                {
-                    m_pButtonMAC->setIcon(UIIconPool::iconSet(":/refresh_16px.png"));
-                    m_pLayoutSettings->addWidget(m_pButtonMAC, 2, 3);
-                }
-
-                /* Prepare MAC label: */
-                m_pLabelGenericProperties = new QLabel(m_pWidgetSettings);
-                if (m_pLabelGenericProperties)
-                {
-                    m_pLabelGenericProperties->setAlignment(Qt::AlignRight | Qt::AlignTop);
-                    m_pLayoutSettings->addWidget(m_pLabelGenericProperties, 3, 0);
-                }
-                /* Prepare MAC editor: */
-                m_pEditorGenericProperties = new QTextEdit(m_pWidgetSettings);
-                if (m_pEditorGenericProperties)
-                    m_pLayoutSettings->addWidget(m_pEditorGenericProperties, 3, 1, 1, 3);
-
-                /* Prepare cable connected check-box: */
-                m_pCheckBoxCableConnected = new QCheckBox(m_pWidgetSettings);
-                if (m_pCheckBoxCableConnected)
-                    m_pLayoutSettings->addWidget(m_pCheckBoxCableConnected, 4, 1, 1, 2);
-
-                /* Prepare port forwarding button: */
-                m_pButtonPortForwarding = new QPushButton(m_pWidgetSettings);
-                if (m_pButtonPortForwarding)
-                    m_pLayoutSettings->addWidget(m_pButtonPortForwarding, 5, 1);
-            }
-
-            pLayout->addWidget(m_pWidgetSettings);
+            m_pLabelPromiscuousMode->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+            m_pLayoutSettings->addWidget(m_pLabelPromiscuousMode, 1, 0);
         }
+        /* Prepare promiscuous mode combo: */
+        m_pComboPromiscuousMode = new QComboBox(this);
+        if (m_pComboPromiscuousMode)
+        {
+            if (m_pLabelPromiscuousMode)
+                m_pLabelPromiscuousMode->setBuddy(m_pComboPromiscuousMode);
+            m_pLayoutSettings->addWidget(m_pComboPromiscuousMode, 1, 1, 1, 3);
+        }
+
+        /* Prepare MAC label: */
+        m_pLabelMAC = new QLabel(this);
+        if (m_pLabelMAC)
+        {
+            m_pLabelMAC->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+            m_pLayoutSettings->addWidget(m_pLabelMAC, 2, 0);
+        }
+        /* Prepare MAC editor: */
+        m_pEditorMAC = new QILineEdit(this);
+        if (m_pEditorMAC)
+        {
+            if (m_pLabelMAC)
+                m_pLabelMAC->setBuddy(m_pEditorMAC);
+            m_pEditorMAC->setAllowToCopyContentsWhenDisabled(true);
+            m_pEditorMAC->setValidator(new QRegularExpressionValidator(QRegularExpression("[0-9A-Fa-f]{12}"), this));
+
+            m_pLayoutSettings->addWidget(m_pEditorMAC, 2, 1, 1, 2);
+        }
+        /* Prepare MAC button: */
+        m_pButtonMAC = new QIToolButton(this);
+        if (m_pButtonMAC)
+        {
+            m_pButtonMAC->setIcon(UIIconPool::iconSet(":/refresh_16px.png"));
+            m_pLayoutSettings->addWidget(m_pButtonMAC, 2, 3);
+        }
+
+        /* Prepare MAC label: */
+        m_pLabelGenericProperties = new QLabel(this);
+        if (m_pLabelGenericProperties)
+        {
+            m_pLabelGenericProperties->setAlignment(Qt::AlignRight | Qt::AlignTop);
+            m_pLayoutSettings->addWidget(m_pLabelGenericProperties, 3, 0);
+        }
+        /* Prepare MAC editor: */
+        m_pEditorGenericProperties = new QTextEdit(this);
+        if (m_pEditorGenericProperties)
+            m_pLayoutSettings->addWidget(m_pEditorGenericProperties, 3, 1, 1, 3);
+
+        /* Prepare cable connected check-box: */
+        m_pCheckBoxCableConnected = new QCheckBox(this);
+        if (m_pCheckBoxCableConnected)
+            m_pLayoutSettings->addWidget(m_pCheckBoxCableConnected, 4, 1, 1, 2);
+
+        /* Prepare port forwarding button: */
+        m_pButtonPortForwarding = new QPushButton(this);
+        if (m_pButtonPortForwarding)
+            m_pLayoutSettings->addWidget(m_pButtonPortForwarding, 5, 1);
     }
 
     /* Configure connections: */
-    if (m_pButtonAdvanced)
-        connect(m_pButtonAdvanced, &QIArrowButtonSwitch::sigClicked,
-                this, &UINetworkFeaturesEditor::sltHandleAdvancedButtonStateChange);
     if (m_pEditorMAC)
         connect(m_pEditorMAC, &QILineEdit::textChanged,
                 this, &UINetworkFeaturesEditor::sigMACAddressChanged);
@@ -449,14 +381,11 @@ void UINetworkFeaturesEditor::prepare()
         connect(m_pButtonPortForwarding, &QPushButton::clicked,
                 this, &UINetworkFeaturesEditor::sltOpenPortForwardingDlg);
 
-    /* Update widget availability: */
-    m_pWidgetSettings->setVisible(m_pButtonAdvanced->isExpanded());
-
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
-void UINetworkFeaturesEditor::repopulateAdapterTypeCombo()
+void UINetworkFeaturesEditor::populateAdapterTypeCombo()
 {
     if (m_pComboAdapterType)
     {
@@ -464,7 +393,10 @@ void UINetworkFeaturesEditor::repopulateAdapterTypeCombo()
         m_pComboAdapterType->clear();
 
         /* Load currently supported types: */
-        CSystemProperties comProperties = uiCommon().virtualBox().GetSystemProperties();
+        const KPlatformArchitecture enmArch = optionalFlags().contains("arch")
+                                            ? optionalFlags().value("arch").value<KPlatformArchitecture>()
+                                            : KPlatformArchitecture_x86;
+        CPlatformProperties comProperties = gpGlobalSession->virtualBox().GetPlatformProperties(enmArch);
         QVector<KNetworkAdapterType> supportedTypes = comProperties.GetSupportedNetworkAdapterTypes();
 
         /* Make sure requested value if sane is present as well: */
@@ -482,22 +414,23 @@ void UINetworkFeaturesEditor::repopulateAdapterTypeCombo()
             m_pComboAdapterType->setCurrentIndex(iIndex);
 
         /* Retranslate finally: */
-        retranslateUi();
+        sltRetranslateUI();
     }
 }
 
-void UINetworkFeaturesEditor::repopulatePromiscuousModeCombo()
+void UINetworkFeaturesEditor::populatePromiscuousModeCombo()
 {
     if (m_pComboPromiscuousMode)
     {
         /* Clear combo first of all: */
         m_pComboPromiscuousMode->clear();
 
-        /* Populate currently supported types: */
-        QVector<KNetworkAdapterPromiscModePolicy> supportedTypes =
-            QVector<KNetworkAdapterPromiscModePolicy>() << KNetworkAdapterPromiscModePolicy_Deny
-                                                        << KNetworkAdapterPromiscModePolicy_AllowNetwork
-                                                        << KNetworkAdapterPromiscModePolicy_AllowAll;
+        /* Load currently supported types: */
+        const KPlatformArchitecture enmArch = optionalFlags().contains("arch")
+                                            ? optionalFlags().value("arch").value<KPlatformArchitecture>()
+                                            : KPlatformArchitecture_x86;
+        CPlatformProperties comProperties = gpGlobalSession->virtualBox().GetPlatformProperties(enmArch);
+        QVector<KNetworkAdapterPromiscModePolicy> supportedTypes = comProperties.GetSupportedNetAdpPromiscModePols();
 
         /* Make sure requested value if sane is present as well: */
         if (   m_enmPromiscuousMode != KNetworkAdapterPromiscModePolicy_Max
@@ -514,6 +447,6 @@ void UINetworkFeaturesEditor::repopulatePromiscuousModeCombo()
             m_pComboPromiscuousMode->setCurrentIndex(iIndex);
 
         /* Retranslate finally: */
-        retranslateUi();
+        sltRetranslateUI();
     }
 }

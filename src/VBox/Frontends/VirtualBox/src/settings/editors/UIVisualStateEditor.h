@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -33,20 +33,18 @@
 
 /* Qt includes: */
 #include <QUuid>
-#include <QWidget>
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
+#include "UIEditor.h"
 #include "UIExtraDataDefs.h"
-#include "UILibraryDefs.h"
 
 /* Forward declarations: */
 class QComboBox;
 class QGridLayout;
 class QLabel;
 
-/** QWidget subclass used as a visual state editor. */
-class SHARED_LIBRARY_STUFF UIVisualStateEditor : public QIWithRetranslateUI<QWidget>
+/** UIEditor sub-class used as a visual state editor. */
+class SHARED_LIBRARY_STUFF UIVisualStateEditor : public UIEditor
 {
     Q_OBJECT;
 
@@ -71,10 +69,10 @@ public:
     /** Defines minimum layout @a iIndent. */
     void setMinimumLayoutIndent(int iIndent);
 
-protected:
+private slots:
 
     /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 

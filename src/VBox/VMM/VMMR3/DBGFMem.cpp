@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2007-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2007-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -79,8 +79,7 @@ static DECLCALLBACK(int) dbgfR3MemScan(PUVM pUVM, VMCPUID idCpu, PCDBGFADDRESS p
     int     rc;
     PVMCPU  pVCpu   = VMMGetCpuById(pVM, idCpu);
     PGMMODE enmMode = PGMGetGuestMode(pVCpu);
-    if (    enmMode == PGMMODE_REAL
-        ||  enmMode == PGMMODE_PROTECTED
+    if (    !PGMMODE_WITH_PAGING(enmMode)
         ||  DBGFADDRESS_IS_PHYS(pAddress)
         )
     {
@@ -97,8 +96,7 @@ static DECLCALLBACK(int) dbgfR3MemScan(PUVM pUVM, VMCPUID idCpu, PCDBGFADDRESS p
 #if GC_ARCH_BITS > 32
         if (    (   pAddress->FlatPtr >= _4G
                  || pAddress->FlatPtr + cbRange > _4G)
-            &&  enmMode != PGMMODE_AMD64
-            &&  enmMode != PGMMODE_AMD64_NX)
+            &&  !PGMMODE_IS_64BIT_MODE(enmMode))
             return VERR_DBGF_MEM_NOT_FOUND;
 #endif
         RTGCUINTPTR GCPtrHit;
@@ -173,17 +171,15 @@ static DECLCALLBACK(int) dbgfR3MemRead(PUVM pUVM, VMCPUID idCpu, PCDBGFADDRESS p
     int rc;
     PVMCPU  pVCpu   = VMMGetCpuById(pVM, idCpu);
     PGMMODE enmMode = PGMGetGuestMode(pVCpu);
-    if (    enmMode == PGMMODE_REAL
-        ||  enmMode == PGMMODE_PROTECTED
-        ||  DBGFADDRESS_IS_PHYS(pAddress) )
+    if (    !PGMMODE_WITH_PAGING(enmMode)
+        ||  DBGFADDRESS_IS_PHYS(pAddress))
         rc = PGMPhysSimpleReadGCPhys(pVM, pvBuf, pAddress->FlatPtr, cbRead);
     else
     {
 #if GC_ARCH_BITS > 32
         if (    (   pAddress->FlatPtr >= _4G
                  || pAddress->FlatPtr + cbRead > _4G)
-            &&  enmMode != PGMMODE_AMD64
-            &&  enmMode != PGMMODE_AMD64_NX)
+            &&  !PGMMODE_IS_64BIT_MODE(enmMode))
             return VERR_PAGE_TABLE_NOT_PRESENT;
 #endif
         rc = PGMPhysSimpleReadGCPtr(pVCpu, pvBuf, pAddress->FlatPtr, cbRead);
@@ -326,17 +322,15 @@ static DECLCALLBACK(int) dbgfR3MemWrite(PUVM pUVM, VMCPUID idCpu, PCDBGFADDRESS 
     int rc;
     PVMCPU  pVCpu   = VMMGetCpuById(pVM, idCpu);
     PGMMODE enmMode = PGMGetGuestMode(pVCpu);
-    if (    enmMode == PGMMODE_REAL
-        ||  enmMode == PGMMODE_PROTECTED
-        ||  DBGFADDRESS_IS_PHYS(pAddress) )
+    if (   !PGMMODE_WITH_PAGING(enmMode)
+        || DBGFADDRESS_IS_PHYS(pAddress))
         rc = PGMPhysSimpleWriteGCPhys(pVM, pAddress->FlatPtr, pvBuf, cbWrite);
     else
     {
 #if GC_ARCH_BITS > 32
         if (    (   pAddress->FlatPtr >= _4G
                  || pAddress->FlatPtr + cbWrite > _4G)
-            &&  enmMode != PGMMODE_AMD64
-            &&  enmMode != PGMMODE_AMD64_NX)
+            &&  !PGMMODE_IS_64BIT_MODE(enmMode))
             return VERR_PAGE_TABLE_NOT_PRESENT;
 #endif
         rc = PGMPhysSimpleWriteGCPtr(pVCpu, pAddress->FlatPtr, pvBuf, cbWrite);
@@ -364,6 +358,7 @@ VMMR3DECL(int) DBGFR3MemWrite(PUVM pUVM, VMCPUID idCpu, PCDBGFADDRESS pAddress, 
 }
 
 
+#if !defined(VBOX_VMM_TARGET_ARMV8)
 /**
  * Worker for DBGFR3SelQueryInfo that calls into SELM.
  */
@@ -413,6 +408,7 @@ static DECLCALLBACK(int) dbgfR3SelQueryInfo(PUVM pUVM, VMCPUID idCpu, RTSEL Sel,
     }
     return rc;
 }
+#endif
 
 
 /**
@@ -450,10 +446,15 @@ VMMR3DECL(int) DBGFR3SelQueryInfo(PUVM pUVM, VMCPUID idCpu, RTSEL Sel, uint32_t 
     /* Clear the return data here on this thread. */
     memset(pSelInfo, 0, sizeof(*pSelInfo));
 
+#if defined(VBOX_VMM_TARGET_ARMV8)
+    RT_NOREF(Sel);
+    return VERR_NOT_SUPPORTED;
+#else
     /*
      * Dispatch the request to a worker running on the target CPU.
      */
     return VMR3ReqPriorityCallWaitU(pUVM, idCpu, (PFNRT)dbgfR3SelQueryInfo, 5, pUVM, idCpu, Sel, fFlags, pSelInfo);
+#endif
 }
 
 
@@ -504,6 +505,7 @@ static uint32_t dbgfR3PagingDumpModeToFlags(PGMMODE enmMode)
 {
     switch (enmMode)
     {
+#if !defined(VBOX_VMM_TARGET_ARMV8)
         case PGMMODE_32_BIT:
             return DBGFPGDMP_FLAGS_PSE;
         case PGMMODE_PAE:
@@ -526,6 +528,12 @@ static uint32_t dbgfR3PagingDumpModeToFlags(PGMMODE enmMode)
             return 0;
         default:
             AssertFailedReturn(UINT32_MAX);
+#else
+        case PGMMODE_NONE:
+            return 0;
+        default:
+            AssertFailedReturn(UINT32_MAX);
+#endif
     }
 }
 
@@ -578,13 +586,18 @@ static DECLCALLBACK(int) dbgfR3PagingDumpEx(PUVM pUVM, VMCPUID idCpu, uint32_t f
                 return VINF_SUCCESS;
             }
 
+#if !defined(VBOX_VMM_TARGET_ARMV8)
             if (fFlags & DBGFPGDMP_FLAGS_CURRENT_CR3)
                 cr3 = PGMGetHyperCR3(pVCpu);
+#endif
             if (fFlags & DBGFPGDMP_FLAGS_CURRENT_MODE)
                 fFlags |= dbgfR3PagingDumpModeToFlags(PGMGetShadowMode(pVCpu));
         }
         else
         {
+#if defined(VBOX_VMM_TARGET_ARMV8)
+            AssertReleaseFailed();
+#else
             if (fFlags & DBGFPGDMP_FLAGS_CURRENT_CR3)
                 cr3 = CPUMGetGuestCR3(pVCpu);
             if (fFlags & DBGFPGDMP_FLAGS_CURRENT_MODE)
@@ -594,6 +607,7 @@ static DECLCALLBACK(int) dbgfR3PagingDumpEx(PUVM pUVM, VMCPUID idCpu, uint32_t f
                 AssertCompile(DBGFPGDMP_FLAGS_LME == MSR_K6_EFER_LME);  AssertCompile(DBGFPGDMP_FLAGS_NXE == MSR_K6_EFER_NXE);
                 fFlags |= CPUMGetGuestEFER(pVCpu) & (MSR_K6_EFER_LME | MSR_K6_EFER_NXE);
             }
+#endif
         }
     }
     fFlags &= ~(DBGFPGDMP_FLAGS_CURRENT_MODE | DBGFPGDMP_FLAGS_CURRENT_CR3);
@@ -647,6 +661,7 @@ VMMDECL(int) DBGFR3PagingDumpEx(PUVM pUVM, VMCPUID idCpu, uint32_t fFlags, uint6
      * Forward the request to the target CPU.
      */
     return VMR3ReqPriorityCallWaitU(pUVM, idCpu, (PFNRT)dbgfR3PagingDumpEx, 8,
-                                    pUVM, idCpu, fFlags, &cr3, &u64FirstAddr, &u64LastAddr, cMaxDepth, pHlp ? pHlp : DBGFR3InfoLogHlp());
+                                    pUVM, idCpu, fFlags, &cr3, &u64FirstAddr, &u64LastAddr, cMaxDepth,
+                                    pHlp ? pHlp : DBGFR3InfoLogHlp());
 }
 

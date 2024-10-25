@@ -4,7 +4,7 @@
 #
 
 #
-# Copyright (C) 2006-2023 Oracle and/or its affiliates.
+# Copyright (C) 2006-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -34,19 +34,34 @@ if defined(VBOX_WITH_TESTCASES) && !defined(VBOX_ONLY_VALIDATIONKIT)
 endif
 
 
-LIBRARIES              += DisasmR3
+if "$(KBUILD_TARGET).$(KBUILD_TARGET_ARCH)" != "linux.arm64" || defined(VBOX_WITH_STATIC_ARM64_PAGE_SHIFT) # @todo Required by cidet in the validationkit but uses PAGE_OFFSET_MASK
+ LIBRARIES             += DisasmR3
+endif
 DisasmR3_TEMPLATE       = VBoxR3Dll
 DisasmR3_DEFS           = IN_DIS
 DisasmR3_SOURCES        = \
 	Disasm.cpp \
-	DisasmCore.cpp \
-	DisasmTables.cpp \
-	DisasmTablesX64.cpp \
 	DisasmMisc.cpp \
-	DisasmFormatBytes.cpp \
-	DisasmFormatYasm.cpp
+	DisasmFormatBytes.cpp
+if 1
+ DisasmR3_DEFS         += VBOX_DIS_WITH_X86_AMD64
+ DisasmR3_SOURCES      += \
+ 	DisasmCore-x86-amd64.cpp \
+ 	DisasmTables-x86-amd64.cpp \
+ 	DisasmTablesX64.cpp \
+ 	DisasmFormatYasm.cpp
+endif
+if 1
+ DisasmR3_DEFS          += VBOX_DIS_WITH_ARMV8
+ DisasmR3_SOURCES       += \
+ 	DisasmCore-armv8.cpp \
+ 	DisasmTables-armv8-a64.cpp \
+ 	DisasmFormatArmV8.cpp
+endif
 
-LIBRARIES              += DisasmR3Static
+ifn1of ($(KBUILD_TARGET).$(KBUILD_TARGET_ARCH), linux.arm64)
+ LIBRARIES             += DisasmR3Static
+endif
 DisasmR3Static_TEMPLATE = VBoxR3Static
 DisasmR3Static_EXTENDS  = DisasmR3
 
@@ -58,32 +73,37 @@ ifndef VBOX_ONLY_VALIDATIONKIT
 
  LIBRARIES              += DisasmCoreR3
  DisasmCoreR3_TEMPLATE   = VBoxR3Dll
- DisasmCoreR3_DEFS       = IN_DIS DIS_CORE_ONLY
+ DisasmCoreR3_DEFS       = IN_DIS DIS_CORE_ONLY VBOX_DIS_WITH_X86_AMD64
  DisasmCoreR3_SOURCES    = \
- 	DisasmCore.cpp \
- 	DisasmTables.cpp \
+ 	Disasm.cpp \
+ 	DisasmCore-x86-amd64.cpp \
+ 	DisasmTables-x86-amd64.cpp \
  	DisasmTablesX64.cpp \
  	DisasmMisc.cpp
 
  ifdef VBOX_WITH_RAW_MODE
   LIBRARIES              += DisasmRC
   DisasmRC_TEMPLATE       = VBoxRc
-  DisasmRC_DEFS           = IN_DIS IN_RT_RC DIS_CORE_ONLY
+  DisasmRC_DEFS           = IN_DIS IN_RT_RC DIS_CORE_ONLY VBOX_DIS_WITH_X86_AMD64
   DisasmRC_SOURCES        = \
-  	DisasmCore.cpp \
-  	DisasmTables.cpp \
+  	Disasm.cpp \
+  	DisasmCore-x86-amd64.cpp \
+  	DisasmTables-x86-amd64.cpp \
   	DisasmTablesX64.cpp \
   	DisasmMisc.cpp
  endif # VBOX_WITH_RAW_MODE
 
- LIBRARIES              += DisasmR0
- DisasmR0_TEMPLATE       = VBoxR0
- DisasmR0_DEFS           = IN_DIS IN_RT_R0 DIS_CORE_ONLY
- DisasmR0_SOURCES        = \
- 	DisasmCore.cpp \
- 	DisasmTables.cpp \
- 	DisasmTablesX64.cpp \
- 	DisasmMisc.cpp
+ ifdef VBOX_WITH_R0_MODULES
+  LIBRARIES              += DisasmR0
+  DisasmR0_TEMPLATE       = VBoxR0
+  DisasmR0_DEFS           = IN_DIS IN_RT_R0 DIS_CORE_ONLY VBOX_DIS_WITH_X86_AMD64
+  DisasmR0_SOURCES        = \
+  	Disasm.cpp \
+  	DisasmCore-x86-amd64.cpp \
+  	DisasmTables-x86-amd64.cpp \
+  	DisasmTablesX64.cpp \
+  	DisasmMisc.cpp
+ endif
 
 endif # !VBOX_ONLY_VALIDATIONKIT
 

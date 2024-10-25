@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -37,6 +37,7 @@
 #define VBSF_O_PATH_WILDCARD                UINT32_C(0x00000001)
 #define VBSF_O_PATH_PRESERVE_LAST_COMPONENT UINT32_C(0x00000002)
 #define VBSF_O_PATH_CHECK_ROOT_ESCAPE       UINT32_C(0x00000004)
+#define VBSF_O_PATH_CHECK_SYMLINK_POLICY    UINT32_C(0x00000008)
 
 #define VBSF_F_PATH_HAS_WILDCARD_IN_PREFIX UINT32_C(0x00000001) /* A component before the last one contains a wildcard. */
 #define VBSF_F_PATH_HAS_WILDCARD_IN_LAST   UINT32_C(0x00000002) /* The last component contains a wildcard. */

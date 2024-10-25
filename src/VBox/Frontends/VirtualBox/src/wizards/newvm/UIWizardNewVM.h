@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,11 +35,10 @@
 #include "UINativeWizard.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CMachine.h"
 #include "CMedium.h"
 #include "CMediumFormat.h"
-#include "CGuestOSType.h"
+#include "CUnattended.h"
 
 /* Forward declarations: */
 class UIActionPool;
@@ -62,7 +61,6 @@ public:
     UIWizardNewVM(QWidget *pParent,
                   UIActionPool *pActionPool,
                   const QString &strMachineGroup,
-                  CUnattended &comUnattended,
                   const QString &strISOFilePath = QString());
 
     bool isUnattendedEnabled() const;
@@ -78,6 +76,8 @@ public:
 
     const QString &machineGroup() const;
     QUuid createdMachineId() const;
+
+    CUnattended installer() const { return m_comUnattended; }
 
     /** @name Setter/getters for vm parameters
       * @{ */
@@ -101,8 +101,8 @@ public:
         const QString &guestOSFamilyId() const;
         void setGuestOSFamilyId(const QString &strGuestOSFamilyId);
 
-        const CGuestOSType &guestOSType() const;
-        void setGuestOSType(const CGuestOSType &guestOSType);
+        const QString &guestOSTypeId() const;
+        void setGuestOSTypeId(const QString &guestOSType);
 
         bool installGuestAdditions() const;
         void setInstallGuestAdditions(bool fInstallGA);
@@ -160,29 +160,29 @@ public:
 
         void setDetectedWindowsImageNamesAndIndices(const QVector<QString> &names, const QVector<ulong> &ids);
         const QVector<QString> &detectedWindowsImageNames() const;
-    const QVector<ulong> &detectedWindowsImageIndices() const;
+        const QVector<ulong> &detectedWindowsImageIndices() const;
 
         void setSelectedWindowImageIndex(ulong uIndex);
         ulong selectedWindowImageIndex() const;
 
         QVector<KMediumVariant> mediumVariants() const;
+
+       QString getGuestOSTypeDescription() const;
     /** @} */
 
 protected:
 
     /** Populates pages. */
-    virtual void populatePages() /* final override */;
-    virtual void cleanWizard() /* final override */;
-    void configureVM(const QString &strGuestTypeId, const CGuestOSType &comGuestType);
+    virtual void populatePages() RT_OVERRIDE RT_FINAL;
+    virtual void cleanWizard() RT_OVERRIDE RT_FINAL;
     bool attachDefaultDevices();
 
 private slots:
 
-    void sltHandleWizardCancel();
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 
-    void retranslateUi();
     QString getNextControllerName(KStorageBus type);
     void setUnattendedPageVisible(bool fVisible);
     void deleteVirtualDisk();
@@ -217,7 +217,7 @@ private:
        /** Holds the VM OS family ID. */
        QString  m_strGuestOSFamilyId;
        /** Holds the VM OS type. */
-       CGuestOSType m_comGuestOSType;
+       QString m_guestOSTypeId;
 
        /** True if guest additions are to be installed during unattended install. */
        bool m_fInstallGuestAdditions;
@@ -236,7 +236,7 @@ private:
        bool m_fEmptyDiskRecommended;
        QVector<KMediumVariant> m_mediumVariants;
        UIActionPool *m_pActionPool;
-       CUnattended &m_comUnattended;
+       CUnattended m_comUnattended;
        bool m_fStartHeadless;
        QString m_strInitialISOFilePath;
     /** @} */

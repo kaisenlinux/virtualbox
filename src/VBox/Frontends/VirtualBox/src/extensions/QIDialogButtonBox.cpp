@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -31,32 +31,41 @@
 
 /* GUI includes: */
 #include "QIDialogButtonBox.h"
+#include "UICommon.h"
+#include "UIHelpBrowserDialog.h"
 #include "UISpecialControls.h"
+#include "UITranslationEventListener.h"
 
 /* Other VBox includes: */
 #include <iprt/assert.h>
 
 
 QIDialogButtonBox::QIDialogButtonBox(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QDialogButtonBox>(pParent)
+    : QDialogButtonBox(pParent)
     , m_fDoNotPickDefaultButton(false)
 {
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &QIDialogButtonBox::sltRetranslateUI);
 }
 
 QIDialogButtonBox::QIDialogButtonBox(Qt::Orientation enmOrientation, QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QDialogButtonBox>(pParent)
+    : QDialogButtonBox(pParent)
     , m_fDoNotPickDefaultButton(false)
 {
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &QIDialogButtonBox::sltRetranslateUI);
     setOrientation(enmOrientation);
 }
 
 QIDialogButtonBox::QIDialogButtonBox(StandardButtons enmButtonTypes, Qt::Orientation enmOrientation, QWidget *pParent)
-    : QIWithRetranslateUI<QDialogButtonBox>(pParent)
+    : QDialogButtonBox(pParent)
     , m_fDoNotPickDefaultButton(false)
 {
     setOrientation(enmOrientation);
     setStandardButtons(enmButtonTypes);
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &QIDialogButtonBox::sltRetranslateUI);
 }
 
 QPushButton *QIDialogButtonBox::button(StandardButton enmButtonType) const
@@ -71,21 +80,21 @@ QPushButton *QIDialogButtonBox::button(StandardButton enmButtonType) const
 QPushButton *QIDialogButtonBox::addButton(const QString &strText, ButtonRole enmRole)
 {
     QPushButton *pButton = QDialogButtonBox::addButton(strText, enmRole);
-    retranslateUi();
+    sltRetranslateUI();
     return pButton;
 }
 
 QPushButton *QIDialogButtonBox::addButton(StandardButton enmButtonType)
 {
     QPushButton *pButton = QDialogButtonBox::addButton(enmButtonType);
-    retranslateUi();
+    sltRetranslateUI();
     return pButton;
 }
 
 void QIDialogButtonBox::setStandardButtons(StandardButtons enmButtonTypes)
 {
     QDialogButtonBox::setStandardButtons(enmButtonTypes);
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void QIDialogButtonBox::addExtraWidget(QWidget *pInsertedWidget)
@@ -115,7 +124,7 @@ void QIDialogButtonBox::setDoNotPickDefaultButton(bool fDoNotPickDefaultButton)
     m_fDoNotPickDefaultButton = fDoNotPickDefaultButton;
 }
 
-void QIDialogButtonBox::retranslateUi()
+void QIDialogButtonBox::sltRetranslateUI()
 {
     QPushButton *pButton = QDialogButtonBox::button(QDialogButtonBox::Help);
     if (pButton)
@@ -145,7 +154,7 @@ void QIDialogButtonBox::showEvent(QShowEvent *pEvent)
     }
 
     /* Call to base-class: */
-    return QIWithRetranslateUI<QDialogButtonBox>::showEvent(pEvent);
+    return QDialogButtonBox::showEvent(pEvent);
 }
 
 QBoxLayout *QIDialogButtonBox::boxLayout() const
@@ -166,4 +175,10 @@ int QIDialogButtonBox::findEmptySpace(QBoxLayout *pLayout) const
             break;
     }
     return i;
+}
+
+void QIDialogButtonBox::sltHandleHelpRequest()
+{
+    AssertReturnVoid(sender());
+    UIHelpBrowserDialog::findManualFileAndShow(uiCommon().helpKeyword(sender()));
 }

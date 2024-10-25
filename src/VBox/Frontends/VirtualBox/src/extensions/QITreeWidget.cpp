@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -416,8 +416,9 @@ QString QITreeWidgetItem::defaultText() const
 *   Class QITreeWidget implementation.                                                                                           *
 *********************************************************************************************************************************/
 
-QITreeWidget::QITreeWidget(QWidget *pParent)
+QITreeWidget::QITreeWidget(QWidget *pParent /* = 0 */, bool fDelegatePaintingToSubclass /* = false */)
     : QTreeWidget(pParent)
+    , m_fDelegatePaintingToSubclass(fDelegatePaintingToSubclass)
 {
     /* Install QITreeWidget accessibility interface factory: */
     QAccessible::installFactory(QIAccessibilityInterfaceForQITreeWidget::pFactory);
@@ -436,6 +437,13 @@ QITreeWidget::QITreeWidget(QWidget *pParent)
     {
         QAccessible::deleteAccessibleInterface(QAccessible::uniqueId(pInterface));
         QAccessible::queryAccessibleInterface(this); // <= new one, proper..
+    }
+
+    /* Do not paint frame and background unless requested: */
+    if (m_fDelegatePaintingToSubclass)
+    {
+        setFrameShape(QFrame::NoFrame);
+        viewport()->setAutoFillBackground(false);
     }
 }
 
@@ -470,6 +478,10 @@ QList<QTreeWidgetItem*> QITreeWidget::filterItems(const QITreeWidgetItemFilter &
 
 void QITreeWidget::paintEvent(QPaintEvent *pEvent)
 {
+    /* Call to base-class if allowed: */
+    if (!m_fDelegatePaintingToSubclass)
+        QTreeWidget::paintEvent(pEvent);
+
     /* Create item painter: */
     QPainter painter;
     painter.begin(viewport());
@@ -484,9 +496,6 @@ void QITreeWidget::paintEvent(QPaintEvent *pEvent)
 
     /* Close item painter: */
     painter.end();
-
-    /* Call to base-class: */
-    QTreeWidget::paintEvent(pEvent);
 }
 
 void QITreeWidget::resizeEvent(QResizeEvent *pEvent)

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,33 +26,281 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
+#include <QCheckBox>
 #include <QGridLayout>
+#include <QGroupBox>
 #include <QMenuBar>
+#include <QPainter>
 #include <QPushButton>
 #include <QStyle>
+#include <QTextStream>
 
 /* GUI includes: */
-#include "UIActionPool.h"
 #include "QIDialogButtonBox.h"
+#include "QIFileDialog.h"
+#include "QILabel.h"
+#include "QILineEdit.h"
+#include "QIToolBar.h"
+#include "UIActionPool.h"
+#include "UICommon.h"
 #include "UIDesktopWidgetWatchdog.h"
 #include "UIExtraDataManager.h"
 #include "UIIconPool.h"
+#include "UILoggingDefs.h"
+#include "UIMediumEnumerator.h"
+#include "UIMediumTools.h"
 #include "UIMessageCenter.h"
 #include "UIModalWindowManager.h"
-#include "QIToolBar.h"
-#include "UIVisoHostBrowser.h"
+#include "UIPaneContainer.h"
+#include "UIShortcutPool.h"
+#include "UITranslationEventListener.h"
 #include "UIVisoCreator.h"
-#include "UIVisoConfigurationPanel.h"
-#include "UIVisoCreatorOptionsPanel.h"
 #include "UIVisoContentBrowser.h"
-#include "UICommon.h"
 #ifdef VBOX_WS_MAC
 # include "VBoxUtils-darwin.h"
 #endif
 
 /* Other VBox includes: */
+#include <iprt/assert.h>
 #include <iprt/getopt.h>
-#include <iprt/path.h>
+
+/*********************************************************************************************************************************
+*   UIVisoSettingWidget definition.                                                                                          *
+*********************************************************************************************************************************/
+
+class SHARED_LIBRARY_STUFF UIVisoSettingWidget : public UIPaneContainer
+{
+    Q_OBJECT;
+
+signals:
+
+    void sigSettingsChanged();
+
+public:
+
+    UIVisoSettingWidget(QWidget *pParent);
+    void setVisoName(const QString &strName);
+    void setSettings(const UIVisoCreatorWidget::Settings &settings);
+    UIVisoCreatorWidget::Settings settings() const;
+
+private slots:
+
+    void sltRetranslateUI();
+
+private:
+
+    void prepare() RT_OVERRIDE;
+    void prepareConnections();
+
+    QILabel      *m_pVisoNameLabel;
+    QILabel      *m_pCustomOptionsLabel;
+    QILineEdit   *m_pVisoNameLineEdit;
+    QILineEdit   *m_pCustomOptionsLineEdit;
+    QCheckBox    *m_pShowHiddenObjectsCheckBox;
+    QGridLayout  *m_pVisoOptionsGridLayout;
+};
+
+
+/*********************************************************************************************************************************
+*   UIVisoHostBrowser implementation.                                                                                            *
+*********************************************************************************************************************************/
+
+UIVisoHostBrowser::UIVisoHostBrowser(UIActionPool *pActionPool, QWidget *pParent /* = 0 */)
+    :UIFileManagerHostTable(pActionPool, pParent)
+{
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIVisoHostBrowser::sltRetranslateUI);
+}
+
+void UIVisoHostBrowser::createFileViewContextMenu(const QWidget *pWidget, const QPoint &point)
+{
+    if (!pWidget)
+        return;
+
+    QMenu menu;
+    menu.addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_GoUp));
+
+    menu.addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_GoHome));
+    menu.addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_Refresh));
+    menu.addSeparator();
+    menu.addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_SelectAll));
+    menu.addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_InvertSelection));
+    menu.addSeparator();
+    menu.addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_ShowProperties));
+    menu.exec(pWidget->mapToGlobal(point));
+}
+
+void UIVisoHostBrowser::prepareMainMenu(QMenu *pMenu)
+{
+    AssertReturnVoid(pMenu);
+    QMenu *pSubMenu = new QMenu(QApplication::translate("UIVisoCreatorWidget", "Host Browser"), pMenu);
+    pMenu->addMenu(pSubMenu);
+    AssertReturnVoid(pSubMenu);
+    m_pSubMenu = pSubMenu;
+
+    pSubMenu->addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_GoUp));
+
+    pSubMenu->addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_GoHome));
+    pSubMenu->addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_Refresh));
+    pSubMenu->addSeparator();
+    pSubMenu->addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_SelectAll));
+    pSubMenu->addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_InvertSelection));
+    pSubMenu->addSeparator();
+    pSubMenu->addAction(m_pActionPool->action(UIActionIndex_M_FileManager_S_Host_ShowProperties));
+}
+
+
+void UIVisoHostBrowser::sltRetranslateUI()
+{
+    UIFileManagerHostTable::sltRetranslateUI();
+    if (m_pSubMenu)
+        m_pSubMenu->setTitle(QApplication::translate("UIVisoCreatorWidget", "VISO Browser"));
+}
+
+
+/*********************************************************************************************************************************
+*   UIVisoSettingWidget implementation.                                                                                          *
+*********************************************************************************************************************************/
+
+UIVisoSettingWidget::UIVisoSettingWidget(QWidget *pParent)
+    : UIPaneContainer(pParent)
+    , m_pVisoNameLabel(0)
+    , m_pCustomOptionsLabel(0)
+    , m_pVisoNameLineEdit(0)
+    , m_pCustomOptionsLineEdit(0)
+    , m_pShowHiddenObjectsCheckBox(0)
+    , m_pVisoOptionsGridLayout(0)
+{
+    prepare();
+    prepareConnections();
+}
+
+void UIVisoSettingWidget::prepare()
+{
+    QWidget *pVisoOptionsContainerWidget = new QWidget;
+    AssertReturnVoid(pVisoOptionsContainerWidget);
+    m_pVisoOptionsGridLayout = new QGridLayout(pVisoOptionsContainerWidget);
+    AssertReturnVoid(m_pVisoOptionsGridLayout);
+    //pVisoOptionsGridLayout->setSpacing(0);
+    //pVisoOptionsGridLayout->setContentsMargins(0, 0, 0, 0);
+
+    insertTab(0, pVisoOptionsContainerWidget);
+
+    /* Name edit and and label: */
+    m_pVisoNameLabel = new QILabel(QApplication::translate("UIVisoCreatorWidget", "VISO Name:"));
+    m_pVisoNameLineEdit = new QILineEdit;
+    int iRow = 0;
+    AssertReturnVoid(m_pVisoNameLabel);
+    AssertReturnVoid(m_pVisoNameLineEdit);
+    m_pVisoNameLabel->setBuddy(m_pVisoNameLineEdit);
+    m_pVisoNameLabel->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+
+    m_pVisoOptionsGridLayout->addWidget(m_pVisoNameLabel, iRow, 0, 1, 1, Qt::AlignTop);
+    m_pVisoOptionsGridLayout->addWidget(m_pVisoNameLineEdit, iRow, 1, 1, 1, Qt::AlignTop);
+    m_pVisoOptionsGridLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum), iRow, 2, 1, 3);
+
+    /* Custom Viso options stuff: */
+    m_pCustomOptionsLabel = new QILabel(QApplication::translate("UIVisoCreatorWidget", "Custom VISO options:"));
+    m_pCustomOptionsLineEdit = new QILineEdit;
+    ++iRow;
+    AssertReturnVoid(m_pCustomOptionsLabel);
+    AssertReturnVoid(m_pCustomOptionsLineEdit);
+    m_pCustomOptionsLabel->setBuddy(m_pCustomOptionsLineEdit);
+
+    m_pCustomOptionsLabel->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+    m_pVisoOptionsGridLayout->addWidget(m_pCustomOptionsLabel, iRow, 0, 1, 1, Qt::AlignTop);
+    m_pVisoOptionsGridLayout->addWidget(m_pCustomOptionsLineEdit, iRow, 1, 1, 1, Qt::AlignTop);
+    m_pVisoOptionsGridLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum), iRow, 2, 1, 3);
+
+    ++iRow;
+    m_pVisoOptionsGridLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding), iRow, 0, 1, 2);
+    QWidget *pDialogSettingsContainerWidget = new QWidget;
+    AssertReturnVoid(pDialogSettingsContainerWidget);
+    QGridLayout *pDialogSettingsContainerLayout = new QGridLayout(pDialogSettingsContainerWidget);
+    AssertReturnVoid(pDialogSettingsContainerLayout);
+
+    insertTab(1, pDialogSettingsContainerWidget);
+
+    iRow = 0;
+    QHBoxLayout *pShowHiddenObjectsLayout = new QHBoxLayout;
+    m_pShowHiddenObjectsCheckBox = new QCheckBox;
+    pShowHiddenObjectsLayout->addWidget(m_pShowHiddenObjectsCheckBox);
+    pShowHiddenObjectsLayout->addStretch(1);
+    pDialogSettingsContainerLayout->addLayout(pShowHiddenObjectsLayout, iRow, 0, 1, 2, Qt::AlignTop);
+
+    ++iRow;
+    pDialogSettingsContainerLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Minimum, QSizePolicy::Expanding), iRow, 0, 1, 2);
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIVisoSettingWidget::sltRetranslateUI);
+}
+
+void UIVisoSettingWidget::sltRetranslateUI()
+{
+    int iLabelWidth = 0;
+    if (m_pVisoNameLabel)
+    {
+        m_pVisoNameLabel->setText(QApplication::translate("UIVisoCreatorWidget", "VISO Name:"));
+        iLabelWidth = m_pVisoNameLabel->width();
+    }
+    if (m_pCustomOptionsLabel)
+    {
+        m_pCustomOptionsLabel->setText(QApplication::translate("UIVisoCreatorWidget", "Custom VISO options:"));
+        iLabelWidth = qMax(iLabelWidth, m_pCustomOptionsLabel->width());
+    }
+
+    if (m_pVisoNameLineEdit)
+        m_pVisoNameLineEdit->setToolTip(QApplication::translate("UIVisoCreatorWidget", "Holds the name of the VISO medium."));
+    if (m_pCustomOptionsLineEdit)
+        m_pCustomOptionsLineEdit->setToolTip(QApplication::translate("UIVisoCreatorWidget", "The list of custom options delimited with ';'."));
+    if (m_pShowHiddenObjectsCheckBox)
+    {
+        m_pShowHiddenObjectsCheckBox->setToolTip(QApplication::translate("UIVisoCreatorWidget", "When checked, "
+                                                                         "multiple hidden objects are shown in the file browser"));
+        m_pShowHiddenObjectsCheckBox->setText(QApplication::translate("UIVisoCreatorWidget", "Show Hidden Objects"));
+    }
+    setTabText(1, QApplication::translate("UIVisoCreatorWidget", "Dialog Settings"));
+    setTabText(0, QApplication::translate("UIVisoCreatorWidget", "VISO Options"));
+}
+
+void UIVisoSettingWidget::prepareConnections()
+{
+    if (m_pVisoNameLineEdit)
+        connect(m_pVisoNameLineEdit, &QILineEdit::textChanged, this, &UIVisoSettingWidget::sigSettingsChanged);
+    if (m_pCustomOptionsLineEdit)
+        connect(m_pCustomOptionsLineEdit, &QILineEdit::textChanged, this, &UIVisoSettingWidget::sigSettingsChanged);
+    if (m_pShowHiddenObjectsCheckBox)
+        connect(m_pShowHiddenObjectsCheckBox, &QCheckBox::toggled, this, &UIVisoSettingWidget::sigSettingsChanged);
+}
+
+void UIVisoSettingWidget::setVisoName(const QString &strName)
+{
+    if (m_pVisoNameLineEdit)
+        m_pVisoNameLineEdit->setText(strName);
+}
+
+void UIVisoSettingWidget::setSettings(const UIVisoCreatorWidget::Settings &settings)
+{
+    if (m_pVisoNameLineEdit)
+        m_pVisoNameLineEdit->setText(settings.m_strVisoName);
+    if (m_pCustomOptionsLineEdit)
+        m_pCustomOptionsLineEdit->setText(settings.m_customOptions.join(";"));
+    if (m_pShowHiddenObjectsCheckBox)
+        m_pShowHiddenObjectsCheckBox->setChecked(settings.m_fShowHiddenObjects);
+}
+
+UIVisoCreatorWidget::Settings UIVisoSettingWidget::settings() const
+{
+    UIVisoCreatorWidget::Settings settings;
+    if (m_pVisoNameLineEdit)
+        settings.m_strVisoName = m_pVisoNameLineEdit->text();
+    if (m_pCustomOptionsLineEdit)
+        settings.m_customOptions = m_pCustomOptionsLineEdit->text().split(";");
+    if (m_pShowHiddenObjectsCheckBox)
+        settings.m_fShowHiddenObjects = m_pShowHiddenObjectsCheckBox->isChecked();
+    return settings;
+}
 
 
 /*********************************************************************************************************************************
@@ -60,33 +308,33 @@
 *********************************************************************************************************************************/
 
 UIVisoCreatorWidget::UIVisoCreatorWidget(UIActionPool *pActionPool, QWidget *pParent,
-                                         bool fShowToolBar,const QString& strMachineName /* = QString() */)
-    : QIWithRetranslateUI<QWidget>(pParent)
-    , m_pActionConfiguration(0)
-    , m_pActionOptions(0)
+                                         bool fShowToolBar, const QString& strVisoFilePath, const QString& strMachineName)
+    : QWidget(pParent)
+    , m_pActionPreferences(0)
     , m_pAddAction(0)
-    , m_pRemoveAction(0)
-    , m_pCreateNewDirectoryAction(0)
-    , m_pRenameAction(0)
-    , m_pResetAction(0)
+    , m_pOpenAction(0)
+    , m_pSaveAsAction(0)
+    , m_pImportISOAction(0)
+    , m_pRemoveISOAction(0)
     , m_pMainLayout(0)
-    , m_pHostBrowser(0)
     , m_pVISOContentBrowser(0)
+    , m_pHostFileBrowser(0)
     , m_pToolBar(0)
     , m_pVerticalToolBar(0)
     , m_pMainMenu(0)
-    , m_strMachineName(strMachineName)
-    , m_pCreatorOptionsPanel(0)
-    , m_pConfigurationPanel(0)
     , m_pActionPool(pActionPool)
     , m_fShowToolBar(fShowToolBar)
+    , m_pSettingsWidget(0)
+    , m_pBrowserContainerWidget(0)
+    , m_strVisoFilePath(strVisoFilePath)
+    , m_fShowSettingsDialog(false)
 {
-    m_visoOptions.m_strVisoName = !strMachineName.isEmpty() ? strMachineName : "ad-hoc";
+    m_settings.m_strVisoName = !strMachineName.isEmpty() ? strMachineName : "ad-hoc";
     prepareWidgets();
     populateMenuMainToolbar();
     prepareConnections();
-    manageEscapeShortCut();
-    retranslateUi();
+    if (m_pActionPreferences)
+        sltSettingsActionToggled(m_pActionPreferences->isChecked());
 }
 
 QStringList UIVisoCreatorWidget::entryList() const
@@ -96,28 +344,57 @@ QStringList UIVisoCreatorWidget::entryList() const
     return m_pVISOContentBrowser->entryList();
 }
 
+QString UIVisoCreatorWidget::importedISOPath() const
+{
+    if (!m_pVISOContentBrowser)
+        return QString();
+    return m_pVISOContentBrowser->importedISOPath();
+}
+
 const QString &UIVisoCreatorWidget::visoName() const
 {
-    return m_visoOptions.m_strVisoName;
+    return m_settings.m_strVisoName;
+}
+
+void UIVisoCreatorWidget::setVisoName(const QString& strName)
+{
+    if (m_settings.m_strVisoName == strName)
+        return;
+    m_settings.m_strVisoName = strName;
+    emit sigVisoNameChanged(m_settings.m_strVisoName);
+    if (m_pSettingsWidget)
+    {
+        m_pSettingsWidget->blockSignals(true);
+        m_pSettingsWidget->setVisoName(strName);
+        m_pSettingsWidget->blockSignals(false);
+    }
+}
+
+void UIVisoCreatorWidget::setVisoFilePath(const QString& strPath)
+{
+    if (m_strVisoFilePath == strPath)
+        return;
+    m_strVisoFilePath = strPath;
+    emit sigVisoFilePathChanged(m_strVisoFilePath);
 }
 
 const QStringList &UIVisoCreatorWidget::customOptions() const
 {
-    return m_visoOptions.m_customOptions;
+    return m_settings.m_customOptions;
 }
 
 QString UIVisoCreatorWidget::currentPath() const
 {
-    if (!m_pHostBrowser)
+    if (!m_pHostFileBrowser)
         return QString();
-    return m_pHostBrowser->currentPath();
+    return m_pHostFileBrowser->currentDirectoryPath();
 }
 
-void UIVisoCreatorWidget::setCurrentPath(const QString &strPath)
+void UIVisoCreatorWidget::setCurrentPath(const QString &/*strPath*/)
 {
-    if (!m_pHostBrowser)
+    if (!m_pHostFileBrowser)
         return;
-    m_pHostBrowser->setCurrentPath(strPath);
+    //m_pHostFileBrowser->goIntoDirectory(const QStringList &pathTrail);
 }
 
 QMenu *UIVisoCreatorWidget::menu() const
@@ -125,115 +402,115 @@ QMenu *UIVisoCreatorWidget::menu() const
     return m_pMainMenu;
 }
 
-void UIVisoCreatorWidget::retranslateUi()
+void UIVisoCreatorWidget::sltAddObjectsToViso()
 {
-    if (m_pHostBrowser)
-        m_pHostBrowser->setTitle(tr("Host File System"));
-    if (m_pVISOContentBrowser)
-        m_pVISOContentBrowser->setTitle(tr("VISO Content"));
+    AssertPtrReturnVoid(m_pHostFileBrowser);
+    AssertPtrReturnVoid(m_pVISOContentBrowser);
+    m_pVISOContentBrowser->addObjectsToViso(m_pHostFileBrowser->selectedItemPathList());
 }
 
-void UIVisoCreatorWidget::sltHandleAddObjectsToViso(QStringList pathList)
+void UIVisoCreatorWidget::sltSettingsActionToggled(bool fChecked)
 {
-    if (m_pVISOContentBrowser)
-        m_pVISOContentBrowser->addObjectsToViso(pathList);
+    toggleSettingsWidget(fChecked);
 }
 
-void UIVisoCreatorWidget::sltPanelActionToggled(bool fChecked)
+void UIVisoCreatorWidget::sltHostBrowserTableSelectionChanged(bool fHasSelection)
 {
-    QAction *pSenderAction = qobject_cast<QAction*>(sender());
-    if (!pSenderAction)
-        return;
-    UIDialogPanel* pPanel = 0;
-    /* Look for the sender() within the m_panelActionMap's values: */
-    for (QMap<UIDialogPanel*, QAction*>::const_iterator iterator = m_panelActionMap.begin();
-        iterator != m_panelActionMap.end(); ++iterator)
-    {
-        if (iterator.value() == pSenderAction)
-            pPanel = iterator.key();
-    }
-    if (!pPanel)
-        return;
-    if (fChecked)
-        showPanel(pPanel);
-    else
-        hidePanel(pPanel);
-}
-
-void UIVisoCreatorWidget::sltHandleVisoNameChanged(const QString &strVisoName)
-{
-    if (m_visoOptions.m_strVisoName == strVisoName)
-        return;
-    m_visoOptions.m_strVisoName = strVisoName;
-    if(m_pVISOContentBrowser)
-        m_pVISOContentBrowser->setVisoName(m_visoOptions.m_strVisoName);
-    emit sigVisoNameChanged(strVisoName);
-}
-
-void UIVisoCreatorWidget::sltHandleCustomVisoOptionsChanged(const QStringList &customVisoOptions)
-{
-    if (m_visoOptions.m_customOptions == customVisoOptions)
-        return;
-    m_visoOptions.m_customOptions = customVisoOptions;
-}
-
-void UIVisoCreatorWidget::sltHandleShowHiddenObjectsChange(bool fShow)
-{
-    if (m_browserOptions.m_fShowHiddenObjects == fShow)
-        return;
-    m_browserOptions.m_fShowHiddenObjects = fShow;
-    m_pHostBrowser->showHideHiddenObjects(fShow);
-}
-
-void UIVisoCreatorWidget::sltHandleHidePanel(UIDialogPanel *pPanel)
-{
-    hidePanel(pPanel);
-}
-
-void UIVisoCreatorWidget::sltHandleBrowserTreeViewVisibilityChanged(bool fVisible)
-{
-    Q_UNUSED(fVisible);
-    manageEscapeShortCut();
-}
-
-void UIVisoCreatorWidget::sltHandleHostBrowserTableSelectionChanged(bool fIsSelectionEmpty)
-{
+    AssertPtrReturnVoid(m_pHostFileBrowser);
+    QStringList pathList = m_pHostFileBrowser->selectedItemPathList();
     if (m_pAddAction)
-        m_pAddAction->setEnabled(!fIsSelectionEmpty);
+        m_pAddAction->setEnabled(fHasSelection);
+    if (m_pImportISOAction)
+        m_pImportISOAction->setEnabled(!findISOFiles(pathList).isEmpty());
 }
 
-void UIVisoCreatorWidget::sltHandleContentBrowserTableSelectionChanged(bool fIsSelectionEmpty)
+void UIVisoCreatorWidget::sltContentBrowserTableSelectionChanged(bool fIsSelectionEmpty)
 {
-    if (m_pRemoveAction)
-        m_pRemoveAction->setEnabled(!fIsSelectionEmpty);
+    Q_UNUSED(fIsSelectionEmpty);
 }
 
-void UIVisoCreatorWidget::sltHandleShowContextMenu(const QWidget *pContextMenuRequester, const QPoint &point)
+void UIVisoCreatorWidget::sltOpenAction()
 {
-    if (!pContextMenuRequester)
+    QWidget *pActive =  QApplication::activeWindow();
+    AssertReturnVoid(pActive);
+    if (m_pVISOContentBrowser->hasContent())
+        if (!msgCenter().confirmVisoDiscard(pActive))
+            return;
+    QString strFileName =  QIFileDialog::getOpenFileName(UIMediumTools::defaultFolderPathForType(UIMediumDeviceType_DVD),
+                                                         "VISO files (*.viso)", pActive, UIVisoCreatorWidget::tr("Select a VISO file to load"));
+    if (!strFileName.isEmpty() && m_pVISOContentBrowser)
+        m_pVISOContentBrowser->parseVisoFileContent(strFileName);
+}
+
+void UIVisoCreatorWidget::sltSaveAsAction()
+{
+    QWidget *pActive =  QApplication::activeWindow();
+    AssertReturnVoid(pActive);
+
+    QString strSaveFileName = QIFileDialog::getSaveFileName(visoFileFullPath(), "VISO files (*.viso)", pActive,
+                                                            UIVisoCreatorWidget::tr("Select a file to save VISO content to"));
+    if (visoFileFullPath() != strSaveFileName)
+    {
+        QFileInfo fileInfo(strSaveFileName);
+        setVisoFilePath(fileInfo.absolutePath());
+        setVisoName(fileInfo.completeBaseName());
+    }
+    emit sigSave();
+}
+
+void UIVisoCreatorWidget::sltISOImportAction()
+{
+    if (!m_pHostFileBrowser || !m_pVISOContentBrowser)
         return;
+    QStringList selectedObjectPaths = m_pHostFileBrowser->selectedItemPathList();
+    if (selectedObjectPaths.isEmpty())
+        return;
+    /* We can import only a ISO file into VISO:*/
+    if (m_pVISOContentBrowser->importedISOPath().isEmpty())
+        m_pVISOContentBrowser->importISOContentToViso(selectedObjectPaths[0]);
+}
 
-    QMenu menu;
+void UIVisoCreatorWidget::sltISORemoveAction()
+{
+    if (!m_pVISOContentBrowser)
+        return;
+    m_pVISOContentBrowser->removeISOContentFromViso();
+}
 
-    if (sender() == m_pHostBrowser)
+void UIVisoCreatorWidget::sltISOContentImportedOrRemoved(bool fImported)
+{
+    if (m_pImportISOAction)
+        m_pImportISOAction->setEnabled(!fImported);
+    if (m_pRemoveISOAction)
+        m_pRemoveISOAction->setEnabled(fImported);
+}
+
+void UIVisoCreatorWidget::sltSettingsChanged()
+{
+    AssertReturnVoid(m_pSettingsWidget);
+    const Settings &settings = m_pSettingsWidget->settings();
+    setVisoName(settings.m_strVisoName);
+    if (m_settings.m_customOptions != settings.m_customOptions)
+        m_settings.m_customOptions = settings.m_customOptions;
+    if (m_settings.m_fShowHiddenObjects != settings.m_fShowHiddenObjects)
     {
-        menu.addAction(m_pAddAction);
+        m_settings.m_fShowHiddenObjects = settings.m_fShowHiddenObjects;
+        // if (m_pHostFileBrowser)
+        //     m_pHostFileBrowser->showHideHiddenObjects(settings.m_fShowHiddenObjects);
     }
-    else if (sender() == m_pVISOContentBrowser)
-    {
-        menu.addAction(m_pRemoveAction);
-        menu.addAction(m_pCreateNewDirectoryAction);
-        menu.addAction(m_pResetAction);
-    }
+}
 
-    menu.exec(pContextMenuRequester->mapToGlobal(point));
+void UIVisoCreatorWidget::sltPanelContainerHidden()
+{
+    m_pActionPool->action(UIActionIndex_M_VISOCreator_TogglePreferences)->blockSignals(true);
+    m_pActionPool->action(UIActionIndex_M_VISOCreator_TogglePreferences)->setChecked(false);
+    m_pActionPool->action(UIActionIndex_M_VISOCreator_TogglePreferences)->blockSignals(false);
 }
 
 void UIVisoCreatorWidget::prepareWidgets()
 {
-    m_pMainLayout = new QGridLayout(this);
-    if (!m_pMainLayout)
-        return;
+    m_pMainLayout = new QVBoxLayout(this);
+    AssertPtrReturnVoid(m_pMainLayout);
 
     /* Configure layout: */
     const int iL = qApp->style()->pixelMetric(QStyle::PM_LayoutLeftMargin) / 2;
@@ -248,124 +525,100 @@ void UIVisoCreatorWidget::prepareWidgets()
 #endif
 
     if (m_pActionPool && m_pActionPool->action(UIActionIndex_M_VISOCreator))
+    {
         m_pMainMenu = m_pActionPool->action(UIActionIndex_M_VISOCreator)->menu();
-    int iLayoutRow = 0;
+        m_pMainMenu->clear();
+    }
+
     if (m_fShowToolBar)
     {
         m_pToolBar = new QIToolBar(parentWidget());
-        if (m_pToolBar)
-        {
-            /* Configure toolbar: */
-            const int iIconMetric = (int)(QApplication::style()->pixelMetric(QStyle::PM_LargeIconSize));
-            m_pToolBar->setIconSize(QSize(iIconMetric, iIconMetric));
-            m_pToolBar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
-            m_pMainLayout->addWidget(m_pToolBar, iLayoutRow++, 0, 1, 5);
-        }
+        AssertPtrReturnVoid(m_pToolBar);
+        /* Configure toolbar: */
+        const int iIconMetric = (int)(QApplication::style()->pixelMetric(QStyle::PM_LargeIconSize));
+        m_pToolBar->setIconSize(QSize(iIconMetric, iIconMetric));
+        m_pToolBar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
     }
 
-    m_pHostBrowser = new UIVisoHostBrowser;
-    if (m_pHostBrowser)
-    {
-        m_pMainLayout->addWidget(m_pHostBrowser, iLayoutRow, 0, 1, 4);
-        //m_pMainLayout->setColumnStretch(m_pMainLayout->indexOf(m_pHostBrowser), 2);
-    }
+    m_pBrowserContainerWidget = new QWidget;
+    AssertPtrReturnVoid(m_pBrowserContainerWidget);
+
+    QGridLayout *pContainerLayout = new QGridLayout(m_pBrowserContainerWidget);
+    AssertPtrReturnVoid(pContainerLayout);
+    pContainerLayout->setContentsMargins(0, 0, 0, 0);
+
+    m_pHostFileBrowser = new UIVisoHostBrowser(m_pActionPool);
+    AssertPtrReturnVoid(m_pHostFileBrowser);
+    pContainerLayout->addWidget(m_pHostFileBrowser, 0, 0, 1, 4);
+    m_pHostFileBrowser->setDragDropMode(QAbstractItemView::DragOnly);
 
     prepareVerticalToolBar();
-    if (m_pVerticalToolBar)
-    {
-        m_pMainLayout->addWidget(m_pVerticalToolBar, iLayoutRow, 4, 1, 1);
-        //m_pMainLayout->setColumnStretch(m_pMainLayout->indexOf(m_pVerticalToolBar), 1);
-    }
+    AssertPtrReturnVoid(m_pVerticalToolBar);
+    pContainerLayout->addWidget(m_pVerticalToolBar, 0, 4, 1, 1);
 
-    m_pVISOContentBrowser = new UIVisoContentBrowser;
-    if (m_pVISOContentBrowser)
-    {
-        m_pMainLayout->addWidget(m_pVISOContentBrowser, iLayoutRow, 5, 1, 4);
-        m_pVISOContentBrowser->setVisoName(m_visoOptions.m_strVisoName);
-        //m_pMainLayout->setColumnStretch(m_pMainLayout->indexOf(m_pVISOContentBrowser), 2);
-    }
-    ++iLayoutRow;
-    m_pConfigurationPanel = new UIVisoConfigurationPanel(this);
-    if (m_pConfigurationPanel)
-    {
-        m_pMainLayout->addWidget(m_pConfigurationPanel, iLayoutRow++, 0, 1, 9);
-        m_pConfigurationPanel->hide();
-        m_pConfigurationPanel->setVisoName(m_visoOptions.m_strVisoName);
-        m_pConfigurationPanel->setVisoCustomOptions(m_visoOptions.m_customOptions);
-    }
+    m_pVISOContentBrowser = new UIVisoContentBrowser(m_pActionPool);
+    AssertPtrReturnVoid(m_pVISOContentBrowser);
+    pContainerLayout->addWidget(m_pVISOContentBrowser, 0, 5, 1, 4);
+    /* Set content browsers sort case sensitivity wrt. host's file system: */
+    m_pVISOContentBrowser->setSortCaseSensitive(!m_pHostFileBrowser->isWindowsFileSystem());
 
-    m_pCreatorOptionsPanel = new UIVisoCreatorOptionsPanel;
-    if (m_pCreatorOptionsPanel)
-    {
-        m_pCreatorOptionsPanel->setShowHiddenbjects(m_browserOptions.m_fShowHiddenObjects);
-        m_pMainLayout->addWidget(m_pCreatorOptionsPanel, iLayoutRow++, 0, 1, 9);
-        m_pCreatorOptionsPanel->hide();
-    }
+    m_pSettingsWidget = new UIVisoSettingWidget(this);
+
+    AssertPtrReturnVoid(m_pSettingsWidget);
+
+    if (m_pToolBar)
+        m_pMainLayout->addWidget(m_pToolBar);
+    m_pMainLayout->addWidget(m_pBrowserContainerWidget);
+    m_pMainLayout->addWidget(m_pSettingsWidget);
+    m_pBrowserContainerWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
+    m_pSettingsWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Maximum);
+    m_pSettingsWidget->hide();
 }
 
 void UIVisoCreatorWidget::prepareConnections()
 {
-    if (m_pHostBrowser)
+    if (m_pHostFileBrowser)
     {
-        connect(m_pHostBrowser, &UIVisoHostBrowser::sigAddObjectsToViso,
-                this, &UIVisoCreatorWidget::sltHandleAddObjectsToViso);
-        connect(m_pHostBrowser, &UIVisoHostBrowser::sigTreeViewVisibilityChanged,
-                this, &UIVisoCreatorWidget::sltHandleBrowserTreeViewVisibilityChanged);
-        connect(m_pHostBrowser, &UIVisoHostBrowser::sigTableSelectionChanged,
-                this, &UIVisoCreatorWidget::sltHandleHostBrowserTableSelectionChanged);
-        connect(m_pHostBrowser, &UIVisoHostBrowser::sigCreateFileTableViewContextMenu,
-                this, &UIVisoCreatorWidget::sltHandleShowContextMenu);
+        connect(m_pHostFileBrowser, &UIVisoHostBrowser::sigAltDoubleClick,
+                this, &UIVisoCreatorWidget::sltAddObjectsToViso);
+        connect(m_pHostFileBrowser, &UIVisoHostBrowser::sigSelectionChanged,
+                this, &UIVisoCreatorWidget::sltHostBrowserTableSelectionChanged);
     }
 
     if (m_pVISOContentBrowser)
     {
         connect(m_pVISOContentBrowser, &UIVisoContentBrowser::sigTableSelectionChanged,
-                this, &UIVisoCreatorWidget::sltHandleContentBrowserTableSelectionChanged);
-        connect(m_pVISOContentBrowser, &UIVisoContentBrowser::sigCreateFileTableViewContextMenu,
-                this, &UIVisoCreatorWidget::sltHandleShowContextMenu);
+                this, &UIVisoCreatorWidget::sltContentBrowserTableSelectionChanged);
+        connect(m_pVISOContentBrowser, &UIVisoContentBrowser::sigISOContentImportedOrRemoved,
+                this, &UIVisoCreatorWidget::sltISOContentImportedOrRemoved);
     }
 
-    if (m_pActionConfiguration)
-        connect(m_pActionConfiguration, &QAction::triggered, this, &UIVisoCreatorWidget::sltPanelActionToggled);
-    if (m_pActionOptions)
-        connect(m_pActionOptions, &QAction::triggered, this, &UIVisoCreatorWidget::sltPanelActionToggled);
+    if (m_pActionPreferences)
+        connect(m_pActionPreferences, &QAction::triggered, this, &UIVisoCreatorWidget::sltSettingsActionToggled);
 
-    if (m_pConfigurationPanel)
+    if (m_pSettingsWidget)
     {
-        connect(m_pConfigurationPanel, &UIVisoConfigurationPanel::sigVisoNameChanged,
-                this, &UIVisoCreatorWidget::sltHandleVisoNameChanged);
-        connect(m_pConfigurationPanel, &UIVisoConfigurationPanel::sigCustomVisoOptionsChanged,
-                this, &UIVisoCreatorWidget::sltHandleCustomVisoOptionsChanged);
-        connect(m_pConfigurationPanel, &UIVisoConfigurationPanel::sigHidePanel,
-                this, &UIVisoCreatorWidget::sltHandleHidePanel);
-        m_panelActionMap.insert(m_pConfigurationPanel, m_pActionConfiguration);
-    }
-
-    if (m_pCreatorOptionsPanel)
-    {
-        connect(m_pCreatorOptionsPanel, &UIVisoCreatorOptionsPanel::sigShowHiddenObjects,
-                this, &UIVisoCreatorWidget::sltHandleShowHiddenObjectsChange);
-        connect(m_pCreatorOptionsPanel, &UIVisoCreatorOptionsPanel::sigHidePanel,
-                this, &UIVisoCreatorWidget::sltHandleHidePanel);
-        m_panelActionMap.insert(m_pCreatorOptionsPanel, m_pActionOptions);
+        connect(m_pSettingsWidget, &UIVisoSettingWidget::sigSettingsChanged,
+                this, &UIVisoCreatorWidget::sltSettingsChanged);
+        connect(m_pSettingsWidget, &UIVisoSettingWidget::sigHidden,
+                this, &UIVisoCreatorWidget::sltPanelContainerHidden);
     }
 
     if (m_pAddAction)
         connect(m_pAddAction, &QAction::triggered,
-                m_pHostBrowser, &UIVisoHostBrowser::sltHandleAddAction);
-
-    if (m_pCreateNewDirectoryAction)
-        connect(m_pCreateNewDirectoryAction, &QAction::triggered,
-                m_pVISOContentBrowser, &UIVisoContentBrowser::sltHandleCreateNewDirectory);
-    if (m_pRemoveAction)
-        connect(m_pRemoveAction, &QAction::triggered,
-                m_pVISOContentBrowser, &UIVisoContentBrowser::sltHandleRemoveItems);
-    if (m_pResetAction)
-        connect(m_pResetAction, &QAction::triggered,
-                m_pVISOContentBrowser, &UIVisoContentBrowser::sltHandleResetAction);
-    if (m_pRenameAction)
-        connect(m_pRenameAction, &QAction::triggered,
-                m_pVISOContentBrowser,&UIVisoContentBrowser::sltHandleItemRenameAction);
+                this, &UIVisoCreatorWidget::sltAddObjectsToViso);
+    if (m_pOpenAction)
+        connect(m_pOpenAction, &QAction::triggered,
+                this, &UIVisoCreatorWidget::sltOpenAction);
+    if (m_pSaveAsAction)
+        connect(m_pSaveAsAction, &QAction::triggered,
+                this, &UIVisoCreatorWidget::sltSaveAsAction);
+    if (m_pImportISOAction)
+        connect(m_pImportISOAction, &QAction::triggered,
+                this, &UIVisoCreatorWidget::sltISOImportAction);
+    if (m_pRemoveISOAction)
+        connect(m_pRemoveISOAction, &QAction::triggered,
+                this, &UIVisoCreatorWidget::sltISORemoveAction);
 }
 
 void UIVisoCreatorWidget::prepareActions()
@@ -373,18 +626,20 @@ void UIVisoCreatorWidget::prepareActions()
     if (!m_pActionPool)
         return;
 
-    m_pActionConfiguration = m_pActionPool->action(UIActionIndex_M_VISOCreator_ToggleConfigPanel);
-    m_pActionOptions = m_pActionPool->action(UIActionIndex_M_VISOCreator_ToggleOptionsPanel);
+    m_pActionPreferences = m_pActionPool->action(UIActionIndex_M_VISOCreator_TogglePreferences);
 
     m_pAddAction = m_pActionPool->action(UIActionIndex_M_VISOCreator_Add);
-    if (m_pAddAction && m_pHostBrowser)
-        m_pAddAction->setEnabled(m_pHostBrowser->tableViewHasSelection());
-    m_pRemoveAction = m_pActionPool->action(UIActionIndex_M_VISOCreator_Remove);
-    if (m_pRemoveAction && m_pVISOContentBrowser)
-        m_pRemoveAction->setEnabled(m_pVISOContentBrowser->tableViewHasSelection());
-    m_pCreateNewDirectoryAction = m_pActionPool->action(UIActionIndex_M_VISOCreator_CreateNewDirectory);
-    m_pRenameAction = m_pActionPool->action(UIActionIndex_M_VISOCreator_Rename);
-    m_pResetAction = m_pActionPool->action(UIActionIndex_M_VISOCreator_Reset);
+    if (m_pAddAction && m_pHostFileBrowser)
+        m_pAddAction->setEnabled(m_pHostFileBrowser->hasSelection());
+    m_pOpenAction = m_pActionPool->action(UIActionIndex_M_VISOCreator_Open);
+    m_pSaveAsAction = m_pActionPool->action(UIActionIndex_M_VISOCreator_SaveAs);
+    m_pImportISOAction = m_pActionPool->action(UIActionIndex_M_VISOCreator_ImportISO);
+    if (m_pImportISOAction)
+        m_pImportISOAction->setEnabled(false);
+
+    m_pRemoveISOAction = m_pActionPool->action(UIActionIndex_M_VISOCreator_RemoveISO);
+    if (m_pRemoveISOAction)
+        m_pRemoveISOAction->setEnabled(false);
 }
 
 void UIVisoCreatorWidget::populateMenuMainToolbar()
@@ -392,226 +647,102 @@ void UIVisoCreatorWidget::populateMenuMainToolbar()
     prepareActions();
     if (m_pToolBar)
     {
-        if (m_pActionConfiguration)
-            m_pToolBar->addAction(m_pActionConfiguration);
-        if (m_pActionOptions)
-            m_pToolBar->addAction(m_pActionOptions);
+        if (m_pActionPreferences)
+            m_pToolBar->addAction(m_pActionPreferences);
     }
     if (m_pMainMenu)
     {
-        m_pMainMenu->addAction(m_pActionConfiguration);
-        m_pMainMenu->addAction(m_pActionOptions);
+        m_pMainMenu->addAction(m_pActionPreferences);
         m_pMainMenu->addSeparator();
-        m_pMainMenu->addAction(m_pAddAction);
-        m_pMainMenu->addAction(m_pRemoveAction);
-        m_pMainMenu->addAction(m_pCreateNewDirectoryAction);
-        m_pMainMenu->addAction(m_pResetAction);
+        if (m_pOpenAction)
+            m_pMainMenu->addAction(m_pOpenAction);
+        if (m_pSaveAsAction)
+            m_pMainMenu->addAction(m_pSaveAsAction);
+        if (m_pAddAction)
+            m_pMainMenu->addAction(m_pAddAction);
+        if (m_pImportISOAction)
+            m_pMainMenu->addAction(m_pImportISOAction);
+        if (m_pRemoveISOAction)
+            m_pMainMenu->addAction(m_pRemoveISOAction);
     }
+
+    if (m_pHostFileBrowser)
+        m_pHostFileBrowser->prepareMainMenu(m_pMainMenu);
+
+    if (m_pVISOContentBrowser)
+        m_pVISOContentBrowser->prepareMainMenu(m_pMainMenu);
 
     if (m_pVerticalToolBar)
     {
         /* Add to dummy QWidget to toolbar to center the action icons vertically: */
         QWidget *topSpacerWidget = new QWidget(this);
+        AssertPtrReturnVoid(topSpacerWidget);
         topSpacerWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
         topSpacerWidget->setVisible(true);
         QWidget *bottomSpacerWidget = new QWidget(this);
+        AssertPtrReturnVoid(bottomSpacerWidget);
         bottomSpacerWidget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Expanding);
         bottomSpacerWidget->setVisible(true);
 
         m_pVerticalToolBar->addWidget(topSpacerWidget);
         if (m_pAddAction)
             m_pVerticalToolBar->addAction(m_pAddAction);
-        if (m_pRemoveAction)
-            m_pVerticalToolBar->addAction(m_pRemoveAction);
-        if (m_pCreateNewDirectoryAction)
-            m_pVerticalToolBar->addAction(m_pCreateNewDirectoryAction);
-        if (m_pResetAction)
-            m_pVerticalToolBar->addAction(m_pResetAction);
+        if (m_pImportISOAction)
+            m_pVerticalToolBar->addAction(m_pImportISOAction);
+        if (m_pRemoveISOAction)
+            m_pVerticalToolBar->addAction(m_pRemoveISOAction);
 
         m_pVerticalToolBar->addWidget(bottomSpacerWidget);
     }
 }
 
-void UIVisoCreatorWidget::hidePanel(UIDialogPanel* panel)
+void UIVisoCreatorWidget::toggleSettingsWidget(bool fShown)
 {
-    if (panel && panel->isVisible())
-        panel->setVisible(false);
-    QMap<UIDialogPanel*, QAction*>::iterator iterator = m_panelActionMap.find(panel);
-    if (iterator != m_panelActionMap.end())
+    AssertReturnVoid(m_pSettingsWidget);
+    m_pSettingsWidget->setVisible(fShown);
+    m_fShowSettingsDialog = fShown;
+
+    if (fShown)
     {
-        if (iterator.value() && iterator.value()->isChecked())
-            iterator.value()->setChecked(false);
+        m_pSettingsWidget->blockSignals(true);
+        m_pSettingsWidget->setSettings(m_settings);
+        m_pSettingsWidget->blockSignals(false);
     }
-    m_visiblePanelsList.removeAll(panel);
-    manageEscapeShortCut();
+
+    emit sigSettingDialogToggle(fShown);
 }
 
-void UIVisoCreatorWidget::showPanel(UIDialogPanel* panel)
+QStringList UIVisoCreatorWidget::findISOFiles(const QStringList &pathList) const
 {
-    if (panel && panel->isHidden())
-        panel->setVisible(true);
-    QMap<UIDialogPanel*, QAction*>::iterator iterator = m_panelActionMap.find(panel);
-    if (iterator != m_panelActionMap.end())
+    QStringList isoList;
+    foreach (const QString &strPath, pathList)
     {
-        if (!iterator.value()->isChecked())
-            iterator.value()->setChecked(true);
+        if (QFileInfo(strPath).suffix().compare("iso", Qt::CaseInsensitive) == 0)
+            isoList << strPath;
     }
-    if (!m_visiblePanelsList.contains(panel))
-        m_visiblePanelsList.push_back(panel);
-    manageEscapeShortCut();
-}
-
-void UIVisoCreatorWidget::manageEscapeShortCut()
-{
-    /* Take the escape key from m_pButtonBox and from the panels in case treeview(s) in
-       host and/or content browser is open. We use the escape key to close those first: */
-    if ((m_pHostBrowser && m_pHostBrowser->isTreeViewVisible()) ||
-        (m_pVISOContentBrowser && m_pVISOContentBrowser->isTreeViewVisible()))
-    {
-        emit sigSetCancelButtonShortCut(QKeySequence());
-        for (int i = 0; i < m_visiblePanelsList.size(); ++i)
-            m_visiblePanelsList[i]->setCloseButtonShortCut(QKeySequence());
-        return;
-    }
-
-    /* if there are no visible panels then assign esc. key to cancel button of the button box: */
-    if (m_visiblePanelsList.isEmpty())
-    {
-        emit sigSetCancelButtonShortCut(QKeySequence(Qt::Key_Escape));
-        return;
-    }
-    emit sigSetCancelButtonShortCut(QKeySequence());
-
-    /* Just loop thru the visible panel list and set the esc key to the
-       panel which made visible latest */
-    for (int i = 0; i < m_visiblePanelsList.size() - 1; ++i)
-        m_visiblePanelsList[i]->setCloseButtonShortCut(QKeySequence());
-    m_visiblePanelsList.back()->setCloseButtonShortCut(QKeySequence(Qt::Key_Escape));
+    return isoList;
 }
 
 void UIVisoCreatorWidget::prepareVerticalToolBar()
 {
     m_pVerticalToolBar = new QIToolBar;
-    if (!m_pVerticalToolBar)
-        return;
+    AssertPtrReturnVoid(m_pVerticalToolBar);
 
     m_pVerticalToolBar->setOrientation(Qt::Vertical);
 }
 
-/* static */
-int UIVisoCreatorWidget::visoWriteQuotedString(PRTSTREAM pStrmDst, const char *pszPrefix,
-                                               QString const &rStr, const char *pszPostFix)
+QString UIVisoCreatorWidget::visoFileFullPath() const
 {
-    QByteArray const utf8Array   = rStr.toUtf8();
-    const char      *apszArgv[2] = { utf8Array.constData(), NULL };
-    char            *pszQuoted;
-    int vrc = RTGetOptArgvToString(&pszQuoted, apszArgv, RTGETOPTARGV_CNV_QUOTE_BOURNE_SH);
-    if (RT_SUCCESS(vrc))
-    {
-        if (pszPrefix)
-            vrc = RTStrmPutStr(pStrmDst, pszPrefix);
-        if (RT_SUCCESS(vrc))
-        {
-            vrc = RTStrmPutStr(pStrmDst, pszQuoted);
-            if (pszPostFix && RT_SUCCESS(vrc))
-                vrc = RTStrmPutStr(pStrmDst, pszPostFix);
-        }
-        RTStrFree(pszQuoted);
-    }
-    return vrc;
-}
-
-/* static */
-QUuid UIVisoCreatorWidget::createViso(UIActionPool *pActionPool, QWidget *pParent,
-                                      const QString &strDefaultFolder /* = QString() */,
-                                      const QString &strMachineName /* = QString() */)
-{
-    QWidget *pDialogParent = windowManager().realParentWindow(pParent);
-    UIVisoCreatorDialog *pVisoCreator = new UIVisoCreatorDialog(pActionPool, pDialogParent, strMachineName);
-
-    if (!pVisoCreator)
-        return QUuid();
-    windowManager().registerNewParent(pVisoCreator, pDialogParent);
-    pVisoCreator->setCurrentPath(gEDataManager->visoCreatorRecentFolder());
-
-    if (pVisoCreator->exec(false /* not application modal */))
-    {
-        QStringList files = pVisoCreator->entryList();
-        QString strVisoName = pVisoCreator->visoName();
-        if (strVisoName.isEmpty())
-            strVisoName = strMachineName;
-
-        if (files.empty() || files[0].isEmpty())
-        {
-            delete pVisoCreator;
-            return QUuid();
-        }
-
-        gEDataManager->setVISOCreatorRecentFolder(pVisoCreator->currentPath());
-
-        /* Produce the VISO. */
-        char szVisoPath[RTPATH_MAX];
-        QString strFileName = QString("%1%2").arg(strVisoName).arg(".viso");
-
-        QString strVisoSaveFolder(strDefaultFolder);
-        if (strVisoSaveFolder.isEmpty())
-            strVisoSaveFolder = uiCommon().defaultFolderPathForType(UIMediumDeviceType_DVD);
-
-        int vrc = RTPathJoin(szVisoPath, sizeof(szVisoPath), strVisoSaveFolder.toUtf8().constData(), strFileName.toUtf8().constData());
-        if (RT_SUCCESS(vrc))
-        {
-            PRTSTREAM pStrmViso;
-            vrc = RTStrmOpen(szVisoPath, "w", &pStrmViso);
-            if (RT_SUCCESS(vrc))
-            {
-                RTUUID Uuid;
-                vrc = RTUuidCreate(&Uuid);
-                if (RT_SUCCESS(vrc))
-                {
-                    RTStrmPrintf(pStrmViso, "--iprt-iso-maker-file-marker-bourne-sh %RTuuid\n", &Uuid);
-                    vrc = UIVisoCreatorWidget::visoWriteQuotedString(pStrmViso, "--volume-id=", strVisoName, "\n");
-
-                    for (int iFile = 0; iFile < files.size() && RT_SUCCESS(vrc); iFile++)
-                        vrc = UIVisoCreatorWidget::visoWriteQuotedString(pStrmViso, NULL, files[iFile], "\n");
-
-                    /* Append custom options if any to the file: */
-                    const QStringList &customOptions = pVisoCreator->customOptions();
-                    foreach (QString strLine, customOptions)
-                        RTStrmPrintf(pStrmViso, "%s\n", strLine.toUtf8().constData());
-
-                    RTStrmFlush(pStrmViso);
-                    if (RT_SUCCESS(vrc))
-                        vrc = RTStrmError(pStrmViso);
-                }
-
-                RTStrmClose(pStrmViso);
-            }
-        }
-
-        /* Done. */
-        if (RT_SUCCESS(vrc))
-        {
-            delete pVisoCreator;
-            return uiCommon().openMedium(UIMediumDeviceType_DVD, QString(szVisoPath), pParent);
-        }
-        /** @todo error message. */
-        else
-        {
-            delete pVisoCreator;
-            return QUuid();
-        }
-    }
-    delete pVisoCreator;
-    return QUuid();
+    return QString("%1/%2%3").arg(m_strVisoFilePath).arg(visoName()).arg(".viso");
 }
 
 
 /*********************************************************************************************************************************
 *   UIVisoCreatorDialog implementation.                                                                                          *
 *********************************************************************************************************************************/
-UIVisoCreatorDialog::UIVisoCreatorDialog(UIActionPool *pActionPool, QWidget *pParent, const QString& strMachineName /* = QString() */)
-    : QIWithRetranslateUI<QIWithRestorableGeometry<QIMainDialog> >(pParent)
-    , m_strMachineName(strMachineName)
+UIVisoCreatorDialog::UIVisoCreatorDialog(UIActionPool *pActionPool, QWidget *pParent,
+                                         const QString& strVisoFilePath, const QString& strMachineName /* = QString() */)
+    : QIWithRestorableGeometry<QIMainDialog>(pParent)
     , m_pVisoCreatorWidget(0)
     , m_pButtonBox(0)
     , m_pActionPool(pActionPool)
@@ -620,9 +751,9 @@ UIVisoCreatorDialog::UIVisoCreatorDialog(UIActionPool *pActionPool, QWidget *pPa
     /* Make sure that the base class does not close this dialog upon pressing escape.
        we manage escape key here with special casing: */
     setRejectByEscape(false);
-    prepareWidgets();
-    prepareConnections();
+    prepareWidgets(strVisoFilePath, strMachineName);
     loadSettings();
+    setObjectName("VISO dialog");
 }
 
 QStringList  UIVisoCreatorDialog::entryList() const
@@ -636,6 +767,13 @@ QString UIVisoCreatorDialog::visoName() const
 {
     if (m_pVisoCreatorWidget)
         return m_pVisoCreatorWidget->visoName();
+    return QString();
+}
+
+QString UIVisoCreatorDialog::importedISOPath() const
+{
+    if (m_pVisoCreatorWidget)
+        return m_pVisoCreatorWidget->importedISOPath();
     return QString();
 }
 
@@ -659,61 +797,66 @@ void    UIVisoCreatorDialog::setCurrentPath(const QString &strPath)
         m_pVisoCreatorWidget->setCurrentPath(strPath);
 }
 
-void UIVisoCreatorDialog::prepareWidgets()
+void UIVisoCreatorDialog::prepareWidgets(const QString& strVisoFilePath, const QString &strMachineName)
 {
     QWidget *pCentralWidget = new QWidget;
+    AssertPtrReturnVoid(pCentralWidget);
     setCentralWidget(pCentralWidget);
     QVBoxLayout *pMainLayout = new QVBoxLayout;
+    AssertPtrReturnVoid(pMainLayout);
     pCentralWidget->setLayout(pMainLayout);
 
 
-    m_pVisoCreatorWidget = new UIVisoCreatorWidget(m_pActionPool, this, true /* show toolbar */, m_strMachineName);
-    if (m_pVisoCreatorWidget)
+    m_pVisoCreatorWidget = new UIVisoCreatorWidget(m_pActionPool, this, true /* show toolbar */, strVisoFilePath, strMachineName);
+    AssertPtrReturnVoid(m_pVisoCreatorWidget);
+    if (m_pVisoCreatorWidget->menu())
     {
         menuBar()->addMenu(m_pVisoCreatorWidget->menu());
         pMainLayout->addWidget(m_pVisoCreatorWidget);
         connect(m_pVisoCreatorWidget, &UIVisoCreatorWidget::sigSetCancelButtonShortCut,
                 this, &UIVisoCreatorDialog::sltSetCancelButtonShortCut);
         connect(m_pVisoCreatorWidget, &UIVisoCreatorWidget::sigVisoNameChanged,
-                this, &UIVisoCreatorDialog::sltsigVisoNameChanged);
+                this, &UIVisoCreatorDialog::sltVisoNameChanged);
+        connect(m_pVisoCreatorWidget, &UIVisoCreatorWidget::sigVisoFilePathChanged,
+                this, &UIVisoCreatorDialog::sltVisoFilePathChanged);
+        connect(m_pVisoCreatorWidget, &UIVisoCreatorWidget::sigSave,
+                this, &UIVisoCreatorDialog::sltSave);
     }
 
     m_pButtonBox = new QIDialogButtonBox;
-    if (m_pButtonBox)
-    {
-        m_pButtonBox->setDoNotPickDefaultButton(true);
-        m_pButtonBox->setStandardButtons(QDialogButtonBox::Help | QDialogButtonBox::Cancel | QDialogButtonBox::Ok);
-        m_pButtonBox->button(QDialogButtonBox::Cancel)->setShortcut(QKeySequence(Qt::Key_Escape));
-        pMainLayout->addWidget(m_pButtonBox);
+    AssertPtrReturnVoid(m_pButtonBox);
+    m_pButtonBox->setDoNotPickDefaultButton(true);
+    m_pButtonBox->setStandardButtons(QDialogButtonBox::Help | QDialogButtonBox::Cancel | QDialogButtonBox::Ok);
+    m_pButtonBox->button(QDialogButtonBox::Cancel)->setShortcut(QKeySequence(Qt::Key_Escape));
+    pMainLayout->addWidget(m_pButtonBox);
 
-        connect(m_pButtonBox->button(QIDialogButtonBox::Help), &QPushButton::pressed,
-                &(msgCenter()), &UIMessageCenter::sltHandleHelpRequest);
-        m_pButtonBox->button(QDialogButtonBox::Help)->setShortcut(QKeySequence::HelpContents);
+    connect(m_pButtonBox->button(QIDialogButtonBox::Help), &QPushButton::pressed,
+            m_pButtonBox, &QIDialogButtonBox::sltHandleHelpRequest);
 
-        uiCommon().setHelpKeyword(m_pButtonBox->button(QIDialogButtonBox::Help), "create-optical-disk-image");
-    }
-    retranslateUi();
+    m_pButtonBox->button(QDialogButtonBox::Help)->setShortcut(UIShortcutPool::standardSequence(QKeySequence::HelpContents));
+
+    connect(m_pButtonBox, &QIDialogButtonBox::rejected, this, &UIVisoCreatorDialog::close);
+    connect(m_pButtonBox, &QIDialogButtonBox::accepted, this, &UIVisoCreatorDialog::accept);
+
+
+    uiCommon().setHelpKeyword(m_pButtonBox->button(QIDialogButtonBox::Help), "create-optical-disk-image");
+
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIVisoCreatorDialog::sltRetranslateUI);
 }
 
-void UIVisoCreatorDialog::prepareConnections()
-{
-    if (m_pButtonBox)
-    {
-        connect(m_pButtonBox, &QIDialogButtonBox::rejected, this, &UIVisoCreatorDialog::close);
-        connect(m_pButtonBox, &QIDialogButtonBox::accepted, this, &UIVisoCreatorDialog::accept);
-    }
-}
-
-void UIVisoCreatorDialog::retranslateUi()
+void UIVisoCreatorDialog::sltRetranslateUI()
 {
     updateWindowTitle();
     if (m_pButtonBox && m_pButtonBox->button(QDialogButtonBox::Ok))
     {
-        m_pButtonBox->button(QDialogButtonBox::Ok)->setText(UIVisoCreatorWidget::tr("C&reate"));
+        m_pButtonBox->button(QDialogButtonBox::Ok)->setText(UIVisoCreatorWidget::tr("&Save and Close"));
         m_pButtonBox->button(QDialogButtonBox::Ok)->setToolTip(UIVisoCreatorWidget::tr("Creates VISO file with the selected content"));
     }
     if (m_pButtonBox && m_pButtonBox->button(QDialogButtonBox::Help))
         m_pButtonBox->button(QDialogButtonBox::Help)->setToolTip(UIVisoCreatorWidget::tr("Opens the help browser and navigates to the related section"));
+    updateWindowTitle();
 }
 
 bool UIVisoCreatorDialog::event(QEvent *pEvent)
@@ -734,7 +877,7 @@ bool UIVisoCreatorDialog::event(QEvent *pEvent)
             saveDialogGeometry();
         }
     }
-    return QIWithRetranslateUI<QIWithRestorableGeometry<QIMainDialog> >::event(pEvent);
+    return QIWithRestorableGeometry<QIMainDialog>::event(pEvent);
 }
 
 void UIVisoCreatorDialog::sltSetCancelButtonShortCut(QKeySequence keySequence)
@@ -743,10 +886,21 @@ void UIVisoCreatorDialog::sltSetCancelButtonShortCut(QKeySequence keySequence)
         m_pButtonBox->button(QDialogButtonBox::Cancel)->setShortcut(keySequence);
 }
 
-void UIVisoCreatorDialog::sltsigVisoNameChanged(const QString &strName)
+void UIVisoCreatorDialog::sltVisoNameChanged(const QString &strName)
 {
     Q_UNUSED(strName);
     updateWindowTitle();
+}
+
+void UIVisoCreatorDialog::sltVisoFilePathChanged(const QString &strPath)
+{
+    Q_UNUSED(strPath);
+    updateWindowTitle();
+}
+
+void UIVisoCreatorDialog::sltSave()
+{
+    saveVISOFile();
 }
 
 void UIVisoCreatorDialog::loadSettings()
@@ -775,5 +929,73 @@ void UIVisoCreatorDialog::saveDialogGeometry()
 
 void UIVisoCreatorDialog::updateWindowTitle()
 {
-    setWindowTitle(QString("%1 - %2.%3").arg(UIVisoCreatorWidget::tr("VISO Creator")).arg(visoName()).arg("viso"));
+    setWindowTitle(QString("%1 - %2").arg(UIVisoCreatorWidget::tr("VISO Creator")).arg(visoFileFullPath()));
 }
+
+QString UIVisoCreatorDialog::visoFileFullPath() const
+{
+    if (!m_pVisoCreatorWidget)
+        return QString();
+    return m_pVisoCreatorWidget->visoFileFullPath();
+}
+
+/* static */
+QUuid UIVisoCreatorDialog::createViso(UIActionPool *pActionPool, QWidget *pParent,
+                                      const QString &strDefaultFolder /* = QString() */,
+                                      const QString &strMachineName /* = QString() */)
+{
+    QString strVisoSaveFolder(strDefaultFolder);
+    if (strVisoSaveFolder.isEmpty())
+        strVisoSaveFolder = UIMediumTools::defaultFolderPathForType(UIMediumDeviceType_DVD);
+
+    QWidget *pDialogParent = windowManager().realParentWindow(pParent);
+    UIVisoCreatorDialog *pVisoCreator = new UIVisoCreatorDialog(pActionPool, pDialogParent,
+                                                                strVisoSaveFolder, strMachineName);
+    AssertPtrReturn(pVisoCreator, QUuid());
+
+    windowManager().registerNewParent(pVisoCreator, pDialogParent);
+    pVisoCreator->setCurrentPath(gEDataManager->visoCreatorRecentFolder());
+    QUuid mediumId;
+    if (pVisoCreator->exec(false /* not application modal */))
+    {
+        if (pVisoCreator->saveVISOFile())
+        {
+            QString strFilePath = pVisoCreator->visoFileFullPath();
+            gEDataManager->setVISOCreatorRecentFolder(pVisoCreator->currentPath());
+            mediumId = UIMediumTools::openMedium(UIMediumDeviceType_DVD, strFilePath);
+        }
+    }
+
+    delete pVisoCreator;
+    return mediumId;
+}
+
+bool UIVisoCreatorDialog::saveVISOFile()
+{
+    QStringList VisoEntryList = entryList();
+    QString strImportedISOPath = importedISOPath();
+    if ((VisoEntryList.empty() || VisoEntryList[0].isEmpty()) && strImportedISOPath.isEmpty())
+        return false;
+
+    QFile file(visoFileFullPath());
+    if (file.open(QFile::WriteOnly | QFile::Truncate))
+    {
+        QString strVisoName = visoName();
+
+        QTextStream stream(&file);
+        stream << QString("%1 %2").arg("--iprt-iso-maker-file-marker-bourne-sh").arg(QUuid::createUuid().toString()) << "\n";
+        stream<< "--volume-id=" << strVisoName << "\n";
+        if (!strImportedISOPath.isEmpty())
+            stream << "--import-iso=" << strImportedISOPath << "\n";
+        stream << VisoEntryList.join("\n");
+        if (!customOptions().isEmpty())
+        {
+            stream << "\n";
+            stream << customOptions().join("\n");
+        }
+        file.close();
+    }
+    return true;
+}
+
+#include "UIVisoCreator.moc"

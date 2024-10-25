@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -30,6 +30,9 @@
 #ifndef RT_WITHOUT_PRAGMA_ONCE
 # pragma once
 #endif
+
+/* COM includes: */
+#include "KChipsetType.h"
 
 /* GUI includes: */
 #include "UISettingsPage.h"
@@ -109,11 +112,19 @@ protected:
     /** Defines TAB order for passed @a pWidget. */
     virtual void setOrderAfter(QWidget *pWidget) RT_OVERRIDE;
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
+    /** Handles filter change. */
+    virtual void handleFilterChange() RT_OVERRIDE;
 
     /** Performs final page polishing. */
     virtual void polishPage() RT_OVERRIDE;
+
+private slots:
+
+    /** Handles translation event. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
+
+    /** Handles firmware type change. */
+    void sltHandleFirmwareTypeChanged();
 
 private:
 
@@ -141,6 +152,9 @@ private:
     /** Saves existing 'Acceleration' data from cache. */
     bool saveAccelerationData();
 
+    /** Updates minimum layout hint. */
+    void updateMinimumLayoutHint();
+
     /** Holds whether the USB is enabled. */
     bool m_fIsUSBEnabled;
 
@@ -153,7 +167,7 @@ private:
         QITabWidget *m_pTabWidget;
 
         /** Holds the 'Motherboard' tab instance. */
-        QWidget                     *m_pTabMotherboard;
+        UIEditor                    *m_pTabMotherboard;
         /** Holds the base memory editor instance. */
         UIBaseMemoryEditor          *m_pEditorBaseMemory;
         /** Holds the boot order editor instance. */
@@ -168,7 +182,7 @@ private:
         UIMotherboardFeaturesEditor *m_pEditorMotherboardFeatures;
 
         /** Holds the 'Processor' tab instance. */
-        QWidget                   *m_pTabProcessor;
+        UIEditor                  *m_pTabProcessor;
         /** Holds the VCPU editor instance. */
         UIVirtualCPUEditor        *m_pEditorVCPU;
         /** Holds the exec cap editor instance. */
@@ -177,7 +191,7 @@ private:
         UIProcessorFeaturesEditor *m_pEditorProcessorFeatures;
 
         /** Holds the 'Acceleration' tab instance. */
-        QWidget                      *m_pTabAcceleration;
+        UIEditor                     *m_pTabAcceleration;
         /** Holds the paravirtualization provider editor instance. */
         UIParavirtProviderEditor     *m_pEditorParavirtProvider;
         /** Holds the acceleration features editor instance. */

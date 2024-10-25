@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,6 +26,7 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QDir>
 #include <QHeaderView>
 #include <QPushButton>
@@ -41,9 +42,13 @@
 #include "UIExtension.h"
 #include "UIExtensionPackManager.h"
 #include "UIExtraDataManager.h"
+#include "UIGlobalSession.h"
 #include "UIIconPool.h"
 #include "UIMessageCenter.h"
 #include "UINotificationCenter.h"
+#include "UIShortcutPool.h"
+#include "UITranslationEventListener.h"
+#include "UIVirtualBoxEventHandler.h"
 
 /* COM includes: */
 #include "CExtPack.h"
@@ -180,7 +185,7 @@ QString UIItemExtensionPack::defaultText() const
 
 UIExtensionPackManagerWidget::UIExtensionPackManagerWidget(EmbedTo enmEmbedding, UIActionPool *pActionPool,
                                                bool fShowToolbar /* = true */, QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : QWidget(pParent)
     , m_enmEmbedding(enmEmbedding)
     , m_pActionPool(pActionPool)
     , m_fShowToolbar(fShowToolbar)
@@ -195,19 +200,8 @@ QMenu *UIExtensionPackManagerWidget::menu() const
     return m_pActionPool->action(UIActionIndexMN_M_ExtensionWindow)->menu();
 }
 
-void UIExtensionPackManagerWidget::retranslateUi()
+void UIExtensionPackManagerWidget::sltRetranslateUI()
 {
-    /* Adjust toolbar: */
-#ifdef VBOX_WS_MAC
-    // WORKAROUND:
-    // There is a bug in Qt Cocoa which result in showing a "more arrow" when
-    // the necessary size of the toolbar is increased. Also for some languages
-    // the with doesn't match if the text increase. So manually adjust the size
-    // after changing the text.
-    if (m_pToolBar)
-        m_pToolBar->updateLayout();
-#endif
-
     /* Translate tree-widget: */
     m_pTreeWidget->setHeaderLabels(   QStringList()
                                    << UIExtensionPackManager::tr("Active", "ext pack")
@@ -258,7 +252,7 @@ void UIExtensionPackManagerWidget::sltUninstallExtensionPack()
         if (msgCenter().confirmRemoveExtensionPack(strSelectedPackageName, this))
         {
             /* Get VirtualBox for further activities: */
-            const CVirtualBox comVBox = uiCommon().virtualBox();
+            const CVirtualBox comVBox = gpGlobalSession->virtualBox();
             /* Get Extension Pack Manager for further activities: */
             CExtPackManager comEPManager = comVBox.GetExtensionPackManager();
 
@@ -282,8 +276,6 @@ void UIExtensionPackManagerWidget::sltUninstallExtensionPack()
                         new UINotificationProgressExtensionPackUninstall(comEPManager,
                                                                          strSelectedPackageName,
                                                                          displayInfo);
-                connect(pNotification, &UINotificationProgressExtensionPackUninstall::sigExtensionPackUninstalled,
-                        this, &UIExtensionPackManagerWidget::sltHandleExtensionPackUninstalled);
                 gpNotificationCenter->append(pNotification);
             }
         }
@@ -351,7 +343,7 @@ void UIExtensionPackManagerWidget::sltHandleExtensionPackInstalled(const QString
         delete items.first();
 
     /* [Re]insert it into the tree: */
-    CExtPackManager comManager = uiCommon().virtualBox().GetExtensionPackManager();
+    CExtPackManager comManager = gpGlobalSession->virtualBox().GetExtensionPackManager();
     const CExtPack comExtensionPack = comManager.Find(strName);
     if (comExtensionPack.isOk())
     {
@@ -382,15 +374,17 @@ void UIExtensionPackManagerWidget::prepare()
 {
     /* Prepare self: */
     uiCommon().setHelpKeyword(this, "ext-pack-manager");
-    connect(&uiCommon(), &UICommon::sigExtensionPackInstalled,
-            this, &UIExtensionPackManagerWidget::sltHandleExtensionPackInstalled);
 
     /* Prepare stuff: */
     prepareActions();
     prepareWidgets();
+    prepareConnections();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIExtensionPackManagerWidget::sltRetranslateUI);
 
     /* Load extension packs: */
     loadExtensionPacks();
@@ -486,6 +480,15 @@ void UIExtensionPackManagerWidget::prepareTreeWidget()
     }
 }
 
+void UIExtensionPackManagerWidget::prepareConnections()
+{
+    /* Listen for extension pack being [un]installed: */
+    connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigExtensionPackInstalled,
+            this, &UIExtensionPackManagerWidget::sltHandleExtensionPackInstalled);
+    connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigExtensionPackUninstalled,
+            this, &UIExtensionPackManagerWidget::sltHandleExtensionPackUninstalled);
+}
+
 void UIExtensionPackManagerWidget::loadExtensionPacks()
 {
     /* Check tree-widget: */
@@ -496,7 +499,7 @@ void UIExtensionPackManagerWidget::loadExtensionPacks()
     m_pTreeWidget->clear();
 
     /* Get VirtualBox for further activities: */
-    const CVirtualBox comVBox = uiCommon().virtualBox();
+    const CVirtualBox comVBox = gpGlobalSession->virtualBox();
     /* Get Extension Pack Manager for further activities: */
     const CExtPackManager comEPManager = comVBox.GetExtensionPackManager();
 
@@ -597,12 +600,12 @@ void UIExtensionPackManagerFactory::create(QIManagerDialog *&pDialog, QWidget *p
 *********************************************************************************************************************************/
 
 UIExtensionPackManager::UIExtensionPackManager(QWidget *pCenterWidget, UIActionPool *pActionPool)
-    : QIWithRetranslateUI<QIManagerDialog>(pCenterWidget)
+    : QIManagerDialog(pCenterWidget)
     , m_pActionPool(pActionPool)
 {
 }
 
-void UIExtensionPackManager::retranslateUi()
+void UIExtensionPackManager::sltRetranslateUI()
 {
     /* Translate window title: */
     setWindowTitle(tr("Extension Pack Manager"));
@@ -613,7 +616,7 @@ void UIExtensionPackManager::retranslateUi()
     button(ButtonType_Close)->setStatusTip(tr("Close dialog"));
     button(ButtonType_Help)->setStatusTip(tr("Show dialog help"));
     button(ButtonType_Close)->setShortcut(Qt::Key_Escape);
-    button(ButtonType_Help)->setShortcut(QKeySequence::HelpContents);
+    button(ButtonType_Help)->setShortcut(UIShortcutPool::standardSequence(QKeySequence::HelpContents));
     button(ButtonType_Close)->setToolTip(tr("Close Window (%1)").arg(button(ButtonType_Close)->shortcut().toString()));
     button(ButtonType_Help)->setToolTip(tr("Show Help (%1)").arg(button(ButtonType_Help)->shortcut().toString()));
 }
@@ -646,7 +649,10 @@ void UIExtensionPackManager::configureCentralWidget()
 void UIExtensionPackManager::finalize()
 {
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIExtensionPackManager::sltRetranslateUI);
 }
 
 UIExtensionPackManagerWidget *UIExtensionPackManager::widget()

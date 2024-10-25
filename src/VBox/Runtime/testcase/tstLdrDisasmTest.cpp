@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -45,7 +45,6 @@
 *   Header Files                                                                                                                 *
 *********************************************************************************************************************************/
 #include <VBox/dis.h>
-#include <VBox/disopcode.h>
 #include <VBox/sup.h>
 #include <iprt/string.h>
 
@@ -92,12 +91,12 @@ static const uint8_t g_ab32BitCode[] =
 /**
  * @callback_method_impl{FNDISREADBYTES}
  */
-static DECLCALLBACK(int) DisasmTest1ReadCode(PDISCPUSTATE pDis, uint8_t offInstr, uint8_t cbMinRead, uint8_t cbMaxRead)
+static DECLCALLBACK(int) DisasmTest1ReadCode(PDISSTATE pDis, uint8_t offInstr, uint8_t cbMinRead, uint8_t cbMaxRead)
 {
     size_t cb = cbMaxRead;
     if (cb + pDis->uInstrAddr + offInstr > sizeof(g_ab32BitCode))
         cb = cbMinRead;
-    memcpy(&pDis->abInstr[offInstr], &g_ab32BitCode[pDis->uInstrAddr + offInstr], cb);
+    memcpy(&pDis->Instr.ab[offInstr], &g_ab32BitCode[pDis->uInstrAddr + offInstr], cb);
     pDis->cbCachedInstr = offInstr + (uint8_t)cb;
     return VINF_SUCCESS;
 }
@@ -106,20 +105,20 @@ static DECLCALLBACK(int) DisasmTest1ReadCode(PDISCPUSTATE pDis, uint8_t offInstr
 /*
  * Use an inline function here just to test '__textcoal_nt' sections on darwin.
  */
-inline int MyDisasm(uintptr_t CodeIndex, PDISCPUSTATE pCpu, uint32_t *pcb)
+DECLINLINE(int) MyDisasm(uintptr_t CodeIndex, PDISSTATE pDis, uint32_t *pcb)
 {
     uint32_t cb;
-    int rc = DISInstrWithReader(CodeIndex, DISCPUMODE_32BIT, DisasmTest1ReadCode, 0, pCpu, &cb);
+    int rc = DISInstrWithReader(CodeIndex, DISCPUMODE_32BIT, DisasmTest1ReadCode, 0, pDis, &cb);
     *pcb = cb;
     MY_PRINTF(("DISCoreOneEx -> rc=%d cb=%d  Cpu: bOpCode=%#x pCurInstr=%p (42=%d)\n", \
-               rc, cb, pCpu->bOpCode, pCpu->pCurInstr, 42)); \
+               rc, cb, pDis->x86.bOpCode, pDis->pCurInstr, 42)); \
     return rc;
 }
 
 
 extern "C" DECLEXPORT(int) DisasmTest1(void)
 {
-    DISCPUSTATE Cpu;
+    DISSTATE  Dis;
     uintptr_t CodeIndex = 0;
     uint32_t cb;
     int rc;
@@ -139,14 +138,14 @@ extern "C" DECLEXPORT(int) DisasmTest1(void)
         return 0xc004;
 #endif
 
-    memset(&Cpu, 0, sizeof(Cpu));
+    memset(&Dis, 0, sizeof(Dis));
 
 #define DISAS_AND_CHECK(cbInstr, enmOp) \
         do { \
-            rc = MyDisasm(CodeIndex, &Cpu, &cb); \
+            rc = MyDisasm(CodeIndex, &Dis, &cb); \
             if (RT_FAILURE(rc)) \
                 return CodeIndex | 0xf000; \
-            if (Cpu.pCurInstr->uOpcode != (enmOp)) \
+            if (Dis.pCurInstr->uOpcode != (enmOp)) \
                 return CodeIndex| 0xe000; \
             if (cb != (cbInstr)) \
                 return CodeIndex | 0xd000; \

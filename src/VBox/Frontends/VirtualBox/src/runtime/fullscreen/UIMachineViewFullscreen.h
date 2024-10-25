@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -54,12 +54,12 @@ private slots:
 private:
 
     /* Event handlers: */
-    bool eventFilter(QObject *pWatched, QEvent *pEvent);
+    bool eventFilter(QObject *pWatched, QEvent *pEvent) RT_OVERRIDE;
 
     /* Prepare routines: */
-    void prepareCommon();
-    void prepareFilters();
-    void prepareConsoleConnections();
+    void prepareCommon() RT_OVERRIDE;
+    void prepareFilters() RT_OVERRIDE;
+    void prepareConsoleConnections() RT_OVERRIDE;
 
     /* Cleanup routines: */
     //void cleanupConsoleConnections() {}
@@ -72,11 +72,11 @@ private:
     virtual void setGuestAutoresizeEnabled(bool bEnabled) RT_OVERRIDE;
 
     /** Adjusts guest-screen size to correspond current <i>working area</i> size. */
-    void adjustGuestScreenSize();
+    void adjustGuestScreenSize() RT_OVERRIDE;
 
     /* Helpers: Geometry stuff: */
-    QRect workingArea() const;
-    QSize calculateMaxGuestSize() const;
+    QRect workingArea() const RT_OVERRIDE;
+    QSize calculateMaxGuestSize() const RT_OVERRIDE;
 
     /* Private variables: */
     bool m_fGuestAutoresizeEnabled : 1;

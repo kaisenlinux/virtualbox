@@ -7,7 +7,7 @@ Test Manager Core - Web Server Abstraction Base Class.
 
 __copyright__ = \
 """
-Copyright (C) 2012-2023 Oracle and/or its affiliates.
+Copyright (C) 2012-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -36,11 +36,11 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 
 # Standard python imports.
-import cgitb
+import cgitb;   # pylint: disable=deprecated-module ## @todo these will be retired in python 3.13!
 import codecs;
 import os
 import sys
@@ -602,8 +602,8 @@ class WebServerGlueBase(object):
         if self._fHtmlDebugOutput:
             fnWrite('<h2>%s</h2>\n'
                     '<table border="1"><tr><th>index</th><th>value</th></tr>\n' % (sName,));
-            for i, _ in enumerate(aoStuff):
-                fnWrite('  <tr><td>' + str(i) + '</td><td>' + webutils.escapeElem(str(aoStuff[i])) + '</td></tr>\n');
+            for i, oStuff in enumerate(aoStuff):
+                fnWrite('  <tr><td>' + str(i) + '</td><td>' + webutils.escapeElem(str(oStuff)) + '</td></tr>\n');
             fnWrite('</table>\n');
         else:
             for ch in sName[:-1]:

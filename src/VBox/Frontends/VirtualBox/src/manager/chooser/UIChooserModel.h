@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -39,7 +39,6 @@
 #include "UIExtraDataDefs.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CCloudMachine.h"
 #include "CMachine.h"
 
@@ -66,8 +65,8 @@ signals:
 
     /** @name Tool stuff.
       * @{ */
-        /** Notifies listeners about tool popup-menu request for certain @a enmClass and @a position. */
-        void sigToolMenuRequested(UIToolClass enmClass, const QPoint &position);
+        /** Notifies listeners about tool popup-menu request for certain @a position and optionally machine @a pItem. */
+        void sigToolMenuRequested(const QPoint &position, UIVirtualMachineItem *pItem);
     /** @} */
 
     /** @name Selection stuff.

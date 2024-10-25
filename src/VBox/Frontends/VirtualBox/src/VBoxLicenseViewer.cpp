@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,6 +26,7 @@
  */
 
 /* Qt includes: */
+#include <QEvent>
 #include <QFile>
 #include <QPushButton>
 #include <QScrollBar>
@@ -38,10 +39,10 @@
 #include "UIIconPool.h"
 #include "UIMessageCenter.h"
 #include "UINotificationCenter.h"
-
+#include "UITranslationEventListener.h"
 
 VBoxLicenseViewer::VBoxLicenseViewer(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI2<QDialog>(pParent)
+    : QDialog(pParent)
     , m_pLicenseBrowser(0)
     , m_pButtonAgree(0)
     , m_pButtonDisagree(0)
@@ -104,7 +105,9 @@ VBoxLicenseViewer::VBoxLicenseViewer(QWidget *pParent /* = 0 */)
     resize(600, 450);
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+        this, &VBoxLicenseViewer::sltRetranslateUI);
 }
 
 int VBoxLicenseViewer::showLicenseFromString(const QString &strLicenseText)
@@ -133,9 +136,12 @@ bool VBoxLicenseViewer::eventFilter(QObject *pObject, QEvent *pEvent)
     switch (pEvent->type())
     {
         case QEvent::Hide:
+        {
             if (pObject == m_pLicenseBrowser->verticalScrollBar())
                 /* Doesn't work on wm's like ion3 where the window starts maximized: isActiveWindow() */
                 sltUnlockButtons();
+            break;
+        }
         default:
             break;
     }
@@ -156,7 +162,7 @@ void VBoxLicenseViewer::showEvent(QShowEvent *pEvent)
     m_pButtonDisagree->setEnabled(fScrollBarHidden);
 }
 
-void VBoxLicenseViewer::retranslateUi()
+void VBoxLicenseViewer::sltRetranslateUI()
 {
     /* Translate dialog title: */
     setWindowTitle(tr("VirtualBox License"));
@@ -183,4 +189,3 @@ void VBoxLicenseViewer::sltUnlockButtons()
     m_pButtonAgree->setEnabled(true);
     m_pButtonDisagree->setEnabled(true);
 }
-

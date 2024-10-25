@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,11 +32,12 @@
 #endif
 
 /* Qt includes: */
+#include <QDialog>
 #include <QMap>
 #include <QPointer>
+#include <QSet>
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
 #include "UIExtraDataDefs.h"
 #include "UILibraryDefs.h"
 
@@ -54,7 +55,6 @@ enum WizardButtonType
 {
     WizardButtonType_Invalid,
     WizardButtonType_Help,
-    WizardButtonType_Expert,
     WizardButtonType_Back,
     WizardButtonType_Next,
     WizardButtonType_Cancel,
@@ -82,20 +82,23 @@ protected:
 #endif /* VBOX_WS_MAC */
 
 /** QDialog extension with advanced functionality emulating QWizard behavior. */
-class SHARED_LIBRARY_STUFF UINativeWizard : public QIWithRetranslateUI<QDialog>
+class SHARED_LIBRARY_STUFF UINativeWizard : public QDialog
 {
     Q_OBJECT;
+
+signals:
+
+    /** Notifies listeners about dialog should be closed. */
+    void sigClose(WizardType enmType);
 
 public:
 
     /** Constructs wizard passing @a pParent to the base-class.
       * @param  enmType         Brings the wizard type.
-      * @param  enmMode         Brings the wizard mode.
-      * @param  strHelpHashtag  Brings the wizard help hashtag. */
+      * @param  strHelpKeyword  Brings the wizard help keyword. */
     UINativeWizard(QWidget *pParent,
                    WizardType enmType,
-                   WizardMode enmMode = WizardMode_Auto,
-                   const QString &strHelpHashtag = QString());
+                   const QString &strHelpKeyword = QString());
     /** Destructs wizard. */
     virtual ~UINativeWizard() RT_OVERRIDE;
 
@@ -111,7 +114,10 @@ public slots:
 
     /** Executes wizard in window modal mode.
       * @note You shouldn't have to override it! */
-    virtual int exec() /* final */;
+    virtual int exec() RT_OVERRIDE RT_FINAL;
+    /** Shows wizard in non-mode.
+      * @note You shouldn't have to override it! */
+    virtual void show() /* final */;
 
 protected:
 
@@ -138,12 +144,19 @@ protected:
       *       pages via addPage declared above. */
     virtual void populatePages() = 0;
 
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
+    /** Handles key-press @a pEvent. */
+    virtual void keyPressEvent(QKeyEvent *pEvent) RT_OVERRIDE RT_FINAL;
+    /** Handles close @a pEvent. */
+    virtual void closeEvent(QCloseEvent *pEvent) RT_OVERRIDE RT_FINAL;
 
     /** Performs wizard-specific cleanup in case of wizard-mode change
       * such as folder deletion in New VM wizard etc. */
     virtual void cleanWizard() {}
+
+protected slots:
+
+    /** Handles translation event. */
+    virtual void sltRetranslateUI();
 
 private slots:
 
@@ -152,12 +165,13 @@ private slots:
     /** Handles page validity changes. */
     void sltCompleteChanged();
 
-    /** Toggles between basic and expert modes. */
-    void sltExpert();
     /** Switches to previous page. */
     void sltPrevious();
     /** Switches to next page. */
     void sltNext();
+
+    /** Handle help request*/
+    void sltHandleHelpRequest();
 
 private:
 
@@ -167,8 +181,6 @@ private:
     void cleanup();
     /** Inits all. */
     void init();
-    /** Deinits all. */
-    void deinit();
 
     /** Performs pages translation. */
     void retranslatePages();
@@ -190,14 +202,18 @@ private:
     WizardType  m_enmType;
     /** Holds the wizard mode. */
     WizardMode  m_enmMode;
-    /** Holds the wizard help hashtag. */
-    QString     m_strHelpHashtag;
+    /** Holds the wizard help keyword. */
+    QString     m_strHelpKeyword;
     /** Holds the pixmap name. */
     QString     m_strPixmapName;
     /** Holds the last entered page index. */
     int         m_iLastIndex;
     /** Holds the set of invisible pages. */
     QSet<int>   m_invisiblePages;
+    /** Holds whether user has requested to abort wizard. */
+    bool        m_fAborted;
+    /** Holds whether the dialod had emitted signal to be closed. */
+    bool        m_fClosed;
 
     /** Holds the pixmap label instance. */
     QLabel                               *m_pLabelPixmap;

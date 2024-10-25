@@ -20,7 +20,7 @@
  */
 
 /*
- * Copyright (C) 2020-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2020-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -76,6 +76,9 @@
 #include <iprt/string.h>
 #include <iprt/system.h>
 #include <iprt/tcp.h>
+
+#define LOG_GROUP RTLOGGROUP_HTTP
+#include <iprt/log.h>
 
 
 /*********************************************************************************************************************************
@@ -419,6 +422,7 @@ static void rtHttpServerReqFree(PRTHTTPSERVERREQ pReq)
     RTStrFree(pReq->pszUrl);
 
     RTHttpHeaderListDestroy(pReq->hHdrLst);
+    pReq->hHdrLst = NIL_RTHTTPHEADERLIST;
 
     rtHttpServerBodyDestroy(&pReq->Body);
 
@@ -469,6 +473,7 @@ RTR3DECL(void) RTHttpServerResponseDestroy(PRTHTTPSERVERRESP pResp)
     pResp->enmSts = RTHTTPSTATUS_INTERNAL_NOT_SET;
 
     RTHttpHeaderListDestroy(pResp->hHdrLst);
+    pResp->hHdrLst = NIL_RTHTTPHEADERLIST;
 
     rtHttpServerBodyDestroy(&pResp->Body);
 }
@@ -495,7 +500,8 @@ static void rtHttpServerLogProto(PRTHTTPSERVERCLIENT pClient, bool fWrite, const
 
     char **ppapszStrings;
     size_t cStrings;
-    int rc2 = RTStrSplit(pszData, strlen(pszData), RTHTTPSERVER_HTTP11_EOL_STR, &ppapszStrings, &cStrings);
+    int rc2 = RTStrSplit(pszData, strlen(pszData) + 1 /* Must include terminator */,
+                         RTHTTPSERVER_HTTP11_EOL_STR, &ppapszStrings, &cStrings);
     if (RT_SUCCESS(rc2))
     {
         for (size_t i = 0; i < cStrings; i++)
@@ -685,6 +691,7 @@ static RTHTTPSTATUS rtHttpServerRcToStatus(int rc)
         case VERR_FILE_NOT_FOUND:       return RTHTTPSTATUS_NOTFOUND;
         case VERR_IS_A_DIRECTORY:       return RTHTTPSTATUS_FORBIDDEN;
         case VERR_NOT_FOUND:            return RTHTTPSTATUS_NOTFOUND;
+        case VERR_INTERNAL_ERROR:       return RTHTTPSTATUS_INTERNALSERVERERROR;
         default:
             break;
     }
@@ -709,8 +716,6 @@ static DECLCALLBACK(int) rtHttpServerHandleGET(PRTHTTPSERVERCLIENT pClient, PRTH
 {
     LogFlowFuncEnter();
 
-    int rc = VINF_SUCCESS;
-
     /* If a low-level GET request handler is defined, call it and return. */
     RTHTTPSERVER_HANDLE_CALLBACK_VA_RET(pfnOnGetRequest, pReq);
 
@@ -719,106 +724,112 @@ static DECLCALLBACK(int) rtHttpServerHandleGET(PRTHTTPSERVERCLIENT pClient, PRTH
 
     char *pszMIMEHint = NULL;
 
+    RTHTTPSTATUS enmStsResponse = RTHTTPSTATUS_OK;
+
+    int rc = VINF_SUCCESS;
+
     RTHTTPSERVER_HANDLE_CALLBACK_VA(pfnQueryInfo, pReq, &fsObj, &pszMIMEHint);
     if (RT_FAILURE(rc))
-        return rc;
+         enmStsResponse = rtHttpServerRcToStatus(rc);
 
     void *pvHandle = NULL;
-    RTHTTPSERVER_HANDLE_CALLBACK_VA(pfnOpen, pReq, &pvHandle);
+    if (RT_SUCCESS(rc)) /* Only call open if querying information above succeeded. */
+        RTHTTPSERVER_HANDLE_CALLBACK_VA(pfnOpen, pReq, &pvHandle);
 
-    if (RT_SUCCESS(rc))
+    size_t cbBuf = _64K;
+    void  *pvBuf = RTMemAlloc(cbBuf);
+    AssertPtrReturn(pvBuf, VERR_NO_MEMORY);
+
+    for (;;)
     {
-        size_t cbBuf = _64K;
-        void  *pvBuf = RTMemAlloc(cbBuf);
-        AssertPtrReturn(pvBuf, VERR_NO_MEMORY);
+        RTHTTPHEADERLIST HdrLst;
+        rc = RTHttpHeaderListInit(&HdrLst);
+        AssertRCBreak(rc);
 
-        for (;;)
+        char szVal[16];
+
+        /* Note: For directories fsObj.cbObject contains the actual size (in bytes)
+         *       of the body data for the directory listing. */
+
+        ssize_t cch = RTStrPrintf2(szVal, sizeof(szVal), "%RU64", fsObj.cbObject);
+        AssertBreakStmt(cch, rc = VERR_BUFFER_OVERFLOW);
+        rc = RTHttpHeaderListAdd(HdrLst, "Content-Length", szVal, strlen(szVal), RTHTTPHEADERLISTADD_F_BACK);
+        AssertRCBreak(rc);
+
+        cch = RTStrPrintf2(szVal, sizeof(szVal), "identity");
+        AssertBreakStmt(cch, rc = VERR_BUFFER_OVERFLOW);
+        rc = RTHttpHeaderListAdd(HdrLst, "Content-Encoding", szVal, strlen(szVal), RTHTTPHEADERLISTADD_F_BACK);
+        AssertRCBreak(rc);
+
+        if (pszMIMEHint == NULL)
         {
-            RTHTTPHEADERLIST HdrLst;
-            rc = RTHttpHeaderListInit(&HdrLst);
-            AssertRCReturn(rc, rc);
+            const char *pszMIME = rtHttpServerGuessMIMEType(RTPathSuffix(pReq->pszUrl));
+            rc = RTHttpHeaderListAdd(HdrLst, "Content-Type", pszMIME, strlen(pszMIME), RTHTTPHEADERLISTADD_F_BACK);
+        }
+        else
+        {
+            rc = RTHttpHeaderListAdd(HdrLst, "Content-Type", pszMIMEHint, strlen(pszMIMEHint), RTHTTPHEADERLISTADD_F_BACK);
+            RTStrFree(pszMIMEHint);
+            pszMIMEHint = NULL;
+        }
+        AssertRCBreak(rc);
 
-            char szVal[16];
-
-            /* Note: For directories fsObj.cbObject contains the actual size (in bytes)
-             *       of the body data for the directory listing. */
-
-            ssize_t cch = RTStrPrintf2(szVal, sizeof(szVal), "%RU64", fsObj.cbObject);
-            AssertBreakStmt(cch, VERR_BUFFER_OVERFLOW);
-            rc = RTHttpHeaderListAdd(HdrLst, "Content-Length", szVal, strlen(szVal), RTHTTPHEADERLISTADD_F_BACK);
-            AssertRCBreak(rc);
-
-            cch = RTStrPrintf2(szVal, sizeof(szVal), "identity");
-            AssertBreakStmt(cch, VERR_BUFFER_OVERFLOW);
-            rc = RTHttpHeaderListAdd(HdrLst, "Content-Encoding", szVal, strlen(szVal), RTHTTPHEADERLISTADD_F_BACK);
-            AssertRCBreak(rc);
-
-            if (pszMIMEHint == NULL)
-            {
-                const char *pszMIME = rtHttpServerGuessMIMEType(RTPathSuffix(pReq->pszUrl));
-                rc = RTHttpHeaderListAdd(HdrLst, "Content-Type", pszMIME, strlen(pszMIME), RTHTTPHEADERLISTADD_F_BACK);
-            }
-            else
-            {
-                rc = RTHttpHeaderListAdd(HdrLst, "Content-Type", pszMIMEHint, strlen(pszMIMEHint), RTHTTPHEADERLISTADD_F_BACK);
-                RTStrFree(pszMIMEHint);
-                pszMIMEHint = NULL;
-            }
-            AssertRCBreak(rc);
-
-            if (pClient->State.msKeepAlive)
-            {
-                /* If the client requested to keep alive the connection,
-                 * always override this with 30s and report this back to the client. */
-                pClient->State.msKeepAlive = RT_MS_30SEC; /** @todo Make this configurable. */
+        if (pClient->State.msKeepAlive)
+        {
+            /* If the client requested to keep alive the connection,
+             * always override this with 30s and report this back to the client. */
+            pClient->State.msKeepAlive = RT_MS_30SEC; /** @todo Make this configurable. */
 #ifdef DEBUG_andy
-                pClient->State.msKeepAlive = 5000;
+            pClient->State.msKeepAlive = 5000;
 #endif
-                cch = RTStrPrintf2(szVal, sizeof(szVal), "timeout=%RU64", pClient->State.msKeepAlive / RT_MS_1SEC); /** @todo No pipelining support here yet. */
-                AssertBreakStmt(cch, VERR_BUFFER_OVERFLOW);
-                rc = RTHttpHeaderListAdd(HdrLst, "Keep-Alive", szVal, strlen(szVal), RTHTTPHEADERLISTADD_F_BACK);
-                AssertRCReturn(rc, rc);
-            }
+            cch = RTStrPrintf2(szVal, sizeof(szVal), "timeout=%RU64", pClient->State.msKeepAlive / RT_MS_1SEC); /** @todo No pipelining support here yet. */
+            AssertBreakStmt(cch, rc = VERR_BUFFER_OVERFLOW);
+            rc = RTHttpHeaderListAdd(HdrLst, "Keep-Alive", szVal, strlen(szVal), RTHTTPHEADERLISTADD_F_BACK);
+            AssertRCBreak(rc);
+        }
 
-            rc = rtHttpServerSendResponseEx(pClient, RTHTTPSTATUS_OK, &HdrLst);
+        rc = rtHttpServerSendResponseEx(pClient, enmStsResponse, &HdrLst);
 
-            RTHttpHeaderListDestroy(HdrLst);
+        RTHttpHeaderListDestroy(HdrLst);
+        HdrLst = NIL_RTHTTPHEADERLIST;
 
-            if (rc == VERR_BROKEN_PIPE) /* Could happen on fast reloads. */
-                break;
-            AssertRCReturn(rc, rc);
-
-            size_t cbToRead  = fsObj.cbObject;
-            size_t cbRead    = 0; /* Shut up GCC. */
-            size_t cbWritten = 0; /* Ditto. */
-            while (cbToRead)
-            {
-                RTHTTPSERVER_HANDLE_CALLBACK_VA(pfnRead, pvHandle, pvBuf, RT_MIN(cbBuf, cbToRead), &cbRead);
-                if (RT_FAILURE(rc))
-                    break;
-                rc = rtHttpServerSendResponseBody(pClient, pvBuf, cbRead, &cbWritten);
-                AssertBreak(cbToRead >= cbWritten);
-                cbToRead -= cbWritten;
-                if (rc == VERR_NET_CONNECTION_RESET_BY_PEER) /* Clients often apruptly abort the connection when done. */
-                {
-                    rc = VINF_SUCCESS;
-                    break;
-                }
-                AssertRCBreak(rc);
-            }
-
+        if (rc == VERR_BROKEN_PIPE) /* Could happen on fast reloads. */
             break;
-        } /* for (;;) */
+        AssertRCBreak(rc);
 
-        RTMemFree(pvBuf);
+        size_t cbToRead  = fsObj.cbObject;
+        size_t cbRead    = 0; /* Shut up GCC. */
+        size_t cbWritten = 0; /* Ditto. */
+        while (cbToRead)
+        {
+            RTHTTPSERVER_HANDLE_CALLBACK_VA(pfnRead, pReq, pvHandle, pvBuf, RT_MIN(cbBuf, cbToRead), &cbRead);
+            if (RT_FAILURE(rc))
+                break;
+            rc = rtHttpServerSendResponseBody(pClient, pvBuf, cbRead, &cbWritten);
+            if (RT_FAILURE(rc))
+                break;
+            AssertBreak(cbToRead >= cbWritten);
+            cbToRead -= cbWritten;
+#if 0 /* Disabled, VERR_BROKEN_PIPE happens too often with GVFS 1.50. */
+            AssertMsgRCBreak(rc, ("rc=%Rrc, cbRead=%zu, cbToRead=%zu, cbWritten=%zu\n", rc, cbRead, cbToRead, cbWritten));
+#endif
+        }
 
-        int rc2 = rc; /* Save rc. */
+        break;
+    } /* for (;;) */
 
-        RTHTTPSERVER_HANDLE_CALLBACK_VA(pfnClose, pvHandle);
+    if (rc == VERR_NET_CONNECTION_RESET_BY_PEER) /* Clients often apruptly abort the connection when done. */
+        rc = VINF_SUCCESS;
 
-        if (RT_FAILURE(rc2)) /* Restore original rc on failure. */
-            rc = rc2;
-    }
+    RTMemFree(pvBuf);
+
+    int rc2 = rc; /* Save rc. */
+
+    if (pvHandle)
+        RTHTTPSERVER_HANDLE_CALLBACK_VA(pfnClose, pReq, pvHandle);
+
+    if (RT_FAILURE(rc2)) /* Restore original rc on failure. */
+        rc = rc2;
 
     LogFlowFuncLeaveRC(rc);
     return rc;
@@ -875,6 +886,7 @@ static DECLCALLBACK(int) rtHttpServerHandleHEAD(PRTHTTPSERVERCLIENT pClient, PRT
         AssertRCReturn(rc, rc);
 
         RTHttpHeaderListDestroy(HdrLst);
+        HdrLst = NIL_RTHTTPHEADERLIST;
     }
 
     LogFlowFuncLeaveRC(rc);
@@ -956,13 +968,14 @@ static DECLCALLBACK(int) rtHttpServerHandlePROPFIND(PRTHTTPSERVERCLIENT pClient,
             AssertRCReturn(rc, rc);
 
             RTHttpHeaderListDestroy(HdrLst);
+            HdrLst = NIL_RTHTTPHEADERLIST;
 
             size_t cbToRead  = fsObj.cbObject;
             size_t cbRead    = 0; /* Shut up GCC. */
             size_t cbWritten = 0; /* Ditto. */
             while (cbToRead)
             {
-                RTHTTPSERVER_HANDLE_CALLBACK_VA(pfnRead, pvHandle, pvBuf, RT_MIN(cbBuf, cbToRead), &cbRead);
+                RTHTTPSERVER_HANDLE_CALLBACK_VA(pfnRead, pReq, pvHandle, pvBuf, RT_MIN(cbBuf, cbToRead), &cbRead);
                 if (RT_FAILURE(rc))
                     break;
                 //rtHttpServerLogProto(pClient, true /* fWrite */, (const char *)pvBuf);
@@ -984,7 +997,7 @@ static DECLCALLBACK(int) rtHttpServerHandlePROPFIND(PRTHTTPSERVERCLIENT pClient,
 
         int rc2 = rc; /* Save rc. */
 
-        RTHTTPSERVER_HANDLE_CALLBACK_VA(pfnClose, pvHandle);
+        RTHTTPSERVER_HANDLE_CALLBACK_VA(pfnClose, pReq, pvHandle);
 
         if (RT_FAILURE(rc2)) /* Restore original rc on failure. */
             rc = rc2;
@@ -1020,7 +1033,7 @@ static bool rtHttpServerPathIsValid(const char *pszPath, bool fIsAbsolute)
             fIsValid =    RTFS_IS_DIRECTORY(objInfo.Attr.fMode)
                        || RTFS_IS_FILE(objInfo.Attr.fMode);
 
-            /* No symlinks and other stuff not allowed. */
+            /* No symlinks and other stuff allowed. */
         }
         else
             fIsValid = false;
@@ -1141,7 +1154,7 @@ static int rtHttpServerParseRequest(PRTHTTPSERVERCLIENT pClient, const char *psz
 
         /*
          * Parse HTTP version to use.
-         * We're picky heree: Only HTTP 1.1 is supported by now.
+         * We're picky here: Only HTTP 1.1 is supported by now.
          */
         const char *pszVer = ppapszFirstLine[2];
         if (RTStrCmp(pszVer, RTHTTPVER_1_1_STR)) /** @todo Use RTStrVersionCompare. Later. */
@@ -1208,6 +1221,8 @@ static int rtHttpServerProcessRequest(PRTHTTPSERVERCLIENT pClient, char *pszReq,
     {
         LogFlowFunc(("Request %s %s\n", RTHttpMethodToStr(pReq->enmMethod), pReq->pszUrl));
 
+        RTHTTPSERVER_HANDLE_CALLBACK_VA(pfnRequestBegin, pReq);
+
         unsigned i = 0;
         for (; i < RT_ELEMENTS(g_aMethodMap); i++)
         {
@@ -1218,11 +1233,11 @@ static int rtHttpServerProcessRequest(PRTHTTPSERVERCLIENT pClient, char *pszReq,
                 int rcMethod = pMethodEntry->pfnMethod(pClient, pReq);
                 if (RT_FAILURE(rcMethod))
                     LogFunc(("Request %s %s failed with %Rrc\n", RTHttpMethodToStr(pReq->enmMethod), pReq->pszUrl, rcMethod));
-
-                enmSts = rtHttpServerRcToStatus(rcMethod);
                 break;
             }
         }
+
+        RTHTTPSERVER_HANDLE_CALLBACK_VA(pfnRequestEnd, pReq);
 
         if (i == RT_ELEMENTS(g_aMethodMap))
             enmSts = RTHTTPSTATUS_NOTIMPLEMENTED;
@@ -1232,6 +1247,7 @@ static int rtHttpServerProcessRequest(PRTHTTPSERVERCLIENT pClient, char *pszReq,
     else
         enmSts = RTHTTPSTATUS_BADREQUEST;
 
+    /* If a status was set here explicitly, return it to prevent client hangs. */
     if (enmSts != RTHTTPSTATUS_INTERNAL_NOT_SET)
     {
         int rc2 = rtHttpServerSendResponseSimple(pClient, enmSts);
@@ -1248,8 +1264,10 @@ static int rtHttpServerProcessRequest(PRTHTTPSERVERCLIENT pClient, char *pszReq,
  *
  * @returns VBox status code.
  * @param   pClient             Client to process requests for.
+ * @param   msTimeout           Timeout to wait for reading data.
+ *                              Gets renewed for a each reading round.
  */
-static int rtHttpServerClientMain(PRTHTTPSERVERCLIENT pClient)
+static int rtHttpServerClientMain(PRTHTTPSERVERCLIENT pClient, RTMSINTERVAL msTimeout)
 {
     int rc;
 
@@ -1260,15 +1278,15 @@ static int rtHttpServerClientMain(PRTHTTPSERVERCLIENT pClient)
     /* Initialize client state. */
     pClient->State.msKeepAlive = 0;
 
-    RTMSINTERVAL cWaitMs      = RT_INDEFINITE_WAIT; /* The first wait always waits indefinitely. */
+    RTMSINTERVAL cWaitMs      = msTimeout;
     uint64_t     tsLastReadMs = 0;
 
-    for (;;)
+    for (;;) /* For keep-alive handling. */
     {
         rc = RTTcpSelectOne(pClient->hSocket, cWaitMs);
         if (RT_FAILURE(rc))
         {
-            LogFlowFunc(("RTTcpSelectOne=%Rrc (cWaitMs=%RU64)\n", rc, cWaitMs));
+            Log2Func(("RTTcpSelectOne=%Rrc (cWaitMs=%RU64)\n", rc, cWaitMs));
             if (rc == VERR_TIMEOUT)
             {
                 if (pClient->State.msKeepAlive) /* Keep alive handling needed? */
@@ -1276,8 +1294,8 @@ static int rtHttpServerClientMain(PRTHTTPSERVERCLIENT pClient)
                     if (!tsLastReadMs)
                         tsLastReadMs = RTTimeMilliTS();
                     const uint64_t tsDeltaMs = pClient->State.msKeepAlive - (RTTimeMilliTS() - tsLastReadMs);
-                    LogFlowFunc(("tsLastReadMs=%RU64, tsDeltaMs=%RU64\n", tsLastReadMs, tsDeltaMs));
-                    Log3Func(("Keep alive active (%RU32ms): %RU64ms remaining\n", pClient->State.msKeepAlive, tsDeltaMs));
+                    Log2Func(("tsLastReadMs=%RU64, tsDeltaMs=%RU64\n", tsLastReadMs, tsDeltaMs));
+                    Log2Func(("Keep alive active (%RU32ms): %RU64ms remaining\n", pClient->State.msKeepAlive, tsDeltaMs));
                     if (   tsDeltaMs > cWaitMs
                         && tsDeltaMs < pClient->State.msKeepAlive)
                         continue;
@@ -1331,17 +1349,17 @@ static int rtHttpServerClientMain(PRTHTTPSERVERCLIENT pClient)
 
         } while (cbToRead);
 
+        Log2Func(("Read client request done (%zu bytes) -> rc=%Rrc\n", cbReadTotal, rc));
+
         if (   RT_SUCCESS(rc)
             && cbReadTotal)
         {
-            LogFlowFunc(("Received client request (%zu bytes)\n", cbReadTotal));
-
             rtHttpServerLogProto(pClient, false /* fWrite */, szReq);
 
             rc = rtHttpServerProcessRequest(pClient, szReq, cbReadTotal);
         }
-        else
-            break;
+
+        break;
 
     } /* for */
 
@@ -1386,7 +1404,7 @@ static DECLCALLBACK(int) rtHttpServerClientThread(RTSOCKET hSocket, void *pvUser
     Client.pServer = pThis;
     Client.hSocket = hSocket;
 
-    return rtHttpServerClientMain(&Client);
+    return rtHttpServerClientMain(&Client, RT_MS_30SEC /* Timeout */);
 }
 
 RTR3DECL(int) RTHttpServerCreate(PRTHTTPSERVER hHttpServer, const char *pszAddress, uint16_t uPort,

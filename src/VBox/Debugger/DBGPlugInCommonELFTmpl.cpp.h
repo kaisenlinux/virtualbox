@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -318,6 +318,8 @@ int DBGDiggerCommonParseElfMod(PUVM pUVM, PCVMMR3VTABLE pVMM, const char *pszMod
                 continue;
 
             rc = RTDbgModSymbolAdd(hMod, pszSymbol, iSeg, offSeg, cbSym, 0 /*fFlags*/, NULL);
+            if (RT_FAILURE(rc))
+                LogRel(("%02x:%RGv %RGv %s!%s -> rc=%Rrc\n", paSyms[iSym].st_shndx, offSeg, cbSym, pszModName, pszSymbol, rc));
             Log(("%02x:%RGv %RGv %s!%s (rc=%Rrc)\n", paSyms[iSym].st_shndx, offSeg, cbSym, pszModName, pszSymbol, rc));
         }
         /*else: silently ignore */

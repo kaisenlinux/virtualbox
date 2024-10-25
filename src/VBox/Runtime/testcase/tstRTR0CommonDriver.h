@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -83,7 +83,7 @@ void               *g_pvImageBase;
  *                                  chars and appending 'SrvReqHandler'.
  *
  */
-RTEXITCODE RTR3TestR0CommonDriverInit(const char *pszTestServiceName)
+static RTEXITCODE RTR3TestR0CommonDriverInit(const char *pszTestServiceName)
 {
     /*
      * Init the test.
@@ -115,21 +115,21 @@ RTEXITCODE RTR3TestR0CommonDriverInit(const char *pszTestServiceName)
         return RTTestSummaryAndDestroy(g_hTest);
     }
 
-    char szPath[RTPATH_MAX + sizeof(".r0")];
-    rc = RTPathExecDir(szPath, RTPATH_MAX);
+    char szPath[RTPATH_MAX];
+    rc = RTPathExecDir(szPath, sizeof(szPath));
     if (RT_SUCCESS(rc))
-        rc = RTPathAppend(szPath, RTPATH_MAX, pszTestServiceName);
+        rc = RTPathAppend(szPath, sizeof(szPath), pszTestServiceName);
     if (RT_SUCCESS(rc))
-        strcat(szPath, ".r0");
+        rc = RTStrCat(szPath, sizeof(szPath), ".r0");
     if (RT_FAILURE(rc))
     {
         RTTestFailed(g_hTest, "Failed constructing .r0 filename (rc=%Rrc)", rc);
         return RTTestSummaryAndDestroy(g_hTest);
     }
 
-    char szSrvReqHandler[sizeof(g_szSrvName) + sizeof("SrvReqHandler")];
-    strcpy(szSrvReqHandler, pszTestServiceName);
-    strcat(szSrvReqHandler, "SrvReqHandler");
+    static char const s_szSrvReqHandlerSuff[] = "SrvReqHandler";
+    char szSrvReqHandler[sizeof(g_szSrvName) + sizeof(s_szSrvReqHandlerSuff)];
+    memcpy(mempcpy(szSrvReqHandler, g_szSrvName, g_cchSrvName), s_szSrvReqHandlerSuff, sizeof(s_szSrvReqHandlerSuff));
     for (size_t off = 0; RT_C_IS_LOWER(szSrvReqHandler[off]); off++)
         szSrvReqHandler[off] = RT_C_TO_UPPER(szSrvReqHandler[off]);
 
@@ -237,7 +237,7 @@ static bool rtR3TestR0ProcessMessages(PRTTSTR0REQ pReq)
  * @param   pszTestFmt          The sub-test name.
  * @param   ...                 Format arguments.
  */
-bool RTR3TestR0SimpleTestWithArg(uint32_t uOperation, uint64_t u64Arg, const char *pszTestFmt, ...)
+DECLINLINE(bool) RTR3TestR0SimpleTestWithArg(uint32_t uOperation, uint64_t u64Arg, const char *pszTestFmt, ...)
 {
     va_list va;
     va_start(va, pszTestFmt);
@@ -267,7 +267,7 @@ bool RTR3TestR0SimpleTestWithArg(uint32_t uOperation, uint64_t u64Arg, const cha
  * @param   pszTestFmt          The sub-test name.
  * @param   ...                 Format arguments.
  */
-bool RTR3TestR0SimpleTest(uint32_t uOperation, const char *pszTestFmt, ...)
+static bool RTR3TestR0SimpleTest(uint32_t uOperation, const char *pszTestFmt, ...)
 {
     va_list va;
     va_start(va, pszTestFmt);

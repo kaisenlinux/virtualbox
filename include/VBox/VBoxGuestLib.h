@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -39,6 +39,10 @@
 # ifdef VBOX_WITH_DRAG_AND_DROP
 #  include <VBox/GuestHost/DragAndDrop.h>
 #  include <VBox/GuestHost/DragAndDropDefs.h>
+# endif
+# ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+#  include <VBox/GuestHost/GuestControl.h>
+   using namespace guestControl;
 # endif
 # ifdef VBOX_WITH_SHARED_CLIPBOARD
 #  include <VBox/GuestHost/SharedClipboard.h>
@@ -116,7 +120,7 @@ typedef uint32_t HGCMCLIENTID;
  *
  * @return VBox status code.
  */
-DECLR0VBGL(int)     VbglR0InitPrimary(RTIOPORT portVMMDev, VMMDevMemory *pVMMDevMemory, uint32_t *pfFeatures);
+DECLR0VBGL(int)     VbglR0InitPrimary(RTIOPORT portVMMDev, uintptr_t volatile *pMmioReq, VMMDevMemory *pVMMDevMemory, uint32_t *pfFeatures);
 
 /**
  * The library termination function to be used by the main VBoxGuest driver.
@@ -479,8 +483,9 @@ DECLR0VBGL(int) VbglR0CrCtlConCallUserDataRaw(VBGLCRCTLHANDLE hCtl, struct VBGLI
  * Initialize the heap.
  *
  * @returns VBox status code.
+ * @param   HCPhysMax           The maximum physical address for any allocation, inclusive.
  */
-DECLR0VBGL(int)     VbglR0PhysHeapInit(void);
+DECLR0VBGL(int)     VbglR0PhysHeapInit(RTHCPHYS HCPhysMax);
 
 /**
  * Shutdown the heap.
@@ -508,7 +513,7 @@ DECLR0VBGL(void *)  VbglR0PhysHeapAlloc(uint32_t cb);
  * @returns Physical address of the memory block.  Zero is returned if @a pv
  *          isn't valid.
  */
-DECLR0VBGL(uint32_t) VbglR0PhysHeapGetPhysAddr(void *pv);
+DECLR0VBGL(RTCCPHYS) VbglR0PhysHeapGetPhysAddr(void *pv);
 
 # ifdef IN_TESTCASE
 DECLVBGL(size_t)     VbglR0PhysHeapGetFreeSize(void);
@@ -600,7 +605,7 @@ typedef struct VBGLR3SHCLTRANSFERCMDCTX
      * This is set by VbglR3ClipboardConnectEx(). */
     uint32_t                    cbMaxChunkSize;
     /** Optional callbacks to invoke. */
-    SHCLTRANSFERCALLBACKTABLE   Callbacks;
+    SHCLTRANSFERCALLBACKS       Callbacks;
 } VBGLR3SHCLTRANSFERCTX;
 /** Pointer to a Shared Clipboard transfer context. */
 typedef VBGLR3SHCLTRANSFERCMDCTX *PVBGLR3SHCLTRANSFERCMDCTX;
@@ -631,9 +636,6 @@ typedef struct VBGLR3SHCLCMDCTX
     uint64_t                    fGuestFeatures;
     /** The context ID - input or/and output depending on the operation. */
     uint64_t                    idContext;
-    /** OUT: Number of parameters retrieved.
-     * This is set by ??. */
-    uint32_t                    cParmsRecived;
 # ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS
     /** Data related to Shared Clipboard file transfers. */
     VBGLR3SHCLTRANSFERCMDCTX    Transfers;
@@ -683,11 +685,11 @@ typedef struct _VBGLR3CLIPBOARDEVENT
         /** Reports a transfer status to the guest. */
         struct
         {
-            /** ID of the trnasfer. */
+            /** ID of the transfer. */
             SHCLTRANSFERID     uID;
             /** Transfer direction. */
             SHCLTRANSFERDIR    enmDir;
-            /** Additional reproting information. */
+            /** Additional reporting information. */
             SHCLTRANSFERREPORT Report;
         } TransferStatus;
 #  endif /* VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS */
@@ -701,8 +703,8 @@ typedef const PVBGLR3CLIPBOARDEVENT CPVBGLR3CLIPBOARDEVENT;
 VBGLR3DECL(int)     VbglR3ClipboardConnect(HGCMCLIENTID *pidClient);
 VBGLR3DECL(int)     VbglR3ClipboardDisconnect(HGCMCLIENTID idClient);
 VBGLR3DECL(int)     VbglR3ClipboardGetHostMsgOld(HGCMCLIENTID idClient, uint32_t *pMsg, uint32_t *pfFormats);
-VBGLR3DECL(int)     VbglR3ClipboardReadData(HGCMCLIENTID idClient, uint32_t fFormat, void *pv, uint32_t cb, uint32_t *pcb);
-VBGLR3DECL(int)     VbglR3ClipboardReadDataEx(PVBGLR3SHCLCMDCTX pCtx, SHCLFORMAT uFormat, void *pvData, uint32_t cbData, uint32_t *pcbRead);
+VBGLR3DECL(int)     VbglR3ClipboardReadData(HGCMCLIENTID idClient, SHCLFORMAT uFormat, void *pvData, uint32_t cbData, uint32_t *pcbRead);
+VBGLR3DECL(int)     VbglR3ClipboardReadDataEx(PVBGLR3SHCLCMDCTX pCtx, SHCLFORMAT uFormat, void **ppvData, uint32_t *pcbData);
 VBGLR3DECL(int)     VbglR3ClipboardWriteData(HGCMCLIENTID idClient, uint32_t fFormat, void *pv, uint32_t cb);
 VBGLR3DECL(int)     VbglR3ClipboardWriteDataEx(PVBGLR3SHCLCMDCTX pCtx, SHCLFORMAT fFormat, void *pvData, uint32_t cbData);
 VBGLR3DECL(int)     VbglR3ClipboardReportFormats(HGCMCLIENTID idClient, uint32_t fFormats);
@@ -712,6 +714,7 @@ VBGLR3DECL(int)     VbglR3ClipboardDisconnectEx(PVBGLR3SHCLCMDCTX pCtx);
 
 VBGLR3DECL(int)     VbglR3ClipboardReportFeatures(uint32_t idClient, uint64_t fGuestFeatures, uint64_t *pfHostFeatures);
 VBGLR3DECL(int)     VbglR3ClipboardQueryFeatures(uint32_t idClient, uint64_t *pfHostFeatures);
+VBGLR3DECL(int)     VbglR3ClipboardMsgPeek(PVBGLR3SHCLCMDCTX pCtx, uint32_t *pidMsg, uint32_t *pcParameters, uint64_t *pidRestoreCheck);
 VBGLR3DECL(int)     VbglR3ClipboardMsgPeekWait(PVBGLR3SHCLCMDCTX pCtx, uint32_t *pidMsg, uint32_t *pcParameters, uint64_t *pidRestoreCheck);
 VBGLR3DECL(int)     VbglR3ClipboardEventGetNext(uint32_t idMsg, uint32_t cParms, PVBGLR3SHCLCMDCTX pCtx, PVBGLR3CLIPBOARDEVENT pEvent);
 VBGLR3DECL(void)    VbglR3ClipboardEventFree(PVBGLR3CLIPBOARDEVENT pEvent);
@@ -719,41 +722,41 @@ VBGLR3DECL(void)    VbglR3ClipboardEventFree(PVBGLR3CLIPBOARDEVENT pEvent);
 VBGLR3DECL(int)     VbglR3ClipboardWriteError(HGCMCLIENTID idClient, int rcErr);
 
 #  ifdef VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS
-VBGLR3DECL(void)    VbglR3ClipboardTransferSetCallbacks(PSHCLTRANSFERCALLBACKTABLE pCallbacks);
+VBGLR3DECL(int)     VbglR3ClipboardTransferRequest(PVBGLR3SHCLCMDCTX pCmdCtx);
 VBGLR3DECL(int)     VbglR3ClipboardEventGetNextEx(uint32_t idMsg, uint32_t cParms, PVBGLR3SHCLCMDCTX pCtx, PSHCLTRANSFERCTX pTransferCtx, PVBGLR3CLIPBOARDEVENT pEvent);
 
-VBGLR3DECL(int)     VbglR3ClipboardTransferStatusReply(PVBGLR3SHCLCMDCTX pCtx, PSHCLTRANSFER pTransfer, SHCLTRANSFERSTATUS uStatus);
+VBGLR3DECL(int)     VbglR3ClipboardTransferSendStatus(PVBGLR3SHCLCMDCTX pCtx, PSHCLTRANSFER pTransfer, SHCLTRANSFERSTATUS uStatus, int rcTransfer);
 
-VBGLR3DECL(int)     VbglR3ClipboardRootListRead(PVBGLR3SHCLCMDCTX pCtx, PSHCLROOTLIST *ppRootList);
+VBGLR3DECL(int)     VbglR3ClipboardTransferRootListRead(PVBGLR3SHCLCMDCTX pCtx, PSHCLLIST *ppRootList);
 
-VBGLR3DECL(int)     VbglR3ClipboardRootListHdrReadReq(PVBGLR3SHCLCMDCTX pCtx, uint32_t *pfRoots);
-VBGLR3DECL(int)     VbglR3ClipboardRootListHdrReadReply(PVBGLR3SHCLCMDCTX pCtx, PSHCLROOTLIST pRootList);
-VBGLR3DECL(int)     VbglR3ClipboardRootsWrite(PVBGLR3SHCLCMDCTX pCtx, PSHCLROOTLISTHDR pRoots);
+VBGLR3DECL(int)     VbglR3ClipboardTransferRootListHdrReadReq(PVBGLR3SHCLCMDCTX pCtx, uint32_t *pfRoots);
+VBGLR3DECL(int)     VbglR3ClipboardTransferRootListHdrReadReply(PVBGLR3SHCLCMDCTX pCtx, PSHCLLIST pRootList);
+VBGLR3DECL(int)     VbglR3ClipboardRootsWrite(PVBGLR3SHCLCMDCTX pCtx, PSHCLLISTHDR pRoots);
 
-VBGLR3DECL(int)     VbglR3ClipboardListOpenSend(PVBGLR3SHCLCMDCTX pCtx, PSHCLLISTOPENPARMS pOpenParms, PSHCLLISTHANDLE phList);
-VBGLR3DECL(int)     VbglR3ClipboardListOpenRecv(PVBGLR3SHCLCMDCTX pCtx, PSHCLLISTOPENPARMS pOpenParms);
-VBGLR3DECL(int)     VbglR3ClipboardListOpenReply(PVBGLR3SHCLCMDCTX pCtx, int rcReply, SHCLLISTHANDLE hList);
+VBGLR3DECL(int)     VbglR3ClipboardTransferListOpenSend(PVBGLR3SHCLCMDCTX pCtx, PSHCLLISTOPENPARMS pOpenParms, PSHCLLISTHANDLE phList);
+VBGLR3DECL(int)     VbglR3ClipboardTransferListOpenRecv(PVBGLR3SHCLCMDCTX pCtx, PSHCLLISTOPENPARMS pOpenParms);
+VBGLR3DECL(int)     VbglR3ClipboardTransferListOpenReply(PVBGLR3SHCLCMDCTX pCtx, int rcReply, SHCLLISTHANDLE hList);
 
-VBGLR3DECL(int)     VbglR3ClipboardListCloseSend(PVBGLR3SHCLCMDCTX pCtx, SHCLLISTHANDLE hList);
+VBGLR3DECL(int)     VbglR3ClipboardTransferListCloseSend(PVBGLR3SHCLCMDCTX pCtx, SHCLLISTHANDLE hList);
 VBGLR3DECL(int)     VbglR3ClipboardListCloseRecv(PVBGLR3SHCLCMDCTX pCtx, PSHCLLISTHANDLE phList);
 
-VBGLR3DECL(int)     VbglR3ClipboardListHdrWrite(PVBGLR3SHCLCMDCTX pCtx, SHCLLISTHANDLE hList, PSHCLLISTHDR pListHdr);
-VBGLR3DECL(int)     VbglR3ClipboardListEntryWrite(PVBGLR3SHCLCMDCTX pCtx, SHCLLISTHANDLE hList, PSHCLLISTENTRY pListEntry);
+VBGLR3DECL(int)     VbglR3ClipboardTransferListHdrWrite(PVBGLR3SHCLCMDCTX pCtx, SHCLLISTHANDLE hList, PSHCLLISTHDR pListHdr);
+VBGLR3DECL(int)     VbglR3ClipboardTransferListEntryWrite(PVBGLR3SHCLCMDCTX pCtx, SHCLLISTHANDLE hList, PSHCLLISTENTRY pListEntry);
 
-VBGLR3DECL(int)     VbglR3ClipboardObjOpenRecv(PVBGLR3SHCLCMDCTX pCtx, PSHCLOBJOPENCREATEPARMS pCreateParms);
-VBGLR3DECL(int)     VbglR3ClipboardObjOpenReply(PVBGLR3SHCLCMDCTX pCtx, int rcReply, SHCLOBJHANDLE hObj);
-VBGLR3DECL(int)     VbglR3ClipboardObjOpenSend(PVBGLR3SHCLCMDCTX pCtx, PSHCLOBJOPENCREATEPARMS pCreateParms,
+VBGLR3DECL(int)     VbglR3ClipboardTransferObjOpenRecv(PVBGLR3SHCLCMDCTX pCtx, PSHCLOBJOPENCREATEPARMS pCreateParms);
+VBGLR3DECL(int)     VbglR3ClipboardTransferObjOpenReply(PVBGLR3SHCLCMDCTX pCtx, int rcReply, SHCLOBJHANDLE hObj);
+VBGLR3DECL(int)     VbglR3ClipboardTransferObjOpenSend(PVBGLR3SHCLCMDCTX pCtx, PSHCLOBJOPENCREATEPARMS pCreateParms,
                                                PSHCLOBJHANDLE phObj);
 
-VBGLR3DECL(int)     VbglR3ClipboardObjCloseRecv(PVBGLR3SHCLCMDCTX pCtx, PSHCLOBJHANDLE phObj);
-VBGLR3DECL(int)     VbglR3ClipboardObjCloseReply(PVBGLR3SHCLCMDCTX pCtx, int rcReply, SHCLOBJHANDLE hObj);
-VBGLR3DECL(int)     VbglR3ClipboardObjCloseSend(PVBGLR3SHCLCMDCTX pCtx, SHCLOBJHANDLE hObj);
+VBGLR3DECL(int)     VbglR3ClipboardTransferObjCloseRecv(PVBGLR3SHCLCMDCTX pCtx, PSHCLOBJHANDLE phObj);
+VBGLR3DECL(int)     VbglR3ClipboardTransferObjCloseReply(PVBGLR3SHCLCMDCTX pCtx, int rcReply, SHCLOBJHANDLE hObj);
+VBGLR3DECL(int)     VbglR3ClipboardTransferObjCloseSend(PVBGLR3SHCLCMDCTX pCtx, SHCLOBJHANDLE hObj);
 
-VBGLR3DECL(int)     VbglR3ClipboardObjReadRecv(PVBGLR3SHCLCMDCTX pCtx, PSHCLOBJHANDLE phObj, uint32_t pcbToRead,
+VBGLR3DECL(int)     VbglR3ClipboardTransferObjReadRecv(PVBGLR3SHCLCMDCTX pCtx, PSHCLOBJHANDLE phObj, uint32_t pcbToRead,
                                                uint32_t *pfFlags);
-VBGLR3DECL(int)     VbglR3ClipboardObjReadSend(PVBGLR3SHCLCMDCTX pCtx, SHCLOBJHANDLE hObj, void *pvBuf, uint32_t cbBuf,
+VBGLR3DECL(int)     VbglR3ClipboardTransferObjReadSend(PVBGLR3SHCLCMDCTX pCtx, SHCLOBJHANDLE hObj, void *pvBuf, uint32_t cbBuf,
                                                uint32_t *pcbRead);
-VBGLR3DECL(int)     VbglR3ClipboardObjWriteSend(PVBGLR3SHCLCMDCTX pCtx, SHCLOBJHANDLE hObj, void *pvBuf, uint32_t cbBuf,
+VBGLR3DECL(int)     VbglR3ClipboardTransferObjWriteSend(PVBGLR3SHCLCMDCTX pCtx, SHCLOBJHANDLE hObj, void *pvBuf, uint32_t cbBuf,
                                                 uint32_t *pcbWritten);
 #  endif /* VBOX_WITH_SHARED_CLIPBOARD_TRANSFERS */
 /** @} */
@@ -1022,6 +1025,10 @@ typedef struct VBGLR3GUESTCTRLPROCSTARTUPINFO
     uint32_t cbEnv;
     /** Number of environment variables specified in pszEnv. */
     uint32_t cEnvVars;
+    /** Optional working directory. */
+    char *pszCwd;
+    /** Size (in bytes) of optional working directory string. */
+    uint32_t cbCwd;
     /** User name (account) to start the process under. */
     char *pszUser;
     /** Size (in bytes) of allocated pszUser. */
@@ -1076,15 +1083,33 @@ VBGLR3DECL(int) VbglR3GuestCtrlSessionClose(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_
 VBGLR3DECL(int) VbglR3GuestCtrlSessionNotify(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uType, int32_t iResult);
 VBGLR3DECL(int) VbglR3GuestCtrlSessionGetOpen(PVBGLR3GUESTCTRLCMDCTX pCtx, PVBGLR3GUESTCTRLSESSIONSTARTUPINFO *ppStartupInfo);
 VBGLR3DECL(int) VbglR3GuestCtrlSessionGetClose(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t *pfFlags, uint32_t *pidSession);
+VBGLR3DECL(int) VbglR3GuestCtrlFileGetClose(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t *puHandle);
+VBGLR3DECL(int) VbglR3GuestCtrlFileGetRead(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t *puHandle, uint32_t *puToRead);
 /* Guest path handling. */
 VBGLR3DECL(int) VbglR3GuestCtrlPathGetRename(PVBGLR3GUESTCTRLCMDCTX pCtx, char *pszSource, uint32_t cbSource, char *pszDest,
                                              uint32_t cbDest, uint32_t *pfFlags);
 VBGLR3DECL(int) VbglR3GuestCtrlPathGetUserDocuments(PVBGLR3GUESTCTRLCMDCTX pCtx);
 VBGLR3DECL(int) VbglR3GuestCtrlPathGetUserHome(PVBGLR3GUESTCTRLCMDCTX pCtx);
+VBGLR3DECL(int) VbglR3GuestCtrlGetMountPoints(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t *pfFlags);
+#  ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+/** @name Guest Control file system functions.
+ * @{
+ */
+VBGLR3DECL(int) VbglR3GuestCtrlFsGetCreateTemp(PVBGLR3GUESTCTRLCMDCTX pCtx, char *pszTemplate, uint32_t cbTemplate, char *pszPath, uint32_t cbPath, uint32_t *pfFlags, uint32_t *pfMode);
+VBGLR3DECL(int) VbglR3GuestCtrlFsGetQueryInfo(PVBGLR3GUESTCTRLCMDCTX pCtx, char *pszPath, uint32_t cbPath);
+/** @} */
+
+/** @name Guest Control file system object functions.
+ * @{
+ */
+VBGLR3DECL(int) VbglR3GuestCtrlFsObjGetQueryInfo(PVBGLR3GUESTCTRLCMDCTX pCtx, char *pszPath, uint32_t cbPath, GSTCTLFSOBJATTRADD *penmAddAttrib, uint32_t *pfFlags);
+/** @} */
+#  endif
+
 VBGLR3DECL(int) VbglR3GuestCtrlGetShutdown(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t *pfAction);
 /* Guest process execution. */
 VBGLR3DECL(int) VbglR3GuestCtrlProcStartupInfoInit(PVBGLR3GUESTCTRLPROCSTARTUPINFO pStartupInfo);
-VBGLR3DECL(int) VbglR3GuestCtrlProcStartupInfoInitEx(PVBGLR3GUESTCTRLPROCSTARTUPINFO pStartupInfo, size_t cbCmd, size_t cbUser, size_t cbPassword, size_t cbDomain, size_t cbArgs, size_t cbEnv);
+VBGLR3DECL(int) VbglR3GuestCtrlProcStartupInfoInitEx(PVBGLR3GUESTCTRLPROCSTARTUPINFO pStartupInfo, size_t cbCmd, size_t cbArgs, size_t cbEnv, size_t cbCwd, size_t cbUser, size_t cbPassword, size_t cbDomain);
 VBGLR3DECL(void) VbglR3GuestCtrlProcStartupInfoDestroy(PVBGLR3GUESTCTRLPROCSTARTUPINFO pStartupInfo);
 VBGLR3DECL(void) VbglR3GuestCtrlProcStartupInfoFree(PVBGLR3GUESTCTRLPROCSTARTUPINFO pStartupInfo);
 VBGLR3DECL(PVBGLR3GUESTCTRLPROCSTARTUPINFO) VbglR3GuestCtrlProcStartupInfoDup(PVBGLR3GUESTCTRLPROCSTARTUPINFO pStartupInfo);
@@ -1096,6 +1121,18 @@ VBGLR3DECL(int) VbglR3GuestCtrlProcGetOutput(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32
 VBGLR3DECL(int) VbglR3GuestCtrlProcGetWaitFor(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t *puPID, uint32_t *puWaitFlags,
                                               uint32_t *puTimeoutMS);
 /* Guest native directory handling. */
+#  ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+/** @name Guest Control directory functions.
+ * @{
+ */
+VBGLR3DECL(int) VbglR3GuestCtrlDirGetCreate(PVBGLR3GUESTCTRLCMDCTX pCtx, char *pszPath, uint32_t cbPath, uint32_t *pfMode, uint32_t *pfFlags);
+VBGLR3DECL(int) VbglR3GuestCtrlDirGetOpen(PVBGLR3GUESTCTRLCMDCTX pCtx, char *pszPath, uint32_t cbPath, uint32_t *pfFlags, GSTCTLDIRFILTER *penmFilter, GSTCTLFSOBJATTRADD *penmReadAttrAdd, uint32_t *pfReadFlags);
+VBGLR3DECL(int) VbglR3GuestCtrlDirGetClose(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t *puHandle);
+VBGLR3DECL(int) VbglR3GuestCtrlDirGetRead(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t *puHandle);
+VBGLR3DECL(int) VbglR3GuestCtrlDirGetRewind(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t *puHandle);
+VBGLR3DECL(int) VbglR3GuestCtrlDirGetList(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t *puHandle, uint32_t *pcEntries, uint32_t *pfFlags);
+/** @} */
+#  endif /* VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS */
 VBGLR3DECL(int) VbglR3GuestCtrlDirGetRemove(PVBGLR3GUESTCTRLCMDCTX pCtx, char *pszPath, uint32_t cbPath, uint32_t *pfFlags);
 /* Guest native file handling. */
 VBGLR3DECL(int) VbglR3GuestCtrlFileGetOpen(PVBGLR3GUESTCTRLCMDCTX pCtx, char *pszFileName, uint32_t cbFileName, char *pszOpenMode,
@@ -1113,28 +1150,55 @@ VBGLR3DECL(int) VbglR3GuestCtrlFileGetSeek(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t
                                            uint32_t *puSeekMethod, uint64_t *poffSeek);
 VBGLR3DECL(int) VbglR3GuestCtrlFileGetTell(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t *puHandle);
 VBGLR3DECL(int) VbglR3GuestCtrlFileGetSetSize(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t *puHandle, uint64_t *pcbNew);
+#  ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+VBGLR3DECL(int) VbglR3GuestCtrlFileGetRemove(PVBGLR3GUESTCTRLCMDCTX pCtx, char *pszFileName, uint32_t cbFileName);
+#  endif
 
 /* Guest -> Host. */
+#  ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+/** @name Guest Control directory callbacks.
+ * @{
+ */
+VBGLR3DECL(int) VbglR3GuestCtrlDirCbOpen(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, uint32_t uFileHandle);
+VBGLR3DECL(int) VbglR3GuestCtrlDirCbClose(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc);
+VBGLR3DECL(int) VbglR3GuestCtrlDirCbReadEx(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, PGSTCTLDIRENTRYEX pEntry, uint32_t cbSize, const char *pszUser, const char *pszGroups);
+VBGLR3DECL(int) VbglR3GuestCtrlDirCbRead(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, PGSTCTLDIRENTRYEX pEntry, uint32_t cbSize);
+VBGLR3DECL(int) VbglR3GuestCtrlDirCbRewind(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc);
+VBGLR3DECL(int) VbglR3GuestCtrlDirCbList(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, uint32_t cEntries, void *pvBuf, uint32_t cbBuf);
+/** @} */
+#  endif /* VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS */
+
 VBGLR3DECL(int) VbglR3GuestCtrlFileCbOpen(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, uint32_t uFileHandle);
 VBGLR3DECL(int) VbglR3GuestCtrlFileCbClose(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc);
 VBGLR3DECL(int) VbglR3GuestCtrlFileCbError(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc);
 VBGLR3DECL(int) VbglR3GuestCtrlFileCbRead(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, void *pvData, uint32_t cbData);
-VBGLR3DECL(int) VbglR3GuestCtrlFileCbReadOffset(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc,
-                                                void *pvData, uint32_t cbData, int64_t offNew);
+VBGLR3DECL(int) VbglR3GuestCtrlFileCbReadOffset(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, void *pvData, uint32_t cbData, int64_t offNew);
 VBGLR3DECL(int) VbglR3GuestCtrlFileCbWrite(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, uint32_t cbWritten);
 VBGLR3DECL(int) VbglR3GuestCtrlFileCbWriteOffset(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, uint32_t cbWritten, int64_t offNew);
 
 VBGLR3DECL(int) VbglR3GuestCtrlFileCbSeek(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, uint64_t offCurrent);
 VBGLR3DECL(int) VbglR3GuestCtrlFileCbTell(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, uint64_t offCurrent);
 VBGLR3DECL(int) VbglR3GuestCtrlFileCbSetSize(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, uint64_t cbNew);
-VBGLR3DECL(int) VbglR3GuestCtrlProcCbStatus(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uPID, uint32_t uStatus, uint32_t fFlags,
-                                            void *pvData, uint32_t cbData);
-VBGLR3DECL(int) VbglR3GuestCtrlProcCbOutput(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uPID, uint32_t uHandle, uint32_t fFlags,
-                                            void *pvData, uint32_t cbData);
-VBGLR3DECL(int) VbglR3GuestCtrlProcCbStatusInput(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t u32PID, uint32_t uStatus,
-                                                 uint32_t fFlags, uint32_t cbWritten);
 
-/** @}  */
+#  ifdef VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS
+/** @name Guest Control file system callbacks.
+ * @{
+ */
+VBGLR3DECL(int) VbglR3GuestCtrlFsCbCreateTemp(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, const char *pszPath);
+VBGLR3DECL(int) VbglR3GuestCtrlFsCbQueryInfo(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, PGSTCTLFSINFO pFsInfo, uint32_t cbFsInfo);
+/** @} */
+
+/** @name Guest Control file system object callbacks.
+ * @{
+ */
+VBGLR3DECL(int) VbglR3GuestCtrlFsObjCbQueryInfoEx(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, PGSTCTLFSOBJINFO pObjInfo, const char *pszUser, const char *pszGroups);
+VBGLR3DECL(int) VbglR3GuestCtrlFsObjCbQueryInfo(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uRc, PGSTCTLFSOBJINFO pObjInfo);
+/** @} */
+#  endif /* VBOX_WITH_GSTCTL_TOOLBOX_AS_CMDS */
+
+VBGLR3DECL(int) VbglR3GuestCtrlProcCbStatus(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uPID, uint32_t uStatus, uint32_t fFlags, void *pvData, uint32_t cbData);
+VBGLR3DECL(int) VbglR3GuestCtrlProcCbOutput(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t uPID, uint32_t uHandle, uint32_t fFlags, void *pvData, uint32_t cbData);
+VBGLR3DECL(int) VbglR3GuestCtrlProcCbStatusInput(PVBGLR3GUESTCTRLCMDCTX pCtx, uint32_t u32PID, uint32_t uStatus, uint32_t fFlags, uint32_t cbWritten);
 # endif /* VBOX_WITH_GUEST_CONTROL defined */
 
 /** @name Auto-logon handling

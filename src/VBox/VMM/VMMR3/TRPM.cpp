@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -113,7 +113,8 @@
 *   Defined Constants And Macros                                                                                                 *
 *********************************************************************************************************************************/
 /** TRPM saved state version. */
-#define TRPM_SAVED_STATE_VERSION                10
+#define TRPM_SAVED_STATE_VERSION                11
+#define TRPM_SAVED_STATE_VERSION_PRE_NMI        10  /* NMI TRPM event type bumped the version */
 #define TRPM_SAVED_STATE_VERSION_PRE_ICEBP      9   /* INT1/ICEBP support bumped the version */
 #define TRPM_SAVED_STATE_VERSION_UNI            8   /* SMP support bumped the version */
 
@@ -282,6 +283,7 @@ static DECLCALLBACK(int) trpmR3Load(PVM pVM, PSSMHANDLE pSSM, uint32_t uVersion,
      * Validate version.
      */
     if (    uVersion != TRPM_SAVED_STATE_VERSION
+        &&  uVersion != TRPM_SAVED_STATE_VERSION_PRE_NMI
         &&  uVersion != TRPM_SAVED_STATE_VERSION_PRE_ICEBP
         &&  uVersion != TRPM_SAVED_STATE_VERSION_UNI)
     {
@@ -289,7 +291,7 @@ static DECLCALLBACK(int) trpmR3Load(PVM pVM, PSSMHANDLE pSSM, uint32_t uVersion,
         return VERR_SSM_UNSUPPORTED_DATA_UNIT_VERSION;
     }
 
-    if (uVersion == TRPM_SAVED_STATE_VERSION)
+    if (uVersion >= TRPM_SAVED_STATE_VERSION_PRE_NMI)
     {
         for (VMCPUID i = 0; i < pVM->cCpus; i++)
         {
@@ -351,6 +353,24 @@ static DECLCALLBACK(int) trpmR3Load(PVM pVM, PSSMHANDLE pSSM, uint32_t uVersion,
         SSMR3SkipToEndOfUnit(pSSM);
     }
 
+    /*
+     * For saved-state verions prior to introducing NMI as a separate type, convert
+     * traps with vector 2 as NMI since the rest of VirtualBox code now expects this.
+     */
+    if (uVersion <= TRPM_SAVED_STATE_VERSION_PRE_NMI)
+    {
+        for (VMCPUID i = 0; i < pVM->cCpus; i++)
+        {
+            PTRPMCPU pTrpmCpu = &pVM->apCpusR3[i]->trpm.s;
+            AssertLogRelMsgReturn(pTrpmCpu->enmActiveType != TRPM_NMI,
+                                  ("TRPM event type (%#RX32) invalid for saved-state version %u!",
+                                   pTrpmCpu->enmActiveType, uVersion), VERR_SSM_ENUM_VALUE_OUT_OF_RANGE);
+            if (   pTrpmCpu->uActiveVector == X86_XCPT_NMI
+                && pTrpmCpu->enmActiveType == TRPM_TRAP)
+                pTrpmCpu->enmActiveType = TRPM_NMI;
+        }
+    }
+
     return VINF_SUCCESS;
 }
 
@@ -366,6 +386,11 @@ static DECLCALLBACK(int) trpmR3Load(PVM pVM, PSSMHANDLE pSSM, uint32_t uVersion,
  */
 VMMR3DECL(int) TRPMR3InjectEvent(PVM pVM, PVMCPU pVCpu, TRPMEVENT enmEvent, bool *pfInjected)
 {
+#if defined(VBOX_VMM_TARGET_ARMV8)
+    RT_NOREF(pVM, pVCpu, enmEvent, pfInjected);
+    AssertReleaseFailed();
+    return VERR_NOT_IMPLEMENTED;
+#else
     PCPUMCTX pCtx = CPUMQueryGuestCtxPtr(pVCpu);
     Assert(!CPUMIsInInterruptShadow(pCtx));
     Assert(pfInjected);
@@ -381,23 +406,28 @@ VMMR3DECL(int) TRPMR3InjectEvent(PVM pVM, PVMCPU pVCpu, TRPMEVENT enmEvent, bool
     if (RT_SUCCESS(rc))
     {
         *pfInjected = true;
-#ifdef VBOX_WITH_NESTED_HWVIRT_VMX
-        if (   CPUMIsGuestInVmxNonRootMode(pCtx)
-            && CPUMIsGuestVmxInterceptEvents(pCtx)
-            && CPUMIsGuestVmxPinCtlsSet(pCtx, VMX_PIN_CTLS_EXT_INT_EXIT))
-        {
-            VBOXSTRICTRC rcStrict = IEMExecVmxVmexitExtInt(pVCpu, u8Interrupt, false /* fIntPending */);
-            Assert(rcStrict != VINF_VMX_INTERCEPT_NOT_ACTIVE);
-            return VBOXSTRICTRC_VAL(rcStrict);
-        }
-#endif
-#ifdef RT_OS_WINDOWS
+# ifdef RT_OS_WINDOWS
         if (!VM_IS_NEM_ENABLED(pVM))
         {
-#endif
+# endif
+# ifdef VBOX_WITH_NESTED_HWVIRT_VMX
+            /*
+             * If we are NOT calling IEMInjectTrap, we need to handle the
+             * VMX nested-guest external-interrupt VM-exit here.
+             */
+            if (   CPUMIsGuestInVmxNonRootMode(pCtx)
+                && CPUMIsGuestVmxInterceptEvents(pCtx)
+                && CPUMIsGuestVmxPinCtlsSet(pCtx, VMX_PIN_CTLS_EXT_INT_EXIT))
+            {
+                Assert(CPUMIsGuestVmxExitCtlsSet(pCtx, VMX_EXIT_CTLS_ACK_EXT_INT));
+                VBOXSTRICTRC rcStrict = IEMExecVmxVmexitExtInt(pVCpu, u8Interrupt, false /* fIntPending */);
+                Assert(rcStrict != VINF_VMX_INTERCEPT_NOT_ACTIVE);
+                return VBOXSTRICTRC_VAL(rcStrict);
+            }
+# endif
             rc = TRPMAssertTrap(pVCpu, u8Interrupt, TRPM_HARDWARE_INT);
             AssertRC(rc);
-#ifdef RT_OS_WINDOWS
+# ifdef RT_OS_WINDOWS
         }
         else
         {
@@ -407,7 +437,7 @@ VMMR3DECL(int) TRPMR3InjectEvent(PVM pVM, PVMCPU pVCpu, TRPMEVENT enmEvent, bool
             if (rcStrict != VINF_SUCCESS)
                 return VBOXSTRICTRC_TODO(rcStrict);
         }
-#endif
+# endif
         STAM_REL_COUNTER_INC(&pVM->trpm.s.aStatForwardedIRQ[u8Interrupt]);
     }
     else
@@ -415,9 +445,14 @@ VMMR3DECL(int) TRPMR3InjectEvent(PVM pVM, PVMCPU pVCpu, TRPMEVENT enmEvent, bool
         /* Can happen if the interrupt is masked by TPR or APIC is disabled. */
         AssertMsg(rc == VERR_APIC_INTR_MASKED_BY_TPR || rc == VERR_NO_DATA, ("PDMGetInterrupt failed. rc=%Rrc\n", rc));
     }
+# if 0 /* HMR3IsActive is not reliable (esp. after restore), just return VINF_EM_RESCHEDULE. */
     return HMR3IsActive(pVCpu)    ? VINF_EM_RESCHEDULE_HM
          : VM_IS_NEM_ENABLED(pVM) ? VINF_EM_RESCHEDULE
          :                          VINF_EM_RESCHEDULE_REM; /* (Heed the halted state if this is changed!) */
+# else
+    return VINF_EM_RESCHEDULE;
+# endif
+#endif
 }
 
 

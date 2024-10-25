@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -133,12 +133,18 @@ static bool             g_fHmVmxUsingSUPR0EnableVTx = false;
 /** VMX: Set if we've called SUPR0EnableVTx(true) and should disable it during
  * module termination. */
 static bool             g_fHmVmxCalledSUPR0EnableVTx = false;
+/** VMX: Host CR0 value (set by ring-0 VMX init) */
+uint64_t                g_uHmVmxHostCr0;
 /** VMX: Host CR4 value (set by ring-0 VMX init) */
 uint64_t                g_uHmVmxHostCr4;
 /** VMX: Host EFER value (set by ring-0 VMX init) */
 uint64_t                g_uHmVmxHostMsrEfer;
 /** VMX: Host SMM monitor control (used for logging/diagnostics) */
 uint64_t                g_uHmVmxHostSmmMonitorCtl;
+/** VMX: Host core capabilities (set by ring-0 VMX init) */
+uint64_t                g_uHmVmxHostCoreCap;
+/** VMX: Host memory control register (set by ring-0 VMX init) */
+uint64_t                g_uHmVmxHostMemoryCtrl;
 
 
 /** Set if AMD-V is supported by the CPU. */
@@ -343,7 +349,7 @@ static int hmR0InitIntelVerifyVmxUsability(uint64_t uVmxBasicMsr)
 {
     /* Allocate a temporary VMXON region. */
     RTR0MEMOBJ hScatchMemObj;
-    int rc = RTR0MemObjAllocCont(&hScatchMemObj, HOST_PAGE_SIZE, false /* fExecutable */);
+    int rc = RTR0MemObjAllocCont(&hScatchMemObj, HOST_PAGE_SIZE, NIL_RTHCPHYS /* PhysHighest */, false /* fExecutable */);
     if (RT_FAILURE(rc))
     {
         LogRelFunc(("RTR0MemObjAllocCont(,HOST_PAGE_SIZE,false) -> %Rrc\n", rc));
@@ -459,6 +465,7 @@ static int hmR0InitIntel(void)
     if (RT_SUCCESS(rc))
     {
         /* Read CR4 and EFER for logging/diagnostic purposes. */
+        g_uHmVmxHostCr0     = ASMGetCR0();
         g_uHmVmxHostCr4     = ASMGetCR4();
         g_uHmVmxHostMsrEfer = ASMRdMsr(MSR_K6_EFER);
 
@@ -474,6 +481,19 @@ static int hmR0InitIntel(void)
         if (RT_BF_GET(uVmxBasicMsr, VMX_BF_BASIC_DUAL_MON))
             g_uHmVmxHostSmmMonitorCtl = ASMRdMsr(MSR_IA32_SMM_MONITOR_CTL);
 
+        /*
+         * Host core and memory capabilities MSRs.
+         * Primarily for logging split-lock disable status.
+         */
+        uint32_t uDummy, uStdExtFeatEdx;
+        ASMCpuId_Idx_ECX(7, 0, &uDummy, &uDummy, &uDummy, &uStdExtFeatEdx);
+        if (uStdExtFeatEdx & X86_CPUID_STEXT_FEATURE_EDX_CORECAP)
+        {
+            g_uHmVmxHostCoreCap = ASMRdMsr(MSR_IA32_CORE_CAPABILITIES);
+            if (g_uHmVmxHostCoreCap & MSR_IA32_CORE_CAP_SPLIT_LOCK_DISABLE)
+                g_uHmVmxHostMemoryCtrl = ASMRdMsr(MSR_MEMORY_CTRL);
+        }
+
         /* Initialize VPID - 16 bits ASID. */
         g_uHmMaxAsid = 0x10000; /* exclusive */
 
@@ -484,13 +504,13 @@ static int hmR0InitIntel(void)
         if (!g_fHmVmxUsingSUPR0EnableVTx)
         {
             /*
-             * We don't verify VMX root mode on all CPUs here because the verify 
+             * We don't verify VMX root mode on all CPUs here because the verify
              * function exits VMX root mode thus potentially allowing other
-             * programs to grab VT-x. Our global init's entering and staying in 
-             * VMX root mode (until our module termination) is done later when 
-             * the first VM powers up (after module initialization) using 
-             * VMMR0_DO_HM_ENABLE which calls HMR0EnableAllCpus(). 
-             *  
+             * programs to grab VT-x. Our global init's entering and staying in
+             * VMX root mode (until our module termination) is done later when
+             * the first VM powers up (after module initialization) using
+             * VMMR0_DO_HM_ENABLE which calls HMR0EnableAllCpus().
+             *
              * This is just a quick sanity check.
              */
             rc = hmR0InitIntelVerifyVmxUsability(uVmxBasicMsr);
@@ -940,7 +960,7 @@ static DECLCALLBACK(int32_t) hmR0EnableAllCpuOnce(void *pvUser)
             if (RTMpIsCpuPossible(RTMpCpuIdFromSetIndex(i)))
             {
                 /** @todo NUMA */
-                rc = RTR0MemObjAllocCont(&g_aHmCpuInfo[i].hMemObj, HOST_PAGE_SIZE, false /* executable R0 mapping */);
+                rc = RTR0MemObjAllocCont(&g_aHmCpuInfo[i].hMemObj, HOST_PAGE_SIZE, NIL_RTHCPHYS /*PhysHighest*/, false /* executable R0 mapping */);
                 AssertLogRelRCReturn(rc, rc);
 
                 g_aHmCpuInfo[i].HCPhysMemObj = RTR0MemObjGetPagePhysAddr(g_aHmCpuInfo[i].hMemObj, 0);
@@ -953,7 +973,7 @@ static DECLCALLBACK(int32_t) hmR0EnableAllCpuOnce(void *pvUser)
 
 #ifdef VBOX_WITH_NESTED_HWVIRT_SVM
                 rc = RTR0MemObjAllocCont(&g_aHmCpuInfo[i].n.svm.hNstGstMsrpm, SVM_MSRPM_PAGES << X86_PAGE_4K_SHIFT,
-                                         false /* executable R0 mapping */);
+                                         NIL_RTHCPHYS /*PhysHighest*/, false /* executable R0 mapping */);
                 AssertLogRelRCReturn(rc, rc);
 
                 g_aHmCpuInfo[i].n.svm.HCPhysNstGstMsrpm = RTR0MemObjGetPagePhysAddr(g_aHmCpuInfo[i].n.svm.hNstGstMsrpm, 0);
@@ -992,6 +1012,7 @@ static DECLCALLBACK(int32_t) hmR0EnableAllCpuOnce(void *pvUser)
             /* First time, so initialize each cpu/core. */
             HMR0FIRSTRC FirstRc;
             hmR0FirstRcInit(&FirstRc);
+            Assert(g_HmR0Ops.pfnEnableCpu != hmR0DummyEnableCpu);
             rc = RTMpOnAll(hmR0EnableCpuCallback, (void *)pVM, &FirstRc);
             if (RT_SUCCESS(rc))
                 rc = hmR0FirstRcGetStatus(&FirstRc);
@@ -1231,9 +1252,12 @@ VMMR0_INT_DECL(int) HMR0InitVM(PVMCC pVM)
         pVM->hmr0.s.vmx.fUsePreemptTimer            = pVM->hm.s.vmx.fUsePreemptTimerCfg && g_fHmVmxUsePreemptTimer;
         pVM->hm.s.vmx.fUsePreemptTimerCfg           = pVM->hmr0.s.vmx.fUsePreemptTimer;
         pVM->hm.s.vmx.cPreemptTimerShift            = g_cHmVmxPreemptTimerShift;
+        pVM->hm.s.ForR3.vmx.u64HostCr0              = g_uHmVmxHostCr0;
         pVM->hm.s.ForR3.vmx.u64HostCr4              = g_uHmVmxHostCr4;
         pVM->hm.s.ForR3.vmx.u64HostMsrEfer          = g_uHmVmxHostMsrEfer;
         pVM->hm.s.ForR3.vmx.u64HostSmmMonitorCtl    = g_uHmVmxHostSmmMonitorCtl;
+        pVM->hm.s.ForR3.vmx.u64HostCoreCap          = g_uHmVmxHostCoreCap;
+        pVM->hm.s.ForR3.vmx.u64HostMemoryCtrl       = g_uHmVmxHostMemoryCtrl;
         pVM->hm.s.ForR3.vmx.u64HostFeatCtrl         = g_HmMsrs.u.vmx.u64FeatCtrl;
         HMGetVmxMsrsFromHwvirtMsrs(&g_HmMsrs, &pVM->hm.s.ForR3.vmx.Msrs);
         /* If you need to tweak host MSRs for testing VMX R0 code, do it here. */

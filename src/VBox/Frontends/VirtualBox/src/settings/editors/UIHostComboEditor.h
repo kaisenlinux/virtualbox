@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -38,7 +38,6 @@
 #include <QSet>
 
 /* GUI includes: */
-#include "QIWithRetranslateUI.h"
 #include "UILibraryDefs.h"
 
 /* Forward declarations: */
@@ -72,7 +71,7 @@ namespace UINativeHotKey
 #if defined(VBOX_WS_WIN)
     /** Distinguishes modifier VKey by @a wParam and @a lParam. */
     SHARED_LIBRARY_STUFF int distinguishModifierVKey(int wParam, int lParam);
-#elif defined(VBOX_WS_X11)
+#elif defined(VBOX_WS_NIX)
     /** Retranslates key names. */
     SHARED_LIBRARY_STUFF void retranslateKeyNames();
 #endif
@@ -126,7 +125,7 @@ Q_DECLARE_METATYPE(UIHostComboWrapper);
 
 
 /** Host-combo editor widget. */
-class SHARED_LIBRARY_STUFF UIHostComboEditor : public QIWithRetranslateUI<QWidget>
+class SHARED_LIBRARY_STUFF UIHostComboEditor : public QWidget
 {
     Q_OBJECT;
     Q_PROPERTY(UIHostComboWrapper combo READ combo WRITE setCombo USER true);
@@ -141,12 +140,10 @@ public:
     /** Constructs editor passing @a pParent to the base-class. */
     UIHostComboEditor(QWidget *pParent);
 
-protected:
+private slots:
 
     /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
-
-private slots:
+    void sltRetranslateUI();
 
     /** Notifies listener about data should be committed. */
     void sltCommitData();
@@ -200,11 +197,7 @@ public slots:
 protected:
 
     /** Handles native events. */
-#ifdef VBOX_IS_QT6_OR_LATER /* long replaced with qintptr since 6.0 */
     virtual bool nativeEvent(const QByteArray &eventType, void *pMessage, qintptr *pResult) RT_OVERRIDE;
-#else
-    virtual bool nativeEvent(const QByteArray &eventType, void *pMessage, long *pResult) RT_OVERRIDE;
-#endif
 
     /** Handles key-press @a pEvent. */
     virtual void keyPressEvent(QKeyEvent *pEvent) RT_OVERRIDE;

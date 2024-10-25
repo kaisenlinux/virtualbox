@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -81,7 +81,7 @@ public:
     void recallPopupPane(const QString &strID);
 
     /** Returns minimum size-hint. */
-    QSize minimumSizeHint() const { return m_minimumSizeHint; }
+    QSize minimumSizeHint() const RT_OVERRIDE RT_FINAL { return m_minimumSizeHint; }
 
 public slots:
 
@@ -116,4 +116,3 @@ private:
 };
 
 #endif /* !FEQT_INCLUDED_SRC_widgets_UIPopupStackViewport_h */
-

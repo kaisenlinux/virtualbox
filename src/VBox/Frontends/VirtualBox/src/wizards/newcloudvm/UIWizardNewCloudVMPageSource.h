@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -35,15 +35,14 @@
 #include "UINativeWizardPage.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CVirtualSystemDescription.h"
 
 /* Forward declarations: */
+class QComboBox;
 class QGridLayout;
 class QLabel;
-class QListWidget;
+class QIListWidget;
 class QTabBar;
-class QIComboBox;
 class QIRichTextLabel;
 class QIToolButton;
 class UINotificationCenter;
@@ -68,18 +67,18 @@ enum
 namespace UIWizardNewCloudVMSource
 {
     /** Populates @a pCombo with known providers. */
-    void populateProviders(QIComboBox *pCombo, UINotificationCenter *pCenter);
+    void populateProviders(QComboBox *pCombo, UINotificationCenter *pCenter);
     /** Populates @a pCombo with known profiles.
       * @param  strProviderShortName  Brings the short name of provider profiles related to.
       * @param  strProfileName        Brings the name of profile to be chosen by default. */
-    void populateProfiles(QIComboBox *pCombo,
+    void populateProfiles(QComboBox *pCombo,
                           UINotificationCenter *pCenter,
                           const QString &strProviderShortName,
                           const QString &strProfileName);
     /** Populates @a pList with source images.
       @param  pTabBar    Brings the tab-bar source images should be acquired for.
       @param  comClient  Brings the cloud client source images should be acquired from. */
-    void populateSourceImages(QListWidget *pList,
+    void populateSourceImages(QIListWidget *pList,
                               QTabBar *pTabBar,
                               UINotificationCenter *pCenter,
                               const CCloudClient &comClient);
@@ -92,11 +91,8 @@ namespace UIWizardNewCloudVMSource
                                 QTabBar *pTabBar,
                                 const QString &strImageId);
 
-    /** Updates @a pCombo tool-tips. */
-    void updateComboToolTip(QIComboBox *pCombo);
-
     /** Returns current user data for @a pList specified. */
-    QString currentListWidgetData(QListWidget *pList);
+    QString currentListWidgetData(QIListWidget *pList);
 }
 
 /** UINativeWizardPage extension for source page of the New Cloud VM wizard,
@@ -115,17 +111,14 @@ protected:
     /** Returns wizard this page belongs to. */
     UIWizardNewCloudVM *wizard() const;
 
-    /** Handles translation event. */
-    virtual void retranslateUi() /* override final */;
-
     /** Performs page initialization. */
-    virtual void initializePage() /* override final */;
+    virtual void initializePage() RT_OVERRIDE RT_FINAL;
 
     /** Returns whether page is complete. */
-    virtual bool isComplete() const /* override final */;
+    virtual bool isComplete() const RT_OVERRIDE RT_FINAL;
 
     /** Performs page validation. */
-    virtual bool validatePage() /* override final */;
+    virtual bool validatePage() RT_OVERRIDE RT_FINAL;
 
 private slots:
 
@@ -143,6 +136,9 @@ private slots:
     /** Handles change in image list. */
     void sltHandleSourceImageChange();
 
+    /** Handles translation event. */
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
+
 private:
 
     /** Holds the image ID. */
@@ -156,7 +152,7 @@ private:
     /** Holds the provider type label instance. */
     QLabel      *m_pProviderLabel;
     /** Holds the provider type combo-box instance. */
-    QIComboBox  *m_pProviderComboBox;
+    QComboBox   *m_pProviderComboBox;
 
     /** Holds the description label instance. */
     QIRichTextLabel *m_pLabelDescription;
@@ -166,15 +162,16 @@ private:
     /** Holds the profile label instance. */
     QLabel       *m_pProfileLabel;
     /** Holds the profile combo-box instance. */
-    QIComboBox   *m_pProfileComboBox;
+    QComboBox    *m_pProfileComboBox;
     /** Holds the profile management tool-button instance. */
     QIToolButton *m_pProfileToolButton;
+
     /** Holds the source image label instance. */
     QLabel       *m_pSourceImageLabel;
     /** Holds the source tab-bar instance. */
     QTabBar      *m_pSourceTabBar;
     /** Holds the source image list instance. */
-    QListWidget  *m_pSourceImageList;
+    QIListWidget *m_pSourceImageList;
 };
 
 #endif /* !FEQT_INCLUDED_SRC_wizards_newcloudvm_UIWizardNewCloudVMPageSource_h */

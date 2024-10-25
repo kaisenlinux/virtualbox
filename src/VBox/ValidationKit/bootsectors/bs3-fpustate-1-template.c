@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2007-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2007-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -185,8 +185,8 @@ BS3_DECL_FAR(uint8_t) TMPL_NM(bs3FpuState1_Corruption)(uint8_t bMode)
     uint32_t            cFnStEnvSelectorsZero   = 0;
     BS3PTRUNION         MmioReg;
     BS3CPUVENDOR const  enmCpuVendor            = Bs3GetCpuVendor();
-    bool const          fSkipStorIdt            = Bs3TestQueryCfgBool(VMMDEV_TESTING_CFG_IS_NEM_LINUX);
-    bool const          fMayHaveZeroStEnvSels   = Bs3TestQueryCfgBool(VMMDEV_TESTING_CFG_IS_NEM_LINUX);
+    bool const          fSkipStorIdt            = Bs3TestQueryCfgBool(VMMDEV_TESTING_CFG_IS_NEM_LINUX, false);
+    bool const          fMayHaveZeroStEnvSels   = Bs3TestQueryCfgBool(VMMDEV_TESTING_CFG_IS_NEM_LINUX, false);
     bool const          fFastFxSaveRestore      = RT_BOOL(ASMCpuId_EDX(0x80000001) & X86_CPUID_AMD_FEATURE_EDX_FFXSR);
     //bool const          fFdpXcptOnly       = (ASMCpuIdEx_EBX(7, 0) & X86_CPUID_STEXT_FEATURE_EBX_FDP_EXCPTN_ONLY)
     //                                      && ASMCpuId_EAX(0) >= 7;

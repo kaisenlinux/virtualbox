@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2021-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2021-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -34,6 +34,9 @@
 /* Qt includes: */
 #include <QObject>
 #include <QQueue>
+
+/* GUI includes: */
+#include "UILibraryDefs.h"
 
 /** QObject subclass providing GUI with
   * interface for an execution step. */
@@ -74,7 +77,7 @@ public:
     /** Constructs execution queue passing @a pParent to the base-class. */
     UIExecutionQueue(QObject *pParent = 0);
     /** Destructs execution queue. */
-    virtual ~UIExecutionQueue() /* override final */;
+    virtual ~UIExecutionQueue() RT_OVERRIDE RT_FINAL;
 
     /** Enqueues pStep into queue. */
     void enqueue(UIExecutionStep *pStep);

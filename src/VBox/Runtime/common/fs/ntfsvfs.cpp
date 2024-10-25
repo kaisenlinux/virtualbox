@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -41,6 +41,7 @@
 #define LOG_GROUP RTLOGGROUP_FS
 #include <iprt/fsvfs.h>
 
+#include <iprt/asm-mem.h>
 #include <iprt/asm.h>
 #include <iprt/avl.h>
 #include <iprt/assert.h>
@@ -2373,7 +2374,7 @@ static DECLCALLBACK(int) rtFsNtfsFile_QueryInfo(void *pvThis, PRTFSOBJINFO pObjI
 /**
  * @interface_method_impl{RTVFSIOSTREAMOPS,pfnRead}
  */
-static DECLCALLBACK(int) rtFsNtfsFile_Read(void *pvThis, RTFOFF off, PCRTSGBUF pSgBuf, bool fBlocking, size_t *pcbRead)
+static DECLCALLBACK(int) rtFsNtfsFile_Read(void *pvThis, RTFOFF off, PRTSGBUF pSgBuf, bool fBlocking, size_t *pcbRead)
 {
     PRTFSNTFSFILE pThis = (PRTFSNTFSFILE)pvThis;
     AssertReturn(pSgBuf->cSegs == 1, VERR_INTERNAL_ERROR_3);
@@ -2390,7 +2391,10 @@ static DECLCALLBACK(int) rtFsNtfsFile_Read(void *pvThis, RTFOFF off, PCRTSGBUF p
     {
         rc = rtFsNtfsAttr_Read(pThis->pShared->pData, off, pSgBuf->paSegs[0].pvSeg, cbRead);
         if (RT_SUCCESS(rc))
+        {
             pThis->offFile = off + cbRead;
+            RTSgBufAdvance(pSgBuf, cbRead);
+        }
         Log6(("rtFsNtfsFile_Read: off=%#RX64 cbSeg=%#x -> %Rrc\n", off, pSgBuf->paSegs[0].cbSeg, rc));
     }
     else
@@ -2417,6 +2421,7 @@ static DECLCALLBACK(int) rtFsNtfsFile_Read(void *pvThis, RTFOFF off, PCRTSGBUF p
             {
                 pThis->offFile = off + cbRead;
                 *pcbRead = cbRead;
+                RTSgBufAdvance(pSgBuf, cbRead);
             }
             else
                 *pcbRead = 0;
@@ -2431,7 +2436,7 @@ static DECLCALLBACK(int) rtFsNtfsFile_Read(void *pvThis, RTFOFF off, PCRTSGBUF p
 /**
  * @interface_method_impl{RTVFSIOSTREAMOPS,pfnWrite}
  */
-static DECLCALLBACK(int) rtFsNtfsFile_Write(void *pvThis, RTFOFF off, PCRTSGBUF pSgBuf, bool fBlocking, size_t *pcbWritten)
+static DECLCALLBACK(int) rtFsNtfsFile_Write(void *pvThis, RTFOFF off, PRTSGBUF pSgBuf, bool fBlocking, size_t *pcbWritten)
 {
     PRTFSNTFSFILE pThis = (PRTFSNTFSFILE)pvThis;
     AssertReturn(pSgBuf->cSegs == 1, VERR_INTERNAL_ERROR_3);
@@ -2450,7 +2455,10 @@ static DECLCALLBACK(int) rtFsNtfsFile_Write(void *pvThis, RTFOFF off, PCRTSGBUF 
         rc = rtFsNtfsAttr_Write(pThis->pShared->pData, off, pSgBuf->paSegs[0].pvSeg, cbToWrite);
         Log6(("rtFsNtfsFile_Write: off=%#RX64 cbToWrite=%#zx -> %Rrc\n", off, cbToWrite, rc));
         if (RT_SUCCESS(rc))
+        {
             pThis->offFile = off + cbToWrite;
+            RTSgBufAdvance(pSgBuf, cbToWrite);
+        }
         if (pcbWritten)
             *pcbWritten = RT_SUCCESS(rc) ? cbToWrite : 0;
     }
@@ -2465,6 +2473,7 @@ static DECLCALLBACK(int) rtFsNtfsFile_Write(void *pvThis, RTFOFF off, PCRTSGBUF 
             pThis->offFile = off + cbWritten;
             if (pcbWritten)
                 *pcbWritten = cbWritten;
+            RTSgBufAdvance(pSgBuf, cbWritten);
             rc = VERR_EOF;
         }
         else

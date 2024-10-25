@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2015-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2015-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,24 +32,22 @@
 #ifdef VBOX_WS_WIN
 # include <QLibrary>
 #endif
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
 # include <QTimer>
 #endif
-#if QT_VERSION < QT_VERSION_CHECK(5, 10, 0)
-# include <QDesktopWidget>
-#endif /* Qt < 5.10 */
 
 /* GUI includes: */
 #include "UIDesktopWidgetWatchdog.h"
+#include "UILoggingDefs.h"
 #ifdef VBOX_WS_MAC
 # include "VBoxUtils-darwin.h"
 #endif
 #ifdef VBOX_WS_WIN
 # include "VBoxUtils-win.h"
 #endif
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
 # include "UICommon.h"
-# include "VBoxUtils-x11.h"
+# include "VBoxUtils-nix.h"
 # ifndef VBOX_GUI_WITH_CUSTOMIZATIONS1
 #  include "UIConverter.h"
 # endif
@@ -59,14 +57,13 @@
 #include <iprt/asm.h>
 #include <iprt/assert.h>
 #include <iprt/ldr.h>
-#include <VBox/log.h>
 #ifdef VBOX_WS_WIN
 # include <iprt/win/windows.h>
 #endif
 
 /* External includes: */
 #include <math.h>
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
 # include <xcb/xcb.h>
 #endif
 
@@ -121,7 +118,11 @@ static BOOL CALLBACK MonitorEnumProcF(HMONITOR hMonitor, HDC hdcMonitor, LPRECT 
 #endif /* VBOX_WS_WIN */
 
 
-#if defined(VBOX_WS_X11) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
+#if defined(VBOX_WS_NIX) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
+
+/* static */
+const QString
+UIDesktopWidgetWatchdog::s_strVBoxDesktopWatchdogPolicySynthTest = "VBOX_DESKTOPWATCHDOGPOLICY_SYNTHTEST";
 
 /** QWidget extension used as
   * an invisible window on the basis of which we
@@ -150,9 +151,9 @@ private slots:
 private:
 
     /** Move @a pEvent handler. */
-    void moveEvent(QMoveEvent *pEvent);
+    void moveEvent(QMoveEvent *pEvent) RT_OVERRIDE RT_FINAL;
     /** Resize @a pEvent handler. */
-    void resizeEvent(QResizeEvent *pEvent);
+    void resizeEvent(QResizeEvent *pEvent) RT_OVERRIDE RT_FINAL;
 
     /** Holds the index of the host-screen this window created for. */
     const int m_iHostScreenIndex;
@@ -192,7 +193,7 @@ void UIInvisibleWindow::sltFallback()
     if (   fallbackGeometry.width() <= 1
         || fallbackGeometry.height() <= 1)
         fallbackGeometry = gpDesktop->screenGeometry(m_iHostScreenIndex);
-    LogRel(("GUI: UIInvisibleWindow::sltFallback: %s event haven't came. "
+    LogRel(("GUI: UIInvisibleWindow::sltFallback: %s event missing. "
             "Screen: %d, work area: %dx%d x %dx%d\n",
             !m_fMoveCame ? "Move" : !m_fResizeCame ? "Resize" : "Some",
             m_iHostScreenIndex, fallbackGeometry.x(), fallbackGeometry.y(), fallbackGeometry.width(), fallbackGeometry.height()));
@@ -251,7 +252,7 @@ void UIInvisibleWindow::resizeEvent(QResizeEvent *pEvent)
     }
 }
 
-#endif /* VBOX_WS_X11 && !VBOX_GUI_WITH_CUSTOMIZATIONS1 */
+#endif /* VBOX_WS_NIX && !VBOX_GUI_WITH_CUSTOMIZATIONS1 */
 
 
 /*********************************************************************************************************************************
@@ -286,7 +287,7 @@ void UIDesktopWidgetWatchdog::destroy()
 }
 
 UIDesktopWidgetWatchdog::UIDesktopWidgetWatchdog()
-#if defined(VBOX_WS_X11) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
+#if defined(VBOX_WS_NIX) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
     : m_enmSynthTestPolicy(DesktopWatchdogPolicy_SynthTest_Both)
 #endif
 {
@@ -326,11 +327,7 @@ int UIDesktopWidgetWatchdog::screenNumber(const QWidget *pWidget)
 /* static */
 int UIDesktopWidgetWatchdog::screenNumber(const QPoint &point)
 {
-#if QT_VERSION >= QT_VERSION_CHECK(5, 10, 0)
     return screenToIndex(QGuiApplication::screenAt(point));
-#else /* Qt < 5.10 */
-    return QApplication::desktop()->screenNumber(point);
-#endif /* Qt < 5.10 */
 }
 
 QRect UIDesktopWidgetWatchdog::screenGeometry(QScreen *pScreen) const
@@ -362,7 +359,6 @@ QRect UIDesktopWidgetWatchdog::screenGeometry(const QWidget *pWidget) const
 
 QRect UIDesktopWidgetWatchdog::screenGeometry(const QPoint &point) const
 {
-#if QT_VERSION >= QT_VERSION_CHECK(5, 10, 0)
     /* Gather suitable screen, use primary if failed: */
     QScreen *pScreen = QGuiApplication::screenAt(point);
     if (!pScreen)
@@ -370,18 +366,11 @@ QRect UIDesktopWidgetWatchdog::screenGeometry(const QPoint &point) const
 
     /* Redirect call to wrapper above: */
     return screenGeometry(pScreen);
-#else /* Qt < 5.10 */
-    /* Gather suitable screen index: */
-    const int iHostScreenIndex = QApplication::desktop()->screenNumber(point);
-
-    /* Redirect call to wrapper above: */
-    return screenGeometry(iHostScreenIndex);
-#endif /* Qt < 5.10 */
 }
 
 QRect UIDesktopWidgetWatchdog::availableGeometry(QScreen *pScreen) const
 {
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
 # ifdef VBOX_GUI_WITH_CUSTOMIZATIONS1
     // WORKAROUND:
     // For customer WM we don't want Qt to return wrong available geometry,
@@ -393,10 +382,10 @@ QRect UIDesktopWidgetWatchdog::availableGeometry(QScreen *pScreen) const
     /* Return cached available-geometry if it's valid or screen-geometry otherwise: */
     return availableGeometry.isValid() ? availableGeometry : screenGeometry(pScreen);
 # endif /* !VBOX_GUI_WITH_CUSTOMIZATIONS1 */
-#else /* !VBOX_WS_X11 */
+#else /* !VBOX_WS_NIX */
     /* Just return screen available-geometry: */
     return pScreen->availableGeometry();
-#endif /* !VBOX_WS_X11 */
+#endif /* !VBOX_WS_NIX */
 }
 
 QRect UIDesktopWidgetWatchdog::availableGeometry(int iHostScreenIndex /* = -1 */) const
@@ -422,7 +411,6 @@ QRect UIDesktopWidgetWatchdog::availableGeometry(const QWidget *pWidget) const
 
 QRect UIDesktopWidgetWatchdog::availableGeometry(const QPoint &point) const
 {
-#if QT_VERSION >= QT_VERSION_CHECK(5, 10, 0)
     /* Gather suitable screen, use primary if failed: */
     QScreen *pScreen = QGuiApplication::screenAt(point);
     if (!pScreen)
@@ -430,13 +418,6 @@ QRect UIDesktopWidgetWatchdog::availableGeometry(const QPoint &point) const
 
     /* Redirect call to wrapper above: */
     return availableGeometry(pScreen);
-#else /* Qt < 5.10 */
-    /* Gather suitable screen index: */
-    const int iHostScreenIndex = QApplication::desktop()->screenNumber(point);
-
-    /* Redirect call to wrapper above: */
-    return availableGeometry(iHostScreenIndex);
-#endif /* Qt < 5.10 */
 }
 
 /* static */
@@ -470,7 +451,7 @@ QRegion UIDesktopWidgetWatchdog::overallAvailableRegion()
     return region;
 }
 
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
 /* static */
 bool UIDesktopWidgetWatchdog::isFakeScreenDetected()
 {
@@ -483,7 +464,7 @@ bool UIDesktopWidgetWatchdog::isFakeScreenDetected()
     return    qApp->screens().size() == 0 /* zero-screen case is impossible after 5.6.1 */
            || (qApp->screens().size() == 1 && qApp->screens().first()->name() == ":0.0");
 }
-#endif /* VBOX_WS_X11 */
+#endif /* VBOX_WS_NIX */
 
 /* static */
 double UIDesktopWidgetWatchdog::devicePixelRatio(int iHostScreenIndex /* = -1 */)
@@ -701,7 +682,7 @@ void UIDesktopWidgetWatchdog::centerWidget(QWidget *pWidget,
      * pWidget will be centered relative to the available desktop area. */
 
     AssertReturnVoid(pWidget);
-    AssertReturnVoid(pWidget->isTopLevel());
+    AssertReturnVoid(pWidget->isWindow());
 
     QRect deskGeo, parentGeo;
     if (pRelative)
@@ -787,9 +768,9 @@ void UIDesktopWidgetWatchdog::restoreWidget(QWidget *pWidget)
 void UIDesktopWidgetWatchdog::setTopLevelGeometry(QWidget *pWidget, int x, int y, int w, int h)
 {
     AssertPtrReturnVoid(pWidget);
-#ifdef VBOX_WS_X11
+#ifdef VBOX_WS_NIX
 # define QWINDOWSIZE_MAX ((1<<24)-1)
-    if (pWidget->isWindow() && pWidget->isVisible())
+    if (pWidget->isWindow() && pWidget->isVisible() && uiCommon().X11ServerAvailable())
     {
         // WORKAROUND:
         // X11 window managers are not required to accept geometry changes on
@@ -838,9 +819,9 @@ void UIDesktopWidgetWatchdog::setTopLevelGeometry(QWidget *pWidget, int x, int y
         // Call the Qt method if the window is not visible as otherwise no
         // Configure event will arrive to tell Qt what geometry we want.
         pWidget->setGeometry(x, y, w, h);
-# else /* !VBOX_WS_X11 */
+# else /* !VBOX_WS_NIX */
     pWidget->setGeometry(x, y, w, h);
-# endif /* !VBOX_WS_X11 */
+# endif /* !VBOX_WS_NIX */
 }
 
 /* static */
@@ -859,9 +840,9 @@ bool UIDesktopWidgetWatchdog::activateWindow(WId wId, bool fSwitchDesktop /* = t
 
     fResult &= NativeWindowSubsystem::WinActivateWindow(wId, fSwitchDesktop);
 
-#elif defined(VBOX_WS_X11)
+#elif defined(VBOX_WS_NIX)
 
-    fResult &= NativeWindowSubsystem::X11ActivateWindow(wId, fSwitchDesktop);
+    fResult &= NativeWindowSubsystem::activateWindow(uiCommon().X11ServerAvailable(), wId, fSwitchDesktop);
 
 #else
 
@@ -888,10 +869,10 @@ void UIDesktopWidgetWatchdog::sltHostScreenAdded(QScreen *pHostScreen)
     connect(pHostScreen, &QScreen::availableGeometryChanged,
             this, &UIDesktopWidgetWatchdog::sltHandleHostScreenWorkAreaResized);
 
-#if defined(VBOX_WS_X11) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
+#if defined(VBOX_WS_NIX) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
     /* Update host-screen configuration: */
     updateHostScreenConfiguration();
-#endif /* VBOX_WS_X11 && !VBOX_GUI_WITH_CUSTOMIZATIONS1 */
+#endif /* VBOX_WS_NIX && !VBOX_GUI_WITH_CUSTOMIZATIONS1 */
 
     /* Notify listeners: */
     emit sigHostScreenCountChanged(screenCount());
@@ -907,10 +888,10 @@ void UIDesktopWidgetWatchdog::sltHostScreenRemoved(QScreen *pHostScreen)
     disconnect(pHostScreen, &QScreen::availableGeometryChanged,
                this, &UIDesktopWidgetWatchdog::sltHandleHostScreenWorkAreaResized);
 
-#if defined(VBOX_WS_X11) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
+#if defined(VBOX_WS_NIX) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
     /* Update host-screen configuration: */
     updateHostScreenConfiguration();
-#endif /* VBOX_WS_X11 && !VBOX_GUI_WITH_CUSTOMIZATIONS1 */
+#endif /* VBOX_WS_NIX && !VBOX_GUI_WITH_CUSTOMIZATIONS1 */
 
     /* Notify listeners: */
     emit sigHostScreenCountChanged(screenCount());
@@ -930,10 +911,10 @@ void UIDesktopWidgetWatchdog::sltHandleHostScreenResized(const QRect &geometry)
             iHostScreenIndex, geometry.x(), geometry.y(),
             geometry.width(), geometry.height()));
 
-#if defined(VBOX_WS_X11) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
+#if defined(VBOX_WS_NIX) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
     /* Update host-screen available-geometry: */
     updateHostScreenAvailableGeometry(iHostScreenIndex);
-#endif /* VBOX_WS_X11 && !VBOX_GUI_WITH_CUSTOMIZATIONS1 */
+#endif /* VBOX_WS_NIX && !VBOX_GUI_WITH_CUSTOMIZATIONS1 */
 
     /* Notify listeners: */
     emit sigHostScreenResized(iHostScreenIndex);
@@ -953,16 +934,16 @@ void UIDesktopWidgetWatchdog::sltHandleHostScreenWorkAreaResized(const QRect &av
             iHostScreenIndex, availableGeometry.x(), availableGeometry.y(),
             availableGeometry.width(), availableGeometry.height()));
 
-#if defined(VBOX_WS_X11) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
+#if defined(VBOX_WS_NIX) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
     /* Update host-screen available-geometry: */
     updateHostScreenAvailableGeometry(iHostScreenIndex);
-#endif /* VBOX_WS_X11 && !VBOX_GUI_WITH_CUSTOMIZATIONS1 */
+#endif /* VBOX_WS_NIX && !VBOX_GUI_WITH_CUSTOMIZATIONS1 */
 
     /* Notify listeners: */
     emit sigHostScreenWorkAreaResized(iHostScreenIndex);
 }
 
-#if defined(VBOX_WS_X11) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
+#if defined(VBOX_WS_NIX) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
 void UIDesktopWidgetWatchdog::sltHandleHostScreenAvailableGeometryCalculated(int iHostScreenIndex, QRect availableGeometry)
 {
     LogRel(("GUI: UIDesktopWidgetWatchdog::sltHandleHostScreenAvailableGeometryCalculated: "
@@ -983,7 +964,7 @@ void UIDesktopWidgetWatchdog::sltHandleHostScreenAvailableGeometryCalculated(int
     if (fSendSignal)
         emit sigHostScreenWorkAreaRecalculated(iHostScreenIndex);
 }
-#endif /* VBOX_WS_X11 && !VBOX_GUI_WITH_CUSTOMIZATIONS1 */
+#endif /* VBOX_WS_NIX && !VBOX_GUI_WITH_CUSTOMIZATIONS1 */
 
 void UIDesktopWidgetWatchdog::prepare()
 {
@@ -1000,14 +981,15 @@ void UIDesktopWidgetWatchdog::prepare()
                 this, &UIDesktopWidgetWatchdog::sltHandleHostScreenWorkAreaResized);
     }
 
-#if defined(VBOX_WS_X11) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
+#if defined(VBOX_WS_NIX) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
     /* Load Synthetic Test policy: */
-    const QString strSynthTestPolicy = QString::fromLocal8Bit(qgetenv(VBox_DesktopWatchdogPolicy_SynthTest));
+    const QString strSynthTestPolicy =
+        QString::fromLocal8Bit(qgetenv(s_strVBoxDesktopWatchdogPolicySynthTest.toLatin1().constData()));
     m_enmSynthTestPolicy = gpConverter->fromInternalString<DesktopWatchdogPolicy_SynthTest>(strSynthTestPolicy);
 
     /* Update host-screen configuration: */
     updateHostScreenConfiguration();
-#endif /* VBOX_WS_X11 && !VBOX_GUI_WITH_CUSTOMIZATIONS1 */
+#endif /* VBOX_WS_NIX && !VBOX_GUI_WITH_CUSTOMIZATIONS1 */
 }
 
 void UIDesktopWidgetWatchdog::cleanup()
@@ -1025,10 +1007,10 @@ void UIDesktopWidgetWatchdog::cleanup()
                    this, &UIDesktopWidgetWatchdog::sltHandleHostScreenWorkAreaResized);
     }
 
-#if defined(VBOX_WS_X11) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
+#if defined(VBOX_WS_NIX) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
     /* Cleanup existing workers finally: */
     cleanupExistingWorkers();
-#endif /* VBOX_WS_X11 && !VBOX_GUI_WITH_CUSTOMIZATIONS1 */
+#endif /* VBOX_WS_NIX && !VBOX_GUI_WITH_CUSTOMIZATIONS1 */
 }
 
 /* static */
@@ -1059,14 +1041,14 @@ QRegion UIDesktopWidgetWatchdog::flip(const QRegion &region)
     return result;
 }
 
-#if defined(VBOX_WS_X11) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
+#if defined(VBOX_WS_NIX) && !defined(VBOX_GUI_WITH_CUSTOMIZATIONS1)
 bool UIDesktopWidgetWatchdog::isSynchTestRestricted() const
 {
     return    m_enmSynthTestPolicy == DesktopWatchdogPolicy_SynthTest_Disabled
            || (   m_enmSynthTestPolicy == DesktopWatchdogPolicy_SynthTest_ManagerOnly
-               && uiCommon().uiType() == UICommon::UIType_RuntimeUI)
+               && uiCommon().uiType() == UIType_RuntimeUI)
            || (   m_enmSynthTestPolicy == DesktopWatchdogPolicy_SynthTest_MachineOnly
-               && uiCommon().uiType() == UICommon::UIType_SelectorUI);
+               && uiCommon().uiType() == UIType_ManagerUI);
 }
 
 void UIDesktopWidgetWatchdog::updateHostScreenConfiguration(int cHostScreenCount /* = -1 */)
@@ -1140,5 +1122,4 @@ void UIDesktopWidgetWatchdog::cleanupExistingWorkers()
 }
 
 # include "UIDesktopWidgetWatchdog.moc"
-#endif /* VBOX_WS_X11 && !VBOX_GUI_WITH_CUSTOMIZATIONS1 */
-
+#endif /* VBOX_WS_NIX && !VBOX_GUI_WITH_CUSTOMIZATIONS1 */

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1646,11 +1646,11 @@ static int txsCommonShutdownReboot(PCTXSPKTHDR pPktHdr, uint32_t fAction)
      * failures failures this way.  But the client can kind of figure it out by
      * reconnecting and seeing that our UUID was unchanged.
      */
-    int rc;
     if (pPktHdr->cb != sizeof(TXSPKTHDR))
         return txsReplyBadSize(pPktHdr, sizeof(TXSPKTHDR));
     g_pTransport->pfnNotifyReboot();
-    rc = txsReplyAck(pPktHdr);
+    int rc = txsReplyAck(pPktHdr);
+    AssertRCReturn(rc, rc);
     RTThreadSleep(2560);                /* fudge factor */
     g_pTransport->pfnTerm();
 
@@ -2375,7 +2375,7 @@ static int txsDoExecHlp2(PTXSEXEC pTxsExec)
     for (size_t i = 0; i < 22; i++)
     {
         rc2 = RTThreadWait(pTxsExec->hThreadWaiter, RT_MS_1SEC / 2, NULL);
-        if (RT_SUCCESS(rc))
+        if (RT_SUCCESS(rc2))
         {
             pTxsExec->hThreadWaiter = NIL_RTTHREAD;
             Assert(!pTxsExec->fProcessAlive);
@@ -3652,7 +3652,6 @@ static RTEXITCODE txsParseArgv(int argc, char **argv, bool *pfExit)
      */
     bool        fAutoUpgrade    = true;
     bool        fDaemonize      = true;
-    bool        fDaemonized     = false;
     const char *pszUpgrading    = NULL;
 #ifdef RT_OS_SOLARIS
     uint32_t    cSecsCdWait     = 8;
@@ -3778,12 +3777,11 @@ static RTEXITCODE txsParseArgv(int argc, char **argv, bool *pfExit)
                 break;
 
             case 'V':
-                RTPrintf("$Revision: 155244 $\n");
+                RTPrintf("$Revision: 164827 $\n");
                 *pfExit = true;
                 return RTEXITCODE_SUCCESS;
 
             case 'Z':
-                fDaemonized = true;
                 fDaemonize = false;
                 break;
 

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -37,7 +37,7 @@
 
 
 UIColorThemeEditor::UIColorThemeEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent)
     , m_enmValue(UIColorThemeType_Auto)
     , m_pLabel(0)
     , m_pCombo(0)
@@ -61,7 +61,7 @@ UIColorThemeType UIColorThemeEditor::value() const
     return m_pCombo ? m_pCombo->currentData().value<UIColorThemeType>() : m_enmValue;
 }
 
-void UIColorThemeEditor::retranslateUi()
+void UIColorThemeEditor::sltRetranslateUI()
 {
     if (m_pLabel)
         m_pLabel->setText(tr("Color &Theme:"));
@@ -116,7 +116,7 @@ void UIColorThemeEditor::prepare()
     populateCombo();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIColorThemeEditor::populateCombo()
@@ -142,6 +142,6 @@ void UIColorThemeEditor::populateCombo()
             m_pCombo->setCurrentIndex(iIndex);
 
         /* Retranslate finally: */
-        retranslateUi();
+        sltRetranslateUI();
     }
 }

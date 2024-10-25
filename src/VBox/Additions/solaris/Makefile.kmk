@@ -4,7 +4,7 @@
 #
 
 #
-# Copyright (C) 2008-2023 Oracle and/or its affiliates.
+# Copyright (C) 2008-2024 Oracle and/or its affiliates.
 #
 # This file is part of VirtualBox base platform packages, as
 # available from https://www.virtualbox.org.
@@ -149,24 +149,24 @@ solaris-addcommon_SOURCES = \
 BLDDIRS          += \
 	$(SOLARIS_ADDINST_OUT_DIR) \
 	$(addprefix $(SOLARIS_ADDINST_OUT_DIR)/, \
-	opt \
-	opt/VirtualBoxAdditions \
-	opt/VirtualBoxAdditions/$(SOLARIS_ADDDIR_NAME_32) \
-	opt/VirtualBoxAdditions/$(SOLARIS_ADDDIR_NAME_64) \
-	usr \
-	usr/bin \
-	usr/sbin \
-	usr/lib \
-	usr/lib/amd64 \
-	usr/kernel \
-	usr/kernel/drv \
-	usr/kernel/drv/amd64 \
-	var \
-	var/svc \
-	var/svc/manifest \
-	var/svc/manifest/application \
-	var/svc/manifest/application/virtualbox \
-	)
+		opt \
+		opt/VirtualBoxAdditions \
+		opt/VirtualBoxAdditions/$(SOLARIS_ADDDIR_NAME_32) \
+		opt/VirtualBoxAdditions/$(SOLARIS_ADDDIR_NAME_64) \
+		usr \
+		usr/bin \
+		usr/sbin \
+		usr/lib \
+		usr/lib/amd64 \
+		usr/kernel \
+		usr/kernel/drv \
+		usr/kernel/drv/amd64 \
+		var \
+		var/svc \
+		var/svc/manifest \
+		var/svc/manifest/application \
+		var/svc/manifest/application/virtualbox \
+		)
 
 SOLARIS_ADD_STRIP_BINS = \
 	VBoxClient \
@@ -308,8 +308,8 @@ $(PATH_STAGE_BIN)/additions/$(PKGFILENAME): \
 	$(QUIET)$(INSTALL) -m 0755 $(VBOX_PATH_SOLARIS_ADDITION_INSTALLER)/preremove.sh                       $(SOLARIS_ADDINST_OUT_DIR)/preremove.sh
 	$(QUIET)$(INSTALL) -m 0644 $(VBOX_PATH_SOLARIS_ADDITION_INSTALLER)/vboxguest.space                    $(SOLARIS_ADDINST_OUT_DIR)/vboxguest.space
 	$(QUIET)$(INSTALL) -m 0644 $(VBOX_PATH_SOLARIS_ADDITION_INSTALLER)/vboxguest.depend                   $(SOLARIS_ADDINST_OUT_DIR)/vboxguest.depend
-	# don't display the license on package install, since 4.0
-	#$(QUIET)$(INSTALL) -m 0644 $(VBOX_BRAND_LICENSE_TXT)                                                  $(SOLARIS_ADDINST_OUT_DIR)/vboxguest.copyright
+        # don't display the license on package install, since 4.0
+        #$(QUIET)$(INSTALL) -m 0644 $(VBOX_BRAND_LICENSE_TXT)                                                  $(SOLARIS_ADDINST_OUT_DIR)/vboxguest.copyright
 	$(call MSG_L1,Creating install package: $@)
 	$(QUIET)$(MKDIR) -p $(SOLARIS_ADD_ETCFS_DIR)
 	$(QUIET)$(MKDIR) -p $(VBOX_PATH_SOLARIS_ADDITION_INSTALLER)

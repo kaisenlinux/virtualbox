@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -301,6 +301,9 @@ static DECLCALLBACK(int) rtDbgModInitOnce(void *pvUser)
 #ifdef RT_OS_WINDOWS
         if (RT_SUCCESS(rc))
             rc = rtDbgModDebugInterpreterRegister(&g_rtDbgModVtDbgDbgHelp);
+#else
+        if (RT_SUCCESS(rc))
+            rc = rtDbgModDebugInterpreterRegister(&g_rtDbgModVtDbgPdb);
 #endif
         if (RT_SUCCESS(rc))
             rc = rtDbgModImageInterpreterRegister(&g_rtDbgModVtImgLdr);
@@ -432,7 +435,7 @@ RTDECL(int) RTDbgModCreateFromMap(PRTDBGMOD phDbgMod, const char *pszFilename, c
                         {
                             pDbgMod->pDbgVt = pCur->pVt;
                             pDbgMod->pvDbgPriv = NULL;
-                            rc = pCur->pVt->pfnTryOpen(pDbgMod, RTLDRARCH_WHATEVER);
+                            rc = pCur->pVt->pfnTryOpen(pDbgMod, RTLDRARCH_WHATEVER, hDbgCfg);
                             if (RT_SUCCESS(rc))
                             {
                                 ASMAtomicIncU32(&pCur->cUsers);
@@ -496,7 +499,7 @@ static int rtDbgModOpenDebugInfoInsideImage(PRTDBGMODINT pDbgMod)
         {
             pDbgMod->pDbgVt    = pDbg->pVt;
             pDbgMod->pvDbgPriv = NULL;
-            rc = pDbg->pVt->pfnTryOpen(pDbgMod, pDbgMod->pImgVt->pfnGetArch(pDbgMod));
+            rc = pDbg->pVt->pfnTryOpen(pDbgMod, pDbgMod->pImgVt->pfnGetArch(pDbgMod), NIL_RTDBGCFG);
             if (RT_SUCCESS(rc))
             {
                 /*
@@ -523,7 +526,6 @@ static DECLCALLBACK(int) rtDbgModExtDbgInfoOpenCallback(RTDBGCFG hDbgCfg, const 
     PRTDBGMODINT        pDbgMod   = (PRTDBGMODINT)pvUser1;
     PCRTLDRDBGINFO      pDbgInfo  = (PCRTLDRDBGINFO)pvUser2;
     RT_NOREF_PV(pDbgInfo); /** @todo consider a more direct search for a interpreter. */
-    RT_NOREF_PV(hDbgCfg);
 
     Assert(!pDbgMod->pDbgVt);
     Assert(!pDbgMod->pvDbgPriv);
@@ -542,7 +544,7 @@ static DECLCALLBACK(int) rtDbgModExtDbgInfoOpenCallback(RTDBGCFG hDbgCfg, const 
         {
             pDbgMod->pDbgVt    = pDbg->pVt;
             pDbgMod->pvDbgPriv = NULL;
-            rc = pDbg->pVt->pfnTryOpen(pDbgMod, pDbgMod->pImgVt->pfnGetArch(pDbgMod));
+            rc = pDbg->pVt->pfnTryOpen(pDbgMod, pDbgMod->pImgVt->pfnGetArch(pDbgMod), hDbgCfg);
             if (RT_SUCCESS(rc))
             {
                 /*
@@ -580,7 +582,8 @@ typedef struct RTDBGMODOPENDIETI
 static DECLCALLBACK(int)
 rtDbgModOpenDebugInfoExternalToImageCallback(RTLDRMOD hLdrMod, PCRTLDRDBGINFO pDbgInfo, void *pvUser)
 {
-    RTDBGMODOPENDIETI *pArgs = (RTDBGMODOPENDIETI *)pvUser;
+    RTDBGMODOPENDIETI * const pArgs   = (RTDBGMODOPENDIETI *)pvUser;
+    PRTDBGMODINT const        pDbgMod = pArgs->pDbgMod;
     RT_NOREF_PV(hLdrMod);
 
     Assert(pDbgInfo->enmType > RTLDRDBGINFOTYPE_INVALID && pDbgInfo->enmType < RTLDRDBGINFOTYPE_END);
@@ -588,27 +591,35 @@ rtDbgModOpenDebugInfoExternalToImageCallback(RTLDRMOD hLdrMod, PCRTLDRDBGINFO pD
     if (!pszExtFile)
     {
         /*
-         * If a external debug type comes without a file name, calculate a
-         * likely debug filename for it. (Hack for NT4 drivers.)
+         * If a external debug type comes without a file name, calculate a likely
+         * debug filename for it. (Hack for NT4 drivers and the 'nt' module for
+         * NT and W2K.)  Prefer the image name rather than the module name, since
+         * the latter can be normalized or using a different name (e.g. 'nt').
          */
-        const char *pszExt = NULL;
+        const char *pszExtSuff = NULL;
+        size_t      cchExtSuff = 0;
         if (pDbgInfo->enmType == RTLDRDBGINFOTYPE_CODEVIEW_DBG)
-            pszExt = ".dbg";
+            pszExtSuff = ".dbg", cchExtSuff = sizeof(".dbg") - 1;
         else if (   pDbgInfo->enmType == RTLDRDBGINFOTYPE_CODEVIEW_PDB20
                  || pDbgInfo->enmType == RTLDRDBGINFOTYPE_CODEVIEW_PDB70)
-            pszExt = ".pdb";
-        if (pszExt && pArgs->pDbgMod->pszName)
+            pszExtSuff = ".pdb", cchExtSuff = sizeof(".pdb") - 1;
+        if (pszExtSuff)
         {
-            size_t cchName = strlen(pArgs->pDbgMod->pszName);
-            char *psz = (char *)alloca(cchName + strlen(pszExt) + 1);
-            if (psz)
+            const char * const pszName = pDbgMod->pszImgFile
+                                       ? RTPathFilenameEx(pDbgMod->pszImgFile, RTPATH_STR_F_STYLE_DOS)
+                                       : pDbgMod->pszName;
+            if (pszName)
             {
-                memcpy(psz, pArgs->pDbgMod->pszName, cchName + 1);
-                RTPathStripSuffix(psz);
-                pszExtFile = strcat(psz, pszExt);
+                const char * const  pszOldSuff    = RTPathSuffix(pszName);
+                size_t const        cchName       = pszOldSuff ? (size_t)(pszOldSuff - pszName) : strlen(pszName);
+                char * const        pszExtFileBuf = (char *)alloca(cchName + cchExtSuff + 1);
+                if (pszExtFileBuf)
+                {
+                    memcpy(mempcpy(pszExtFileBuf, pszName, cchName), pszExtSuff, cchExtSuff + 1);
+                    pszExtFile = pszExtFileBuf;
+                }
             }
         }
-
         if (!pszExtFile)
         {
             Log2(("rtDbgModOpenDebugInfoExternalToImageCallback: enmType=%d\n", pDbgInfo->enmType));
@@ -626,7 +637,7 @@ rtDbgModOpenDebugInfoExternalToImageCallback(RTLDRMOD hLdrMod, PCRTLDRDBGINFO pD
             rc = RTDbgCfgOpenPdb70(pArgs->hDbgCfg, pszExtFile,
                                    &pDbgInfo->u.Pdb70.Uuid,
                                    pDbgInfo->u.Pdb70.uAge,
-                                   rtDbgModExtDbgInfoOpenCallback, pArgs->pDbgMod, (void *)pDbgInfo);
+                                   rtDbgModExtDbgInfoOpenCallback, pDbgMod, (void *)pDbgInfo);
             break;
 
         case RTLDRDBGINFOTYPE_CODEVIEW_PDB20:
@@ -634,20 +645,20 @@ rtDbgModOpenDebugInfoExternalToImageCallback(RTLDRMOD hLdrMod, PCRTLDRDBGINFO pD
                                    pDbgInfo->u.Pdb20.cbImage,
                                    pDbgInfo->u.Pdb20.uTimestamp,
                                    pDbgInfo->u.Pdb20.uAge,
-                                   rtDbgModExtDbgInfoOpenCallback, pArgs->pDbgMod, (void *)pDbgInfo);
+                                   rtDbgModExtDbgInfoOpenCallback, pDbgMod, (void *)pDbgInfo);
             break;
 
         case RTLDRDBGINFOTYPE_CODEVIEW_DBG:
             rc = RTDbgCfgOpenDbg(pArgs->hDbgCfg, pszExtFile,
                                  pDbgInfo->u.Dbg.cbImage,
                                  pDbgInfo->u.Dbg.uTimestamp,
-                                 rtDbgModExtDbgInfoOpenCallback, pArgs->pDbgMod, (void *)pDbgInfo);
+                                 rtDbgModExtDbgInfoOpenCallback, pDbgMod, (void *)pDbgInfo);
             break;
 
         case RTLDRDBGINFOTYPE_DWARF_DWO:
             rc = RTDbgCfgOpenDwo(pArgs->hDbgCfg, pszExtFile,
                                  pDbgInfo->u.Dwo.uCrc32,
-                                 rtDbgModExtDbgInfoOpenCallback, pArgs->pDbgMod, (void *)pDbgInfo);
+                                 rtDbgModExtDbgInfoOpenCallback, pDbgMod, (void *)pDbgInfo);
             break;
 
         default:
@@ -658,11 +669,11 @@ rtDbgModOpenDebugInfoExternalToImageCallback(RTLDRMOD hLdrMod, PCRTLDRDBGINFO pD
     if (RT_SUCCESS(rc))
     {
         LogFlow(("RTDbgMod: Successfully opened external debug info '%s' for '%s'\n",
-                 pArgs->pDbgMod->pszDbgFile, pArgs->pDbgMod->pszImgFile));
+                 pDbgMod->pszDbgFile, pDbgMod->pszImgFile));
         return VINF_CALLBACK_RETURN;
     }
     Log(("rtDbgModOpenDebugInfoExternalToImageCallback: '%s' (enmType=%d) for '%s'  -> %Rrc\n",
-         pszExtFile, pDbgInfo->enmType, pArgs->pDbgMod->pszImgFile, rc));
+         pszExtFile, pDbgInfo->enmType, pDbgMod->pszImgFile, rc));
     return rc;
 }
 
@@ -695,7 +706,6 @@ static DECLCALLBACK(int) rtDbgModExtDbgInfoOpenCallback2(RTDBGCFG hDbgCfg, const
 {
     PRTDBGMODINT        pDbgMod   = (PRTDBGMODINT)pvUser1;
     RT_NOREF_PV(pvUser2); /** @todo image matching string or smth. */
-    RT_NOREF_PV(hDbgCfg);
 
     Assert(!pDbgMod->pDbgVt);
     Assert(!pDbgMod->pvDbgPriv);
@@ -714,7 +724,7 @@ static DECLCALLBACK(int) rtDbgModExtDbgInfoOpenCallback2(RTDBGCFG hDbgCfg, const
         {
             pDbgMod->pDbgVt    = pDbg->pVt;
             pDbgMod->pvDbgPriv = NULL;
-            rc = pDbg->pVt->pfnTryOpen(pDbgMod, pDbgMod->pImgVt->pfnGetArch(pDbgMod));
+            rc = pDbg->pVt->pfnTryOpen(pDbgMod, pDbgMod->pImgVt->pfnGetArch(pDbgMod), hDbgCfg);
             if (RT_SUCCESS(rc))
             {
                 /*
@@ -906,7 +916,7 @@ RTDECL(int) RTDbgModCreateFromImage(PRTDBGMOD phDbgMod, const char *pszFilename,
                         {
                             pDbgMod->pDbgVt = pDbg->pVt;
                             pDbgMod->pvDbgPriv = NULL;
-                            rc = pDbg->pVt->pfnTryOpen(pDbgMod, enmArch);
+                            rc = pDbg->pVt->pfnTryOpen(pDbgMod, enmArch, hDbgCfg);
                             if (RT_SUCCESS(rc))
                             {
                                 /*
@@ -1315,7 +1325,7 @@ rtDbgModFromMachOImageOpenDsymMachOCallback(RTDBGCFG hDbgCfg, const char *pszFil
                     {
                         pDbgMod->pDbgVt    = pDbg->pVt;
                         pDbgMod->pvDbgPriv = NULL;
-                        rc = pDbg->pVt->pfnTryOpen(pDbgMod, pDbgMod->pImgVt->pfnGetArch(pDbgMod));
+                        rc = pDbg->pVt->pfnTryOpen(pDbgMod, pDbgMod->pImgVt->pfnGetArch(pDbgMod), hDbgCfg);
                         if (RT_SUCCESS(rc))
                         {
                             /*
@@ -1817,7 +1827,8 @@ RTDECL(int) RTDbgModSegmentAdd(RTDBGMOD hDbgMod, RTUINTPTR uRva, RTUINTPTR cb, c
     Assert(*pszName);
     size_t cchName = strlen(pszName);
     AssertReturn(cchName > 0, VERR_DBG_SEGMENT_NAME_OUT_OF_RANGE);
-    AssertReturn(cchName < RTDBG_SEGMENT_NAME_LENGTH, VERR_DBG_SEGMENT_NAME_OUT_OF_RANGE);
+    AssertMsgReturn(cchName < RTDBG_SEGMENT_NAME_LENGTH, ("pszName=%s cchName=%zu\n", pszName, cchName),
+        VERR_DBG_SEGMENT_NAME_OUT_OF_RANGE);
     AssertMsgReturn(!fFlags, ("%#x\n", fFlags), VERR_INVALID_PARAMETER);
     AssertPtrNull(piSeg);
     AssertMsgReturn(!piSeg || *piSeg == NIL_RTDBGSEGIDX || *piSeg <= RTDBGSEGIDX_LAST, ("%#x\n", *piSeg), VERR_DBG_SPECIAL_SEGMENT);

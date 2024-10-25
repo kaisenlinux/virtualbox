@@ -3,7 +3,7 @@
 ;
 
 ;
-; Copyright (C) 2006-2023 Oracle and/or its affiliates.
+; Copyright (C) 2006-2024 Oracle and/or its affiliates.
 ;
 ; This file is part of VirtualBox base platform packages, as
 ; available from https://www.virtualbox.org.
@@ -63,7 +63,7 @@ struc GVMCPU
         alignb 64
         .vmmr0              resb 896
         alignb 64
-        .pgmr0              resb 64
+        .pgmr0              resb 576
         alignb 16384
 endstruc
 
@@ -94,7 +94,7 @@ struc GVM
         alignb 64
         .pdmr0              resb 3008
         alignb 64
-        .pgmr0              resb 1920
+        .pgmr0              resb 90112
         alignb 64
         .iomr0              resb 512
         alignb 64

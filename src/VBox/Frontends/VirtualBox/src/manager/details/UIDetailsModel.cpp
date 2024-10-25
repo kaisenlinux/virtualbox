@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2012-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2012-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -44,6 +44,9 @@
 #include "UIDetailsModel.h"
 #include "UIDetailsView.h"
 #include "UIExtraDataManager.h"
+
+/* Other VBox includes: */
+#include "iprt/assert.h"
 
 
 /*********************************************************************************************************************************
@@ -735,6 +738,12 @@ void UIDetailsModel::sltToggleElements(DetailsElementType type, bool fToggled)
     updateLayout();
 }
 
+void UIDetailsModel::sltDetachCOM()
+{
+    /* Clear model of unwanted machine-items: */
+    setItems(QList<UIVirtualMachineItem*>());
+}
+
 void UIDetailsModel::sltToggleAnimationFinished(DetailsElementType enmType, bool fToggled)
 {
     /* Cleanup animation callback: */
@@ -764,32 +773,22 @@ void UIDetailsModel::sltToggleAnimationFinished(DetailsElementType enmType, bool
 
 void UIDetailsModel::prepare()
 {
-    /* Prepare things: */
-    prepareScene();
-    prepareRoot();
-    prepareContextMenu();
-    loadSettings();
-}
+    /* Install cleanup handler: */
+    connect(&uiCommon(), &UICommon::sigAskToDetachCOM,
+            this, &UIDetailsModel::sltDetachCOM);
 
-void UIDetailsModel::prepareScene()
-{
+    /* Prepare scene: */
     m_pScene = new QGraphicsScene(this);
     if (m_pScene)
         m_pScene->installEventFilter(this);
-}
 
-void UIDetailsModel::prepareRoot()
-{
+    /* Prepare root item: */
     m_pRoot = new UIDetailsGroup(scene());
-}
 
-void UIDetailsModel::prepareContextMenu()
-{
+    /* Prepare context-menu: */
     m_pContextMenu = new UIDetailsContextMenu(this);
-}
 
-void UIDetailsModel::loadSettings()
-{
+    /* Load stuff: */
     loadDetailsCategories();
     loadDetailsOptions();
 }
@@ -961,30 +960,19 @@ void UIDetailsModel::loadDetailsOptions(DetailsElementType enmType /* = DetailsE
     m_pContextMenu->updateOptionStates();
 }
 
-void UIDetailsModel::cleanupContextMenu()
-{
-    delete m_pContextMenu;
-    m_pContextMenu = 0;
-}
-
-void UIDetailsModel::cleanupRoot()
-{
-    delete m_pRoot;
-    m_pRoot = 0;
-}
-
-void UIDetailsModel::cleanupScene()
-{
-    delete m_pScene;
-    m_pScene = 0;
-}
-
 void UIDetailsModel::cleanup()
 {
-    /* Cleanup things: */
-    cleanupContextMenu();
-    cleanupRoot();
-    cleanupScene();
+    /* Cleanup context-menu: */
+    delete m_pContextMenu;
+    m_pContextMenu = 0;
+
+    /* Cleanup root item: */
+    delete m_pRoot;
+    m_pRoot = 0;
+
+    /* Cleanup scene: */
+    delete m_pScene;
+    m_pScene = 0;
 }
 
 bool UIDetailsModel::processContextMenuEvent(QGraphicsSceneContextMenuEvent *pEvent)

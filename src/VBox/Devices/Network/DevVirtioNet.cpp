@@ -12,7 +12,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -138,14 +138,14 @@ static const VIRTIO_FEATURES_LIST s_aDevSpecificFeatures[] =
 
 #ifdef VIRTIONET_WITH_GSO
 # define VIRTIONET_HOST_FEATURES_GSO    \
-      VIRTIONET_F_CSUM                  \
+    ( VIRTIONET_F_CSUM                  \
     | VIRTIONET_F_HOST_TSO4             \
     | VIRTIONET_F_HOST_TSO6             \
     | VIRTIONET_F_HOST_UFO              \
     | VIRTIONET_F_GUEST_TSO4            \
     | VIRTIONET_F_GUEST_TSO6            \
     | VIRTIONET_F_GUEST_UFO             \
-    | VIRTIONET_F_GUEST_CSUM                                   /* @bugref(4796) Guest must handle partial chksums   */
+    | VIRTIONET_F_GUEST_CSUM)                                  /* @bugref(4796) Guest must handle partial chksums   */
 #else
 # define VIRTIONET_HOST_FEATURES_GSO
 #endif
@@ -478,13 +478,13 @@ typedef struct VIRTIONET
     /** All unicast mode -- RX filter accepts all unicast packets. */
     uint8_t                 fAllUnicast;
 
-    /** No multicast mode - Supresses multicast receive */
+    /** No multicast mode - Suppresses multicast receive */
     uint8_t                 fNoMulticast;
 
     /** No unicast mode - Suppresses unicast receive */
     uint8_t                 fNoUnicast;
 
-    /** No broadcast mode - Supresses broadcast receive */
+    /** No broadcast mode - Suppresses broadcast receive */
     uint8_t                 fNoBroadcast;
 
     /** Type of network pkt header based on guest driver version/features */
@@ -791,11 +791,7 @@ void virtioNetDumpGcPhysRxBuf(PPDMDEVINS pDevIns, PVIRTIONETPKTHDR pRxPktHdr,
 /**
  * @callback_method_impl{FNDBGFHANDLERDEV, virtio-net debugger info callback.}
  */
-#ifdef VIRTIO_REL_INFO_DUMP
-DECLCALLBACK(void) virtioNetR3Info(PPDMDEVINS pDevIns, PCDBGFINFOHLP pHlp, const char *pszArgs)
-#else  /* !VIRTIO_REL_INFO_DUMP */
 static DECLCALLBACK(void) virtioNetR3Info(PPDMDEVINS pDevIns, PCDBGFINFOHLP pHlp, const char *pszArgs)
-#endif /* !VIRTIO_REL_INFO_DUMP */
 {
     PVIRTIONET     pThis   = PDMDEVINS_2_DATA(pDevIns,  PVIRTIONET);
     PVIRTIONETCC   pThisCC = PDMDEVINS_2_DATA_CC(pDevIns, PVIRTIONETCC);
@@ -1079,12 +1075,14 @@ static int virtioNetR3VirtqDestroy(PVIRTIOCORE pVirtio, PVIRTIONETVIRTQ pVirtq)
     if (pVirtq->fHasWorker)
     {
         Log10((" and its worker"));
-        rc = PDMDevHlpSUPSemEventClose(pVirtio->pDevInsR3, pWorker->hEvtProcess);
-        AssertRCReturn(rc, rc);
-        pWorker->hEvtProcess = 0;
         rc = PDMDevHlpThreadDestroy(pVirtio->pDevInsR3,  pWorkerR3->pThread, &rcThread);
         AssertRCReturn(rc, rc);
         pWorkerR3->pThread = 0;
+
+        rc = PDMDevHlpSUPSemEventClose(pVirtio->pDevInsR3, pWorker->hEvtProcess);
+        AssertRCReturn(rc, rc);
+        pWorker->hEvtProcess = 0;
+
         pVirtq->fHasWorker = false;
     }
     pWorker->fAssigned = false;
@@ -1582,7 +1580,7 @@ DECLINLINE(void) virtioNetR3Calc16BitChecksum(uint8_t *pBuf, size_t cb, uint16_t
  * @param   pThis          Pointer to the device state structure.
  * @param   fOn             New LED state.
  */
-void virtioNetR3SetReadLed(PVIRTIONETR3 pThisR3, bool fOn)
+static void virtioNetR3SetReadLed(PVIRTIONETR3 pThisR3, bool fOn)
 {
     if (fOn)
         pThisR3->led.Asserted.s.fReading = pThisR3->led.Actual.s.fReading = 1;
@@ -1597,7 +1595,7 @@ void virtioNetR3SetReadLed(PVIRTIONETR3 pThisR3, bool fOn)
  * @param   pThis          Pointer to the device state structure.
  * @param   fOn            New LED state.
  */
-void virtioNetR3SetWriteLed(PVIRTIONETR3 pThisR3, bool fOn)
+static void virtioNetR3SetWriteLed(PVIRTIONETR3 pThisR3, bool fOn)
 {
     if (fOn)
         pThisR3->led.Asserted.s.fWriting = pThisR3->led.Actual.s.fWriting = 1;
@@ -2009,25 +2007,11 @@ static int virtioNetR3RxPktMultibufXfer(PPDMDEVINS pDevIns, PVIRTIONET pThis, ui
         if (uPktOffset < cb)
         {
             cbHdrEnqueued = cbPktHdr;
-#ifdef VIRTIO_VBUF_ON_STACK
             int rc = virtioCoreR3VirtqAvailBufGet(pDevIns, &pThis->Virtio, pRxVirtq->uIdx, pVirtqBuf, true);
-#else /* !VIRTIO_VBUF_ON_STACK */
-            virtioCoreR3VirtqBufRelease(&pThis->Virtio, pVirtqBuf);
-            int rc = virtioCoreR3VirtqAvailBufGet(pDevIns, &pThis->Virtio, pRxVirtq->uIdx, &pVirtqBuf, true);
-#endif /* !VIRTIO_VBUF_ON_STACK */
-
             AssertMsgReturn(rc == VINF_SUCCESS || rc == VERR_NOT_AVAILABLE, ("%Rrc\n", rc), rc);
-
-#ifdef VIRTIO_VBUF_ON_STACK
             AssertMsgReturn(rc == VINF_SUCCESS && pVirtqBuf->cbPhysReturn,
                             ("Not enough Rx buffers in queue to accomodate ethernet packet\n"),
                             VERR_INTERNAL_ERROR);
-#else /* !VIRTIO_VBUF_ON_STACK */
-            AssertMsgReturnStmt(rc == VINF_SUCCESS && pVirtqBuf->cbPhysReturn,
-                                ("Not enough Rx buffers in queue to accomodate ethernet packet\n"),
-                                virtioCoreR3VirtqBufRelease(&pThis->Virtio, pVirtqBuf),
-                                VERR_INTERNAL_ERROR);
-#endif /* !VIRTIO_VBUF_ON_STACK */
             cbBufRemaining = pVirtqBuf->cbPhysReturn;
         }
     }
@@ -2036,9 +2020,6 @@ static int virtioNetR3RxPktMultibufXfer(PPDMDEVINS pDevIns, PVIRTIONET pThis, ui
     int rc = virtioCoreGCPhysWrite(&pThis->Virtio, pDevIns, GCPhysNumBuffers, &cVirtqBufsUsed, sizeof(cVirtqBufsUsed));
     AssertMsgRCReturn(rc, ("Failure updating descriptor count in pkt hdr in guest physical memory\n"), rc);
 
-#ifndef VIRTIO_VBUF_ON_STACK
-    virtioCoreR3VirtqBufRelease(&pThis->Virtio, pVirtqBuf);
-#endif /* !VIRTIO_VBUF_ON_STACK */
     virtioCoreVirtqUsedRingSync(pDevIns, &pThis->Virtio, pRxVirtq->uIdx);
     Log7(("\n"));
     return rc;
@@ -2064,7 +2045,6 @@ static int virtioNetR3CopyRxPktToGuest(PPDMDEVINS pDevIns, PVIRTIONET pThis, PVI
                                        PVIRTIONETPKTHDR pRxPktHdr, uint8_t cbPktHdr, PVIRTIONETVIRTQ pRxVirtq)
 {
     RT_NOREF(pThisCC);
-#ifdef VIRTIO_VBUF_ON_STACK
     VIRTQBUF_T VirtqBuf;
 
     VirtqBuf.u32Magic  = VIRTQBUF_MAGIC;
@@ -2072,23 +2052,11 @@ static int virtioNetR3CopyRxPktToGuest(PPDMDEVINS pDevIns, PVIRTIONET pThis, PVI
 
     PVIRTQBUF pVirtqBuf = &VirtqBuf;
     int rc = virtioCoreR3VirtqAvailBufGet(pDevIns, &pThis->Virtio, pRxVirtq->uIdx, pVirtqBuf, true);
-#else /* !VIRTIO_VBUF_ON_STACK */
-    PVIRTQBUF pVirtqBuf;
-    int rc = virtioCoreR3VirtqAvailBufGet(pDevIns, &pThis->Virtio, pRxVirtq->uIdx, &pVirtqBuf, true);
-#endif /* !VIRTIO_VBUF_ON_STACK */
-
     AssertMsgReturn(rc == VINF_SUCCESS || rc == VERR_NOT_AVAILABLE, ("%Rrc\n", rc), rc);
-
-#ifdef VIRTIO_VBUF_ON_STACK
     AssertMsgReturn(rc == VINF_SUCCESS && pVirtqBuf->cbPhysReturn,
                     ("Not enough Rx buffers or capacity to accommodate ethernet packet\n"),
                     VERR_INTERNAL_ERROR);
-#else /* !VIRTIO_VBUF_ON_STACK */
-    AssertMsgReturnStmt(rc == VINF_SUCCESS && pVirtqBuf->cbPhysReturn,
-                        ("Not enough Rx buffers or capacity to accommodate ethernet packet\n"),
-                        virtioCoreR3VirtqBufRelease(&pThis->Virtio, pVirtqBuf),
-                        VERR_INTERNAL_ERROR);
-#endif /* !VIRTIO_VBUF_ON_STACK */
+
     /*
      * Try to do fast (e.g. single-buffer) copy to guest, even if MRG_RXBUF feature is enabled
      */
@@ -2101,9 +2069,6 @@ static int virtioNetR3CopyRxPktToGuest(PPDMDEVINS pDevIns, PVIRTIONET pThis, PVI
         rc = virtioCoreR3VirtqUsedBufPut(pDevIns, &pThis->Virtio, pRxVirtq->uIdx, cbPktHdr,  pRxPktHdr, pVirtqBuf, 0  /* cbEnqueue */);
         if (rc == VINF_SUCCESS)
             rc = virtioCoreR3VirtqUsedBufPut(pDevIns, &pThis->Virtio, pRxVirtq->uIdx, cb, pvBuf, pVirtqBuf, cbPktHdr + cb /* cbEnqueue */);
-#ifndef VIRTIO_VBUF_ON_STACK
-        virtioCoreR3VirtqBufRelease(&pThis->Virtio, pVirtqBuf);
-#endif /* !VIRTIO_VBUF_ON_STACK */
         virtioCoreVirtqUsedRingSync(pDevIns, &pThis->Virtio, pRxVirtq->uIdx);
         AssertMsgReturn(rc == VINF_SUCCESS, ("%Rrc\n", rc), rc);
     }
@@ -2772,7 +2737,6 @@ static int virtioNetR3TransmitPkts(PPDMDEVINS pDevIns, PVIRTIONET pThis, PVIRTIO
         virtioCoreVirtqEnableNotify(&pThis->Virtio, pTxVirtq->uIdx, false /* fEnable */);
 
     int rc;
-#ifdef VIRTIO_VBUF_ON_STACK
     VIRTQBUF_T VirtqBuf;
 
     VirtqBuf.u32Magic  = VIRTQBUF_MAGIC;
@@ -2780,10 +2744,6 @@ static int virtioNetR3TransmitPkts(PPDMDEVINS pDevIns, PVIRTIONET pThis, PVIRTIO
 
     PVIRTQBUF pVirtqBuf = &VirtqBuf;
     while ((rc = virtioCoreR3VirtqAvailBufPeek(pVirtio->pDevInsR3, pVirtio, pTxVirtq->uIdx, pVirtqBuf)) == VINF_SUCCESS)
-#else /* !VIRTIO_VBUF_ON_STACK */
-    PVIRTQBUF pVirtqBuf = NULL;
-    while ((rc = virtioCoreR3VirtqAvailBufPeek(pVirtio->pDevInsR3, pVirtio, pTxVirtq->uIdx, &pVirtqBuf)) == VINF_SUCCESS)
-#endif /* !VIRTIO_VBUF_ON_STACK */
     {
         Log10Func(("[%s] fetched descriptor chain from %s\n", pThis->szInst, pTxVirtq->szName));
 
@@ -2796,13 +2756,8 @@ static int virtioNetR3TransmitPkts(PPDMDEVINS pDevIns, PVIRTIONET pThis, PVIRTIO
                         ("Desc chain's first seg has insufficient space for pkt header!\n"),
                         VERR_INTERNAL_ERROR);
 
-#ifdef VIRTIO_VBUF_ON_STACK
         VIRTIONETPKTHDR PktHdr;
         PVIRTIONETPKTHDR pPktHdr = &PktHdr;
-#else /* !VIRTIO_VBUF_ON_STACK */
-        PVIRTIONETPKTHDR pPktHdr = (PVIRTIONETPKTHDR)RTMemAllocZ(pThis->cbPktHdr);
-        AssertMsgReturn(pPktHdr, ("Out of Memory\n"), VERR_NO_MEMORY);
-#endif /* !VIRTIO_VBUF_ON_STACK */
 
         /* Compute total frame size from guest (including virtio-net pkt hdr) */
         for (unsigned i = 0; i < cSegsFromGuest && uFrameSize < VIRTIONET_MAX_FRAME_SIZE; i++)
@@ -2883,9 +2838,6 @@ static int virtioNetR3TransmitPkts(PPDMDEVINS pDevIns, PVIRTIONET pThis, PVIRTIO
             {
                 Log4Func(("Failed to allocate S/G buffer: frame size=%u rc=%Rrc\n", uFrameSize, rc));
                 /* Stop trying to fetch TX descriptors until we get more bandwidth. */
-#ifndef VIRTIO_VBUF_ON_STACK
-                virtioCoreR3VirtqBufRelease(pVirtio, pVirtqBuf);
-#endif /* !VIRTIO_VBUF_ON_STACK */
                 break;
             }
 
@@ -2896,10 +2848,6 @@ static int virtioNetR3TransmitPkts(PPDMDEVINS pDevIns, PVIRTIONET pThis, PVIRTIO
             virtioCoreVirtqUsedRingSync(pVirtio->pDevInsR3, pVirtio, pTxVirtq->uIdx);
         }
 
-#ifndef VIRTIO_VBUF_ON_STACK
-        virtioCoreR3VirtqBufRelease(pVirtio, pVirtqBuf);
-        pVirtqBuf = NULL;
-#endif /* !VIRTIO_VBUF_ON_STACK */
         /* Before we break the loop we need to check if the queue is empty,
          * re-enable notifications, and then re-check again to avoid missing
          * a notification for the descriptor that is added to the queue
@@ -3188,23 +3136,15 @@ static DECLCALLBACK(int) virtioNetR3WorkerThread(PPDMDEVINS pDevIns, PPDMTHREAD 
         if (pVirtq->fCtlVirtq)
         {
             Log10Func(("[%s] %s worker woken. Fetching desc chain\n", pThis->szInst, pVirtq->szName));
-#ifdef VIRTIO_VBUF_ON_STACK
             VIRTQBUF_T VirtqBuf;
             PVIRTQBUF pVirtqBuf = &VirtqBuf;
             int rc = virtioCoreR3VirtqAvailBufGet(pDevIns, &pThis->Virtio, pVirtq->uIdx, pVirtqBuf, true);
-#else /* !VIRTIO_VBUF_ON_STACK */
-            PVIRTQBUF pVirtqBuf = NULL;
-            int rc = virtioCoreR3VirtqAvailBufGet(pDevIns, &pThis->Virtio, pVirtq->uIdx, &pVirtqBuf, true);
-#endif /* !VIRTIO_VBUF_ON_STACK */
             if (rc == VERR_NOT_AVAILABLE)
             {
                 Log10Func(("[%s] %s worker woken. Nothing found in queue\n", pThis->szInst, pVirtq->szName));
                 continue;
             }
             virtioNetR3Ctrl(pDevIns, pThis, pThisCC, pVirtqBuf);
-#ifndef VIRTIO_VBUF_ON_STACK
-            virtioCoreR3VirtqBufRelease(&pThis->Virtio, pVirtqBuf);
-#endif /* !VIRTIO_VBUF_ON_STACK */
         }
         else /* Must be Tx queue */
         {
@@ -3305,9 +3245,16 @@ static DECLCALLBACK(void) pfnFeatureNegotiationComplete(PVIRTIOCORE pVirtio, uin
     virtioNetConfigurePktHdr(pThis, fLegacy);
     virtioNetR3SetVirtqNames(pThis, fLegacy);
 
+    /** @todo r=aeichner We can't just destroy the control queue here because the UEFI firmware and the guest OS might have different
+     * opinions on how to use the device and if the UEFI firmware causes the control queue to be destroyed Linux guests
+     * will have a hard time using it. */
+#if 0
     /* Senseless for modern guest to use control queue in this case. (See Note 1 in PDM-invoked device constructor) */
     if (!fLegacy && !(fDriverFeatures & VIRTIONET_F_CTRL_VQ))
         virtioNetR3VirtqDestroy(pVirtio, &pThis->aVirtqs[CTRLQIDX]);
+#else
+    RT_NOREF(fDriverFeatures);
+#endif
 }
 
 #endif /* IN_RING3 */
@@ -3511,7 +3458,14 @@ static DECLCALLBACK(int) virtioNetR3Construct(PPDMDEVINS pDevIns, int iInstance,
     /*
      * Validate configuration.
      */
-    PDMDEV_VALIDATE_CONFIG_RETURN(pDevIns, "MAC|CableConnected|LineSpeed|LinkUpDelay|StatNo|Legacy", "");
+    PDMDEV_VALIDATE_CONFIG_RETURN(pDevIns, "MAC"
+                                           "|CableConnected"
+                                           "|LineSpeed"
+                                           "|LinkUpDelay"
+                                           "|StatNo"
+                                           "|Legacy"
+                                           "|MmioBase"
+                                           "|Irq", "");
 
     /* Get config params */
     int rc = pHlp->pfnCFGMQueryBytes(pCfg, "MAC", pThis->macConfigured.au8, sizeof(pThis->macConfigured));
@@ -3570,6 +3524,7 @@ static DECLCALLBACK(int) virtioNetR3Construct(PPDMDEVINS pDevIns, int iInstance,
     VirtioPciParams.uSubsystemId                   = DEVICE_PCI_NETWORK_SUBSYSTEM;  /* VirtIO 1.0 allows PCI Device ID here */
     VirtioPciParams.uInterruptLine                 = 0x00;
     VirtioPciParams.uInterruptPin                  = 0x01;
+    VirtioPciParams.uDeviceType                    = VIRTIO_DEVICE_TYPE_NETWORK;
 
     /* Create semaphore used to synchronize/throttle the downstream LUN's Rx waiter thread. */
     rc = PDMDevHlpSUPSemEventCreate(pDevIns, &pThis->hEventRxDescAvail);
@@ -3636,10 +3591,11 @@ static DECLCALLBACK(int) virtioNetR3Construct(PPDMDEVINS pDevIns, int iInstance,
      */
     PPDMIBASE pUpBase;
     rc = PDMDevHlpDriverAttach(pDevIns, PDM_STATUS_LUN, &pThisCC->IBase, &pUpBase, "Status Port");
-    if (RT_FAILURE(rc) && rc != VERR_PDM_NO_ATTACHED_DRIVER)
+    if (RT_SUCCESS(rc))
+        pThisCC->pLedsConnector = PDMIBASE_QUERY_INTERFACE(pUpBase, PDMILEDCONNECTORS);
+    else if (rc != VERR_PDM_NO_ATTACHED_DRIVER)
         return PDMDEV_SET_ERROR(pDevIns, rc, N_("Failed to attach the status LUN"));
 
-    pThisCC->pLedsConnector = PDMIBASE_QUERY_INTERFACE(pUpBase, PDMILEDCONNECTORS);
     /*
      * Register saved state.
      */

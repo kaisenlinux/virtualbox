@@ -8,7 +8,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -84,6 +84,7 @@ typedef enum
     EFI_INFO_INDEX_APIC_MODE,
     EFI_INFO_INDEX_CPU_COUNT_CURRENT,
     EFI_INFO_INDEX_CPU_COUNT_MAX,
+    EFI_INFO_INDEX_TPM_PPI_BASE,
     EFI_INFO_INDEX_END
 } EfiInfoIndex;
 

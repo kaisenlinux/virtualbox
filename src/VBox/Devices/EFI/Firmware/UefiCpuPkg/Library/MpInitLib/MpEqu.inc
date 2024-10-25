@@ -1,5 +1,5 @@
 ;------------------------------------------------------------------------------ ;
-; Copyright (c) 2015 - 2021, Intel Corporation. All rights reserved.<BR>
+; Copyright (c) 2015 - 2023, Intel Corporation. All rights reserved.<BR>
 ; SPDX-License-Identifier: BSD-2-Clause-Patent
 ;
 ; Module Name:
@@ -21,17 +21,17 @@ CPU_SWITCH_STATE_LOADED       equ        2
 ; Equivalent NASM structure of MP_ASSEMBLY_ADDRESS_MAP
 ;
 struc MP_ASSEMBLY_ADDRESS_MAP
-  .RendezvousFunnelAddress       CTYPE_UINTN 1
-  .ModeEntryOffset               CTYPE_UINTN 1
-  .RendezvousFunnelSize          CTYPE_UINTN 1
-  .RelocateApLoopFuncAddress     CTYPE_UINTN 1
-  .RelocateApLoopFuncSize        CTYPE_UINTN 1
-  .ModeTransitionOffset          CTYPE_UINTN 1
-  .SwitchToRealSize              CTYPE_UINTN 1
-  .SwitchToRealOffset            CTYPE_UINTN 1
-  .SwitchToRealNoNxOffset        CTYPE_UINTN 1
-  .SwitchToRealPM16ModeOffset    CTYPE_UINTN 1
-  .SwitchToRealPM16ModeSize      CTYPE_UINTN 1
+  .RendezvousFunnelAddress            CTYPE_UINTN 1
+  .ModeEntryOffset                    CTYPE_UINTN 1
+  .RendezvousFunnelSize               CTYPE_UINTN 1
+  .RelocateApLoopFuncAddressGeneric   CTYPE_UINTN 1
+  .RelocateApLoopFuncSizeGeneric      CTYPE_UINTN 1
+  .RelocateApLoopFuncAddressAmdSev    CTYPE_UINTN 1
+  .RelocateApLoopFuncSizeAmdSev       CTYPE_UINTN 1
+  .ModeTransitionOffset               CTYPE_UINTN 1
+  .SwitchToRealNoNxOffset             CTYPE_UINTN 1
+  .SwitchToRealPM16ModeOffset         CTYPE_UINTN 1
+  .SwitchToRealPM16ModeSize           CTYPE_UINTN 1
 endstruc
 
 ;
@@ -67,6 +67,8 @@ endstruc
 
 ;
 ; Equivalent NASM structure of MP_CPU_EXCHANGE_INFO
+; Assembly routines should refrain from directly interacting with
+; the internal details of CPU_MP_DATA.
 ;
 struc MP_CPU_EXCHANGE_INFO
   .StackStart:                   CTYPE_UINTN 1
@@ -92,8 +94,10 @@ struc MP_CPU_EXCHANGE_INFO
   .ModeHighSegment:              CTYPE_UINT16 1
   .Enable5LevelPaging:           CTYPE_BOOLEAN 1
   .SevEsIsEnabled:               CTYPE_BOOLEAN 1
+  .SevSnpIsEnabled               CTYPE_BOOLEAN 1
   .GhcbBase:                     CTYPE_UINTN 1
+  .ExtTopoAvail:                 CTYPE_BOOLEAN 1
 endstruc
 
-MP_CPU_EXCHANGE_INFO_OFFSET equ (SwitchToRealProcEnd - RendezvousFunnelProcStart)
+MP_CPU_EXCHANGE_INFO_OFFSET equ (Flat32Start - RendezvousFunnelProcStart)
 %define MP_CPU_EXCHANGE_INFO_FIELD(Field) (MP_CPU_EXCHANGE_INFO_OFFSET + MP_CPU_EXCHANGE_INFO. %+ Field)

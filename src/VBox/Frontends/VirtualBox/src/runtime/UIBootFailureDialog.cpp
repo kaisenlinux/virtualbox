@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,6 +26,7 @@
  */
 
 /* Qt includes: */
+#include <QApplication>
 #include <QAction>
 #include <QCheckBox>
 #include <QHeaderView>
@@ -36,24 +37,25 @@
 
 /* GUI includes: */
 #include "QIDialogButtonBox.h"
-#include "QIToolButton.h"
 #include "QIRichTextLabel.h"
+#include "QIToolButton.h"
 #include "UIBootFailureDialog.h"
-#include "UICommon.h"
 #include "UIConverter.h"
 #include "UIDesktopWidgetWatchdog.h"
 #include "UIExtraDataManager.h"
 #include "UIFilePathSelector.h"
 #include "UIIconPool.h"
 #include "UIMessageCenter.h"
+#include "UIMediumTools.h"
 #include "UIModalWindowManager.h"
+#include "UITranslationEventListener.h"
 
 /* COM includes: */
 #include "CMediumAttachment.h"
 #include "CStorageController.h"
 
-UIBootFailureDialog::UIBootFailureDialog(QWidget *pParent, const CMachine &comMachine)
-    :QIWithRetranslateUI<QIMainDialog>(pParent)
+UIBootFailureDialog::UIBootFailureDialog(QWidget *pParent)
+    : QIMainDialog(pParent)
     , m_pParent(pParent)
     , m_pCentralWidget(0)
     , m_pMainLayout(0)
@@ -65,7 +67,6 @@ UIBootFailureDialog::UIBootFailureDialog(QWidget *pParent, const CMachine &comMa
     , m_pBootImageLabel(0)
     , m_pIconLabel(0)
     , m_pSuppressDialogCheckBox(0)
-    , m_comMachine(comMachine)
 {
     configure();
 }
@@ -87,7 +88,7 @@ QString UIBootFailureDialog::bootMediumPath() const
     return m_pBootImageSelector->path();
 }
 
-void UIBootFailureDialog::retranslateUi()
+void UIBootFailureDialog::sltRetranslateUI()
 {
     if (m_pCloseButton)
     {
@@ -183,7 +184,7 @@ void UIBootFailureDialog::prepareWidgets()
         m_pBootImageSelector->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
         m_pBootImageSelector->setFileDialogFilters("ISO Images(*.iso *.ISO)");
         m_pBootImageSelector->setResetEnabled(false);
-        m_pBootImageSelector->setInitialPath(uiCommon().defaultFolderPathForType(UIMediumDeviceType_DVD));
+        m_pBootImageSelector->setInitialPath(UIMediumTools::defaultFolderPathForType(UIMediumDeviceType_DVD));
         m_pBootImageSelector->setRecentMediaListType(UIMediumDeviceType_DVD);
         if (m_pBootImageLabel)
             m_pBootImageLabel->setBuddy(m_pBootImageSelector);
@@ -210,7 +211,9 @@ void UIBootFailureDialog::prepareWidgets()
     }
 
     m_pMainLayout->addStretch();
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIBootFailureDialog::sltRetranslateUI);
 }
 
 void UIBootFailureDialog::sltCancel()
@@ -227,7 +230,7 @@ void UIBootFailureDialog::showEvent(QShowEvent *pEvent)
 {
     if (m_pParent)
         gpDesktop->centerWidget(this, m_pParent, false);
-    QIWithRetranslateUI<QIMainDialog>::showEvent(pEvent);
+    QIMainDialog::showEvent(pEvent);
 
 }
 
@@ -240,9 +243,8 @@ void UIBootFailureDialog::sltFileSelectorPathChanged(const QString &strPath)
     Q_UNUSED(strPath);
     bool fISOValid = checkISOImage();
     if (m_pBootImageSelector)
-    {
-        m_pBootImageSelector->mark(!fISOValid, tr("The selected path is invalid."));
-    }
+        m_pBootImageSelector->mark(!fISOValid, tr("The path is invalid"), tr("The path is valid"));
+
     if (m_pResetButton)
         m_pResetButton->setEnabled(fISOValid);
 }

@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -74,8 +74,10 @@ protected:
     /** Performs validation, updates @a messages list if something is wrong. */
     virtual bool validate(QList<UIValidationMessage> &messages) RT_OVERRIDE;
 
+private slots:
+
     /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
 
 private:
 
@@ -83,8 +85,6 @@ private:
     void prepare();
     /** Prepares wıdgets. */
     void prepareWidgets();
-    /** Prepares connections. */
-    void prepareConnections();
     /** Cleanups all. */
     void cleanup();
 
@@ -96,7 +96,7 @@ private:
 
     /** @name Widgets
      * @{ */
-        /** Holds the proxy features editor instance. */
+        /** Holds the 'proxy features' editor instance. */
         UIProxyFeaturesEditor *m_pEditorProxyFeatures;
     /** @} */
 };

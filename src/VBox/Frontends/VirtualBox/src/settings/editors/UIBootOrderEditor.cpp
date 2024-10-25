@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,6 +26,7 @@
  */
 
 /* Qt includes: */
+#include <QEvent>
 #include <QGridLayout>
 #include <QHeaderView>
 #include <QLabel>
@@ -34,16 +35,17 @@
 
 /* GUI includes: */
 #include "UIBootOrderEditor.h"
-#include "UICommon.h"
 #include "UIConverter.h"
+#include "UIGlobalSession.h"
 #include "UIIconPool.h"
 #include "QIToolBar.h"
+#include "UITranslationEventListener.h"
 #include "QITreeWidget.h"
 
 /* COM includes: */
-#include "COMEnums.h"
 #include "CMachine.h"
-#include "CSystemProperties.h"
+#include "CPlatform.h"
+#include "CPlatformProperties.h"
 
 
 /** QITreeWidgetItem extension for our UIBootListWidget. */
@@ -59,8 +61,10 @@ public:
     /** Returns the item type. */
     KDeviceType deviceType() const;
 
+public slots:
+
     /** Performs item translation. */
-    void retranslateUi();
+    void sltRetranslateUI();
 
 private:
 
@@ -70,7 +74,7 @@ private:
 
 
 /** QITreeWidget subclass used as system settings boot-table. */
-class UIBootListWidget : public QIWithRetranslateUI<QITreeWidget>
+class UIBootListWidget : public QITreeWidget
 {
     Q_OBJECT;
 
@@ -99,12 +103,9 @@ public slots:
 protected:
 
     /** Return size hint. */
-    virtual QSize sizeHint() const;
+    virtual QSize sizeHint() const RT_OVERRIDE;
     /** Return minimum size hint. */
-    virtual QSize minimumSizeHint() const;
-
-    /** Handles translation event. */
-    virtual void retranslateUi() RT_OVERRIDE;
+    virtual QSize minimumSizeHint() const RT_OVERRIDE;
 
     /** Handles drop @a pEvent. */
     virtual void dropEvent(QDropEvent *pEvent) RT_OVERRIDE;
@@ -113,6 +114,11 @@ protected:
       * based on the given @a cursorAction and keyboard @a fModifiers. */
     virtual QModelIndex moveCursor(QAbstractItemView::CursorAction cursorAction,
                                    Qt::KeyboardModifiers fModifiers) RT_OVERRIDE;
+
+private slots:
+
+    /** Handles translation event. */
+    virtual void sltRetranslateUI();
 
 private:
 
@@ -140,7 +146,9 @@ UIBootListWidgetItem::UIBootListWidgetItem(KDeviceType enmType)
         case KDeviceType_Network:  setIcon(0, UIIconPool::iconSet(":/nw_16px.png")); break;
         default: break; /* Shut up, MSC! */
     }
-    retranslateUi();
+    sltRetranslateUI();
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+        this, &UIBootListWidgetItem::sltRetranslateUI);
 }
 
 KDeviceType UIBootListWidgetItem::deviceType() const
@@ -148,7 +156,7 @@ KDeviceType UIBootListWidgetItem::deviceType() const
     return m_enmType;
 }
 
-void UIBootListWidgetItem::retranslateUi()
+void UIBootListWidgetItem::sltRetranslateUI()
 {
     setText(0, gpConverter->toString(m_enmType));
 }
@@ -159,7 +167,7 @@ void UIBootListWidgetItem::retranslateUi()
 *********************************************************************************************************************************/
 
 UIBootListWidget::UIBootListWidget(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QITreeWidget>(pParent)
+    : QITreeWidget(pParent)
 {
     prepare();
 }
@@ -223,23 +231,51 @@ QSize UIBootListWidget::sizeHint() const
 
 QSize UIBootListWidget::minimumSizeHint() const
 {
+    /* Try to get actual item count: */
+    int iItemCount = topLevelItemCount();
+    /* [By default] calculate for 4 items: */
+    if (iItemCount < 1)
+        iItemCount = 4;
+
+    /* Try to get actual size-hints for column/row: */
+    int iColumnHint = sizeHintForColumn(0);
+    int iRowHint = sizeHintForRow(0);
+    /* [By default] calculate for 15 chars: */
+    if (iColumnHint < 1 || iRowHint < 1)
+    {
+        QFontMetrics fm(font());
+        iColumnHint = 15 * fm.averageCharWidth();
+        iRowHint = fm.height() + 2 * 3; /// @todo <= tree-widget item margin
+    }
+
+    /* Take into account table frame as well: */
     const int iH = 2 * frameWidth();
     const int iW = iH;
-    return QSize(sizeHintForColumn(0) + iW,
-                 sizeHintForRow(0) * topLevelItemCount() + iH);
 
+    /* Calculate tree-widget hint finally: */
+    return QSize(iColumnHint + iW, iRowHint * iItemCount + iH);
 }
 
-void UIBootListWidget::retranslateUi()
+void UIBootListWidget::sltRetranslateUI()
 {
     for (int i = 0; i < topLevelItemCount(); ++i)
-        static_cast<UIBootListWidgetItem*>(topLevelItem(i))->retranslateUi();
+        static_cast<UIBootListWidgetItem*>(topLevelItem(i))->sltRetranslateUI();
 }
 
 void UIBootListWidget::dropEvent(QDropEvent *pEvent)
 {
-    /* Call to base-class: */
-    QITreeWidget::dropEvent(pEvent);
+    /* Accept certain positions only: */
+    switch (dropIndicatorPosition())
+    {
+        case QAbstractItemView::AboveItem:
+        case QAbstractItemView::BelowItem:
+            /* Call to base-class: */
+            QITreeWidget::dropEvent(pEvent);
+            break;
+        default:
+            break;
+    }
+
     /* Separately notify listeners: */
     emit sigRowChanged();
 }
@@ -290,6 +326,8 @@ void UIBootListWidget::prepare()
     setDropIndicatorShown(true);
     connect(this, &UIBootListWidget::currentItemChanged,
             this, &UIBootListWidget::sigRowChanged);
+    connect(&translationEventListener(), &UITranslationEventListener::sigRetranslateUI,
+            this, &UIBootListWidget::sltRetranslateUI);
 }
 
 QModelIndex UIBootListWidget::moveItemTo(const QModelIndex &index, int iRow)
@@ -319,27 +357,22 @@ QModelIndex UIBootListWidget::moveItemTo(const QModelIndex &index, int iRow)
 
 UIBootItemDataList UIBootDataTools::loadBootItems(const CMachine &comMachine)
 {
-    /* Gather a list of all possible boot items.
-     * Currently, it seems, we are supporting only 4 possible boot device types:
-     * 1. Floppy, 2. DVD-ROM, 3. Hard Disk, 4. Network.
-     * But maximum boot devices count supported by machine should be retrieved
-     * through the ISystemProperties getter.  Moreover, possible boot device
-     * types are not listed in some separate Main vector, so we should get them
-     * (randomely?) from the list of all device types.  Until there will be a
-     * separate Main getter for list of supported boot device types, this list
-     * will be hard-coded here... */
-    QVector<KDeviceType> possibleBootItems = QVector<KDeviceType>() << KDeviceType_Floppy
-                                                                    << KDeviceType_DVD
-                                                                    << KDeviceType_HardDisk
-                                                                    << KDeviceType_Network;
-    const CSystemProperties comProperties = uiCommon().virtualBox().GetSystemProperties();
-    const int iPossibleBootListSize = qMin((ULONG)4, comProperties.GetMaxBootPosition());
+    /* Acquire supported boot devices: */
+    CPlatform comPlatform = comMachine.GetPlatform();
+    const KPlatformArchitecture comArch = comPlatform.GetArchitecture();
+    const CPlatformProperties comProperties = gpGlobalSession->virtualBox().GetPlatformProperties(comArch);
+    QVector<KDeviceType> possibleBootItems = comProperties.GetSupportedBootDevices();
+    /* Limit the list to maximum boot position: */
+    int iPossibleBootListSize = qMin((ULONG)possibleBootItems.size(), comProperties.GetMaxBootPosition());
+    /* Limit the list to maximum 4 slots for the GUI: */
+    iPossibleBootListSize = qMin(4, iPossibleBootListSize);
+    /* Resize the possible list finally: */
     possibleBootItems.resize(iPossibleBootListSize);
 
     /* Prepare boot items: */
     UIBootItemDataList bootItems;
 
-    /* Gather boot-items of current VM: */
+    /* Gather boot-items of current VM, they can be different from supported: */
     QList<KDeviceType> usedBootItems;
     for (int i = 1; i <= possibleBootItems.size(); ++i)
     {
@@ -353,11 +386,13 @@ UIBootItemDataList UIBootDataTools::loadBootItems(const CMachine &comMachine)
             bootItems << data;
         }
     }
+
     /* Gather other unique boot-items: */
     for (int i = 0; i < possibleBootItems.size(); ++i)
     {
         const KDeviceType enmType = possibleBootItems.at(i);
-        if (!usedBootItems.contains(enmType))
+        if (   !usedBootItems.contains(enmType)
+            && enmType != KDeviceType_Null)
         {
             UIBootItemData data;
             data.m_enmType = enmType;
@@ -443,7 +478,7 @@ UIBootItemDataList UIBootDataTools::bootItemsFromSerializedString(const QString 
 *********************************************************************************************************************************/
 
 UIBootOrderEditor::UIBootOrderEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent, true /* show in basic mode? */)
     , m_pLayout(0)
     , m_pLabel(0)
     , m_pTable(0)
@@ -480,7 +515,7 @@ bool UIBootOrderEditor::eventFilter(QObject *pObject, QEvent *pEvent)
 {
     /* Skip events sent to unrelated objects: */
     if (m_pTable && pObject != m_pTable)
-        return QIWithRetranslateUI<QWidget>::eventFilter(pObject, pEvent);
+        return UIEditor::eventFilter(pObject, pEvent);
 
     /* Handle only required event types: */
     switch (pEvent->type())
@@ -498,17 +533,17 @@ bool UIBootOrderEditor::eventFilter(QObject *pObject, QEvent *pEvent)
     }
 
     /* Call to base-class: */
-    return QIWithRetranslateUI<QWidget>::eventFilter(pObject, pEvent);
+    return UIEditor::eventFilter(pObject, pEvent);
 }
 
-void UIBootOrderEditor::retranslateUi()
+void UIBootOrderEditor::sltRetranslateUI()
 {
     if (m_pLabel)
         m_pLabel->setText(tr("&Boot Order:"));
     if (m_pTable)
-        m_pTable->setWhatsThis(tr("Defines the boot device order. Use the "
-                                  "checkboxes on the left to enable or disable individual boot devices."
-                                  "Move items up and down to change the device order."));
+        m_pTable->setToolTip(tr("Defines the boot device order. Use the checkboxes on the left to enable or disable "
+                                "individual boot devices. Move items up and down to change the device order. "
+                                "Note: only supported for BIOS firmware type, i.e. when below EFI option is off."));
     if (m_pMoveUp)
         m_pMoveUp->setToolTip(tr("Moves selected boot item up."));
     if (m_pMoveDown)
@@ -591,7 +626,7 @@ void UIBootOrderEditor::prepare()
     /* Update initial action availability: */
     updateActionAvailability();
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIBootOrderEditor::updateActionAvailability()

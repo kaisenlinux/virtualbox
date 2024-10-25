@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -553,8 +553,8 @@ static bool vusbDevStdReqClearFeature(PVUSBDEV pDev, int EndPt, PVUSBSETUP pSetu
                 &&  pDev->pUsbIns->pReg->pfnUsbClearHaltedEndpoint)
             {
                 RTCritSectEnter(&pDev->pHub->CritSectDevices);
-                int rc = vusbDevIoThreadExecSync(pDev, (PFNRT)pDev->pUsbIns->pReg->pfnUsbClearHaltedEndpoint,
-                                                 2, pDev->pUsbIns, pSetup->wIndex);
+                int rc = vusbDevIoThreadExecSync(pDev, (PFNRT)pDev->pUsbIns->pReg->pfnUsbClearHaltedEndpoint, 2,
+                                                 pDev->pUsbIns, pSetup->wIndex);
                 RTCritSectLeave(&pDev->pHub->CritSectDevices);
                 return RT_SUCCESS(rc);
             }

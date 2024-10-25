@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2011-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2011-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -367,7 +367,8 @@ static bool balloonIsPossible(MachineState_T enmState)
     return false;
 }
 
-int balloonMachineSetup(const Bstr& strUuid)
+#if 0 /* unused */
+static int balloonMachineSetup(const Bstr& strUuid)
 {
     int vrc = VINF_SUCCESS;
 
@@ -413,6 +414,7 @@ int balloonMachineSetup(const Bstr& strUuid)
 
     return vrc;
 }
+#endif
 
 /**
  * Does the actual ballooning and assumes the machine is

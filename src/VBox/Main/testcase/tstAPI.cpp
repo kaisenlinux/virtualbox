@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -64,7 +64,8 @@ static void listAffectedMetrics(ComPtr<IVirtualBox> aVirtualBox,
 // funcs
 ///////////////////////////////////////////////////////////////////////////////
 
-HRESULT readAndChangeMachineSettings(IMachine *machine, IMachine *readonlyMachine = 0)
+#if 0 /* unused */
+static HRESULT readAndChangeMachineSettings(IMachine *machine, IMachine *readonlyMachine = 0)
 {
     HRESULT hrc = S_OK;
 
@@ -198,6 +199,7 @@ HRESULT readAndChangeMachineSettings(IMachine *machine, IMachine *readonlyMachin
 
     return hrc;
 }
+#endif
 
 // main
 ///////////////////////////////////////////////////////////////////////////////
@@ -1145,6 +1147,17 @@ int main(int argc, char *argv[])
     while (FALSE);
     RTPrintf("\n");
 #endif
+
+    do {
+        PlatformArchitecture_T platformArch = PlatformArchitecture_x86;
+        ComPtr<IPlatformProperties> platformProperties;
+        CHECK_ERROR_BREAK(virtualBox, GetPlatformProperties(platformArch, platformProperties.asOutParam()));
+        ULONG uMinMB, uMaxMB, uStrideMB;
+        CHECK_ERROR_BREAK(platformProperties, GetSupportedVRAMRange(GraphicsControllerType_VBoxVGA, TRUE /* fAccelerate3DEnabled */, &uMinMB, &uMaxMB, &uStrideMB));
+        ASSERT_BREAK(uMinMB && RT_IS_POWER_OF_TWO(uMinMB));
+        ASSERT_BREAK(uMaxMB && RT_IS_POWER_OF_TWO(uMaxMB));
+        ASSERT_BREAK(uStrideMB && RT_IS_POWER_OF_TWO(uStrideMB));
+    } while (0);
 
 #if 1
     do {

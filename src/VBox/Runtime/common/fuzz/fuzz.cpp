@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2018-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2018-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -1619,7 +1619,7 @@ RTDECL(int) RTFuzzCtxCreateFromStateMem(PRTFUZZCTX phFuzzCtx, const void *pvStat
 {
     AssertPtrReturn(phFuzzCtx, VERR_INVALID_POINTER);
     AssertPtrReturn(pvState, VERR_INVALID_POINTER);
-    AssertPtrReturn(cbState, VERR_INVALID_POINTER);
+    AssertReturn(cbState, VERR_INVALID_POINTER);
 
     return VERR_NOT_IMPLEMENTED;
 }

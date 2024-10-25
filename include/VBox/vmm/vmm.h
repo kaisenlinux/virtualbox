@@ -3,7 +3,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -290,6 +290,14 @@ typedef enum VMMR0OPERATION
     VMMR0_DO_PGM_POOL_GROW,
     /** Call PGMR0PhysHandlerInitReqHandler(). */
     VMMR0_DO_PGM_PHYS_HANDLER_INIT,
+    /** Call PGMR0PhysAllocateRamRangeReq(). */
+    VMMR0_DO_PGM_PHYS_ALLOCATE_RAM_RANGE,
+    /** Call PGMR0PhysMmio2RegisterReq(). */
+    VMMR0_DO_PGM_PHYS_MMIO2_REGISTER,
+    /** Call PGMR0PhysMmio2DeregisterReq(). */
+    VMMR0_DO_PGM_PHYS_MMIO2_DEREGISTER,
+    /** Call PGMR0PhysRomAllocateRangeReq(). */
+    VMMR0_DO_PGM_PHYS_ROM_ALLOCATE_RANGE,
 
     /** Call GMMR0InitialReservation(). */
     VMMR0_DO_GMM_INITIAL_RESERVATION = 256,
@@ -558,8 +566,12 @@ VMMR3DECL(void)         VMMR3FatalDump(PVM pVM, PVMCPU pVCpu, int rcErr);
 VMMR3_INT_DECL(void)    VMMR3YieldSuspend(PVM pVM);
 VMMR3_INT_DECL(void)    VMMR3YieldStop(PVM pVM);
 VMMR3_INT_DECL(void)    VMMR3YieldResume(PVM pVM);
+#if defined(VBOX_VMM_TARGET_ARMV8)
+VMMR3_INT_DECL(void)    VMMR3CpuOn(PVM pVM, VMCPUID idCpu, RTGCPHYS GCPhysExecAddr, uint64_t u64CtxId);
+#else
 VMMR3_INT_DECL(void)    VMMR3SendStartupIpi(PVM pVM, VMCPUID idCpu, uint32_t uVector);
 VMMR3_INT_DECL(void)    VMMR3SendInitIpi(PVM pVM, VMCPUID idCpu);
+#endif
 VMMR3DECL(int)          VMMR3RegisterPatchMemory(PVM pVM, RTGCPTR pPatchMem, unsigned cbPatchMem);
 VMMR3DECL(int)          VMMR3DeregisterPatchMemory(PVM pVM, RTGCPTR pPatchMem, unsigned cbPatchMem);
 VMMR3DECL(int)          VMMR3EmtRendezvous(PVM pVM, uint32_t fFlags, PFNVMMEMTRENDEZVOUS pfnRendezvous, void *pvUser);

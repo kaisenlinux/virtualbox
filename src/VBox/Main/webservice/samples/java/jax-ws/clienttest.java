@@ -9,7 +9,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -99,8 +99,8 @@ public class clienttest
         String id = "bc8b6219-2775-42c4-f1b2-b48b3c177294";
         vbox.openSession(session, id);
         IMachine mach = session.getMachine();
-        IBIOSSettings bios = mach.getBIOSSettings();
-        bios.setIOAPICEnabled(true);
+        IFirmwareSettings firmware = mach.getFirmwareSettings();
+        firmware.setIOAPICEnabled(true);
         mach.saveSettings();
         session.close();
     }

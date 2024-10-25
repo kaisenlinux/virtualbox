@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2019-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2019-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -36,7 +36,7 @@
 
 
 UIUSBSettingsEditor::UIUSBSettingsEditor(QWidget *pParent /* = 0 */)
-    : QIWithRetranslateUI<QWidget>(pParent)
+    : UIEditor(pParent)
     , m_fFeatureEnabled(false)
     , m_pCheckboxFeature(0)
     , m_pWidgetSettings(0)
@@ -101,7 +101,7 @@ void UIUSBSettingsEditor::setUsbFiltersOptionAvailable(bool fAvailable)
         m_pEditorFilters->setEnabled(fAvailable);
 }
 
-void UIUSBSettingsEditor::retranslateUi()
+void UIUSBSettingsEditor::sltRetranslateUI()
 {
     if (m_pCheckboxFeature)
     {
@@ -126,7 +126,7 @@ void UIUSBSettingsEditor::prepare()
     updateFeatureAvailability();
 
     /* Apply language settings: */
-    retranslateUi();
+    sltRetranslateUI();
 }
 
 void UIUSBSettingsEditor::prepareWidgets()
@@ -160,12 +160,18 @@ void UIUSBSettingsEditor::prepareWidgets()
                 /* Prepare USB controller editor: */
                 m_pEditorController = new UIUSBControllerEditor(m_pWidgetSettings);
                 if (m_pEditorController)
+                {
+                    addEditor(m_pEditorController);
                     pLayoutSettings->addWidget(m_pEditorController);
+                }
 
                 /* Prepare USB filters editor: */
                 m_pEditorFilters = new UIUSBFiltersEditor(m_pWidgetSettings);
                 if (m_pEditorFilters)
+                {
+                    addEditor(m_pEditorFilters);
                     pLayoutSettings->addWidget(m_pEditorFilters);
+                }
             }
 
             pLayout->addWidget(m_pWidgetSettings, 1, 1);

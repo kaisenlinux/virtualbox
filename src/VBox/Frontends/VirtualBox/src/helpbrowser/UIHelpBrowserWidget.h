@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2010-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2010-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,12 +32,10 @@
 #endif
 
 /* Qt includes: */
-#include <QPair>
 #include <QWidget>
 
 /* GUI includes: */
-#include "QIManagerDialog.h"
-#include "QIWithRetranslateUI.h"
+#include "QIManagerDialog.h" /* for EmbedTo */
 
 /* Forward declarations: */
 class QHBoxLayout;
@@ -57,8 +55,7 @@ class UIBookmarksListContainer;
 class UIHelpBrowserTabManager;
 class UIZoomMenuAction;
 
-#ifdef VBOX_WITH_QHELP_VIEWER
-class SHARED_LIBRARY_STUFF UIHelpBrowserWidget  : public QIWithRetranslateUI<QWidget>
+class SHARED_LIBRARY_STUFF UIHelpBrowserWidget  : public QWidget
 {
     Q_OBJECT;
 
@@ -122,6 +119,7 @@ private slots:
     void sltHistoryChanged(bool fBackwardAvailable, bool fForwardAvailable);
     void sltLinkHighlighted(const QUrl &url);
     void sltMouseOverImage(const QString &strImageName);
+    void sltRetranslateUI();
 
 private:
 
@@ -148,9 +146,6 @@ private:
 
     /** @name Event handling stuff.
      * @{ */
-    /** Handles translation event. */
-       virtual void retranslateUi() RT_OVERRIDE;
-
        /** Handles Qt show @a pEvent. */
        virtual void showEvent(QShowEvent *pEvent) RT_OVERRIDE;
        /** Handles Qt key-press @a pEvent. */
@@ -219,5 +214,4 @@ private:
     QStringList          m_keywordList;
 };
 
-#endif /* #ifdef VBOX_WITH_QHELP_VIEWER */
 #endif /* !FEQT_INCLUDED_SRC_helpbrowser_UIHelpBrowserWidget_h */

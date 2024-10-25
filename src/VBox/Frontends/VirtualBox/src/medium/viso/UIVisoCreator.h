@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -37,26 +37,46 @@
 /* GUI includes: */
 #include "QIMainDialog.h"
 #include "QIWithRestorableGeometry.h"
-#include "QIWithRetranslateUI.h"
-
-#include <iprt/stream.h>
+#include "UIFileManagerHostTable.h"
 
 /* Forward declarations: */
-class QMenu;
 class QGridLayout;
+class QLabel;
+class QVBoxLayout;
+class QILabel;
+class QMenu;
 class QIDialogButtonBox;
-class UIDialogPanel;
 class QIToolBar;
 class UIActionPool;
-class UIVisoHostBrowser;
 class UIVisoContentBrowser;
-class UIVisoCreatorOptionsPanel;
-class UIVisoConfigurationPanel;
+class UIVisoSettingWidget;
+
+
+class UIVisoHostBrowser : public UIFileManagerHostTable
+{
+
+    Q_OBJECT;
+
+public:
+
+    UIVisoHostBrowser(UIActionPool *pActionPool, QWidget *pParent = 0);
+    void prepareMainMenu(QMenu *pMenu);
+
+private slots:
+
+    virtual void sltRetranslateUI() RT_OVERRIDE RT_FINAL;
+
+private:
+
+    virtual void createFileViewContextMenu(const QWidget *pWidget, const QPoint &point) RT_OVERRIDE RT_FINAL;
+    QPointer<QMenu>        m_pSubMenu;
+};
+
 
 /** A QIMainDialog extension. It hosts two UIVisoBrowserBase extensions, one for host and one
   * for VISO file system. It has the main menu, main toolbar, and a vertical toolbar and corresponding
   * actions. */
-class SHARED_LIBRARY_STUFF UIVisoCreatorWidget : public QIWithRetranslateUI<QWidget>
+class SHARED_LIBRARY_STUFF UIVisoCreatorWidget : public QWidget
 {
     Q_OBJECT;
 
@@ -64,171 +84,153 @@ signals:
 
     void sigSetCancelButtonShortCut(QKeySequence keySequence);
     void sigVisoNameChanged(const QString &strVisoName);
+    void sigVisoFilePathChanged(const QString &strPath);
+    void sigSettingDialogToggle(bool fDialogShown);
+    void sigSave();
 
 public:
 
+    struct Settings
+    {
+        Settings()
+            : m_strVisoName("ad-hoc-viso")
+            , m_fShowHiddenObjects(true){}
+        QString m_strVisoName;
+        /** Additions viso options to be inserted to the viso file as separate lines. */
+        QStringList m_customOptions;
+        /* If host file browser shows hidden file objects. */
+        bool m_fShowHiddenObjects;
+    };
+
     UIVisoCreatorWidget(UIActionPool *pActionPool, QWidget *pParent,
-                        bool fShowToolBar, const QString& strMachineName = QString());
+                        bool fShowToolBar, const QString& strVisoSavePath, const QString& strMachineName);
     /** Returns the content of the .viso file. Each element of the list corresponds to a line in the .viso file. */
     QStringList       entryList() const;
-    const QString     &visoName() const;
+    QString           importedISOPath() const;
+    const QString    &visoName() const;
     /** Returns custom ISO options (if any). */
     const QStringList &customOptions() const;
     /** Returns the current path that the host browser is listing. */
     QString currentPath() const;
     void    setCurrentPath(const QString &strPath);
     QMenu *menu() const;
-
-    /** Creates a VISO by using the VISO creator dialog.
-      * @param  pParent           Passes the dialog parent.
-      * @param  strDefaultFolder  Passes the folder to save the VISO file.
-      * @param  strMachineName    Passes the name of the machine,
-      * returns the UUID of the created medium or a null QUuid. */
-    static QUuid createViso(UIActionPool *pActionPool, QWidget *pParent,
-                            const QString &strDefaultFolder = QString(),
-                            const QString &strMachineName  = QString());
+    QString visoFileFullPath() const;
 
 #ifdef VBOX_WS_MAC
     /** Returns the toolbar. */
     QIToolBar *toolbar() const { return m_pToolBar; }
 #endif
 
-    /**
-      * Helper for createVisoMediumWithVisoCreator.
-      * @returns IPRT status code.
-      * @param   pStrmDst            Where to write the quoted string.
-      * @param   pszPrefix           Stuff to put in front of it.
-      * @param   rStr                The string to quote and write out.
-      * @param   pszPrefix           Stuff to put after it.
-      */
-    static int visoWriteQuotedString(PRTSTREAM pStrmDst, const char *pszPrefix,
-                                     QString const &rStr, const char *pszPostFix);
-
-protected:
-
-    virtual void retranslateUi() final override;
-
 private slots:
 
-    void sltHandleAddObjectsToViso(QStringList pathList);
-    void sltPanelActionToggled(bool fChecked);
-    void sltHandleVisoNameChanged(const QString& strVisoName);
-    void sltHandleCustomVisoOptionsChanged(const QStringList &customVisoOptions);
-    void sltHandleShowHiddenObjectsChange(bool fShow);
-    void sltHandleHidePanel(UIDialogPanel *pPanel);
-    void sltHandleBrowserTreeViewVisibilityChanged(bool fVisible);
-    void sltHandleHostBrowserTableSelectionChanged(bool fIsSelectionEmpty);
-    void sltHandleContentBrowserTableSelectionChanged(bool fIsSelectionEmpty);
-    void sltHandleShowContextMenu(const QWidget *pContextMenuRequester, const QPoint &point);
+    void sltAddObjectsToViso();
+    void sltSettingsActionToggled(bool fChecked);
+    void sltHostBrowserTableSelectionChanged(bool fHasSelection);
+    void sltContentBrowserTableSelectionChanged(bool fIsSelectionEmpty);
+    void sltOpenAction();
+    void sltSaveAsAction();
+    void sltISOImportAction();
+    void sltISORemoveAction();
+    void sltISOContentImportedOrRemoved(bool fImported);
+    void sltSettingsChanged();
+    void sltPanelContainerHidden();
 
 private:
-
-    struct VisoOptions
-    {
-        VisoOptions()
-            :m_strVisoName("ad-hoc-viso"){}
-        QString m_strVisoName;
-        /** Additions viso options to be inserted to the viso file as separate lines. */
-        QStringList m_customOptions;
-    };
-
-    struct BrowserOptions
-    {
-        BrowserOptions()
-            :m_fShowHiddenObjects(true){}
-        bool m_fShowHiddenObjects;
-    };
 
     void prepareWidgets();
     void prepareConnections();
     void prepareActions();
+    void setVisoName(const QString& strName);
+
     /** Creates and configures the vertical toolbar. Should be called after prepareActions() */
     void prepareVerticalToolBar();
     /* Populates the main menu and toolbard with already created actions.
      * Leave out the vertical toolbar which is handled in prepareVerticalToolBar. */
     void populateMenuMainToolbar();
-    /** Set the root index of the m_pTableModel to the current index of m_pTreeModel. */
-    void setTableRootIndex(QModelIndex index = QModelIndex() );
-    void setTreeCurrentIndex(QModelIndex index = QModelIndex() );
-    void hidePanel(UIDialogPanel *panel);
-    void showPanel(UIDialogPanel *panel);
-    /** Makes sure escape key is assigned to only a single widget. This is done by checking
-      *  several things in the following order:
-      *  - when (drop-down) tree views of browser panes are visible esc. key used to close those. thus it is taken from the dialog and panels
-      *  - when there are no more panels visible assign it to the parent dialog
-      *  - grab it from the dialog as soon as a panel becomes visible again
-      *  - assign it to the most recently "unhidden" panel */
-    void manageEscapeShortCut();
+
+    void toggleSettingsWidget(bool fShown);
+    QStringList findISOFiles(const QStringList &pathList) const;
+    void setVisoFilePath(const QString& strPath);
 
     /** @name Main toolbar (and main menu) actions
       * @{ */
-        QAction         *m_pActionConfiguration;
-        QAction         *m_pActionOptions;
+        QAction         *m_pActionPreferences;
     /** @} */
 
     /** @name These actions are addded to vertical toolbar, context menus, and the main menu.
       * @{ */
         QAction              *m_pAddAction;
-        QAction              *m_pRemoveAction;
-        QAction              *m_pCreateNewDirectoryAction;
-        QAction              *m_pRenameAction;
-        QAction              *m_pResetAction;
+        QAction              *m_pOpenAction;
+        QAction              *m_pSaveAsAction;
+        QAction              *m_pImportISOAction;
+        QAction              *m_pRemoveISOAction;
     /** @} */
 
-    QGridLayout          *m_pMainLayout;
-    UIVisoHostBrowser    *m_pHostBrowser;
-    UIVisoContentBrowser *m_pVISOContentBrowser;
+    QVBoxLayout            *m_pMainLayout;
+    UIVisoContentBrowser   *m_pVISOContentBrowser;
+    UIVisoHostBrowser      *m_pHostFileBrowser;
 
-    QIToolBar            *m_pToolBar;
-    QIToolBar            *m_pVerticalToolBar;
-    VisoOptions           m_visoOptions;
-    BrowserOptions        m_browserOptions;
-    QMenu                *m_pMainMenu;
-    QString               m_strMachineName;
-    UIVisoCreatorOptionsPanel *m_pCreatorOptionsPanel;
-    UIVisoConfigurationPanel  *m_pConfigurationPanel;
-    QMap<UIDialogPanel*, QAction*> m_panelActionMap;
-    QList<UIDialogPanel*>          m_visiblePanelsList;
+    QIToolBar             *m_pToolBar;
+    QIToolBar             *m_pVerticalToolBar;
+    Settings               m_settings;
+    QMenu                 *m_pMainMenu;
     QPointer<UIActionPool> m_pActionPool;
     bool                   m_fShowToolBar;
+    UIVisoSettingWidget   *m_pSettingsWidget;
+    QWidget               *m_pBrowserContainerWidget;
+    QString                m_strVisoFilePath;
+    bool                   m_fShowSettingsDialog;
 };
 
 
-class SHARED_LIBRARY_STUFF UIVisoCreatorDialog : public QIWithRetranslateUI<QIWithRestorableGeometry<QIMainDialog> >
+class SHARED_LIBRARY_STUFF UIVisoCreatorDialog : public QIWithRestorableGeometry<QIMainDialog>
 {
     Q_OBJECT;
 
 public:
 
-    UIVisoCreatorDialog(UIActionPool *pActionPool, QWidget *pParent, const QString& strMachineName = QString());
+    UIVisoCreatorDialog(UIActionPool *pActionPool, QWidget *pParent,
+                        const QString& strVisoSavePath, const QString& strMachineName = QString());
 
     QStringList  entryList() const;
     QString visoName() const;
+    QString importedISOPath() const;
     QStringList customOptions() const;
     QString currentPath() const;
     void    setCurrentPath(const QString &strPath);
+    QString visoFileFullPath() const;
+    /** Creates a VISO by using the VISO creator dialog.
+      * @param  pParent           Passes the dialog parent.
+      * @param  strDefaultFolder  Passes the folder to save the VISO file.
+      * @param  strMachineName    Passes the name of the machine.
+      * returns QUuid of the opened medium when successful. */
+    static QUuid createViso(UIActionPool *pActionPool, QWidget *pParent,
+                            const QString &strDefaultFolder = QString(),
+                            const QString &strMachineName  = QString());
 
 protected:
 
-    virtual bool event(QEvent *pEvent) final override;
+    virtual bool event(QEvent *pEvent) RT_OVERRIDE RT_FINAL;
 
 private slots:
 
     void sltSetCancelButtonShortCut(QKeySequence keySequence);
-    void sltsigVisoNameChanged(const QString &strName);
+    void sltVisoNameChanged(const QString &strName);
+    void sltVisoFilePathChanged(const QString &strPath);
+    void sltSave();
+    void sltRetranslateUI();
 
 private:
-    void prepareWidgets();
-    void prepareConnections();
-    virtual void retranslateUi() final override;
+
+    bool saveVISOFile();
+    void prepareWidgets(const QString& strVisoSavePath, const QString &strMachineName);
     void loadSettings();
     void saveDialogGeometry();
     void updateWindowTitle();
 
-    QString m_strMachineName;
     UIVisoCreatorWidget *m_pVisoCreatorWidget;
-    QIDialogButtonBox    *m_pButtonBox;
+    QIDialogButtonBox   *m_pButtonBox;
     QPointer<UIActionPool> m_pActionPool;
-    int                   m_iGeometrySaveTimerId;
+    int                  m_iGeometrySaveTimerId;
 };
 #endif /* !FEQT_INCLUDED_SRC_medium_viso_UIVisoCreator_h */

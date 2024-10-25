@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2009-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2009-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -26,15 +26,15 @@
  */
 
 /* Qt includes: */
+#include <QComboBox>
 #include <QGridLayout>
 #include <QLabel>
-#include <QListWidget>
 #include <QPushButton>
 #include <QTabBar>
 #include <QVBoxLayout>
 
 /* GUI includes: */
-#include "QIComboBox.h"
+#include "QIListWidget.h"
 #include "QIRichTextLabel.h"
 #include "QIToolButton.h"
 #include "UICloudNetworkingStuff.h"
@@ -57,7 +57,7 @@ using namespace UIWizardNewCloudVMSource;
 *   Namespace UIWizardNewCloudVMSource implementation.                                                                           *
 *********************************************************************************************************************************/
 
-void UIWizardNewCloudVMSource::populateProviders(QIComboBox *pCombo, UINotificationCenter *pCenter)
+void UIWizardNewCloudVMSource::populateProviders(QComboBox *pCombo, UINotificationCenter *pCenter)
 {
     /* Sanity check: */
     AssertPtrReturnVoid(pCombo);
@@ -112,7 +112,7 @@ void UIWizardNewCloudVMSource::populateProviders(QIComboBox *pCombo, UINotificat
     pCombo->blockSignals(false);
 }
 
-void UIWizardNewCloudVMSource::populateProfiles(QIComboBox *pCombo,
+void UIWizardNewCloudVMSource::populateProfiles(QComboBox *pCombo,
                                                 UINotificationCenter *pCenter,
                                                 const QString &strProviderShortName,
                                                 const QString &strProfileName)
@@ -197,7 +197,7 @@ void UIWizardNewCloudVMSource::populateProfiles(QIComboBox *pCombo,
     pCombo->blockSignals(false);
 }
 
-void UIWizardNewCloudVMSource::populateSourceImages(QListWidget *pList,
+void UIWizardNewCloudVMSource::populateSourceImages(QIListWidget *pList,
                                                     QTabBar *pTabBar,
                                                     UINotificationCenter *pCenter,
                                                     const CCloudClient &comClient)
@@ -233,7 +233,7 @@ void UIWizardNewCloudVMSource::populateSourceImages(QListWidget *pList,
         for (int i = 0; i < names.size(); ++i)
         {
             /* Create list item: */
-            QListWidgetItem *pItem = new QListWidgetItem(names.at(i), pList);
+            QIListWidgetItem *pItem = new QIListWidgetItem(names.at(i), pList);
             if (pItem)
             {
                 pItem->setFlags(pItem->flags() & ~Qt::ItemIsEditable);
@@ -272,26 +272,12 @@ void UIWizardNewCloudVMSource::populateFormProperties(CVirtualSystemDescription 
         UINotificationMessage::cannotChangeVirtualSystemDescriptionParameter(comVSD, pWizard->notificationCenter());
 }
 
-void UIWizardNewCloudVMSource::updateComboToolTip(QIComboBox *pCombo)
-{
-    /* Sanity check: */
-    AssertPtrReturnVoid(pCombo);
-
-    const int iCurrentIndex = pCombo->currentIndex();
-    if (iCurrentIndex != -1)
-    {
-        const QString strCurrentToolTip = pCombo->itemData(iCurrentIndex, Qt::ToolTipRole).toString();
-        AssertMsg(!strCurrentToolTip.isEmpty(), ("Tool-tip data not found!\n"));
-        pCombo->setToolTip(strCurrentToolTip);
-    }
-}
-
-QString UIWizardNewCloudVMSource::currentListWidgetData(QListWidget *pList)
+QString UIWizardNewCloudVMSource::currentListWidgetData(QIListWidget *pList)
 {
     /* Sanity check: */
     AssertPtrReturn(pList, QString());
 
-    QListWidgetItem *pItem = pList->currentItem();
+    QIListWidgetItem *pItem = QIListWidgetItem::toItem(pList->currentItem());
     return pItem ? pItem->data(Qt::UserRole).toString() : QString();
 }
 
@@ -338,7 +324,7 @@ UIWizardNewCloudVMPageSource::UIWizardNewCloudVMPageSource()
                 m_pProviderLayout->addWidget(m_pProviderLabel, 0, 0, Qt::AlignRight);
 
             /* Prepare provider combo-box: */
-            m_pProviderComboBox = new QIComboBox(this);
+            m_pProviderComboBox = new QComboBox(this);
             if (m_pProviderComboBox)
             {
                 m_pProviderLabel->setBuddy(m_pProviderComboBox);
@@ -377,7 +363,7 @@ UIWizardNewCloudVMPageSource::UIWizardNewCloudVMPageSource()
                 pProfileLayout->setSpacing(1);
 
                 /* Prepare profile combo-box: */
-                m_pProfileComboBox = new QIComboBox(this);
+                m_pProfileComboBox = new QComboBox(this);
                 if (m_pProfileComboBox)
                 {
                     m_pProfileLabel->setBuddy(m_pProfileComboBox);
@@ -421,18 +407,14 @@ UIWizardNewCloudVMPageSource::UIWizardNewCloudVMPageSource()
                 }
 
                 /* Prepare source image list: */
-                m_pSourceImageList = new QListWidget(this);
+                m_pSourceImageList = new QIListWidget(this);
                 if (m_pSourceImageList)
                 {
                     m_pSourceImageLabel->setBuddy(m_pSourceImageList);
                     /* Make source image list fit 50 symbols
                      * horizontally and 8 lines vertically: */
                     const QFontMetrics fm(m_pSourceImageList->font());
-#if QT_VERSION >= QT_VERSION_CHECK(5, 11, 0)
                     const int iFontWidth = fm.horizontalAdvance('x');
-#else
-                    const int iFontWidth = fm.width('x');
-#endif
                     const int iTotalWidth = 50 * iFontWidth;
                     const int iFontHeight = fm.height();
                     const int iTotalHeight = 8 * iFontHeight;
@@ -460,15 +442,15 @@ UIWizardNewCloudVMPageSource::UIWizardNewCloudVMPageSource()
             this, &UIWizardNewCloudVMPageSource::sltHandleProviderComboChange);
     connect(gVBoxEvents, &UIVirtualBoxEventHandler::sigCloudProfileChanged,
             this, &UIWizardNewCloudVMPageSource::sltHandleProviderComboChange);
-    connect(m_pProviderComboBox, &QIComboBox::activated,
+    connect(m_pProviderComboBox, &QComboBox::activated,
             this, &UIWizardNewCloudVMPageSource::sltHandleProviderComboChange);
-    connect(m_pProfileComboBox, static_cast<void(QIComboBox::*)(int)>(&QIComboBox::currentIndexChanged),
+    connect(m_pProfileComboBox, &QComboBox::currentIndexChanged,
             this, &UIWizardNewCloudVMPageSource::sltHandleProfileComboChange);
     connect(m_pProfileToolButton, &QIToolButton::clicked,
             this, &UIWizardNewCloudVMPageSource::sltHandleProfileButtonClick);
     connect(m_pSourceTabBar, &QTabBar::currentChanged,
             this, &UIWizardNewCloudVMPageSource::sltHandleSourceTabBarChange);
-    connect(m_pSourceImageList, &QListWidget::currentRowChanged,
+    connect(m_pSourceImageList, &QIListWidget::currentRowChanged,
             this, &UIWizardNewCloudVMPageSource::sltHandleSourceImageChange);
 }
 
@@ -477,53 +459,74 @@ UIWizardNewCloudVM *UIWizardNewCloudVMPageSource::wizard() const
     return qobject_cast<UIWizardNewCloudVM*>(UINativeWizardPage::wizard());
 }
 
-void UIWizardNewCloudVMPageSource::retranslateUi()
+void UIWizardNewCloudVMPageSource::sltRetranslateUI()
 {
     /* Translate page: */
     setTitle(UIWizardNewCloudVM::tr("Location to create"));
 
     /* Translate main label: */
-    m_pLabelMain->setText(UIWizardNewCloudVM::tr("Please choose the location to create cloud virtual machine in.  This can "
-                                                 "be one of known cloud service providers below."));
+    if (m_pLabelMain)
+        m_pLabelMain->setText(UIWizardNewCloudVM::tr("Please choose the location to create cloud virtual machine in.  This can "
+                                                     "be one of known cloud service providers below."));
 
     /* Translate provider label: */
-    m_pProviderLabel->setText(UIWizardNewCloudVM::tr("&Location:"));
-    /* Translate received values of Location combo-box.
+    if (m_pProviderLabel)
+        m_pProviderLabel->setText(UIWizardNewCloudVM::tr("&Provider:"));
+    /* Translate received values of Provider combo-box.
      * We are enumerating starting from 0 for simplicity: */
-    for (int i = 0; i < m_pProviderComboBox->count(); ++i)
+    if (m_pProviderComboBox)
     {
-        m_pProviderComboBox->setItemText(i, m_pProviderComboBox->itemData(i, ProviderData_Name).toString());
-        m_pProviderComboBox->setItemData(i, UIWizardNewCloudVM::tr("Create VM for cloud service provider."), Qt::ToolTipRole);
+        m_pProviderComboBox->setToolTip(UIWizardNewCloudVM::tr("Selects cloud service provider."));
+        for (int i = 0; i < m_pProviderComboBox->count(); ++i)
+            m_pProviderComboBox->setItemText(i, m_pProviderComboBox->itemData(i, ProviderData_Name).toString());
     }
 
     /* Translate description label: */
-    m_pLabelDescription->setText(UIWizardNewCloudVM::tr("Please choose one of cloud service profiles you have registered to "
-                                                        "create virtual machine for.  Existing images list will be "
-                                                        "updated.  To continue, select one of images to create virtual "
-                                                        "machine on the basis of it."));
+    if (m_pLabelDescription)
+        m_pLabelDescription->setText(UIWizardNewCloudVM::tr("Please choose one of cloud service profiles you have registered to "
+                                                            "create virtual machine for.  Existing images list will be "
+                                                            "updated.  To continue, select one of images to create virtual "
+                                                            "machine on the basis of it."));
 
     /* Translate profile stuff: */
-    m_pProfileLabel->setText(UIWizardNewCloudVM::tr("&Profile:"));
-    m_pProfileToolButton->setToolTip(UIWizardNewCloudVM::tr("Open Cloud Profile Manager..."));
-    m_pSourceImageLabel->setText(UIWizardNewCloudVM::tr("&Source:"));
+    if (m_pProfileLabel)
+        m_pProfileLabel->setText(UIWizardNewCloudVM::tr("P&rofile:"));
+    if (m_pProfileComboBox)
+        m_pProfileComboBox->setToolTip(UIWizardNewCloudVM::tr("Selects cloud profile."));
+    if (m_pProfileToolButton)
+    {
+        m_pProfileToolButton->setText(UIWizardNewCloudVM::tr("Cloud Profile Manager"));
+        m_pProfileToolButton->setToolTip(UIWizardNewCloudVM::tr("Opens cloud profile manager..."));
+    }
 
-    /* Translate source tab-bar: */
-    m_pSourceTabBar->setTabText(0, UIWizardNewCloudVM::tr("&Images"));
-    m_pSourceTabBar->setTabText(1, UIWizardNewCloudVM::tr("&Boot Volumes"));
+    /* Translate source stuff: */
+    if (m_pSourceImageLabel)
+        m_pSourceImageLabel->setText(UIWizardNewCloudVM::tr("&Source:"));
+    if (m_pSourceTabBar)
+    {
+        m_pSourceTabBar->setTabText(0, UIWizardNewCloudVM::tr("&Images"));
+        m_pSourceTabBar->setTabText(1, UIWizardNewCloudVM::tr("&Boot Volumes"));
+    }
+
+    /* Translate source image list: */
+    if (m_pSourceImageList)
+        m_pSourceImageList->setWhatsThis(UIWizardNewCloudVM::tr("Lists all the source images or boot volumes."));
 
     /* Adjust label widths: */
     QList<QWidget*> labels;
-    labels << m_pProviderLabel;
-    labels << m_pProfileLabel;
-    labels << m_pSourceImageLabel;
+    if (m_pProviderLabel)
+        labels << m_pProviderLabel;
+    if (m_pProfileLabel)
+        labels << m_pProfileLabel;
+    if (m_pSourceImageLabel)
+        labels << m_pSourceImageLabel;
     int iMaxWidth = 0;
     foreach (QWidget *pLabel, labels)
         iMaxWidth = qMax(iMaxWidth, pLabel->minimumSizeHint().width());
-    m_pProviderLayout->setColumnMinimumWidth(0, iMaxWidth);
-    m_pOptionsLayout->setColumnMinimumWidth(0, iMaxWidth);
-
-    /* Update tool-tips: */
-    updateComboToolTip(m_pProviderComboBox);
+    if (m_pProviderLayout)
+        m_pProviderLayout->setColumnMinimumWidth(0, iMaxWidth);
+    if (m_pOptionsLayout)
+        m_pOptionsLayout->setColumnMinimumWidth(0, iMaxWidth);
 }
 
 void UIWizardNewCloudVMPageSource::initializePage()
@@ -531,7 +534,7 @@ void UIWizardNewCloudVMPageSource::initializePage()
     /* Populate providers: */
     populateProviders(m_pProviderComboBox, wizard()->notificationCenter());
     /* Translate providers: */
-    retranslateUi();
+    sltRetranslateUI();
     /* Fetch it, asynchronously: */
     QMetaObject::invokeMethod(this, "sltHandleProviderComboChange", Qt::QueuedConnection);
     /* Make image list focused by default: */
@@ -571,9 +574,6 @@ bool UIWizardNewCloudVMPageSource::validatePage()
 
 void UIWizardNewCloudVMPageSource::sltHandleProviderComboChange()
 {
-    /* Update combo tool-tip: */
-    updateComboToolTip(m_pProviderComboBox);
-
     /* Update wizard fields: */
     wizard()->setProviderShortName(m_pProviderComboBox->currentData(ProviderData_ShortName).toString());
 
@@ -607,9 +607,7 @@ void UIWizardNewCloudVMPageSource::sltHandleProfileButtonClick()
 void UIWizardNewCloudVMPageSource::sltHandleSourceTabBarChange()
 {
     /* Update source type: */
-    wizard()->wizardButton(WizardButtonType_Expert)->setEnabled(false);
     populateSourceImages(m_pSourceImageList, m_pSourceTabBar, wizard()->notificationCenter(), wizard()->client());
-    wizard()->wizardButton(WizardButtonType_Expert)->setEnabled(true);
     sltHandleSourceImageChange();
 
     /* Notify about changes: */

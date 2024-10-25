@@ -7,7 +7,7 @@ Test Manager Requests from the TestBox Script.
 
 __copyright__ = \
 """
-Copyright (C) 2012-2023 Oracle and/or its affiliates.
+Copyright (C) 2012-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -36,7 +36,7 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 
 ## @name Test Manager actions
@@ -85,6 +85,7 @@ SIGNON_PARAM_HAS_NESTED_PAGING  = 'HAS_NESTED_PAGING';
 SIGNON_PARAM_HAS_64_BIT_GUEST   = 'HAS_64_BIT_GUST';
 SIGNON_PARAM_HAS_IOMMU          = 'HAS_IOMMU';
 SIGNON_PARAM_WITH_RAW_MODE      = 'WITH_RAW_MODE';
+SIGNON_PARAM_HAS_NATIVE_API     = 'HAS_NATIVE_API';
 SIGNON_PARAM_MEM_SIZE           = 'MEM_SIZE';
 SIGNON_PARAM_SCRATCH_SIZE       = 'SCRATCH_SIZE';
 SIGNON_PARAM_REPORT             = 'REPORT';

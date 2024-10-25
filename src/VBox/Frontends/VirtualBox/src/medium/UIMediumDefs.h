@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -32,17 +32,15 @@
 #endif
 
 /* Qt includes: */
+#include <QtGlobal>
 #include <QString>
 
 /* GUI includes: */
 #include "UILibraryDefs.h"
 
 /* COM includes: */
-#include "COMEnums.h"
-#include "CVirtualBox.h"
-
-/* Other VBox includes: */
-#include <VBox/com/defs.h>
+#include "KDeviceType.h"
+#include "KStorageBus.h"
 
 /* Forward declarations: */
 class CVirtualBox;
@@ -88,7 +86,6 @@ namespace UIMediumDefs
 
     /** Returns the first file extension of the list of file extension support for the @a enmDeviceType. */
    QString getPreferredExtensionForMedium(KDeviceType enmDeviceType);
-   QVector<CMediumFormat>  getFormatsForDeviceType(KDeviceType enmDeviceType);
 }
 /* Using this namespace globally: */
 using namespace UIMediumDefs;
@@ -107,7 +104,7 @@ struct UIMediumTarget
     };
 
     /** Medium-target constructor. */
-    UIMediumTarget(const QString &strName = QString(), LONG iPort = 0, LONG iDevice = 0,
+    UIMediumTarget(const QString &strName = QString(), qint32 iPort = 0, qint32 iDevice = 0,
                    UIMediumDeviceType aMediumType = UIMediumDeviceType_Invalid,
                    UIMediumTargetType aType = UIMediumTargetType_WithID, const QString &strData = QString())
         : name(strName), port(iPort), device(iDevice)
@@ -118,9 +115,9 @@ struct UIMediumTarget
     /** Determines controller name. */
     QString name;
     /** Determines controller port. */
-    LONG port;
+    qint32 port;
     /** Determines controller device. */
-    LONG device;
+    qint32 device;
 
     /** Determines medium-target medium-type. */
     UIMediumDeviceType mediumType;
@@ -131,8 +128,39 @@ struct UIMediumTarget
     QString data;
 };
 
+/** Storage-slot struct. */
+struct StorageSlot
+{
+    StorageSlot() : bus(KStorageBus_Null), port(0), device(0) {}
+    StorageSlot(const StorageSlot &other) : bus(other.bus), port(other.port), device(other.device) {}
+    StorageSlot(KStorageBus otherBus, qint32 iPort, qint32 iDevice) : bus(otherBus), port(iPort), device(iDevice) {}
+    StorageSlot& operator=(const StorageSlot &other) { bus = other.bus; port = other.port; device = other.device; return *this; }
+    bool operator==(const StorageSlot &other) const { return bus == other.bus && port == other.port && device == other.device; }
+    bool operator!=(const StorageSlot &other) const { return bus != other.bus || port != other.port || device != other.device; }
+    bool operator<(const StorageSlot &other) const { return (bus <  other.bus) ||
+                                                            (bus == other.bus && port <  other.port) ||
+                                                            (bus == other.bus && port == other.port && device < other.device); }
+    bool operator>(const StorageSlot &other) const { return (bus >  other.bus) ||
+                                                            (bus == other.bus && port >  other.port) ||
+                                                            (bus == other.bus && port == other.port && device > other.device); }
+    bool isNull() const { return bus == KStorageBus_Null; }
+    KStorageBus bus; qint32 port; qint32 device;
+};
+
+/** Storage-slot struct extension with exact controller name. */
+struct ExactStorageSlot : public StorageSlot
+{
+    ExactStorageSlot(const QString &strController,
+                     KStorageBus enmBus, qint32 iPort, qint32 iDevice)
+        : StorageSlot(enmBus, iPort, iDevice)
+        , controller(strController)
+    {}
+    QString controller;
+};
+
 /* Let QMetaType know about our types: */
 Q_DECLARE_METATYPE(UIMediumDeviceType);
 Q_DECLARE_METATYPE(UIMediumTarget);
+Q_DECLARE_METATYPE(StorageSlot);
 
 #endif /* !FEQT_INCLUDED_SRC_medium_UIMediumDefs_h */

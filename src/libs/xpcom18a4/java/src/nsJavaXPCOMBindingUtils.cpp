@@ -104,7 +104,7 @@ NativeToJavaProxyMap* gNativeToJavaProxyMap = nsnull;
 JavaToXPTCStubMap* gJavaToXPTCStubMap = nsnull;
 
 PRBool gJavaXPCOMInitialized = PR_FALSE;
-PRLock* gJavaXPCOMLock = nsnull;
+RTSEMFASTMUTEX gJavaXPCOMLock = NIL_RTSEMFASTMUTEX;
 
 static const char* kJavaKeywords[] = {
   "abstract", "default"  , "if"        , "private"     , "throw"       ,
@@ -143,6 +143,8 @@ InitializeJavaGlobals(JNIEnv *env)
 {
   if (gJavaXPCOMInitialized)
     return PR_TRUE;
+
+  int vrc = VINF_SUCCESS;
 
   // Save pointer to JavaVM, which is valid across threads.
   jint rc = env->GetJavaVM(&gCachedJVM);
@@ -338,7 +340,10 @@ InitializeJavaGlobals(JNIEnv *env)
     }
   }
 
-  gJavaXPCOMLock = PR_NewLock();
+  vrc = RTSemFastMutexCreate(&gJavaXPCOMLock);
+  if (RT_FAILURE(vrc))
+    goto init_error;
+
   gJavaXPCOMInitialized = PR_TRUE;
   return PR_TRUE;
 
@@ -355,13 +360,13 @@ init_error:
 void
 FreeJavaGlobals(JNIEnv* env)
 {
-  PRLock* tempLock = nsnull;
+  RTSEMFASTMUTEX tempLock = NIL_RTSEMFASTMUTEX;
   if (gJavaXPCOMLock) {
-    PR_Lock(gJavaXPCOMLock);
+    RTSemFastMutexRequest(gJavaXPCOMLock);
 
     // null out global lock so no one else can use it
     tempLock = gJavaXPCOMLock;
-    gJavaXPCOMLock = nsnull;
+    gJavaXPCOMLock = NIL_RTSEMFASTMUTEX;
   }
 
   gJavaXPCOMInitialized = PR_FALSE;
@@ -442,9 +447,9 @@ FreeJavaGlobals(JNIEnv* env)
     gJavaKeywords = nsnull;
   }
 
-  if (tempLock) {
-    PR_Unlock(tempLock);
-    PR_DestroyLock(tempLock);
+  if (tempLock != NIL_RTSEMFASTMUTEX) {
+    RTSemFastMutexRelease(tempLock);
+    RTSemFastMutexDestroy(tempLock);
   }
 }
 
@@ -786,24 +791,15 @@ JavaXPCOMInstance::~JavaXPCOMInstance()
 {
   nsresult rv = NS_OK;
 
-#ifdef VBOX
-# if 0
+#if 0
   nsCOMPtr<nsIEventQueue> eq = do_GetMainThreadQueue();
   rv = NS_ProxyRelease(eq.get(), mInstance);
   rv |= NS_ProxyRelease(eq.get(), mIInfo);
-# else
+#else
   // The above code crashes in nsTraceRefcntImpl::LogAddCOMPtr() (@bugref 7620)
   NS_RELEASE(mInstance);
   NS_RELEASE(mIInfo);
   rv = NS_OK;
-# endif
-#else
-  // Need to release these objects on the main thread.
-  nsCOMPtr<nsIThread> thread = do_GetMainThread();
-  if (thread) {
-    rv = NS_ProxyRelease(thread, mInstance);
-    rv |= NS_ProxyRelease(thread, mIInfo);
-  }
 #endif
   NS_ASSERTION(NS_SUCCEEDED(rv), "Failed to release using NS_ProxyRelease");
 }

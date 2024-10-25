@@ -7,7 +7,7 @@ VirtualBox Validation Kit - Storage test configuration API.
 
 __copyright__ = \
 """
-Copyright (C) 2016-2023 Oracle and/or its affiliates.
+Copyright (C) 2016-2024 Oracle and/or its affiliates.
 
 This file is part of VirtualBox base platform packages, as
 available from https://www.virtualbox.org.
@@ -36,11 +36,12 @@ terms and conditions of either the GPL or the CDDL or both.
 
 SPDX-License-Identifier: GPL-3.0-only OR CDDL-1.0
 """
-__version__ = "$Revision: 155244 $"
+__version__ = "$Revision: 164827 $"
 
 # Standard Python imports.
 import os;
 import re;
+from testdriver import reporter;
 
 
 class StorageDisk(object):
@@ -121,12 +122,13 @@ class StorageConfigOsSolaris(StorageConfigOs):
         fRc, sOutput, _ = oExec.execBinary('zpool', ('list', '-H'));
         if fRc:
             lstPools = [];
-            asPools = sOutput.splitlines();
+            asPools = re.sub("b'|'", "", sOutput).rstrip("\\n").split("\\n")  # as sOutput could look like "b'blabla'"
+            reporter.log('asPools: %s' % asPools)                             # plus delete excessive end-of-line
             for sPool in asPools:
-                if sPool.startswith(sPoolIdStart):
-                    # Extract the whole name and add it to the list.
-                    asItems = sPool.split('\t');
-                    lstPools.append(asItems[0]);
+                oMatchResult = re.match("%s[0-9]?[0-9]?" % sPoolIdStart, sPool)  # either re.Match obj or None
+                reporter.log('sPoolIdStart: %s, sPool: %s, oMatchResult: %s' % (sPoolIdStart, sPool, oMatchResult))
+                if oMatchResult:
+                    lstPools.append(oMatchResult.group(0));
         return lstPools;
 
     def _getActiveVolumesInPoolStartingWith(self, oExec, sPool, sVolumeIdStart):
@@ -138,12 +140,14 @@ class StorageConfigOsSolaris(StorageConfigOs):
         fRc, sOutput, _ = oExec.execBinary('zfs', ('list', '-H'));
         if fRc:
             lstVolumes = [];
-            asVolumes = sOutput.splitlines();
+            asVolumes = re.sub("b'|'", "", sOutput).rstrip("\\n").split("\\n")  # as sOutput could look like "b'blabla'"
+            reporter.log('asVolumes: %s' % asVolumes)                           # plus delete excessive end-of-line
             for sVolume in asVolumes:
-                if sVolume.startswith(sPool + '/' + sVolumeIdStart):
-                    # Extract the whole name and add it to the list.
-                    asItems = sVolume.split('\t');
-                    lstVolumes.append(asItems[0]);
+                oMatchResult = re.match("%s/%s" % (sPool, sVolumeIdStart), sVolume)  # either re.Match obj or None
+                reporter.log('sPool: %s, sVolumeIdStart: %s, sVolume: %s, OMatchResult: %s' % (sPool, sVolumeIdStart,
+                                                                                               sVolume, oMatchResult))
+                if oMatchResult:
+                    lstVolumes.append(oMatchResult.group(0));
         return lstVolumes;
 
     def getDisksMatchingRegExp(self, sRegExp):
@@ -205,7 +209,7 @@ class StorageConfigOsSolaris(StorageConfigOs):
         """
         Destroys the given storage pool.
         """
-        fRc = oExec.execBinaryNoStdOut('zpool', ('destroy', sPool));
+        fRc = oExec.execBinary('zpool', ('destroy', sPool));
         return fRc;
 
     def cleanupPoolsAndVolumes(self, oExec, sPoolIdStart, sVolIdStart):
@@ -213,27 +217,31 @@ class StorageConfigOsSolaris(StorageConfigOs):
         Cleans up any pools and volumes starting with the name in the given
         parameters.
         """
+        reporter.log('cleanupPoolsAndVolumes starts');
         fRc = True;
         lstPools = self._getActivePoolsStartingWith(oExec, sPoolIdStart);
+        reporter.log('lstPools: %s' % lstPools);
         if lstPools is not None:
             for sPool in lstPools:
+                fRc2 = fRc3 = False  # flags for volumes and pools destruction results
                 lstVolumes = self._getActiveVolumesInPoolStartingWith(oExec, sPool, sVolIdStart);
+                reporter.log('lstVolumes: %s' % lstVolumes)
                 if lstVolumes is not None:
                     # Destroy all the volumes first
+                    reporter.log('destroying volumes starts');
                     for sVolume in lstVolumes:
-                        fRc2 = oExec.execBinaryNoStdOut('zfs', ('destroy', sVolume));
-                        if not fRc2:
-                            fRc = fRc2;
+                        fRc2 = oExec.execBinary('zfs', ('destroy', sVolume));
+                    reporter.log('destroying volumes ends');
 
-                    # Destroy the pool
-                    fRc2 = self.destroyPool(oExec, sPool);
-                    if not fRc2:
-                        fRc = fRc2;
-                else:
+                # Destroy the pool
+                reporter.log('destroying pools starts');
+                fRc3 = self.destroyPool(oExec, sPool);
+                reporter.log('destroying pools ends');
+                if not (fRc2 or fRc3):
                     fRc = False;
         else:
             fRc = False;
-
+        reporter.log('cleanupPoolsAndVolumes is finished');
         return fRc;
 
     def createRamDisk(self, oExec, cbRamDisk):
@@ -336,8 +344,8 @@ class StorageConfigOsLinux(StorageConfigOs):
                 sFdiskScript = ';\n'; # Single partition filling everything
                 if cbVol is not None:
                     sFdiskScript = ',' + str(cbVol // 512) + '\n'; # Get number of sectors
-                fRc = oExec.execBinaryNoStdOut('sfdisk', ('--no-reread', '--wipe', 'always', '-q', '-f', sDiskPath), \
-                                               sFdiskScript);
+                fRc, _, _ = oExec.execBinary('sfdisk', ('--no-reread', '--wipe', 'always', '-q', '-f', sDiskPath), \
+                                             sFdiskScript);
                 if fRc:
                     if sDiskPath.find('nvme') != -1:
                         sBlkDev = sDiskPath + 'p1';
@@ -486,7 +494,7 @@ class StorageCfg(object):
             if oDiskCfg.isCfgRegExp():
                 self.lstDisks = oStorOs.getDisksMatchingRegExp(oDiskCfg.getDisks());
             elif oDiskCfg.isCfgList():
-                # Assume a list of of disks and add.
+                # Assume a list of disks and add.
                 for sDisk in oDiskCfg.getDisks():
                     self.lstDisks.append(StorageDisk(sDisk));
             elif oDiskCfg.isCfgStaticDir():
@@ -663,19 +671,27 @@ class StorageCfg(object):
     def mkDirOnVolume(self, sMountPoint, sDir, fMode = 0o700):
         """
         Creates a new directory on the volume pointed to by the given mount point.
+
+        Returns success status.
         """
-        return self.oExec.mkDir(sMountPoint + '/' + sDir, fMode);
+        return self.oExec.mkDir(os.path.join(sMountPoint, sDir), fMode);
 
     def cleanupLeftovers(self):
         """
-        Tries to cleanup any leftover pools and volumes from a failed previous run.
+        Tries to clean up any leftover pools and volumes from a failed previous run.
         """
+        reporter.log('cleanupLeftovers starts');
         if not self.oDiskCfg.isCfgStaticDir():
             return self.oStorOs.cleanupPoolsAndVolumes(self.oExec, 'pool', 'vol');
 
         fRc = True;
-        if os.path.exists(self.oDiskCfg.getDisks()):
-            for sEntry in os.listdir(self.oDiskCfg.getDisks()):
-                fRc = fRc and self.oExec.rmTree(os.path.join(self.oDiskCfg.getDisks(), sEntry));
-
+        asDisks = self.oDiskCfg.getDisks();
+        reporter.log("oDiskCfg.getDisks: %s" % asDisks);
+        if os.path.exists(asDisks):
+            reporter.log('os.listdir(asDisks): %s' % asDisks)
+            for sEntry in os.listdir(asDisks):
+                sPath = os.path.join(self.oDiskCfg.getDisks(), sEntry);
+                reporter.log('path to sEntry: %s' % sPath)
+                fRc = fRc and self.oExec.rmTree(sPath);
+        reporter.log('cleanupLeftovers ends');
         return fRc;

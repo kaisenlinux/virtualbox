@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2006-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2006-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -226,13 +226,14 @@ typedef struct DEVPCBIOS
     bool            fCheckShutdownStatusForSoftReset;
     /** Whether to clear the shutdown status on hard reset. */
     bool            fClearShutdownStatusOnHardReset;
-    /** Current port number for Bochs shutdown (used by APM). */
-    RTIOPORT        ShutdownPort;
-    /** True=use new port number for Bochs shutdown (used by APM). */
-    bool            fNewShutdownPort;
+    /** Current port number for BIOS control (used by APM). */
+    RTIOPORT        ControlPort;
+    /** True=use new port number for BIOS control (used by APM). */
+    bool            fNewControlPort;
     bool            afPadding[3+4];
-    /** The shudown I/O port, either at 0x040f or 0x8900 (old saved state). */
-    IOMMMIOHANDLE   hIoPortShutdown;
+    /** The BIOS I/O port, either at 0x040f or 0x8900
+     *  (old saved state). */
+    IOMMMIOHANDLE   hIoPortControl;
 } DEVPCBIOS;
 /** Pointer to the BIOS device state. */
 typedef DEVPCBIOS *PDEVPCBIOS;
@@ -251,7 +252,7 @@ typedef DEVPCBIOS *PDEVPCBIOS;
 /** Saved state DEVPCBIOS field descriptors. */
 static SSMFIELD const g_aPcBiosFields[] =
 {
-    SSMFIELD_ENTRY(         DEVPCBIOS, fNewShutdownPort),
+    SSMFIELD_ENTRY(         DEVPCBIOS, fNewControlPort),
     SSMFIELD_ENTRY_TERM()
 };
 
@@ -324,21 +325,52 @@ pcbiosIOPortDebugWrite(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT offPort, uint3
 
 
 /**
- * @callback_method_impl{FNIOMIOPORTNEWIN, Bochs Shutdown port.}
+ * @callback_method_impl{FNIOMIOPORTNEWIN, BIOS control port.}
  */
 static DECLCALLBACK(VBOXSTRICTRC)
-pcbiosIOPortShutdownRead(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT offPort, uint32_t *pu32, unsigned cb)
+pcbiosIOPortControlRead(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT offPort, uint32_t *pu32, unsigned cb)
 {
     RT_NOREF5(pDevIns, pvUser, offPort, pu32, cb);
     return VERR_IOM_IOPORT_UNUSED;
 }
 
 
+static VBOXSTRICTRC pcbiosApmShutdown(PPDMDEVINS pDevIns)
+{
+    LogRel(("PcBios: APM shutdown request\n"));
+    return PDMDevHlpVMPowerOff(pDevIns);
+}
+
+
+static VBOXSTRICTRC pcbiosApmIdle(PPDMDEVINS pDevIns)
+{
+    Log3(("PcBios: APM idle request\n"));
+
+    /* This request is used to put the CPU into a halted state *without* using
+     * a HLT instruction. This is especially useful for the APM BIOS
+     * in situations where executing HLT causes problems. See BIOS APM source
+     * code for comments.
+     * NB: The CPU will be woken up by an interrupt regardless of the
+     * state of rFLAGS.IF.
+     */
+    int rc = PDMDevHlpVMWaitForDeviceReady(pDevIns, PDMDevHlpGetCurrentCpuId(pDevIns));
+    return rc;
+}
+
+static void pcbiosReportBootFail(PPDMDEVINS pDevIns)
+{
+    LogRel(("PcBios: Boot failure\n"));
+    int rc = PDMDevHlpVMSetRuntimeError(pDevIns, 0 /*fFlags*/, "VMBootFail",
+                                        N_("The VM failed to boot. This is possibly caused by not having an operating system installed or a misconfigured boot order. Maybe picking a guest OS install DVD will resolve the situation"));
+    AssertRC(rc);
+}
+
+
 /**
- * @callback_method_impl{FNIOMIOPORTNEWOUT, Bochs Shutdown port.}
+ * @callback_method_impl{FNIOMIOPORTNEWOUT, BIOS control port.}
  */
 static DECLCALLBACK(VBOXSTRICTRC)
-pcbiosIOPortShutdownWrite(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT offPort, uint32_t u32, unsigned cb)
+pcbiosIOPortControlWrite(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT offPort, uint32_t u32, unsigned cb)
 {
     PDEVPCBIOS pThis = PDMDEVINS_2_DATA(pDevIns, PDEVPCBIOS);
     RT_NOREF(pvUser, offPort);
@@ -348,7 +380,9 @@ pcbiosIOPortShutdownWrite(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT offPort, ui
     {
         static const unsigned char s_szShutdown[] = "Shutdown";
         static const unsigned char s_szBootfail[] = "Bootfail";
+        static const unsigned char s_szProchalt[] = "Prochalt";
         AssertCompile(sizeof(s_szShutdown) == sizeof(s_szBootfail));
+        AssertCompile(sizeof(s_szShutdown) == sizeof(s_szProchalt));
 
         if (pThis->iControl < sizeof(s_szShutdown)) /* paranoia */
         {
@@ -359,8 +393,7 @@ pcbiosIOPortShutdownWrite(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT offPort, ui
                 if (pThis->iControl >= 8)
                 {
                     pThis->iControl = 0;
-                    LogRel(("PcBios: APM shutdown request\n"));
-                    return PDMDevHlpVMPowerOff(pDevIns);
+                    return pcbiosApmShutdown(pDevIns);
                 }
             }
             else if (u32 == s_szBootfail[pThis->iControl])
@@ -369,10 +402,17 @@ pcbiosIOPortShutdownWrite(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT offPort, ui
                 if (pThis->iControl >= 8)
                 {
                     pThis->iControl = 0;
-                    LogRel(("PcBios: Boot failure\n"));
-                    int rc = PDMDevHlpVMSetRuntimeError(pDevIns, 0 /*fFlags*/, "VMBootFail",
-                                                        N_("The VM failed to boot. This is possibly caused by not having an operating system installed or a misconfigured boot order. Maybe picking a guest OS install DVD will resolve the situation"));
-                    AssertRC(rc);
+                    pcbiosReportBootFail(pDevIns);
+                }
+            }
+            else if (u32 == s_szProchalt[pThis->iControl])
+            {
+
+                pThis->iControl++;
+                if (pThis->iControl >= 8)
+                {
+                    pThis->iControl = 0;
+                    return pcbiosApmIdle(pDevIns);
                 }
             }
             else
@@ -381,6 +421,24 @@ pcbiosIOPortShutdownWrite(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT offPort, ui
         else
             pThis->iControl = 0;
     }
+    else if (cb == 2)
+    {
+        pThis->iControl = 0;
+        /* Shortcuts for BIOS control, allowing guest to use one simple 16-bit I/O port write. */
+        switch (u32)
+        {
+        case VBOX_BIOS_CTL_SHUTDOWN:
+            return pcbiosApmShutdown(pDevIns);
+        case VBOX_BIOS_CTL_BOOTFAIL:
+            pcbiosReportBootFail(pDevIns);
+            break;
+        case VBOX_BIOS_CTL_PROCHALT:
+            return pcbiosApmIdle(pDevIns);
+        default:
+            /* Ignore and do nothing. */
+            LogFunc(("unrecognized control value (u32=%X)\n", u32));
+        }
+    }
     /* else: not in use. */
 
     return VINF_SUCCESS;
@@ -388,23 +446,23 @@ pcbiosIOPortShutdownWrite(PPDMDEVINS pDevIns, void *pvUser, RTIOPORT offPort, ui
 
 
 /**
- * Register the Bochs shutdown port.
+ * Register the BIOS control port.
  * This is used by pcbiosConstruct, pcbiosReset and pcbiosLoadExec.
  */
-static int pcbiosRegisterShutdown(PPDMDEVINS pDevIns, PDEVPCBIOS pThis, bool fNewShutdownPort)
+static int pcbiosRegisterControl(PPDMDEVINS pDevIns, PDEVPCBIOS pThis, bool fNewControlPort)
 {
-    if (pThis->ShutdownPort != 0)
+    if (pThis->ControlPort != 0)
     {
-        int rc = PDMDevHlpIoPortUnmap(pDevIns, pThis->hIoPortShutdown);
+        int rc = PDMDevHlpIoPortUnmap(pDevIns, pThis->hIoPortControl);
         AssertRC(rc);
     }
 
-    pThis->fNewShutdownPort = fNewShutdownPort;
-    if (fNewShutdownPort)
-        pThis->ShutdownPort = VBOX_BIOS_SHUTDOWN_PORT;
+    pThis->fNewControlPort = fNewControlPort;
+    if (fNewControlPort)
+        pThis->ControlPort = VBOX_BIOS_SHUTDOWN_PORT;
     else
-        pThis->ShutdownPort = VBOX_BIOS_OLD_SHUTDOWN_PORT;
-    return PDMDevHlpIoPortMap(pDevIns, pThis->hIoPortShutdown, pThis->ShutdownPort);
+        pThis->ControlPort = VBOX_BIOS_OLD_SHUTDOWN_PORT;
+    return PDMDevHlpIoPortMap(pDevIns, pThis->hIoPortControl, pThis->ControlPort);
 }
 
 
@@ -420,7 +478,7 @@ static DECLCALLBACK(int) pcbiosSaveExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
 
 /**
  * @callback_method_impl{FNSSMDEVLOADPREP,
- *      Clears the fNewShutdownPort flag prior to loading the state so that old
+ *      Clears the fNewControlPort flag prior to loading the state so that old
  *      saved VM states keeps using the old port address (no pcbios state)}
  */
 static DECLCALLBACK(int) pcbiosLoadPrep(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
@@ -430,7 +488,7 @@ static DECLCALLBACK(int) pcbiosLoadPrep(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
 
     /* Since there are legacy saved state files without any SSM data for PCBIOS
      * this is the only way to handle them correctly. */
-    pThis->fNewShutdownPort = false;
+    pThis->fNewControlPort = false;
 
     return VINF_SUCCESS;
 }
@@ -459,7 +517,7 @@ static DECLCALLBACK(int) pcbiosLoadDone(PPDMDEVINS pDevIns, PSSMHANDLE pSSM)
 {
     RT_NOREF(pSSM);
     PDEVPCBIOS pThis = PDMDEVINS_2_DATA(pDevIns, PDEVPCBIOS);
-    return pcbiosRegisterShutdown(pDevIns, pThis, pThis->fNewShutdownPort);
+    return pcbiosRegisterControl(pDevIns, pThis, pThis->fNewControlPort);
 }
 
 
@@ -541,8 +599,8 @@ static DECLCALLBACK(void) pcbiosReset(PPDMDEVINS pDevIns)
         }
     }
 
-    /* After reset the new BIOS code is active, use the new shutdown port. */
-    pcbiosRegisterShutdown(pDevIns, pThis, true /* fNewShutdownPort */);
+    /* After reset the new BIOS code is active, use the new control port. */
+    pcbiosRegisterControl(pDevIns, pThis, true /* fNewControlPort */);
 }
 
 
@@ -594,14 +652,112 @@ static int biosGuessDiskLCHS(PPDMIMEDIA pMedia, PPDMMEDIAGEOMETRY pLCHSGeometry)
 }
 
 
+/* Several common PC/AT BIOS drive types. Corresponds to IBM BIOS drive tables. */
+PDMMEDIAGEOMETRY aGeomPCAT[] = {
+    /*  cyls    heads   sectors */
+    {     0,     0,      0 },   /* Type  0 is not used */
+    {   306,     4,     17 },   /* Type  1,  10MB */
+    {   615,     4,     17 },   /* Type  2,  20MB */
+    {   615,     6,     17 },   /* Type  3,  30MB */
+    {   940,     8,     17 },   /* Type  4,  62MB */
+    {   940,     6,     17 },   /* Type  5,  47MB */
+    {   615,     4,     17 },   /* Type  6,  20MB (different WPCOMP from Type 2) */
+    {   462,     8,     17 },   /* Type  7,  30MB */
+    {   733,     5,     17 },   /* Type  8,  30MB */
+    {   900,    15,     17 },   /* Type  9, 117MB */
+
+    {   820,     3,     17 },   /* Type 10,  21MB */
+    {   855,     5,     17 },   /* Type 11,  37MB */
+    {   855,     7,     17 },   /* Type 12,  52MB */
+    {   306,     8,     17 },   /* Type 13,  21MB */
+    {   733,     7,     17 },   /* Type 14,  45MB */
+    {     0,     0,      0 },   /* Type 15 is not used */
+    {   612,     4,     17 },   /* Type 16,  21MB */
+    {   977,     5,     17 },   /* Type 17,  43MB */
+    {   977,     7,     17 },   /* Type 18,  60MB */
+    {  1024,     7,     17 },   /* Type 19,  62MB */
+
+    {   733,     5,     17 },   /* Type 20,  32MB */
+    {   733,     7,     17 },   /* Type 21,  45MB */
+    {   733,     5,     17 },   /* Type 22,  32MB */
+    {   306,     4,     17 },   /* Type 23,  10MB */
+};
+
+/**
+ * Attempts to initialize CMOS data for a hard disk matching one of
+ * the PC/AT BIOS types. Only applicable to the first two drives.
+ * Returns true if drive is one of the few recognized types.
+ */
+static bool pcbiosCmosTryPCATHardDisk(PPDMDEVINS pDevIns, int drive, PCPDMMEDIAGEOMETRY pLCHSGeometry)
+{
+    unsigned    type;
+    unsigned    typeLow;
+    bool        fCompatGeom = false;
+
+    Assert((drive == 0) || (drive == 1));
+
+    /* See if drive geometry is one of the ancient PC/AT BIOS types. */
+    for (type = 0; type < RT_ELEMENTS(aGeomPCAT); ++type) {
+        if ( (aGeomPCAT[type].cCylinders == pLCHSGeometry->cCylinders)
+          && (aGeomPCAT[type].cHeads     == pLCHSGeometry->cHeads    )
+          && (aGeomPCAT[type].cSectors   == pLCHSGeometry->cSectors  )) {
+            LogRel(("PcBios: Recognized ATA hard disk %d as PC/AT BIOS type %d\n", drive, type));
+            fCompatGeom = true;
+            break;
+        }
+    }
+
+    if (fCompatGeom) {
+        uint32_t    u32;
+
+        /* For types below 15, the type is in CMOS byte 0x12.
+         * NB: The type for drive 0 is in the high nibble, drive 1
+         * is in the low nibble.
+         * For drive types above 15, CMOS byte 0x12 is set to 15
+         * and actual drive type is in byte 0x19 (drive 0) or
+         * byte 0x1a (drive 1).
+         */
+        typeLow = type < 15 ? type : 15;
+
+        /* Always update CMOS byte 0x12. */
+        u32 = pcbiosCmosRead(pDevIns, 0x12);
+        u32 &= 0x0f << (4 * drive);
+        u32 |= typeLow << (4 - 4 * drive);
+        pcbiosCmosWrite(pDevIns, 0x12, u32);
+
+        /* For higher drive types, also update CMOS byte 0x19/0x1a. */
+        if (type > 15) {
+            u32 = type;
+            pcbiosCmosWrite(pDevIns, 0x19 + drive, u32);
+        }
+    }
+
+    return fCompatGeom;
+}
+
+
 /**
  * Initializes the CMOS data for one harddisk.
  */
 static void pcbiosCmosInitHardDisk(PPDMDEVINS pDevIns, int offType, int offInfo, PCPDMMEDIAGEOMETRY pLCHSGeometry)
 {
     Log2(("%s: offInfo=%#x: LCHS=%d/%d/%d\n", __FUNCTION__, offInfo, pLCHSGeometry->cCylinders, pLCHSGeometry->cHeads, pLCHSGeometry->cSectors));
-    if (offType)
+    if (offType) {
+        uint32_t    u32;
+        int         drive;
+
+        Assert(offType == 0x1a || offType == 0x19);
+        drive = offType == 0x19 ? 0 : 1;
+
+        /* Update CMOS byte 12h. It will always be set to type 0fh for this disk. */
+        u32 = pcbiosCmosRead(pDevIns, 0x12);
+        u32 &= 0x0f << (4 * drive);
+        u32 |= 0x0f << (4 - 4 * drive);
+        pcbiosCmosWrite(pDevIns, 0x12, u32);
+
+        /* Now write the extended drive type at offset 19h or 1Ah. */
         pcbiosCmosWrite(pDevIns, offType, 47);
+    }
     /* Cylinders low */
     pcbiosCmosWrite(pDevIns, offInfo + 0, RT_MIN(pLCHSGeometry->cCylinders, 1024) & 0xff);
     /* Cylinders high */
@@ -950,16 +1106,13 @@ static DECLCALLBACK(int) pcbiosInitComplete(PPDMDEVINS pDevIns)
                         offInfo = 0x70;
                         break;
                 }
-                pcbiosCmosInitHardDisk(pDevIns, offType, offInfo,
-                                       &LCHSGeometry);
+                pcbiosCmosInitHardDisk(pDevIns, offType, offInfo, &LCHSGeometry);
+                if (i < 2)
+                    pcbiosCmosTryPCATHardDisk(pDevIns, i, &LCHSGeometry);
             }
             LogRel(("PcBios: ATA LUN#%d LCHS=%u/%u/%u\n", i, LCHSGeometry.cCylinders, LCHSGeometry.cHeads, LCHSGeometry.cSectors));
         }
     }
-
-    /* 0Fh means extended and points to 19h, 1Ah */
-    u32 = (apHDs[0] ? 0xf0 : 0) | (apHDs[1] ? 0x0f : 0);
-    pcbiosCmosWrite(pDevIns, 0x12, u32);
 
     /*
      * SATA harddisks.
@@ -1410,10 +1563,10 @@ static DECLCALLBACK(int)  pcbiosConstruct(PPDMDEVINS pDevIns, int iInstance, PCF
                                      "Bochs PC BIOS - Panic & Debug", NULL, &hIoPorts);
     AssertRCReturn(rc, rc);
 
-    rc = PDMDevHlpIoPortCreateIsa(pDevIns, 1 /*cPorts*/, pcbiosIOPortShutdownWrite, pcbiosIOPortShutdownRead, NULL /*pvUser*/,
-                                  "Bochs PC BIOS - Shutdown", NULL /*paExtDescs*/, &pThis->hIoPortShutdown);
+    rc = PDMDevHlpIoPortCreateIsa(pDevIns, 1 /*cPorts*/, pcbiosIOPortControlWrite, pcbiosIOPortControlRead, NULL /*pvUser*/,
+                                  "PC BIOS - Control", NULL /*paExtDescs*/, &pThis->hIoPortControl);
     AssertRCReturn(rc, rc);
-    rc = pcbiosRegisterShutdown(pDevIns, pThis, true /* fNewShutdownPort */);
+    rc = pcbiosRegisterControl(pDevIns, pThis, true /* fNewControlPort */);
     AssertRCReturn(rc, rc);
 
     /*

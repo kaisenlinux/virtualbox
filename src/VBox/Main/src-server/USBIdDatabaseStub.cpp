@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2015-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2015-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -27,13 +27,13 @@
 
 #include "USBIdDatabase.h"
 
-const RTBLDPROGSTRTAB   USBIdDatabase::s_StrTab          =  { "", 0, 0 NULL };
+const RTBLDPROGSTRTAB   USBIdDatabase::s_StrTab          =  { "", 0, 0, NULL };
 
 const size_t            USBIdDatabase::s_cVendors        = 0;
-const USBIDDBVENDOR     USBIdDatabase::s_aVendors[]      = { 0 };
+const USBIDDBVENDOR     USBIdDatabase::s_aVendors[]      = { {0,0,0} };
 const RTBLDPROGSTRREF   USBIdDatabase::s_aVendorNames[]  = { {0,0} };
 
 const size_t            USBIdDatabase::s_cProducts       = 0;
-const USBIDDBPROD       USBIdDatabase::s_aProducts[]     = { 0 };
+const USBIDDBPROD       USBIdDatabase::s_aProducts[]     = { {0} };
 const RTBLDPROGSTRREF   USBIdDatabase::s_aProductNames[] = { {0,0} };
 

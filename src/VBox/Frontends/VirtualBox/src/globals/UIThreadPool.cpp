@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2013-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2013-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -64,7 +64,7 @@ public:
 private:
 
     /** Contains the worker-thread body. */
-    void run();
+    void run() RT_OVERRIDE RT_FINAL;
 
     /** Holds the worker-thread pool reference. */
     UIThreadPool *m_pPool;

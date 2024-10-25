@@ -4,7 +4,7 @@
  */
 
 /*
- * Copyright (C) 2008-2023 Oracle and/or its affiliates.
+ * Copyright (C) 2008-2024 Oracle and/or its affiliates.
  *
  * This file is part of VirtualBox base platform packages, as
  * available from https://www.virtualbox.org.
@@ -145,6 +145,10 @@ HRESULT Machine::exportTo(const ComPtr<IAppliance> &aAppliance, const com::Utf8S
         uint32_t cCPUs = mHWData->mCPUCount;
         // memory size in MB
         uint32_t ulMemSizeMB = mHWData->mMemorySize;
+
+        ComPtr<IPlatformX86> pPlatformX86;
+        mPlatform->COMGETTER(X86)(pPlatformX86.asOutParam());
+
         // VRAM size?
         // BIOS settings?
         // 3D acceleration enabled?
@@ -154,7 +158,7 @@ HRESULT Machine::exportTo(const ComPtr<IAppliance> &aAppliance, const com::Utf8S
         // PAEEnabled?
         // Long mode enabled?
         BOOL fLongMode;
-        hrc = GetCPUProperty(CPUPropertyType_LongMode, &fLongMode);
+        hrc = pPlatformX86->GetCPUProperty(CPUPropertyTypeX86_LongMode, &fLongMode);
         if (FAILED(hrc)) throw hrc;
 
         // snapshotFolder?
@@ -186,7 +190,7 @@ HRESULT Machine::exportTo(const ComPtr<IAppliance> &aAppliance, const com::Utf8S
                              strCpuCount,
                              strCpuCount);
 
-        /* Memory, it's always stored in bytes in VSD according to the old internal agreement within the team */
+        /* Memory, it's alway stored in bytes in VSD according to the old internal agreement within the team */
         Utf8Str strMemory = Utf8StrFmt("%RI64", (uint64_t)ulMemSizeMB * _1M);
         pNewDesc->i_addEntry(VirtualSystemDescriptionType_Memory,
                              "",
@@ -641,7 +645,12 @@ HRESULT Machine::exportTo(const ComPtr<IAppliance> &aAppliance, const com::Utf8S
         }
 
 //     <const name="NetworkAdapter" />
-        uint32_t maxNetworkAdapters = Global::getMaxNetworkAdapters(i_getChipsetType());
+        ChipsetType_T enmChipsetType;
+        hrc = mPlatform->getChipsetType(&enmChipsetType);
+        if (FAILED(hrc))
+            return hrc;
+
+        uint32_t const maxNetworkAdapters = PlatformProperties::s_getMaxNetworkAdapters(enmChipsetType);
         size_t a;
         for (a = 0; a < maxNetworkAdapters; ++a)
         {
@@ -1641,8 +1650,8 @@ void Appliance::i_buildXMLForOneVirtualSystem(AutoWriteLockBase& writeLock,
                         strDescription = "Memory Size";
                         type = ovf::ResourceType_Memory; // 4
                         desc.strVBoxCurrent.toInt(uTemp);
-                        /* It's always stored in bytes in VSD according to the old internal agreement within the team */
-                        lVirtualQuantity = (int32_t)(uTemp / _1M);//convert to MB
+                        /* It's alway stored in bytes in VSD according to the old internal agreement within the team */
+                        lVirtualQuantity = (int32_t)(uTemp / _1M);
                         strAllocationUnits = "MegaBytes";
                         strCaption = Utf8StrFmt("%d MB of memory", lVirtualQuantity);     // without this ovftool
                                                                                           // won't eat the item
@@ -1866,7 +1875,6 @@ void Appliance::i_buildXMLForOneVirtualSystem(AutoWriteLockBase& writeLock,
                             throw setError(VBOX_E_NOT_SUPPORTED,
                                            tr("Missing or bad extra config string in hard disk image: \"%s\""),
                                            desc.strExtraConfigCurrent.c_str());
-
                         stack.mapDisks[strDiskID] = &desc;
 
                         //use the list stack.mapDiskSequence where the disks go as the "VirtualSystem" should be placed
