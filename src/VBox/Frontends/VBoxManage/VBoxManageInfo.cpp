@@ -1520,6 +1520,13 @@ HRESULT showVMInfo(ComPtr<IVirtualBox> pVirtualBox,
                 else
                     pszCtrl = "VBoxSVGA";
                 break;
+            case GraphicsControllerType_QemuRamFB:
+                if (details == VMINFO_MACHINEREADABLE)
+                    pszCtrl = "qemuramfb";
+                else
+                    pszCtrl = "QemuRamFB";
+                break;
+
             default:
                 if (details == VMINFO_MACHINEREADABLE)
                     pszCtrl = "unknown";

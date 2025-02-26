@@ -196,6 +196,23 @@ VMMR3DECL(int)      IEMR3Init(PVM pVM)
     rc = CFGMR3QueryU32Def(pIem, "NativeRecompileAtUsedCount", &uTbNativeRecompileAtUsedCount, 16);
     AssertLogRelRCReturn(rc, rc);
 
+    /** @cfgm{/IEM/HostICacheInvalidationViaHostAPI, bool, false}
+     * Whether to use any available host OS API for flushing the instruction cache
+     * after completing an translation block. */
+    bool fFlag = false;
+    rc = CFGMR3QueryBoolDef(pIem, "HostICacheInvalidationViaHostAPI", &fFlag, false);
+    AssertLogRelRCReturn(rc, rc);
+    uint8_t fHostICacheInvalidation = fFlag ? IEMNATIVE_ICACHE_F_USE_HOST_API : 0;
+
+    /** @cfgm{/IEM/HostICacheInvalidationEndWithIsb, bool, false}
+     * Whether to include an ISB in the instruction cache invalidation sequence
+     * after completing an translation block. */
+    fFlag = false;
+    rc = CFGMR3QueryBoolDef(pIem, "HostICacheInvalidationEndWithIsb", &fFlag, false);
+    AssertLogRelRCReturn(rc, rc);
+    if (fFlag)
+        fHostICacheInvalidation |= IEMNATIVE_ICACHE_F_END_WITH_ISH;
+
 #endif /* VBOX_WITH_IEM_RECOMPILER*/
 
     /*
@@ -300,6 +317,7 @@ VMMR3DECL(int)      IEMR3Init(PVM pVM)
          */
         pVCpu->iem.s.uRegFpCtrl                    = IEMNATIVE_SIMD_FP_CTRL_REG_NOT_MODIFIED;
         pVCpu->iem.s.uTbNativeRecompileAtUsedCount = uTbNativeRecompileAtUsedCount;
+        pVCpu->iem.s.fHostICacheInvalidation       = fHostICacheInvalidation;
 #endif
 
 #ifdef IEM_WITH_TLB_TRACE
@@ -848,7 +866,6 @@ VMMR3DECL(int)      IEMR3Init(PVM pVM)
                         "/IEM/CPU%u/re/NativeEndIfOtherBranchDirty", idCpu);
 #  endif
 #  ifdef VBOX_WITH_STATISTICS
-#   ifdef IEMNATIVE_WITH_SIMD_REG_ALLOCATOR
         STAMR3RegisterF(pVM, &pVCpu->iem.s.StatNativeSimdRegFindFree, STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_COUNT,
                         "Number of calls to iemNativeSimdRegAllocFindFree.",
                         "/IEM/CPU%u/re/NativeSimdRegFindFree", idCpu);
@@ -882,7 +899,6 @@ VMMR3DECL(int)      IEMR3Init(PVM pVM)
                         "/IEM/CPU%u/re/NativeMaybeSseXcptCheckOmitted", idCpu);
         STAMR3RegisterF(pVM, &pVCpu->iem.s.StatNativeMaybeAvxXcptCheckOmitted,              STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_COUNT, "IEM_MC_MAYBE_RAISE_AVX_RELATED_XCPT() checks omitted",
                         "/IEM/CPU%u/re/NativeMaybeAvxXcptCheckOmitted", idCpu);
-#   endif
 
         STAMR3RegisterF(pVM, &pVCpu->iem.s.StatNativeTbFinished, STAMTYPE_COUNTER, STAMVISIBILITY_ALWAYS, STAMUNIT_COUNT,
                         "Number of times the TB finishes execution completely",
@@ -1043,6 +1059,11 @@ VMMR3DECL(int)      IEMR3Init(PVM pVM)
             STAMR3RegisterF(pVM, &pVCpu->iem.s.acThreadedFuncStats[i], STAMTYPE_U32_RESET, STAMVISIBILITY_USED,
                             STAMUNIT_COUNT, NULL, "/IEM/CPU%u/ThrdFuncs/%s", idCpu, g_apszIemThreadedFunctionStats[i]);
 # endif
+
+
+        for (unsigned i = 1; i < RT_ELEMENTS(pVCpu->iem.s.aStatAdHoc); i++)
+            STAMR3RegisterF(pVM, &pVCpu->iem.s.aStatAdHoc[i], STAMTYPE_COUNTER, STAMVISIBILITY_USED,
+                            STAMUNIT_COUNT, NULL, "/IEM/CPU%u/AdHoc/%02u", idCpu, i);
 
 #endif /* !defined(VBOX_VMM_TARGET_ARMV8) && defined(VBOX_WITH_NESTED_HWVIRT_VMX) - quick fix for stupid structure duplication non-sense */
     }

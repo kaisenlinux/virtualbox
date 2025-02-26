@@ -209,8 +209,8 @@ template<bool const a_fCheckTimers, bool const a_fCheckIrqs>
 DECL_FORCE_INLINE_THROW(uint32_t) iemNativeRecompFunc_BltIn_CheckTimersAndIrqsCommon(PIEMRECOMPILERSTATE pReNative, uint32_t off)
 {
     uint8_t const         idxEflReg  = !a_fCheckIrqs ? UINT8_MAX
-                                     : iemNativeRegAllocTmpForGuestEFlags(pReNative, &off, kIemNativeGstRegUse_ReadOnly,
-                                                                          RT_BIT_64(IEMLIVENESSBIT_IDX_EFL_OTHER));
+                                     : iemNativeRegAllocTmpForGuestEFlagsReadOnly(pReNative, &off,
+                                                                                  RT_BIT_64(IEMLIVENESSBIT_IDX_EFL_OTHER));
     uint8_t const         idxTmpReg1 = iemNativeRegAllocTmp(pReNative, &off);
     uint8_t const         idxTmpReg2 = a_fCheckIrqs ? iemNativeRegAllocTmp(pReNative, &off) : UINT8_MAX;
     PIEMNATIVEINSTR const pCodeBuf   = iemNativeInstrBufEnsure(pReNative, off,
@@ -1305,7 +1305,7 @@ iemNativeEmitBltInCheckPcAfterBranch(PIEMRECOMPILERSTATE pReNative, uint32_t off
     /* Assert(pVCpu->cpum.GstCtx.cs.u64Base == 0 || !IEM_F_MODE_X86_IS_FLAT(pReNative->fExec)); */
     if (IEM_F_MODE_X86_IS_FLAT(pReNative->fExec))
     {
-        off = iemNativeEmitLoadGprFromVCpuU64(pReNative, off, idxRegTmp, RT_UOFFSETOF(VMCPUCC, cpum.GstCtx.cs.u64Base));
+        off = iemNativeEmitLoadGprWithGstRegT<kIemNativeGstReg_CsBase>(pReNative, off, idxRegTmp);
 # ifdef RT_ARCH_ARM64
         uint32_t * const pu32CodeBuf = iemNativeInstrBufEnsure(pReNative, off, 2);
         pu32CodeBuf[off++] = Armv8A64MkInstrCbzCbnz(false /*fJmpIfNotZero*/, 2, idxRegTmp);
@@ -1472,10 +1472,10 @@ iemNativeEmitBltLoadTlbForNewPage(PIEMRECOMPILERSTATE pReNative, uint32_t off, P
         /*
          * TlbLookup:
          */
-        off = iemNativeEmitTlbLookup<false>(pReNative, off, &TlbState,
-                                            IEM_F_MODE_X86_IS_FLAT(pReNative->fExec) ? UINT8_MAX : X86_SREG_CS,
-                                            1 /*cbMem*/, 0 /*fAlignMask*/, IEM_ACCESS_TYPE_EXEC,
-                                            idxLabelTlbLookup, idxLabelTlbMiss, idxRegGCPhys, offInstr);
+        off = iemNativeEmitTlbLookup<false, 1 /*cbMem*/, 0 /*fAlignMask*/,
+                                     IEM_ACCESS_TYPE_EXEC>(pReNative, off, &TlbState,
+                                                           IEM_F_MODE_X86_IS_FLAT(pReNative->fExec) ? UINT8_MAX : X86_SREG_CS,
+                                                           idxLabelTlbLookup, idxLabelTlbMiss, idxRegGCPhys, offInstr);
 
 # ifdef IEM_WITH_TLB_STATISTICS
         off = iemNativeEmitIncStamCounterInVCpu(pReNative, off, TlbState.idxReg1, TlbState.idxReg2,
@@ -1618,7 +1618,7 @@ iemNativeEmitBltLoadTlbAfterBranch(PIEMRECOMPILERSTATE pReNative, uint32_t off, 
     /* Assert(pVCpu->cpum.GstCtx.cs.u64Base == 0 || !IEM_F_MODE_X86_IS_FLAT(pReNative->fExec)); */
     if (IEM_F_MODE_X86_IS_FLAT(pReNative->fExec))
     {
-        off = iemNativeEmitLoadGprFromVCpuU64(pReNative, off, idxRegTmp, RT_UOFFSETOF(VMCPUCC, cpum.GstCtx.cs.u64Base));
+        off = iemNativeEmitLoadGprWithGstRegT<kIemNativeGstReg_CsBase>(pReNative, off, idxRegTmp);
 # ifdef RT_ARCH_ARM64
         uint32_t * const pu32CodeBuf = iemNativeInstrBufEnsure(pReNative, off, 2);
         pu32CodeBuf[off++] = Armv8A64MkInstrCbzCbnz(false /*fJmpIfNotZero*/, 2, idxRegTmp);
@@ -1770,9 +1770,9 @@ iemNativeEmitBltLoadTlbAfterBranch(PIEMRECOMPILERSTATE pReNative, uint32_t off, 
         /*
          * TlbLookup:
          */
-        off = iemNativeEmitTlbLookup<false, true>(pReNative, off, &TlbState, fIsFlat ? UINT8_MAX : X86_SREG_CS,
-                                                  1 /*cbMem*/, 0 /*fAlignMask*/, IEM_ACCESS_TYPE_EXEC,
-                                                  idxLabelTlbLookup, idxLabelTlbMiss, idxRegDummy);
+        off = iemNativeEmitTlbLookup<false, 1 /*cbMem*/, 0 /*fAlignMask*/,
+                                     IEM_ACCESS_TYPE_EXEC, true>(pReNative, off, &TlbState, fIsFlat ? UINT8_MAX : X86_SREG_CS,
+                                                                 idxLabelTlbLookup, idxLabelTlbMiss, idxRegDummy);
 
 # ifdef IEM_WITH_TLB_STATISTICS
         off = iemNativeEmitIncStamCounterInVCpu(pReNative, off, TlbState.idxReg1, TlbState.idxReg2,

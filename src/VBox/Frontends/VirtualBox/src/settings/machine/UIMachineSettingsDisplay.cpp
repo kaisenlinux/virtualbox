@@ -52,6 +52,7 @@
 /* COM includes: */
 #include "CExtPackManager.h"
 #include "CGraphicsAdapter.h"
+#include "CPlatformProperties.h"
 #include "CProgress.h" /* For starting recording. */
 #include "CRecordingScreenSettings.h"
 #include "CRecordingSettings.h"
@@ -303,7 +304,7 @@ struct UIDataSettingsMachineDisplay
 UIMachineSettingsDisplay::UIMachineSettingsDisplay()
     : m_strGuestOSTypeId(QString())
 #ifdef VBOX_WITH_3D_ACCELERATION
-    , m_fWddmModeSupported(false)
+    , m_f3DAccelerationSupported(false)
 #endif
     , m_enmGraphicsControllerTypeRecommended(KGraphicsControllerType_Null)
     , m_pCache(0)
@@ -339,14 +340,10 @@ void UIMachineSettingsDisplay::setGuestOSTypeId(const QString &strGuestOSTypeId)
     m_strGuestOSTypeId = strGuestOSTypeId;
     m_pEditorVideoMemorySize->setGuestOSTypeId(m_strGuestOSTypeId);
 
-#ifdef VBOX_WITH_3D_ACCELERATION
-    /* Check if WDDM mode supported by the guest OS type: */
-    m_fWddmModeSupported = UIGuestOSTypeHelpers::isWddmCompatibleOsType(m_strGuestOSTypeId);
-    m_pEditorVideoMemorySize->set3DAccelerationSupported(m_fWddmModeSupported);
-#endif /* VBOX_WITH_3D_ACCELERATION */
     /* Acquire recommended graphics controller type: */
     m_enmGraphicsControllerTypeRecommended =
         gpGlobalSession->guestOSTypeManager().getRecommendedGraphicsController(m_strGuestOSTypeId);
+
     /* Revalidate: */
     revalidate();
 }
@@ -639,6 +636,35 @@ bool UIMachineSettingsDisplay::validate(QList<UIValidationMessage> &messages)
     /* Pass by default: */
     bool fPass = true;
 
+    /* Validation prerequisites: */
+#ifdef VBOX_WITH_3D_ACCELERATION
+    /* Special handling for Windows guests, 3D is available for VBoxSVGA only: */
+    if (m_strGuestOSTypeId.startsWith("Windows"))
+        m_f3DAccelerationSupported = graphicsControllerTypeCurrent() == KGraphicsControllerType_VBoxSVGA
+                                   ? UIGuestOSTypeHelpers::isWddmCompatibleOsType(m_strGuestOSTypeId)
+                                   : false;
+    /* For the rest of guest OS types 3D is available for VMSVGA only: */
+    else
+        m_f3DAccelerationSupported = graphicsControllerTypeCurrent() == KGraphicsControllerType_VMSVGA;
+
+    /* Additionally make sure 3D acceleration is one of the features for current graphical controller: */
+    if (m_f3DAccelerationSupported)
+    {
+        const KPlatformArchitecture enmArch = optionalFlags().contains("arch")
+                                            ? optionalFlags().value("arch").value<KPlatformArchitecture>()
+                                            : KPlatformArchitecture_x86;
+        CPlatformProperties comPlatformProperties = gpGlobalSession->virtualBox().GetPlatformProperties(enmArch);
+        const QVector<KGraphicsFeature> features =
+            comPlatformProperties.GetSupportedGfxFeaturesForType(graphicsControllerTypeCurrent());
+        m_f3DAccelerationSupported &= features.contains(KGraphicsFeature_Acceleration3D);
+    }
+
+    /* Pass whether 3D acceleration is supported into Video Memory Editor: */
+    m_pEditorVideoMemorySize->set3DAccelerationSupported(m_f3DAccelerationSupported);
+    /* Enable/disable 3D acceleration check-box accordingly: */
+    m_pEditorDisplayScreenFeatures->setEnabled(isMachineOffline() && m_f3DAccelerationSupported);
+#endif /* VBOX_WITH_3D_ACCELERATION */
+
     /* Screen tab: */
     {
         /* Prepare message: */
@@ -659,7 +685,7 @@ bool UIMachineSettingsDisplay::validate(QList<UIValidationMessage> &messages)
             }
 #ifdef VBOX_WITH_3D_ACCELERATION
             /* 3D acceleration video RAM amount test: */
-            else if (m_pEditorDisplayScreenFeatures->isEnabled3DAcceleration() && m_fWddmModeSupported)
+            else if (m_f3DAccelerationSupported && m_pEditorDisplayScreenFeatures->isEnabled3DAcceleration())
             {
                 uNeedBytes = qMax(uNeedBytes, (quint64) 128 * _1M);
                 if ((quint64)m_pEditorVideoMemorySize->value() * _1M < uNeedBytes)
@@ -679,7 +705,7 @@ bool UIMachineSettingsDisplay::validate(QList<UIValidationMessage> &messages)
             if (graphicsControllerTypeCurrent() != graphicsControllerTypeRecommended())
             {
 #ifdef VBOX_WITH_3D_ACCELERATION
-                if (m_pEditorDisplayScreenFeatures->isEnabled3DAcceleration())
+                if (m_f3DAccelerationSupported && m_pEditorDisplayScreenFeatures->isEnabled3DAcceleration())
                     message.second << tr("The virtual machine is configured to use 3D acceleration. This will work only if you "
                                          "pick a different graphics controller (%1). Either disable 3D acceleration or switch "
                                          "to required graphics controller type. The latter will be done automatically if you "

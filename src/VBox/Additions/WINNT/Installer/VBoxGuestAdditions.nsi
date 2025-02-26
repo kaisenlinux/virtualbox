@@ -53,7 +53,7 @@
 !define PRODUCT_PUBLISHER           "$%VBOX_VENDOR%"
 !define PRODUCT_COPYRIGHT           "(C) $%VBOX_C_YEAR% $%VBOX_VENDOR%"
 !define PRODUCT_OUTPUT              "VBoxWindowsAdditions-$%KBUILD_TARGET_ARCH%.exe"
-!define PRODUCT_WEB_SITE            "http://www.virtualbox.org"
+!define PRODUCT_WEB_SITE            "https://www.virtualbox.org"
 !define PRODUCT_INSTALL_KEY         "${VENDOR_ROOT_KEY}\VirtualBox Guest Additions"
 !define PRODUCT_UNINST_KEY          "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 !define PRODUCT_UNINST_ROOT_KEY     "HKLM"
@@ -78,7 +78,7 @@ VIAddVersionKey "InternalName"      "${PRODUCT_OUTPUT}"
 ; If we have our guest install helper DLL, add the plugin path so that NSIS can
 ; find it when compiling the installer
 !if $%VBOX_WITH_GUEST_INSTALL_HELPER% == "1"
-  !addplugindir "$%PATH_TARGET%\VBoxGuestInstallHelper"
+  !addplugindir "$%PATH_TARGET%\VBoxGuestInstallHelperDll"
 !endif
 
 !include "LogicLib.nsh"

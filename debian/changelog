@@ -1,9 +1,15 @@
+virtualbox (7.1.6-1kaisen) kaisen-packages; urgency=medium
+
+  * Import the 7.1.6 release
+  * Add the python3.13 patch file
+
+ -- Kevin Chevreuil - Kaisen <kaisen@kaisenlinux.org>  Wed, 26 Feb 2025 17:38:46 +0100
+
 virtualbox (7.1.4-1kaisen) kaisen-packages; urgency=medium
 
   * Import the 7.1.4 release
 
  -- Kevin Chevreuil - Kaisen <kaisen@kaisenlinux.org>  Fri, 25 Oct 2024 12:39:16 +0100
-
 
 virtualbox (7.0.18-2kaisen) kaisen-packages; urgency=medium
 

@@ -33,6 +33,7 @@ include $(KBUILD_PATH)/subheader.kmk
 #
 include $(PATH_SUB_CURRENT)/Loader/Makefile.kmk
 include $(PATH_SUB_CURRENT)/InstallHelper/Makefile.kmk
+include $(PATH_SUB_CURRENT)/NSISTool/Makefile.kmk
 
 
 #
@@ -51,27 +52,6 @@ endif
 
 
 #
-# VBoxDrvInst - Helps with driver installation.
-#
-PROGRAMS += VBoxDrvInst
-VBoxDrvInst_TEMPLATE = VBoxGuestR3Exe
-VBoxDrvInst_DEFS    = _WIN32_WINNT=0x0400 _UNICODE UNICODE
-VBoxDrvInst_DEFS   += VBOX_SVN_REV=$(VBOX_SVN_REV)
-ifdef VBOX_WITH_WDDM
- VBoxDrvInst_DEFS  += VBOX_WITH_WDDM
-endif
-VBoxDrvInst_DEPS    = $(VBOX_SVN_REV_KMK)
-VBoxDrvInst_SDKS    = ReorderCompilerIncs $(VBOX_WINPSDK_GST) $(VBOX_WINDDK_GST) VBoxWinNewDevLib
-VBoxDrvInst_INCS    = ../include
-VBoxDrvInst_LIBS    = \
-	$(PATH_SDK_$(VBOX_WINPSDK)_LIB)/setupapi.lib
-VBoxDrvInst_SOURCES = \
-	VBoxDrvInst.cpp \
-	VBoxDrvInst.rc
-VBoxDrvInst_VBOX_IMPORT_CHECKER.win.x86 := nt4 # setupapi was introduced in NT4
-
-
-#
 # RegCleanup - A NT4 post-install registry cleanup helper preventing the
 #              display config dialog from popping up on subsequent reboots.
 #
@@ -83,6 +63,24 @@ RegCleanup_SOURCES      := \
 	RegCleanup.cpp \
 	RegCleanup.rc
 RegCleanup_VBOX_IMPORT_CHECKER.win.x86 := nt4
+
+
+#
+# The Guest Additions variant of VBoxDrvInst.
+#
+VBOX_PATH_GH_INSTALLATION_SRC := $(PATH_ROOT)/src/VBox/GuestHost/installation
+
+PROGRAMS.win += VBoxDrvInstGuest
+VBoxDrvInstGuest_TEMPLATE = VBoxGuestR3Exe
+VBoxDrvInstGuest_DEFS     = _WIN32_WINNT=0x0400 _UNICODE UNICODE VBOX_SVN_REV=$(VBOX_SVN_REV)
+VBoxDrvInstGuest_NAME    := VBoxDrvInst
+VBoxDrvInstGuest_SOURCES  = \
+	$(VBOX_PATH_GH_INSTALLATION_SRC)/VBoxWinDrvCommon.cpp \
+	$(VBOX_PATH_GH_INSTALLATION_SRC)/VBoxWinDrvInst.cpp \
+	$(VBOX_PATH_GH_INSTALLATION_SRC)/VBoxWinDrvStore.cpp \
+	$(VBOX_PATH_GH_INSTALLATION_SRC)/VBoxDrvInst.cpp \
+	$(VBOX_PATH_GH_INSTALLATION_SRC)/VBoxDrvInst.rc
+VBoxDrvInstGuest_VBOX_IMPORT_CHECKER.win.x86 := nt4 # setupapi was introduced in NT4.
 
 
 #
@@ -136,13 +134,13 @@ if defined(VBOX_SIGNING_MODE) && defined(VBOX_SIGN_ADDITIONS)
   endif
 
   if !$(intersects win, $(VBOX_WITH_CORP_CODE_SIGNING)) && $(intersects win_planb,$(VBOX_WITH_CORP_CODE_SIGNING))
-   $(evalcall2 def_VBoxAdditionsInstCertFiles,vbox-sha256-r3.cer,$(VBOX_PATH_ADDITIONS)/VBoxDrvInst.exe, \
+   $(evalcall2 def_VBoxAdditionsInstCertFiles,vbox-sha256-r3.cer,$(VBOX_PATH_ADDITIONS)/VBoxGuestInstallHelper.exe, \
    	extract-exe-signer-cert, 1)
    VBOX_GA_CERT_ROOT_SHA2_R3 := vbox-sha256-r3-root.cer
-   $(evalcall2 def_VBoxAdditionsInstCertFiles,$(VBOX_GA_CERT_ROOT_SHA2_R3),$(VBOX_PATH_ADDITIONS)/VBoxDrvInst.exe, \
+   $(evalcall2 def_VBoxAdditionsInstCertFiles,$(VBOX_GA_CERT_ROOT_SHA2_R3),$(VBOX_PATH_ADDITIONS)/VBoxGuestInstallHelper.exe, \
   	extract-signer-root --self-signed-roots-from-system, 1)
    VBOX_GA_CERT_ROOT_SHA2_R3_TS := vbox-sha256-r3-timestamp-root.cer
-   $(evalcall2 def_VBoxAdditionsInstCertFiles,$(VBOX_GA_CERT_ROOT_SHA2_R3_TS),$(VBOX_PATH_ADDITIONS)/VBoxDrvInst.exe, \
+   $(evalcall2 def_VBoxAdditionsInstCertFiles,$(VBOX_GA_CERT_ROOT_SHA2_R3_TS),$(VBOX_PATH_ADDITIONS)/VBoxGuestInstallHelper.exe, \
    	extract-timestamp-root --self-signed-roots-from-system, 1)
   endif
  endif
@@ -199,7 +197,8 @@ endif
 VBOX_WINDOWS_ADDITIONS_OTHER_FILES := \
 	$(PATH_STAGE_BIN)/additions/VBoxService.exe \
 	$(PATH_STAGE_BIN)/additions/VBoxHook.dll \
-	$(PATH_STAGE_BIN)/additions/RegCleanup.exe
+	$(PATH_STAGE_BIN)/additions/RegCleanup.exe \
+	$(PATH_STAGE_BIN)/additions/VBoxDrvInst.exe
 
 ifeq ($(KBUILD_TARGET_ARCH),x86)
  VBOX_WINDOWS_ADDITIONS_OTHER_FILES += \
@@ -259,10 +258,13 @@ VBOX_WINDOWS_ADDITIONS_OTHER_FILES += $(addprefix $(PATH_STAGE_BIN)/additions/, 
 		$(VBOX_GA_CERT_ROOT_SHA2_R3) \
 		$(VBOX_GA_CERT_ROOT_SHA2_R3_TS))
 
+# Tool is needed in order to repair the NSIS installer .exe's internal CRC32 checksum
+# after touching it via $(VBOX_PE_SET_VERSION).
+VBOX_NSIS_TOOL := $(PATH_OBJ)/VBoxNSISTool/VBoxNSISTool$(HOSTSUFF_EXE)
+
 VB_WIN_ADD_NSIS_ENV := \
 	-E 'PATH_OUT=$(subst /,\,$(PATH_OUT))' \
 	-E 'PATH_TARGET=$(subst /,\,$(PATH_TARGET))' \
-	-E 'VBOX_PATH_DIFX=$(subst /,\,$(VBOX_PATH_DIFX))' \
 	-E 'VBOX_VENDOR=$(VBOX_VENDOR)' \
 	-E 'VBOX_VENDOR_SHORT=$(VBOX_VENDOR_SHORT)' \
 	-E 'VBOX_PRODUCT=$(VBOX_PRODUCT)' \
@@ -315,7 +317,7 @@ $(PATH_STAGE_BIN)/additions/VBoxWindowsAdditions-$(KBUILD_TARGET_ARCH).exe: \
 		$(if $(VBOX_SIGNING_MODE),$(PATH_TARGET)/uninst.exe) \
 		$(if $(VBOX_WIN_ATTESTATION_SIGNING),$(PATH_OUT)/repackadd/$(VBOX_SIGNED_DRIVERS_ZIP_NAME)) \
 		$(VBOX_VERSION_STAMP) \
-		$$(VBoxDrvInst_1_STAGE_TARGET) \
+		$$(VBoxGuestInstallHelper_1_STAGE_TARGET) \
 		| $(VBOX_SIGN_IMAGE_ORDERDEPS)
 	$(call MSG_L1,Creating $@, from $<)
 ifdef VBOX_WIN_ATTESTATION_SIGNING # Unpack the attestation signed drivers - this is an ugly as 'ing heck hack!
@@ -332,6 +334,8 @@ endif
 			$(if $(VBOX_INSTALLER_ADD_LANGUAGES),'/DVBOX_INSTALLER_ADD_LANGUAGES=1') \
 			$(foreach lang,$(VBOX_INSTALLER_ADD_LANGUAGES),'/DVBOX_BRAND_$(lang)_LICENSE_RTF=1') \
 			'$(subst /,\,$<)'
+	$(REDIRECT) -- $(VBOX_PE_SET_VERSION) $@
+	$(REDIRECT) -- $(VBOX_NSIS_TOOL) repair $@
 	$(call VBOX_SIGN_IMAGE_FN,$@)
 
 
@@ -365,7 +369,7 @@ ifdef VBOX_SIGNING_MODE
  		$(VBOX_WINDOWS_ADDITIONS_ICON_FILE) \
  		$(VBOX_NSIS_ICON_FILE) \
  		$(VBOX_VERSION_STAMP) \
- 		$$(VBoxDrvInst_1_STAGE_TARGET) \
+ 		$$(VBoxGuestInstallHelper_1_STAGE_TARGET) \
  		| $$(dir $$@)
 	$(call MSG_L1,Creating $@, from $<)
 	$(QUIET)$(REDIRECT) -C $(VBOX_PATH_WIN_ADD_INS_SRC) \
@@ -377,6 +381,8 @@ ifdef VBOX_SIGNING_MODE
 			$(foreach lang,$(VBOX_INSTALLER_ADD_LANGUAGES),'/DVBOX_BRAND_$(lang)_LICENSE_RTF=1') \
 			'/DUNINSTALLER_ONLY=1' \
 			'$(subst /,\,$<)'
+	$(QUIET)$(REDIRECT) -- $(VBOX_PE_SET_VERSION) $@
+	$(QUIET)$(REDIRECT) -- $(VBOX_NSIS_TOOL) repair $@
 
  $(PATH_TARGET)/uninst.exe: \
  		$(PATH_TARGET)/VBoxWindowsAdditions-$(KBUILD_TARGET_ARCH)-uninst.exe | $$(dir $$@) $(VBOX_SIGN_IMAGE_ORDERDEPS)
@@ -510,4 +516,3 @@ VBoxAddInstallNt3x.cpp_DEPS = $(VBOX_SVN_REV_HEADER)
 
 
 include $(FILE_KBUILD_SUB_FOOTER)
-

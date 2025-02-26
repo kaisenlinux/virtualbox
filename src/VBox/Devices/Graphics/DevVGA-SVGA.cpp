@@ -4267,7 +4267,7 @@ static void vmsvgaR3FifoHandleExtCmd(PPDMDEVINS pDevIns, PVGASTATE pThis, PVGAST
             AssertLogRelMsgBreak(RT_VALID_PTR(pSSM), ("pSSM=%p\n", pSSM));
             vmsvgaR3SaveExecFifo(pDevIns->pHlpR3, pThisCC, pSSM);
 # ifdef VBOX_WITH_VMSVGA3D
-            if (pThis->svga.f3DEnabled)
+            if (pThis->svga.f3DEnabled || pThis->svga.fVMSVGA2dGBO)
             {
                 if (vmsvga3dIsLegacyBackend(pThisCC))
                     vmsvga3dSaveExec(pDevIns, pThisCC, pSSM);
@@ -4287,7 +4287,7 @@ static void vmsvgaR3FifoHandleExtCmd(PPDMDEVINS pDevIns, PVGASTATE pThis, PVGAST
             AssertLogRelMsgBreak(RT_VALID_PTR(pLoadState), ("pLoadState=%p\n", pLoadState));
             vmsvgaR3LoadExecFifo(pDevIns->pHlpR3, pThis, pThisCC, pLoadState->pSSM, pLoadState->uVersion, pLoadState->uPass);
 # ifdef VBOX_WITH_VMSVGA3D
-            if (pThis->svga.f3DEnabled)
+            if (pThis->svga.f3DEnabled || pThis->svga.fVMSVGA2dGBO)
             {
                 /* The following RT_OS_DARWIN code was in vmsvga3dLoadExec and therefore must be executed before each vmsvga3dLoadExec invocation. */
 #  ifndef RT_OS_DARWIN /** @todo r=bird: this is normally done on the EMT, so for DARWIN we do that when loading saved state too now. See DevVGA-SVGA.cpp */
@@ -6106,6 +6106,19 @@ int vmsvgaR3LoadExec(PPDMDEVINS pDevIns, PSSMHANDLE pSSM, uint32_t uVersion, uin
     rc = pHlp->pfnSSMGetStructEx(pSSM, &pThis->svga, sizeof(pThis->svga), 0, g_aVGAStateSVGAFields, NULL);
     AssertRCReturn(rc, rc);
 
+    if (pThis->svga.fVMSVGA2dGBO)
+    {
+        if (pThis->svga.u32DeviceCaps & SVGA_CAP_GBOBJECTS)
+        {
+            LogRel(("VGA: VMSVGA2dGBO enabled in VM config and SVGA_CAP_GBOBJECTS is present in Caps. 3D state should be loaded.\n"));
+        }
+        else
+        {
+            LogRel(("VGA: VMSVGA2dGBO enabled in VM config but SVGA_CAP_GBOBJECTS is NOT present in Caps, so fVMSVGA2dGBO should be forced to 0\n"));
+            pThis->svga.fVMSVGA2dGBO = false;
+        }
+    }
+
     /* Load the VGA framebuffer. */
     AssertCompile(VMSVGA_VGA_FB_BACKUP_SIZE >= _32K);
     uint32_t cbVgaFramebuffer = _32K;
@@ -6703,6 +6716,13 @@ static int vmsvgaR3Init3dInterfaces(PPDMDEVINS pDevIns, PVGASTATE pThis, PVGASTA
     {
         VMSVGA3DINTERFACE *p = &a3dInterface[i];
 
+        if (pThis->svga.fVMSVGA2dGBO &&
+            RTStrCmp(p->pcszName, VMSVGA3D_BACKEND_INTERFACE_NAME_MAP) &&
+            RTStrCmp(p->pcszName, VMSVGA3D_BACKEND_INTERFACE_NAME_GBO))
+        {
+            continue;
+        }
+
         int rc2 = pBackend->pfnQueryInterface(pThisCC, p->pcszName, NULL, p->cbFuncs);
         if (RT_SUCCESS(rc2))
         {
@@ -6791,7 +6811,7 @@ static void vmsvgaR3GetCaps(PVGASTATE pThis, PVGASTATECC pThisCC, uint32_t *pu32
     }
 
 # ifdef VBOX_WITH_VMSVGA3D
-  if (pThisCC->svga.pSvgaR3State->pFuncs3D)
+    if (pThisCC->svga.pSvgaR3State->pFuncs3D)
         *pu32DeviceCaps |= SVGA_CAP_3D;
 # endif
 
@@ -7073,20 +7093,29 @@ static void vmsvgaR3Init3DCaps(PVGASTATE pThis, PVGASTATECC pThisCC)
     uint32_t au32FailedCapsBitmap[(RT_ELEMENTS(pThis->svga.au32DevCaps) + 31) / 32];
     RT_ZERO(au32FailedCapsBitmap);
 
-    for (unsigned i = 0; i < RT_ELEMENTS(pThis->svga.au32DevCaps); ++i)
+    if (!pThis->svga.fVMSVGA2dGBO)
     {
-        uint32_t val = 0;
-        int rc = vmsvga3dQueryCaps(pThisCC, (SVGA3dDevCapIndex)i, &val);
-        if (RT_SUCCESS(rc))
-            pThis->svga.au32DevCaps[i] = val;
-        else
+        for (unsigned i = 0; i <= RT_ELEMENTS(pThis->svga.au32DevCaps); ++i)
         {
-            ASMBitSet(au32FailedCapsBitmap, i);
-            pThis->svga.au32DevCaps[i] = 0;
+            uint32_t val = 0;
+            int rc = vmsvga3dQueryCaps(pThisCC, (SVGA3dDevCapIndex)i, &val);
+            if (RT_SUCCESS(rc))
+                pThis->svga.au32DevCaps[i] = val;
+            else
+            {
+                ASMBitSet(au32FailedCapsBitmap, i);
+                pThis->svga.au32DevCaps[i] = 0;
+            }
         }
-    }
 
-    vmsvgaR3Censor3DCaps(pThis, pThisCC);
+        vmsvgaR3Censor3DCaps(pThis, pThisCC);
+    }
+    else
+    {
+        pThis->svga.au32DevCaps[SVGA3D_DEVCAP_MAX_TEXTURE_WIDTH]  = 4096;
+        pThis->svga.au32DevCaps[SVGA3D_DEVCAP_MAX_TEXTURE_HEIGHT] = 4096;
+        pThis->svga.au32DevCaps[SVGA3D_DEVCAP_DXFMT_X8R8G8B8] = 0x3f7;
+    }
 
     bool const fSavedBuffering = RTLogRelSetBuffering(true);
 
@@ -7691,8 +7720,12 @@ static void vmsvgaR3PowerOnDevice(PPDMDEVINS pDevIns, PVGASTATE pThis, PVGASTATE
 # ifdef VBOX_WITH_VMSVGA3D
     if (pThis->svga.f3DEnabled || pThis->svga.fVMSVGA2dGBO)
     {
+        int rc = VINF_SUCCESS;
+
         PVMSVGAR3STATE pSVGAState = pThisCC->svga.pSvgaR3State;
-        int rc = pSVGAState->pFuncs3D->pfnPowerOn(pDevIns, pThis, pThisCC);
+        if (pSVGAState->pFuncs3D)
+            rc = pSVGAState->pFuncs3D->pfnPowerOn(pDevIns, pThis, pThisCC);
+
         if (RT_SUCCESS(rc))
         {
             /* Initialize 3D capabilities. */

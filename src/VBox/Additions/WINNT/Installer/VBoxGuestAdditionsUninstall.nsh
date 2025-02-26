@@ -34,7 +34,7 @@ Function ${un}UninstallCommon
 
   ; Remove common files
   Delete /REBOOTOK "$INSTDIR\VBoxDrvInst.exe"
-  Delete /REBOOTOK "$INSTDIR\DIFxAPI.dll"
+  Delete /REBOOTOK "$INSTDIR\VBoxGuestInstallHelper.exe"
 
   Delete /REBOOTOK "$INSTDIR\VBoxVideo.inf"
 !ifdef VBOX_SIGN_ADDITIONS
@@ -83,7 +83,11 @@ Function ${un}Uninstall
 !ifdef _DEBUG
   ${LogVerbose} "Detected OS version: Windows $g_strWinVersion"
   ${LogVerbose} "System Directory: $g_strSystemDir"
+  ${LogVerbose} "Temp Directory: $TEMP"
 !endif
+
+  ; Create temp directory where we can store uninstallation logs.
+  CreateDirectory "$TEMP\${PRODUCT_NAME}"
 
   ; Which OS are we using?
 !if $%KBUILD_TARGET_ARCH% == "x86"       ; 32-bit
@@ -130,6 +134,21 @@ notsupported:
 common:
 
 exit:
+
+  ;
+  ; Dump UI log to on success too. Only works with non-silent installs.
+  ; (This has to be done here rather than in .onUninstSuccess, because by
+  ; then the log is no longer visible in the UI.)
+  ;
+  ${IfNot} ${Silent}
+  !if $%VBOX_WITH_GUEST_INSTALL_HELPER% == "1"
+    VBoxGuestInstallHelper::DumpLog "$TEMP\vbox_uninstall_ui.log"
+  !else
+    StrCpy $0 "$TEMP\vbox_uninstall_ui.log"
+    Push $0
+    Call DumpLog
+  !endif
+  ${EndIf}
 
 FunctionEnd
 !macroend
