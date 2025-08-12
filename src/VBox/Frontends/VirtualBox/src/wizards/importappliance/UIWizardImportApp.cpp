@@ -234,9 +234,9 @@ bool UIWizardImportApp::importAppliance()
         QList < QPair <QString, QString> > licAgreements = licenseAgreements();
         if (!licAgreements.isEmpty())
         {
-            UIImportLicenseViewer ilv(this);
             for (int i = 0; i < licAgreements.size(); ++i)
             {
+                UIImportLicenseViewer ilv(this);
                 const QPair<QString, QString> &lic = licAgreements.at(i);
                 ilv.setContents(lic.first, lic.second);
                 if (ilv.exec() == QDialog::Rejected)

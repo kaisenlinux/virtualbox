@@ -1458,68 +1458,81 @@ static DECLCALLBACK(void) vboxWinDrvInstLogCallback(VBOXWINDRIVERLOGTYPE enmType
     }
 }
 
+/**
+ * Returns a custom action data value.
+ *
+ * @returns Value of \a pszName if found, or NULL if not found.
+ * @param   hModule             Windows installer module handle.
+ * @param   pData               Custom action data to search in.
+ * @param   pszName             Name of the custom action data value to search for.
+ * @param   fOptional           Whether the custom action data value is optional or not.
+ *                              If @c true, \a pData will be destroyed automatically,
+ *                              so that the caller can skip cleaning up.
+ *                              That implies that \a pData will be invalid when returning
+ *                              a failure, so use with care.
+ */
+static const char *getCustomActionDataValue(MSIHANDLE hModule, PVBOXMSICUSTOMACTIONDATA pData, const char *pszName, bool fOptional)
+{
+    const char *pszVal = VBoxMsiCustomActionDataFind(pData, pszName);
+    if (   !pszVal
+        && !fOptional)
+    {
+        logStringF(hModule, "Error: Value '%s' not specified in CustomActionData!", pszName);
+
+#ifdef DEBUG
+        for (size_t i = 0; i < pData->cEntries; i++)
+            logStringF(hModule, "CustomActionData: %s = %s", pData->paEntries[i].pszKey, pData->paEntries[i].pszVal);
+#endif
+        VBoxMsiCustomActionDataFree(pData);
+        pData = NULL;
+    }
+
+    return pszVal;
+}
+
 UINT __stdcall DriverInstall(MSIHANDLE hModule)
 {
     logStringF(hModule, "Installing driver ...");
 
-    char *pszInfFile = NULL;
-    int rc = VBoxMsiQueryPropUtf8(hModule, "VBoxDrvInstInfFile", &pszInfFile);
+    PVBOXMSICUSTOMACTIONDATA pData;
+    int rc = VBoxMsiCustomActionDataQuery(hModule, &pData);
+    if (RT_FAILURE(rc))
+    {
+        logStringF(hModule, "DriverInstall: No CustomActionData specified!");
+        return ERROR_INVALID_PARAMETER;
+    }
+
+    const char *pszInfFile = getCustomActionDataValue(hModule, pData, "VBoxDrvInstInfFile", false /* fOptional */);
+    if (!pszInfFile)
+        return ERROR_INVALID_PARAMETER;
+
+    /* VBoxDrvInstInfSection is optional. */
+    const char *pszInfSection = getCustomActionDataValue(hModule, pData, "VBoxDrvInstInfSection", true /* fOptional */);
+    /* VBoxDrvInstModel is optional. */
+    const char *pszModel      = getCustomActionDataValue(hModule, pData, "VBoxDrvInstModel", true /* fOptional */);
+    /* VBoxDrvInstPnpId is optional. */
+    const char *pszPnpId      = getCustomActionDataValue(hModule, pData, "VBoxDrvInstPnpId", true /* fOptional */);
+
+    uint32_t fFlags = VBOX_WIN_DRIVERINSTALL_F_NONE;
+    if (getCustomActionDataValue(hModule, pData, "VBoxDrvInstFlagForce", true /* fOptional */))
+        fFlags |= VBOX_WIN_DRIVERINSTALL_F_FORCE;
+    if (getCustomActionDataValue(hModule, pData, "VBoxDrvInstFlagSilent", true /* fOptional */))
+        fFlags |= VBOX_WIN_DRIVERINSTALL_F_SILENT;
+
+    VBOXWINDRVINST hWinDrvInst;
+    rc = VBoxWinDrvInstCreateEx(&hWinDrvInst, 1 /* uVerbostiy */, &vboxWinDrvInstLogCallback, &hModule /* pvUser */);
     if (RT_SUCCESS(rc))
     {
-        char *pszInfSection = NULL;
-        rc = VBoxMsiQueryPropUtf8(hModule, "VBoxDrvInstInfSection", &pszInfSection);
-        if (   RT_SUCCESS(rc)
-            || rc == VERR_NOT_FOUND) /* VBoxDrvInstInfSection is optional. */
-        {
-            char *pszModel = NULL;
-            rc = VBoxMsiQueryPropUtf8(hModule, "VBoxDrvInstModel", &pszModel);
-            if (   RT_SUCCESS(rc)
-                || rc == VERR_NOT_FOUND) /* VBoxDrvInstModel is optional. */
-            {
-                char *pszPnpId = NULL;
-                rc = VBoxMsiQueryPropUtf8(hModule, "VBoxDrvInstPnpId", &pszPnpId);
-                if (   RT_SUCCESS(rc)
-                    || rc == VERR_NOT_FOUND) /* VBoxDrvInstPnpId is optional. */
-                {
-                    uint32_t fFlags = VBOX_WIN_DRIVERINSTALL_F_NONE;
+        if (pszInfSection && *pszInfSection)
+            rc = VBoxWinDrvInstInstallExecuteInf(hWinDrvInst, pszInfFile, pszInfSection, fFlags);
+        else
+            rc = VBoxWinDrvInstInstallEx(hWinDrvInst, pszInfFile, pszModel, pszPnpId, fFlags);
 
-                    DWORD dwVal;
-                    rc = VBoxMsiQueryPropInt32(hModule, "VBoxDrvInstFlagForce", &dwVal);
-                    if (RT_SUCCESS(rc))
-                        fFlags |= VBOX_WIN_DRIVERINSTALL_F_FORCE;
-                    rc = VBoxMsiQueryPropInt32(hModule, "VBoxDrvInstFlagSilent", &dwVal);
-                    if (RT_SUCCESS(rc))
-                        fFlags |= VBOX_WIN_DRIVERINSTALL_F_SILENT;
-
-                    VBOXWINDRVINST hWinDrvInst;
-                    rc = VBoxWinDrvInstCreateEx(&hWinDrvInst, 1 /* uVerbostiy */, &vboxWinDrvInstLogCallback, &hModule /* pvUser */);
-                    if (RT_SUCCESS(rc))
-                    {
-                        if (pszInfSection && *pszInfSection)
-                            rc = VBoxWinDrvInstInstallExecuteInf(hWinDrvInst, pszInfFile, pszInfSection, fFlags);
-                        else
-                            rc = VBoxWinDrvInstInstallEx(hWinDrvInst, pszInfFile, pszModel, pszPnpId, fFlags);
-
-                        VBoxWinDrvInstDestroy(hWinDrvInst);
-                    }
-
-                    RTStrFree(pszPnpId);
-                }
-
-                RTStrFree(pszModel);
-            }
-
-            RTStrFree(pszInfSection);
-        }
-
-        RTStrFree(pszInfFile);
+        VBoxWinDrvInstDestroy(hWinDrvInst);
     }
-    else
-    {
-        logStringF(hModule, "DriverInstall: No INF or invalid file to install specified!");
-        if (rc == VERR_NOT_FOUND) /* Give a better clue. */
-            rc = VERR_INVALID_PARAMETER;
-    }
+
+    VBoxMsiCustomActionDataFree(pData);
+    pData = NULL;
 
     logStringF(hModule, "DriverInstall: Handling done (rc=%Rrc)", rc);
     return RT_SUCCESS(rc) ? ERROR_SUCCESS : ERROR_DRIVER_INSTALL_BLOCKED /* Close enough */;
@@ -1527,55 +1540,103 @@ UINT __stdcall DriverInstall(MSIHANDLE hModule)
 
 UINT __stdcall DriverUninstall(MSIHANDLE hModule)
 {
-    char *pszInfFile = NULL;
-    int rc = VBoxMsiQueryPropUtf8(hModule, "VBoxDrvUninstInfFile", &pszInfFile);
-    if (   RT_SUCCESS(rc)
-        || rc == VERR_NOT_FOUND) /* VBoxDrvUninstInfFile is optional. */
+    logStringF(hModule, "Uninstalling driver ...");
+
+    PVBOXMSICUSTOMACTIONDATA pData;
+    int rc = VBoxMsiCustomActionDataQuery(hModule, &pData);
+    if (RT_FAILURE(rc))
     {
-        char *pszInfSection = NULL;
-        rc = VBoxMsiQueryPropUtf8(hModule, "VBoxDrvUninstInfSection", &pszInfSection);
-        if (   RT_SUCCESS(rc)
-            || rc == VERR_NOT_FOUND) /* VBoxDrvUninstInfSection is optional. */
-        {
-            char *pszModel = NULL;
-            rc = VBoxMsiQueryPropUtf8(hModule, "VBoxDrvUninstModel", &pszModel);
-            if (   RT_SUCCESS(rc)
-                || rc == VERR_NOT_FOUND) /* VBoxDrvUninstModel is optional. */
-            {
-                char *pszPnpId = NULL;
-                rc = VBoxMsiQueryPropUtf8(hModule, "VBoxDrvUninstPnpId", &pszPnpId);
-                if (   RT_SUCCESS(rc)
-                    || rc == VERR_NOT_FOUND) /* VBoxDrvUninstPnpId is optional. */
-                {
-                    VBOXWINDRVINST hWinDrvInst;
-                    rc = VBoxWinDrvInstCreateEx(&hWinDrvInst, 1 /* uVerbostiy */,
-                                                &vboxWinDrvInstLogCallback, &hModule /* pvUser */);
-                    if (RT_SUCCESS(rc))
-                    {
-                        if (pszInfSection && *pszInfSection)
-                            rc = VBoxWinDrvInstUninstallExecuteInf(hWinDrvInst, pszInfFile, pszInfSection,
-                                                                   VBOX_WIN_DRIVERINSTALL_F_NONE);
-                        else
-                            rc = VBoxWinDrvInstUninstall(hWinDrvInst, pszInfFile, pszModel, pszPnpId,
-                                                         VBOX_WIN_DRIVERINSTALL_F_NONE);
-
-                        VBoxWinDrvInstDestroy(hWinDrvInst);
-                    }
-
-                    RTStrFree(pszPnpId);
-                }
-
-                RTStrFree(pszModel);
-            }
-
-            RTStrFree(pszInfSection);
-        }
-
-        RTStrFree(pszInfFile);
+        logStringF(hModule, "DriverUninstall: No CustomActionData specified!");
+        return ERROR_INVALID_PARAMETER;
     }
+
+#ifdef DEBUG
+    for (size_t i = 0; i < pData->cEntries; i++)
+        logStringF(hModule, "CustomActionData: %s = %s", pData->paEntries[i].pszKey, pData->paEntries[i].pszVal);
+#endif
+
+    /* VBoxDrvUninstInfFile is optional. */
+    const char *pszInfFile = VBoxMsiCustomActionDataFind(pData, "VBoxDrvUninstInfFile");
+    /* VBoxDrvUninstInfSection is optional. */
+    const char *pszInfSection = VBoxMsiCustomActionDataFind(pData, "VBoxDrvUninstInfSection");
+    /* VBoxDrvUninstModel is optional. */
+    const char *pszModel = VBoxMsiCustomActionDataFind(pData, "VBoxDrvUninstModel");
+    /* VBoxDrvUninstPnpId is optional. */
+    const char *pszPnpId = VBoxMsiCustomActionDataFind(pData, "VBoxDrvUninstPnpId");
+
+    VBOXWINDRVINST hWinDrvInst;
+    rc = VBoxWinDrvInstCreateEx(&hWinDrvInst, 1 /* uVerbostiy */,
+                                &vboxWinDrvInstLogCallback, &hModule /* pvUser */);
+    if (RT_SUCCESS(rc))
+    {
+        if (pszInfSection && *pszInfSection)
+            rc = VBoxWinDrvInstUninstallExecuteInf(hWinDrvInst, pszInfFile, pszInfSection,
+                                                   VBOX_WIN_DRIVERINSTALL_F_NONE);
+        else
+            rc = VBoxWinDrvInstUninstall(hWinDrvInst, pszInfFile, pszModel, pszPnpId,
+                                         VBOX_WIN_DRIVERINSTALL_F_NONE);
+
+        VBoxWinDrvInstDestroy(hWinDrvInst);
+    }
+
+    VBoxMsiCustomActionDataFree(pData);
+    pData = NULL;
 
     logStringF(hModule, "DriverUninstall: Handling done (rc=%Rrc)", rc);
     return RT_SUCCESS(rc) ? ERROR_SUCCESS : ERROR_DRIVER_STORE_DELETE_FAILED /* Close enough */;
+}
+
+UINT __stdcall ServiceControl(MSIHANDLE hModule)
+{
+    PVBOXMSICUSTOMACTIONDATA pData;
+    int rc = VBoxMsiCustomActionDataQuery(hModule, &pData);
+    if (RT_FAILURE(rc))
+    {
+        logStringF(hModule, "ServiceControl: No CustomActionData specified!");
+        return ERROR_INVALID_PARAMETER;
+    }
+
+    const char *pszSvcCtlName = getCustomActionDataValue(hModule, pData, "VBoxSvcCtlName", false /* fOptional */);
+    if (!pszSvcCtlName)
+        return ERROR_INVALID_PARAMETER;
+    const char *pszSvcCtlFn   = getCustomActionDataValue(hModule, pData, "VBoxSvcCtlFn", false /* fOptional */);
+    if (!pszSvcCtlFn)
+        return ERROR_INVALID_PARAMETER;
+
+    VBOXWINDRVSVCFN enmFn = VBOXWINDRVSVCFN_INVALID; /* Shut up MSVC. */
+    if (!RTStrICmp(pszSvcCtlFn, "start"))
+        enmFn = VBOXWINDRVSVCFN_START;
+    else if (!RTStrICmp(pszSvcCtlFn, "stop"))
+        enmFn = VBOXWINDRVSVCFN_STOP;
+    else if (!RTStrICmp(pszSvcCtlFn, "restart"))
+        enmFn = VBOXWINDRVSVCFN_RESTART;
+    else
+        rc = VERR_INVALID_PARAMETER;
+
+    if (RT_SUCCESS(rc))
+    {
+        RTMSINTERVAL msTimeout = 0; /* Don't wait by default. */
+        const char *pszTmp = getCustomActionDataValue(hModule, pData, "VBoxSvcCtlWaitMs", true /* fOptional */);
+        if (pszTmp)
+            msTimeout = RTStrToUInt32(pszTmp);
+
+        VBOXWINDRVINST hWinDrvInst;
+        rc = VBoxWinDrvInstCreateEx(&hWinDrvInst, 1 /* uVerbostiy */,
+                                    &vboxWinDrvInstLogCallback, &hModule /* pvUser */);
+        if (RT_SUCCESS(rc))
+        {
+            rc = VBoxWinDrvInstControlServiceEx(hWinDrvInst, pszSvcCtlName, enmFn,
+                                                msTimeout == 0 ? VBOXWINDRVSVCFN_F_NONE : VBOXWINDRVSVCFN_F_WAIT,
+                                                msTimeout);
+            VBoxWinDrvInstDestroy(hWinDrvInst);
+        }
+    }
+
+    VBoxMsiCustomActionDataFree(pData);
+    pData = NULL;
+
+    logStringF(hModule, "ServiceControl: Handling done (rc=%Rrc)", rc);
+    return RT_SUCCESS(rc) ? ERROR_SUCCESS : ERROR_INVALID_SERVICE_CONTROL;
 }
 
 #if defined(VBOX_WITH_NETFLT) || defined(VBOX_WITH_NETADP)
@@ -2784,74 +2845,23 @@ UINT __stdcall UninstallTAPInstances(MSIHANDLE hModule)
  */
 UINT __stdcall UninstallVBoxDrv(MSIHANDLE hModule)
 {
-    /*
-     * Try open the service.
-     */
-    SC_HANDLE hSMgr = OpenSCManager(NULL, NULL, SERVICE_CHANGE_CONFIG | SERVICE_STOP | SERVICE_QUERY_STATUS);
-    if (hSMgr)
+    VBOXWINDRVINST hWinDrvInst;
+    int rc = VBoxWinDrvInstCreateEx(&hWinDrvInst, 1 /* uVerbostiy */, &vboxWinDrvInstLogCallback, &hModule /* pvUser */);
+    if (RT_SUCCESS(rc))
     {
-        SC_HANDLE hService = OpenServiceW(hSMgr, L"VBoxDrv", DELETE | SERVICE_STOP | SERVICE_QUERY_STATUS);
-        if (hService)
-        {
-            /*
-             * Try stop it before we delete it.
-             */
-            SERVICE_STATUS Status = { 0, 0, 0, 0, 0, 0, 0 };
-            QueryServiceStatus(hService, &Status);
-            if (Status.dwCurrentState == SERVICE_STOPPED)
-                logStringF(hModule, "VBoxDrv: The service old service was already stopped");
-            else
-            {
-                logStringF(hModule, "VBoxDrv: Stopping the service (state %u)", Status.dwCurrentState);
-                if (ControlService(hService, SERVICE_CONTROL_STOP, &Status))
-                {
-                    /* waiting for it to stop: */
-                    int iWait = 100;
-                    while (Status.dwCurrentState == SERVICE_STOP_PENDING && iWait-- > 0)
-                    {
-                        Sleep(100);
-                        QueryServiceStatus(hService, &Status);
-                    }
+        /*
+         * Try stop it before we delete it.
+         */
+        /* ignore rc */ VBoxWinDrvInstControlServiceEx(hWinDrvInst, "VBoxDrv",
+                                                       VBOXWINDRVSVCFN_STOP, VBOXWINDRVSVCFN_F_WAIT, RT_MS_10SEC);
 
-                    if (Status.dwCurrentState == SERVICE_STOPPED)
-                        logStringF(hModule, "VBoxDrv: Stopped service");
-                    else
-                        logStringF(hModule, "VBoxDrv: Failed to stop the service, status: %u", Status.dwCurrentState);
-                }
-                else
-                {
-                    DWORD const dwErr = GetLastError();
-                    if (   Status.dwCurrentState == SERVICE_STOP_PENDING
-                        && dwErr == ERROR_SERVICE_CANNOT_ACCEPT_CTRL)
-                        logStringF(hModule, "VBoxDrv: Failed to stop the service: stop pending, not accepting control messages");
-                    else
-                        logStringF(hModule, "VBoxDrv: Failed to stop the service: dwErr=%u status=%u", dwErr, Status.dwCurrentState);
-                }
-            }
+        /*
+         * Delete the service, or at least mark it for deletion.
+         */
+        /* ignore rc */ VBoxWinDrvInstControlService(hWinDrvInst, "VBoxDrv", VBOXWINDRVSVCFN_DELETE);
 
-            /*
-             * Delete the service, or at least mark it for deletion.
-             */
-            if (DeleteService(hService))
-                logStringF(hModule, "VBoxDrv: Successfully delete service");
-            else
-                logStringF(hModule, "VBoxDrv: Failed to delete the service: %u", GetLastError());
-
-            CloseServiceHandle(hService);
-        }
-        else
-        {
-            DWORD const dwErr = GetLastError();
-            if (dwErr == ERROR_SERVICE_DOES_NOT_EXIST)
-                logStringF(hModule, "VBoxDrv: Nothing to do, the old service does not exist");
-            else
-                logStringF(hModule, "VBoxDrv: Failed to open the service: %u", dwErr);
-        }
-
-        CloseServiceHandle(hSMgr);
+        VBoxWinDrvInstDestroy(hWinDrvInst);
     }
-    else
-        logStringF(hModule, "VBoxDrv: Failed to open service manager (%u).", GetLastError());
 
     return ERROR_SUCCESS;
 }

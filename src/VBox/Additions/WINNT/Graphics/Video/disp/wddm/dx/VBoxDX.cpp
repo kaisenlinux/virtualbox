@@ -3007,6 +3007,20 @@ void vboxDXSetRenderTargets(PVBOXDX_DEVICE pDevice, PVBOXDXDEPTHSTENCILVIEW pDep
     for (unsigned i = 0; i < ClearSlots; ++i)
         pDevice->pipeline.apRenderTargetViews[NumRTVs + i] = NULL;
 
+    /* 'ClearSlots' does not cover all previously bound RTs sometimes.
+     * "The range of render target surfaces between the number that NumViews specifies
+     *  and the maximum number of render target surfaces that are allowed is required
+     *  to contain all NULL or unbound values."
+     */
+    for (unsigned i = NumRTVs + ClearSlots; i < SVGA3D_MAX_SIMULTANEOUS_RENDER_TARGETS; ++i)
+    {
+        if (pDevice->pipeline.apRenderTargetViews[i])
+        {
+            ClearSlots = i - NumRTVs + 1;
+            pDevice->pipeline.apRenderTargetViews[i] = NULL;
+        }
+    }
+
     pDevice->pipeline.pDepthStencilView = pDepthStencilView;
 
     /* Fetch view ids.*/
@@ -3877,7 +3891,7 @@ static int vboxDXDeviceCreateObjects(PVBOXDX_DEVICE pDevice)
     AssertRCReturn(rc, rc);
 
     rc = RTHandleTableCreateEx(&pDevice->hHTShaderResourceView, /* fFlags */ 0, /* uBase */ 0,
-                               SVGA3D_MAX_SHADERIDS, NULL, NULL);
+                               SVGA_COTABLE_MAX_IDS, NULL, NULL);
     AssertRCReturn(rc, rc);
 
     rc = RTHandleTableCreateEx(&pDevice->hHTRenderTargetView, /* fFlags */ 0, /* uBase */ 0,

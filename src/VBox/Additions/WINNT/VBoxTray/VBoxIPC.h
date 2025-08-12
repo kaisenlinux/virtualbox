@@ -33,9 +33,9 @@
 # pragma once
 #endif
 
-int                VBoxIPCInit    (const VBOXSERVICEENV *pEnv, void **ppInstance, bool *pfStartThread);
-unsigned __stdcall VBoxIPCWorker  (void *pInstance);
-void               VBoxIPCStop    (const VBOXSERVICEENV *pEnv, void *pInstance);
-void               VBoxIPCDestroy (const VBOXSERVICEENV *pEnv, void *pInstance);
+int                vbtrIPCInit    (const VBOXTRAYSVCENV *pEnv, void **ppvInstance, bool *pfStartThread);
+unsigned __stdcall vbtrIPCWorker  (void *pvInstance);
+void               VBoxIPCStop    (const VBOXTRAYSVCENV *pEnv, void *pvInstance);
+void               vbtrIPCDestroy (const VBOXTRAYSVCENV *pEnv, void *pvInstance);
 
 #endif /* !GA_INCLUDED_SRC_WINNT_VBoxTray_VBoxIPC_h */

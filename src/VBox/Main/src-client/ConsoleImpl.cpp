@@ -6589,7 +6589,7 @@ HRESULT Console::i_onBandwidthGroupChange(IBandwidthGroup *aBandwidthGroup)
                         int vrc = VINF_SUCCESS;
                         if (enmType == BandwidthGroupType_Disk)
                             vrc = ptrVM.vtable()->pfnPDMR3AsyncCompletionBwMgrSetMaxForFile(ptrVM.rawUVM(), strName.c_str(),
-                                                                                            (uint32_t)cMax);
+                                                                                            (uint64_t)cMax);
 #ifdef VBOX_WITH_NETSHAPER
                         else if (enmType == BandwidthGroupType_Network)
                             vrc = ptrVM.vtable()->pfnPDMR3NsBwGroupSetLimit(ptrVM.rawUVM(), strName.c_str(), cMax);
@@ -11527,15 +11527,21 @@ void Console::i_powerUpThreadTask(VMPowerUpTask *pTask)
                     {
                         com::ErrorInfoKeeper eik;
                         ComPtr<IVirtualBoxErrorInfo> pErrorInfo = eik.takeError();
-                        Bstr strMsg;
-                        hrc = pErrorInfo->COMGETTER(Text)(strMsg.asOutParam());
-                        AssertComRCBreak(hrc, RT_NOTHING);
-                        LONG lRc;
-                        hrc = pErrorInfo->COMGETTER(ResultCode)(&lRc);
-                        AssertComRCBreak(hrc, RT_NOTHING);
+                        if (pErrorInfo.isNotNull())
+                        {
+                            Bstr strMsg;
+                            hrc = pErrorInfo->COMGETTER(Text)(strMsg.asOutParam());
+                            AssertComRCBreak(hrc, RT_NOTHING);
+                            LONG lRc;
+                            hrc = pErrorInfo->COMGETTER(ResultCode)(&lRc);
+                            AssertComRCBreak(hrc, RT_NOTHING);
 
-                        LogRel(("Recording: Failed to start on VM power up: %ls (%Rrc)\n",
-                                strMsg.raw(), lRc));
+                            LogRel(("Recording: Failed to start on VM power up: %ls (%Rrc)\n",
+                                    strMsg.raw(), lRc));
+                        }
+                        else
+                            LogRel(("Recording: Failed to start on VM power up (%Rhrc)\n", hrc));
+
                     }
                 }
 #endif

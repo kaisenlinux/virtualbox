@@ -78,7 +78,7 @@ typedef struct VBOXVRDPEXPPARAM
 
 typedef struct VBOXVRDPCONTEXT
 {
-    const VBOXSERVICEENV *pEnv;
+    const VBOXTRAYSVCENV *pEnv;
 
     uint32_t level;
     BOOL fSavedThemeEnabled;
@@ -278,10 +278,31 @@ static void vboxExperienceRestore(uint32_t uLevel)
     }
 }
 
-static DECLCALLBACK(int) VBoxVRDPInit(const PVBOXSERVICEENV pEnv, void **ppInstance)
+/**
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnPreInit}
+ */
+static DECLCALLBACK(int) vbtrVRDPPreInit(void)
+{
+    return VINF_SUCCESS;
+}
+
+/**
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnOption}
+ */
+static DECLCALLBACK(int) vbtrVRDPOption(const char **ppszShort, int argc, char **argv, int *pi)
+{
+    RT_NOREF(ppszShort, argc, argv, pi);
+
+    return -1;
+}
+
+/**
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnInit}
+ */
+static DECLCALLBACK(int) vbtrVRDPInit(const PVBOXTRAYSVCENV pEnv, void **ppvInstance)
 {
     AssertPtrReturn(pEnv, VERR_INVALID_POINTER);
-    AssertPtrReturn(ppInstance, VERR_INVALID_POINTER);
+    AssertPtrReturn(ppvInstance, VERR_INVALID_POINTER);
 
     LogFlowFuncEnter();
 
@@ -298,7 +319,7 @@ static DECLCALLBACK(int) VBoxVRDPInit(const PVBOXSERVICEENV pEnv, void **ppInsta
         *(PFNRT *)&pCtx->pfnEnableTheming = RTLdrGetFunction(g_Ctx.hModUxTheme, "EnableTheming");
         *(PFNRT *)&pCtx->pfnIsThemeActive = RTLdrGetFunction(g_Ctx.hModUxTheme, "IsThemeActive");
 
-        *ppInstance = &g_Ctx;
+        *ppvInstance = &g_Ctx;
     }
     else
     {
@@ -315,13 +336,16 @@ static DECLCALLBACK(int) VBoxVRDPInit(const PVBOXSERVICEENV pEnv, void **ppInsta
     return rc;
 }
 
-static DECLCALLBACK(void) VBoxVRDPDestroy(void *pInstance)
+/**
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnDestroy}
+ */
+static DECLCALLBACK(void) VBoxVRDPDestroy(void *pvInstance)
 {
-    AssertPtrReturnVoid(pInstance);
+    AssertPtrReturnVoid(pvInstance);
 
     LogFlowFuncEnter();
 
-    PVBOXVRDPCONTEXT pCtx = (PVBOXVRDPCONTEXT)pInstance;
+    PVBOXVRDPCONTEXT pCtx = (PVBOXVRDPCONTEXT)pvInstance;
 
     vboxExperienceRestore (pCtx->level);
     if (pCtx->hModUxTheme != NIL_RTLDRMOD)
@@ -334,9 +358,9 @@ static DECLCALLBACK(void) VBoxVRDPDestroy(void *pInstance)
 }
 
 /**
- * Thread function to wait for and process mode change requests
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnWorker}
  */
-static DECLCALLBACK(int) VBoxVRDPWorker(void *pvInstance, bool volatile *pfShutdown)
+static DECLCALLBACK(int) vbtrVRDPWorker(void *pvInstance, bool volatile *pfShutdown)
 {
     AssertPtrReturn(pvInstance, VERR_INVALID_POINTER);
     PVBOXVRDPCONTEXT pCtx = (PVBOXVRDPCONTEXT)pvInstance;
@@ -449,15 +473,21 @@ static DECLCALLBACK(int) VBoxVRDPWorker(void *pvInstance, bool volatile *pfShutd
 /**
  * The service description.
  */
-VBOXSERVICEDESC g_SvcDescVRDP =
+VBOXTRAYSVCDESC g_SvcDescVRDP =
 {
     /* pszName. */
     "VRDP",
     /* pszDescription. */
     "VRDP Connection Notification",
+    /* pszUsage. */
+    NULL,
+    /* pszOptions. */
+    NULL,
     /* methods */
-    VBoxVRDPInit,
-    VBoxVRDPWorker,
+    vbtrVRDPPreInit,
+    vbtrVRDPOption,
+    vbtrVRDPInit,
+    vbtrVRDPWorker,
     NULL /* pfnStop */,
     VBoxVRDPDestroy
 };

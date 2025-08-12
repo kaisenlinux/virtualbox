@@ -660,12 +660,13 @@ static int vbox_get_modes(struct drm_connector *connector)
     return num_modes;
 }
 
-#if RTLNX_VER_MAX(3,14,0) && !RTLNX_RHEL_MAJ_PREREQ(7,1)
-static int vbox_mode_valid(struct drm_connector *connector,
+#if RTLNX_VER_MIN(6,15,0)
+static enum drm_mode_status vbox_mode_valid(struct drm_connector *connector, const struct drm_display_mode *mode)
+#elif RTLNX_VER_MIN(3,14,0) || RTLNX_RHEL_MAJ_PREREQ(7,1)
+static enum drm_mode_status vbox_mode_valid(struct drm_connector *connector, struct drm_display_mode *mode)
 #else
-static enum drm_mode_status vbox_mode_valid(struct drm_connector *connector,
+static int vbox_mode_valid(struct drm_connector *connector, struct drm_display_mode *mode)
 #endif
-               struct drm_display_mode *mode)
 {
     return MODE_OK;
 }
@@ -893,7 +894,7 @@ static int vbox_cursor_set2(struct drm_crtc *crtc, struct drm_file *file_priv,
     vbox->cursor_data_size = data_size;
     dst = vbox->cursor_data;
 
-#if RTLNX_VER_MIN(6,4,0)
+#if RTLNX_VER_MIN(6,4,0) || RTLNX_RHEL_RANGE(9,7, 9,99)
     /* Make sure bo is in SYSTEM (main) memory, so we can access it directly. */
     ret = vbox_bo_pin(bo, VBOX_MEM_TYPE_SYSTEM, NULL);
     if (ret)
@@ -912,7 +913,7 @@ static int vbox_cursor_set2(struct drm_crtc *crtc, struct drm_file *file_priv,
 #endif
     if (ret) {
         vbox->cursor_data_size = 0;
-#if RTLNX_VER_MIN(6,4,0)
+#if RTLNX_VER_MIN(6,4,0) || RTLNX_RHEL_RANGE(9,7, 9,99)
         goto out_bo_unpin;
 #else
         goto out_unreserve_bo;
@@ -938,7 +939,7 @@ static int vbox_cursor_set2(struct drm_crtc *crtc, struct drm_file *file_priv,
 
 out_unmap_bo:
     ttm_bo_kunmap(&uobj_map);
-#if RTLNX_VER_MIN(6,4,0)
+#if RTLNX_VER_MIN(6,4,0) || RTLNX_RHEL_RANGE(9,7, 9,99)
 out_bo_unpin:
     vbox_bo_unpin(bo);
 #else

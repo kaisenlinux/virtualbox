@@ -71,7 +71,7 @@
 *********************************************************************************************************************************/
 typedef struct _VBOXLACONTEXT
 {
-    const VBOXSERVICEENV *pEnv;
+    const VBOXTRAYSVCENV *pEnv;
 
     bool fLogEnabled;
     bool fDetachOnDisconnect;
@@ -1208,10 +1208,32 @@ static void laDoActions(PVBOXLACONTEXT pCtx)
     LogFlowFunc(("laDoActions: leave\n"));
 }
 
-DECLCALLBACK(int) VBoxLAInit(const PVBOXSERVICEENV pEnv, void **ppInstance)
+/**
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnPreInit}
+ */
+static DECLCALLBACK(int) vbtrLAPreInit(void)
+{
+    return VINF_SUCCESS;
+}
+
+
+/**
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnOption}
+ */
+static DECLCALLBACK(int) vbtrLAOption(const char **ppszShort, int argc, char **argv, int *pi)
+{
+    RT_NOREF(ppszShort, argc, argv, pi);
+
+    return -1;
+}
+
+/**
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnInit}
+ */
+DECLCALLBACK(int) vbtrLAInit(const PVBOXTRAYSVCENV pEnv, void **ppvInstance)
 {
     AssertPtrReturn(pEnv, VERR_INVALID_POINTER);
-    AssertPtrReturn(ppInstance, VERR_INVALID_POINTER);
+    AssertPtrReturn(ppvInstance, VERR_INVALID_POINTER);
 
     LogFlowFuncEnter();
 
@@ -1256,18 +1278,21 @@ DECLCALLBACK(int) VBoxLAInit(const PVBOXSERVICEENV pEnv, void **ppInstance)
 
     *(void **)&pCtx->pfnProcessIdToSessionId = RTLdrGetSystemSymbol("kernel32.dll", "ProcessIdToSessionId");
 
-    *ppInstance = pCtx;
+    *ppvInstance = pCtx;
     LogFlowFuncLeaveRC(VINF_SUCCESS);
     return VINF_SUCCESS;
 }
 
-DECLCALLBACK(void) VBoxLADestroy(void *pInstance)
+/**
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnDestroy}
+ */
+DECLCALLBACK(void) vbtrLADestroy(void *pvInstance)
 {
-    AssertPtrReturnVoid(pInstance);
+    AssertPtrReturnVoid(pvInstance);
 
-    LogFlowFunc(("Destroying pInstance=%p\n", pInstance));
+    LogFlowFunc(("Destroying pvInstance=%p\n", pvInstance));
 
-    PVBOXLACONTEXT pCtx = (PVBOXLACONTEXT)pInstance;
+    PVBOXLACONTEXT pCtx = (PVBOXLACONTEXT)pvInstance;
     AssertPtr(pCtx);
 
     if (pCtx->u32GuestPropHandle != 0)
@@ -1281,13 +1306,13 @@ DECLCALLBACK(void) VBoxLADestroy(void *pInstance)
     pCtx->pfnProcessIdToSessionId = NULL;
 }
 
-/*
- * Thread function to wait for and process property changes
+/**
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnWorker}
  */
-DECLCALLBACK(int) VBoxLAWorker(void *pInstance, bool volatile *pfShutdown)
+DECLCALLBACK(int) vbtrLAWorker(void *pvInstance, bool volatile *pfShutdown)
 {
-    AssertPtr(pInstance);
-    LogFlowFunc(("pInstance=%p\n", pInstance));
+    AssertPtr(pvInstance);
+    LogFlowFunc(("pvInstance=%p\n", pvInstance));
 
     /*
      * Tell the control thread that it can continue
@@ -1295,7 +1320,7 @@ DECLCALLBACK(int) VBoxLAWorker(void *pInstance, bool volatile *pfShutdown)
      */
     RTThreadUserSignal(RTThreadSelf());
 
-    PVBOXLACONTEXT pCtx = (PVBOXLACONTEXT)pInstance;
+    PVBOXLACONTEXT pCtx = (PVBOXLACONTEXT)pvInstance;
 
     /*
      * On name change event (/VirtualBox/HostInfo/VRDP/Client/%ID%/Name)
@@ -1425,16 +1450,22 @@ DECLCALLBACK(int) VBoxLAWorker(void *pInstance, bool volatile *pfShutdown)
 /**
  * The service description.
  */
-VBOXSERVICEDESC g_SvcDescLA =
+VBOXTRAYSVCDESC g_SvcDescLA =
 {
     /* pszName. */
     "LA",
     /* pszDescription. */
     "Location Awareness",
+    /* pszUsage. */
+    NULL,
+    /* pszOptions. */
+    NULL,
     /* methods */
-    VBoxLAInit,
-    VBoxLAWorker,
+    vbtrLAPreInit,
+    vbtrLAOption,
+    vbtrLAInit,
+    vbtrLAWorker,
     NULL /* pfnStop */,
-    VBoxLADestroy
+    vbtrLADestroy
 };
 

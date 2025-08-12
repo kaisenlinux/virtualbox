@@ -1115,6 +1115,7 @@ NTSTATUS DxgkDdiStartDevice(
                     if (hKey)
                     {
                         Status = vboxWddmRegQueryValueDword(hKey, VBOXWDDM_REG_DRV_FLAGS_NAME, &dwVal);
+                        LogRel2((VBOX_VIDEO_LOG_NAME ": RegQueryDword '%ls'. Status 0x%X, dwVal %d\n", VBOXWDDM_REG_DRV_FLAGS_NAME, Status, dwVal));
                         if (!NT_SUCCESS(Status))
                         {
                             LOG(("vboxWddmRegQueryValueDword failed, Status = 0x%x", Status));
@@ -1137,6 +1138,7 @@ NTSTATUS DxgkDdiStartDevice(
                             WCHAR wszNameBuf[sizeof(VBOXWDDM_REG_DRV_DISPFLAGS_PREFIX) / sizeof(WCHAR) + 32];
                             RTUtf16Printf(wszNameBuf, RT_ELEMENTS(wszNameBuf), "%ls%u", VBOXWDDM_REG_DRV_DISPFLAGS_PREFIX, i);
                             Status = vboxWddmRegQueryValueDword(hKey, wszNameBuf, &dwVal);
+                            LogRel2((VBOX_VIDEO_LOG_NAME ": RegQueryDword '%ls'. Status 0x%X, dwVal %d\n", wszNameBuf, Status, dwVal));
                             if (NT_SUCCESS(Status))
                             {
                                 pTarget->fConnected = !!(dwVal & VBOXWDDM_CFG_DRVTARGET_CONNECTED);
@@ -3462,6 +3464,7 @@ DxgkDdiEscape(
                     WCHAR wszNameBuf[sizeof(VBOXWDDM_REG_DRV_DISPFLAGS_PREFIX) / sizeof(WCHAR) + 32];
                     RTUtf16Printf(wszNameBuf, RT_ELEMENTS(wszNameBuf), "%ls%d", VBOXWDDM_REG_DRV_DISPFLAGS_PREFIX, i);
                     Status = vboxWddmRegSetValueDword(hKey, wszNameBuf, VBOXWDDM_CFG_DRVTARGET_CONNECTED);
+                    LogRel2((VBOX_VIDEO_LOG_NAME ": RegSetDword '%ls'. Status 0x%X, dwVal %d\n", wszNameBuf, Status, VBOXWDDM_CFG_DRVTARGET_CONNECTED));
                     if (!NT_SUCCESS(Status))
                         WARN(("VBOXESC_CONFIGURETARGETS vboxWddmRegSetValueDword (%ls) failed Status 0x%x\n", wszNameBuf, Status));
 
@@ -3510,6 +3513,8 @@ DxgkDdiEscape(
                 uint32_t u32ConnectMask = pVBoxEscapeReconnectTargets->u32ConnectMask;
                 uint32_t u32DisconnectMask = pVBoxEscapeReconnectTargets->u32DisconnectMask;
 
+                LogRel2((VBOX_VIDEO_LOG_NAME ": VBOXESC_RECONNECT_TARGETS 0x%X, 0x%X\n", u32ConnectMask, u32DisconnectMask));
+
                 if (u32ConnectMask & u32DisconnectMask)
                 {
                     WARN(("VBOXESC_RECONNECT_TARGETS (u32ConnectMask & u32DisconnectMask) is not zero\n"));
@@ -3542,7 +3547,7 @@ DxgkDdiEscape(
                     if (pTarget->fConnected != fConnectReq)
                     {
                         Status = VBoxWddmChildStatusConnect(pDevExt, (uint32_t)i, fConnectReq);
-                        LOG(("VBOXESC_RECONNECT_TARGETS %sconnecting target %d, status 0x%x", fConnectReq ? "" : "dis", i, Status));
+                        LogRel2((VBOX_VIDEO_LOG_NAME ": VBOXESC_RECONNECT_TARGETS %sconnecting target %d, status 0x%x\n", fConnectReq ? "" : "dis", i, Status));
                         pTarget->fConnected = fConnectReq;
 
                         if (RT_LIKELY(hKey))
@@ -3550,6 +3555,7 @@ DxgkDdiEscape(
                             WCHAR wszNameBuf[sizeof(VBOXWDDM_REG_DRV_DISPFLAGS_PREFIX) / sizeof(WCHAR) + 32];
                             RTUtf16Printf(wszNameBuf, RT_ELEMENTS(wszNameBuf), "%ls%u", VBOXWDDM_REG_DRV_DISPFLAGS_PREFIX, i);
                             Status = vboxWddmRegSetValueDword(hKey, wszNameBuf, fConnectReq);
+                            LogRel2((VBOX_VIDEO_LOG_NAME ": RegSetDword '%ls'. Status 0x%X, dwVal %d\n", wszNameBuf, Status, fConnectReq));
                         }
                     }
                 }
@@ -5330,10 +5336,6 @@ DriverEntry(
         return STATUS_UNSUCCESSFUL;
     }
 
-#if 0//def DEBUG_misha
-    RTLogGroupSettings(0, "+default.e.l.f.l2.l3");
-#endif
-
 #ifdef DEBUG
 #define VBOXWDDM_BUILD_TYPE "dbg"
 #else
@@ -5350,11 +5352,11 @@ DriverEntry(
         || !ARGUMENT_PRESENT(RegistryPath))
         return STATUS_INVALID_PARAMETER;
 
+    vboxWddmLoggerCreate(RegistryPath);
     vboxWddmDrvCfgInit(RegistryPath);
 
     ULONG major, minor, build;
     BOOLEAN fCheckedBuild = PsGetVersion(&major, &minor, &build, NULL); NOREF(fCheckedBuild);
-    BOOLEAN f3DRequired = FALSE;
 
     LOGREL(("OsVersion(%d, %d, %d)", major, minor, build));
 
@@ -5363,32 +5365,6 @@ DriverEntry(
     int rc = VbglR0InitClient();
     if (RT_SUCCESS(rc))
     {
-        /* Check whether 3D is required by the guest. */
-        if (major > 6)
-        {
-            /* Windows 10 and newer. */
-            f3DRequired = TRUE;
-        }
-        else if (major == 6)
-        {
-            if (minor >= 2)
-            {
-                /* Windows 8, 8.1 and 10 preview. */
-                f3DRequired = TRUE;
-            }
-            else
-            {
-                f3DRequired = FALSE;
-            }
-        }
-        else
-        {
-            WARN(("Unsupported OLDER win version, ignore and assume 3D is NOT required"));
-            f3DRequired = FALSE;
-        }
-
-        LOG(("3D is %srequired!", f3DRequired? "": "NOT "));
-
         /* Check whether 3D is provided by the host. */
         VBOXVIDEO_HWTYPE enmHwType = VBOXVIDEO_HWTYPE_VBOX;
         BOOL f3DSupported = FALSE;
@@ -5464,13 +5440,7 @@ DriverEntry(
                 }
                 else
                 {
-                    if (f3DRequired)
-                    {
-                        LOGREL(("3D is NOT supported by the host, but is required for the current guest version using this driver.."));
-                        Status = STATUS_UNSUCCESSFUL;
-                    }
-                    else
-                        LOGREL(("3D is NOT supported by the host, but is NOT required for the current guest version using this driver, continuing with Disabled 3D.."));
+                    LOGREL(("3D is NOT supported by the host, but it is NOT required for Windows Vista/7 guests, continue with disabled 3D."));
                 }
             }
         }

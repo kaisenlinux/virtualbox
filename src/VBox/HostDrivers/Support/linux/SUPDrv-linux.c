@@ -110,6 +110,13 @@
 # define VBOX_EXTRA_VERSION_STRING ""
 #endif
 
+/* Macro was renamed in 6.16. */
+# if RTLNX_VER_MIN(6,16,0)
+#  define VBOX_RDMSR_SAFE rdmsrq_safe
+# else
+#  define VBOX_RDMSR_SAFE rdmsrl_safe
+# endif
+
 
 /*********************************************************************************************************************************
 *   Structures and Typedefs                                                                                                      *
@@ -1575,7 +1582,7 @@ static DECLCALLBACK(void) supdrvLnxMsrProberModifyOnCpu(RTCPUID idCpu, void *pvU
     if (!fFaster)
         ASMWriteBackAndInvalidateCaches();
 
-    rcBefore = rdmsrl_safe(uMsr, &uBefore);
+    rcBefore = VBOX_RDMSR_SAFE(uMsr, &uBefore);
     if (rcBefore >= 0)
     {
         register uint64_t uRestore = uBefore;
@@ -1584,7 +1591,7 @@ static DECLCALLBACK(void) supdrvLnxMsrProberModifyOnCpu(RTCPUID idCpu, void *pvU
         uWritten |= pReq->u.In.uArgs.Modify.fOrMask;
 
         rcWrite   = wrmsr_safe(uMsr, RT_LODWORD(uWritten), RT_HIDWORD(uWritten));
-        rcAfter   = rdmsrl_safe(uMsr, &uAfter);
+        rcAfter   = VBOX_RDMSR_SAFE(uMsr, &uAfter);
         rcRestore = wrmsr_safe(uMsr, RT_LODWORD(uRestore), RT_HIDWORD(uRestore));
 
         if (!fFaster)
@@ -1744,10 +1751,17 @@ SUPR0DECL(bool) SUPR0FpuBegin(bool fCtxHook)
      */
     Assert(fCtxHook || !RTThreadPreemptIsEnabled(NIL_RTTHREAD));
     kernel_fpu_begin();
-# if 0 /* Always do it for now for better test coverage. */
+#  if RTLNX_VER_MIN(6,15,0) /* fpregs_unlock may do more than just preempt_enable, so only when necessary now. */
     if (fCtxHook)
 # endif
+    {
+#  if RTLNX_VER_MIN(6,15,0)
+        if (!irqs_disabled())
+            fpregs_unlock();
+#  else
         preempt_enable();
+#  endif
+    }
     return false; /** @todo Not sure if we have license to use any extended state, or
                    *        if we're limited to the SSE & x87 FPU. If it's the former,
                    *        we should return @a true and the caller can skip
@@ -1765,10 +1779,17 @@ SUPR0DECL(void) SUPR0FpuEnd(bool fCtxHook)
 #if RTLNX_VER_MIN(4,19,0)
     /* HACK ALERT! See SUPR0FpuBegin for an explanation of this. */
     Assert(!RTThreadPreemptIsEnabled(NIL_RTTHREAD));
-# if 0 /* Always do it for now for better test coverage. */
+#  if RTLNX_VER_MIN(6,15,0) /* fpregs_unlock may do more than just preempt_enable, so only when necessary now. */
     if (fCtxHook)
 # endif
+    {
+#  if RTLNX_VER_MIN(6,15,0)
+        if (!irqs_disabled())
+            fpregs_lock();
+#  else
         preempt_disable();
+#  endif
+    }
     kernel_fpu_end();
 #endif
 }

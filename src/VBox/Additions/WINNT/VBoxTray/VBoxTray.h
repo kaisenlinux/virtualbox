@@ -77,9 +77,9 @@
 *********************************************************************************************************************************/
 
 /**
- * The environment information for services.
+ * The environment information for a single VBoxTray service.
  */
-typedef struct VBOXSERVICEENV
+typedef struct VBOXTRAYSVCENV
 {
     /** hInstance of VBoxTray. */
     HINSTANCE hInstance;
@@ -87,23 +87,45 @@ typedef struct VBOXSERVICEENV
     /** @todo r=andy Argh. Needed by the "display" + "seamless" services (which in turn get called
      *               by the VBoxCaps facility. See #8037. */
     VBOXDISPIF dispIf;
-} VBOXSERVICEENV;
+} VBOXTRAYSVCENV;
 /** Pointer to a VBoxTray service env info structure.  */
-typedef VBOXSERVICEENV *PVBOXSERVICEENV;
+typedef VBOXTRAYSVCENV *PVBOXTRAYSVCENV;
 /** Pointer to a const VBoxTray service env info structure.  */
-typedef VBOXSERVICEENV const *PCVBOXSERVICEENV;
+typedef VBOXTRAYSVCENV const *PCVBOXTRAYSVCENV;
 
 /**
- * A service descriptor.
+ * A VBoxTray service descriptor.
  */
-typedef struct VBOXSERVICEDESC
+typedef struct VBOXTRAYSVCDESC
 {
     /** The service's name. RTTHREAD_NAME_LEN maximum characters. */
     const char *pszName;
     /** The service description. */
     const char *pszDesc;
+    /** The usage options stuff for the --help screen. */
+    const char *pszUsage;
+    /** The option descriptions for the --help screen. */
+    const char *pszOptions;
 
     /** Callbacks. */
+
+    /**
+     * Called before parsing arguments.
+     * @returns VBox status code.
+     */
+    DECLCALLBACKMEMBER(int, pfnPreInit,(void));
+
+    /**
+     * Tries to parse the given command line option.
+     *
+     * @returns 0 if we parsed, -1 if it didn't and anything else means exit.
+     * @param   ppszShort   If not NULL it points to the short option iterator. a short argument.
+     *                      If NULL examine argv[*pi].
+     * @param   argc        The argument count.
+     * @param   argv        The argument vector.
+     * @param   pi          The argument vector index. Update if any value(s) are eaten.
+     */
+    DECLCALLBACKMEMBER(int, pfnOption,(const char **ppszShort, int argc, char **argv, int *pi));
 
     /**
      * Initializes a service.
@@ -112,47 +134,51 @@ typedef struct VBOXSERVICEDESC
      *          VERR_HGCM_SERVICE_NOT_FOUND if the service is not available on the host system. Logged.
      *          Returning any other error will be considered as a fatal error.
      * @param   pEnv
-     * @param   ppInstance      Where to return the thread-specific instance data.
+     * @param   ppvInstance     Where to return the thread-specific instance data.
      * @todo r=bird: The pEnv type is WRONG!  Please check all your const pointers.
      */
-    DECLCALLBACKMEMBER(int, pfnInit,(const PVBOXSERVICEENV pEnv, void **ppInstance));
+    DECLCALLBACKMEMBER(int, pfnInit,(const PVBOXTRAYSVCENV pEnv, void **ppvInstance));
 
     /** Called from the worker thread.
      *
      * @returns VBox status code.
      * @retval  VINF_SUCCESS if exitting because *pfShutdown was set.
-     * @param   pInstance       Pointer to thread-specific instance data.
+     * @param   pvInstance      Pointer to thread-specific instance data.
      * @param   pfShutdown      Pointer to a per service termination flag to check
      *                          before and after blocking.
      */
-    DECLCALLBACKMEMBER(int, pfnWorker,(void *pInstance, bool volatile *pfShutdown));
+    DECLCALLBACKMEMBER(int, pfnWorker,(void *pvInstance, bool volatile *pfShutdown));
 
     /**
      * Stops a service.
+     * @param   pvInstance      Pointer to thread-specific instance data.
      */
-    DECLCALLBACKMEMBER(int, pfnStop,(void *pInstance));
+    DECLCALLBACKMEMBER(int, pfnStop,(void *pvInstance));
 
     /**
      * Does termination cleanups.
      *
+     * @param   pvInstance      Pointer to thread-specific instance data.
+     *
      * @remarks This may be called even if pfnInit hasn't been called!
      */
-    DECLCALLBACKMEMBER(void, pfnDestroy,(void *pInstance));
-} VBOXSERVICEDESC, *PVBOXSERVICEDESC;
-
+    DECLCALLBACKMEMBER(void, pfnDestroy,(void *pvInstance));
+} VBOXTRAYSVCDESC;
+/** Pointer to a VBoxTray service descriptor. */
+typedef VBOXTRAYSVCDESC *PVBOXTRAYSVCDESC;
 
 /**
- * The service initialization info and runtime variables.
+ * VBoxTray service initialization info and runtime variables.
  */
-typedef struct VBOXSERVICEINFO
+typedef struct VBOXTRAYSVCINFO
 {
     /** Pointer to the service descriptor. */
-    PVBOXSERVICEDESC pDesc;
+    PVBOXTRAYSVCDESC pDesc;
     /** Thread handle. */
     RTTHREAD         hThread;
     /** Pointer to service-specific instance data.
      *  Must be free'd by the service itself. */
-    void            *pInstance;
+    void            *pvInstance;
     /** Whether Pre-init was called. */
     bool             fPreInited;
     /** Shutdown indicator. */
@@ -163,12 +189,14 @@ typedef struct VBOXSERVICEINFO
     bool             fStarted;
     /** Whether the service is enabled or not. */
     bool             fEnabled;
-} VBOXSERVICEINFO, *PVBOXSERVICEINFO;
+} VBOXTRAYSVCINFO;
+/** Pointer to a VBoxTray service' initialization and runtime variables. */
+typedef VBOXTRAYSVCINFO *PVBOXTRAYSVCINFO;
 
 /**
- * Globally unique (system wide) message registration.
+ * Structure for keeping a globally registered Windows message.
  */
-typedef struct VBOXGLOBALMESSAGE
+typedef struct VBOXTRAYGLOBALMSG
 {
     /** Message name. */
     const char *pszName;
@@ -180,30 +208,30 @@ typedef struct VBOXGLOBALMESSAGE
     /** Message ID;
      *  to be filled in when registering the actual message. */
     UINT     uMsgID;
-} VBOXGLOBALMESSAGE, *PVBOXGLOBALMESSAGE;
-
+} VBOXTRAYGLOBALMSG;
+/** Pointer to a globally registered Windows message. */
+typedef VBOXTRAYGLOBALMSG *PVBOXTRAYGLOBALMSG;
 
 /*********************************************************************************************************************************
 *   Externals                                                                                                                    *
 *********************************************************************************************************************************/
-extern VBOXSERVICEDESC g_SvcDescDisplay;
+extern VBOXTRAYSVCDESC g_SvcDescDisplay;
 #ifdef VBOX_WITH_SHARED_CLIPBOARD
-extern VBOXSERVICEDESC g_SvcDescClipboard;
+extern VBOXTRAYSVCDESC g_SvcDescClipboard;
 #endif
-extern VBOXSERVICEDESC g_SvcDescSeamless;
-extern VBOXSERVICEDESC g_SvcDescVRDP;
-extern VBOXSERVICEDESC g_SvcDescIPC;
-extern VBOXSERVICEDESC g_SvcDescLA;
+extern VBOXTRAYSVCDESC g_SvcDescSeamless;
+extern VBOXTRAYSVCDESC g_SvcDescVRDP;
+extern VBOXTRAYSVCDESC g_SvcDescIPC;
+extern VBOXTRAYSVCDESC g_SvcDescLA;
 #ifdef VBOX_WITH_DRAG_AND_DROP
-extern VBOXSERVICEDESC g_SvcDescDnD;
+extern VBOXTRAYSVCDESC g_SvcDescDnD;
 #endif
 
-extern int          g_cVerbosity;
+extern bool         g_fHasConsole;
+extern unsigned     g_cVerbosity;
 extern HINSTANCE    g_hInstance;
 extern HWND         g_hwndToolWindow;
 extern uint32_t     g_fGuestDisplaysChanged;
-
-RTEXITCODE VBoxTrayShowError(const char *pszFormat, ...);
 
 #endif /* !GA_INCLUDED_SRC_WINNT_VBoxTray_VBoxTray_h */
 

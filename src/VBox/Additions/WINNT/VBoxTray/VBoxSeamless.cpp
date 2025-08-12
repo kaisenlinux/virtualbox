@@ -51,7 +51,7 @@
 *********************************************************************************************************************************/
 typedef struct _VBOXSEAMLESSCONTEXT
 {
-    const VBOXSERVICEENV *pEnv;
+    const VBOXTRAYSVCENV *pEnv;
 
     RTLDRMOD hModHook;
 
@@ -81,7 +81,28 @@ void VBoxLogString(HANDLE hDriver, char *pszStr);
 static void vboxSeamlessSetSupported(BOOL fSupported);
 
 
-static DECLCALLBACK(int) VBoxSeamlessInit(const PVBOXSERVICEENV pEnv, void **ppInstance)
+/**
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnPreInit}
+ */
+static DECLCALLBACK(int) vbtrSeamlessPreInit(void)
+{
+    return VINF_SUCCESS;
+}
+
+/**
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnOption}
+ */
+static DECLCALLBACK(int) vbtrSeamlessOption(const char **ppszShort, int argc, char **argv, int *pi)
+{
+    RT_NOREF(ppszShort, argc, argv, pi);
+
+    return -1;
+}
+
+/**
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnInit}
+ */
+static DECLCALLBACK(int) vbtrSeamlessInit(const PVBOXTRAYSVCENV pEnv, void **ppvInstance)
 {
     LogFlowFuncEnter();
 
@@ -115,7 +136,7 @@ static DECLCALLBACK(int) VBoxSeamlessInit(const PVBOXSERVICEENV pEnv, void **ppI
             {
                 vboxSeamlessSetSupported(TRUE);
 
-                *ppInstance = pCtx;
+                *ppvInstance = pCtx;
             }
             else
             {
@@ -134,14 +155,17 @@ static DECLCALLBACK(int) VBoxSeamlessInit(const PVBOXSERVICEENV pEnv, void **ppI
     return rc;
 }
 
-static DECLCALLBACK(void) VBoxSeamlessDestroy(void *pInstance)
+/**
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnDestroy}
+ */
+static DECLCALLBACK(void) VBoxSeamlessDestroy(void *pvInstance)
 {
     LogFlowFuncEnter();
 
-    if (!pInstance)
+    if (!pvInstance)
         return;
 
-    PVBOXSEAMLESSCONTEXT pCtx = (PVBOXSEAMLESSCONTEXT)pInstance;
+    PVBOXSEAMLESSCONTEXT pCtx = (PVBOXSEAMLESSCONTEXT)pvInstance;
     AssertPtr(pCtx);
 
     vboxSeamlessSetSupported(FALSE);
@@ -159,7 +183,7 @@ static DECLCALLBACK(void) VBoxSeamlessDestroy(void *pInstance)
 
 static void VBoxSeamlessInstallHook(void)
 {
-    PVBOXSEAMLESSCONTEXT pCtx = &g_Ctx; /** @todo r=andy Use instance data via service lookup (add void *pInstance). */
+    PVBOXSEAMLESSCONTEXT pCtx = &g_Ctx; /** @todo r=andy Use instance data via service lookup (add void *pvInstance). */
     AssertPtr(pCtx);
 
     if (pCtx->pfnVBoxHookInstallWindowTracker)
@@ -175,7 +199,7 @@ static void VBoxSeamlessInstallHook(void)
 
 static void VBoxSeamlessRemoveHook(void)
 {
-    PVBOXSEAMLESSCONTEXT pCtx = &g_Ctx; /** @todo r=andy Use instance data via service lookup (add void *pInstance). */
+    PVBOXSEAMLESSCONTEXT pCtx = &g_Ctx; /** @todo r=andy Use instance data via service lookup (add void *pvInstance). */
     AssertPtr(pCtx);
 
     if (pCtx->pfnVBoxHookRemoveWindowTracker)
@@ -195,7 +219,7 @@ static VBOXDISPIF_SEAMLESS gVBoxDispIfSeamless; /** @todo r=andy Move this into 
 
 void VBoxSeamlessEnable(void)
 {
-    PVBOXSEAMLESSCONTEXT pCtx = &g_Ctx; /** @todo r=andy Use instance data via service lookup (add void *pInstance). */
+    PVBOXSEAMLESSCONTEXT pCtx = &g_Ctx; /** @todo r=andy Use instance data via service lookup (add void *pvInstance). */
     AssertPtr(pCtx);
 
     Assert(g_hSeamlessKmNotifyEvent);
@@ -207,7 +231,7 @@ void VBoxSeamlessEnable(void)
 
 void VBoxSeamlessDisable(void)
 {
-    PVBOXSEAMLESSCONTEXT pCtx = &g_Ctx; /** @todo r=andy Use instance data via service lookup (add void *pInstance). */
+    PVBOXSEAMLESSCONTEXT pCtx = &g_Ctx; /** @todo r=andy Use instance data via service lookup (add void *pvInstance). */
     AssertPtr(pCtx);
     NOREF(pCtx);
 
@@ -329,7 +353,7 @@ BOOL CALLBACK VBoxEnumFunc(HWND hwnd, LPARAM lParam) RT_NOTHROW_DEF
 
 void VBoxSeamlessCheckWindows(bool fForce)
 {
-    PVBOXSEAMLESSCONTEXT pCtx = &g_Ctx; /** @todo r=andy Use instance data via service lookup (add void *pInstance). */
+    PVBOXSEAMLESSCONTEXT pCtx = &g_Ctx; /** @todo r=andy Use instance data via service lookup (add void *pvInstance). */
     AssertPtr(pCtx);
 
     if (!VBoxDispIfSeamlesIsValid(&gVBoxDispIfSeamless))
@@ -393,10 +417,9 @@ void VBoxSeamlessCheckWindows(bool fForce)
 }
 
 /**
- * Thread function to wait for and process seamless mode change
- * requests
+ * @interface_method_impl{VBOXTRAYSVCDESC,pfnWorker}
  */
-static DECLCALLBACK(int) VBoxSeamlessWorker(void *pvInstance, bool volatile *pfShutdown)
+static DECLCALLBACK(int) vbtrSeamlessWorker(void *pvInstance, bool volatile *pfShutdown)
 {
     AssertPtrReturn(pvInstance, VERR_INVALID_POINTER);
     LogFlowFunc(("pvInstance=%p\n", pvInstance));
@@ -518,15 +541,21 @@ static DECLCALLBACK(int) VBoxSeamlessWorker(void *pvInstance, bool volatile *pfS
 /**
  * The service description.
  */
-VBOXSERVICEDESC g_SvcDescSeamless =
+VBOXTRAYSVCDESC g_SvcDescSeamless =
 {
     /* pszName. */
     "seamless",
     /* pszDescription. */
     "Seamless Windows",
+    /* pszUsage. */
+    NULL,
+    /* pszOptions. */
+    NULL,
     /* methods */
-    VBoxSeamlessInit,
-    VBoxSeamlessWorker,
+    vbtrSeamlessPreInit,
+    vbtrSeamlessOption,
+    vbtrSeamlessInit,
+    vbtrSeamlessWorker,
     NULL /* pfnStop */,
     VBoxSeamlessDestroy
 };

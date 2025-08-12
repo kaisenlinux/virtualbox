@@ -46,7 +46,7 @@
 # error "Missing _WIN32_WINNT_WIN10"
 #endif
 #ifndef _WIN32_WINNT_WIN10_RS1 /* Missing define, causing trouble for us. */
-# define _WIN32_WINNT_WIN10_RS1 (_WIN32_WINNT_WIN10 + 1)
+# define _WIN32_WINNT_WIN10_RS1  (_WIN32_WINNT_WIN10 + 1)
 #endif
 #include <sysinfoapi.h>
 #include <debugapi.h>
@@ -96,6 +96,51 @@ HRESULT WINAPI WHvQueryGpaRangeDirtyBitmap(WHV_PARTITION_HANDLE, WHV_GUEST_PHYSI
 #define NEM_WIN_IOCTL_DETECTOR_FAKE_TIMEOUT                     UINT32_C(0x00080286)
 
 
+#ifndef NTDDI_WIN10_RS4             /* We use this to support older SDKs. */
+# define NTDDI_WIN10_RS4            (NTDDI_WIN10 + 5)   /* 17134 */
+#endif
+#ifndef NTDDI_WIN10_RS5             /* We use this to support older SDKs. */
+# define NTDDI_WIN10_RS5            (NTDDI_WIN10 + 6)   /* ????? */
+#endif
+#ifndef NTDDI_WIN10_19H1            /* We use this to support older SDKs. */
+# define NTDDI_WIN10_19H1           (NTDDI_WIN10 + 7)   /* 18362 */
+#endif
+#ifndef NTDDI_WIN10_VB
+# define NTDDI_WIN10_VB             (NTDDI_WIN10 + 8)   /* 19040 */
+#endif
+#ifndef NTDDI_WIN10_MN
+# define NTDDI_WIN10_MN             (NTDDI_WIN10 + 9)   /* ????? */
+#endif
+#ifndef NTDDI_WIN10_FE
+# define NTDDI_WIN10_FE             (NTDDI_WIN10 + 10)  /* ????? */
+#endif
+#ifndef NTDDI_WIN10_CO
+# define NTDDI_WIN10_CO             (NTDDI_WIN10 + 11)  /* 22000 */
+#endif
+#ifndef NTDDI_WIN10_NI
+# define NTDDI_WIN10_NI             (NTDDI_WIN10 + 12)  /* 22621 */
+#endif
+#ifndef NTDDI_WIN10_CU
+# define NTDDI_WIN10_CU             (NTDDI_WIN10 + 13)  /* ????? */
+#endif
+#ifndef NTDDI_WIN10_ZN
+# define NTDDI_WIN10_ZN             (NTDDI_WIN10 + 14)  /* ????? */
+#endif
+#ifndef NTDDI_WIN10_GA
+# define NTDDI_WIN10_GA             (NTDDI_WIN10 + 15)  /* ????? */
+#endif
+#ifndef NTDDI_WIN10_GE
+# define NTDDI_WIN10_GE             (NTDDI_WIN10 + 16)  /* 26100 */
+#endif
+
+#define MY_NTDDI_WIN10_17134    NTDDI_WIN10_RS4
+#define MY_NTDDI_WIN10_18362    NTDDI_WIN10_19H1
+#define MY_NTDDI_WIN10_19040    NTDDI_WIN10_VB
+#define MY_NTDDI_WIN11_22000    NTDDI_WIN10_CO
+#define MY_NTDDI_WIN11_22621    NTDDI_WIN10_NI
+#define MY_NTDDI_WIN11_26100    NTDDI_WIN10_GE
+
+
 /*********************************************************************************************************************************
 *   Global Variables                                                                                                             *
 *********************************************************************************************************************************/
@@ -117,6 +162,12 @@ static decltype(WHvRunVirtualProcessor) *           g_pfnWHvRunVirtualProcessor;
 static decltype(WHvCancelRunVirtualProcessor) *     g_pfnWHvCancelRunVirtualProcessor;
 static decltype(WHvGetVirtualProcessorRegisters) *  g_pfnWHvGetVirtualProcessorRegisters;
 static decltype(WHvSetVirtualProcessorRegisters) *  g_pfnWHvSetVirtualProcessorRegisters;
+static decltype(WHvResumePartitionTime)            *g_pfnWHvResumePartitionTime;
+static decltype(WHvSuspendPartitionTime)           *g_pfnWHvSuspendPartitionTime;
+static decltype(WHvGetVirtualProcessorXsaveState)  *g_pfnWHvGetVirtualProcessorXsaveState = NULL;
+static decltype(WHvSetVirtualProcessorXsaveState)  *g_pfnWHvSetVirtualProcessorXsaveState = NULL;
+static decltype(WHvGetVirtualProcessorState)       *g_pfnWHvGetVirtualProcessorState = NULL;
+static decltype(WHvSetVirtualProcessorState)       *g_pfnWHvSetVirtualProcessorState = NULL;
 /** @} */
 
 /** @name APIs imported from Vid.dll
@@ -167,6 +218,12 @@ static const struct
     NEM_WIN_IMPORT(0, false, WHvCancelRunVirtualProcessor),
     NEM_WIN_IMPORT(0, false, WHvGetVirtualProcessorRegisters),
     NEM_WIN_IMPORT(0, false, WHvSetVirtualProcessorRegisters),
+    NEM_WIN_IMPORT(0, true,  WHvResumePartitionTime),  /* since 19H1 */
+    NEM_WIN_IMPORT(0, true,  WHvSuspendPartitionTime), /* since 19H1 */
+    NEM_WIN_IMPORT(0, true,  WHvGetVirtualProcessorXsaveState),
+    NEM_WIN_IMPORT(0, true,  WHvSetVirtualProcessorXsaveState),
+    NEM_WIN_IMPORT(0, true,  WHvGetVirtualProcessorState),
+    NEM_WIN_IMPORT(0, true,  WHvSetVirtualProcessorState),
 
     NEM_WIN_IMPORT(1, true,  VidGetHvPartitionId),
     NEM_WIN_IMPORT(1, true,  VidGetPartitionProperty),
@@ -239,6 +296,12 @@ static const HV_X64_INTERCEPT_MESSAGE_HEADER *g_pX64MsgHdr;
 # define WHvCancelRunVirtualProcessor               g_pfnWHvCancelRunVirtualProcessor
 # define WHvGetVirtualProcessorRegisters            g_pfnWHvGetVirtualProcessorRegisters
 # define WHvSetVirtualProcessorRegisters            g_pfnWHvSetVirtualProcessorRegisters
+# define WHvResumePartitionTime                     g_pfnWHvResumePartitionTime
+# define WHvSuspendPartitionTime                    g_pfnWHvSuspendPartitionTime
+# define WHvGetVirtualProcessorXsaveState           g_pfnWHvGetVirtualProcessorXsaveState
+# define WHvSetVirtualProcessorXsaveState           g_pfnWHvSetVirtualProcessorXsaveState
+# define WHvGetVirtualProcessorState                g_pfnWHvGetVirtualProcessorState
+# define WHvSetVirtualProcessorState                g_pfnWHvSetVirtualProcessorState
 
 # define VidMessageSlotHandleAndGetNext             g_pfnVidMessageSlotHandleAndGetNext
 # define VidStartVirtualProcessor                   g_pfnVidStartVirtualProcessor
@@ -631,14 +694,33 @@ static int nemR3WinInitCheckCapabilities(PVM pVM, PRTERRINFO pErrInfo)
                              "WHvGetCapability/WHvCapabilityCodeExtendedVmExits failed: %Rhrc (Last=%#x/%u)",
                              hrc, RTNtLastStatusValue(), RTNtLastErrorValue());
     NEM_LOG_REL_CAP_EX("WHvCapabilityCodeExtendedVmExits", "%'#018RX64", Caps.ExtendedVmExits.AsUINT64);
+#define NEM_LOG_REL_CAP_VM_EXIT(a_Field)    NEM_LOG_REL_CAP_SUB(#a_Field, Caps.ExtendedVmExits.a_Field)
+    NEM_LOG_REL_CAP_VM_EXIT(X64CpuidExit);
+    NEM_LOG_REL_CAP_VM_EXIT(X64MsrExit);
+    NEM_LOG_REL_CAP_VM_EXIT(ExceptionExit);
+#if WDK_NTDDI_VERSION >= MY_NTDDI_WIN10_19040
+    NEM_LOG_REL_CAP_VM_EXIT(X64RdtscExit);
+    NEM_LOG_REL_CAP_VM_EXIT(X64ApicSmiExitTrap);
+    NEM_LOG_REL_CAP_VM_EXIT(HypercallExit);
+    NEM_LOG_REL_CAP_VM_EXIT(X64ApicInitSipiExitTrap);
+#endif
+#if WDK_NTDDI_VERSION >= MY_NTDDI_WIN11_22000 /** @todo Could some of these may have been added earlier... */
+    NEM_LOG_REL_CAP_VM_EXIT(X64ApicWriteLint0ExitTrap);
+    NEM_LOG_REL_CAP_VM_EXIT(X64ApicWriteLint1ExitTrap);
+    NEM_LOG_REL_CAP_VM_EXIT(X64ApicWriteSvrExitTrap);
+    NEM_LOG_REL_CAP_VM_EXIT(UnknownSynicConnection);
+    NEM_LOG_REL_CAP_VM_EXIT(RetargetUnknownVpciDevice);
+    NEM_LOG_REL_CAP_VM_EXIT(X64ApicWriteLdrExitTrap);
+    NEM_LOG_REL_CAP_VM_EXIT(X64ApicWriteDfrExitTrap);
+    NEM_LOG_REL_CAP_VM_EXIT(GpaAccessFaultExit);
+#endif
+#undef  NEM_LOG_REL_CAP_VM_EXIT
+    uint64_t const fKnownVmExits = RT_BIT_64(15) - 1U;
+    if (Caps.ExtendedVmExits.AsUINT64 & ~fKnownVmExits)
+        NEM_LOG_REL_CAP_SUB_EX("Unknown VM exit defs", "%#RX64", Caps.ExtendedVmExits.AsUINT64 & ~fKnownVmExits);
     pVM->nem.s.fExtendedMsrExit   = RT_BOOL(Caps.ExtendedVmExits.X64MsrExit);
     pVM->nem.s.fExtendedCpuIdExit = RT_BOOL(Caps.ExtendedVmExits.X64CpuidExit);
     pVM->nem.s.fExtendedXcptExit  = RT_BOOL(Caps.ExtendedVmExits.ExceptionExit);
-    NEM_LOG_REL_CAP_SUB("fExtendedMsrExit",   pVM->nem.s.fExtendedMsrExit);
-    NEM_LOG_REL_CAP_SUB("fExtendedCpuIdExit", pVM->nem.s.fExtendedCpuIdExit);
-    NEM_LOG_REL_CAP_SUB("fExtendedXcptExit",  pVM->nem.s.fExtendedXcptExit);
-    if (Caps.ExtendedVmExits.AsUINT64 & ~(uint64_t)7)
-        LogRel(("NEM: Warning! Unknown VM exit definitions: %#RX64\n", Caps.ExtendedVmExits.AsUINT64));
     /** @todo RECHECK: WHV_EXTENDED_VM_EXITS typedef. */
 
     /*
@@ -651,11 +733,90 @@ static int nemR3WinInitCheckCapabilities(PVM pVM, PRTERRINFO pErrInfo)
                              "WHvGetCapability/WHvCapabilityCodeFeatures failed: %Rhrc (Last=%#x/%u)",
                              hrc, RTNtLastStatusValue(), RTNtLastErrorValue());
     NEM_LOG_REL_CAP_EX("WHvCapabilityCodeFeatures", "%'#018RX64", Caps.Features.AsUINT64);
-    pVM->nem.s.fSpeculationControl = RT_BOOL(Caps.Features.SpeculationControl);
+#define NEM_LOG_REL_CAP_FEATURE(a_Field)    NEM_LOG_REL_CAP_SUB(#a_Field, Caps.Features.a_Field)
+#if WDK_NTDDI_VERSION >= MY_NTDDI_WIN10_18362
+    NEM_LOG_REL_CAP_FEATURE(PartialUnmap);
+    NEM_LOG_REL_CAP_FEATURE(LocalApicEmulation);
+    NEM_LOG_REL_CAP_FEATURE(Xsave);
+    NEM_LOG_REL_CAP_FEATURE(DirtyPageTracking);
+    NEM_LOG_REL_CAP_FEATURE(SpeculationControl);
+#endif
+#if WDK_NTDDI_VERSION >= MY_NTDDI_WIN10_19040
+    NEM_LOG_REL_CAP_FEATURE(ApicRemoteRead);
+    NEM_LOG_REL_CAP_FEATURE(IdleSuspend);
+#endif
+#if WDK_NTDDI_VERSION >= MY_NTDDI_WIN11_22000 /** @todo Could some of these may have been added earlier... */
+    NEM_LOG_REL_CAP_FEATURE(VirtualPciDeviceSupport);
+    NEM_LOG_REL_CAP_FEATURE(IommuSupport);
+    NEM_LOG_REL_CAP_FEATURE(VpHotAddRemove);
+#endif
+#undef  NEM_LOG_REL_CAP_FEATURE
     const uint64_t fKnownFeatures = RT_BIT_64(10) - 1U;
     if (Caps.Features.AsUINT64 & ~fKnownFeatures)
-        LogRel(("NEM: Warning! Unknown feature definitions: %#RX64\n", Caps.Features.AsUINT64 & ~fKnownFeatures));
+        NEM_LOG_REL_CAP_SUB_EX("Unknown features", "%#RX64", Caps.ExtendedVmExits.AsUINT64 & ~fKnownFeatures);
+    pVM->nem.s.fSpeculationControl = RT_BOOL(Caps.Features.SpeculationControl);
     /** @todo RECHECK: WHV_CAPABILITY_FEATURES typedef. */
+
+    pVM->nem.s.fXsaveSupported = RT_BOOL(Caps.Features.Xsave);
+    if (pVM->nem.s.fXsaveSupported)
+    {
+        /*
+         * Check supported Xsave features.
+         */
+        RT_ZERO(Caps);
+        hrc = WHvGetCapabilityWrapper(WHvCapabilityCodeProcessorXsaveFeatures, &Caps, sizeof(Caps));
+        if (SUCCEEDED(hrc))
+            LogRel(("NEM: Supported xsave features: %#RX64\n", Caps.ProcessorXsaveFeatures.AsUINT64));
+        else
+            LogRel(("NEM: Warning! WHvGetCapability/WHvCapabilityCodeProcessorXsaveFeatures failed: %Rhrc (Last=%#x/%u)",
+                    hrc, RTNtLastStatusValue(), RTNtLastErrorValue()));
+#define NEM_LOG_REL_XSAVE_FEATURE(a_Field)    NEM_LOG_REL_CAP_SUB(#a_Field, Caps.ProcessorXsaveFeatures.a_Field)
+        NEM_LOG_REL_XSAVE_FEATURE(XsaveSupport);
+        NEM_LOG_REL_XSAVE_FEATURE(XsaveoptSupport);
+        NEM_LOG_REL_XSAVE_FEATURE(AvxSupport);
+        NEM_LOG_REL_XSAVE_FEATURE(Avx2Support);
+        NEM_LOG_REL_XSAVE_FEATURE(FmaSupport);
+        NEM_LOG_REL_XSAVE_FEATURE(MpxSupport);
+        NEM_LOG_REL_XSAVE_FEATURE(Avx512Support);
+        NEM_LOG_REL_XSAVE_FEATURE(Avx512DQSupport);
+        NEM_LOG_REL_XSAVE_FEATURE(Avx512BWSupport);
+        NEM_LOG_REL_XSAVE_FEATURE(Avx512VLSupport);
+        NEM_LOG_REL_XSAVE_FEATURE(XsaveCompSupport);
+        NEM_LOG_REL_XSAVE_FEATURE(XsaveSupervisorSupport);
+        NEM_LOG_REL_XSAVE_FEATURE(Xcr1Support);
+        NEM_LOG_REL_XSAVE_FEATURE(Avx512BitalgSupport);
+        NEM_LOG_REL_XSAVE_FEATURE(Avx512IfmaSupport);
+        NEM_LOG_REL_XSAVE_FEATURE(Avx512VBmiSupport);
+        NEM_LOG_REL_XSAVE_FEATURE(Avx512VBmi2Support);
+        NEM_LOG_REL_XSAVE_FEATURE(Avx512VnniSupport);
+        NEM_LOG_REL_XSAVE_FEATURE(GfniSupport);
+        NEM_LOG_REL_XSAVE_FEATURE(VaesSupport);
+        NEM_LOG_REL_XSAVE_FEATURE(Avx512VPopcntdqSupport);
+        NEM_LOG_REL_XSAVE_FEATURE(VpclmulqdqSupport);
+        NEM_LOG_REL_XSAVE_FEATURE(Avx512Bf16Support);
+        NEM_LOG_REL_XSAVE_FEATURE(Avx512Vp2IntersectSupport);
+        NEM_LOG_REL_XSAVE_FEATURE(Avx512Fp16Support);
+        NEM_LOG_REL_XSAVE_FEATURE(XfdSupport);
+        NEM_LOG_REL_XSAVE_FEATURE(AmxTileSupport);
+        NEM_LOG_REL_XSAVE_FEATURE(AmxBf16Support);
+        NEM_LOG_REL_XSAVE_FEATURE(AmxInt8Support);
+        NEM_LOG_REL_XSAVE_FEATURE(AvxVnniSupport);
+#if WDK_NTDDI_VERSION > MY_NTDDI_WIN11_22000 /** @todo Introduced at some later point. */
+        NEM_LOG_REL_XSAVE_FEATURE(AvxIfmaSupport);
+        NEM_LOG_REL_XSAVE_FEATURE(AvxNeConvertSupport);
+        NEM_LOG_REL_XSAVE_FEATURE(AvxVnniInt8Support);
+        NEM_LOG_REL_XSAVE_FEATURE(AvxVnniInt16Support);
+        NEM_LOG_REL_XSAVE_FEATURE(Avx10_1_256Support);
+        NEM_LOG_REL_XSAVE_FEATURE(Avx10_1_512Support);
+        NEM_LOG_REL_XSAVE_FEATURE(AmxFp16Support);
+#endif
+        const uint64_t fKnownXsave = RT_BIT_64(38) - 1U;
+        if (Caps.ProcessorXsaveFeatures.AsUINT64 & ~fKnownXsave)
+            NEM_LOG_REL_CAP_SUB_EX("Unknown xsave features", "%#RX64", Caps.ProcessorXsaveFeatures.AsUINT64 & ~fKnownXsave);
+
+        pVM->nem.s.fXsaveComp = RT_BOOL(Caps.ProcessorXsaveFeatures.XsaveCompSupport);
+#undef  NEM_LOG_REL_XSAVE_FEATURE
+    }
 
     /*
      * Check supported exception exit bitmap bits.
@@ -732,7 +893,7 @@ static int nemR3WinInitCheckCapabilities(PVM pVM, PRTERRINFO pErrInfo)
     NEM_LOG_REL_CPU_FEATURE(EnhancedFastStringSupport);
     NEM_LOG_REL_CPU_FEATURE(Bmi1Support);
     NEM_LOG_REL_CPU_FEATURE(Bmi2Support);
-    /* two reserved bits here, see below */
+    NEM_LOG_REL_CPU_FEATURE(Reserved1);
     NEM_LOG_REL_CPU_FEATURE(MovbeSupport);
     NEM_LOG_REL_CPU_FEATURE(Npiep1Support);
     NEM_LOG_REL_CPU_FEATURE(DepX87FPUSaveSupport);
@@ -747,9 +908,34 @@ static int nemR3WinInitCheckCapabilities(PVM pVM, PRTERRINFO pErrInfo)
     NEM_LOG_REL_CPU_FEATURE(ClwbSupport);
     NEM_LOG_REL_CPU_FEATURE(ShaSupport);
     NEM_LOG_REL_CPU_FEATURE(X87PointersSavedSupport);
+#if WDK_NTDDI_VERSION >= MY_NTDDI_WIN10_17134 /** @todo maybe some of these were added earlier... */
+    NEM_LOG_REL_CPU_FEATURE(InvpcidSupport);
+    NEM_LOG_REL_CPU_FEATURE(IbrsSupport);
+    NEM_LOG_REL_CPU_FEATURE(StibpSupport);
+    NEM_LOG_REL_CPU_FEATURE(IbpbSupport);
+    NEM_LOG_REL_CPU_FEATURE(Reserved2);
+    NEM_LOG_REL_CPU_FEATURE(SsbdSupport);
+    NEM_LOG_REL_CPU_FEATURE(FastShortRepMovSupport);
+    NEM_LOG_REL_CPU_FEATURE(Reserved3);
+    NEM_LOG_REL_CPU_FEATURE(RdclNo);
+    NEM_LOG_REL_CPU_FEATURE(IbrsAllSupport);
+    NEM_LOG_REL_CPU_FEATURE(Reserved4);
+    NEM_LOG_REL_CPU_FEATURE(SsbNo);
+    NEM_LOG_REL_CPU_FEATURE(RsbANo);
+#endif
+#if WDK_NTDDI_VERSION >= MY_NTDDI_WIN10_19040
+    NEM_LOG_REL_CPU_FEATURE(Reserved5);
+    NEM_LOG_REL_CPU_FEATURE(RdPidSupport);
+    NEM_LOG_REL_CPU_FEATURE(UmipSupport);
+    NEM_LOG_REL_CPU_FEATURE(MdsNoSupport);
+    NEM_LOG_REL_CPU_FEATURE(MdClearSupport);
+#endif
+#if WDK_NTDDI_VERSION >= MY_NTDDI_WIN11_22000
+    NEM_LOG_REL_CPU_FEATURE(TaaNoSupport);
+    NEM_LOG_REL_CPU_FEATURE(TsxCtrlSupport);
+    NEM_LOG_REL_CPU_FEATURE(Reserved6);
+#endif
 #undef NEM_LOG_REL_CPU_FEATURE
-    if (Caps.ProcessorFeatures.AsUINT64 & (~(RT_BIT_64(43) - 1) | RT_BIT_64(27) | RT_BIT_64(28)))
-        LogRel(("NEM: Warning! Unknown CPU features: %#RX64\n", Caps.ProcessorFeatures.AsUINT64));
     pVM->nem.s.uCpuFeatures.u64 = Caps.ProcessorFeatures.AsUINT64;
     /** @todo RECHECK: WHV_PROCESSOR_FEATURES typedef. */
 
@@ -1429,6 +1615,13 @@ int nemR3NativeInitAfterCPUM(PVM pVM)
     AssertReturn(pVM->bMainExecutionEngine == VM_EXEC_ENGINE_NATIVE_API, VERR_WRONG_ORDER);
 
     /*
+     * Determine whether we can and should export/import IA32_SPEC_CTRL.
+     */
+    pVM->nem.s.fDoIa32SpecCtrl = pVM->nem.s.fSpeculationControl
+                              && g_CpumHostFeatures.s.fSpecCtrlMsr
+                              && pVM->cpum.ro.GuestFeatures.fSpecCtrlMsr;
+
+    /*
      * Continue setting up the partition now that we've got most of the CPUID feature stuff.
      */
     WHV_PARTITION_PROPERTY Property;
@@ -1561,6 +1754,21 @@ int nemR3NativeInitAfterCPUM(PVM pVM)
         }
     }
     pVM->nem.s.fCreatedEmts = true;
+
+    /* Determine the size of the xsave area if supported. */
+    if (pVM->nem.s.fXsaveSupported)
+    {
+        pVCpu = pVM->apCpusR3[0];
+        hrc = WHvGetVirtualProcessorXsaveState(pVM->nem.s.hPartition, pVCpu->idCpu, NULL, 0, &pVM->nem.s.cbXSaveArea);
+        AssertLogRelMsgReturn(hrc == WHV_E_INSUFFICIENT_BUFFER, ("WHvGetVirtualProcessorState(%p, %u,%x,,) -> %Rhrc (Last=%#x/%u)\n",
+                              pVM->nem.s.hPartition, pVCpu->idCpu, WHvVirtualProcessorStateTypeXsaveState,
+                              hrc, RTNtLastStatusValue(), RTNtLastErrorValue()), VERR_NEM_VM_CREATE_FAILED);
+        LogRel(("NEM: cbXSaveArea=%u\n", pVM->nem.s.cbXSaveArea));
+        AssertLogRelMsgReturn(pVM->nem.s.cbXSaveArea <= sizeof(pVCpu->cpum.GstCtx.XState),
+                              ("Returned XSAVE area exceeds what VirtualBox supported (%u > %zu)\n",
+                              pVM->nem.s.cbXSaveArea, sizeof(pVCpu->cpum.GstCtx.XState)),
+                              VERR_NEM_VM_CREATE_FAILED);
+    }
 
     LogRel(("NEM: Successfully set up partition (device handle %p, partition ID %#llx)\n", hPartitionDevice, idHvPartition));
 

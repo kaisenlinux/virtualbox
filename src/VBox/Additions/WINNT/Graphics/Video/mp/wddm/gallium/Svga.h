@@ -149,6 +149,8 @@ typedef struct VMSVGACBCONTEXT
     RTLISTANCHOR         QueueSubmitted;           /* Buffers which are being processed by the host. */
     uint32_t             cSubmitted;               /* How many buffers were submitted to the host.
                                                     * Less than SVGA_CB_MAX_QUEUED_PER_CONTEXT */
+    uint32_t             cCompleted;               /* Used by SvgaCmdBufProcess to count how many buffers
+                                                    * were completed by the host */
 } VMSVGACBCONTEXT, *PVMSVGACBCONTEXT;
 
 typedef struct VMSVGACBSTATE
@@ -260,6 +262,7 @@ typedef struct VBOXWDDM_EXT_VMSVGA
 
     VMSVGAOT aOT[SVGA_OTABLE_DX_MAX];
 
+    RTR0MEMOBJ hMemObjMiniportMob; /* MiniportMob memory. */
     PVMSVGAMOB pMiniportMob; /* Used by miniport to communicate with the device. */
     struct VMSVGAMINIPORTMOB volatile *pMiniportMobData; /* Pointer to the miniport mob content. */
 

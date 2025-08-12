@@ -46,6 +46,7 @@ EXPORTS
     UninstallVBoxDrv
     DriverInstall
     DriverUninstall
+    ServiceControl
     CreateHostOnlyInterface
     StopHostOnlyInterfaces
     UpdateHostOnlyInterfaces

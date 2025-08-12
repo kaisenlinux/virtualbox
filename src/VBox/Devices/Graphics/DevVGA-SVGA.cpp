@@ -1774,6 +1774,25 @@ int vmsvgaR3ChangeMode(PVGASTATE pThis, PVGASTATECC pThisCC)
 
 int vmsvgaR3UpdateScreen(PVGASTATECC pThisCC, VMSVGASCREENOBJECT *pScreen, int x, int y, int w, int h)
 {
+    /* The update rectangle should be within the screen dimensions. */
+    SVGASignedRect screenRect;
+    screenRect.left   = 0;
+    screenRect.top    = 0;
+    screenRect.right  = (int32)pScreen->cWidth;
+    screenRect.bottom = (int32)pScreen->cHeight;
+
+    SVGASignedRect clipRect;
+    clipRect.left = (int32)x;
+    clipRect.top  = (int32)y;
+    clipRect.right  = (int32)(x + w);
+    clipRect.bottom = (int32)(y + h);
+    vmsvgaR3ClipRect(&screenRect, &clipRect);
+
+    x = clipRect.left;
+    y = clipRect.top;
+    w = clipRect.right - clipRect.left;
+    h = clipRect.bottom - clipRect.top;
+
     ASSERT_GUEST_LOGREL_MSG_RETURN(w > 0 && h > 0,
                                    ("vmsvgaR3UpdateScreen: screen %d (%d,%d) %dx%d: Invalid height and/or width supplied.\n",
                                    pScreen->idScreen, x, y, w, h),
@@ -3421,9 +3440,11 @@ static SVGACBStatus vmsvgaR3CmdBufDCPreempt(PPDMDEVINS pDevIns, PVMSVGAR3STATE p
  */
 #define VMSVGA_INC_CMD_SIZE_BREAK(a_cbMore) \
      if (1) { \
-          cbCmd += (a_cbMore); \
-          ASSERT_GUEST_MSG_STMT_BREAK(cbRemain >= cbCmd, ("size=%#x remain=%#zx\n", cbCmd, (size_t)cbRemain), CBstatus = SVGA_CB_STATUS_COMMAND_ERROR); \
+          ASSERT_GUEST_MSG_STMT_BREAK(cbRemain >= cbCmd && cbRemain - cbCmd >= (a_cbMore), \
+              ("size=%#x more=%#zx remain=%#x\n", cbCmd, (size_t)(a_cbMore), cbRemain), \
+              CBstatus = SVGA_CB_STATUS_COMMAND_ERROR); \
           RT_UNTRUSTED_VALIDATED_FENCE(); \
+          cbCmd += (a_cbMore); \
      } else do {} while (0)
 
 
@@ -3994,11 +4015,14 @@ static SVGACBStatus vmsvgaR3CmdBufProcessCommands(PPDMDEVINS pDevIns, PVGASTATE 
                 /* The size of this command is specified by the guest and depends on capabilities. */
                 SVGAFifoCmdDefineScreen *pCmd = (SVGAFifoCmdDefineScreen *)&pu8Cmd[cbCmd];
                 VMSVGA_INC_CMD_SIZE_BREAK(sizeof(pCmd->screen.structSize));
-                ASSERT_GUEST_STMT_BREAK(pCmd->screen.structSize < pThis->svga.cbFIFO, CBstatus = SVGA_CB_STATUS_COMMAND_ERROR);
-                RT_UNTRUSTED_VALIDATED_FENCE();
 
-                VMSVGA_INC_CMD_SIZE_BREAK(RT_MAX(sizeof(pCmd->screen.structSize), pCmd->screen.structSize) - sizeof(pCmd->screen.structSize));
-                vmsvgaR3CmdDefineScreen(pThis, pThisCC, pCmd);
+                uint32_t const structSize = RT_MAX(sizeof(pCmd->screen.structSize), pCmd->screen.structSize);
+                VMSVGA_INC_CMD_SIZE_BREAK(structSize - sizeof(pCmd->screen.structSize));
+
+                SVGAFifoCmdDefineScreen cmd;
+                RT_ZERO(cmd);
+                memcpy(&cmd, pCmd, RT_MIN(structSize, sizeof(cmd)));
+                vmsvgaR3CmdDefineScreen(pThis, pThisCC, &cmd);
                 break;
             }
 
@@ -4760,8 +4784,11 @@ static void vmsvgaR3FifoPendingActions(PPDMDEVINS pDevIns, PVGASTATE pThis, PVGA
     {
         vmsvgaR3ChangeMode(pThis, pThisCC);
 # ifdef VBOX_WITH_VMSVGA3D
-        if (pThisCC->svga.p3dState != NULL)
+        if (pThis->svga.f3DEnabled && pThisCC->svga.p3dState != NULL)
+        {
+            /** @todo Implement !f3DEnabled and fVMSVGA2dGBO cases to prevent an occasional blank screens on VM startup */
             vmsvga3dChangeMode(pThisCC);
+        }
 # endif
     }
 }
@@ -7095,7 +7122,7 @@ static void vmsvgaR3Init3DCaps(PVGASTATE pThis, PVGASTATECC pThisCC)
 
     if (!pThis->svga.fVMSVGA2dGBO)
     {
-        for (unsigned i = 0; i <= RT_ELEMENTS(pThis->svga.au32DevCaps); ++i)
+        for (unsigned i = 0; i < RT_ELEMENTS(pThis->svga.au32DevCaps); ++i)
         {
             uint32_t val = 0;
             int rc = vmsvga3dQueryCaps(pThisCC, (SVGA3dDevCapIndex)i, &val);
@@ -7112,9 +7139,10 @@ static void vmsvgaR3Init3DCaps(PVGASTATE pThis, PVGASTATECC pThisCC)
     }
     else
     {
-        pThis->svga.au32DevCaps[SVGA3D_DEVCAP_MAX_TEXTURE_WIDTH]  = 4096;
-        pThis->svga.au32DevCaps[SVGA3D_DEVCAP_MAX_TEXTURE_HEIGHT] = 4096;
-        pThis->svga.au32DevCaps[SVGA3D_DEVCAP_DXFMT_X8R8G8B8] = 0x3f7;
+        /* These max values are used by vmwgfx.ko only to validate a virtual displays layout. */
+        pThis->svga.au32DevCaps[SVGA3D_DEVCAP_MAX_TEXTURE_WIDTH]  = 16384;
+        pThis->svga.au32DevCaps[SVGA3D_DEVCAP_MAX_TEXTURE_HEIGHT] = 16384;
+        pThis->svga.au32DevCaps[SVGA3D_DEVCAP_DXFMT_X8R8G8B8] = SVGA3D_DXFMT_SUPPORTED | SVGA3D_DXFMT_COLOR_RENDERTARGET;
     }
 
     bool const fSavedBuffering = RTLogRelSetBuffering(true);

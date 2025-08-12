@@ -42,6 +42,7 @@
 #include <iprt/buildconfig.h>
 #include <iprt/cdefs.h>
 #include <iprt/dir.h>
+#include <iprt/file.h>
 #include <iprt/ldr.h>
 #include <iprt/list.h>
 #include <iprt/mem.h>
@@ -50,6 +51,7 @@
 #include <iprt/stream.h>
 #include <iprt/string.h>
 #include <iprt/system.h>
+#include <iprt/thread.h> /* For RTThreadSleep(). */
 #include <iprt/utf16.h>
 
 #include <package-generated.h>
@@ -121,6 +123,8 @@ typedef VOID(WINAPI* PFNSETUPCLOSEINFFILE) (HINF InfHandle);
 typedef BOOL(WINAPI* PFNSETUPDIGETINFCLASSW) (PCWSTR, LPGUID, PWSTR, DWORD, PDWORD);
 typedef BOOL(WINAPI* PFNSETUPUNINSTALLOEMINFW) (PCWSTR InfFileName, DWORD Flags, PVOID Reserved);
 typedef BOOL(WINAPI *PFNSETUPSETNONINTERACTIVEMODE) (BOOL NonInteractiveFlag);
+/* advapi32.dll: */
+typedef BOOL(WINAPI *PFNQUERYSERVICESTATUSEX) (SC_HANDLE, SC_STATUS_TYPE, LPBYTE, DWORD, LPDWORD);
 
 /** Function pointer for a general try INF section callback. */
 typedef int (*PFNVBOXWINDRVINST_TRYINFSECTION_CALLBACK)(HINF hInf, PCRTUTF16 pwszSection, void *pvCtx);
@@ -144,6 +148,37 @@ DECL_HIDDEN_DATA(PFNSETUPCLOSEINFFILE)                   g_pfnSetupCloseInfFile 
 DECL_HIDDEN_DATA(PFNSETUPDIGETINFCLASSW)                 g_pfnSetupDiGetINFClassW                 = NULL; /* For W2K+. */
 DECL_HIDDEN_DATA(PFNSETUPUNINSTALLOEMINFW)               g_pfnSetupUninstallOEMInfW               = NULL; /* For XP+.  */
 DECL_HIDDEN_DATA(PFNSETUPSETNONINTERACTIVEMODE)          g_pfnSetupSetNonInteractiveMode          = NULL; /* For W2K+. */
+/* advapi32.dll: */
+DECL_HIDDEN_DATA(PFNQUERYSERVICESTATUSEX)                g_pfnQueryServiceStatusEx                = NULL; /* For W2K+. */
+
+/**
+ * Structure for keeping a single SetupAPI log section.
+ */
+typedef struct VBOXWINDRVSETUPAPILOGSECT
+{
+    /** Section (text) data. */
+    char    *pszBuf;
+    /** Size (in bytes) of \a pszBuf. */
+    size_t   cbBuf;
+    /** Used for internal accounting. Don't touch. */
+    uint64_t offBuf;
+} VBOXWINDRVSETUPAPILOGSECT;
+/** Pointer to a structure for keeping a single SetupAPI log section. */
+typedef VBOXWINDRVSETUPAPILOGSECT *PVBOXWINDRVSETUPAPILOGSECT;
+
+/**
+ * Structure for keeping SetupAPI log instance data.
+ */
+typedef struct VBOXWINDRVSETUPAPILOG
+{
+    /** Array of log sections.
+     *  Not necessarily all sections. */
+    PVBOXWINDRVSETUPAPILOGSECT paSections;
+    /** Number of sections in \a paSections. */
+    unsigned                   cSections;
+} VBOXWINDRVSETUPAPILOG;
+/** Pointer to a structure for keeping SetupAPI log instance data. */
+typedef VBOXWINDRVSETUPAPILOG *PVBOXWINDRVSETUPAPILOG;
 
 /**
  * Structure for keeping the internal Windows driver context.
@@ -193,6 +228,7 @@ typedef struct VBOXWINDRVINSTIMPORTSYMBOL
 *   Prototypes                                                                                                                   *
 *********************************************************************************************************************************/
 static int vboxWinDrvParmsDetermine(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINSTPARMS pParms, bool fForce);
+static int vboxWinDrvInstSetupAPILog(PVBOXWINDRVINSTINTERNAL pCtx, unsigned cLastSections);
 
 
 /*********************************************************************************************************************************
@@ -219,6 +255,13 @@ static VBOXWINDRVINSTIMPORTSYMBOL s_aNewDevImports[] =
     { "DiUninstallDriverW", (void **)&g_pfnDiUninstallDriverW },
     /* Anything older (must support Windows 2000). */
     { "UpdateDriverForPlugAndPlayDevicesW", (void **)&g_pfnUpdateDriverForPlugAndPlayDevicesW }
+};
+
+/* newdev.dll: */
+static VBOXWINDRVINSTIMPORTSYMBOL s_aAdvApi32Imports[] =
+{
+    /* Only for Windows 2000 and up. */
+    { "QueryServiceStatusEx", (void **)&g_pfnQueryServiceStatusEx }
 };
 
 
@@ -472,7 +515,8 @@ static DECLCALLBACK(int) vboxWinDrvInstResolveOnce(void *pvUser)
                                                           s_aSetupApiImports, RT_ELEMENTS(s_aSetupApiImports));
     /* rc ignored, keep going */ vboxWinDrvInstResolveMod(pCtx, "newdev.dll",
                                                           s_aNewDevImports, RT_ELEMENTS(s_aNewDevImports));
-
+    /* rc ignored, keep going */ vboxWinDrvInstResolveMod(pCtx, "advapi32.dll",
+                                                          s_aAdvApi32Imports, RT_ELEMENTS(s_aAdvApi32Imports));
     return VINF_SUCCESS;
 }
 
@@ -1263,8 +1307,34 @@ static int vboxWinDrvInstallPerform(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINS
                     if (dwErr == ERROR_LINE_NOT_FOUND)
                         fRc = true;
 
+                    /*
+                     * Work around an error which occurs on Windows Vista, where DiInstallDriverW() can't handle
+                     * primitive drivers (i.e. [Manufacturer] section is missing). So try installing the detected
+                     * INF section in the next block below.
+                     */
+                    if (dwErr == ERROR_WRONG_INF_TYPE)
+                        fRc = true;
+
+                    /* For anything else we want to get notified that something isn't working. */
                     if (!fRc)
-                        rc = vboxWinDrvInstLogLastError(pCtx, "DiInstallDriverW() failed");
+                    {
+                        switch (dwErr)
+                        {
+                            case ERROR_AUTHENTICODE_TRUST_NOT_ESTABLISHED:
+                            {
+                                /* For silent installs give a clue why this might have failed. */
+                                if (pParms->fFlags & VBOX_WIN_DRIVERINSTALL_F_SILENT)
+                                    vboxWinDrvInstLogWarn(pCtx, "Silent installation was selected, but required certificates "
+                                                                "were not pre-installed into the Windows drvier store, so "
+                                                                "the installation will be rejected automatically");
+                                RT_FALL_THROUGH();
+                            }
+
+                            default:
+                                rc = vboxWinDrvInstLogLastError(pCtx, "DiInstallDriverW() failed");
+                                break;
+                        }
+                    }
                 }
 
                 if (fRc)
@@ -1314,6 +1384,16 @@ static int vboxWinDrvInstallPerform(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINS
                             {
                                 vboxWinDrvInstLogWarn(pCtx, "Not able to select a driver from the given INF, using given model");
                                 break;
+                            }
+
+                            case ERROR_AUTHENTICODE_TRUST_NOT_ESTABLISHED:
+                            {
+                                /* For silent installs give a clue why this might have failed. */
+                                if (pParms->fFlags & VBOX_WIN_DRIVERINSTALL_F_SILENT)
+                                    vboxWinDrvInstLogWarn(pCtx, "Silent installation was selected, but required certificates "
+                                                                "were not pre-installed into the Windows drvier store, so "
+                                                                "the installation will be rejected automatically");
+                                RT_FALL_THROUGH();
                             }
 
                             default:
@@ -1380,6 +1460,10 @@ static int vboxWinDrvInstallPerform(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINS
         default:
             break;
     }
+
+    if (   pCtx->cErrors
+        && !(pParms->fFlags & VBOX_WIN_DRIVERINSTALL_F_DRYRUN))
+        /* ignore rc */ vboxWinDrvInstSetupAPILog(pCtx, pCtx->uVerbosity <= 1 ? 1 : 3 /* Last sections */);
 
     return rc;
 }
@@ -1629,6 +1713,204 @@ static int vboxWinDrvQueryFromDriverStore(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWIN
 }
 
 /**
+ * Destroys setupapi section entries.
+ *
+ * @returns VBox status code.
+ * @param   pLog                SetupAPI log entries to destroy.
+ */
+void vboxWinDrvInstSetupAPILogDestroySections(PVBOXWINDRVSETUPAPILOG pLog)
+{
+    for (unsigned i = 0; i < pLog->cSections; i++)
+    {
+        if (pLog->paSections[i].pszBuf)
+        {
+            RTMemFree(pLog->paSections[i].pszBuf);
+            pLog->paSections[i].pszBuf = NULL;
+        }
+    }
+
+    RTMemFree(pLog->paSections);
+    pLog->cSections = 0;
+}
+
+/**
+ * Queries the last N sections (i.e. tail) from a given setupapi.log file.
+ *
+ * @returns VBox status code.
+ * @param   pCtx                Windows driver installer context.
+ * @param   pszFile             Absolute path to setupapi.log file.
+ * @param   cLastSections       Number of last sections to query.
+ * @param   pLog                Where to store the result.
+ */
+static int vboxWinDrvInstSetupAPILogQuerySections(PVBOXWINDRVINSTINTERNAL pCtx, const char *pszFile,
+                                                  unsigned cLastSections, PVBOXWINDRVSETUPAPILOG pLog)
+{
+    RT_NOREF(pCtx);
+    AssertReturn(cLastSections, VERR_INVALID_PARAMETER);
+
+    /* We only keep the last N sections in our buffers. */
+    unsigned idxSection = 0;
+    AssertReturn(pLog->paSections == NULL && pLog->cSections == 0, VERR_INVALID_PARAMETER);
+    pLog->paSections = (PVBOXWINDRVSETUPAPILOGSECT)RTMemAllocZ(  cLastSections
+                                                               * sizeof(VBOXWINDRVSETUPAPILOGSECT));
+    AssertPtrReturn(pLog->paSections, VERR_NO_TMP_MEMORY);
+    pLog->cSections = cLastSections;
+
+    int rc = VINF_SUCCESS;
+
+    if (RT_FAILURE(rc))
+        return rc;
+
+    RTFILE hFile;
+    rc = RTFileOpen(&hFile, pszFile, RTFILE_O_OPEN | RTFILE_O_READ | RTFILE_O_DENY_WRITE);
+    if (RT_SUCCESS(rc))
+    {
+        char szLine[_1K];
+        for (;;)
+        {
+            size_t cbRead;
+            rc = RTFileRead(hFile, szLine, sizeof(szLine), &cbRead);
+            if (   !cbRead
+                || RT_FAILURE(rc))
+                break;
+            const char *pszEnd = RTStrStr(szLine, "\n");
+            size_t const cbLine = pszEnd - szLine + 1 /* Include '\n' */;
+            if (   !pszEnd
+                || !cbLine)
+                break;
+            rc = RTFileSeek(hFile, 0 - cbRead + cbLine + 0 /* Skip EOL terminator */, RTFILE_SEEK_CURRENT, NULL);
+            AssertRCBreak(rc);
+            szLine[cbLine] = '\0';
+            const char *pszSectionStart = RTStrStr(szLine, "Section start");
+            if (pszSectionStart)
+            {
+                if (++idxSection >= cLastSections)
+                    idxSection = 0;
+#ifdef DEBUG
+                vboxWinDrvInstLogVerbose(pCtx, 4, "Section@%08RU64: %.*s -> Stored in #%u (%zu)",
+                                         RTFileTell(hFile), cbLine - 1 /* Skip '\n' */, szLine, idxSection, pLog->paSections[idxSection].cbBuf);
+#endif
+                pLog->paSections[idxSection].offBuf = 0;
+            }
+            if (pLog->paSections[idxSection].offBuf + cbLine + 0 /* Terminator */ >= pLog->paSections[idxSection].cbBuf)
+            {
+                size_t const cbGrow = _64K;
+                pLog->paSections[idxSection].pszBuf =
+                                      pLog->paSections[idxSection].pszBuf == NULL
+                                    ? (char *)RTMemAlloc(cbGrow)
+                                    : (char *)RTMemRealloc(pLog->paSections[idxSection].pszBuf, pLog->paSections[idxSection].cbBuf + cbGrow);
+                pLog->paSections[idxSection].cbBuf += cbGrow;
+            }
+            AssertBreakStmt(pLog->paSections[idxSection].offBuf + cbLine < pLog->paSections[idxSection].cbBuf, rc = VERR_BUFFER_OVERFLOW);
+            memcpy(pLog->paSections[idxSection].pszBuf + pLog->paSections[idxSection].offBuf, szLine, cbLine);
+#ifdef DEBUG
+            vboxWinDrvInstLogVerbose(pCtx, 4, "Section #%u: %.*s", idxSection, cbLine - 1 /* Skip '\n' */, pLog->paSections[idxSection].pszBuf + pLog->paSections[idxSection].offBuf);
+#endif
+            pLog->paSections[idxSection].offBuf += cbLine;
+            pLog->paSections[idxSection].pszBuf[pLog->paSections[idxSection].offBuf] = '\0';
+        }
+
+        RTFileClose(hFile);
+
+        if (RT_FAILURE(rc))
+            vboxWinDrvInstSetupAPILogDestroySections(pLog);
+    }
+
+    return rc;
+}
+
+/**
+ * Logs the setupapi(.dev).log file to the installation logging instance.
+ *
+ * @returns VBox status code.
+ * @param   pCtx                Windows driver installer context.
+ * @param   cLastSections       Number of installation sections to log (i.e. tail).
+ */
+static int vboxWinDrvInstSetupAPILog(PVBOXWINDRVINSTINTERNAL pCtx, unsigned cLastSections)
+{
+    int rc;
+
+    /* Note: Don't call vboxWinDrvInstLogError() here to prevent increasing the errror count. */
+
+    RTUTF16 wszWinDir[RTPATH_MAX];
+    if (GetWindowsDirectoryW(wszWinDir, RTPATH_MAX))
+    {
+        char *pszWinDir = NULL;
+        rc = RTUtf16ToUtf8(wszWinDir, &pszWinDir);
+        if (RT_SUCCESS(rc))
+        {
+            static const char *s_asLogLocations[] =
+            {
+                "INF\\setupapi.dev.log",
+                /* Combined log (<= Windows XP, including NT4). */
+                "setupapi.log",
+            };
+
+            for (size_t i = 0; i < RT_ELEMENTS(s_asLogLocations); i++)
+            {
+                char szSetupAPILog[RTPATH_MAX];
+                rc = RTStrCopy(szSetupAPILog, sizeof(szSetupAPILog), pszWinDir);
+                if (RT_SUCCESS(rc))
+                {
+                    rc = RTPathAppend(szSetupAPILog, sizeof(szSetupAPILog), s_asLogLocations[i]);
+                    if (RT_SUCCESS(rc))
+                    {
+                        VBOXWINDRVSETUPAPILOG Log;
+                        RT_ZERO(Log);
+                        rc = vboxWinDrvInstSetupAPILogQuerySections(pCtx, szSetupAPILog, cLastSections, &Log);
+                        if (RT_SUCCESS(rc))
+                        {
+                            vboxWinDrvInstLogInfo(pCtx, "Output of '%s' (last %u sections):", szSetupAPILog, cLastSections);
+
+                            for (unsigned s = 0; s < Log.cSections; s++)
+                            {
+                                if (Log.paSections[s].pszBuf)
+                                    vboxWinDrvInstLogInfo(pCtx, "%s", Log.paSections[s].pszBuf);
+                            }
+
+                            vboxWinDrvInstSetupAPILogDestroySections(&Log);
+                        }
+                        else if (rc != VERR_FILE_NOT_FOUND) /* Skip non-existing log files. */
+                             vboxWinDrvInstLogEx(pCtx, VBOXWINDRIVERLOGTYPE_ERROR,
+                                                 "Error processing '%s', rc=%Rrc", szSetupAPILog, rc);
+
+                        vboxWinDrvInstLogVerbose(pCtx, 1, "Processed '%s' with %Rrc", szSetupAPILog, rc);
+
+                        if (rc == VERR_FILE_NOT_FOUND) /* Ditto. */
+                            rc = VINF_SUCCESS;
+                    }
+                }
+            }
+
+            RTStrFree(pszWinDir);
+            pszWinDir = NULL;
+        }
+    }
+    else
+        rc = vboxWinDrvInstLogLastError(pCtx, "Could not determine Windows installation directory");
+
+    if (RT_FAILURE(rc))
+        vboxWinDrvInstLogEx(pCtx, VBOXWINDRIVERLOGTYPE_ERROR, "Error retrieving SetupAPI log, rc=%Rrc", rc);
+
+    return rc;
+}
+
+/**
+ * Logs the setupapi(.dev).log file to the installation logging instance.
+ *
+ * @returns VBox status code.
+ * @param   hDrvInst            Windows driver installer handle to use.
+ * @param   cLastSections       Number of installation sections to log (i.e. tail).
+ */
+int VBoxWinDrvInstLogSetupAPI(VBOXWINDRVINST hDrvInst, unsigned cLastSections)
+{
+    PVBOXWINDRVINSTINTERNAL pCtx = hDrvInst;
+    VBOXWINDRVINST_VALID_RETURN(pCtx);
+
+    return vboxWinDrvInstSetupAPILog(pCtx, cLastSections);
+}
+
+/**
  * Callback implementation for invoking a section for uninstallation.
  *
  * @returns VBox status code.
@@ -1786,6 +2068,10 @@ static int vboxWinDrvUninstallPerform(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVI
             break;
     }
 
+    if (   pCtx->cErrors
+        && !(pParms->fFlags & VBOX_WIN_DRIVERINSTALL_F_DRYRUN))
+        /* ignore rc */ vboxWinDrvInstSetupAPILog(pCtx, pCtx->uVerbosity <= 1 ? 1 : 3 /* Last sections */);
+
     return rc;
 }
 
@@ -1854,6 +2140,10 @@ static int vboxWinDrvInstMain(PVBOXWINDRVINSTINTERNAL pCtx, PVBOXWINDRVINSTPARMS
         vboxWinDrvInstLogEx(pCtx, VBOXWINDRIVERLOGTYPE_WARN, "%sstalling driver(s) succeeded with %u warnings",
                             fInstall ? "In" : "Unin", pCtx->cWarnings);
 
+    if (   pCtx->cErrors
+        || pCtx->uVerbosity)
+        /* ignore rc */ vboxWinDrvInstSetupAPILog(pCtx, pCtx->uVerbosity <= 1 ? 1 : 3 /* Last sections */);
+
     return rc;
 }
 
@@ -1878,13 +2168,56 @@ int VBoxWinDrvInstCreateEx(PVBOXWINDRVINST phDrvInst, unsigned uVerbosity, PFNVB
         pCtx->pfnLog     = pfnLog;
         pCtx->pvUser     = pvUser;
 
+        /* 1. Detect the Windows version using API calls. */
         pCtx->uOsVer     = RTSystemGetNtVersion(); /* Might be overwritten later via VBoxWinDrvInstSetOsVersion(). */
 
+        /* 2. Detect the Windows from the registry. */
+        HKEY hKey;
+        LSTATUS lrc = RegOpenKeyExW(HKEY_LOCAL_MACHINE, L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", 0, KEY_READ, &hKey);
+        if (lrc == ERROR_SUCCESS)
+        {
+            DWORD dwMaj;
+            rc = VBoxWinDrvRegQueryDWORD(hKey, "CurrentMajorVersionNumber", &dwMaj);
+            if (RT_SUCCESS(rc))
+            {
+                DWORD dwMin;
+                rc = VBoxWinDrvRegQueryDWORD(hKey, "CurrentMinorVersionNumber", &dwMin);
+                if (RT_SUCCESS(rc))
+                {
+                    uint64_t const uRegOsVer = RTSYSTEM_MAKE_NT_VERSION(dwMaj, dwMin, 0 /* Build, ignored */);
+
+                    /* When running this code in context of an MSI installer, the MSI engine might shim the Windows
+                     * version which is being reported via API calls. So compare the both OS versions
+                     * and prefer the one being reported via the registry if they don't match.
+                     * Ignore the build number (too specific).
+                     *
+                     * The OS version to use still can be later tweaked using VBoxWinDrvInstSetOsVersion(). */
+                    if (   (   RTSYSTEM_NT_VERSION_GET_MAJOR(pCtx->uOsVer) != RTSYSTEM_NT_VERSION_GET_MAJOR(uRegOsVer)
+                            || RTSYSTEM_NT_VERSION_GET_MINOR(pCtx->uOsVer) != RTSYSTEM_NT_VERSION_GET_MINOR(uRegOsVer))
+                        && RTSYSTEM_NT_VERSION_GET_MAJOR(uRegOsVer) > 4 /* Only XP+ */)
+                    {
+                        vboxWinDrvInstLogInfo(pCtx, "Detected Windows version (%u.%u) does not match the one stored in the registry (%u.%u)",
+                                              RTSYSTEM_NT_VERSION_GET_MAJOR(pCtx->uOsVer),
+                                              RTSYSTEM_NT_VERSION_GET_MINOR(pCtx->uOsVer),
+                                              RTSYSTEM_NT_VERSION_GET_MAJOR(uRegOsVer),
+                                              RTSYSTEM_NT_VERSION_GET_MINOR(uRegOsVer));
+                        vboxWinDrvInstLogInfo(pCtx, "This might be due a compatibility layer or MSI installer engine shimming the Windows version");
+
+                        /* Override the OS version from the API with the one found in the registry. */
+                        VBoxWinDrvInstSetOsVersion(pCtx, uRegOsVer);
+                    }
+                }
+            }
+
+            RegCloseKey(hKey);
+        }
+        /* else not fatal. */
+
         vboxWinDrvInstLogInfo(pCtx, VBOX_PRODUCT " Version " VBOX_VERSION_STRING " - r%s", RTBldCfgRevisionStr());
-        vboxWinDrvInstLogInfo(pCtx, "Detected Windows version %d.%d.%d (%s)", RTSYSTEM_NT_VERSION_GET_MAJOR(pCtx->uOsVer),
-                                                                              RTSYSTEM_NT_VERSION_GET_MINOR(pCtx->uOsVer),
-                                                                              RTSYSTEM_NT_VERSION_GET_BUILD(pCtx->uOsVer),
-                                                                              RTBldCfgTargetArch());
+        vboxWinDrvInstLogInfo(pCtx, "Using Windows version %d.%d.%d (%s)", RTSYSTEM_NT_VERSION_GET_MAJOR(pCtx->uOsVer),
+                                                                           RTSYSTEM_NT_VERSION_GET_MINOR(pCtx->uOsVer),
+                                                                           RTSYSTEM_NT_VERSION_GET_BUILD(pCtx->uOsVer),
+                                                                           RTBldCfgTargetArch());
 
         rc = RTOnce(&g_vboxWinDrvInstResolveOnce, vboxWinDrvInstResolveOnce, pCtx);
         if (RT_SUCCESS(rc))
@@ -1984,8 +2317,8 @@ void VBoxWinDrvInstSetOsVersion(VBOXWINDRVINST hDrvInst, uint64_t uOsVer)
 
     pCtx->uOsVer = uOsVer;
 
-    vboxWinDrvInstLogInfo(pCtx, "Set OS version to: %u.%u\n", RTSYSTEM_NT_VERSION_GET_MAJOR(pCtx->uOsVer),
-                                                              RTSYSTEM_NT_VERSION_GET_MINOR(pCtx->uOsVer));
+    vboxWinDrvInstLogInfo(pCtx, "Set OS version to: %u.%u", RTSYSTEM_NT_VERSION_GET_MAJOR(pCtx->uOsVer),
+                                                            RTSYSTEM_NT_VERSION_GET_MINOR(pCtx->uOsVer));
 }
 
 /**
@@ -2209,6 +2542,263 @@ int VBoxWinDrvInstUninstallExecuteInf(VBOXWINDRVINST hDrvInst, const char *pszIn
     return VBoxWinDrvInstExecuteInfWorker(hDrvInst, false /* fInstall */, pszInfFile, pszSection, fFlags);
 }
 
+/**
+ * Controls a Windows service, internal version.
+ *
+ * @returns VBox status code.
+ * @retval  VERR_NOT_FOUND if the given service was not found.
+ * @param   hDrvInst            Windows driver installer handle to use.
+ * @param   pszService          Name of service to control.
+ * @param   enmFn               Service control function to use.
+ *                              VBOXWINDRVSVCFN_RESTART is not implemented and must be composed of
+ *                              VBOXWINDRVSVCFN_START + VBOXWINDRVSVCFN_STOP by the caller.
+ * @param   fFlags              Service control flags (of type VBOXWINDRVSVCFN_F_XXX) to use.
+ * @param   msTimeout           Timeout (in ms) to use. Ignored if VBOXWINDRVSVCFN_F_WAIT is missing in \a fFlags.
+ */
+static int vboxWinDrvInstControlServiceEx(PVBOXWINDRVINSTINTERNAL pCtx,
+                                          const char *pszService, VBOXWINDRVSVCFN enmFn, uint32_t fFlags, RTMSINTERVAL msTimeout)
+{
+    AssertPtrReturn(pszService, VERR_INVALID_POINTER);
+    AssertReturn(!(fFlags & ~VBOXWINDRVSVCFN_F_VALID_MASK), VERR_INVALID_PARAMETER);
+    AssertReturn(enmFn > VBOXWINDRVSVCFN_INVALID && enmFn < VBOXWINDRVSVCFN_END, VERR_INVALID_PARAMETER);
+    AssertReturn(!(fFlags & VBOXWINDRVSVCFN_F_WAIT) || msTimeout, VERR_INVALID_PARAMETER);
+
+    PRTUTF16 pwszService;
+    int rc = RTStrToUtf16(pszService, &pwszService);
+    if (RT_FAILURE(rc))
+        return rc;
+
+    SC_HANDLE hSvc = NULL;
+    SC_HANDLE hSCM = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS);
+    if (hSCM != NULL)
+    {
+        hSvc = OpenServiceW(hSCM, pwszService, SERVICE_ALL_ACCESS | SERVICE_QUERY_STATUS);
+        if (hSvc == NULL)
+        {
+            rc = RTErrConvertFromWin32(GetLastError());
+            if (rc != VERR_NOT_FOUND)
+                rc = vboxWinDrvInstLogLastError(pCtx, "Opening service '%s' failed", pszService);
+        }
+    }
+    else
+        rc = vboxWinDrvInstLogLastError(pCtx, "Opening Service Control Manager (SCM) failed");
+
+    if (RT_FAILURE(rc))
+    {
+        RTUtf16Free(pwszService);
+        if (hSvc)
+            CloseServiceHandle(hSvc);
+        if (hSCM)
+            CloseServiceHandle(hSCM);
+        return rc;
+    }
+
+    SERVICE_STATUS_PROCESS enmSvcSts;
+
+    switch (enmFn)
+    {
+        case VBOXWINDRVSVCFN_START:
+        {
+            if (!StartService(hSvc, 0, NULL))
+            {
+                if (GetLastError() == ERROR_SERVICE_ALREADY_RUNNING)
+                    break;
+
+                /** @todo Also handle disabled services here? */
+
+                rc = vboxWinDrvInstLogLastError(pCtx, "Starting service '%s' failed", pszService);
+            }
+            else
+                vboxWinDrvInstLogInfo(pCtx, "Starting service '%s' ...", pszService);
+            break;
+        }
+
+        case VBOXWINDRVSVCFN_STOP:
+        {
+            if (!ControlService(hSvc, SERVICE_CONTROL_STOP, (LPSERVICE_STATUS)&enmSvcSts))
+            {
+                DWORD const dwErr = GetLastError();
+
+                /* A not active or disabled service is not an error, so just skip. */
+                if (   dwErr == ERROR_SERVICE_DISABLED
+                    || dwErr == ERROR_SERVICE_NOT_ACTIVE)
+                    break;
+
+                rc = vboxWinDrvInstLogLastError(pCtx, "Stopping service '%s' failed", pszService);
+            }
+            else
+                vboxWinDrvInstLogInfo(pCtx, "Stopping service '%s' ...", pszService);
+            break;
+        }
+
+        case VBOXWINDRVSVCFN_DELETE:
+        {
+            if (!DeleteService(hSvc))
+                rc = vboxWinDrvInstLogLastError(pCtx, "Deleting service '%s' failed", pszService);
+            else
+            {
+                vboxWinDrvInstLogInfo(pCtx, "Successfully deleted service '%s'", pszService);
+                fFlags &= ~VBOXWINDRVSVCFN_F_WAIT; /* Drop the wait flag, makes no sense here. */
+            }
+            break;
+        }
+
+        default:
+            AssertFailedStmt(rc = VERR_NOT_SUPPORTED);
+            break;
+    }
+
+    if (RT_SUCCESS(rc))
+    {
+        if (fFlags & VBOXWINDRVSVCFN_F_WAIT)
+        {
+            uint64_t const msStartTS = RTTimeMilliTS();
+
+            rc = VERR_NO_CHANGE; /* No change yet. */
+
+            if (!g_pfnQueryServiceStatusEx)
+            {
+                vboxWinDrvInstLogWarn(pCtx, "Waiting for status change of service '%s' not supported on this OS, skipping",
+                                      pszService);
+                rc = VINF_SUCCESS;
+            }
+            else
+            {
+                vboxWinDrvInstLogInfo(pCtx, "Waiting for status change of service '%s' (%ums timeout) ...", pszService, msTimeout);
+                for (;;)
+                {
+                    DWORD dwBytes;
+                    if (!g_pfnQueryServiceStatusEx(hSvc,
+                                                   SC_STATUS_PROCESS_INFO,
+                                                   (LPBYTE)&enmSvcSts,
+                                                   sizeof(SERVICE_STATUS_PROCESS),
+                                                   &dwBytes))
+                    {
+                        rc = vboxWinDrvInstLogLastError(pCtx, "Failed to query service status");
+                        break;
+                    }
+
+                    if ((RTTimeMilliTS() - msStartTS) % RT_MS_1SEC == 0) /* Don't spam. */
+                        vboxWinDrvInstLogVerbose(pCtx, 3, "Service '%s' status is %#x: %u",
+                                                 pszService, enmSvcSts.dwCurrentState, (RTTimeMilliTS() - msStartTS) % 100 == 0);
+
+                    switch (enmSvcSts.dwCurrentState)
+                    {
+                        case SERVICE_STOP_PENDING:
+                        case SERVICE_START_PENDING:
+                            RTThreadSleep(100); /* Wait a bit before retrying. */
+                            break;
+
+                        case SERVICE_RUNNING:
+                        {
+                            if (enmFn == VBOXWINDRVSVCFN_START)
+                                rc = VINF_SUCCESS;
+                            break;
+                        }
+
+                        case SERVICE_STOPPED:
+                        {
+                            if (enmFn == VBOXWINDRVSVCFN_START)
+                            {
+                                vboxWinDrvInstLogError(pCtx, "Service '%s' stopped unexpectedly", pszService);
+                                rc = VERR_INVALID_STATE;
+                            }
+                            else
+                                rc = VINF_SUCCESS;
+                            break;
+                        }
+
+                        default:
+                        {
+                            vboxWinDrvInstLogError(pCtx, "Service '%s' reported an unexpected state (%#x)",
+                                                   pszService, enmSvcSts.dwCurrentState);
+                            rc = VERR_INVALID_STATE;
+                        }
+                    }
+
+                    if (   RT_FAILURE(rc)
+                        && rc != VERR_NO_CHANGE)
+                        break;
+
+                    if (RT_SUCCESS(rc))
+                        break;
+
+                    if (RTTimeMilliTS() - msStartTS >= msTimeout)
+                    {
+                        vboxWinDrvInstLogError(pCtx, "Waiting for service '%s' timed out (%ums)", pszService, msTimeout);
+                        rc = VERR_TIMEOUT;
+                        break;
+                    }
+                }
+            }
+
+            if (RT_SUCCESS(rc))
+                vboxWinDrvInstLogInfo(pCtx, "Service '%s' successfully %s",
+                                      pszService, enmFn == VBOXWINDRVSVCFN_START ? "started" : "stopped");
+        }
+        else
+            vboxWinDrvInstLogVerbose(pCtx, 1, "Service '%s' was %s asynchronously",
+                                     pszService, enmFn == VBOXWINDRVSVCFN_START ? "started" : "stopped");
+    }
+
+    RTUtf16Free(pwszService);
+    CloseServiceHandle(hSvc);
+    CloseServiceHandle(hSCM);
+    return rc;
+}
+
+/**
+ * Controls a Windows service, extended version.
+ *
+ * @returns VBox status code.
+ * @param   hDrvInst            Windows driver installer handle to use.
+ * @param   pszService          Name of service to control.
+ * @param   enmFn               Service control function to use.
+ * @param   fFlags              Service control flags (of type VBOXWINDRVSVCFN_F_XXX) to use.
+ * @param   msTimeout           Timeout (in ms) to use. Only being used if VBOXWINDRVSVCFN_F_WAIT is specified in \a fFlags.
+ */
+int VBoxWinDrvInstControlServiceEx(VBOXWINDRVINST hDrvInst,
+                                    const char *pszService, VBOXWINDRVSVCFN enmFn, uint32_t fFlags, RTMSINTERVAL msTimeout)
+{
+    PVBOXWINDRVINSTINTERNAL pCtx = hDrvInst;
+    VBOXWINDRVINST_VALID_RETURN(pCtx);
+
+#define CONTROL_SERVICE(a_Fn) \
+    vboxWinDrvInstControlServiceEx(pCtx, pszService, a_Fn, fFlags, msTimeout);
+
+    int rc;
+    if (enmFn == VBOXWINDRVSVCFN_RESTART)
+    {
+        rc = CONTROL_SERVICE(VBOXWINDRVSVCFN_STOP);
+        if (RT_SUCCESS(rc))
+            rc = CONTROL_SERVICE(VBOXWINDRVSVCFN_START);
+    }
+    else
+        rc = CONTROL_SERVICE(enmFn);
+
+#undef CONTROL_SERVICE
+    return rc;
+}
+
+/**
+ * Controls a Windows service.
+ *
+ * @returns VBox status code.
+ * @param   hDrvInst            Windows driver installer handle to use.
+ * @param   pszService          Name of service to control.
+ * @param   enmFn               Service control function to use.
+ *
+ * @note    Function waits 30s for the service to reach the desired control function.
+ *          Use VBooxWinDrvInstControlServiceEx() for more flexibility.
+ */
+int VBoxWinDrvInstControlService(VBOXWINDRVINST hDrvInst, const char *pszService, VBOXWINDRVSVCFN enmFn)
+{
+    PVBOXWINDRVINSTINTERNAL pCtx = hDrvInst;
+    VBOXWINDRVINST_VALID_RETURN(pCtx);
+
+    return VBoxWinDrvInstControlServiceEx(pCtx, pszService, enmFn, VBOXWINDRVSVCFN_F_WAIT, RT_MS_30SEC);
+}
+
 #ifdef TESTCASE
 /**
  * Returns the internal parameters of an (un)installation.
@@ -2234,4 +2824,3 @@ void VBoxWinDrvInstTestParmsDestroy(PVBOXWINDRVINSTPARMS pParms)
     vboxWinDrvInstParmsDestroy(pParms);
 }
 #endif /* TESTCASE */
-

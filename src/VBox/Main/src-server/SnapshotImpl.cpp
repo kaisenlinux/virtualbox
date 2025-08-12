@@ -781,7 +781,7 @@ bool Snapshot::i_sharesSavedStateFile(const Utf8Str &strPath,
         llSnapshotsTodo.pop_front();
         const Utf8Str &path = pSnapshot->m->pMachine->mSSData->strStateFilePath;
 
-        if ((!pSnapshotToIgnore || pSnapshotToIgnore != this) && path.isNotEmpty())
+        if ((!pSnapshotToIgnore || pSnapshotToIgnore != pSnapshot) && path.isNotEmpty())
             if (path == strPath)
                 return true;
 
@@ -852,7 +852,7 @@ void Snapshot::i_updateNVRAMPaths(const Utf8Str &strOldPath,
     AutoWriteLock alock(m->pMachine COMMA_LOCKVAL_SRC_POS);
 
     // call the implementation under the tree lock
-    i_updateSavedStatePathsImpl(strOldPath, strNewPath);
+    i_updateNVRAMPathsImpl(strOldPath, strNewPath);
 }
 
 /**

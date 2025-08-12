@@ -449,6 +449,7 @@ void UIWizardNewVMExpertPage::initializePage()
     {
         m_pGAInstallationISOContainer->blockSignals(true);
         m_pGAInstallationISOContainer->setChecked(pWizard->installGuestAdditions());
+        m_pGAInstallationISOContainer->setPath(pWizard->guestAdditionsISOPath());
         m_pGAInstallationISOContainer->blockSignals(false);
     }
 
@@ -468,12 +469,14 @@ void UIWizardNewVMExpertPage::markWidgets() const
     if (m_pNameAndSystemEditor)
     {
         m_pNameAndSystemEditor->markNameEditor(m_pNameAndSystemEditor->name().isEmpty(),
-                                               tr("Guest machine name cannot be empty"), tr("Guest machine name is valid"));
+                                               UIWizardNewVM::tr("Guest machine name cannot be empty"),
+                                               UIWizardNewVM::tr("Guest machine name is valid"));
         m_pNameAndSystemEditor->markImageEditor(!UIWizardNewVMNameOSTypeCommon::checkISOFile(m_pNameAndSystemEditor),
                                                 UIWizardNewVM::tr("Invalid file path or unreadable file"),
                                                 UIWizardNewVM::tr("File path is valid"));
         m_pNameAndSystemEditor->markNameEditor((QDir(m_pNameAndSystemEditor->fullPath()).exists()),
-                                               tr("Guest machine path is not unique"), tr("Guest machine name is valid"));
+                                               UIWizardNewVM::tr("Guest machine path is not unique"),
+                                               UIWizardNewVM::tr("Guest machine name is valid"));
     }
     UIWizardNewVM *pWizard = wizardWindow<UIWizardNewVM>();
     if (pWizard && pWizard->installGuestAdditions() && m_pGAInstallationISOContainer)

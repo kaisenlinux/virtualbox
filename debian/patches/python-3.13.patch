@@ -1,8 +1,8 @@
 Author: Kevin Chevreuil - Kaisen <kaisen@kaisenlinux.org>
 
---- virtualbox-7.1.6.orig/configure
-+++ virtualbox-7.1.6/configure
-@@ -2182,7 +2182,7 @@ extern "C" int main(void)
+--- virtualbox-7.1.12.orig/configure
++++ virtualbox-7.1.12/configure
+@@ -2151,7 +2151,7 @@ extern "C" int main(void)
  }
  EOF
    found=

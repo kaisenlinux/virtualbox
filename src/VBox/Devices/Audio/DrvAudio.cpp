@@ -3168,8 +3168,8 @@ static int drvAudioStreamPreBufComitting(PDRVAUDIO pThis, PDRVAUDIOSTREAM pStrea
         uint32_t cbPreBufWritten = 0;
         rc = pThis->pHostDrvAudio->pfnStreamPlay(pThis->pHostDrvAudio, pStreamEx->pBackend, &pStreamEx->Out.pbPreBuf[off],
                                                  cbToWrite, &cbPreBufWritten);
-        AssertRCBreak(rc);
-        if (!cbPreBufWritten)
+        if (   RT_FAILURE(rc)
+            || !cbPreBufWritten)
             break;
         AssertStmt(cbPreBufWritten <= cbToWrite, cbPreBufWritten = cbToWrite);
         off     = (off + cbPreBufWritten) % cbAlloc;
@@ -4776,6 +4776,7 @@ static DECLCALLBACK(int) drvAudioConstruct(PPDMDRVINS pDrvIns, PCFGMNODE pCfg, u
                                   "DriverName|"
                                   "InputEnabled|"
                                   "OutputEnabled|"
+                                  "CacheEnabled|"
                                   "DebugEnabled|"
                                   "DebugPathOut|"
                                   /* Deprecated: */
